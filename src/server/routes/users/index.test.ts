@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { ZodError } from 'zod';
 import { BackendError } from '@/server/errors';
 import { callRoute } from '@/server/testing';
 import type { GetUserOutput, ListUsersOutput } from '@/types/user';
@@ -55,5 +56,20 @@ describe('users.get', () => {
         e.status === 404 &&
         e.code === 'NOT_FOUND',
     );
+  });
+
+  it('rejects missing id via Zod (VALIDATION)', async () => {
+    await expect(
+      callRoute(['users', 'get'], { headers: asUser, input: {} }),
+    ).rejects.toBeInstanceOf(ZodError);
+  });
+
+  it('rejects non-string id via Zod', async () => {
+    await expect(
+      callRoute(['users', 'get'], {
+        headers: asUser,
+        input: { id: 42 },
+      }),
+    ).rejects.toBeInstanceOf(ZodError);
   });
 });

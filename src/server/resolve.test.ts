@@ -4,7 +4,7 @@ import { defineRoute } from './defineRoute';
 import { resolvePath } from './resolve';
 import type { Middleware } from './types';
 
-const mk = (tag: string): Middleware => async (_c, n) => n();
+const mk = (): Middleware => async (_c, n) => n();
 
 describe('resolvePath', () => {
   it('resolves a top-level route and returns no middleware', () => {
@@ -17,8 +17,8 @@ describe('resolvePath', () => {
 
   it('collects middleware from every namespace traversed', () => {
     const r = defineRoute<void, string>({ handler: () => 'x' });
-    const outer = mk('outer');
-    const mid = mk('mid');
+    const outer = mk();
+    const mid = mk();
     const ns = defineNamespace({
       middleware: [outer],
       routes: {

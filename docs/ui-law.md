@@ -34,41 +34,67 @@ See `docs/organization.md` for file-length thresholds and the full decision tabl
 
 ## 2. Colors
 
-_Empty — fill as you adopt. Every row names a semantic role and the Tailwind classes for light and dark. No arbitrary hex, no foreign palettes once a palette is chosen._
+Neutral palette: **`zinc`**. Semantic: **`red`** for errors. Rationale: matches shadcn `base-nova` neutral base; zinc is the default shadcn theme and renders well in both light and dark. No other palettes (no slate, gray, neutral, stone). No arbitrary hex.
 
-| Purpose | Light | Dark |
-|---------|-------|------|
-| *(add rows as you adopt them)* |  |  |
+| Purpose                  | Light                       | Dark                          |
+|--------------------------|-----------------------------|-------------------------------|
+| Page background          | `bg-zinc-50`                | `dark:bg-black`               |
+| Card / surface           | `bg-white`                  | `dark:bg-zinc-950`            |
+| Subtle / code-block surface | `bg-zinc-100`            | `dark:bg-zinc-900`            |
+| Inline-code surface      | `bg-zinc-200`               | `dark:bg-zinc-800`            |
+| Card border              | `border-zinc-200`           | `dark:border-zinc-800`        |
+| Input border             | `border-zinc-300`           | `dark:border-zinc-700`        |
+| Text primary             | `text-zinc-950`             | `dark:text-zinc-50`           |
+| Text secondary           | `text-zinc-600`             | `dark:text-zinc-400`          |
+| Text muted               | `text-zinc-500`             | *(no dark override — stays)*  |
+| Error text               | `text-red-600`              | `dark:text-red-400`           |
 
 ---
 
 ## 3. Spacing
 
-_Empty — fill as you adopt. Record every spacing step you use (and where) so values don't proliferate. No arbitrary pixel values (`p-[13px]`)._
+Tailwind's default numeric scale only. Allowed step values: `0.5, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20`. No arbitrary values (`p-[13px]`).
 
-| Context | Class |
-|---------|-------|
-| *(add rows as you adopt them)* |  |
+| Context                   | Class            |
+|---------------------------|------------------|
+| Tight stack (button row)  | `gap-2`          |
+| Card contents / row       | `gap-3`          |
+| Between sections          | `gap-8`          |
+| Page-level section gap    | `gap-10`         |
+| Card padding              | `p-5`            |
+| Code-block padding        | `p-3`            |
+| Inline code padding       | `px-1 py-0.5`    |
+| Input padding             | `px-3 py-2`      |
+| Page horizontal padding   | `px-8`           |
+| Page vertical padding     | `py-20`          |
 
 ---
 
 ## 4. Typography
 
-_Empty — fill as you adopt. Name each text role (eyebrow, h1, body, caption, inline-code, code-block, error, …) and the class string that produces it. Rely on a small set of font weights and sizes._
+Font family: inherits (`font-sans`). Weights used: `400` (default), `500` (medium), `600` (semibold).
 
-| Role | Class |
-|------|-------|
-| *(add rows as you adopt them)* |  |
+| Role             | Class                                                                 |
+|------------------|-----------------------------------------------------------------------|
+| Eyebrow          | `text-xs font-medium uppercase tracking-widest text-zinc-500`         |
+| H1 (page title)  | `text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50` |
+| Body             | `text-base leading-7 text-zinc-600 dark:text-zinc-400`                |
+| Small / caption  | `text-xs text-zinc-500`                                               |
+| Inline code      | `rounded bg-zinc-200 px-1 py-0.5 text-sm dark:bg-zinc-800`            |
+| Code block       | `overflow-x-auto rounded bg-zinc-100 p-3 text-xs dark:bg-zinc-900`    |
+| Error text       | `text-sm text-red-600 dark:text-red-400`                              |
 
 ---
 
 ## 5. Layout recipes
 
-_Empty — fill as you adopt. Each reusable layout (page shell, centered column, card, row, grid, …) is a named recipe with its class string. When the same structure shows up twice, name it here._
-
-| Recipe | Class |
-|--------|-------|
-| *(add rows as you adopt them)* |  |
+| Recipe             | Class                                                                                          |
+|--------------------|------------------------------------------------------------------------------------------------|
+| Page shell         | `min-h-screen bg-zinc-50 font-sans dark:bg-black`                                              |
+| Centered column    | `mx-auto flex max-w-3xl flex-col gap-10 px-8 py-20`                                            |
+| Card               | `flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950` |
+| Inline row         | `flex items-center gap-3`                                                                      |
+| Button group       | `flex gap-2`                                                                                   |
 
 ---
 

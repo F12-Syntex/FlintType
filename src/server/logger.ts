@@ -53,16 +53,15 @@ function formatLine(
       merged.error = err;
     }
   }
-  const line = { level, ts: new Date().toISOString(), msg, ...merged };
+  const ts = new Date().toISOString();
   if (pretty) {
-    const { level: _l, ts, msg: _m, ...rest } = line;
     const time = ts.slice(11, 19);
-    const restStr = Object.keys(rest).length
-      ? ' ' + JSON.stringify(rest)
+    const extras = Object.keys(merged).length
+      ? ' ' + JSON.stringify(merged)
       : '';
-    return `${level.toUpperCase().padEnd(5)} ${time} ${msg}${restStr}`;
+    return `${level.toUpperCase().padEnd(5)} ${time} ${msg}${extras}`;
   }
-  return JSON.stringify(line);
+  return JSON.stringify({ level, ts, msg, ...merged });
 }
 
 export function createLogger(opts: LoggerOptions = {}): Logger {
