@@ -1,17 +1,22 @@
 /*
  * Community themes sourced from https://tweakcn.com (registry:style items).
  * Each theme is applied by adding `theme-<id>` to <html>. Dark variants
- * require both `dark` and `theme-<id>` (see .dark.theme-<id> blocks).
+ * require both `dark` and `theme-<id>` (see html.dark.theme-<id> blocks).
+ *
+ * The `html` tag prefix is load-bearing: @import brings this file in before
+ * :root / .dark in globals.css, so equal-specificity class selectors would
+ * lose to :root. `html.theme-<id>` has one class + one type = specificity
+ * (0,0,1,1), which beats :root (0,0,1,0) regardless of source order.
  *
  * Adding a theme: fetch https://tweakcn.com/r/themes/<slug>.json, copy its
- * cssVars.light into `.theme-<slug> { ... }` and cssVars.dark into
- * `.dark.theme-<slug> { ... }`, then register the id in src/lib/themes.ts.
+ * cssVars.light into `html.theme-<slug> { ... }` and cssVars.dark into
+ * `html.dark.theme-<slug> { ... }`, then register the id in src/lib/themes.ts.
  *
  * The `default` theme uses :root / .dark from globals.css — no class needed.
  */
 
 /* claude light */
-.theme-claude {
+html.theme-claude {
   --background: oklch(0.9818 0.0054 95.0986);
   --foreground: oklch(0.3438 0.0269 95.7226);
   --card: oklch(0.9818 0.0054 95.0986);
@@ -48,7 +53,7 @@
 }
 
 /* claude dark */
-.dark.theme-claude {
+html.dark.theme-claude {
   --background: oklch(0.2679 0.0036 106.6427);
   --foreground: oklch(0.8074 0.0142 93.0137);
   --card: oklch(0.2679 0.0036 106.6427);
@@ -85,7 +90,7 @@
 }
 
 /* supabase light */
-.theme-supabase {
+html.theme-supabase {
   --background: oklch(0.9911 0 0);
   --foreground: oklch(0.2046 0 0);
   --card: oklch(0.9911 0 0);
@@ -122,7 +127,7 @@
 }
 
 /* supabase dark */
-.dark.theme-supabase {
+html.dark.theme-supabase {
   --background: oklch(0.1822 0 0);
   --foreground: oklch(0.9288 0.0126 255.5078);
   --card: oklch(0.2046 0 0);
@@ -159,7 +164,7 @@
 }
 
 /* t3-chat light */
-.theme-t3-chat {
+html.theme-t3-chat {
   --background: oklch(0.9754 0.0084 325.6414);
   --foreground: oklch(0.3257 0.1161 325.0372);
   --card: oklch(0.9754 0.0084 325.6414);
@@ -196,7 +201,7 @@
 }
 
 /* t3-chat dark */
-.dark.theme-t3-chat {
+html.dark.theme-t3-chat {
   --background: oklch(0.2409 0.0201 307.5346);
   --foreground: oklch(0.8398 0.0387 309.5391);
   --card: oklch(0.2803 0.0232 307.5413);
@@ -233,7 +238,7 @@
 }
 
 /* mocha-mousse light */
-.theme-mocha-mousse {
+html.theme-mocha-mousse {
   --background: oklch(0.9529 0.0146 102.4597);
   --foreground: oklch(0.4063 0.0255 40.3627);
   --card: oklch(0.9529 0.0146 102.4597);
@@ -270,7 +275,7 @@
 }
 
 /* mocha-mousse dark */
-.dark.theme-mocha-mousse {
+html.dark.theme-mocha-mousse {
   --background: oklch(0.2721 0.0141 48.1783);
   --foreground: oklch(0.9529 0.0146 102.4597);
   --card: oklch(0.3291 0.0156 50.8936);
@@ -307,7 +312,7 @@
 }
 
 /* caffeine light */
-.theme-caffeine {
+html.theme-caffeine {
   --background: oklch(0.9821 0 0);
   --foreground: oklch(0.2435 0 0);
   --card: oklch(0.9911 0 0);
@@ -344,7 +349,7 @@
 }
 
 /* caffeine dark */
-.dark.theme-caffeine {
+html.dark.theme-caffeine {
   --background: oklch(0.1776 0 0);
   --foreground: oklch(0.9491 0 0);
   --card: oklch(0.2134 0 0);
@@ -381,7 +386,7 @@
 }
 
 /* amethyst-haze light */
-.theme-amethyst-haze {
+html.theme-amethyst-haze {
   --background: oklch(0.9777 0.0041 301.4256);
   --foreground: oklch(0.3651 0.0325 287.0807);
   --card: oklch(1 0 0);
@@ -418,7 +423,7 @@
 }
 
 /* amethyst-haze dark */
-.dark.theme-amethyst-haze {
+html.dark.theme-amethyst-haze {
   --background: oklch(0.2166 0.0215 292.8474);
   --foreground: oklch(0.9053 0.0245 293.5570);
   --card: oklch(0.2544 0.0301 292.7315);

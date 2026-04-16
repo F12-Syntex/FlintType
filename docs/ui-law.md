@@ -245,7 +245,7 @@ Never call `setBackendHeaders` inside render (no effect guard would cause a rend
 
 ## 9. Theming
 
-The boilerplate ships a runtime theme switcher (`src/components/theme-switcher.tsx`) rendered in the global header. It adds a `theme-<id>` class to `<html>`; each class is a block of CSS variables in `src/app/themes.css`. The `default` theme uses `:root` / `.dark` from `globals.css` and sets no extra class. Dark variants live at `.dark.theme-<id>` (both classes required).
+The boilerplate ships a runtime theme switcher (`src/components/theme-switcher.tsx`) rendered in the global header. It adds a `theme-<id>` class to `<html>`; each class is a block of CSS variables in `src/app/themes.css`. The `default` theme uses `:root` / `.dark` from `globals.css` and sets no extra class. Dark variants live at `html.dark.theme-<id>` (both classes required). The `html` tag prefix is load-bearing — `themes.css` is imported before `:root` in `globals.css`, so plain class selectors would lose the tie-break to `:root`; `html.theme-<id>` raises specificity from (0,0,1,0) to (0,0,1,1).
 
 Ships with six community themes sourced from [tweakcn.com](https://tweakcn.com): Claude, Supabase, T3 Chat, Mocha Mousse, Caffeine, Amethyst Haze. Registered in `src/lib/themes.ts` → `THEMES`.
 
@@ -255,7 +255,7 @@ Ships with six community themes sourced from [tweakcn.com](https://tweakcn.com):
 
 ### 9.2 Adding a theme
 1. Fetch `https://tweakcn.com/r/themes/<slug>.json`.
-2. Copy `cssVars.light` into `.theme-<slug> { ... }` and `cssVars.dark` into `.dark.theme-<slug> { ... }` in `src/app/themes.css`.
+2. Copy `cssVars.light` into `html.theme-<slug> { ... }` and `cssVars.dark` into `html.dark.theme-<slug> { ... }` in `src/app/themes.css`. Keep the `html` prefix — it wins the specificity tie against `:root`.
 3. Register the id + label in `src/lib/themes.ts` `THEMES`.
 4. All three changes land in one commit — same commit that introduces any UI using the new theme.
 
