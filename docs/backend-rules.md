@@ -53,7 +53,7 @@ Four things to burn in:
 3. **Only `BackendError` and `ZodError` cross the wire as typed errors.** Raw `Error` becomes `INTERNAL 500` and should never happen in your code.
 4. **The URL path is the traversal path.** `backend.a.b.c()` → `POST /api/a/b/c`. Always.
 
-## The 11 rules
+## The 12 rules
 
 ### R1. All types live in `src/types/<domain>.ts`
 Every route I/O type, every domain model, every Zod schema — all in `src/types/<domain>.ts`, one file per domain. Route files import. They never declare types.
@@ -133,6 +133,33 @@ export const users = defineNamespace({
 If a single route outgrows the namespace file (rule of thumb: handler body ~30 lines or more), split it into its own file in the same folder (e.g. `users/get.ts`) and import the `const`.
 
 **Why:** the namespace block stays a one-screen table of contents you can skim; diffs to a single method don't thrash the namespace definition; refactors like reordering, renaming, extracting, or deleting a route touch one `const`, not a nested block.
+
+### R12. Every backend addition ships with its tests in the same commit
+R8 made this hard for routes. **R12 generalizes it to everything under `src/server/**`.**
+
+Anything with logic gets a co-located `*.test.ts`:
+
+| Module                              | Test location                              | Minimum coverage                                                |
+|-------------------------------------|--------------------------------------------|-----------------------------------------------------------------|
+| A route                             | `src/server/routes/<ns>/index.test.ts`     | See R8's matrix (happy, validation, auth, domain errors).       |
+| A middleware                        | co-located `<name>.test.ts`                | Pass-through happy path + every failure mode it can throw.      |
+| Pipeline / resolve / dispatcher helpers | co-located `<name>.test.ts`            | Every branch of the resolution or pipeline logic.               |
+| Logger / env / infra module         | co-located `<name>.test.ts`                | Level filtering, env defaults, formatting, child context, etc.  |
+| Helpers under `src/server/lib/`     | co-located `<name>.test.ts`                | Happy path + each documented edge case.                         |
+| Data module under `src/server/db/`  | co-located `<name>.test.ts`                | Each query/mutation's happy path and any constraint it enforces.|
+
+What does **not** need tests:
+- Type-only files (`src/types/**`) — the compiler is the test.
+- Pure seed data (e.g. `src/server/db.ts` as shipped) — no logic.
+- Namespace barrel lines inside a route `index.ts` when the routes themselves are tested.
+
+**Rules of the road:**
+1. Tests land in the **same commit** as the code they cover. Never "I'll add tests next PR".
+2. A PR that modifies a tested module must update or extend the test — not leave it stale.
+3. If you remove a module, delete its test file too.
+4. CI is `yarn test` + `yarn tsc --noEmit`. Both must be green before a commit ships.
+
+**Why:** spec requirement #3 for routes, applied uniformly. Tests are the only thing that lets future changes (LLM or human) refactor fearlessly; skipping them on anything non-trivial is how silent regressions arrive.
 
 ## Middleware patterns
 
@@ -397,6 +424,7 @@ Cover the R8 matrix.
 | `fetch('/api/...')` from a component                    | Use `useBackend()`.                                   |
 | `import { handler } from '@/server/routes/...'` in a client component | Only types from `@/types/*` in client code. |
 | `routes: { list: defineRoute<...>({...}), get: defineRoute<...>({...}) }` inline | Declare each route as a top-level `const` above the namespace (R11). |
+| Shipping a new middleware / helper / pipeline tweak without a co-located `*.test.ts` in the same commit | Add the test alongside the code; see R12 for the coverage table.       |
 
 ## LLM checklist before submitting a backend change
 
@@ -405,6 +433,7 @@ Cover the R8 matrix.
 - [ ] Does every new input use a Zod schema?
 - [ ] Do all new error codes exist in `ErrorCode`?
 - [ ] Does every new/changed route have a co-located test covering R8's matrix?
+- [ ] Does **every** new/changed backend module (middleware, pipeline logic, helper, db module, …) ship with a co-located `*.test.ts` in this same commit (R12)?
 - [ ] Are all routes top-level consts (R11)? No inline `defineRoute` inside `defineNamespace.routes`?
 - [ ] Does `yarn test` pass? Is `yarn tsc --noEmit` clean?
 - [ ] Is `VERSION` bumped correctly (patch/minor/major)?
