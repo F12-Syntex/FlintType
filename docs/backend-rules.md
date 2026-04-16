@@ -110,6 +110,8 @@ Auth tokens, user id, tenant — all injected via `setBackendHeaders(() => ({...
 **Why:** single point of control for auth plumbing.
 
 ### R11. Routes are top-level consts; `defineNamespace.routes` only references identifiers
+(Organization rule: see `docs/organization.md` for repo-wide file-length and split thresholds.)
+
 Never inline a `defineRoute({...})` body inside a `defineNamespace({...})` call. Each route is declared as its own top-level `const` above the namespace, and the namespace's `routes` object is a tiny shorthand map:
 
 ```ts

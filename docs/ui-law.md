@@ -24,6 +24,8 @@ If you reach for a color, spacing value, typography class, or layout pattern tha
 - Cross-route reusables: `src/components/<name>.tsx`.
 - shadcn-generated primitives: `src/components/ui/<name>.tsx` (don't hand-edit unless noted).
 
+See `docs/organization.md` for file-length thresholds (>200 lines: split before adding more) and the full decision table for where any new file should go.
+
 ## 2. Tailwind conventions
 
 ### 2.1 Colors

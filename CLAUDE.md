@@ -1,6 +1,7 @@
 @AGENTS.md
 @docs/backend-rules.md
 @docs/ui-law.md
+@docs/organization.md
 
 # Project rules (shadcn-nextjs-boilerplate)
 
@@ -39,7 +40,8 @@ Protocol:
 
 ## Domain rules (deep)
 
-- **Backend** — `docs/backend-rules.md` is the authoritative guide. 10 rules, how-to, antipatterns, LLM checklist. Load it.
-- **Frontend / UI** — `docs/ui-law.md` is the authoritative design law. Meta-rule: any new pattern must be added to the doc *first*, in the same commit as the code using it. Load it.
+- **Backend** — `docs/backend-rules.md` is the authoritative guide. 11 rules, core concepts, request flow, middleware patterns, errors, client usage, how-to, antipatterns, LLM checklist.
+- **Frontend / UI** — `docs/ui-law.md` is the authoritative design law. Meta-rule: any new pattern must be added to the doc *first*, in the same commit as the code using it.
+- **File organization** — `docs/organization.md` is cross-cutting. Length thresholds (≤150 fine, 200–300 split before adding, >300 split now), decision table for where new files go, anti-patterns, extraction triggers.
 
-Both files are `@`-referenced above and auto-loaded into context.
+All three are `@`-referenced above and auto-loaded into context. Consult them before writing code, amend them when introducing new conventions.
