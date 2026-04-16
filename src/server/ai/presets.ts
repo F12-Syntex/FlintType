@@ -9,7 +9,7 @@ import type { Preset } from '@/types/ai';
  * https://openrouter.ai/models
  */
 export const PRESETS: Record<Preset, string> = {
-  fast: 'openai/gpt-4o-mini',
-  smart: 'anthropic/claude-sonnet-4',
-  cheap: 'openai/gpt-4o-mini',
+  fast: 'google/gemma-4-31b-it',
+  smart: 'google/gemini-3-flash-preview',
+  cheap: 'google/gemma-4-31b-it',
 };
