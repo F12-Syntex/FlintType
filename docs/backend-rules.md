@@ -166,6 +166,7 @@ What does **not** need tests:
 - Type-only files (`src/types/**`) — the compiler is the test.
 - Pure re-export barrels (`src/db/schema/<tier>/index.ts` etc.) — no logic.
 - Namespace barrel lines inside a route `index.ts` when the routes themselves are tested.
+- **Anything under `src/components/**` or `src/app/**`** — React components, pages, layouts, and route-scoped `_components` are **tested manually in the browser**, not with unit tests. R12 is a backend/data-layer rule. Same policy in `docs/ui-law.md` §1.3. React hooks that live inside the data layer (e.g. `src/db/client/hook.ts`) follow the component policy — manual only.
 
 **Rules of the road:**
 1. Tests land in the **same commit** as the code they cover. Never "I'll add tests next PR".

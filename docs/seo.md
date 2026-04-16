@@ -90,7 +90,7 @@ export const metadata = buildPageMetadata({
   noIndex: true,
 });
 ```
-Admin panels, logged-in-only views, internal dashboards — none should be indexed.
+Admin panels, logged-in-only views, internal dashboards — none should be indexed. `noIndex: true` pages are **also omitted from `src/app/sitemap.ts` and `public/llms.txt`** — S7 only covers public discoverable routes.
 
 ### S9. `SITE_URL` must be set in production
 Defaults to `http://localhost:3000` for dev. Every production deploy sets `SITE_URL` (or `NEXT_PUBLIC_SITE_URL` if you need client access) to the real host, or every canonical URL will point at localhost and SEO ranking collapses.

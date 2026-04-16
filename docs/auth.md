@@ -26,6 +26,15 @@ Must run **after** `requireAuth`. Reads `ctx.meta.sessionClaims.metadata.role` a
 - `BackendError(500, 'INTERNAL')` — if `requireAuth` didn't populate `ctx.meta.userId` (programmer error).
 - `BackendError(403, 'FORBIDDEN')` — if the role isn't `'admin'`.
 
+### `requireAdminOrDev` (dev-open admin gate)
+
+Same shape as `requireAdmin` in production, but lets every caller through when `env.APP_ENV === 'development'`. Used by the `admin` namespace (`/admin/database/*`) so local inspection works without a Clerk session and without granting a local user the admin role.
+
+- `development` — pass through unconditionally. Copies `userId` / `sessionClaims` onto `ctx.meta` **if** Clerk returns them, silently skips when Clerk isn't configured.
+- anything else — require a signed-in user whose session claims carry `metadata.role === 'admin'`. Throws `UNAUTHORIZED` (no session) or `FORBIDDEN` (non-admin).
+
+Reach for this **only** for admin surfaces that must be usable locally during development. Anything that should stay locked in dev too uses the strict `[requireAuth, requireAdmin]` pair.
+
 ### Setting roles in Clerk
 
 Two steps in the Clerk dashboard:
@@ -203,3 +212,6 @@ Session claims are JWT payload. Treat them like bearer tokens — don't write th
 
 ### A5. Keyless mode is a dev convenience, not a production pattern
 Production deploys set `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` via `.env.local` or the deploy platform's secret store.
+
+### A6. `requireAdminOrDev` is only for dev-inspection admin surfaces
+The `/admin/*` namespace uses `requireAdminOrDev` because the boilerplate wants the database explorer to work locally without Clerk configured. If you add an admin route whose payload is sensitive even in dev (sends email, charges a card, rotates a secret), gate it with the strict `[requireAuth, requireAdmin]` pair instead — no dev bypass.

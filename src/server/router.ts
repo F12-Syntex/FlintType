@@ -1,5 +1,6 @@
 import { defineNamespace } from '@/server';
 import { logging } from './middleware/logging';
+import { admin } from './routes/admin';
 import { ai } from './routes/ai';
 import { echo } from './routes/echo';
 import { health } from './routes/health';
@@ -14,6 +15,7 @@ export const router = defineNamespace({
     users,
     posts,
     ai,
+    admin,
   },
 });
 

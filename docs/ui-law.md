@@ -30,6 +30,17 @@ If you reach for a color, spacing value, typography class, or layout pattern tha
 
 See `docs/organization.md` for file-length thresholds and the full decision table covering every kind of code.
 
+### 1.3 Testing policy
+Frontend is **tested manually in the browser** — `yarn dev`, open the page, exercise the flow. No unit tests for React components, pages, layouts, or route-scoped `_components`. The things that *are* tested via `yarn test`:
+
+- Data layer (`src/db/**/*.ts` excluding React hooks like `src/db/client/hook.ts`)
+- Isomorphic helpers (`src/lib/**/*.ts` that don't pull React — `errors`, `safe`, `backend`, `themes`, `use-async-action`'s `runAsync` export)
+- Backend (`src/server/**`)
+
+React hooks and components (anything importing from `react` that renders or subscribes to component state) stay out of the automated suite — they're validated by clicking through the app.
+
+Mirror-rule in `docs/backend-rules.md` R12 exclusions table.
+
 ---
 
 ## 2. Colors
