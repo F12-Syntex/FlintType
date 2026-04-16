@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { siteConfig } from '@/lib/seo';
+import { siteConfig } from '@/server/seo';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [

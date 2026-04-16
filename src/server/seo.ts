@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
+import { env } from './env';
 
 export const siteConfig = {
   name: 'shadcn-nextjs-boilerplate',
   description:
-    'Minimal Next.js + shadcn boilerplate with a typed backend, Zod validation, and structured logging.',
-  url: process.env.SITE_URL ?? 'http://localhost:3000',
+    'Next.js + shadcn boilerplate with a typed hierarchical backend, Zod-validated inputs, cascading middleware, and structured request-scoped logging.',
+  url: env.SITE_URL,
   locale: 'en_US',
 } as const;
 

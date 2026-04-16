@@ -7,7 +7,7 @@ Authoritative guide for search engine and LLM-crawler optimization. Every page s
 | File                                | Serves                     | Purpose                                                          |
 |-------------------------------------|----------------------------|------------------------------------------------------------------|
 | `src/app/layout.tsx`                | every page (root metadata) | Site name template, description, OpenGraph, Twitter, robots     |
-| `src/lib/seo.ts`                    | —                          | `siteConfig` + `buildPageMetadata()` helper + `absoluteUrl()`    |
+| `src/server/seo.ts`                 | —                          | `siteConfig` + `buildPageMetadata()` helper + `absoluteUrl()`    |
 | `src/app/robots.ts`                 | `/robots.txt`              | Allows everything except `/api/` and `/_next/`, points at sitemap |
 | `src/app/sitemap.ts`                | `/sitemap.xml`             | Seeded with `/`; extend when you add top-level routes            |
 | `public/llms.txt`                   | `/llms.txt`                | Structured guide for AI crawlers (llmstxt.org spec)             |
@@ -19,7 +19,7 @@ Every page under `src/app/**/page.tsx` exports `metadata` or `generateMetadata`:
 ### Static pages
 ```ts
 // src/app/about/page.tsx
-import { buildPageMetadata } from '@/lib/seo';
+import { buildPageMetadata } from '@/server/seo';
 
 export const metadata = buildPageMetadata({
   title: 'About',
@@ -34,7 +34,7 @@ Use `generateMetadata` so title and description reflect the actual entity:
 ```ts
 // src/app/posts/[slug]/page.tsx
 import type { Metadata } from 'next';
-import { buildPageMetadata } from '@/lib/seo';
+import { buildPageMetadata } from '@/server/seo';
 
 export async function generateMetadata({
   params,
@@ -75,8 +75,12 @@ Every `<img>` and `<Image>` from `next/image` ships with `alt="..."`. Decorative
 - Lists are `<ul>`/`<ol>`, not `<div>`s.
 - Headings nest in order (`h1` → `h2` → `h3`), no jumps.
 
-### S7. Keep `public/llms.txt` in sync
-When you add a new top-level route or documentation file, append an entry to `public/llms.txt` **in the same commit**. The format follows [llmstxt.org](https://llmstxt.org): `# Title`, blockquote description, then sectioned link lists.
+### S7. Keep `public/llms.txt` **and** `src/app/sitemap.ts` in sync with routes
+When you add a new top-level route or documentation file:
+- Append an entry to `public/llms.txt` (llmstxt.org format: `# Title`, blockquote, sectioned links).
+- Append a URL entry to `src/app/sitemap.ts`.
+
+Both changes land **in the same commit** as the new page. Crawlers and LLMs read these files to discover routes — silent drift between routes and indexes is the fastest way to fall out of listings.
 
 ### S8. Private / admin pages use `noIndex: true`
 ```ts

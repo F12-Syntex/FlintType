@@ -1,10 +1,10 @@
-import { buildPageMetadata } from '@/lib/seo';
+import { buildPageMetadata } from '@/server/seo';
 import { BackendDemo } from './_components/backend-demo';
 
 export const metadata = buildPageMetadata({
   title: 'Home',
   description:
-    'Live demo of the typed useBackend() client hitting the boilerplate\'s Zod-validated route tree.',
+    'Live demo of the typed useBackend() client: health ping, validated echo, authenticated user lookups, and an admin-gated nested route.',
   path: '/',
 });
 

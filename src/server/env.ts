@@ -4,6 +4,7 @@ const schema = z.object({
   APP_ENV: z.enum(['development', 'production']).default('development'),
   LOG_ENABLED: z.enum(['true', 'false']).optional(),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).optional(),
+  SITE_URL: z.string().url().default('http://localhost:3000'),
 });
 
 const parsed = schema.safeParse({
@@ -12,6 +13,7 @@ const parsed = schema.safeParse({
     (process.env.NODE_ENV === 'production' ? 'production' : 'development'),
   LOG_ENABLED: process.env.LOG_ENABLED,
   LOG_LEVEL: process.env.LOG_LEVEL,
+  SITE_URL: process.env.SITE_URL,
 });
 
 if (!parsed.success) {
