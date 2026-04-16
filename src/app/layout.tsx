@@ -7,7 +7,9 @@ import {
 } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Button } from "@/components/ui/button";
+import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/themes";
 import { siteConfig } from "@/server/seo";
 import "./globals.css";
 
@@ -58,6 +60,9 @@ export default function RootLayout({
         lang="en"
         className={`${sans.variable} ${mono.variable} h-full antialiased`}
       >
+        <head>
+          <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
+        </head>
         <body className="min-h-full flex flex-col">
           <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
             <div className="mx-auto flex max-w-3xl items-center justify-between px-8 py-4">
@@ -65,6 +70,7 @@ export default function RootLayout({
                 {siteConfig.name}
               </span>
               <div className="flex items-center gap-2">
+                <ThemeSwitcher />
                 <Show when="signed-out">
                   <SignInButton mode="modal">
                     <Button variant="outline" size="sm">

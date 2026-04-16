@@ -34,7 +34,12 @@ See `docs/organization.md` for file-length thresholds and the full decision tabl
 
 ## 2. Colors
 
-Neutral palette: **`zinc`**. Semantic: **`red`** for errors. Rationale: matches shadcn `base-nova` neutral base; zinc is the default shadcn theme and renders well in both light and dark. No other palettes (no slate, gray, neutral, stone). No arbitrary hex.
+Two layers, used for different jobs:
+
+1. **Theme-aware semantic classes** — `bg-background`, `text-foreground`, `bg-primary`, `text-primary-foreground`, `bg-card`, `text-muted-foreground`, `border-border`, `border-input`, `ring`, `bg-destructive`, etc. These are wired to CSS variables in `src/app/globals.css` and `src/app/themes.css`, so they swap when the user picks a theme via `<ThemeSwitcher>` (see §9). Prefer these for any surface that should follow the active theme — every shadcn primitive (`Button`, `Input`, Card, Dialog, …) already uses them.
+2. **Fixed zinc literals** — the table below. Use these only when a surface must stay zinc regardless of theme — e.g. code-block surfaces in §4, the sticky header backdrop, or a demo row that intentionally reads as neutral.
+
+Neutral palette for literals: **`zinc`**. Semantic: **`red`** for errors. No other palettes (no slate, gray, neutral, stone). No arbitrary hex.
 
 | Purpose                  | Light                       | Dark                          |
 |--------------------------|-----------------------------|-------------------------------|
@@ -238,7 +243,28 @@ Never call `setBackendHeaders` inside render (no effect guard would cause a rend
 
 ---
 
-## 9. Amending this document
+## 9. Theming
+
+The boilerplate ships a runtime theme switcher (`src/components/theme-switcher.tsx`) rendered in the global header. It adds a `theme-<id>` class to `<html>`; each class is a block of CSS variables in `src/app/themes.css`. The `default` theme uses `:root` / `.dark` from `globals.css` and sets no extra class. Dark variants live at `.dark.theme-<id>` (both classes required).
+
+Ships with six community themes sourced from [tweakcn.com](https://tweakcn.com): Claude, Supabase, T3 Chat, Mocha Mousse, Caffeine, Amethyst Haze. Registered in `src/lib/themes.ts` → `THEMES`.
+
+### 9.1 What swaps, what doesn't
+- Theme-aware semantic classes (§2, layer 1) swap automatically.
+- Fixed zinc literals (§2, layer 2 — the table) do not swap by design — they stay neutral under every theme.
+
+### 9.2 Adding a theme
+1. Fetch `https://tweakcn.com/r/themes/<slug>.json`.
+2. Copy `cssVars.light` into `.theme-<slug> { ... }` and `cssVars.dark` into `.dark.theme-<slug> { ... }` in `src/app/themes.css`.
+3. Register the id + label in `src/lib/themes.ts` `THEMES`.
+4. All three changes land in one commit — same commit that introduces any UI using the new theme.
+
+### 9.3 FOUC prevention
+`src/app/layout.tsx` injects `THEME_BOOTSTRAP_SCRIPT` from `@/lib/themes` into `<head>` so the theme class is applied synchronously before React hydrates. Never skip this — the flash of default-then-themed is visibly ugly.
+
+---
+
+## 10. Amending this document
 
 When you introduce a new pattern:
 
