@@ -1,4 +1,5 @@
 import { buildPageMetadata } from '@/server/seo';
+import { AiDemo } from './_components/ai-demo';
 import { BackendDemo } from './_components/backend-demo';
 import { LocalNotesDemo } from './_components/local-notes-demo';
 
@@ -25,6 +26,7 @@ export default function Home() {
           </p>
         </header>
         <BackendDemo />
+        <AiDemo />
         <LocalNotesDemo />
       </main>
     </div>
