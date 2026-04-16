@@ -8,6 +8,7 @@ const schema = z.object({
   DATABASE_URL: z.string().url().optional(),
   DATABASE_MODE: z.enum(['auto', 'neon', 'pglite']).default('auto'),
   PGLITE_DATA_DIR: z.string().default('./.data/pglite'),
+  OPENROUTER_API_KEY: z.string().optional(),
 });
 
 const parsed = schema.safeParse({
@@ -20,6 +21,7 @@ const parsed = schema.safeParse({
   DATABASE_URL: process.env.DATABASE_URL,
   DATABASE_MODE: process.env.DATABASE_MODE,
   PGLITE_DATA_DIR: process.env.PGLITE_DATA_DIR,
+  OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
 });
 
 if (!parsed.success) {

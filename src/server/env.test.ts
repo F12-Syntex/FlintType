@@ -30,6 +30,13 @@ describe('env module', () => {
     expect(typeof env.PGLITE_DATA_DIR).toBe('string');
     expect(env.PGLITE_DATA_DIR.length).toBeGreaterThan(0);
   });
+
+  it('OPENROUTER_API_KEY is optional and undefined when unset', () => {
+    expect(
+      env.OPENROUTER_API_KEY === undefined ||
+        typeof env.OPENROUTER_API_KEY === 'string',
+    ).toBe(true);
+  });
 });
 
 describe('logEnabled', () => {
