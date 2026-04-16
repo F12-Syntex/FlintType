@@ -1,4 +1,6 @@
 @AGENTS.md
+@docs/backend-rules.md
+@docs/ui-law.md
 
 # Project rules (shadcn-nextjs-boilerplate)
 
@@ -35,51 +37,9 @@ Protocol:
 - **magic** (21st.dev) — frontend component generation / inspiration. Requires `TWENTYFIRST_API_KEY` in env.
 - **context7** — authoritative docs for Tailwind, shadcn, Next.js, React. Use this before guessing API shapes, since this Next.js is newer than training data.
 
-## Backend convention
+## Domain rules (deep)
 
-**Hierarchical, type-first, Zod-validated.** Everything routes through one catch-all dispatcher (`src/app/api/[...path]/route.ts`) into the tree in `src/server/`.
+- **Backend** — `docs/backend-rules.md` is the authoritative guide. 10 rules, how-to, antipatterns, LLM checklist. Load it.
+- **Frontend / UI** — `docs/ui-law.md` is the authoritative design law. Meta-rule: any new pattern must be added to the doc *first*, in the same commit as the code using it. Load it.
 
-### Folder-per-namespace
-
-```
-src/server/routes/<namespace>/index.ts         # namespace (methods + middleware)
-src/server/routes/<namespace>/index.test.ts
-src/server/routes/<namespace>/<sub>/index.ts   # nested namespace
-```
-A namespace is a folder. Its `index.ts` exports `defineNamespace({ middleware, routes })`. Routes are `defineRoute({ handler, input?, middleware? })`. Sub-namespaces nest under `routes`.
-
-### Types live in `src/types/<domain>.ts` — never in route files
-
-All route I/O types, all domain models, and all Zod schemas live in `src/types/<domain>.ts`. Route files **import** them. This is a hard rule, not a "promote when shared" heuristic.
-
-- Per domain (`health`, `echo`, `user`, `post`, …) create one file: `src/types/<domain>.ts`.
-- That file exports: the domain model (e.g. `User`), every Zod input schema (e.g. `getUserInputSchema`), every inferred input type (e.g. `GetUserInput = z.infer<typeof getUserInputSchema>`), and every output type (e.g. `GetUserOutput`, `ListUsersOutput`).
-- Route files import schemas and types — they never declare or re-export them.
-- **Every `defineRoute` must have explicit generics** pointing to named types: `defineRoute<GetUserInput, GetUserOutput>({...})`. Never `defineRoute({...})` without generics, never inline `{...}` shapes.
-- **Every route returns typed data.** `O` is always a named type from `src/types/`, never inferred from the handler body.
-
-### Zod validates server inputs
-- Every input that crosses the network uses `input: z.ZodType<...>` in `defineRoute`.
-- Responses are plain TS types — no runtime validation on outputs.
-- `ZodError` is caught by the dispatcher and returned as `BackendError(400, 'VALIDATION', ..., { issues })`.
-
-### Middleware cascades (onion)
-- Global middleware attaches to the root router (`src/server/router.ts`).
-- Namespace middleware runs for every route inside that namespace *and* its descendants.
-- Per-route middleware runs innermost (after all parent middleware, before `validate` + `handler`).
-- A child namespace cannot opt out of parent middleware. Model exceptions via restructuring the tree.
-
-### Errors
-- Throw `BackendError(status, code, message, details?)` with `code` in the `ErrorCode` union.
-- The client reconstructs and re-throws `BackendError` — `catch (err) { if (err instanceof BackendError && err.code === 'VALIDATION') ... }` works with autocomplete.
-
-### Client
-- `useBackend()` → recursive Proxy typed from `typeof router`. Call paths map 1:1 to URL paths.
-  - `backend.users.admins.list()` → `POST /api/users/admins/list`
-- `setBackendHeaders(() => ({...}))` configures headers globally (auth tokens, etc.).
-- Prefer throwing in callers; use `safe(...)` from `@/lib/safe` only at call sites that want exhaustive `{ok, data} | {ok, error}`.
-
-## Testing
-- Unit tests for every backend route — not optional.
-- Use `callRoute(path, { input?, headers? })` from `@/server/testing` — runs the full middleware stack without HTTP.
-- Assert on `BackendError` instance + `.code` / `.status` for error paths; `ZodError` for input-validation failures.
+Both files are `@`-referenced above and auto-loaded into context.
