@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { describe, expect, it, vi } from 'vitest';
+import { z, ZodError } from 'zod';
 import { defineRoute } from './defineRoute';
 import { runRoute } from './pipeline';
 import type { Middleware } from './types';
@@ -16,27 +17,24 @@ describe('runRoute', () => {
     expect(out).toEqual({ hi: true });
   });
 
-  it('validates input before calling handler', async () => {
-    const route = defineRoute<number, number>({
-      validate: (v) => {
-        if (typeof v !== 'number') throw new Error('need number');
-        return v;
-      },
-      handler: ({ input }) => input * 2,
+  it('validates input with a zod schema before calling handler', async () => {
+    const route = defineRoute<{ n: number }, number>({
+      input: z.object({ n: z.number() }),
+      handler: ({ input }) => input.n * 2,
     });
+    expect(await runRoute(route, { input: { n: 3 }, req: fakeReq() })).toBe(6);
     await expect(
-      runRoute(route, { input: 'nope', req: fakeReq() }),
-    ).rejects.toThrow('need number');
-    expect(await runRoute(route, { input: 3, req: fakeReq() })).toBe(6);
+      runRoute(route, { input: { n: 'x' }, req: fakeReq() }),
+    ).rejects.toBeInstanceOf(ZodError);
   });
 
-  it('runs global and per-route middleware in onion order', async () => {
+  it('runs extra (namespace) and per-route middleware in onion order', async () => {
     const order: string[] = [];
     const mk = (tag: string): Middleware => async (_ctx, next) => {
       order.push(`${tag}:before`);
-      const result = await next();
+      const r = await next();
       order.push(`${tag}:after`);
-      return result;
+      return r;
     };
     const route = defineRoute<void, string>({
       middleware: [mk('route')],
@@ -45,13 +43,18 @@ describe('runRoute', () => {
         return 'x';
       },
     });
-    await runRoute(route, { input: undefined, req: fakeReq() }, [mk('global')]);
+    await runRoute(route, { input: undefined, req: fakeReq() }, [
+      mk('outer'),
+      mk('inner'),
+    ]);
     expect(order).toEqual([
-      'global:before',
+      'outer:before',
+      'inner:before',
       'route:before',
       'handler',
       'route:after',
-      'global:after',
+      'inner:after',
+      'outer:after',
     ]);
   });
 
@@ -67,16 +70,19 @@ describe('runRoute', () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
-  it('exposes shared meta bag across middleware', async () => {
+  it('exposes shared meta bag across middleware and handler', async () => {
     const writer: Middleware = async (ctx, next) => {
       ctx.meta.userId = 'u_42';
       return next();
     };
     const route = defineRoute<void, string>({
-      middleware: [writer],
       handler: ({ meta }) => String(meta.userId),
     });
-    const out = await runRoute(route, { input: undefined, req: fakeReq() });
+    const out = await runRoute(
+      route,
+      { input: undefined, req: fakeReq() },
+      [writer],
+    );
     expect(out).toBe('u_42');
   });
 });

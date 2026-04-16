@@ -1,50 +1,66 @@
 'use client';
 
+import { BackendError, type ErrorCode } from '@/server/errors';
+import type { NamespaceDef, RouteDef } from '@/server/types';
 import type { Router } from '@/server/router';
-import type { RouteDef } from '@/server/types';
 
-type Methods<NS> = {
-  [M in keyof NS]: NS[M] extends RouteDef<infer I, infer O>
+type Client<T> =
+  T extends RouteDef<infer I, infer O>
     ? void extends I
       ? () => Promise<O>
       : (input: I) => Promise<O>
-    : never;
-};
+    : T extends NamespaceDef<infer R>
+      ? { [K in keyof R]: Client<R[K]> }
+      : never;
 
-export type BackendClient = { [N in keyof Router]: Methods<Router[N]> };
+export type BackendClient = Client<Router>;
 
-async function call(namespace: string, method: string, input: unknown) {
-  const res = await fetch(`/api/${namespace}/${method}`, {
+type HeaderProvider = () => Record<string, string>;
+let headerProvider: HeaderProvider = () => ({});
+
+export function setBackendHeaders(provider: HeaderProvider): void {
+  headerProvider = provider;
+}
+
+async function call(path: readonly string[], input: unknown) {
+  const res = await fetch(`/api/${path.join('/')}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...headerProvider(),
+    },
     body: input === undefined ? '' : JSON.stringify(input),
   });
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
   if (!res.ok) {
-    const err = new Error(data?.error ?? `Request failed: ${res.status}`);
-    (err as Error & { status?: number }).status = res.status;
-    throw err;
+    const code = (data?.code ?? 'INTERNAL') as ErrorCode;
+    throw new BackendError(
+      res.status,
+      code,
+      data?.error ?? `Request failed: ${res.status}`,
+      data?.details,
+    );
   }
   return data;
 }
 
-const client = new Proxy(
-  {},
-  {
-    get(_target, namespace: string) {
-      return new Proxy(
-        {},
-        {
-          get(_ns, method: string) {
-            return (input?: unknown) => call(namespace, method, input);
-          },
-        },
-      );
+function createClient(path: readonly string[] = []): unknown {
+  const target = (input?: unknown) => call(path, input);
+  return new Proxy(target, {
+    get(_t, prop) {
+      if (typeof prop === 'symbol') return undefined;
+      if (prop === 'then') return undefined;
+      return createClient([...path, prop]);
     },
-  },
-) as BackendClient;
+  });
+}
+
+const client = createClient() as BackendClient;
 
 export function useBackend(): BackendClient {
   return client;
 }
+
+export { BackendError };
+export type { ErrorCode };

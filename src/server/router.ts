@@ -1,13 +1,16 @@
-import { logging } from './middleware';
+import { defineNamespace } from '@/server';
+import { logging } from './middleware/logging';
 import { echo } from './routes/echo';
 import { health } from './routes/health';
-import type { Middleware } from './types';
+import { users } from './routes/users';
 
-export const router = {
-  health,
-  echo,
-} as const;
+export const router = defineNamespace({
+  middleware: [logging],
+  routes: {
+    health,
+    echo,
+    users,
+  },
+});
 
 export type Router = typeof router;
-
-export const globalMiddleware: Middleware[] = [logging];

@@ -1,4 +1,4 @@
-import type { Middleware } from './types';
+import type { Middleware } from '../types';
 
 export const logging: Middleware = async (ctx, next) => {
   const start = Date.now();

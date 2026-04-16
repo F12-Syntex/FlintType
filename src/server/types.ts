@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server';
+import type { ZodType } from 'zod';
 
 export type RouteContext<I = unknown> = {
   input: I;
@@ -15,10 +16,23 @@ export type Middleware = (
   next: MiddlewareNext,
 ) => Promise<unknown>;
 
-export type Validator<I> = (input: unknown) => I;
-
 export type RouteDef<I = unknown, O = unknown> = {
+  readonly __kind: 'route';
   handler: RouteHandler<I, O>;
-  validate?: Validator<I>;
+  input?: ZodType<I>;
   middleware?: Middleware[];
 };
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export type AnyRouteDef = RouteDef<any, any>;
+export type AnyNamespaceDef = NamespaceDef<any>;
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+export type NamespaceChild = AnyRouteDef | AnyNamespaceDef;
+export type NamespaceRecord = Record<string, NamespaceChild>;
+
+export interface NamespaceDef<R extends NamespaceRecord = NamespaceRecord> {
+  readonly __kind: 'namespace';
+  middleware: Middleware[];
+  routes: R;
+}
