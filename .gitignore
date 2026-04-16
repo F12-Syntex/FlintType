@@ -47,3 +47,4 @@ next-env.d.ts
 
 # PGlite local data (dev-only Postgres files)
 /.data/
+specificaiton.md
