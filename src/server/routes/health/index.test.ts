@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { callRoute } from '@/server/testing';
-import type { PingResponse } from './index';
+import type { PingResponse } from '@/types/health';
 
 describe('health.ping', () => {
   it('returns ok=true with a numeric timestamp', async () => {

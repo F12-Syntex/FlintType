@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { BackendError } from '@/server/errors';
 import { callRoute } from '@/server/testing';
-import type { User } from '@/types/user';
+import type { ListAdminsOutput } from '@/types/user';
 
 describe('users.admins.list', () => {
   it('returns only admin users when called by an admin', async () => {
-    const out = await callRoute<User[]>(['users', 'admins', 'list'], {
-      headers: { 'x-user-id': 'u_1' },
-    });
+    const out = await callRoute<ListAdminsOutput>(
+      ['users', 'admins', 'list'],
+      { headers: { 'x-user-id': 'u_1' } },
+    );
     expect(out.length).toBeGreaterThan(0);
     expect(out.every((u) => u.role === 'admin')).toBe(true);
   });

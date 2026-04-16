@@ -1,6 +1,5 @@
 import { defineNamespace, defineRoute } from '@/server';
-
-export type PingResponse = { ok: true; ts: number };
+import type { PingResponse } from '@/types/health';
 
 export const health = defineNamespace({
   routes: {

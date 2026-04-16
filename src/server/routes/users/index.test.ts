@@ -1,16 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { BackendError } from '@/server/errors';
 import { callRoute } from '@/server/testing';
-import type { User } from '@/types/user';
+import type { GetUserOutput, ListUsersOutput } from '@/types/user';
 
 const asUser = { 'x-user-id': 'u_2' };
 const asAdmin = { 'x-user-id': 'u_1' };
 
 describe('users.list', () => {
   it('rejects unauthenticated callers', async () => {
-    await expect(
-      callRoute(['users', 'list']),
-    ).rejects.toSatisfy(
+    await expect(callRoute(['users', 'list'])).rejects.toSatisfy(
       (e: unknown) =>
         e instanceof BackendError &&
         e.status === 401 &&
@@ -27,7 +25,9 @@ describe('users.list', () => {
   });
 
   it('returns the full list for any authenticated caller', async () => {
-    const out = await callRoute<User[]>(['users', 'list'], { headers: asUser });
+    const out = await callRoute<ListUsersOutput>(['users', 'list'], {
+      headers: asUser,
+    });
     expect(Array.isArray(out)).toBe(true);
     expect(out.length).toBeGreaterThan(0);
   });
@@ -35,7 +35,7 @@ describe('users.list', () => {
 
 describe('users.get', () => {
   it('returns a user by id', async () => {
-    const out = await callRoute<User>(['users', 'get'], {
+    const out = await callRoute<GetUserOutput>(['users', 'get'], {
       headers: asUser,
       input: { id: 'u_1' },
     });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
 import { callRoute } from '@/server/testing';
-import type { SayOutput } from './index';
+import type { SayOutput } from '@/types/echo';
 
 describe('echo.say', () => {
   it('echoes the message with its length', async () => {

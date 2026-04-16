@@ -48,10 +48,15 @@ src/server/routes/<namespace>/<sub>/index.ts   # nested namespace
 ```
 A namespace is a folder. Its `index.ts` exports `defineNamespace({ middleware, routes })`. Routes are `defineRoute({ handler, input?, middleware? })`. Sub-namespaces nest under `routes`.
 
-### Types are always named and exported
-- Each route file exports `XxxInput` / `XxxOutput` types (use `z.infer<typeof schema>` for inputs; plain TS types for outputs).
-- Shared domain types go in `src/types/<domain>.ts`. Promote a type there only once it's used by more than one route.
-- **Never** inline `{ foo: string }` in `defineRoute<...>` — it defeats DX and testing.
+### Types live in `src/types/<domain>.ts` — never in route files
+
+All route I/O types, all domain models, and all Zod schemas live in `src/types/<domain>.ts`. Route files **import** them. This is a hard rule, not a "promote when shared" heuristic.
+
+- Per domain (`health`, `echo`, `user`, `post`, …) create one file: `src/types/<domain>.ts`.
+- That file exports: the domain model (e.g. `User`), every Zod input schema (e.g. `getUserInputSchema`), every inferred input type (e.g. `GetUserInput = z.infer<typeof getUserInputSchema>`), and every output type (e.g. `GetUserOutput`, `ListUsersOutput`).
+- Route files import schemas and types — they never declare or re-export them.
+- **Every `defineRoute` must have explicit generics** pointing to named types: `defineRoute<GetUserInput, GetUserOutput>({...})`. Never `defineRoute({...})` without generics, never inline `{...}` shapes.
+- **Every route returns typed data.** `O` is always a named type from `src/types/`, never inferred from the handler body.
 
 ### Zod validates server inputs
 - Every input that crosses the network uses `input: z.ZodType<...>` in `defineRoute`.

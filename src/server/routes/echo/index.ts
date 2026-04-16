@@ -1,12 +1,5 @@
-import { z } from 'zod';
 import { defineNamespace, defineRoute } from '@/server';
-
-const sayInputSchema = z.object({
-  message: z.string().min(1).max(500),
-});
-
-export type SayInput = z.infer<typeof sayInputSchema>;
-export type SayOutput = { echoed: string; length: number };
+import { sayInputSchema, type SayInput, type SayOutput } from '@/types/echo';
 
 export const echo = defineNamespace({
   routes: {

@@ -72,21 +72,39 @@ src/
 
 ## Authoring routes
 
-### 1. Create the namespace
+**Types first.** All route I/O types and Zod schemas live in `src/types/<domain>.ts`. Routes import them — they never declare types inline.
+
+### 1. Define the domain's contract
+
+```ts
+// src/types/widget.ts
+import { z } from 'zod';
+
+export type Widget = {
+  id: string;
+  label: string;
+};
+
+export const getWidgetInputSchema = z.object({ id: z.string() });
+export type GetWidgetInput = z.infer<typeof getWidgetInputSchema>;
+export type GetWidgetOutput = Widget;
+```
+
+### 2. Create the namespace
 
 ```ts
 // src/server/routes/widgets/index.ts
-import { z } from 'zod';
 import { defineNamespace, defineRoute, BackendError } from '@/server';
-
-const getInputSchema = z.object({ id: z.string() });
-export type GetWidgetInput = z.infer<typeof getInputSchema>;
-export type Widget = { id: string; label: string };
+import {
+  getWidgetInputSchema,
+  type GetWidgetInput,
+  type GetWidgetOutput,
+} from '@/types/widget';
 
 export const widgets = defineNamespace({
   routes: {
-    get: defineRoute<GetWidgetInput, Widget>({
-      input: getInputSchema,
+    get: defineRoute<GetWidgetInput, GetWidgetOutput>({
+      input: getWidgetInputSchema,
       handler: ({ input }) => {
         if (input.id === 'missing') {
           throw new BackendError(404, 'NOT_FOUND', `widget ${input.id} not found`);
@@ -98,7 +116,7 @@ export const widgets = defineNamespace({
 });
 ```
 
-**Types are always exported and named** — `GetWidgetInput`, `Widget`. Tests and fixtures import them.
+**Every `defineRoute` has explicit generics pointing to named types.** Never inline `{...}` shapes; never omit generics.
 
 ### 2. Register in `router.ts`
 
@@ -118,11 +136,11 @@ import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
 import { BackendError } from '@/server/errors';
 import { callRoute } from '@/server/testing';
-import type { Widget } from './index';
+import type { GetWidgetOutput } from '@/types/widget';
 
 describe('widgets.get', () => {
   it('returns the widget', async () => {
-    const w = await callRoute<Widget>(['widgets', 'get'], { input: { id: '1' } });
+    const w = await callRoute<GetWidgetOutput>(['widgets', 'get'], { input: { id: '1' } });
     expect(w.label).toBe('widget-1');
   });
   it('404 for unknown ids', async () => {
