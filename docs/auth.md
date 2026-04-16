@@ -87,6 +87,33 @@ const me = defineRoute<void, UserProfile>({
 
 `currentUser()` fetches from Clerk's API and is server-only. For tight loops, prefer reading `ctx.meta.userId` and `sessionClaims` — they come from the already-decoded session JWT and are free.
 
+## Querying the user directory
+
+The shipping `users` namespace queries Clerk directly via `clerkClient` rather than a local DB:
+
+```ts
+// src/server/routes/users/index.ts
+import { clerkClient } from '@clerk/nextjs/server';
+import { toUser } from '@/server/clerk-user';
+
+const list = defineRoute<void, ListUsersOutput>({
+  handler: async () => {
+    const client = await clerkClient();
+    const { data } = await client.users.getUserList({ limit: 100 });
+    return data.map(toUser);
+  },
+});
+```
+
+`toUser` (`src/server/clerk-user.ts`) is the canonical mapper from Clerk's user shape to our internal `User` type (`src/types/user.ts`). It picks the primary email, builds a display name (first+last, falling back to email, falling back to the Clerk id), and reads `publicMetadata.role` for the role.
+
+**Rules for calling Clerk's API from handlers:**
+- Always go through `clerkClient()` (async). Never import from `@clerk/backend` directly or try to construct a client yourself.
+- Always map via `toUser` before returning. Clerk's shape is not a public API of this backend.
+- Throw `BackendError(404, 'NOT_FOUND', ...)` when a lookup fails. Never let Clerk errors surface raw.
+
+## Client-side auth UI
+
 ## Client-side auth UI
 
 The root layout exposes:
@@ -101,20 +128,37 @@ The root layout exposes:
 
 ## Testing protected routes
 
-`auth()` cannot run outside a Clerk-aware request context, so tests mock it at the module boundary:
+`auth()` and `clerkClient()` cannot run outside a Clerk-aware request context, so tests mock both at the module boundary:
 
 ```ts
 import { beforeEach, vi } from 'vitest';
 
 vi.mock('@clerk/nextjs/server', () => ({
   auth: vi.fn(async () => ({ userId: null, sessionClaims: null })),
+  clerkClient: vi.fn(),
 }));
 
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
+
 const mockAuth = vi.mocked(auth);
+const mockClerkClient = vi.mocked(clerkClient);
+
+function mockClerkUsers(users: ClerkUserLike[]) {
+  mockClerkClient.mockResolvedValue({
+    users: {
+      getUserList: vi.fn(async () => ({ data: users, totalCount: users.length })),
+      getUser: vi.fn(async (id: string) => {
+        const found = users.find((u) => u.id === id);
+        if (!found) throw new Error('Not Found');
+        return found;
+      }),
+    },
+  } as unknown as Awaited<ReturnType<typeof clerkClient>>);
+}
 
 beforeEach(() => {
   mockAuth.mockReset();
+  mockClerkClient.mockReset();
 });
 
 it('lists users when authenticated', async () => {
@@ -122,12 +166,15 @@ it('lists users when authenticated', async () => {
     userId: 'user_2',
     sessionClaims: { metadata: { role: 'user' } },
   } as unknown as Awaited<ReturnType<typeof auth>>);
+  mockClerkUsers([fixture({ id: 'user_1' })]);
   const users = await callRoute<ListUsersOutput>(['users', 'list']);
   expect(users.length).toBeGreaterThan(0);
 });
 ```
 
-Live examples: `src/server/middleware/auth.test.ts`, `src/server/routes/users/index.test.ts`, `src/app/api/[...path]/route.test.ts`.
+Tests that don't hit the users namespace only need the `auth` mock; the `clerkClient` mock is only required by tests that reach route handlers which call it. The `beforeEach` reset ensures every test starts from a clean slate.
+
+Live examples: `src/server/middleware/auth.test.ts`, `src/server/clerk-user.test.ts`, `src/server/routes/users/index.test.ts`, `src/server/routes/users/admins/index.test.ts`, `src/app/api/[...path]/route.test.ts`.
 
 ## Env vars
 

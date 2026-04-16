@@ -5,7 +5,9 @@ export type UserRole = 'user' | 'admin';
 export type User = {
   id: string;
   name: string;
+  email: string;
   role: UserRole;
+  imageUrl: string;
 };
 
 export const getUserInputSchema = z.object({

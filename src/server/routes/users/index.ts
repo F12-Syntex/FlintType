@@ -1,5 +1,6 @@
-import { defineNamespace, defineRoute, BackendError } from '@/server';
-import { usersDb } from '@/server/db';
+import { clerkClient } from '@clerk/nextjs/server';
+import { BackendError, defineNamespace, defineRoute } from '@/server';
+import { toUser } from '@/server/clerk-user';
 import { requireAuth } from '@/server/middleware/auth';
 import {
   getUserInputSchema,
@@ -10,17 +11,28 @@ import {
 import { admins } from './admins';
 
 const list = defineRoute<void, ListUsersOutput>({
-  handler: () => usersDb,
+  handler: async ({ log }) => {
+    const client = await clerkClient();
+    const { data } = await client.users.getUserList({ limit: 100 });
+    log.debug('clerk users fetched', { count: data.length });
+    return data.map(toUser);
+  },
 });
 
 const get = defineRoute<GetUserInput, GetUserOutput>({
   input: getUserInputSchema,
-  handler: ({ input }) => {
-    const found = usersDb.find((u) => u.id === input.id);
-    if (!found) {
+  handler: async ({ input, log }) => {
+    const client = await clerkClient();
+    try {
+      const clerkUser = await client.users.getUser(input.id);
+      return toUser(clerkUser);
+    } catch (err) {
+      log.warn('clerk user lookup failed', {
+        id: input.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
       throw new BackendError(404, 'NOT_FOUND', `user ${input.id} not found`);
     }
-    return found;
   },
 });
 

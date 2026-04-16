@@ -3,14 +3,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@clerk/nextjs/server', () => ({
   auth: vi.fn(async () => ({ userId: null, sessionClaims: null })),
+  clerkClient: vi.fn(async () => ({
+    users: {
+      getUserList: vi.fn(async () => ({ data: [], totalCount: 0 })),
+      getUser: vi.fn(async () => {
+        throw new Error('Not Found');
+      }),
+    },
+  })),
 }));
 
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import { POST } from './route';
 
 const mockAuth = vi.mocked(auth);
+const mockClerkClient = vi.mocked(clerkClient);
 
 type AuthReturn = Awaited<ReturnType<typeof auth>>;
+type ClientReturn = Awaited<ReturnType<typeof clerkClient>>;
 
 function req(path: string[], body?: unknown) {
   const init: { method: string; headers: Record<string, string>; body?: string } = {
@@ -25,10 +35,19 @@ const params = <T>(value: T) => ({ params: Promise.resolve(value) });
 
 beforeEach(() => {
   mockAuth.mockReset();
+  mockClerkClient.mockReset();
   mockAuth.mockResolvedValue({
     userId: null,
     sessionClaims: null,
   } as unknown as AuthReturn);
+  mockClerkClient.mockResolvedValue({
+    users: {
+      getUserList: vi.fn(async () => ({ data: [], totalCount: 0 })),
+      getUser: vi.fn(async () => {
+        throw new Error('Not Found');
+      }),
+    },
+  } as unknown as ClientReturn);
 });
 
 describe('dispatcher — /api/[...path]', () => {
@@ -82,6 +101,8 @@ describe('dispatcher — /api/[...path]', () => {
       userId: 'user_1',
       sessionClaims: { metadata: { role: 'admin' } },
     } as unknown as AuthReturn);
+    // default mockClerkClient (empty list, getUser always throws) will make
+    // users.get throw NOT_FOUND for any id
     const res = await POST(
       req(['users', 'get'], { id: 'nope' }),
       params({ path: ['users', 'get'] }),
