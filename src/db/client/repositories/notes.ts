@@ -2,8 +2,8 @@
 
 import { desc, eq } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/pglite';
-import * as schema from '@/db/schema';
-import { notes } from '@/db/schema/notes';
+import * as schema from '@/db/schema/client';
+import { notes } from '@/db/schema/client/notes';
 import type { Note } from '@/types/note';
 
 export type ClientDrizzle = ReturnType<typeof drizzle<typeof schema>>;

@@ -1,7 +1,7 @@
 import { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-import * as schema from '@/db/schema';
+import * as schema from '@/db/schema/client';
 import { ensureClientSchema } from '../init';
 import { notesClientRepo } from './notes';
 

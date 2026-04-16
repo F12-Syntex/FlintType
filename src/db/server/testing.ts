@@ -1,7 +1,7 @@
 import { PGlite } from '@electric-sql/pglite';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/pglite';
-import * as schema from '@/db/schema';
+import * as schema from '@/db/schema/server';
 import { createDatabase, type Database } from './index';
 
 /**

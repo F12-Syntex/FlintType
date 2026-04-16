@@ -3,7 +3,7 @@ import { neon } from '@neondatabase/serverless';
 import { drizzle as drizzleNeon } from 'drizzle-orm/neon-http';
 import { drizzle as drizzlePglite } from 'drizzle-orm/pglite';
 import { env, IS_PROD, IS_TEST } from '@/server/env';
-import * as schema from '@/db/schema';
+import * as schema from '@/db/schema/server';
 
 export type ServerDrizzle =
   | ReturnType<typeof drizzleNeon<typeof schema>>

@@ -2,7 +2,7 @@
 
 import { sql } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/pglite';
-import type * as schema from '@/db/schema';
+import type * as schema from '@/db/schema/client';
 
 /**
  * Idempotently creates the browser tables. Called once on first query.

@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { migrate as migrateNeon } from 'drizzle-orm/neon-http/migrator';
 import { migrate as migratePglite } from 'drizzle-orm/pglite/migrator';
 import { createServerDrizzle, selectDriverMode } from './driver';
@@ -30,7 +31,9 @@ export async function runServerMigrations(): Promise<void> {
   }
 }
 
-if (require.main === module) {
+// CLI entry point — works under both tsx (ESM) and a CJS runner.
+const isDirectRun = process.argv[1] === fileURLToPath(import.meta.url);
+if (isDirectRun) {
   runServerMigrations()
     .then(() => {
       console.log('migrations applied');

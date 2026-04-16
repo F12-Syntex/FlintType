@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export type { NewNote, Note } from '@/db/schema/notes';
+export type { NewNote, Note } from '@/db/schema/client/notes';
 
 export const createNoteInputSchema = z.object({
   title: z.string().min(1).max(200),

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq } from 'drizzle-orm';
-import { posts } from '@/db/schema/posts';
+import { posts } from '@/db/schema/server/posts';
 import type { Post } from '@/types/post';
 import type { ServerDrizzle } from '../driver';
 
