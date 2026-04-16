@@ -101,22 +101,22 @@ import {
   type GetWidgetOutput,
 } from '@/types/widget';
 
-export const widgets = defineNamespace({
-  routes: {
-    get: defineRoute<GetWidgetInput, GetWidgetOutput>({
-      input: getWidgetInputSchema,
-      handler: ({ input }) => {
-        if (input.id === 'missing') {
-          throw new BackendError(404, 'NOT_FOUND', `widget ${input.id} not found`);
-        }
-        return { id: input.id, label: `widget-${input.id}` };
-      },
-    }),
+const get = defineRoute<GetWidgetInput, GetWidgetOutput>({
+  input: getWidgetInputSchema,
+  handler: ({ input }) => {
+    if (input.id === 'missing') {
+      throw new BackendError(404, 'NOT_FOUND', `widget ${input.id} not found`);
+    }
+    return { id: input.id, label: `widget-${input.id}` };
   },
+});
+
+export const widgets = defineNamespace({
+  routes: { get },
 });
 ```
 
-**Every `defineRoute` has explicit generics pointing to named types.** Never inline `{...}` shapes; never omit generics.
+Each route is a top-level `const`; `defineNamespace.routes` only references identifiers. Never inline a `defineRoute({...})` body inside the namespace block.
 
 ### 2. Register in `router.ts`
 

@@ -62,6 +62,29 @@ Auth tokens, user id, tenant — all injected via `setBackendHeaders(() => ({...
 
 **Why:** single point of control for auth plumbing.
 
+### R11. Routes are top-level consts; `defineNamespace.routes` only references identifiers
+Never inline a `defineRoute({...})` body inside a `defineNamespace({...})` call. Each route is declared as its own top-level `const` above the namespace, and the namespace's `routes` object is a tiny shorthand map:
+
+```ts
+const list = defineRoute<void, ListUsersOutput>({
+  handler: () => usersDb,
+});
+
+const get = defineRoute<GetUserInput, GetUserOutput>({
+  input: getUserInputSchema,
+  handler: ({ input }) => { /* ... */ },
+});
+
+export const users = defineNamespace({
+  middleware: [requireAuth],
+  routes: { list, get, admins },    // identifiers only — no inline defineRoute
+});
+```
+
+If a single route outgrows the namespace file (rule of thumb: handler body ~30 lines or more), split it into its own file in the same folder (e.g. `users/get.ts`) and import the `const`.
+
+**Why:** the namespace block stays a one-screen table of contents you can skim; diffs to a single method don't thrash the namespace definition; refactors like reordering, renaming, extracting, or deleting a route touch one `const`, not a nested block.
+
 ## How to add a method
 
 Always two files, in this order:
@@ -84,15 +107,16 @@ import {
   type CreateOutput,
 } from '@/types/<domain>';
 
+const create = defineRoute<CreateInput, CreateOutput>({
+  input: createInputSchema,
+  handler: ({ input }) => ({ id: crypto.randomUUID(), title: input.title }),
+});
+
 export const <domain> = defineNamespace({
-  routes: {
-    create: defineRoute<CreateInput, CreateOutput>({
-      input: createInputSchema,
-      handler: ({ input }) => ({ id: crypto.randomUUID(), title: input.title }),
-    }),
-  },
+  routes: { create },
 });
 ```
+Each route is its own top-level `const`. The namespace's `routes` object is just identifiers (R11).
 
 ### 3. Register (first time only) — `src/server/router.ts`
 Add the namespace to `routes: {...}`.
@@ -115,6 +139,7 @@ Cover the R8 matrix.
 | `if (role !== 'admin') return 403` in handler           | Use `requireAdmin` middleware.                        |
 | `fetch('/api/...')` from a component                    | Use `useBackend()`.                                   |
 | `import { handler } from '@/server/routes/...'` in a client component | Only types from `@/types/*` in client code. |
+| `routes: { list: defineRoute<...>({...}), get: defineRoute<...>({...}) }` inline | Declare each route as a top-level `const` above the namespace (R11). |
 
 ## LLM checklist before submitting a backend change
 
@@ -123,6 +148,7 @@ Cover the R8 matrix.
 - [ ] Does every new input use a Zod schema?
 - [ ] Do all new error codes exist in `ErrorCode`?
 - [ ] Does every new/changed route have a co-located test covering R8's matrix?
+- [ ] Are all routes top-level consts (R11)? No inline `defineRoute` inside `defineNamespace.routes`?
 - [ ] Does `yarn test` pass? Is `yarn tsc --noEmit` clean?
 - [ ] Is `VERSION` bumped correctly (patch/minor/major)?
 - [ ] Did the commit include only backend-related files (no accidental `prompts/`, demos, etc.)?
