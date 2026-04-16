@@ -1,3 +1,4 @@
+import { getDatabase, type Database } from '@/db/server';
 import { logger, type Logger } from './logger';
 import type { Middleware, RouteContext, RouteDef } from './types';
 
@@ -8,6 +9,7 @@ export async function runRoute<I, O>(
     req: RouteContext['req'];
     meta?: Record<string, unknown>;
     log?: Logger;
+    db?: Database;
   },
   extraMiddleware: Middleware[] = [],
 ): Promise<O> {
@@ -16,6 +18,7 @@ export async function runRoute<I, O>(
     req: ctx.req,
     meta: ctx.meta ?? {},
     log: ctx.log ?? logger,
+    db: ctx.db ?? getDatabase(),
   };
   const chain: Middleware[] = [
     ...extraMiddleware,
@@ -36,6 +39,7 @@ export async function runRoute<I, O>(
       req: full.req,
       meta: full.meta,
       log: full.log,
+      db: full.db,
     });
   };
 

@@ -1,5 +1,6 @@
 import { buildPageMetadata } from '@/server/seo';
 import { BackendDemo } from './_components/backend-demo';
+import { LocalNotesDemo } from './_components/local-notes-demo';
 
 export const metadata = buildPageMetadata({
   title: 'Home',
@@ -24,6 +25,7 @@ export default function Home() {
           </p>
         </header>
         <BackendDemo />
+        <LocalNotesDemo />
       </main>
     </div>
   );

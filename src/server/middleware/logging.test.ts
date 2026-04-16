@@ -1,9 +1,12 @@
 import { NextRequest } from 'next/server';
 import { describe, expect, it } from 'vitest';
+import type { Database } from '@/db/server';
 import { BackendError } from '@/lib/errors';
 import { logger } from '../logger';
 import type { RouteContext } from '../types';
 import { logging } from './logging';
+
+const fakeDb = {} as Database;
 
 function ctx(): RouteContext {
   return {
@@ -11,6 +14,7 @@ function ctx(): RouteContext {
     req: new NextRequest('http://localhost/api/x/y', { method: 'POST' }),
     meta: {},
     log: logger,
+    db: fakeDb,
   };
 }
 

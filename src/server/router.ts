@@ -2,6 +2,7 @@ import { defineNamespace } from '@/server';
 import { logging } from './middleware/logging';
 import { echo } from './routes/echo';
 import { health } from './routes/health';
+import { posts } from './routes/posts';
 import { users } from './routes/users';
 
 export const router = defineNamespace({
@@ -10,6 +11,7 @@ export const router = defineNamespace({
     health,
     echo,
     users,
+    posts,
   },
 });
 

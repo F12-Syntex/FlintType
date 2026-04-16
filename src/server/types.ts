@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server';
 import type { ZodType } from 'zod';
+import type { Database } from '@/db/server';
 import type { Logger } from './logger';
 
 export type RouteContext<I = unknown> = {
@@ -7,6 +8,7 @@ export type RouteContext<I = unknown> = {
   req: NextRequest;
   meta: Record<string, unknown>;
   log: Logger;
+  db: Database;
 };
 
 export type RouteHandler<I, O> = (ctx: RouteContext<I>) => Promise<O> | O;

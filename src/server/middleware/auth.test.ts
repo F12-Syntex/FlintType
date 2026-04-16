@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Database } from '@/db/server';
 import { BackendError } from '@/lib/errors';
 import { logger } from '../logger';
 import type { RouteContext } from '../types';
@@ -13,12 +14,15 @@ import { requireAdmin, requireAuth } from './auth';
 
 const mockAuth = vi.mocked(auth);
 
+const fakeDb = {} as Database;
+
 function ctx(meta: Record<string, unknown> = {}): RouteContext {
   return {
     input: undefined,
     req: new NextRequest('http://localhost/api/x/y', { method: 'POST' }),
     meta,
     log: logger,
+    db: fakeDb,
   };
 }
 

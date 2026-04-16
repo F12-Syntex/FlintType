@@ -5,6 +5,9 @@ const schema = z.object({
   LOG_ENABLED: z.enum(['true', 'false']).optional(),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).optional(),
   SITE_URL: z.string().url().default('http://localhost:3000'),
+  DATABASE_URL: z.string().url().optional(),
+  DATABASE_MODE: z.enum(['auto', 'neon', 'pglite']).default('auto'),
+  PGLITE_DATA_DIR: z.string().default('./.data/pglite'),
 });
 
 const parsed = schema.safeParse({
@@ -14,6 +17,9 @@ const parsed = schema.safeParse({
   LOG_ENABLED: process.env.LOG_ENABLED,
   LOG_LEVEL: process.env.LOG_LEVEL,
   SITE_URL: process.env.SITE_URL,
+  DATABASE_URL: process.env.DATABASE_URL,
+  DATABASE_MODE: process.env.DATABASE_MODE,
+  PGLITE_DATA_DIR: process.env.PGLITE_DATA_DIR,
 });
 
 if (!parsed.success) {

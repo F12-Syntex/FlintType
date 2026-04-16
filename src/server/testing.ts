@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import type { Database } from '@/db/server';
 import { runRoute } from './pipeline';
 import { resolvePath } from './resolve';
 import { router } from './router';
@@ -10,7 +11,11 @@ import { router } from './router';
  */
 export async function callRoute<O = unknown>(
   path: readonly string[],
-  options: { input?: unknown; headers?: Record<string, string> } = {},
+  options: {
+    input?: unknown;
+    headers?: Record<string, string>;
+    db?: Database;
+  } = {},
 ): Promise<O> {
   const resolved = resolvePath(router, path);
   if (!resolved) {
@@ -22,7 +27,7 @@ export async function callRoute<O = unknown>(
   });
   return runRoute(
     resolved.route,
-    { input: options.input, req },
+    { input: options.input, req, db: options.db },
     resolved.middleware,
   ) as Promise<O>;
 }

@@ -4,6 +4,7 @@
 @docs/organization.md
 @docs/seo.md
 @docs/auth.md
+@docs/database.md
 
 # Project rules (shadcn-nextjs-boilerplate)
 
@@ -54,5 +55,6 @@ Protocol:
 - **File organization** — `docs/organization.md` is cross-cutting. Length thresholds (≤150 fine, 200–300 split before adding, >300 split now), decision table for where new files go, anti-patterns, extraction triggers.
 - **SEO** — `docs/seo.md` is the authoritative guide for page metadata, semantic HTML, and `llms.txt` sync. 9 rules plus a per-page template. Every page change considers SEO.
 - **Authentication** — `docs/auth.md` is the authoritative guide for Clerk integration. `requireAuth` / `requireAdmin` middleware read `auth()` from `@clerk/nextjs/server`; `ctx.meta.userId` + `sessionClaims` flow downstream. Tests mock `@clerk/nextjs/server`. Keyless mode in dev, real keys via `.env.local` in prod.
+- **Database** — `docs/database.md` is the authoritative guide for the two-tier Drizzle layer. Server tier (Neon in prod, PGlite-Node in dev) accessed via `ctx.db.<repo>.<method>`. Client tier (browser PGlite) accessed via `useLocalDb()`. Shared schema in `src/db/schema/`. 8 rules (D1–D8).
 
-All five are `@`-referenced above and auto-loaded into context. Consult them before writing code, amend them when introducing new conventions.
+All six are `@`-referenced above and auto-loaded into context. Consult them before writing code, amend them when introducing new conventions.
