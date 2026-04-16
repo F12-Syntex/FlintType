@@ -3,38 +3,18 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { BackendError, setBackendHeaders, useBackend } from '@/lib/backend';
-import type { User } from '@/types/user';
-
-type Result = { ok: true; text: string } | { ok: false; code: string; text: string };
+import { setBackendHeaders, useBackend } from '@/lib/backend';
+import type { AsyncResult } from '@/lib/use-async-action';
+import { useAsyncAction } from '@/lib/use-async-action';
 
 function fmt(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
 
-function resultFromError(err: unknown): Result {
-  if (err instanceof BackendError) {
-    return { ok: false, code: err.code, text: err.message };
-  }
-  return {
-    ok: false,
-    code: 'UNKNOWN',
-    text: err instanceof Error ? err.message : 'unknown error',
-  };
-}
-
 export function BackendDemo() {
   const backend = useBackend();
   const [userId, setUserId] = useState<'' | 'u_1' | 'u_2' | 'ghost'>('u_1');
-  const [ping, setPing] = useState<Result | null>(null);
-  const [pingLoading, setPingLoading] = useState(false);
   const [message, setMessage] = useState('hello');
-  const [echoed, setEchoed] = useState<Result | null>(null);
-  const [echoLoading, setEchoLoading] = useState(false);
-  const [list, setList] = useState<Result | null>(null);
-  const [listLoading, setListLoading] = useState(false);
-  const [adminList, setAdminList] = useState<Result | null>(null);
-  const [adminListLoading, setAdminListLoading] = useState(false);
 
   useEffect(() => {
     setBackendHeaders(() => {
@@ -44,64 +24,30 @@ export function BackendDemo() {
     });
   }, [userId]);
 
-  async function runPing() {
-    setPingLoading(true);
-    try {
-      const r = await backend.health.ping();
-      setPing({ ok: true, text: fmt(r) });
-    } catch (err) {
-      setPing(resultFromError(err));
-    } finally {
-      setPingLoading(false);
-    }
-  }
-
-  async function runEcho() {
-    setEchoLoading(true);
-    try {
-      const r = await backend.echo.say({ message });
-      setEchoed({ ok: true, text: fmt(r) });
-    } catch (err) {
-      setEchoed(resultFromError(err));
-    } finally {
-      setEchoLoading(false);
-    }
-  }
-
-  async function runList() {
-    setListLoading(true);
-    try {
-      const r: User[] = await backend.users.list();
-      setList({ ok: true, text: fmt(r) });
-    } catch (err) {
-      setList(resultFromError(err));
-    } finally {
-      setListLoading(false);
-    }
-  }
-
-  async function runAdminList() {
-    setAdminListLoading(true);
-    try {
-      const r: User[] = await backend.users.admins.list();
-      setAdminList({ ok: true, text: fmt(r) });
-    } catch (err) {
-      setAdminList(resultFromError(err));
-    } finally {
-      setAdminListLoading(false);
-    }
-  }
+  const ping = useAsyncAction(() => backend.health.ping());
+  const echo = useAsyncAction(() => backend.echo.say({ message }));
+  const list = useAsyncAction(() => backend.users.list());
+  const adminList = useAsyncAction(() => backend.users.admins.list());
 
   return (
     <section className="flex flex-col gap-8">
-      <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-        <label className="text-xs font-medium uppercase tracking-widest text-zinc-500">
+      <div
+        role="radiogroup"
+        aria-labelledby="identity-label"
+        className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950"
+      >
+        <span
+          id="identity-label"
+          className="text-xs font-medium uppercase tracking-widest text-zinc-500"
+        >
           identity
-        </label>
+        </span>
         <div className="flex gap-2">
           {(['u_1', 'u_2', 'ghost', ''] as const).map((id) => (
             <Button
               key={id || 'none'}
+              role="radio"
+              aria-checked={userId === id}
               variant={userId === id ? 'default' : 'outline'}
               size="sm"
               onClick={() => setUserId(id)}
@@ -124,16 +70,12 @@ export function BackendDemo() {
       <Demo
         title="backend.health.ping()"
         label="ping"
-        result={ping}
-        onRun={runPing}
-        loading={pingLoading}
+        action={ping}
       />
       <Demo
         title="backend.echo.say({ message })"
         label="say"
-        result={echoed}
-        onRun={runEcho}
-        loading={echoLoading}
+        action={echo}
         extra={
           <Input
             value={message}
@@ -146,16 +88,12 @@ export function BackendDemo() {
       <Demo
         title="backend.users.list()  // requireAuth"
         label="list users"
-        result={list}
-        onRun={runList}
-        loading={listLoading}
+        action={list}
       />
       <Demo
         title="backend.users.admins.list()  // requireAuth + requireAdmin"
         label="list admins"
-        result={adminList}
-        onRun={runAdminList}
-        loading={adminListLoading}
+        action={adminList}
       />
     </section>
   );
@@ -164,23 +102,20 @@ export function BackendDemo() {
 function Demo({
   title,
   label,
-  result,
-  onRun,
-  loading,
+  action,
   extra,
 }: {
   title: string;
   label: string;
-  result: Result | null;
-  onRun: () => void;
-  loading: boolean;
+  action: { run: () => void; loading: boolean; result: AsyncResult<unknown> | null };
   extra?: React.ReactNode;
 }) {
+  const { run, loading, result } = action;
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-center gap-3">
         {extra}
-        <Button onClick={onRun} disabled={loading} aria-busy={loading}>
+        <Button onClick={run} disabled={loading} aria-busy={loading}>
           {loading ? `${label}…` : <code className="text-xs">{title}</code>}
         </Button>
       </div>
@@ -190,7 +125,7 @@ function Demo({
             result.ok ? '' : 'text-red-600 dark:text-red-400'
           }`}
         >
-          {result.ok ? result.text : `[${result.code}] ${result.text}`}
+          {result.ok ? fmt(result.data) : `[${result.code}] ${result.message}`}
         </pre>
       )}
     </div>

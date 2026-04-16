@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { BackendError } from '@/lib/errors';
@@ -23,13 +24,18 @@ export async function POST(
   { params }: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await params;
+  const requestId = randomUUID();
+  const pathStr = `/${path.join('/')}`;
+  const requestLog = logger.child({
+    requestId,
+    method: req.method,
+    path: pathStr,
+  });
+
   const resolved = resolvePath(router, path);
   if (!resolved) {
-    logger.warn('route not found', {
-      method: req.method,
-      path: path.join('/'),
-    });
-    return errorJson(404, 'NOT_FOUND', `Unknown route /${path.join('/')}`);
+    requestLog.warn('route not found');
+    return errorJson(404, 'NOT_FOUND', `Unknown route ${pathStr}`);
   }
 
   let input: unknown = undefined;
@@ -38,7 +44,7 @@ export async function POST(
     try {
       input = JSON.parse(raw);
     } catch {
-      logger.warn('invalid json body', { path: path.join('/') });
+      requestLog.warn('invalid json body');
       return errorJson(400, 'VALIDATION', 'Invalid JSON body');
     }
   }
@@ -46,7 +52,7 @@ export async function POST(
   try {
     const result = await runRoute(
       resolved.route,
-      { input, req },
+      { input, req, meta: { requestId }, log: requestLog },
       resolved.middleware,
     );
     return NextResponse.json(result);
@@ -64,7 +70,7 @@ export async function POST(
     if (err instanceof BackendError) {
       return NextResponse.json(err.toJSON(), { status: err.status });
     }
-    logger.error('dispatcher fallback', err, { path: path.join('/') });
+    requestLog.error('dispatcher fallback', err);
     return errorJson(500, 'INTERNAL', 'Internal error');
   }
 }

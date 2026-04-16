@@ -15,7 +15,7 @@ function ctx(): RouteContext {
 }
 
 describe('logging middleware', () => {
-  it('assigns a uuid requestId onto ctx.meta', async () => {
+  it('mints a uuid requestId onto ctx.meta when upstream did not set one', async () => {
     const c = ctx();
     await logging(c, async () => 'ok');
     expect(typeof c.meta.requestId).toBe('string');
@@ -24,11 +24,22 @@ describe('logging middleware', () => {
     );
   });
 
-  it('replaces ctx.log with a child logger', async () => {
+  it('replaces ctx.log with a child logger when upstream did not set one', async () => {
     const c = ctx();
     const original = c.log;
     await logging(c, async () => 'ok');
     expect(c.log).not.toBe(original);
+  });
+
+  it('reuses an upstream requestId without overwriting ctx.log', async () => {
+    const upstream: RouteContext = {
+      ...ctx(),
+      meta: { requestId: 'upstream-id' },
+    };
+    const originalLog = upstream.log;
+    await logging(upstream, async () => 'ok');
+    expect(upstream.meta.requestId).toBe('upstream-id');
+    expect(upstream.log).toBe(originalLog);
   });
 
   it('returns the result of next()', async () => {

@@ -342,7 +342,12 @@ const get = defineRoute<GetUserInput, GetUserOutput>({
 });
 ```
 
-`ctx.log` comes pre-populated by the `logging` global middleware with `{ requestId, method, path }` — every line inside a request automatically carries those fields.
+`ctx.log` comes pre-populated with `{ requestId, method, path }` — every line inside a request automatically carries those fields.
+
+### Who mints the requestId
+
+- **HTTP requests through the dispatcher** (`src/app/api/[...path]/route.ts`) — dispatcher mints the `requestId` at the top of the request, builds the child logger, and hands it into the pipeline via `ctx.log` + `ctx.meta.requestId`. Dispatcher-level events (route not found, invalid JSON body, dispatcher fallback) therefore carry the same `requestId` as the pipeline events — no asymmetry.
+- **Direct `runRoute` calls** (tests, internal entry points) — the `logging` middleware mints a `requestId` if none is present on `ctx.meta`. Same structure as the dispatcher path.
 
 ### What the global middleware already logs
 
@@ -354,6 +359,14 @@ You get these for free on every request (see `src/server/middleware/logging.ts`)
 | request ok       | info  | requestId, method, path, durationMs                   |
 | request failed (BackendError) | warn  | requestId, ..., durationMs, status, code |
 | request crashed (unknown throw) | error | requestId, ..., durationMs, error: { name, message, stack } |
+
+Dispatcher-only events (before the pipeline runs) carry the same `requestId` fields:
+
+| Event            | Level | Fields                                                |
+|------------------|-------|--------------------------------------------------------|
+| route not found  | warn  | requestId, method, path                               |
+| invalid json body | warn | requestId, method, path                               |
+| dispatcher fallback | error | requestId, method, path, error: { name, message, stack } |
 
 So handlers only need to log **their own** interesting events — don't re-log timing or request IDs.
 
