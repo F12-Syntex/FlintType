@@ -1,17 +1,35 @@
 import { NextRequest } from 'next/server';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@clerk/nextjs/server', () => ({
+  auth: vi.fn(async () => ({ userId: null, sessionClaims: null })),
+}));
+
+import { auth } from '@clerk/nextjs/server';
 import { POST } from './route';
 
-function req(path: string[], body?: unknown, headers?: Record<string, string>) {
+const mockAuth = vi.mocked(auth);
+
+type AuthReturn = Awaited<ReturnType<typeof auth>>;
+
+function req(path: string[], body?: unknown) {
   const init: { method: string; headers: Record<string, string>; body?: string } = {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...headers },
+    headers: { 'Content-Type': 'application/json' },
   };
   if (body !== undefined) init.body = JSON.stringify(body);
   return new NextRequest(`http://localhost/api/${path.join('/')}`, init);
 }
 
 const params = <T>(value: T) => ({ params: Promise.resolve(value) });
+
+beforeEach(() => {
+  mockAuth.mockReset();
+  mockAuth.mockResolvedValue({
+    userId: null,
+    sessionClaims: null,
+  } as unknown as AuthReturn);
+});
 
 describe('dispatcher — /api/[...path]', () => {
   it('routes a known path and serializes the handler return', async () => {
@@ -32,10 +50,7 @@ describe('dispatcher — /api/[...path]', () => {
     );
     expect(res.status).toBe(404);
     const body = await res.json();
-    expect(body).toMatchObject({
-      code: 'NOT_FOUND',
-      status: 404,
-    });
+    expect(body).toMatchObject({ code: 'NOT_FOUND', status: 404 });
   });
 
   it('returns 400 VALIDATION on invalid JSON body', async () => {
@@ -63,8 +78,12 @@ describe('dispatcher — /api/[...path]', () => {
   });
 
   it('maps BackendError from a handler to its status/code', async () => {
+    mockAuth.mockResolvedValue({
+      userId: 'user_1',
+      sessionClaims: { metadata: { role: 'admin' } },
+    } as unknown as AuthReturn);
     const res = await POST(
-      req(['users', 'get'], { id: 'nope' }, { 'x-user-id': 'u_1' }),
+      req(['users', 'get'], { id: 'nope' }),
       params({ path: ['users', 'get'] }),
     );
     expect(res.status).toBe(404);

@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { Show } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { setBackendHeaders, useBackend } from '@/lib/backend';
+import { useBackend } from '@/lib/backend';
 import type { AsyncResult } from '@/lib/use-async-action';
 import { useAsyncAction } from '@/lib/use-async-action';
 
@@ -13,16 +14,7 @@ function fmt(value: unknown): string {
 
 export function BackendDemo() {
   const backend = useBackend();
-  const [userId, setUserId] = useState<'' | 'u_1' | 'u_2' | 'ghost'>('u_1');
   const [message, setMessage] = useState('hello');
-
-  useEffect(() => {
-    setBackendHeaders(() => {
-      const headers: Record<string, string> = {};
-      if (userId) headers['x-user-id'] = userId;
-      return headers;
-    });
-  }, [userId]);
 
   const ping = useAsyncAction(() => backend.health.ping());
   const echo = useAsyncAction(() => backend.echo.say({ message }));
@@ -31,47 +23,18 @@ export function BackendDemo() {
 
   return (
     <section className="flex flex-col gap-8">
-      <div
-        role="radiogroup"
-        aria-labelledby="identity-label"
-        className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950"
-      >
-        <span
-          id="identity-label"
-          className="text-xs font-medium uppercase tracking-widest text-zinc-500"
-        >
-          identity
-        </span>
-        <div className="flex gap-2">
-          {(['u_1', 'u_2', 'ghost', ''] as const).map((id) => (
-            <Button
-              key={id || 'none'}
-              role="radio"
-              aria-checked={userId === id}
-              variant={userId === id ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setUserId(id)}
-            >
-              {id === 'u_1'
-                ? 'Alice (admin)'
-                : id === 'u_2'
-                  ? 'Bob (user)'
-                  : id === 'ghost'
-                    ? 'ghost (unknown)'
-                    : 'anonymous'}
-            </Button>
-          ))}
+      <Show when="signed-out">
+        <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+          <span className="text-xs font-medium uppercase tracking-widest text-zinc-500">
+            session
+          </span>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            Sign in from the header. Routes under <code className="rounded bg-zinc-200 px-1 py-0.5 text-xs dark:bg-zinc-800">users</code> require authentication; <code className="rounded bg-zinc-200 px-1 py-0.5 text-xs dark:bg-zinc-800">users.admins</code> additionally requires <code className="rounded bg-zinc-200 px-1 py-0.5 text-xs dark:bg-zinc-800">publicMetadata.role === &apos;admin&apos;</code>.
+          </p>
         </div>
-        <p className="text-xs text-zinc-500">
-          sets <code>x-user-id</code> header; affects routes under <code>users</code>.
-        </p>
-      </div>
+      </Show>
 
-      <Demo
-        title="backend.health.ping()"
-        label="ping"
-        action={ping}
-      />
+      <Demo title="backend.health.ping()" label="ping" action={ping} />
       <Demo
         title="backend.echo.say({ message })"
         label="say"

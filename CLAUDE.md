@@ -3,6 +3,7 @@
 @docs/ui-law.md
 @docs/organization.md
 @docs/seo.md
+@docs/auth.md
 
 # Project rules (shadcn-nextjs-boilerplate)
 
@@ -51,5 +52,6 @@ Protocol:
 - **Frontend / UI** — `docs/ui-law.md` is the authoritative design law. Ships as a **blank slate** for visual conventions (colors, spacing, typography, layouts) — each application fills those tables as it adopts patterns. Structural rules (component reuse, async feedback, a11y, backend integration, amending procedure) are fixed. Meta-rule: any new pattern must be added to the doc *first*, in the same commit as the code using it.
 - **File organization** — `docs/organization.md` is cross-cutting. Length thresholds (≤150 fine, 200–300 split before adding, >300 split now), decision table for where new files go, anti-patterns, extraction triggers.
 - **SEO** — `docs/seo.md` is the authoritative guide for page metadata, semantic HTML, and `llms.txt` sync. 9 rules plus a per-page template. Every page change considers SEO.
+- **Authentication** — `docs/auth.md` is the authoritative guide for Clerk integration. `requireAuth` / `requireAdmin` middleware read `auth()` from `@clerk/nextjs/server`; `ctx.meta.userId` + `sessionClaims` flow downstream. Tests mock `@clerk/nextjs/server`. Keyless mode in dev, real keys via `.env.local` in prod.
 
-All four are `@`-referenced above and auto-loaded into context. Consult them before writing code, amend them when introducing new conventions.
+All five are `@`-referenced above and auto-loaded into context. Consult them before writing code, amend them when introducing new conventions.

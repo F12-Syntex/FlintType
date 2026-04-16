@@ -1,38 +1,50 @@
 import { NextRequest } from 'next/server';
-import { describe, expect, it, vi } from 'vitest';
-import type { User } from '@/types/user';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BackendError } from '@/lib/errors';
 import { logger } from '../logger';
 import type { RouteContext } from '../types';
+
+vi.mock('@clerk/nextjs/server', () => ({
+  auth: vi.fn(async () => ({ userId: null, sessionClaims: null })),
+}));
+
+import { auth } from '@clerk/nextjs/server';
 import { requireAdmin, requireAuth } from './auth';
 
-function ctx(
-  headers: Record<string, string> = {},
-  meta: Record<string, unknown> = {},
-): RouteContext {
+const mockAuth = vi.mocked(auth);
+
+function ctx(meta: Record<string, unknown> = {}): RouteContext {
   return {
     input: undefined,
-    req: new NextRequest('http://localhost/api/x/y', {
-      method: 'POST',
-      headers,
-    }),
+    req: new NextRequest('http://localhost/api/x/y', { method: 'POST' }),
     meta,
     log: logger,
   };
 }
 
-describe('requireAuth', () => {
-  it('calls next and sets ctx.meta.user when x-user-id matches a known user', async () => {
-    const c = ctx({ 'x-user-id': 'u_1' });
+beforeEach(() => {
+  mockAuth.mockReset();
+});
+
+describe('requireAuth (Clerk)', () => {
+  it('calls next and sets ctx.meta.userId when Clerk returns a userId', async () => {
+    mockAuth.mockResolvedValue({
+      userId: 'user_abc',
+      sessionClaims: null,
+    } as unknown as Awaited<ReturnType<typeof auth>>);
+    const c = ctx();
     const next = vi.fn(async () => 'ok');
     const result = await requireAuth(c, next);
     expect(result).toBe('ok');
     expect(next).toHaveBeenCalledOnce();
-    expect(c.meta.user).toMatchObject({ id: 'u_1', role: 'admin' });
-    expect(c.meta.userId).toBe('u_1');
+    expect(c.meta.userId).toBe('user_abc');
   });
 
-  it('throws UNAUTHORIZED when x-user-id header is missing', async () => {
+  it('throws UNAUTHORIZED when Clerk returns no userId', async () => {
+    mockAuth.mockResolvedValue({
+      userId: null,
+      sessionClaims: null,
+    } as unknown as Awaited<ReturnType<typeof auth>>);
     await expect(
       requireAuth(ctx(), async () => 'never'),
     ).rejects.toSatisfy(
@@ -43,40 +55,46 @@ describe('requireAuth', () => {
     );
   });
 
-  it('throws UNAUTHORIZED when x-user-id does not match any known user', async () => {
-    await expect(
-      requireAuth(ctx({ 'x-user-id': 'ghost' }), async () => 'never'),
-    ).rejects.toSatisfy(
-      (e: unknown) =>
-        e instanceof BackendError &&
-        e.status === 401 &&
-        e.code === 'UNAUTHORIZED',
-    );
+  it('does not call next when unauthenticated', async () => {
+    mockAuth.mockResolvedValue({
+      userId: null,
+      sessionClaims: null,
+    } as unknown as Awaited<ReturnType<typeof auth>>);
+    const next = vi.fn(async () => 'never');
+    await expect(requireAuth(ctx(), next)).rejects.toBeInstanceOf(BackendError);
+    expect(next).not.toHaveBeenCalled();
   });
 
-  it('does not call next on failure', async () => {
-    const next = vi.fn(async () => 'never');
-    await expect(
-      requireAuth(ctx(), next),
-    ).rejects.toBeInstanceOf(BackendError);
-    expect(next).not.toHaveBeenCalled();
+  it('propagates sessionClaims onto ctx.meta for downstream role checks', async () => {
+    mockAuth.mockResolvedValue({
+      userId: 'user_1',
+      sessionClaims: { metadata: { role: 'admin' } },
+    } as unknown as Awaited<ReturnType<typeof auth>>);
+    const c = ctx();
+    await requireAuth(c, async () => 'ok');
+    expect(c.meta.sessionClaims).toEqual({ metadata: { role: 'admin' } });
   });
 });
 
 describe('requireAdmin', () => {
-  const admin: User = { id: 'u_1', name: 'Alice', role: 'admin' };
-  const regular: User = { id: 'u_2', name: 'Bob', role: 'user' };
-
-  it('calls next when ctx.meta.user.role === "admin"', async () => {
+  it('calls next when sessionClaims.metadata.role === "admin"', async () => {
+    const c = ctx({
+      userId: 'user_1',
+      sessionClaims: { metadata: { role: 'admin' } },
+    });
     const next = vi.fn(async () => 'ok');
-    const result = await requireAdmin(ctx({}, { user: admin }), next);
+    const result = await requireAdmin(c, next);
     expect(result).toBe('ok');
     expect(next).toHaveBeenCalledOnce();
   });
 
-  it('throws FORBIDDEN when ctx.meta.user is not an admin', async () => {
+  it('throws FORBIDDEN when the role is not admin', async () => {
+    const c = ctx({
+      userId: 'user_1',
+      sessionClaims: { metadata: { role: 'user' } },
+    });
     await expect(
-      requireAdmin(ctx({}, { user: regular }), async () => 'never'),
+      requireAdmin(c, async () => 'never'),
     ).rejects.toSatisfy(
       (e: unknown) =>
         e instanceof BackendError &&
@@ -85,7 +103,19 @@ describe('requireAdmin', () => {
     );
   });
 
-  it('throws INTERNAL when run without requireAuth populating ctx.meta.user', async () => {
+  it('throws FORBIDDEN when session claims are absent', async () => {
+    const c = ctx({ userId: 'user_1' });
+    await expect(
+      requireAdmin(c, async () => 'never'),
+    ).rejects.toSatisfy(
+      (e: unknown) =>
+        e instanceof BackendError &&
+        e.status === 403 &&
+        e.code === 'FORBIDDEN',
+    );
+  });
+
+  it('throws INTERNAL when run without requireAuth setting ctx.meta.userId', async () => {
     await expect(
       requireAdmin(ctx(), async () => 'never'),
     ).rejects.toSatisfy(
@@ -97,10 +127,12 @@ describe('requireAdmin', () => {
   });
 
   it('does not call next on failure', async () => {
+    const c = ctx({
+      userId: 'user_1',
+      sessionClaims: { metadata: { role: 'user' } },
+    });
     const next = vi.fn(async () => 'never');
-    await expect(
-      requireAdmin(ctx({}, { user: regular }), next),
-    ).rejects.toBeInstanceOf(BackendError);
+    await expect(requireAdmin(c, next)).rejects.toBeInstanceOf(BackendError);
     expect(next).not.toHaveBeenCalled();
   });
 });

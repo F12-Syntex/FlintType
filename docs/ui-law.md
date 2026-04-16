@@ -65,6 +65,7 @@ Tailwind's default numeric scale only. Allowed step values: `0.5, 1, 2, 3, 4, 5,
 | Code-block padding        | `p-3`            |
 | Inline code padding       | `px-1 py-0.5`    |
 | Input padding             | `px-3 py-2`      |
+| Topbar vertical padding   | `py-4`           |
 | Page horizontal padding   | `px-8`           |
 | Page vertical padding     | `py-20`          |
 
@@ -95,6 +96,8 @@ Font family: inherits (`font-sans`). Weights used: `400` (default), `500` (mediu
 | Card               | `flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950` |
 | Inline row         | `flex items-center gap-3`                                                                      |
 | Button group       | `flex gap-2`                                                                                   |
+| Topbar (sticky header) | `sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80` |
+| Topbar inner row   | `mx-auto flex max-w-3xl items-center justify-between px-8 py-4`                                |
 
 ---
 
