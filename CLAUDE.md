@@ -10,6 +10,9 @@ This is a **boilerplate**, not a product. Keep scaffolding generic and reusable.
 3. Unit tests required for every backend route.
 4. Auto-commit every change. **No Claude watermark ever.**
 
+## Package manager
+Yarn classic (1.x), pinned in `package.json` → `packageManager: "yarn@1.22.22"`. Always run `yarn`, `yarn add`, `yarn install`, `yarn test`, etc. — never `npm`. The lockfile is `yarn.lock`; there must be no `package-lock.json` in this repo.
+
 ## Commit discipline
 **At the end of every turn where you modified files in response to the user's prompt, commit before yielding control.** This happens *inside* your turn, not via a hook.
 
