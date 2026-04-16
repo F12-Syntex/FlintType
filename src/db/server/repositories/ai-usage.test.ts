@@ -1,4 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { PRESETS } from '@/server/ai/presets';
 import { createTestDatabase } from '../testing';
 
 const { db, reset, close } = await createTestDatabase();
@@ -16,7 +17,7 @@ function sample(overrides: Partial<Parameters<typeof aiUsage.log>[0]> = {}) {
   return {
     userId: 'user_1',
     preset: 'fast',
-    model: 'openai/gpt-4o-mini',
+    model: PRESETS.fast,
     inputTokens: 10,
     outputTokens: 5,
     totalTokens: 15,
@@ -36,7 +37,7 @@ describe('aiUsageRepo.log', () => {
     const row = await aiUsage.log(
       sample({
         preset: 'smart',
-        model: 'anthropic/claude-sonnet-4',
+        model: PRESETS.smart,
         inputTokens: 100,
         outputTokens: 50,
         totalTokens: 150,
@@ -44,7 +45,7 @@ describe('aiUsageRepo.log', () => {
       }),
     );
     expect(row.preset).toBe('smart');
-    expect(row.model).toBe('anthropic/claude-sonnet-4');
+    expect(row.model).toBe(PRESETS.smart);
     expect(row.inputTokens).toBe(100);
     expect(row.outputTokens).toBe(50);
     expect(row.totalTokens).toBe(150);

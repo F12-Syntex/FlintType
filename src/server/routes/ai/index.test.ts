@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ZodError } from 'zod';
 import { BackendError } from '@/lib/errors';
 import { createTestDatabase } from '@/db/server/testing';
+import { PRESETS } from '@/server/ai/presets';
 import { callRoute } from '@/server/testing';
 import type { ChatOutput } from '@/types/ai';
 
@@ -93,7 +94,7 @@ describe('ai.chat', () => {
     mockGenerateChat.mockResolvedValue({
       text: 'hello there',
       preset: 'smart',
-      model: 'anthropic/claude-sonnet-4',
+      model: PRESETS.smart,
       usage: {
         inputTokens: 7,
         outputTokens: 4,
@@ -108,14 +109,14 @@ describe('ai.chat', () => {
     });
 
     expect(out.text).toBe('hello there');
-    expect(out.model).toBe('anthropic/claude-sonnet-4');
+    expect(out.model).toBe(PRESETS.smart);
 
     const rows = await db.aiUsage.listByUser('user_42');
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
       userId: 'user_42',
       preset: 'smart',
-      model: 'anthropic/claude-sonnet-4',
+      model: PRESETS.smart,
       inputTokens: 7,
       outputTokens: 4,
       totalTokens: 11,
@@ -128,7 +129,7 @@ describe('ai.chat', () => {
     mockGenerateChat.mockResolvedValue({
       text: 'x',
       preset: 'fast',
-      model: 'openai/gpt-4o-mini',
+      model: PRESETS.fast,
       usage: {
         inputTokens: null,
         outputTokens: null,
