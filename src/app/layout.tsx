@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { siteConfig } from "@/lib/seo";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,9 +14,27 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "shadcn-nextjs-boilerplate",
-  description:
-    "Minimal Next.js + shadcn boilerplate with a typed backend, Zod validation, and structured logging.",
+  metadataBase: new URL(siteConfig.url),
+  title: {
+    default: siteConfig.name,
+    template: `%s | ${siteConfig.name}`,
+  },
+  description: siteConfig.description,
+  openGraph: {
+    type: "website",
+    locale: siteConfig.locale,
+    url: siteConfig.url,
+    siteName: siteConfig.name,
+    title: siteConfig.name,
+    description: siteConfig.description,
+  },
+  twitter: {
+    card: "summary",
+    title: siteConfig.name,
+    description: siteConfig.description,
+  },
+  robots: { index: true, follow: true },
+  alternates: { canonical: siteConfig.url },
 };
 
 export default function RootLayout({

@@ -1,4 +1,12 @@
+import { buildPageMetadata } from '@/lib/seo';
 import { BackendDemo } from './_components/backend-demo';
+
+export const metadata = buildPageMetadata({
+  title: 'Home',
+  description:
+    'Live demo of the typed useBackend() client hitting the boilerplate\'s Zod-validated route tree.',
+  path: '/',
+});
 
 export default function Home() {
   return (
