@@ -39,9 +39,7 @@ export default function LocalNotesInner() {
 
   if (!db) {
     return (
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Initializing local database…
-      </p>
+      <p className="text-sm text-zinc-500">Initializing local database…</p>
     );
   }
 
@@ -73,7 +71,7 @@ export default function LocalNotesInner() {
           {notes.map((n) => (
             <li
               key={n.id}
-              className="flex items-center justify-between rounded border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900"
+              className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900"
             >
               <span className="text-zinc-600 dark:text-zinc-400">
                 <span className="font-medium text-zinc-950 dark:text-zinc-50">
