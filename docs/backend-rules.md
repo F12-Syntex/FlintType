@@ -11,10 +11,12 @@ The backend is a typed route tree rooted at `src/server/router.ts`. A single cat
 - **Route** — a leaf of the tree. `defineRoute<Input, Output>({ input?: zodSchema, middleware?: [...], handler })`. The handler is the business logic. `input` is an optional Zod schema that validates the wire payload. Handler receives `{ input, req, meta, log }` — `log` is a request-scoped `Logger` (see **Logging** below).
 - **Namespace** — a branch. `defineNamespace({ middleware?: [...], routes: { ... } })`. Groups routes and/or nested namespaces and may attach middleware that cascades to every descendant.
 - **Middleware** — `(ctx, next) => Promise<unknown>`. Koa/Express style. Reads `ctx.req`, mutates `ctx.meta` to publish state downstream, calls `next()` to continue, or returns without `next()` to short-circuit.
-- **`ctx.meta`** — a plain `Record<string, unknown>` that flows through every middleware and the handler for one request. This is how `requireAuth` hands `user` down to `requireAdmin` and the handler body.
-- **`BackendError`** — the only throw the dispatcher serializes cleanly. `new BackendError(status, code, message, details?)`. `code` is a literal-union from `ErrorCode` in `src/server/errors.ts`.
+- **`ctx.meta`** — a plain `Record<string, unknown>` that flows through every middleware and the handler for one request. This is how `requireAuth` hands `userId` + `sessionClaims` down to `requireAdmin` and the handler body.
+- **`ctx.log`** — request-scoped structured `Logger`, pre-populated with `{ requestId, method, path }`.
+- **`ctx.db`** — the `Database` object (repositories per table; see `docs/database.md`).
+- **`BackendError`** — the only throw the dispatcher serializes cleanly. `new BackendError(status, code, message, details?)`. `code` is a literal-union from `ErrorCode` in `src/lib/errors.ts`.
 - **`useBackend()`** — a recursive `Proxy`. Property access traverses the tree (no network); invocation sends a `POST` to the assembled URL path. Types come from `typeof router`.
-- **`setBackendHeaders(() => ({...}))`** — global header injector. Used for auth tokens, user id, tenant, trace id.
+- **`setBackendHeaders(() => ({...}))`** — global header injector for **non-auth** headers (tenant id, trace id, feature flags). Auth is handled by Clerk via cookies automatically — don't use this for auth.
 - **`safe(promise)`** — optional Result-style wrapper: turns a throwing call into `{ ok: true, data } | { ok: false, error: BackendError }` for exhaustive call-site handling.
 
 ## End-to-end request flow
@@ -30,8 +32,8 @@ resolvePath walks router → users → admins → list
   ↓     collects middleware as it descends: [logging, requireAuth, requireAdmin]
 runRoute runs the onion:
   logging(before)
-    requireAuth(before)      reads x-user-id header, sets ctx.meta.user
-      requireAdmin(before)   reads ctx.meta.user, throws if role !== 'admin'
+    requireAuth(before)      calls auth() from Clerk, sets ctx.meta.userId + sessionClaims
+      requireAdmin(before)   reads sessionClaims.metadata.role, throws if !== 'admin'
         validate(input)      runs input.parse(body) if Zod schema is present
           handler(ctx)       the business logic; returns User[]
       requireAdmin(after)
@@ -113,10 +115,10 @@ Everything else — handlers, middleware, Zod schemas, the router, the dispatche
 
 **Why:** keeps the server bundle out of the client. `BackendError` sits in `@/lib` (not `@/server`) precisely so the client can throw-and-catch it without crossing the boundary. Accidental DB/secret imports from a client component would otherwise leak into the browser bundle.
 
-### R10. All outbound headers go through `setBackendHeaders`
-Auth tokens, user id, tenant — all injected via `setBackendHeaders(() => ({...}))`. Do not wrap `fetch`, do not fork the client, do not pass headers per-call.
+### R10. Non-auth outbound headers go through `setBackendHeaders`
+Auth is handled by Clerk via cookies automatically — **don't** use `setBackendHeaders` for auth. For everything else the client needs to send (tenant id, trace id, feature flags, i18n locale), inject via `setBackendHeaders(() => ({...}))`. Do not wrap `fetch`, do not fork the client, do not pass headers per-call.
 
-**Why:** single point of control for auth plumbing.
+**Why:** single point of control for cross-cutting headers; Clerk's session cookie already travels automatically on same-origin requests.
 
 ### R11. Routes are top-level consts; `defineNamespace.routes` only references identifiers
 (Organization rule: see `docs/organization.md` for repo-wide file-length and split thresholds.)
@@ -124,18 +126,21 @@ Auth tokens, user id, tenant — all injected via `setBackendHeaders(() => ({...
 Never inline a `defineRoute({...})` body inside a `defineNamespace({...})` call. Each route is declared as its own top-level `const` above the namespace, and the namespace's `routes` object is a tiny shorthand map:
 
 ```ts
-const list = defineRoute<void, ListUsersOutput>({
-  handler: () => usersDb,
+const list = defineRoute<void, ListPostsOutput>({
+  handler: async ({ db }) => db.posts.list(),
 });
 
-const get = defineRoute<GetUserInput, GetUserOutput>({
-  input: getUserInputSchema,
-  handler: ({ input }) => { /* ... */ },
+const get = defineRoute<GetPostInput, GetPostOutput>({
+  input: getPostInputSchema,
+  handler: async ({ input, db }) => {
+    const post = await db.posts.findById(input.id);
+    if (!post) throw new BackendError(404, 'NOT_FOUND', `post ${input.id} not found`);
+    return post;
+  },
 });
 
-export const users = defineNamespace({
-  middleware: [requireAuth],
-  routes: { list, get, admins },    // identifiers only — no inline defineRoute
+export const posts = defineNamespace({
+  routes: { list, get },    // identifiers only — no inline defineRoute
 });
 ```
 
@@ -154,12 +159,12 @@ Anything with logic gets a co-located `*.test.ts`:
 | A middleware                        | co-located `<name>.test.ts`                | Pass-through happy path + every failure mode it can throw.      |
 | Pipeline / resolve / dispatcher helpers | co-located `<name>.test.ts`            | Every branch of the resolution or pipeline logic.               |
 | Logger / env / infra module         | co-located `<name>.test.ts`                | Level filtering, env defaults, formatting, child context, etc.  |
-| Helpers under `src/server/lib/`     | co-located `<name>.test.ts`                | Happy path + each documented edge case.                         |
-| Data module under `src/server/db/`  | co-located `<name>.test.ts`                | Each query/mutation's happy path and any constraint it enforces.|
+| Helpers under `src/lib/`            | co-located `<name>.test.ts`                | Happy path + each documented edge case.                         |
+| Repositories under `src/db/`        | co-located `<name>.test.ts`                | Each query/mutation's happy path and any constraint it enforces.|
 
 What does **not** need tests:
 - Type-only files (`src/types/**`) — the compiler is the test.
-- Pure seed data (e.g. `src/server/db.ts` as shipped) — no logic.
+- Pure re-export barrels (`src/db/schema/<tier>/index.ts` etc.) — no logic.
 - Namespace barrel lines inside a route `index.ts` when the routes themselves are tested.
 
 **Rules of the road:**
@@ -178,19 +183,21 @@ Canonical read-write pattern for cascading middleware:
 
 ```ts
 // src/server/middleware/auth.ts
+import { auth } from '@clerk/nextjs/server';
+import { BackendError } from '@/lib/errors';
+
 export const requireAuth: Middleware = async (ctx, next) => {
-  const id = ctx.req.headers.get('x-user-id');
-  if (!id) throw new BackendError(401, 'UNAUTHORIZED', 'missing x-user-id header');
-  const user = usersDb.find((u) => u.id === id);
-  if (!user) throw new BackendError(401, 'UNAUTHORIZED', `unknown user: ${id}`);
-  ctx.meta.user = user;                      // publish to downstream
+  const session = await auth();
+  if (!session.userId) throw new BackendError(401, 'UNAUTHORIZED', 'not signed in');
+  ctx.meta.userId = session.userId;
+  ctx.meta.sessionClaims = session.sessionClaims;
   return next();
 };
 
 export const requireAdmin: Middleware = async (ctx, next) => {
-  const user = ctx.meta.user as User | undefined;
-  if (!user) throw new BackendError(500, 'INTERNAL', 'requireAdmin must run after requireAuth');
-  if (user.role !== 'admin') throw new BackendError(403, 'FORBIDDEN', 'admin access required');
+  if (!ctx.meta.userId) throw new BackendError(500, 'INTERNAL', 'requireAdmin must run after requireAuth');
+  const claims = ctx.meta.sessionClaims as { metadata?: { role?: string } } | undefined;
+  if (claims?.metadata?.role !== 'admin') throw new BackendError(403, 'FORBIDDEN', 'admin access required');
   return next();
 };
 ```
@@ -267,13 +274,18 @@ backend.users.admins.list()        // POST /api/users/admins/list
 
 Server adds a route → client types update instantly. No codegen, no import of server code.
 
-### Headers — single global source
+### Headers — single global source (for non-auth headers)
+
+Clerk's session cookie travels on same-origin requests automatically — auth is **not** handled through `setBackendHeaders`. Reach for it only when the client needs to add tenant id, trace id, feature flags, or similar cross-cutting headers.
 
 ```ts
 import { setBackendHeaders } from '@/lib/backend';
 
-// after login:
-setBackendHeaders(() => ({ 'x-user-id': session.userId }));
+// once at app init / whenever tenant switches:
+setBackendHeaders(() => ({
+  'x-tenant-id': currentTenant.id,
+  'x-trace-id': sessionTraceId,
+}));
 ```
 
 Every call after this carries the header. Don't wrap `fetch`, don't fork the client, don't pass per-call (R10).
@@ -328,14 +340,14 @@ interface Logger {
 ### Inside a handler or middleware
 
 ```ts
-const get = defineRoute<GetUserInput, GetUserOutput>({
-  input: getUserInputSchema,
-  handler: ({ input, log }) => {
-    log.debug('looking up user', { id: input.id });
-    const found = usersDb.find((u) => u.id === input.id);
+const get = defineRoute<GetPostInput, GetPostOutput>({
+  input: getPostInputSchema,
+  handler: async ({ input, db, log }) => {
+    log.debug('looking up post', { id: input.id });
+    const found = await db.posts.findById(input.id);
     if (!found) {
-      log.warn('user not found', { id: input.id });
-      throw new BackendError(404, 'NOT_FOUND', `user ${input.id} not found`);
+      log.warn('post not found', { id: input.id });
+      throw new BackendError(404, 'NOT_FOUND', `post ${input.id} not found`);
     }
     return found;
   },
