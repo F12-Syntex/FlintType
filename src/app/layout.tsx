@@ -7,6 +7,7 @@ import {
 } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
+import { ModeToggle } from "@/components/mode-toggle";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Button } from "@/components/ui/button";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/themes";
@@ -59,6 +60,7 @@ export default function RootLayout({
       <html
         lang="en"
         className={`${sans.variable} ${mono.variable} h-full antialiased`}
+        suppressHydrationWarning
       >
         <head>
           <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
@@ -71,6 +73,7 @@ export default function RootLayout({
               </span>
               <div className="flex items-center gap-2">
                 <ThemeSwitcher />
+                <ModeToggle />
                 <Show when="signed-out">
                   <SignInButton mode="modal">
                     <Button variant="outline" size="sm">

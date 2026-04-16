@@ -27,8 +27,15 @@ export type ThemeId = (typeof THEMES)[number]['id'];
 export const DEFAULT_THEME_ID: ThemeId = 'default';
 export const THEME_STORAGE_KEY = 'theme';
 
+export type Mode = 'light' | 'dark';
+export const MODE_STORAGE_KEY = 'mode';
+
 function isValidThemeId(v: string | null): v is ThemeId {
   return !!v && THEMES.some((t) => t.id === v);
+}
+
+function isValidMode(v: string | null): v is Mode {
+  return v === 'light' || v === 'dark';
 }
 
 /**
@@ -53,8 +60,60 @@ export function storeTheme(id: ThemeId, storage: Storage = window.localStorage):
 }
 
 /**
- * Script body for an inline <script> tag in <head>. Applies the stored
- * theme before React hydrates to prevent a flash of the default theme.
- * Keep in sync with {@link applyTheme} and {@link THEME_STORAGE_KEY}.
+ * Applies light/dark mode to <html> by toggling the `dark` class. The rest
+ * of the app (Tailwind dark: variants, the shadcn `.dark` CSS block, and
+ * `html.dark.theme-<id>` blocks in themes.css) keys off that one class.
  */
-export const THEME_BOOTSTRAP_SCRIPT = `try{var t=localStorage.getItem('${THEME_STORAGE_KEY}');if(t&&t!=='${DEFAULT_THEME_ID}')document.documentElement.classList.add('theme-'+t);}catch(e){}`;
+export function applyMode(
+  mode: Mode,
+  root: HTMLElement = document.documentElement,
+): void {
+  if (mode === 'dark') root.classList.add('dark');
+  else root.classList.remove('dark');
+}
+
+/**
+ * Returns the stored mode if the user has made an explicit choice; `null`
+ * means "no stored preference — follow the system". Callers resolve `null`
+ * via {@link resolveMode} at the moment they need a concrete value.
+ */
+export function readStoredMode(
+  storage: Storage = window.localStorage,
+): Mode | null {
+  const raw = storage.getItem(MODE_STORAGE_KEY);
+  return isValidMode(raw) ? raw : null;
+}
+
+export function storeMode(
+  mode: Mode,
+  storage: Storage = window.localStorage,
+): void {
+  storage.setItem(MODE_STORAGE_KEY, mode);
+}
+
+export function systemMode(): Mode {
+  return typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light';
+}
+
+export function resolveMode(stored: Mode | null): Mode {
+  return stored ?? systemMode();
+}
+
+/**
+ * Script body for an inline <script> tag in <head>. Applies the stored
+ * theme AND the stored mode (falling back to system preference) before
+ * React hydrates, to prevent a flash of default-theme / wrong-mode.
+ * Keep this in sync with {@link applyTheme} and {@link applyMode}.
+ */
+export const THEME_BOOTSTRAP_SCRIPT = [
+  `try{`,
+  `var t=localStorage.getItem('${THEME_STORAGE_KEY}');`,
+  `if(t&&t!=='${DEFAULT_THEME_ID}')document.documentElement.classList.add('theme-'+t);`,
+  `var m=localStorage.getItem('${MODE_STORAGE_KEY}');`,
+  `var d=m==='dark'||(!m&&window.matchMedia('(prefers-color-scheme: dark)').matches);`,
+  `if(d)document.documentElement.classList.add('dark');`,
+  `}catch(e){}`,
+].join('');
