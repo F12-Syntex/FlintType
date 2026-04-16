@@ -45,6 +45,7 @@ Protocol:
 - **shadcn** — use for component installs and registry lookups. Prefer `mcp__shadcn__*` tools over raw `npx shadcn add`.
 - **magic** (21st.dev) — frontend component generation / inspiration. Requires `TWENTYFIRST_API_KEY` in env.
 - **context7** — authoritative docs for Tailwind, shadcn, Next.js, React. Use this before guessing API shapes, since this Next.js is newer than training data.
+- **clerk** — HTTP-transport MCP hosted at `https://mcp.clerk.com/mcp`. Use for Clerk-specific questions (dashboard config, session claims, organization APIs) before consulting training data.
 
 ## Domain rules (deep)
 

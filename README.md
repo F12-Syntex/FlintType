@@ -252,6 +252,7 @@ r.data.label;
 | `shadcn`    | Component installs and registry queries                         |
 | `magic`     | 21st.dev component generation (needs `TWENTYFIRST_API_KEY`)     |
 | `context7`  | Authoritative docs for Next.js, Tailwind, shadcn, React, etc.   |
+| `clerk`     | Clerk dashboard + docs queries (HTTP transport, hosted by Clerk) |
 
 Restart Claude Code after cloning to pick up the servers.
 
