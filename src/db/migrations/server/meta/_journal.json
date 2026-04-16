@@ -8,6 +8,13 @@
       "when": 1776362154084,
       "tag": "0000_freezing_tyrannus",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776363066860,
+      "tag": "0001_slow_green_goblin",
+      "breakpoints": true
     }
   ]
 }

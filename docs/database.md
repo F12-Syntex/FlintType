@@ -161,6 +161,7 @@ export type WidgetsRepo = ReturnType<typeof widgetsRepo>;
 // src/db/server/index.ts
 export type Database = {
   posts: PostsRepo;
+  users: UsersRepo;
   widgets: WidgetsRepo;   // added
   $health: HealthRepo;
   $drizzle: ServerDrizzle;
@@ -172,6 +173,7 @@ export function createDatabase(
 ): Database {
   return {
     posts: postsRepo(drizzle),
+    users: usersRepo(drizzle),
     widgets: widgetsRepo(drizzle),
     $health: healthRepo(drizzle, driver),
     $drizzle: drizzle,
@@ -180,6 +182,11 @@ export function createDatabase(
 ```
 
 `$health` is the inspection repo consumed by `admin.database.*` (routes + `/admin` page). Read-only queries against `pg_stat_user_tables`, `pg_total_relation_size`, and `information_schema`. Don't add write methods here.
+
+`users` mirrors Clerk identities into local Postgres so other tables can FK
+to a real row. Write via `upsertFromClerk` (never raw `insert`) so the `toUser`
+mapping stays single-sourced. Read-path for handlers is `ensureUser(ctx)` — it
+covers the "row may not exist yet" case without a webhook; see `docs/auth.md`.
 
 ### 5. Migration
 ```bash

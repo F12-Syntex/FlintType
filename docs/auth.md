@@ -121,6 +121,42 @@ const list = defineRoute<void, ListUsersOutput>({
 - Always map via `toUser` before returning. Clerk's shape is not a public API of this backend.
 - Throw `BackendError(404, 'NOT_FOUND', ...)` when a lookup fails. Never let Clerk errors surface raw.
 
+## Local `users` mirror — `ensureUser(ctx)`
+
+Clerk owns identity; the local `users` table mirrors the fields we need for
+relational work (FKs from `posts.authorId`, joins, cascade deletes).
+`src/server/ensure-user.ts` is the one helper that keeps the mirror honest:
+
+```ts
+const me = await ensureUser(ctx);  // UserRow, guaranteed to exist
+```
+
+Flow: read `ctx.meta.userId` → `ctx.db.users.findById` → on miss, fetch from
+Clerk via `clerkClient()` and `ctx.db.users.upsertFromClerk`. One indexed
+`SELECT` per authenticated request in steady state; one Clerk API call per
+user, ever, on first authenticated access.
+
+Handlers that need the local row call `ensureUser(ctx)` explicitly — it's not
+wired into `requireAuth` to keep the middleware free of extra work for routes
+that don't need the mirror.
+
+### When to reach for `ensureUser` vs Clerk directly
+
+- **Need a local FK, a SQL join, or cascade-delete semantics** → `ensureUser`
+  (and your handler reads from `ctx.db.users`).
+- **Need a pure read of Clerk-owned data** (email, imageUrl, metadata you
+  don't mirror) → `clerkClient.users.getUser(id)` with `toUser`, as in
+  `src/server/routes/users/`. No mirror row needed.
+
+### Staleness
+
+Without a webhook, email / name / role updates in Clerk don't flow to the
+mirror until the user triggers another `upsertFromClerk` path (a route that
+calls `ensureUser` on a stranger → that user logging in → an explicit sync).
+Deletes leak orphaned rows. Both are acceptable for most boilerplate uses;
+wire up the Clerk webhook (Phase 2) the moment you need fresh updates or
+reliable deletion.
+
 ## Client-side auth UI
 
 ## Client-side auth UI
@@ -213,5 +249,10 @@ Session claims are JWT payload. Treat them like bearer tokens — don't write th
 ### A5. Keyless mode is a dev convenience, not a production pattern
 Production deploys set `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` via `.env.local` or the deploy platform's secret store.
 
-### A6. `requireAdminOrDev` is only for dev-inspection admin surfaces
+### A6. `ensureUser` is the only supported way to materialise a local users row
+Handlers don't hand-write `clerkClient + upsertFromClerk`. They call
+`ensureUser(ctx)` (after `requireAuth`). One code path = one place to change
+when the webhook lands and we can skip the fallback Clerk call.
+
+### A7. `requireAdminOrDev` is only for dev-inspection admin surfaces
 The `/admin/*` namespace uses `requireAdminOrDev` because the boilerplate wants the database explorer to work locally without Clerk configured. If you add an admin route whose payload is sensitive even in dev (sends email, charges a card, rotates a secret), gate it with the strict `[requireAuth, requireAdmin]` pair instead — no dev bypass.

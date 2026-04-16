@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export type { UserRow, NewUserRow } from '@/db/schema/server/users';
+
 export type UserRole = 'user' | 'admin';
 
 export type User = {
