@@ -18,7 +18,7 @@ export function AiDemo() {
   );
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 sm:p-5">
       <div className="flex flex-col gap-1">
         <span className="text-xs font-medium uppercase tracking-widest text-zinc-500">
           ai chat (OpenRouter)
@@ -40,7 +40,7 @@ export function AiDemo() {
           <div
             role="radiogroup"
             aria-labelledby="ai-preset-label"
-            className="flex gap-2"
+            className="flex flex-wrap gap-2"
           >
             {PRESET_NAMES.map((name) => (
               <Button
@@ -57,7 +57,7 @@ export function AiDemo() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <Input
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}

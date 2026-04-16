@@ -22,9 +22,9 @@ export function BackendDemo() {
   const adminList = useAsyncAction(() => backend.users.admins.list());
 
   return (
-    <section className="flex flex-col gap-8">
+    <section className="flex flex-col gap-6 sm:gap-8">
       <Show when="signed-out">
-        <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 sm:p-5">
           <span className="text-xs font-medium uppercase tracking-widest text-zinc-500">
             session
           </span>
@@ -75,11 +75,20 @@ function Demo({
 }) {
   const { run, loading, result } = action;
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="flex items-center gap-3">
+    <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 sm:p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         {extra}
-        <Button onClick={run} disabled={loading} aria-busy={loading}>
-          {loading ? `${label}…` : <code className="text-xs">{title}</code>}
+        <Button
+          onClick={run}
+          disabled={loading}
+          aria-busy={loading}
+          className="max-w-full justify-start overflow-hidden"
+        >
+          {loading ? (
+            `${label}…`
+          ) : (
+            <code className="truncate text-xs">{title}</code>
+          )}
         </Button>
       </div>
       {result && (

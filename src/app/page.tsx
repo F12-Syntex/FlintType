@@ -13,7 +13,7 @@ export const metadata = buildPageMetadata({
 export default function Home() {
   return (
     <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
-      <main className="mx-auto flex max-w-3xl flex-col gap-10 px-8 py-20">
+      <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-10 sm:gap-10 sm:px-8 sm:py-20">
         <header className="flex flex-col gap-3">
           <span className="text-xs font-medium uppercase tracking-widest text-zinc-500">
             shadcn-nextjs-boilerplate

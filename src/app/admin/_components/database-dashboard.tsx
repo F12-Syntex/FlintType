@@ -37,7 +37,7 @@ export function DatabaseDashboard() {
   }, []);
 
   return (
-    <section className="flex flex-col gap-8">
+    <section className="flex flex-col gap-6 sm:gap-8">
       <OverviewCard action={healthAction} onSelect={setSelected} />
       {selected && (
         <TableExplorer
@@ -57,8 +57,8 @@ function OverviewCard({
   onSelect: (name: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 sm:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs font-medium uppercase tracking-widest text-zinc-500">
           overview
         </span>
@@ -81,7 +81,7 @@ function OverviewCard({
 
       {action.result?.ok && (
         <>
-          <div className="flex flex-wrap gap-6 text-sm">
+          <div className="flex flex-wrap gap-4 text-sm sm:gap-6">
             <Stat label="Driver" value={action.result.data.driver} />
             <Stat
               label="Database size"
@@ -190,14 +190,14 @@ function TableExplorer({
   }, [table, offset]);
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 sm:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs font-medium uppercase tracking-widest text-zinc-500">
           <span className="font-mono normal-case tracking-normal text-zinc-950 dark:text-zinc-50">
             {table}
           </span>
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             size="sm"
             variant="outline"

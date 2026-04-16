@@ -2,7 +2,9 @@
 
 The authoritative design document for this project. Every UI change must conform to the rules below.
 
-This file is intentionally a **blank slate**. Visual conventions (palette, spacing, typography, layouts) are decided per application — fill the sections below as you build. The structural rules (component reuse, async feedback, accessibility, backend integration, amending procedure) stay fixed because they belong to the boilerplate.
+This file is intentionally a **blank slate**. Visual conventions (palette, spacing, typography, layouts) are decided per application — fill the sections below as you build. The structural rules (component reuse, async feedback, accessibility, backend integration, **mobile-first**, amending procedure) stay fixed because they belong to the boilerplate.
+
+**Mobile-first is not blank.** Section 10 mandates that every UI be designed for a 375 px viewport first and scaled up from there. Applications override palette, spacing scale, typography, and layout choices; they do **not** override the mobile-first direction.
 
 ## The Meta-Rule
 
@@ -71,19 +73,21 @@ Neutral palette for literals: **`zinc`**. Semantic: **`red`** for errors. No oth
 
 Tailwind's default numeric scale only. Allowed step values: `0.5, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20`. No arbitrary values (`p-[13px]`).
 
-| Context                   | Class            |
-|---------------------------|------------------|
-| Tight stack (button row)  | `gap-2`          |
-| Card contents / row       | `gap-3`          |
-| Between sections          | `gap-8`          |
-| Page-level section gap    | `gap-10`         |
-| Card padding              | `p-5`            |
-| Code-block padding        | `p-3`            |
-| Inline code padding       | `px-1 py-0.5`    |
-| Input padding             | `px-3 py-2`      |
-| Topbar vertical padding   | `py-4`           |
-| Page horizontal padding   | `px-8`           |
-| Page vertical padding     | `py-20`          |
+Values are **mobile-first** — unprefixed classes target ≤ 375px viewports; `sm:` / `md:` / `lg:` overrides scale up. Never set a large base and shrink it down with a prefix. See §11.
+
+| Context                   | Class                      |
+|---------------------------|----------------------------|
+| Tight stack (button row)  | `gap-2`                    |
+| Card contents / row       | `gap-3`                    |
+| Between sections          | `gap-6 sm:gap-8`           |
+| Page-level section gap    | `gap-8 sm:gap-10`          |
+| Card padding              | `p-4 sm:p-5`               |
+| Code-block padding        | `p-3`                      |
+| Inline code padding       | `px-1 py-0.5`              |
+| Input padding             | `px-3 py-2`                |
+| Topbar vertical padding   | `py-3 sm:py-4`             |
+| Page horizontal padding   | `px-4 sm:px-8`             |
+| Page vertical padding     | `py-10 sm:py-20`           |
 
 ---
 
@@ -105,16 +109,19 @@ Font family: inherits (`font-sans`). Weights used: `400` (default), `500` (mediu
 
 ## 5. Layout recipes
 
-| Recipe             | Class                                                                                          |
-|--------------------|------------------------------------------------------------------------------------------------|
-| Page shell         | `min-h-screen bg-zinc-50 font-sans dark:bg-black`                                              |
-| Centered column    | `mx-auto flex max-w-3xl flex-col gap-10 px-8 py-20`                                            |
-| Card               | `flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950` |
-| Inline row         | `flex items-center gap-3`                                                                      |
-| Button group       | `flex gap-2`                                                                                   |
-| Topbar (sticky header) | `sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80` |
-| Topbar inner row   | `mx-auto flex max-w-3xl items-center justify-between px-8 py-4`                                |
-| List row           | `flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900` |
+All recipes are **mobile-first**: base classes target ≤ 375px viewports, `sm:` and up add desktop-only expansion. See §11 for the rule.
+
+| Recipe                    | Class                                                                                          |
+|---------------------------|------------------------------------------------------------------------------------------------|
+| Page shell                | `min-h-screen bg-zinc-50 font-sans dark:bg-black`                                              |
+| Centered column           | `mx-auto flex max-w-3xl flex-col gap-8 px-4 py-10 sm:gap-10 sm:px-8 sm:py-20`                  |
+| Card                      | `flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 sm:p-5` |
+| Inline row (desktop-only) | `flex items-center gap-3`                                                                      |
+| Stacked row → inline      | `flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3`                                     |
+| Button group (wrappable)  | `flex flex-wrap gap-2`                                                                         |
+| Topbar (sticky header)    | `sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80` |
+| Topbar inner row          | `mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-3 sm:px-8 sm:py-4`          |
+| List row (long text + action) | `flex flex-col gap-2 rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900 sm:flex-row sm:items-center sm:justify-between` |
 
 ---
 
@@ -144,6 +151,7 @@ This is a structural rule. The *visual* (classes) lives in §§2–5 per applica
 - Icon-only buttons have `aria-label`.
 - Don't override the keyboard behavior shadcn primitives ship with.
 - Never rely on color alone to convey state — pair with icon or text.
+- **Touch targets ≥ 44×44 px** on any viewport a phone might load (i.e. unconditionally). Use shadcn `Button` `size="default"` (`h-9` + horizontal padding clears the finger target on mobile once it's the full-width stacked CTA; on dense inline toolbars, keep `size="sm"` but reserve those for secondary actions, not primary CTAs). Icon-only buttons set `size="icon"` and override to `h-11 w-11` on mobile (`h-11 w-11 sm:h-9 sm:w-9` if you want them compact on desktop).
 
 ---
 
@@ -278,7 +286,40 @@ Ships with six community palettes sourced from [tweakcn.com](https://tweakcn.com
 
 ---
 
-## 10. Amending this document
+## 10. Mobile-first
+
+**Mandate.** Every UI in this repo is designed **mobile-first**. Unprefixed Tailwind classes target the smallest viewport we support; `sm:` / `md:` / `lg:` prefixes are the *only* way to add desktop expansion. You never set a larger value and shrink it down — scaling direction is one-way.
+
+### 10.1 Supported viewports
+- **Baseline** — 375 × 667 (iPhone SE). Unprefixed classes must render legibly, tappably, and without horizontal scroll (except inside `overflow-x-auto` wrappers on wide content like tables and code blocks).
+- **`sm:` (640 px+)** — large phones landscape / small tablets. Where stacked mobile layouts can expand back into rows.
+- **`md:` (768 px+)** — tablets, and the first size where dense multi-column layouts are allowed.
+- **`lg:` (1024 px+)** — desktop. Max widths (`max-w-3xl`, `max-w-5xl`) kick in here but are usually enforced by `mx-auto` + intrinsic content.
+
+`xl:` / `2xl:` are allowed for polish but never for correctness — a layout that only works at `xl:` is broken.
+
+### 10.2 Rules of the road
+- **Unprefixed = mobile.** Every layout and spacing value in §§3 and 5 is authored with its smallest-viewport form first.
+- **Scale up, never down.** `px-4 sm:px-8` is correct. `px-8 sm:px-4` is forbidden — it says "start big, shrink on tablet," which inverts the mandate.
+- **Stack by default, inline on `sm:`+.** Form rows with more than one control (input + button, two inputs + button, name + action) use the "Stacked row → inline" recipe from §5 (`flex flex-col gap-3 sm:flex-row sm:items-center`). A single control per row on mobile survives anywhere.
+- **Tables and wide content wrap in `overflow-x-auto`.** Don't force-shrink columns; let the user scroll the table while the page itself stays non-scrolling.
+- **Wrap button groups.** `flex flex-wrap gap-2` instead of `flex gap-2` so a toolbar doesn't overflow on a 375 px viewport when the content pushes it wide.
+- **Touch targets ≥ 44 × 44 px** — see §7. `size="sm"` buttons are for secondary actions on inline toolbars, never for primary CTAs.
+- **Max-widths are a desktop constraint, not a mobile one.** `max-w-3xl` on a mobile viewport is a no-op (mobile is narrower); you still need `px-4` to keep content off the edges.
+
+### 10.3 Testing requirement
+Every UI change is verified **at both 375 px and ≥ 1024 px** before shipping. DevTools → toggle device toolbar → iPhone SE → exercise the flow, then flip back to desktop. A "looks fine on my laptop" merge is a bug.
+
+No automated test enforces this (per §1.3 we don't unit-test components). It's a manual gate, repeatedly, every change.
+
+### 10.4 Amending §§3 and 5 for mobile-first
+When you add a new row to the spacing or layout tables:
+- If the value might ever differ between mobile and desktop, write the pair inline: `py-10 sm:py-20`. Don't ship a single-value row "for now" and plan to revisit — future-you will forget.
+- If the value is genuinely viewport-independent (icon size, input border), a single value is fine.
+
+---
+
+## 11. Amending this document
 
 When you introduce a new pattern:
 
@@ -295,6 +336,9 @@ When you introduce a new pattern:
 - [ ] Did you check §§2–5 for existing conventions? If empty, did you add the rows you're using in the same commit?
 - [ ] Every color class has its `dark:` pair defined in §2?
 - [ ] Reused shadcn / existing components instead of building new ones (§1)?
+- [ ] **Authored mobile-first (§10):** unprefixed classes work at 375 px, `sm:` / `md:` / `lg:` only scale up?
+- [ ] **Verified at 375 px AND ≥ 1024 px in a real browser before shipping (§10.3)?**
+- [ ] Touch targets on primary actions ≥ 44 px (§7, §10.2)?
 - [ ] Every async action surfaces loading + success + error (§6.3)?
 - [ ] Labels and focus states preserved (§7)?
 - [ ] Backend calls go through `useBackend()` / `safe()`, types imported from `src/types/` (§8)?

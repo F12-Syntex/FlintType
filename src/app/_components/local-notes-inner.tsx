@@ -45,7 +45,7 @@ export default function LocalNotesInner() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -71,9 +71,9 @@ export default function LocalNotesInner() {
           {notes.map((n) => (
             <li
               key={n.id}
-              className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900"
+              className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900 sm:flex-row sm:items-center sm:justify-between"
             >
-              <span className="text-zinc-600 dark:text-zinc-400">
+              <span className="min-w-0 break-words text-zinc-600 dark:text-zinc-400">
                 <span className="font-medium text-zinc-950 dark:text-zinc-50">
                   {n.title}
                 </span>{' '}
@@ -84,6 +84,7 @@ export default function LocalNotesInner() {
                 size="sm"
                 onClick={() => remove(n.id)}
                 aria-label={`remove ${n.title}`}
+                className="self-start sm:self-auto"
               >
                 delete
               </Button>
