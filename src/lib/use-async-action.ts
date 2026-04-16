@@ -8,7 +8,7 @@ export type AsyncResult<T> =
   | { ok: false; code: string; message: string };
 
 export type AsyncAction<T> = {
-  run: () => void;
+  run: () => Promise<void>;
   result: AsyncResult<T> | null;
   loading: boolean;
   reset: () => void;

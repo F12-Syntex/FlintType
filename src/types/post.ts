@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { Post } from '@/db/schema/server/posts';
 
 export type { NewPost, Post } from '@/db/schema/server/posts';
 
@@ -13,8 +14,6 @@ export const removePostInputSchema = z.object({
 
 export type CreatePostInput = z.infer<typeof createPostInputSchema>;
 export type RemovePostInput = z.infer<typeof removePostInputSchema>;
-
-import type { Post } from '@/db/schema/server/posts';
 
 export type CreatePostOutput = Post;
 export type ListPostsOutput = Post[];
