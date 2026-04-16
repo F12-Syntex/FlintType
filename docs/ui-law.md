@@ -2,128 +2,110 @@
 
 The authoritative design document for this project. Every UI change must conform to the rules below.
 
+This file is intentionally a **blank slate**. Visual conventions (palette, spacing, typography, layouts) are decided per application — fill the sections below as you build. The structural rules (component reuse, async feedback, accessibility, backend integration, amending procedure) stay fixed because they belong to the boilerplate.
+
 ## The Meta-Rule
 
 > **Any new pattern not already in this document must be added here *first*, then adopted in code — in the same commit.**
 >
 > - If the convention exists below: use it exactly as specified.
-> - If it doesn't: open this file, add the rule with a one-line rationale, and ship it alongside the code that uses it.
+> - If it doesn't: open this file, add the row/section with a one-line rationale, and ship it alongside the code that uses it.
 > - Retroactive documentation is how inconsistency creeps in. The document leads; the code follows.
 
 If you reach for a color, spacing value, typography class, or layout pattern that isn't in this document, **stop and amend the document**.
 
+---
+
 ## 1. Component reuse
 
-### 1.1 shadcn primitives are the only buttons, inputs, dialogs, selects, etc.
-- `Button` → `@/components/ui/button`. Never style a raw `<button>` inline.
-- For any shadcn-available primitive (Input, Dialog, Sheet, Select, Tabs, …), install it via the `shadcn` MCP or `yarn shadcn add <name>` and use it. Never hand-roll.
-- If shadcn doesn't cover it, build **once** under `src/components/<name>.tsx` and reuse. Don't re-create variants scattered across routes.
+### 1.1 shadcn primitives are the source of primitives
+- `Button`, `Input`, `Dialog`, `Sheet`, `Select`, `Tabs`, etc. — install via the `shadcn` MCP or `yarn shadcn add <name>` and use them.
+- Never hand-roll a primitive shadcn provides. Never inline-style a raw `<button>`.
+- If shadcn doesn't cover a need, build the component **once** (see §1.2) and reuse across the app.
 
 ### 1.2 Where components live
-- Route-scoped composites (only used by one page): `src/app/<route>/_components/<name>.tsx`.
-- Cross-route reusables: `src/components/<name>.tsx`.
-- shadcn-generated primitives: `src/components/ui/<name>.tsx` (don't hand-edit unless noted).
+- Route-scoped composite (used by one page only): `src/app/<route>/_components/<name>.tsx`.
+- Cross-route reusable: `src/components/<name>.tsx`.
+- shadcn-generated primitive: `src/components/ui/<name>.tsx` (don't hand-edit unless explicitly noted in the file).
 
-See `docs/organization.md` for file-length thresholds (>200 lines: split before adding more) and the full decision table for where any new file should go.
+See `docs/organization.md` for file-length thresholds and the full decision table covering every kind of code.
 
-## 2. Tailwind conventions
+---
 
-### 2.1 Colors
+## 2. Colors
 
-**Neutral palette: `zinc` only.** Matches shadcn `base-nova` / neutral base. Never `slate`, `gray`, `neutral`, or `stone`.
+_Empty — fill as you adopt. Every row names a semantic role and the Tailwind classes for light and dark. No arbitrary hex, no foreign palettes once a palette is chosen._
 
-| Purpose               | Class                                          |
-|-----------------------|------------------------------------------------|
-| Page background       | `bg-zinc-50 dark:bg-black`                     |
-| Card / surface        | `bg-white dark:bg-zinc-950`                    |
-| Subtle / code surface | `bg-zinc-100 dark:bg-zinc-900`                 |
-| Inline code surface   | `bg-zinc-200 dark:bg-zinc-800`                 |
-| Card border           | `border-zinc-200 dark:border-zinc-800`         |
-| Input border          | `border-zinc-300 dark:border-zinc-700`         |
-| Text primary          | `text-zinc-950 dark:text-zinc-50`              |
-| Text secondary        | `text-zinc-600 dark:text-zinc-400`             |
-| Text muted            | `text-zinc-500`                                |
+| Purpose | Light | Dark |
+|---------|-------|------|
+| *(add rows as you adopt them)* |  |  |
 
-**Semantic colors** (only add more when a UI state demands it):
+---
 
-| State   | Class                              |
-|---------|------------------------------------|
-| Error   | `text-red-600 dark:text-red-400`   |
+## 3. Spacing
 
-**Never:** arbitrary hex (`bg-[#abc]`), foreign palettes, unlabelled semantic colors. If a new state (success, warning, info) is needed, add the row first.
+_Empty — fill as you adopt. Record every spacing step you use (and where) so values don't proliferate. No arbitrary pixel values (`p-[13px]`)._
 
-### 2.2 Spacing scale
+| Context | Class |
+|---------|-------|
+| *(add rows as you adopt them)* |  |
 
-Tailwind's default numeric scale only. Allowed step values: `1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20`.
+---
 
-| Context                          | Class                        |
-|----------------------------------|------------------------------|
-| Tight stack (form rows)          | `gap-2` / `gap-3`            |
-| Card contents                    | `gap-3`                      |
-| Between sections                 | `gap-6` / `gap-8` / `gap-10` |
-| Card padding                     | `p-5`                        |
-| Page horizontal padding          | `px-8`                       |
-| Page vertical padding            | `py-20`                      |
-| Code block padding               | `p-3`                        |
-| Inline code padding              | `px-1 py-0.5`                |
-| Inline input padding             | `px-3 py-2`                  |
+## 4. Typography
 
-**Never:** arbitrary pixel values (`p-[13px]`). If a new size is needed, add a row above with rationale.
+_Empty — fill as you adopt. Name each text role (eyebrow, h1, body, caption, inline-code, code-block, error, …) and the class string that produces it. Rely on a small set of font weights and sizes._
 
-### 2.3 Typography
+| Role | Class |
+|------|-------|
+| *(add rows as you adopt them)* |  |
 
-| Role           | Class                                                             |
-|----------------|-------------------------------------------------------------------|
-| Eyebrow        | `text-xs font-medium uppercase tracking-widest text-zinc-500`     |
-| H1             | `text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50` |
-| Body           | `text-base leading-7 text-zinc-600 dark:text-zinc-400`            |
-| Small body     | `text-sm text-zinc-600 dark:text-zinc-400`                        |
-| Inline code    | `rounded bg-zinc-200 px-1 py-0.5 text-sm dark:bg-zinc-800`        |
-| Code block     | `overflow-x-auto rounded bg-zinc-100 p-3 text-xs dark:bg-zinc-900`|
+---
 
-Font family: inherits (`font-sans`). Weights used: `400`, `500`, `600`. Nothing else (no `700`, no `300`, no italics unless a new row is added).
+## 5. Layout recipes
 
-### 2.4 Layout recipes
+_Empty — fill as you adopt. Each reusable layout (page shell, centered column, card, row, grid, …) is a named recipe with its class string. When the same structure shows up twice, name it here._
 
-- **Page shell**: `min-h-screen bg-zinc-50 font-sans dark:bg-black`
-- **Centered column**: `mx-auto flex max-w-3xl flex-col gap-10 px-8 py-20`
-- **Card**: `flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950`
-- **Inline input**: `flex-1 rounded-md border border-zinc-300 bg-transparent px-3 py-2 text-sm outline-none focus:border-zinc-500 dark:border-zinc-700`
-- **Button row**: `flex items-center gap-3`
+| Recipe | Class |
+|--------|-------|
+| *(add rows as you adopt them)* |  |
 
-### 2.5 Dark mode
-Every color class ships with its `dark:` pair. No exceptions. If you write `bg-white`, you write `dark:bg-zinc-950` next to it.
+---
 
-### 2.6 Responsive
-Mobile-first. Default classes target small screens; use Tailwind breakpoints (`sm`, `md`, `lg`, `xl`) to upgrade. No custom breakpoints.
+## 6. Component structure
 
-## 3. Component structure
+### 6.1 Server Components by default
+`'use client'` only when a component uses `useState`, `useEffect`, refs, browser APIs, or `useBackend()`.
 
-### 3.1 Server Components by default
-`'use client'` only when a component uses state, effects, refs, browser APIs, or `useBackend()`.
-
-### 3.2 Props
+### 6.2 Props
 - Explicitly typed (no `props: any`, no unannotated destructure).
-- Structural props come from `src/types/` when they match a domain concept; otherwise define in-file with a named type.
+- Structural props come from `src/types/` when they match a domain concept; otherwise declare a named type in the file.
 
-### 3.3 Async action feedback
-Every async action surfaces three states somewhere visible:
-- **Loading** — disable the trigger; label changes (e.g. `Save` → `Saving…`).
-- **Success** — reset the form or show a confirmation.
-- **Error** — render with `text-red-600 dark:text-red-400`, preferably including `BackendError.code` so the user sees *why*.
+### 6.3 Async action feedback — three states, always visible
 
-## 4. Accessibility baseline
+Every async action surfaces three states in the UI:
+- **Loading** — disable the trigger; change its label (e.g. `Save` → `Saving…`).
+- **Success** — reset the form, render the returned data, or show a confirmation.
+- **Error** — render a visible message using the error text role from §4 (add the role if not yet defined), preferably including `BackendError.code`.
+
+This is a structural rule. The *visual* (classes) lives in §§2–5 per application.
+
+---
+
+## 7. Accessibility baseline
 
 - Every `<input>` has an associated `<label>` or `aria-label`.
 - Icon-only buttons have `aria-label`.
 - Don't override the keyboard behavior shadcn primitives ship with.
 - Never rely on color alone to convey state — pair with icon or text.
 
-## 5. Backend integration
+---
 
-Every component that calls the backend uses `useBackend()`. See `docs/backend-rules.md` → "Calling from the client" for the mechanics (Proxy, headers, throw vs `safe()`).
+## 8. Backend integration
 
-### 5.1 The canonical fetch-and-render template
+Every component that calls the backend uses `useBackend()`. See `docs/backend-rules.md` → "Calling from the client" for the mechanics.
+
+### 8.1 Canonical fetch-and-render pattern (structure, not styling)
 
 ```tsx
 'use client';
@@ -131,7 +113,7 @@ Every component that calls the backend uses `useBackend()`. See `docs/backend-ru
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { BackendError, useBackend } from '@/lib/backend';
-import type { User } from '@/types/user';          // types come from src/types/
+import type { User } from '@/types/user';
 
 export function UsersList() {
   const backend = useBackend();
@@ -143,7 +125,7 @@ export function UsersList() {
     setLoading(true);
     setError('');
     try {
-      setData(await backend.users.list());         // typed as User[]
+      setData(await backend.users.list());
     } catch (err) {
       if (err instanceof BackendError && err.code === 'UNAUTHORIZED') {
         setError('Please sign in.');
@@ -158,19 +140,19 @@ export function UsersList() {
   useEffect(() => { load(); }, []);
 
   return (
-    <section className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="flex items-center gap-3">
-        <span className="text-xs font-medium uppercase tracking-widest text-zinc-500">users</span>
+    <section className={/* card recipe — see §5 */ ''}>
+      <div className={/* row recipe — see §5 */ ''}>
+        <span className={/* eyebrow — see §4 */ ''}>users</span>
         <Button size="sm" variant="outline" onClick={load} disabled={loading}>
           {loading ? 'Loading…' : 'Refresh'}
         </Button>
       </div>
 
-      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className={/* error text — see §4 */ ''}>{error}</p>}
 
       {data?.map((u) => (
-        <div key={u.id} className="text-sm text-zinc-600 dark:text-zinc-400">
-          {u.name} <code className="rounded bg-zinc-200 px-1 py-0.5 text-xs dark:bg-zinc-800">{u.role}</code>
+        <div key={u.id} className={/* body text — see §4 */ ''}>
+          {u.name}
         </div>
       ))}
     </section>
@@ -178,13 +160,9 @@ export function UsersList() {
 }
 ```
 
-What to notice:
-- `'use client'` because we use `useState` + `useEffect` + `useBackend` (§3.1).
-- Types imported from `@/types/*` only — never from `@/server/*` (backend R9).
-- Three-state feedback surfaced visibly (§3.3): loading disables the button and changes its label, error renders in red, success renders the list.
-- Only classes from §2 — card recipe, eyebrow, body, inline code — no new inventions.
+Structure is fixed (hooks, three states, typed error branching, types from `@/types/*`). Visual classes come from §§2–5 once defined per application.
 
-### 5.2 Typed error branching (preferred over string matching)
+### 8.2 Typed error branching (preferred over string matching)
 
 ```tsx
 catch (err) {
@@ -193,7 +171,7 @@ catch (err) {
       case 'UNAUTHORIZED': signIn(); return;
       case 'FORBIDDEN':    setError("You don't have access."); return;
       case 'NOT_FOUND':    setError('Gone.'); return;
-      case 'VALIDATION':   setError(err.message); return;        // field-level in err.details.issues
+      case 'VALIDATION':   setError(err.message); return;  // field issues in err.details.issues
       default:             setError(err.message);
     }
   } else {
@@ -202,24 +180,19 @@ catch (err) {
 }
 ```
 
-### 5.3 When throw feels noisy — use `safe()`
+### 8.3 When throw feels noisy — use `safe()`
 
 ```tsx
 import { safe } from '@/lib/safe';
 
 const r = await safe(backend.users.get({ id }));
-if (!r.ok) {
-  if (r.error.code === 'NOT_FOUND') return <p className="text-sm text-red-600 dark:text-red-400">Not found.</p>;
-  return <p className="text-sm text-red-600 dark:text-red-400">{r.error.message}</p>;
-}
-return <p className="text-sm text-zinc-600 dark:text-zinc-400">{r.data.name}</p>;
+if (!r.ok) { /* branch on r.error.code */ return; }
+/* render r.data */
 ```
 
 Pick one style per call site — don't mix.
 
-### 5.4 Auth headers happen once, outside components
-
-Never call `setBackendHeaders` inside render. Do it at app init, after login, or in a provider mount:
+### 8.4 Auth headers once, outside render
 
 ```tsx
 useEffect(() => {
@@ -227,22 +200,27 @@ useEffect(() => {
 }, [session.userId]);
 ```
 
-## 6. Amending this document
+Never call `setBackendHeaders` inside render.
 
-When you need to introduce a new pattern:
+---
+
+## 9. Amending this document
+
+When you introduce a new pattern:
 
 1. Open this file.
-2. Add the rule in the right section (or create a new section with the next sequential number).
+2. Add a row to the matching table (§2 color, §3 spacing, §4 typography, §5 layout) **or** a new section with the next sequential number.
 3. Include a one-line rationale — why this pattern, what problem it solves.
 4. Commit the doc change **in the same commit** as the code using it.
 5. From that commit forward, all UI must follow the new rule.
 
+---
+
 ## LLM checklist before submitting a UI change
 
-- [ ] Did you use only colors from §2.1?
-- [ ] Did you use only spacing values from §2.2?
-- [ ] Did every color class have its `dark:` pair?
-- [ ] Did you reuse shadcn / existing components instead of building new ones?
-- [ ] Does every async action surface loading + success + error?
-- [ ] Are labels and focus states preserved?
-- [ ] If you introduced a new pattern, did you add it to this document in the **same commit**?
+- [ ] Did you check §§2–5 for existing conventions? If empty, did you add the rows you're using in the same commit?
+- [ ] Every color class has its `dark:` pair defined in §2?
+- [ ] Reused shadcn / existing components instead of building new ones (§1)?
+- [ ] Every async action surfaces loading + success + error (§6.3)?
+- [ ] Labels and focus states preserved (§7)?
+- [ ] Backend calls go through `useBackend()` / `safe()`, types imported from `src/types/` (§8)?
