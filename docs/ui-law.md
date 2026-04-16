@@ -117,7 +117,115 @@ Every async action surfaces three states somewhere visible:
 - Don't override the keyboard behavior shadcn primitives ship with.
 - Never rely on color alone to convey state — pair with icon or text.
 
-## 5. Amending this document
+## 5. Backend integration
+
+Every component that calls the backend uses `useBackend()`. See `docs/backend-rules.md` → "Calling from the client" for the mechanics (Proxy, headers, throw vs `safe()`).
+
+### 5.1 The canonical fetch-and-render template
+
+```tsx
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { BackendError, useBackend } from '@/lib/backend';
+import type { User } from '@/types/user';          // types come from src/types/
+
+export function UsersList() {
+  const backend = useBackend();
+  const [data, setData] = useState<User[] | null>(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    setError('');
+    try {
+      setData(await backend.users.list());         // typed as User[]
+    } catch (err) {
+      if (err instanceof BackendError && err.code === 'UNAUTHORIZED') {
+        setError('Please sign in.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  return (
+    <section className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="flex items-center gap-3">
+        <span className="text-xs font-medium uppercase tracking-widest text-zinc-500">users</span>
+        <Button size="sm" variant="outline" onClick={load} disabled={loading}>
+          {loading ? 'Loading…' : 'Refresh'}
+        </Button>
+      </div>
+
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+      {data?.map((u) => (
+        <div key={u.id} className="text-sm text-zinc-600 dark:text-zinc-400">
+          {u.name} <code className="rounded bg-zinc-200 px-1 py-0.5 text-xs dark:bg-zinc-800">{u.role}</code>
+        </div>
+      ))}
+    </section>
+  );
+}
+```
+
+What to notice:
+- `'use client'` because we use `useState` + `useEffect` + `useBackend` (§3.1).
+- Types imported from `@/types/*` only — never from `@/server/*` (backend R9).
+- Three-state feedback surfaced visibly (§3.3): loading disables the button and changes its label, error renders in red, success renders the list.
+- Only classes from §2 — card recipe, eyebrow, body, inline code — no new inventions.
+
+### 5.2 Typed error branching (preferred over string matching)
+
+```tsx
+catch (err) {
+  if (err instanceof BackendError) {
+    switch (err.code) {
+      case 'UNAUTHORIZED': signIn(); return;
+      case 'FORBIDDEN':    setError("You don't have access."); return;
+      case 'NOT_FOUND':    setError('Gone.'); return;
+      case 'VALIDATION':   setError(err.message); return;        // field-level in err.details.issues
+      default:             setError(err.message);
+    }
+  } else {
+    throw err;   // let the error boundary handle it
+  }
+}
+```
+
+### 5.3 When throw feels noisy — use `safe()`
+
+```tsx
+import { safe } from '@/lib/safe';
+
+const r = await safe(backend.users.get({ id }));
+if (!r.ok) {
+  if (r.error.code === 'NOT_FOUND') return <p className="text-sm text-red-600 dark:text-red-400">Not found.</p>;
+  return <p className="text-sm text-red-600 dark:text-red-400">{r.error.message}</p>;
+}
+return <p className="text-sm text-zinc-600 dark:text-zinc-400">{r.data.name}</p>;
+```
+
+Pick one style per call site — don't mix.
+
+### 5.4 Auth headers happen once, outside components
+
+Never call `setBackendHeaders` inside render. Do it at app init, after login, or in a provider mount:
+
+```tsx
+useEffect(() => {
+  setBackendHeaders(() => ({ 'x-user-id': session.userId }));
+}, [session.userId]);
+```
+
+## 6. Amending this document
 
 When you need to introduce a new pattern:
 
