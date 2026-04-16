@@ -8,8 +8,7 @@ Authoritative guide for LLM calls. Provider is **OpenRouter** (access to every m
 - `src/server/ai/provider.ts` — `getProvider()` lazy singleton. Throws `BackendError(500, 'INTERNAL', 'OPENROUTER_API_KEY not set')` on call when the key is unset, so the app still boots without it.
 - `src/server/ai/index.ts` — `ai.fast()` / `ai.smart()` / `ai.cheap()` returning a Vercel-AI-SDK-compatible `LanguageModel`, plus `generateChat({ preset, prompt })` that wraps `generateText` and normalizes the usage bag.
 - `src/types/ai.ts` — `Preset`, `PRESET_NAMES`, `chatInputSchema`, `ChatOutput`. Client-visible; model ids stay server-only per R9.
-- `src/db/schema/server/ai-usage.ts` + repo — one row per call: `(userId, preset, model, inputTokens, outputTokens, totalTokens, totalCostUsd, createdAt)`.
-- `src/server/routes/ai/index.ts` — `ai.chat` route under `requireAuth`; persists usage via `ctx.db.aiUsage.log()` on every success.
+- `src/server/routes/ai/index.ts` — `ai.chat` route under `requireAuth`. Returns the generated text plus a usage bag; does **not** persist to the database.
 
 ## Presets — the public surface
 
@@ -42,13 +41,17 @@ import { generateChat } from '@/server/ai';
 const chat = defineRoute<ChatInput, ChatOutput>({
   input: chatInputSchema,
   middleware: [requireAuth],
-  handler: async ({ input, db, meta }) => {
-    const userId = meta.userId as string;
+  handler: async ({ input, log }) => {
     const result = await generateChat({
       preset: input.preset,
       prompt: input.prompt,
     });
-    await db.aiUsage.log({ userId, ...flattenUsage(result) });
+    log.debug('ai.chat completed', {
+      preset: result.preset,
+      model: result.model,
+      totalTokens: result.usage.totalTokens,
+      totalCostUsd: result.usage.totalCostUsd,
+    });
     return result;
   },
 });
@@ -67,13 +70,14 @@ const { text, usage } = await generateText({
 });
 ```
 
-## Usage tracking
+## Usage & cost tracking
 
-Every call logs one row in `ai_usage`. `userId` comes from `ctx.meta.userId` (Clerk id populated by `requireAuth`); `preset` and `model` are logged side-by-side so you can later ask *"what did 'smart' actually resolve to last month"* — useful when presets change under you.
+The boilerplate deliberately does **not** persist per-call usage. Inserting a row per prompt is expensive at scale and duplicates what the provider already tracks. Two recommended paths when you need the data:
 
-`totalCostUsd` comes from OpenRouter's `providerMetadata.openrouter.usage.cost` field. Stored as `real` (null if the provider didn't include it).
+- **OpenRouter dashboard** — `https://openrouter.ai/activity` shows every request for the API key, with tokens, cost, and latency. Good for spot checks and monthly budgets.
+- **Langfuse broadcast** — zero code change; see *Observability* below.
 
-To query: `await db.aiUsage.listByUser(userId, { limit })` — descending `createdAt`.
+If a specific product feature needs per-user totals (per-user quotas, billing surfaces, usage UI), add a dedicated table and write to it only for that feature — don't retrofit a global logging sink.
 
 ## Env vars
 
@@ -85,7 +89,7 @@ Get a key at <https://openrouter.ai/keys>.
 
 ## Testing
 
-Route tests mock `@/server/ai` at the module boundary — not the Vercel AI SDK or the OpenRouter provider directly. That keeps route tests focused on routing, auth, Zod, and persistence.
+Route tests mock `@/server/ai` at the module boundary — not the Vercel AI SDK or the OpenRouter provider directly. That keeps route tests focused on routing, auth, Zod, and the returned payload.
 
 ```ts
 vi.mock('@/server/ai', async () => {
@@ -96,17 +100,15 @@ vi.mock('@/server/ai', async () => {
 import { generateChat } from '@/server/ai';
 const mockGenerateChat = vi.mocked(generateChat);
 
-it('persists usage on success', async () => {
+it('returns the generated text and usage', async () => {
   asUser('user_42');
   mockGenerateChat.mockResolvedValue({ text: 'hi', preset: 'fast', model: '...', usage: {...} });
-  await callRoute(['ai', 'chat'], { db, input: { preset: 'fast', prompt: 'hi' } });
-  expect(await db.aiUsage.listByUser('user_42')).toHaveLength(1);
+  const out = await callRoute<ChatOutput>(['ai', 'chat'], { db, input: { preset: 'fast', prompt: 'hi' } });
+  expect(out.text).toBe('hi');
 });
 ```
 
 `generateChat` itself is unit-tested against `vi.mock('ai', () => ({ generateText: vi.fn() }))` — see `src/server/ai/index.test.ts`. No real API calls from any test.
-
-Repo tests use `createTestDatabase()` — the `ai_usage` table flows through the committed migration automatically.
 
 ## Streaming, tool calls, structured outputs — deferred
 
@@ -131,10 +133,10 @@ Handlers, components, tests — all use `ai.fast()` / `ai.smart()` / `ai.cheap()
 Route `input` schemas use `z.enum(PRESET_NAMES)`. Model ids never leave the server boundary.
 
 ### AI3. Authenticated by default
-AI routes sit under `requireAuth`. Usage logging needs a `userId`; rate limiting needs an identity. Public AI is an explicit, scoped escape hatch — not the default.
+AI routes sit under `requireAuth`. Rate limiting needs an identity; public AI is an explicit, scoped escape hatch — not the default.
 
-### AI4. Log every successful call
-Handlers call `ctx.db.aiUsage.log()` before returning. Missed logs mean missed cost — there's no second source of truth.
+### AI4. Don't persist per-call usage by default
+Let OpenRouter + Langfuse own the analytics surface (see *Usage & cost tracking* and *Observability*). Add a dedicated table only when a concrete feature — per-user quotas, billing, an in-app usage UI — needs it, and scope writes to that feature.
 
 ### AI5. Tests mock `generateChat` at the module boundary
 Not the Vercel SDK, not the OpenRouter provider directly. See the pattern above. No test ever hits the real API.
@@ -150,6 +152,6 @@ Don't add streaming via an ad-hoc raw route. When it lands it lands as a documen
 - [ ] Is every model id in `src/server/ai/presets.ts`, nowhere else?
 - [ ] Does the route input accept a preset name (Zod enum), not a free-form string?
 - [ ] Is the route under `requireAuth` (AI3)?
-- [ ] Does the handler call `ctx.db.aiUsage.log()` on success (AI4)?
+- [ ] Are you adding per-call DB writes? If yes, does a concrete product feature need them (AI4)?
 - [ ] Do tests mock `@/server/ai`'s `generateChat` rather than the SDK internals?
 - [ ] Is `OPENROUTER_API_KEY` only referenced through `env.OPENROUTER_API_KEY` (never `process.env` directly)?

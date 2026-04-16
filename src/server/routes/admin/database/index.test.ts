@@ -48,7 +48,7 @@ describe('admin.database.health — dev mode', () => {
     });
     expect(out.driver).toBe('pglite');
     expect(out.databaseBytes).toBeGreaterThan(0);
-    expect(out.tables.map((t) => t.name).sort()).toEqual(['ai_usage', 'posts']);
+    expect(out.tables.map((t) => t.name).sort()).toEqual(['posts']);
   });
 });
 

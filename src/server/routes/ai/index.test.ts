@@ -89,7 +89,7 @@ describe('ai.chat', () => {
     ).rejects.toBeInstanceOf(ZodError);
   });
 
-  it('returns the generated text + usage and persists one row per call', async () => {
+  it('returns the generated text + usage from the provider', async () => {
     asUser('user_42');
     mockGenerateChat.mockResolvedValue({
       text: 'hello there',
@@ -110,21 +110,11 @@ describe('ai.chat', () => {
 
     expect(out.text).toBe('hello there');
     expect(out.model).toBe(PRESETS.smart);
-
-    const rows = await db.aiUsage.listByUser('user_42');
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({
-      userId: 'user_42',
-      preset: 'smart',
-      model: PRESETS.smart,
-      inputTokens: 7,
-      outputTokens: 4,
-      totalTokens: 11,
-    });
-    expect(rows[0].totalCostUsd).toBeCloseTo(0.000042);
+    expect(out.usage.totalTokens).toBe(11);
+    expect(mockGenerateChat).toHaveBeenCalledOnce();
   });
 
-  it('persists a row even when the provider returned null usage fields', async () => {
+  it('tolerates null usage fields from the provider', async () => {
     asUser('user_1');
     mockGenerateChat.mockResolvedValue({
       text: 'x',
@@ -138,17 +128,16 @@ describe('ai.chat', () => {
       },
     });
 
-    await callRoute<ChatOutput>(['ai', 'chat'], {
+    const out = await callRoute<ChatOutput>(['ai', 'chat'], {
       db,
       input: { preset: 'fast', prompt: 'hi' },
     });
-    const rows = await db.aiUsage.listByUser('user_1');
-    expect(rows).toHaveLength(1);
-    expect(rows[0].totalCostUsd).toBeNull();
-    expect(rows[0].inputTokens).toBeNull();
+    expect(out.text).toBe('x');
+    expect(out.usage.totalCostUsd).toBeNull();
+    expect(out.usage.inputTokens).toBeNull();
   });
 
-  it('propagates provider errors as BackendError(INTERNAL) and logs nothing', async () => {
+  it('propagates provider errors as BackendError(INTERNAL)', async () => {
     asUser();
     mockGenerateChat.mockRejectedValue(
       new BackendError(
@@ -166,7 +155,5 @@ describe('ai.chat', () => {
       (e: unknown) =>
         e instanceof BackendError && e.code === 'INTERNAL',
     );
-    const rows = await db.aiUsage.listByUser('user_1');
-    expect(rows).toHaveLength(0);
   });
 });

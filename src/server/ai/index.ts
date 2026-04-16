@@ -17,7 +17,9 @@ export const ai: Record<Preset, () => LanguageModel> = {
 /**
  * Calls OpenRouter with the given preset + prompt and returns the text plus
  * a normalized usage bag. The returned shape matches the wire contract of the
- * `ai.chat` route — handlers persist `usage` to `ctx.db.aiUsage.log()`.
+ * `ai.chat` route. Usage is handed back to the caller for display but is
+ * not persisted — if you need billing-grade tracking, lean on OpenRouter's
+ * Langfuse broadcast (see docs/ai.md → Observability).
  */
 export async function generateChat(opts: {
   preset: Preset;

@@ -18,7 +18,7 @@ describe('healthRepo.overall', () => {
     expect(health.driver).toBe('pglite');
     expect(health.databaseBytes).toBeGreaterThan(0);
     const names = health.tables.map((t) => t.name).sort();
-    expect(names).toEqual(['ai_usage', 'posts']);
+    expect(names).toEqual(['posts']);
   });
 
   it('each table entry carries numeric stats', async () => {

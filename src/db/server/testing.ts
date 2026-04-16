@@ -31,9 +31,7 @@ export async function createTestDatabase(): Promise<{
   return {
     db: createDatabase(drz, 'pglite'),
     reset: async () => {
-      await drz.execute(
-        sql`TRUNCATE TABLE posts, ai_usage RESTART IDENTITY CASCADE`,
-      );
+      await drz.execute(sql`TRUNCATE TABLE posts RESTART IDENTITY CASCADE`);
     },
     close: async () => {
       await client.close();

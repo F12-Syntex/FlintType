@@ -24,7 +24,7 @@ export function AiDemo() {
           ai chat (OpenRouter)
         </span>
         <p className="text-xs text-zinc-500">
-          Auth-gated. Token usage + cost persist to <code className="rounded bg-zinc-200 px-1 py-0.5 text-sm dark:bg-zinc-800">ai_usage</code> per user.
+          Auth-gated. Token counts and cost are returned on the response but not persisted.
         </p>
       </div>
 
