@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { describe, expect, it } from 'vitest';
-import { BackendError } from '../errors';
+import { BackendError } from '@/lib/errors';
 import { logger } from '../logger';
 import type { RouteContext } from '../types';
 import { logging } from './logging';

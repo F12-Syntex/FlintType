@@ -1,4 +1,4 @@
-import { BackendError } from '@/server/errors';
+import { BackendError } from '@/lib/errors';
 
 export type Safe<T> =
   | { ok: true; data: T }

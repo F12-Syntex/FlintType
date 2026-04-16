@@ -1,6 +1,6 @@
 import type { User } from '@/types/user';
 import { usersDb } from '../db';
-import { BackendError } from '../errors';
+import { BackendError } from '@/lib/errors';
 import type { Middleware } from '../types';
 
 /**

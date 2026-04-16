@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { BackendError } from '../errors';
+import { BackendError } from '@/lib/errors';
 import { logger } from '../logger';
 import type { Middleware } from '../types';
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { BackendError, type ErrorCode } from '@/server/errors';
+import { BackendError, type ErrorCode } from '@/lib/errors';
 import type { NamespaceDef, RouteDef } from '@/server/types';
 import type { Router } from '@/server/router';
 

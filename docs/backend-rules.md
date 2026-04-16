@@ -99,10 +99,19 @@ Middleware cascades top-down. A nested namespace **cannot** opt out of a parent'
   - Auth failure (if under `requireAuth`).
   - Domain errors the handler can throw (`NOT_FOUND`, `CONFLICT`, etc.).
 
-### R9. Client never imports server code
-The frontend imports types from `@/types/*` and the Proxy from `@/lib/backend`. That's it. It never imports from `@/server/*` — not handlers, middleware, schemas, or the router.
+### R9. Client never imports from `@/server/*`
+The frontend imports from three places and no others:
 
-**Why:** keeps the server bundle out of the client. Accidental DB/secret imports from a client component would otherwise leak.
+| From              | What                                                      |
+|-------------------|-----------------------------------------------------------|
+| `@/types/*`       | Route I/O types, domain models                            |
+| `@/lib/backend`   | The `useBackend()` Proxy, `setBackendHeaders`             |
+| `@/lib/errors`    | `BackendError`, `ErrorCode` (isomorphic — safe on both sides) |
+| `@/lib/safe`      | The `safe()` Result wrapper                               |
+
+Everything else — handlers, middleware, Zod schemas, the router, the dispatcher, env, logger, seo, db — lives under `@/server/*` and is **server-only**. The client never reaches in.
+
+**Why:** keeps the server bundle out of the client. `BackendError` sits in `@/lib` (not `@/server`) precisely so the client can throw-and-catch it without crossing the boundary. Accidental DB/secret imports from a client component would otherwise leak into the browser bundle.
 
 ### R10. All outbound headers go through `setBackendHeaders`
 Auth tokens, user id, tenant — all injected via `setBackendHeaders(() => ({...}))`. Do not wrap `fetch`, do not fork the client, do not pass headers per-call.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
-import { BackendError } from '@/server/errors';
+import { BackendError } from '@/lib/errors';
 import { callRoute } from '@/server/testing';
 import type { GetUserOutput, ListUsersOutput } from '@/types/user';
 

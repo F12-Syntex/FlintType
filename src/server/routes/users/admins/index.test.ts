@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BackendError } from '@/server/errors';
+import { BackendError } from '@/lib/errors';
 import { callRoute } from '@/server/testing';
 import type { ListAdminsOutput } from '@/types/user';
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
-import { BackendError } from '@/server/errors';
+import { BackendError } from '@/lib/errors';
 import { logger } from '@/server/logger';
 import { runRoute } from '@/server/pipeline';
 import { resolvePath } from '@/server/resolve';

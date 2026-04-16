@@ -1,11 +1,11 @@
 export { defineRoute } from './defineRoute';
 export { defineNamespace } from './defineNamespace';
-export { BackendError } from './errors';
+export { BackendError } from '@/lib/errors';
 export type {
   BackendErrorPayload,
   ErrorCode,
   ErrorDetails,
-} from './errors';
+} from '@/lib/errors';
 export { createLogger, logger } from './logger';
 export type { LogContext, LogLevel, Logger, LoggerOptions } from './logger';
 export type {
