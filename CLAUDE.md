@@ -16,6 +16,12 @@ This is a **boilerplate**, not a product. Keep scaffolding generic and reusable.
 ## Package manager
 Yarn classic (1.x), pinned in `package.json` → `packageManager: "yarn@1.22.22"`. Always run `yarn`, `yarn add`, `yarn install`, `yarn test`, etc. — never `npm`. The lockfile is `yarn.lock`; there must be no `package-lock.json` in this repo.
 
+## Environment
+`APP_ENV` (`development` | `production`), `LOG_ENABLED`, `LOG_LEVEL` live in `.env` (committed defaults, no secrets). Secrets go in `.env.local` (gitignored). Parsed and validated by `src/server/env.ts`. Full table in `docs/backend-rules.md` → **Logging**.
+
+## Logging
+Server-side structured logging via `src/server/logger.ts`. Every handler/middleware receives `ctx.log`, a request-scoped `Logger` pre-populated with `{ requestId, method, path }`. Use it — never raw `console.*`. JSON in prod, pretty single-line in dev. See `docs/backend-rules.md` → **Logging** for usage rules.
+
 ## Commit discipline
 **At the end of every turn where you modified files in response to the user's prompt, commit before yielding control.** This happens *inside* your turn, not via a hook.
 

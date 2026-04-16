@@ -8,7 +8,7 @@ The backend is a typed route tree rooted at `src/server/router.ts`. A single cat
 
 ## Core concepts
 
-- **Route** — a leaf of the tree. `defineRoute<Input, Output>({ input?: zodSchema, middleware?: [...], handler })`. The handler is the business logic. `input` is an optional Zod schema that validates the wire payload.
+- **Route** — a leaf of the tree. `defineRoute<Input, Output>({ input?: zodSchema, middleware?: [...], handler })`. The handler is the business logic. `input` is an optional Zod schema that validates the wire payload. Handler receives `{ input, req, meta, log }` — `log` is a request-scoped `Logger` (see **Logging** below).
 - **Namespace** — a branch. `defineNamespace({ middleware?: [...], routes: { ... } })`. Groups routes and/or nested namespaces and may attach middleware that cascades to every descendant.
 - **Middleware** — `(ctx, next) => Promise<unknown>`. Koa/Express style. Reads `ctx.req`, mutates `ctx.meta` to publish state downstream, calls `next()` to continue, or returns without `next()` to short-circuit.
 - **`ctx.meta`** — a plain `Record<string, unknown>` that flows through every middleware and the handler for one request. This is how `requireAuth` hands `user` down to `requireAdmin` and the handler body.
@@ -272,6 +272,75 @@ render(r.data);  // r.data typed as User
 | `safe()`    | multiple error codes to branch on; Server Actions or server helpers; nested try/catch getting ugly |
 
 Don't mix the two styles at a single call site.
+
+## Logging
+
+Every route receives a request-scoped `Logger` as `ctx.log`. Use it instead of `console.log`.
+
+### Shape
+
+```ts
+interface Logger {
+  debug(msg: string, meta?: LogContext): void;
+  info(msg: string,  meta?: LogContext): void;
+  warn(msg: string,  meta?: LogContext): void;
+  error(msg: string, err?: unknown, meta?: LogContext): void;
+  child(context: LogContext): Logger;     // adds fields to every log below this point
+}
+```
+
+### Inside a handler or middleware
+
+```ts
+const get = defineRoute<GetUserInput, GetUserOutput>({
+  input: getUserInputSchema,
+  handler: ({ input, log }) => {
+    log.debug('looking up user', { id: input.id });
+    const found = usersDb.find((u) => u.id === input.id);
+    if (!found) {
+      log.warn('user not found', { id: input.id });
+      throw new BackendError(404, 'NOT_FOUND', `user ${input.id} not found`);
+    }
+    return found;
+  },
+});
+```
+
+`ctx.log` comes pre-populated by the `logging` global middleware with `{ requestId, method, path }` — every line inside a request automatically carries those fields.
+
+### What the global middleware already logs
+
+You get these for free on every request (see `src/server/middleware/logging.ts`):
+
+| Event            | Level | Fields                                                |
+|------------------|-------|--------------------------------------------------------|
+| request start    | debug | requestId, method, path                               |
+| request ok       | info  | requestId, method, path, durationMs                   |
+| request failed (BackendError) | warn  | requestId, ..., durationMs, status, code |
+| request crashed (unknown throw) | error | requestId, ..., durationMs, error: { name, message, stack } |
+
+So handlers only need to log **their own** interesting events — don't re-log timing or request IDs.
+
+### Env vars (see `.env`)
+
+| Var            | Values                           | Default                                        |
+|----------------|----------------------------------|------------------------------------------------|
+| `APP_ENV`      | `development` \| `production`    | `NODE_ENV` if set, else `development`          |
+| `LOG_ENABLED`  | `true` \| `false`                | `true` (or `false` when `NODE_ENV=test`)       |
+| `LOG_LEVEL`    | `debug` \| `info` \| `warn` \| `error` | `debug` in dev, `info` in prod           |
+
+### Output formats
+
+- **Development** — pretty single-line: `INFO  10:30:00 request ok {"requestId":"...","durationMs":23}` (readable during `yarn dev`).
+- **Production** — one JSON object per line — pipes straight into Datadog / Grafana / Loki / CloudWatch / etc.
+
+### Rules
+
+- Use `ctx.log`, not raw `console.*` — your logs stay silent in tests and respect level filtering.
+- Include a `{ ... }` meta bag for every interesting value; don't string-concat into `msg`.
+- Use `log.child({ ... })` when you're about to emit many lines with the same extra context (e.g. processing a batch — `const batchLog = log.child({ batchId })`).
+- Don't log payloads that may contain PII, secrets, or tokens.
+- Outside a request (startup code, scheduled tasks), import `{ logger } from '@/server/logger'` and use the root logger directly.
 
 ## How to add a method
 

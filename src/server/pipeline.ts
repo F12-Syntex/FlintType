@@ -1,14 +1,21 @@
+import { logger, type Logger } from './logger';
 import type { Middleware, RouteContext, RouteDef } from './types';
 
 export async function runRoute<I, O>(
   route: RouteDef<I, O>,
-  ctx: { input: unknown; req: RouteContext['req']; meta?: Record<string, unknown> },
+  ctx: {
+    input: unknown;
+    req: RouteContext['req'];
+    meta?: Record<string, unknown>;
+    log?: Logger;
+  },
   extraMiddleware: Middleware[] = [],
 ): Promise<O> {
   const full: RouteContext = {
     input: ctx.input,
     req: ctx.req,
     meta: ctx.meta ?? {},
+    log: ctx.log ?? logger,
   };
   const chain: Middleware[] = [
     ...extraMiddleware,
@@ -28,6 +35,7 @@ export async function runRoute<I, O>(
       input: validated,
       req: full.req,
       meta: full.meta,
+      log: full.log,
     });
   };
 

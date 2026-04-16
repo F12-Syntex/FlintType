@@ -1,10 +1,12 @@
 import type { NextRequest } from 'next/server';
 import type { ZodType } from 'zod';
+import type { Logger } from './logger';
 
 export type RouteContext<I = unknown> = {
   input: I;
   req: NextRequest;
   meta: Record<string, unknown>;
+  log: Logger;
 };
 
 export type RouteHandler<I, O> = (ctx: RouteContext<I>) => Promise<O> | O;

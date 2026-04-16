@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { BackendError } from '@/server/errors';
+import { logger } from '@/server/logger';
 import { runRoute } from '@/server/pipeline';
 import { resolvePath } from '@/server/resolve';
 import { router } from '@/server/router';
@@ -24,6 +25,10 @@ export async function POST(
   const { path } = await params;
   const resolved = resolvePath(router, path);
   if (!resolved) {
+    logger.warn('route not found', {
+      method: req.method,
+      path: path.join('/'),
+    });
     return errorJson(404, 'NOT_FOUND', `Unknown route /${path.join('/')}`);
   }
 
@@ -33,6 +38,7 @@ export async function POST(
     try {
       input = JSON.parse(raw);
     } catch {
+      logger.warn('invalid json body', { path: path.join('/') });
       return errorJson(400, 'VALIDATION', 'Invalid JSON body');
     }
   }
@@ -45,6 +51,7 @@ export async function POST(
     );
     return NextResponse.json(result);
   } catch (err) {
+    // logging middleware already recorded the failure; only shape the response here
     if (err instanceof ZodError) {
       const first = err.issues[0];
       return errorJson(
@@ -57,7 +64,7 @@ export async function POST(
     if (err instanceof BackendError) {
       return NextResponse.json(err.toJSON(), { status: err.status });
     }
-    console.error(err);
+    logger.error('dispatcher fallback', err, { path: path.join('/') });
     return errorJson(500, 'INTERNAL', 'Internal error');
   }
 }

@@ -6,6 +6,8 @@ export type {
   ErrorCode,
   ErrorDetails,
 } from './errors';
+export { createLogger, logger } from './logger';
+export type { LogContext, LogLevel, Logger, LoggerOptions } from './logger';
 export type {
   AnyNamespaceDef,
   AnyRouteDef,

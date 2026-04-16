@@ -22,6 +22,27 @@ yarn build        # production build
 yarn lint
 ```
 
+## Environment & logging
+
+Environment is controlled by `.env` (committed defaults). Override locally via `.env.local` (gitignored) — that's where secrets go.
+
+| Var            | Options                                | Default                                             |
+|----------------|----------------------------------------|-----------------------------------------------------|
+| `APP_ENV`      | `development` \| `production`          | `NODE_ENV` if set, else `development`               |
+| `LOG_ENABLED`  | `true` \| `false`                      | `true` (automatically `false` when `NODE_ENV=test`) |
+| `LOG_LEVEL`    | `debug` \| `info` \| `warn` \| `error` | `debug` in dev, `info` in prod                      |
+
+Logging is structured (JSON in prod, pretty single-line in dev) and request-scoped. Every handler has a `log` field on its context carrying `requestId`, `method`, `path`:
+
+```ts
+handler: ({ input, log }) => {
+  log.debug('fetching', { id: input.id });
+  // INFO  10:30:00 fetching {"requestId":"...","method":"POST","path":"/api/...","id":"u_1"}
+}
+```
+
+Full details and usage rules in `docs/backend-rules.md` → **Logging**.
+
 ## Backend architecture
 
 A single catch-all dispatcher walks the route tree, collecting middleware at every level and running the onion:
