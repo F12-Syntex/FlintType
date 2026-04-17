@@ -135,3 +135,47 @@ describe('requireAdminOrDev — production', () => {
     expect(next).not.toHaveBeenCalled();
   });
 });
+
+describe('requireAdminOrDev — hosted-deploy guard', () => {
+  const originalVercel = process.env.VERCEL;
+
+  beforeEach(() => {
+    mockEnv.APP_ENV = 'development';
+    process.env.VERCEL = '1';
+  });
+
+  afterEach(() => {
+    if (originalVercel === undefined) delete process.env.VERCEL;
+    else process.env.VERCEL = originalVercel;
+  });
+
+  it('refuses the dev bypass on a hosted deploy even when APP_ENV=development', async () => {
+    mockAuth.mockResolvedValue({
+      userId: null,
+      sessionClaims: null,
+    } as unknown as Awaited<ReturnType<typeof auth>>);
+    await expect(
+      requireAdminOrDev(ctx(), async () => 'never'),
+    ).rejects.toSatisfy(
+      (e: unknown) =>
+        e instanceof BackendError &&
+        e.status === 401 &&
+        e.code === 'UNAUTHORIZED',
+    );
+  });
+
+  it('enforces the admin role on a hosted deploy regardless of APP_ENV', async () => {
+    mockAuth.mockResolvedValue({
+      userId: 'user_1',
+      sessionClaims: { metadata: { role: 'user' } },
+    } as unknown as Awaited<ReturnType<typeof auth>>);
+    await expect(
+      requireAdminOrDev(ctx(), async () => 'never'),
+    ).rejects.toSatisfy(
+      (e: unknown) =>
+        e instanceof BackendError &&
+        e.status === 403 &&
+        e.code === 'FORBIDDEN',
+    );
+  });
+});

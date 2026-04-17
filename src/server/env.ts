@@ -32,7 +32,28 @@ if (!parsed.success) {
   throw new Error('Invalid environment variables');
 }
 
+/**
+ * Hosted-deploy signal. Vercel sets `VERCEL=1` on every function invocation;
+ * other hosts typically set `CI=true` during build. Either means we are not
+ * on a developer machine, and dev-only bypasses (e.g. `requireAdminOrDev`
+ * opening up `admin.database.*` without auth) must not fire — otherwise a
+ * misconfigured `APP_ENV=development` in a prod deploy would leak every row
+ * in the database to unauthenticated callers.
+ */
+const isHostedDeploy =
+  process.env.VERCEL === '1' || process.env.CI === 'true';
+
+if (isHostedDeploy && parsed.data.APP_ENV === 'development') {
+  throw new Error(
+    "APP_ENV='development' is not allowed on a hosted deploy " +
+      '(VERCEL=1 or CI=true detected). Set APP_ENV=production in the ' +
+      'deploy environment — dev-only bypasses would otherwise expose ' +
+      'admin surfaces without auth.',
+  );
+}
+
 export const env = parsed.data;
+export const IS_HOSTED_DEPLOY = isHostedDeploy;
 
 export const IS_DEV = env.APP_ENV === 'development';
 export const IS_PROD = env.APP_ENV === 'production';

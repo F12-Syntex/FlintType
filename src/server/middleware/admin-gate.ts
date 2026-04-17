@@ -19,8 +19,19 @@ type SessionClaimsWithRole = { metadata?: { role?: string } };
  * production. For routes that must always be admin-only (even in dev), use
  * {@link ../middleware/auth#requireAdmin} with {@link requireAuth}.
  */
+/**
+ * Defense-in-depth against a misconfigured hosted deploy: even if
+ * `env.APP_ENV` says `'development'` (e.g. because the env module was
+ * mocked or misconfigured), refuse to open up the dev bypass when the
+ * process is clearly running on a hosted platform. `env.ts` already
+ * refuses to boot in this state; this guard is the belt to that braces.
+ */
+function isHostedDeploy(): boolean {
+  return process.env.VERCEL === '1' || process.env.CI === 'true';
+}
+
 export const requireAdminOrDev: Middleware = async (ctx, next) => {
-  if (env.APP_ENV === 'development') {
+  if (env.APP_ENV === 'development' && !isHostedDeploy()) {
     try {
       const session = await auth();
       if (session.userId) {

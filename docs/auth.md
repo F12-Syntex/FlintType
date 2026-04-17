@@ -28,10 +28,12 @@ Must run **after** `requireAuth`. Reads `ctx.meta.sessionClaims.metadata.role` a
 
 ### `requireAdminOrDev` (dev-open admin gate)
 
-Same shape as `requireAdmin` in production, but lets every caller through when `env.APP_ENV === 'development'`. Used by the `admin` namespace (`/admin/database/*`) so local inspection works without a Clerk session and without granting a local user the admin role.
+Same shape as `requireAdmin` in production, but lets every caller through when `env.APP_ENV === 'development'` **and** the process is not running on a hosted deploy. Used by the `admin` namespace (`/admin/database/*`) so local inspection works without a Clerk session and without granting a local user the admin role.
 
-- `development` — pass through unconditionally. Copies `userId` / `sessionClaims` onto `ctx.meta` **if** Clerk returns them, silently skips when Clerk isn't configured.
-- anything else — require a signed-in user whose session claims carry `metadata.role === 'admin'`. Throws `UNAUTHORIZED` (no session) or `FORBIDDEN` (non-admin).
+- local dev (`APP_ENV=development`, no `VERCEL=1` / `CI=true`) — pass through unconditionally. Copies `userId` / `sessionClaims` onto `ctx.meta` **if** Clerk returns them, silently skips when Clerk isn't configured.
+- anything else, including any hosted deploy regardless of `APP_ENV` — require a signed-in user whose session claims carry `metadata.role === 'admin'`. Throws `UNAUTHORIZED` (no session) or `FORBIDDEN` (non-admin).
+
+**Hosted-deploy guard.** `src/server/env.ts` refuses to boot with `APP_ENV=development` when `VERCEL=1` or `CI=true`. `requireAdminOrDev` also checks those two vars at runtime — so a misconfigured or mocked env cannot silently open up admin surfaces in a production deploy. Both layers are deliberate: env.ts catches misconfiguration at boot, the middleware is belt-and-braces at request time.
 
 Reach for this **only** for admin surfaces that must be usable locally during development. Anything that should stay locked in dev too uses the strict `[requireAuth, requireAdmin]` pair.
 
