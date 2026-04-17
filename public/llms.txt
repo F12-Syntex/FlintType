@@ -4,7 +4,7 @@
 
 ## Pages
 
-- [Home](/): demo of the typed backend client (ping, echo, users, admin-gated routes)
+- [Home](/): landing page — overview of the boilerplate's features and links to sign-in / sign-up. Authenticated users are redirected to `/app`.
 
 ## Conventions
 

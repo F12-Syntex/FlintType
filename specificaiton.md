@@ -13,3 +13,4 @@
 6: ui conventions / global css [done]
 7: themes [done]
 8: payments [done]
+9: landing page script + basic landing page + redirect to user page when authenticated [done]
