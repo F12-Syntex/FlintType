@@ -5,6 +5,7 @@ import { ai } from './routes/ai';
 import { echo } from './routes/echo';
 import { health } from './routes/health';
 import { posts } from './routes/posts';
+import { ratelimit } from './routes/ratelimit';
 import { users } from './routes/users';
 
 export const router = defineNamespace({
@@ -16,6 +17,7 @@ export const router = defineNamespace({
     posts,
     ai,
     admin,
+    ratelimit,
   },
 });
 
