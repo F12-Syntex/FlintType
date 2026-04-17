@@ -159,17 +159,39 @@ reliable deletion.
 
 ## Client-side auth UI
 
-## Client-side auth UI
-
 The root layout exposes:
 - `<Show when="signed-out">` — renders children only when no session.
 - `<Show when="signed-in">` — renders children only when signed in.
-- `<SignInButton mode="modal">` / `<SignUpButton mode="modal">` — open Clerk's hosted modals (no custom pages needed).
+- Header links to `/sign-in` and `/sign-up` (via `next/link` + `buttonVariants`), gated by `<Show when="signed-out">`.
 - `<UserButton />` — avatar with profile / sign-out.
 
 **Never** use the deprecated `<SignedIn>` / `<SignedOut>` components — Clerk's current API is `<Show when="...">`.
 
 **Never** use `authMiddleware()` — replaced by `clerkMiddleware()`.
+
+## Dedicated sign-in / sign-up / forgot-password pages
+
+Two catch-all routes render Clerk's `<SignIn />` and `<SignUp />` components, which ship with every flow bundled — email + password, social providers enabled in the dashboard, email verification, and **forgot password** (link inside `<SignIn />` → code-to-email → reset). No extra pages needed.
+
+| Path                               | Component    | Purpose                                                        |
+|------------------------------------|--------------|----------------------------------------------------------------|
+| `src/app/sign-in/[[...sign-in]]/page.tsx` | `<SignIn />` | Sign in + forgot-password + social providers                  |
+| `src/app/sign-up/[[...sign-up]]/page.tsx` | `<SignUp />` | Create account + email verification + social providers        |
+
+Both pages declare `noIndex: true` via `buildPageMetadata` (S8 — auth surfaces stay out of search).
+
+The catch-all `[[...sign-in]]` segment is required — Clerk routes its internal steps (e.g. `/sign-in/factor-one`, `/sign-in/reset-password`) through the same page.
+
+`.env` wires Clerk's internal redirects to these routes:
+
+```
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/
+NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/
+```
+
+Without those, `<UserButton />` sign-out and other Clerk components would fall back to Clerk's hosted accounts portal instead of our pages.
 
 ## Testing protected routes
 

@@ -1,15 +1,10 @@
-import {
-  ClerkProvider,
-  Show,
-  SignInButton,
-  SignUpButton,
-  UserButton,
-} from "@clerk/nextjs";
+import { ClerkProvider, Show, UserButton } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
+import Link from "next/link";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/themes";
 import { siteConfig } from "@/server/seo";
 import "./globals.css";
@@ -81,14 +76,18 @@ export default function RootLayout({
                 <ThemeSwitcher />
                 <ModeToggle />
                 <Show when="signed-out">
-                  <SignInButton mode="modal">
-                    <Button variant="outline" size="sm">
-                      Sign in
-                    </Button>
-                  </SignInButton>
-                  <SignUpButton mode="modal">
-                    <Button size="sm">Sign up</Button>
-                  </SignUpButton>
+                  <Link
+                    href="/sign-in"
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    href="/sign-up"
+                    className={buttonVariants({ size: "sm" })}
+                  >
+                    Sign up
+                  </Link>
                 </Show>
                 <Show when="signed-in">
                   <UserButton />
