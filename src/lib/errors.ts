@@ -5,6 +5,7 @@ export type ErrorCode =
   | 'NOT_FOUND'
   | 'CONFLICT'
   | 'RATE_LIMITED'
+  | 'PAYMENT_REQUIRED'
   | 'INTERNAL';
 
 export type ErrorDetails = Record<string, unknown>;

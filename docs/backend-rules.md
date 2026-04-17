@@ -296,6 +296,7 @@ try {
 | `FORBIDDEN`     | 403    | authenticated but not allowed                         |
 | `NOT_FOUND`     | 404    | the requested resource doesn't exist                  |
 | `CONFLICT`      | 409    | resource state conflicts with the request (dup name, stale etag) |
+| `PAYMENT_REQUIRED` | 402 | caller is authenticated but lacks the subscription plan this route requires |
 | `RATE_LIMITED`  | 429    | caller exceeded the configured request budget for this route |
 | `INTERNAL`      | 500    | unexpected — shouldn't ever be thrown on purpose      |
 
