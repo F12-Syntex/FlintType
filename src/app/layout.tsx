@@ -90,6 +90,12 @@ export default function RootLayout({
                   </Link>
                 </Show>
                 <Show when="signed-in">
+                  <Link
+                    href="/billing"
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                  >
+                    Billing
+                  </Link>
                   <UserButton />
                 </Show>
               </div>

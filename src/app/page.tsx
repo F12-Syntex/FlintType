@@ -2,6 +2,7 @@ import { buildPageMetadata } from '@/server/seo';
 import { AiDemo } from './_components/ai-demo';
 import { BackendDemo } from './_components/backend-demo';
 import { LocalNotesDemo } from './_components/local-notes-demo';
+import { PremiumDemo } from './_components/premium-demo';
 import { RateLimitDemo } from './_components/ratelimit-demo';
 
 export const metadata = buildPageMetadata({
@@ -29,6 +30,7 @@ export default function Home() {
         <BackendDemo />
         <AiDemo />
         <RateLimitDemo />
+        <PremiumDemo />
         <LocalNotesDemo />
       </main>
     </div>
