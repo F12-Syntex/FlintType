@@ -69,6 +69,31 @@ describe('requirePlan', () => {
     ).resolves.toBe('ok');
   });
 
+  it('passes when the user matches only a later plan in the list (OR semantics)', async () => {
+    const team = 'user:team' as const;
+    mockSession({
+      userId: 'user_1',
+      has: ({ plan }) => plan === team,
+    });
+    const mw = requirePlan([PLANS.pro, team]);
+    await expect(
+      mw(ctx({ userId: 'user_1' }), async () => 'ok'),
+    ).resolves.toBe('ok');
+  });
+
+  it('rejects with all listed plans in details when the user has none', async () => {
+    const team = 'user:team' as const;
+    mockSession({ userId: 'user_1', has: () => false });
+    const mw = requirePlan([PLANS.pro, team]);
+    await expect(
+      mw(ctx({ userId: 'user_1' }), async () => 'never'),
+    ).rejects.toSatisfy((e: unknown) => {
+      if (!(e instanceof BackendError)) return false;
+      const plans = (e.details as { plans: string[] }).plans;
+      return plans.includes(PLANS.pro) && plans.includes(team);
+    });
+  });
+
   it('throws PAYMENT_REQUIRED when the user has no matching plan', async () => {
     mockSession({
       userId: 'user_1',

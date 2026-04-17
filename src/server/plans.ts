@@ -12,4 +12,13 @@ export const PLANS = {
 } as const;
 
 export type PlanName = keyof typeof PLANS;
-export type PlanKey = (typeof PLANS)[PlanName];
+
+/**
+ * Matches Clerk's native `has({ plan })` param type. Widened beyond the
+ * literal values of `PLANS` so multi-plan gates and future additions
+ * (`PLANS.team`, org-scoped plans) type-check without template gymnastics.
+ * The "always import from PLANS" rule (P1 in docs/payments.md) is a
+ * discipline constraint, not a type constraint — same as the AI preset
+ * registry.
+ */
+export type PlanKey = `user:${string}` | `org:${string}`;

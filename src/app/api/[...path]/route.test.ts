@@ -2,7 +2,11 @@ import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@clerk/nextjs/server', () => ({
-  auth: vi.fn(async () => ({ userId: null, sessionClaims: null })),
+  auth: vi.fn(async () => ({
+    userId: null,
+    sessionClaims: null,
+    has: () => false,
+  })),
   clerkClient: vi.fn(async () => ({
     users: {
       getUserList: vi.fn(async () => ({ data: [], totalCount: 0 })),
@@ -39,6 +43,7 @@ beforeEach(() => {
   mockAuth.mockResolvedValue({
     userId: null,
     sessionClaims: null,
+    has: () => false,
   } as unknown as AuthReturn);
   mockClerkClient.mockResolvedValue({
     users: {
@@ -120,6 +125,22 @@ describe('dispatcher — /api/[...path]', () => {
     expect(res.status).toBe(401);
     const body = await res.json();
     expect(body.code).toBe('UNAUTHORIZED');
+  });
+
+  it('maps PAYMENT_REQUIRED from requirePlan to 402 with plans in details', async () => {
+    mockAuth.mockResolvedValue({
+      userId: 'user_1',
+      sessionClaims: null,
+      has: () => false,
+    } as unknown as AuthReturn);
+    const res = await POST(
+      req(['premium', 'ping']),
+      params({ path: ['premium', 'ping'] }),
+    );
+    expect(res.status).toBe(402);
+    const body = await res.json();
+    expect(body.code).toBe('PAYMENT_REQUIRED');
+    expect(body.details.plans).toEqual(['user:pro']);
   });
 
   it('handles empty body for void-input routes', async () => {
