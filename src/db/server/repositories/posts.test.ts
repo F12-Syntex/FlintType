@@ -1,11 +1,30 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import type { ClerkUserLike } from '@/server/clerk-user';
 import { createTestDatabase } from '../testing';
 
 const { db, reset, close } = await createTestDatabase();
 const { posts } = db;
 
+function clerkFixture(id: string): ClerkUserLike {
+  return {
+    id,
+    firstName: id,
+    lastName: null,
+    imageUrl: '',
+    primaryEmailAddressId: 'e',
+    emailAddresses: [{ id: 'e', emailAddress: `${id}@example.com` }],
+    publicMetadata: {},
+  };
+}
+
+async function seedUser(id: string): Promise<void> {
+  await db.users.upsertFromClerk(clerkFixture(id));
+}
+
 beforeEach(async () => {
   await reset();
+  await seedUser('u_1');
+  await seedUser('someone_else');
 });
 
 afterAll(async () => {

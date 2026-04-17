@@ -1,4 +1,5 @@
 import { BackendError, defineNamespace, defineRoute } from '@/server';
+import { ensureUser } from '@/server/ensure-user';
 import { requireAuth } from '@/server/middleware/auth';
 import { rateLimit } from '@/server/middleware/rate-limit';
 import {
@@ -23,12 +24,12 @@ const list = defineRoute<void, ListPostsOutput>({
 const create = defineRoute<CreatePostInput, CreatePostOutput>({
   input: createPostInputSchema,
   middleware: [requireAuth, rateLimit({ limit: 20, windowMs: 60_000 })],
-  handler: async ({ input, db, meta }) => {
-    const authorId = meta.userId as string;
-    return db.posts.create({
-      title: input.title,
-      body: input.body,
-      authorId,
+  handler: async (ctx) => {
+    const me = await ensureUser(ctx);
+    return ctx.db.posts.create({
+      title: ctx.input.title,
+      body: ctx.input.body,
+      authorId: me.id,
     });
   },
 });

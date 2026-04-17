@@ -1,8 +1,25 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import type { ClerkUserLike } from '@/server/clerk-user';
 import { createTestDatabase } from '../testing';
 import { BackendError } from '@/lib/errors';
 
 const testDb = await createTestDatabase();
+
+function clerkFixture(id: string): ClerkUserLike {
+  return {
+    id,
+    firstName: id,
+    lastName: null,
+    imageUrl: '',
+    primaryEmailAddressId: 'e',
+    emailAddresses: [{ id: 'e', emailAddress: `${id}@example.com` }],
+    publicMetadata: {},
+  };
+}
+
+async function seedUser(id: string): Promise<void> {
+  await testDb.db.users.upsertFromClerk(clerkFixture(id));
+}
 
 afterAll(async () => {
   await testDb.close();
@@ -36,6 +53,8 @@ describe('healthRepo.overall', () => {
 
 describe('healthRepo.rows', () => {
   it('returns columns + rows + totalRows for a known table', async () => {
+    await seedUser('user_1');
+    await seedUser('user_2');
     await testDb.db.posts.create({
       title: 'hello',
       body: 'world',
@@ -62,6 +81,7 @@ describe('healthRepo.rows', () => {
   });
 
   it('honors limit and offset', async () => {
+    await seedUser('u');
     for (let i = 0; i < 5; i++) {
       await testDb.db.posts.create({
         title: `t${i}`,

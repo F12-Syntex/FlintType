@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq } from 'drizzle-orm';
 import { posts } from '@/db/schema/server/posts';
+import { BackendError } from '@/lib/errors';
 import type { Post } from '@/types/post';
 import type { ServerDrizzle } from '../driver';
 
@@ -39,7 +40,13 @@ export function postsRepo(db: ServerDrizzle) {
           authorId: input.authorId,
         })
         .returning();
-      if (!rows[0]) throw new Error('posts.create returned no rows');
+      if (!rows[0]) {
+        throw new BackendError(
+          500,
+          'INTERNAL',
+          'posts.create returned no rows',
+        );
+      }
       return rows[0];
     },
 

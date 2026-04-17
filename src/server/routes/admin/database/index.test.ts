@@ -107,6 +107,15 @@ describe('admin.database.rows — dev mode', () => {
       sessionClaims: null,
     } as unknown as Awaited<ReturnType<typeof auth>>);
 
+    await testDb.db.users.upsertFromClerk({
+      id: 'user_1',
+      firstName: 'u',
+      lastName: null,
+      imageUrl: '',
+      primaryEmailAddressId: 'e',
+      emailAddresses: [{ id: 'e', emailAddress: 'u@example.com' }],
+      publicMetadata: {},
+    });
     await testDb.db.posts.create({
       title: 'hello',
       body: 'world',
