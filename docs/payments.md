@@ -2,6 +2,14 @@
 
 Authoritative guide for subscription billing in this repo. Provider is **Clerk Billing** — a UI + entitlement layer on top of Stripe. Stripe processes payments under the hood; Clerk owns the plan catalog, checkout UI, entitlement API, and webhooks.
 
+## What ships vs. what you activate
+
+This is a **boilerplate**. The repo ships the *code pattern* for plan-gated routes, the entitlement middleware, a `PLANS` registry, a `/billing` page shell, and a home-page demo card that exercises the three client states. All of that works out of the box — `yarn test` is green, the routes resolve, the pages render.
+
+**What the repo does not ship** is an activated Clerk Billing configuration. Flipping billing on requires (a) claiming your Clerk instance to get stable keys, (b) enabling billing in the Clerk dashboard, (c) connecting Stripe, and (d) creating plans whose slugs match `src/server/plans.ts`. Those are decisions a downstream fork makes when it's ready to sell something — they are not prerequisites for using, forking, or contributing to the boilerplate itself.
+
+If you're reading this because the `<PricingTable />` grid on `/billing` looks empty in dev: that's the expected state for an un-activated boilerplate. A dev-only notice on the page itself spells out how to activate it if you want to. Follow the [Prerequisites](#prerequisites-activating-billing-in-your-fork) section below when you're ready.
+
 ## Why Clerk Billing (and not direct Stripe)
 
 We deliberately skip the direct-Stripe path. Trade-offs:
@@ -28,7 +36,7 @@ If any of those apply to your product, skip to the migration appendix for the di
 - `src/app/billing/page.tsx` — mounts `<PricingTable />`. Everything else (checkout, cancel, update card, invoices) is Clerk-rendered inline.
 - Home-page card (`src/app/_components/premium-demo.tsx`) exercising the three client states: signed-out, signed-in-no-plan (shows **Upgrade** link branching on `PAYMENT_REQUIRED`), signed-in-with-plan (200).
 
-## Prerequisites (one-time setup)
+## Prerequisites (activating billing in your fork)
 
 ### 1. Claim your Clerk instance and paste real keys
 
