@@ -4,6 +4,7 @@ export type ErrorCode =
   | 'FORBIDDEN'
   | 'NOT_FOUND'
   | 'CONFLICT'
+  | 'RATE_LIMITED'
   | 'INTERNAL';
 
 export type ErrorDetails = Record<string, unknown>;

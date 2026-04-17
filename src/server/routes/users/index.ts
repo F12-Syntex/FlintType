@@ -2,6 +2,7 @@ import { clerkClient } from '@clerk/nextjs/server';
 import { BackendError, defineNamespace, defineRoute } from '@/server';
 import { toUser } from '@/server/clerk-user';
 import { requireAuth } from '@/server/middleware/auth';
+import { rateLimit } from '@/server/middleware/rate-limit';
 import {
   getUserInputSchema,
   type GetUserInput,
@@ -37,6 +38,6 @@ const get = defineRoute<GetUserInput, GetUserOutput>({
 });
 
 export const users = defineNamespace({
-  middleware: [requireAuth],
+  middleware: [requireAuth, rateLimit({ limit: 60, windowMs: 60_000 })],
   routes: { list, get, admins },
 });

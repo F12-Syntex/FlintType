@@ -1,5 +1,6 @@
 import { BackendError, defineNamespace, defineRoute } from '@/server';
 import { requireAuth } from '@/server/middleware/auth';
+import { rateLimit } from '@/server/middleware/rate-limit';
 import {
   createPostInputSchema,
   removePostInputSchema,
@@ -11,6 +12,7 @@ import {
 } from '@/types/post';
 
 const list = defineRoute<void, ListPostsOutput>({
+  middleware: [rateLimit({ limit: 60, windowMs: 60_000 })],
   handler: async ({ db, log }) => {
     const out = await db.posts.list({ limit: 100 });
     log.debug('posts fetched', { count: out.length });
@@ -20,7 +22,7 @@ const list = defineRoute<void, ListPostsOutput>({
 
 const create = defineRoute<CreatePostInput, CreatePostOutput>({
   input: createPostInputSchema,
-  middleware: [requireAuth],
+  middleware: [requireAuth, rateLimit({ limit: 20, windowMs: 60_000 })],
   handler: async ({ input, db, meta }) => {
     const authorId = meta.userId as string;
     return db.posts.create({
@@ -33,7 +35,7 @@ const create = defineRoute<CreatePostInput, CreatePostOutput>({
 
 const remove = defineRoute<RemovePostInput, RemovePostOutput>({
   input: removePostInputSchema,
-  middleware: [requireAuth],
+  middleware: [requireAuth, rateLimit({ limit: 20, windowMs: 60_000 })],
   handler: async ({ input, db, meta }) => {
     const authorId = meta.userId as string;
     const existing = await db.posts.findById(input.id);

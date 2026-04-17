@@ -215,6 +215,46 @@ The key pattern: middleware **reads from upstream context** (a header or a prior
 
 Always list `requireAuth` before `requireAdmin` in the chain — `requireAuth` populates the `user` that `requireAdmin` reads.
 
+### Rate limiting — `rateLimit({ limit, windowMs })`
+
+`src/server/middleware/rate-limit.ts` is a fixed-window limiter keyed on the caller:
+
+- If `ctx.meta.userId` is set (i.e. `requireAuth` ran earlier), keyed by `u:<userId>`.
+- Otherwise keyed by the first IP on `x-forwarded-for` / `x-real-ip` (`ip:<addr>`), or the shared `ip:anon` bucket as a last resort.
+- Each `(limit, windowMs, key)` tuple has its own bucket, so a tight per-route limit composes cleanly with a looser namespace-wide one.
+
+On exceed it throws `BackendError(429, 'RATE_LIMITED', …, { limit, windowMs, retryAfterMs })`.
+
+Attach like any other middleware:
+
+```ts
+import { rateLimit } from '@/server/middleware/rate-limit';
+
+// route-specific (tightest budget)
+const chat = defineRoute<ChatInput, ChatOutput>({
+  input: chatInputSchema,
+  middleware: [rateLimit({ limit: 10, windowMs: 60_000 })],
+  handler: ...,
+});
+
+// namespace-wide (applies to every child route)
+export const users = defineNamespace({
+  middleware: [requireAuth, rateLimit({ limit: 60, windowMs: 60_000 })],
+  routes: { list, get, admins },
+});
+
+// layered: expensive method gets its own tighter cap on top of the namespace's
+const create = defineRoute<CreatePostInput, CreatePostOutput>({
+  input: createPostInputSchema,
+  middleware: [requireAuth, rateLimit({ limit: 20, windowMs: 60_000 })],
+  handler: ...,
+});
+```
+
+**Ordering rule:** put `rateLimit` *after* `requireAuth` if you want per-user buckets. Putting it first silently downgrades to IP keying even for authenticated callers.
+
+**Storage:** in-memory per process. Good enough for a single Vercel function or dev server; multi-instance deployments want a Redis-backed swap-in later. The public API (`rateLimit({ limit, windowMs })`) stays the same — only `src/server/middleware/rate-limit.ts` changes.
+
 ## Errors end-to-end
 
 **Server side** — throw `BackendError` with a typed `code`:
@@ -256,6 +296,7 @@ try {
 | `FORBIDDEN`     | 403    | authenticated but not allowed                         |
 | `NOT_FOUND`     | 404    | the requested resource doesn't exist                  |
 | `CONFLICT`      | 409    | resource state conflicts with the request (dup name, stale etag) |
+| `RATE_LIMITED`  | 429    | caller exceeded the configured request budget for this route |
 | `INTERNAL`      | 500    | unexpected — shouldn't ever be thrown on purpose      |
 
 Need a new code? Add it to the `ErrorCode` union first, then use it.

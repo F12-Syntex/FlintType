@@ -1,10 +1,12 @@
 import { defineNamespace, defineRoute } from '@/server';
 import { generateChat } from '@/server/ai';
 import { requireAuth } from '@/server/middleware/auth';
+import { rateLimit } from '@/server/middleware/rate-limit';
 import { chatInputSchema, type ChatInput, type ChatOutput } from '@/types/ai';
 
 const chat = defineRoute<ChatInput, ChatOutput>({
   input: chatInputSchema,
+  middleware: [rateLimit({ limit: 10, windowMs: 60_000 })],
   handler: async ({ input, log }) => {
     const result = await generateChat({
       preset: input.preset,
