@@ -1,28 +1,39 @@
-import { Stat } from "@/components/ft";
+"use client";
 
-export function Readouts({
-  active,
-  cursorWord,
-}: {
-  active: boolean;
-  cursorWord: number;
-}) {
+import { Stat } from "@/components/ft";
+import { usePractice } from "./practice-state";
+
+function formatElapsed(ms: number): string {
+  const total = Math.floor(ms / 1000);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+export function Readouts() {
+  const { state, elapsedMs, wpm, accuracy } = usePractice();
+  const running = state.phase === "running" || state.phase === "done";
+  const wordCount = state.words.length;
+  const wordIdx = Math.min(state.cursorWord + (running ? 1 : 0), wordCount);
+
   return (
     <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ft-line-soft pb-5">
       <div className="flex flex-wrap gap-x-10 gap-y-3">
-        <Stat label="WPM" value={active ? "92" : "—"} accent={active} />
-        <Stat label="ACC" value={active ? "97.2%" : "—"} />
-        <Stat label="PEAK" value={active ? "118" : "—"} />
-      </div>
-      <div className="flex flex-wrap gap-x-10 gap-y-3">
+        <Stat label="WPM" value={running ? String(wpm) : "—"} accent={running} />
         <Stat
-          label="WORD"
-          value={active ? `${cursorWord}/30` : "0/30"}
-          align="right"
+          label="ACC"
+          value={running ? `${accuracy.toFixed(1)}%` : "—"}
         />
         <Stat
+          label="ERR"
+          value={running ? String(state.errorWords.size) : "—"}
+        />
+      </div>
+      <div className="flex flex-wrap gap-x-10 gap-y-3">
+        <Stat label="WORD" value={`${wordIdx}/${wordCount}`} align="right" />
+        <Stat
           label="ELAPSED"
-          value={active ? "0:18" : "0:00"}
+          value={formatElapsed(elapsedMs)}
           align="right"
         />
       </div>
