@@ -84,12 +84,7 @@ export function TopBar({
           hamburger sits on the right edge on mobile. */}
       <div className="ml-auto flex items-center gap-3">
         {right ? <div className="flex items-center gap-2">{right}</div> : null}
-        <MobileNav
-          nav={nav}
-          drawerExtras={drawerExtras}
-          version={version}
-          dark={dark}
-        />
+        <MobileNav nav={nav} drawerExtras={drawerExtras} dark={dark} />
       </div>
     </header>
   );

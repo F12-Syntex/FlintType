@@ -4,20 +4,64 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { HiOutlineBars3, HiOutlineXMark } from "react-icons/hi2";
 import { cn } from "@/lib/utils";
-import { Logo } from "./logo";
 import type { NavItem } from "./top-bar";
+
+/** Hamburger ↔ X morphing icon. Three lines that translate together to form
+ *  a stack at rest, and rotate around the centre into an X when open. */
+function MorphIcon({ open }: { open: boolean }) {
+  const transition = "transition-transform duration-200 ease-out";
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      className="size-6"
+      aria-hidden
+    >
+      <line
+        x1="4"
+        y1="12"
+        x2="20"
+        y2="12"
+        className={transition}
+        style={{
+          transformOrigin: "center",
+          transform: open ? "rotate(45deg)" : "translateY(-5px)",
+        }}
+      />
+      <line
+        x1="4"
+        y1="12"
+        x2="20"
+        y2="12"
+        className="transition-opacity duration-150 ease-out"
+        style={{ opacity: open ? 0 : 1 }}
+      />
+      <line
+        x1="4"
+        y1="12"
+        x2="20"
+        y2="12"
+        className={transition}
+        style={{
+          transformOrigin: "center",
+          transform: open ? "rotate(-45deg)" : "translateY(5px)",
+        }}
+      />
+    </svg>
+  );
+}
 
 export function MobileNav({
   nav,
   drawerExtras,
-  version,
   dark = false,
 }: {
   nav?: NavItem[];
   drawerExtras?: React.ReactNode;
-  version?: string;
   dark?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -55,48 +99,23 @@ export function MobileNav({
     href === pathname ||
     (href !== "/" && href !== "/app" && pathname?.startsWith(href));
 
+  // Drawer sits below the 56 px topbar so the existing header stays visible.
+  // No enter/exit animation per request — instant show/hide.
   const drawer = open ? (
     <div
       className={cn(
-        "fixed inset-0 z-[100] flex flex-col md:hidden",
-        "animate-in fade-in slide-in-from-top-4 duration-200",
+        "fixed inset-x-0 top-14 bottom-0 z-50 flex flex-col md:hidden",
         dark
           ? "bg-foreground text-background"
           : "bg-background text-foreground",
       )}
       style={{
-        // Inline opaque colour — guarantees no bleed-through from page content
-        // even if the utility class is purged or overridden.
         backgroundColor: dark ? "hsl(0 0% 8%)" : "hsl(38 33% 92%)",
       }}
       role="dialog"
       aria-modal="true"
       aria-label="Mobile navigation"
     >
-      {/* Drawer header — mirrors the topbar layout */}
-      <div
-        className={cn(
-          "flex h-14 shrink-0 items-center justify-between border-b px-5 sm:px-7",
-          dark ? "border-[#221F1A]" : "border-ft-line-soft",
-        )}
-      >
-        <Logo dark={dark} version={version} />
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          aria-label="Close menu"
-          className={cn(
-            "-mr-2 flex size-11 items-center justify-center transition-colors",
-            dark
-              ? "text-ft-paper hover:bg-white/5"
-              : "text-ft-ink hover:bg-black/5",
-          )}
-        >
-          <HiOutlineXMark className="size-6" aria-hidden />
-        </button>
-      </div>
-
-      {/* Nav links — large, centered vertically */}
       {nav && nav.length > 0 ? (
         <nav className="flex flex-1 flex-col justify-center px-5 py-8 sm:px-7">
           <ul className="flex flex-col gap-1">
@@ -137,7 +156,6 @@ export function MobileNav({
         </nav>
       ) : null}
 
-      {/* Drawer extras (auth CTAs etc.) pinned to the bottom */}
       {drawerExtras ? (
         <div
           className={cn(
@@ -155,9 +173,10 @@ export function MobileNav({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Open menu"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={open ? "Close menu" : "Open menu"}
         aria-expanded={open}
+        aria-controls="mobile-nav-drawer"
         className={cn(
           "-mr-2 flex size-11 items-center justify-center transition-colors md:hidden",
           dark
@@ -165,13 +184,13 @@ export function MobileNav({
             : "text-ft-ink hover:bg-black/5",
         )}
       >
-        <HiOutlineBars3 className="size-6" aria-hidden />
+        <MorphIcon open={open} />
       </button>
 
-      {/* Portal the drawer onto document.body so it escapes the topbar's
+      {/* Portal the drawer to document.body so it escapes the topbar's
           stacking context. The TopBar is `sticky z-30` which creates a new
-          stacking context — without portal, <main> (later in DOM) would
-          paint on top of the drawer despite z-50. */}
+          stacking context — without portal, <main> (later in DOM, no z-index)
+          would paint on top of the drawer despite a higher z-index. */}
       {mounted && drawer ? createPortal(drawer, document.body) : null}
     </>
   );
