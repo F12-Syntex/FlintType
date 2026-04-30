@@ -342,18 +342,21 @@ When you add a new row to the spacing or layout tables:
 
 Reusable building blocks live in `src/components/ft/`. Use these — don't reproduce their markup inline.
 
-| Primitive   | Import                                       | Use                                                                 |
-|-------------|----------------------------------------------|---------------------------------------------------------------------|
-| `<TopBar>`  | `from "@/components/ft"` (with `<IdentDot>`) | Sticky app header: rotated ember mark + FLINTTYPE wordmark + version, optional nav array, optional ident slot. `dark` prop flips to ink-on-paper for the race screen. |
-| `<Tag>`     | `from "@/components/ft"`                     | Eyebrow / hairline label. Tone: `dim` (default), `ink`, `ember`, `ok`. |
-| `<Stat>`    | `from "@/components/ft"`                     | Labelled tabular value with optional delta + suffix. Sizes `sm \| md \| lg \| xl`. `accent` paints the value ember; `bordered` adds a right divider for stat strips. |
-| `<Panel>`   | `from "@/components/ft"`                     | Bordered surface with `title` + `subtitle` header (both via `<Tag>`), background `bg-[#FAF7F0]`. Used for every dashboard widget. |
-| `<Kbd>`     | `from "@/components/ft"`                     | Inline keycap chip: white bg, double-bottom border, mono small caps.   |
-| `<FtButton>`| `from "@/components/ft"`                     | Square-cornered, uppercase, mono, tracked button. Variants: `ink`, `ember`, `ghost`, `ghostDark`. Sizes `sm \| md \| lg`. |
+| Primitive    | Import                          | Use                                                                                                                                                                                                                                                                |
+|--------------|---------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `<Logo>`     | `from "@/components/ft"`        | The flinttype brand mark. Renders the flame SVG (`/flinttype-logo.svg`) + `FLINTTYPE` wordmark + optional `version`. `dark` flips the version-text colour. `size` (`sm \| md`) shrinks for footer use. Anchored as a `<Link>` to `/` (or `/app` when `dark`). |
+| `<TopBar>`   | `from "@/components/ft"`        | Sticky app header — backdrop-blurred, 56 px tall. Renders `<Logo>` + optional desktop nav (md+) + `right` slot + mobile hamburger that opens `<MobileNav>` drawer. `dark` flips to ink-on-paper. `sticky={false}` for non-sticky uses.                              |
+| `<MobileNav>`| `from "@/components/ft"`        | Hamburger button (md:hidden) that opens a full-width drawer below the header. Drawer shows nav links (large touch targets) + `drawerExtras` slot. Closes on route change, on `Escape`, or on hamburger toggle. Body scroll locked while open. Used by `<TopBar>`.   |
+| `<IdentDot>` | `from "@/components/ft"`        | Right-side status indicator: text label hidden < `sm:`, dot always visible. `emberDot` variant for the race screen (live indicator). Pass as the `right` slot of `<TopBar>` on `/app/*`.                                                                           |
+| `<Tag>`      | `from "@/components/ft"`        | Eyebrow / hairline label. Tone: `dim` (default), `ink`, `ember`, `ok`.                                                                                                                                                                                             |
+| `<Stat>`     | `from "@/components/ft"`        | Labelled tabular value with optional delta + suffix. Sizes `sm \| md \| lg \| xl`. `accent` paints the value primary (coral); `bordered` adds a right divider for stat strips.                                                                                     |
+| `<Panel>`    | `from "@/components/ft"`        | Bordered surface with `title` + `subtitle` header (both via `<Tag>`), background `bg-[#FAF7F0]`. Used for every dashboard widget.                                                                                                                                  |
+| `<Kbd>`      | `from "@/components/ft"`        | Inline keycap chip: white bg, double-bottom border, mono small caps.                                                                                                                                                                                               |
+| `<FtButton>` | `from "@/components/ft"`        | Square-cornered, uppercase, mono, tracked button. Variants: `ink`, `ember`, `ghost`, `ghostDark`. Sizes `sm \| md \| lg`.                                                                                                                                          |
 
 The shadcn `<Button>` is still preferred when the form/dialog already uses shadcn primitives — but flinttype-themed CTAs (the editorial buttons in screen designs) use `<FtButton>`.
 
-**Ember-mark (the wordmark glyph)** — a 10×10 square rotated 45°: `<span className="inline-block size-2.5 rotate-45 bg-ft-ember" aria-hidden />`. Always paired with `FLINTTYPE` wordmark.
+**Brand mark.** Always render via `<Logo>`. The flame SVG at `/public/flinttype-logo.svg` is the single source of truth — never hand-roll a square/diamond mark inline. An older rotated-square glyph appeared in early commits; it has been replaced everywhere.
 
 **Hairline rule** — any "section break" is a single 1px border in `border-ft-line-soft` (paper) or `border-[#221F1A]` (ink). No box-shadows on product surfaces, no double borders.
 
