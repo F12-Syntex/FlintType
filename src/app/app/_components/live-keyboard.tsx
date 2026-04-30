@@ -305,158 +305,59 @@ export function LiveKeyboard() {
       ref={surfaceRef}
       className="relative flex w-full justify-center overflow-x-auto pt-7"
     >
-      {/* ─── hand simulation overlay ──────────────────────────────────── */}
-      <svg
-        className="pointer-events-none absolute inset-0 z-10 size-full overflow-visible"
-        aria-hidden
-      >
-        <defs>
-          <filter id="hand-shadow">
-            <feComponentTransfer in="SourceAlpha">
-              <feFuncA type="linear" slope="1" />
-            </feComponentTransfer>
-            <feGaussianBlur stdDeviation="5" result="blur" />
-            <feOffset dx="0" dy="8" result="offsetBlur" />
-            <feFlood floodColor="#000000" floodOpacity="0.15" result="shadowColor" />
-            <feComposite in="shadowColor" in2="offsetBlur" operator="in" result="shadow" />
-            <feMerge>
-              <feMergeNode in="shadow" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
+      {/* ─── finger pucks overlay ──────────────────────────────────── */}
+      {FINGERS.map((f) => {
+        const homeKey = HOME_KEY[f]!;
+        const homeCenter = centers[homeKey];
+        if (!homeCenter) return null;
+        const isPressed = pressed?.finger === f;
+        const target = isPressed ? pressed.center : homeCenter;
+        const HOVER_OFFSET = 26;
+        const PRESS_OFFSET = 6;
+        const x = target.x;
+        const y = isPressed
+          ? target.y - PRESS_OFFSET
+          : homeCenter.y - HOVER_OFFSET;
+        return (
+          <span
+            key={f}
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute size-3 rounded-full border-[1.5px] border-white shadow-md transition-all duration-150 ease-out",
+              isPressed && "scale-110",
+            )}
+            style={{
+              left: x,
+              top: y,
+              transform: "translate(-50%, -50%)",
+              backgroundColor: FINGER_COLOR[f],
+            }}
+          />
+        );
+      })}
 
-        {centers["a"] && centers[";"] && centers.space && (
-          <>
-            {[false, true].map((isRight) => {
-              const fingers = isRight ? [5, 6, 7, 8] : [1, 2, 3, 4];
-              
-              const palmY = centers["k"].y + 60; // Base of fingers
-
-              const wristInner = isRight ? [centers["j"].x - 10, palmY + 60] : [centers["f"].x + 10, palmY + 60];
-              const wristOuter = isRight ? [centers[";"].x + 16, palmY + 60] : [centers["a"].x - 16, palmY + 60];
-
-              const armInner = [wristInner[0] + (isRight ? -10 : 10), wristInner[1] + 250];
-              const armOuter = [wristOuter[0] + (isRight ? 10 : -10), wristOuter[1] + 250];
-
-              const thumbBase = isRight ? [centers["j"].x - 25, palmY + 20] : [centers["f"].x + 25, palmY + 20];
-              const thumbKnuckle = isRight ? [centers["j"].x - 45, palmY + 45] : [centers["f"].x + 45, palmY + 45];
-              const thumbTip = [centers.space.x + (isRight ? 30 : -30), thumbPressed ? centers.space.y - 6 : centers.space.y - 20];
-
-              const pinkyK = isRight ? [centers[";"].x + 6, palmY + 8] : [centers["a"].x - 6, palmY + 8];
-              const ringK = isRight ? [centers["l"].x + 2, palmY - 2] : [centers["s"].x - 2, palmY - 2];
-              const middleK = isRight ? [centers["k"].x, palmY - 6] : [centers["d"].x, palmY - 6];
-              const indexK = isRight ? [centers["j"].x - 2, palmY] : [centers["f"].x + 2, palmY];
-
-              const palmPath = `
-                M ${armOuter[0]},${armOuter[1]} 
-                L ${wristOuter[0]},${wristOuter[1]} 
-                L ${pinkyK[0]},${pinkyK[1]} 
-                L ${ringK[0]},${ringK[1]} 
-                L ${middleK[0]},${middleK[1]} 
-                L ${indexK[0]},${indexK[1]} 
-                L ${thumbBase[0]},${thumbBase[1]} 
-                L ${wristInner[0]},${wristInner[1]} 
-                L ${armInner[0]},${armInner[1]} 
-                Z
-              `;
-
-              const knuckles: Record<number, number[]> = isRight
-                ? { 5: indexK, 6: middleK, 7: ringK, 8: pinkyK }
-                : { 1: pinkyK, 2: ringK, 3: middleK, 4: indexK };
-
-              const SKIN_FILL = "#E6B999";     
-              const NAIL_FILL = "#F2D5C4";     
-
-              return (
-                <g key={isRight ? "right" : "left"} filter="url(#hand-shadow)">
-                  {/* Palm & Arm */}
-                  <path 
-                    d={palmPath} 
-                    fill={SKIN_FILL} 
-                    stroke={SKIN_FILL} 
-                    strokeWidth="12" 
-                    strokeLinejoin="round" 
-                  />
-
-                  {/* Thumb */}
-                  <g>
-                    <path 
-                      d={`M ${thumbBase[0]},${thumbBase[1]} L ${thumbKnuckle[0]},${thumbKnuckle[1]} L ${thumbTip[0]},${thumbTip[1]}`}
-                      stroke={SKIN_FILL}
-                      strokeWidth="18"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      fill="none"
-                      className="transition-all duration-150 ease-out"
-                    />
-                    {(() => {
-                      const tdx = thumbTip[0] - thumbKnuckle[0];
-                      const tdy = thumbTip[1] - thumbKnuckle[1];
-                      const tAngle = Math.atan2(tdy, tdx) * (180 / Math.PI);
-                      const tDist = Math.sqrt(tdx*tdx + tdy*tdy) || 1;
-                      const tnx = thumbTip[0] + (tdx/tDist) * 2;
-                      const tny = thumbTip[1] + (tdy/tDist) * 2;
-                      return (
-                        <ellipse 
-                          cx={tnx} cy={tny} 
-                          rx="4.5" ry="5.5" 
-                          fill={NAIL_FILL} 
-                          transform={`rotate(${tAngle + 90} ${tnx} ${tny})`} 
-                          className="transition-all duration-150 ease-out"
-                        />
-                      );
-                    })()}
-                  </g>
-
-                  {/* Fingers */}
-                  {fingers.map((f) => {
-                    const isPressed = pressed?.finger === f;
-                    const homeCenter = centers[HOME_KEY[f]!];
-                    if (!homeCenter) return null;
-
-                    const target = isPressed ? pressed.center : homeCenter;
-                    const HOVER_OFFSET = 26;
-                    const PRESS_OFFSET = 6;
-                    
-                    const tipX = target.x;
-                    const tipY = isPressed ? target.y - PRESS_OFFSET : homeCenter.y - HOVER_OFFSET;
-                    
-                    const knuckle = knuckles[f]!;
-                    
-                    const dx = tipX - knuckle[0];
-                    const dy = tipY - knuckle[1];
-                    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-                    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-                    const nx = tipX + (dx/dist) * 2;
-                    const ny = tipY + (dy/dist) * 2;
-
-                    return (
-                      <g key={f}>
-                        <line 
-                          x1={knuckle[0]} y1={knuckle[1]} 
-                          x2={tipX} y2={tipY} 
-                          stroke={SKIN_FILL} 
-                          strokeWidth="16" 
-                          strokeLinecap="round" 
-                          className="transition-all duration-150 ease-out"
-                        />
-                        <ellipse 
-                          cx={nx} cy={ny} 
-                          rx="4" ry="5" 
-                          fill={NAIL_FILL} 
-                          transform={`rotate(${angle + 90} ${nx} ${ny})`} 
-                          className="transition-all duration-150 ease-out"
-                        />
-                      </g>
-                    );
-                  })}
-                </g>
-              );
-            })}
-          </>
-        )}
-      </svg>
+      {/* ─── thumbs: hover above the spacebar, dive on press ───────── */}
+      {centers.space ? (
+        <>
+          {[-22, 22].map((dx, i) => (
+            <span
+              key={`thumb-${i}`}
+              aria-hidden
+              className={cn(
+                "pointer-events-none absolute size-3 rounded-full border-[1.5px] border-white bg-[#9A7A52] shadow-md transition-all duration-150 ease-out",
+                thumbPressed && "scale-110",
+              )}
+              style={{
+                left: centers.space.x + dx,
+                top: thumbPressed
+                  ? centers.space.y - 6
+                  : centers.space.y - 26,
+                transform: "translate(-50%, -50%)",
+              }}
+            />
+          ))}
+        </>
+      ) : null}
 
       {/* ─── keyboard grid ──────────────────────────────────────────── */}
       <div className="flex flex-col items-center" style={{ gap: ROW_GAP }}>
