@@ -311,11 +311,16 @@ export function LiveKeyboard() {
         aria-hidden
       >
         <defs>
-          <filter id="hologram-glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="3" result="blur" />
+          <filter id="hand-shadow">
+            <feComponentTransfer in="SourceAlpha">
+              <feFuncA type="linear" slope="1" />
+            </feComponentTransfer>
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feOffset dx="0" dy="8" result="offsetBlur" />
+            <feFlood floodColor="#000000" floodOpacity="0.15" result="shadowColor" />
+            <feComposite in="shadowColor" in2="offsetBlur" operator="in" result="shadow" />
             <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="blur" />
+              <feMergeNode in="shadow" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
@@ -325,134 +330,122 @@ export function LiveKeyboard() {
           <>
             {[false, true].map((isRight) => {
               const fingers = isRight ? [5, 6, 7, 8] : [1, 2, 3, 4];
-              const wristX = isRight ? centers["k"].x + 20 : centers["d"].x - 20;
-              const wristY = centers["k"].y + 160;
+              
+              const palmY = centers["k"].y + 60; // Base of fingers
 
-              const palmX = isRight ? centers["k"].x : centers["d"].x;
-              const palmY = centers["k"].y + 70;
+              const wristInner = isRight ? [centers["j"].x - 10, palmY + 60] : [centers["f"].x + 10, palmY + 60];
+              const wristOuter = isRight ? [centers[";"].x + 16, palmY + 60] : [centers["a"].x - 16, palmY + 60];
 
-              const thumbBaseX = isRight ? palmX - 20 : palmX + 20;
-              const thumbBaseY = palmY + 20;
+              const armInner = [wristInner[0] + (isRight ? -10 : 10), wristInner[1] + 250];
+              const armOuter = [wristOuter[0] + (isRight ? 10 : -10), wristOuter[1] + 250];
 
-              const thumbKnuckleX = isRight ? palmX - 40 : palmX + 40;
-              const thumbKnuckleY = palmY + 40;
+              const thumbBase = isRight ? [centers["j"].x - 25, palmY + 20] : [centers["f"].x + 25, palmY + 20];
+              const thumbKnuckle = isRight ? [centers["j"].x - 45, palmY + 45] : [centers["f"].x + 45, palmY + 45];
+              const thumbTip = [centers.space.x + (isRight ? 30 : -30), thumbPressed ? centers.space.y - 6 : centers.space.y - 20];
 
-              const thumbTipX = centers.space.x + (isRight ? 30 : -30);
-              const thumbTipY = thumbPressed
-                ? centers.space.y - 6
-                : centers.space.y - 26;
+              const pinkyK = isRight ? [centers[";"].x + 6, palmY + 8] : [centers["a"].x - 6, palmY + 8];
+              const ringK = isRight ? [centers["l"].x + 2, palmY - 2] : [centers["s"].x - 2, palmY - 2];
+              const middleK = isRight ? [centers["k"].x, palmY - 6] : [centers["d"].x, palmY - 6];
+              const indexK = isRight ? [centers["j"].x - 2, palmY] : [centers["f"].x + 2, palmY];
 
-              // Holographic cyan theme
-              const strokeColor = "#00ffff";
-              const opacityBase = 0.6;
-              const opacityHigh = 0.8;
+              const palmPath = `
+                M ${armOuter[0]},${armOuter[1]} 
+                L ${wristOuter[0]},${wristOuter[1]} 
+                L ${pinkyK[0]},${pinkyK[1]} 
+                L ${ringK[0]},${ringK[1]} 
+                L ${middleK[0]},${middleK[1]} 
+                L ${indexK[0]},${indexK[1]} 
+                L ${thumbBase[0]},${thumbBase[1]} 
+                L ${wristInner[0]},${wristInner[1]} 
+                L ${armInner[0]},${armInner[1]} 
+                Z
+              `;
+
+              const knuckles: Record<number, number[]> = isRight
+                ? { 5: indexK, 6: middleK, 7: ringK, 8: pinkyK }
+                : { 1: pinkyK, 2: ringK, 3: middleK, 4: indexK };
+
+              const SKIN_FILL = "#E6B999";     
+              const NAIL_FILL = "#F2D5C4";     
 
               return (
-                <g key={isRight ? "right" : "left"} filter="url(#hologram-glow)">
-                  {/* Wrist to Palm */}
-                  <line
-                    x1={wristX}
-                    y1={wristY}
-                    x2={palmX}
-                    y2={palmY}
-                    stroke={strokeColor}
-                    strokeWidth="3"
-                    opacity={opacityBase}
-                  />
-                  <circle cx={wristX} cy={wristY} r="4" fill={strokeColor} opacity={opacityHigh} />
-                  <circle cx={palmX} cy={palmY} r="5" fill={strokeColor} opacity={opacityHigh} />
-
-                  {/* Palm to Thumb */}
-                  <line
-                    x1={palmX}
-                    y1={palmY}
-                    x2={thumbBaseX}
-                    y2={thumbBaseY}
-                    stroke={strokeColor}
-                    strokeWidth="2.5"
-                    opacity={opacityBase}
-                  />
-                  <line
-                    x1={thumbBaseX}
-                    y1={thumbBaseY}
-                    x2={thumbKnuckleX}
-                    y2={thumbKnuckleY}
-                    stroke={strokeColor}
-                    strokeWidth="2.5"
-                    opacity={opacityBase}
-                  />
-                  <line
-                    x1={thumbKnuckleX}
-                    y1={thumbKnuckleY}
-                    x2={thumbTipX}
-                    y2={thumbTipY}
-                    stroke={strokeColor}
-                    strokeWidth="2.5"
-                    opacity={opacityHigh}
-                    className="transition-all duration-150 ease-out"
+                <g key={isRight ? "right" : "left"} filter="url(#hand-shadow)">
+                  {/* Palm & Arm */}
+                  <path 
+                    d={palmPath} 
+                    fill={SKIN_FILL} 
+                    stroke={SKIN_FILL} 
+                    strokeWidth="12" 
+                    strokeLinejoin="round" 
                   />
 
-                  <circle cx={thumbBaseX} cy={thumbBaseY} r="3" fill={strokeColor} opacity={0.7} />
-                  <circle cx={thumbKnuckleX} cy={thumbKnuckleY} r="3" fill={strokeColor} opacity={0.7} />
-                  <circle
-                    cx={thumbTipX}
-                    cy={thumbTipY}
-                    r={thumbPressed ? "8" : "6"}
-                    fill={strokeColor}
-                    className="transition-all duration-150 ease-out"
-                  />
+                  {/* Thumb */}
+                  <g>
+                    <path 
+                      d={`M ${thumbBase[0]},${thumbBase[1]} L ${thumbKnuckle[0]},${thumbKnuckle[1]} L ${thumbTip[0]},${thumbTip[1]}`}
+                      stroke={SKIN_FILL}
+                      strokeWidth="18"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      fill="none"
+                      className="transition-all duration-150 ease-out"
+                    />
+                    {(() => {
+                      const tdx = thumbTip[0] - thumbKnuckle[0];
+                      const tdy = thumbTip[1] - thumbKnuckle[1];
+                      const tAngle = Math.atan2(tdy, tdx) * (180 / Math.PI);
+                      const tDist = Math.sqrt(tdx*tdx + tdy*tdy) || 1;
+                      const tnx = thumbTip[0] + (tdx/tDist) * 2;
+                      const tny = thumbTip[1] + (tdy/tDist) * 2;
+                      return (
+                        <ellipse 
+                          cx={tnx} cy={tny} 
+                          rx="4.5" ry="5.5" 
+                          fill={NAIL_FILL} 
+                          transform={`rotate(${tAngle + 90} ${tnx} ${tny})`} 
+                          className="transition-all duration-150 ease-out"
+                        />
+                      );
+                    })()}
+                  </g>
 
                   {/* Fingers */}
                   {fingers.map((f) => {
-                    const homeKey = HOME_KEY[f]!;
-                    const homeCenter = centers[homeKey];
+                    const isPressed = pressed?.finger === f;
+                    const homeCenter = centers[HOME_KEY[f]!];
                     if (!homeCenter) return null;
 
-                    const isPressed = pressed?.finger === f;
                     const target = isPressed ? pressed.center : homeCenter;
                     const HOVER_OFFSET = 26;
                     const PRESS_OFFSET = 6;
-
+                    
                     const tipX = target.x;
-                    const tipY = isPressed
-                      ? target.y - PRESS_OFFSET
-                      : homeCenter.y - HOVER_OFFSET;
-
-                    const knuckleX = homeCenter.x;
-                    const knuckleY = palmY - 20;
+                    const tipY = isPressed ? target.y - PRESS_OFFSET : homeCenter.y - HOVER_OFFSET;
+                    
+                    const knuckle = knuckles[f]!;
+                    
+                    const dx = tipX - knuckle[0];
+                    const dy = tipY - knuckle[1];
+                    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+                    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+                    const nx = tipX + (dx/dist) * 2;
+                    const ny = tipY + (dy/dist) * 2;
 
                     return (
                       <g key={f}>
-                        {/* Palm to Knuckle */}
-                        <line
-                          x1={palmX}
-                          y1={palmY}
-                          x2={knuckleX}
-                          y2={knuckleY}
-                          stroke={strokeColor}
-                          strokeWidth="2.5"
-                          opacity={opacityBase}
-                        />
-                        <circle cx={knuckleX} cy={knuckleY} r="3" fill={strokeColor} opacity={0.7} />
-
-                        {/* Knuckle to Tip */}
-                        <line
-                          x1={knuckleX}
-                          y1={knuckleY}
-                          x2={tipX}
-                          y2={tipY}
-                          stroke={strokeColor}
-                          strokeWidth="2.5"
-                          opacity={opacityHigh}
+                        <line 
+                          x1={knuckle[0]} y1={knuckle[1]} 
+                          x2={tipX} y2={tipY} 
+                          stroke={SKIN_FILL} 
+                          strokeWidth="16" 
+                          strokeLinecap="round" 
                           className="transition-all duration-150 ease-out"
                         />
-
-                        {/* Tip */}
-                        <circle
-                          cx={tipX}
-                          cy={tipY}
-                          r={isPressed ? "8" : "6"}
-                          fill={strokeColor}
+                        <ellipse 
+                          cx={nx} cy={ny} 
+                          rx="4" ry="5" 
+                          fill={NAIL_FILL} 
+                          transform={`rotate(${angle + 90} ${nx} ${ny})`} 
                           className="transition-all duration-150 ease-out"
                         />
                       </g>
