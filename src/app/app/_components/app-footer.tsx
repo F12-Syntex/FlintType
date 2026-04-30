@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/ft";
 import { cn } from "@/lib/utils";
+import { GITHUB_URL } from "@/lib/version";
 import { SignOutLink } from "./sign-out-link";
 
 type FooterLink = {
@@ -9,14 +10,10 @@ type FooterLink = {
   external?: boolean;
 };
 
-const PRIMARY_LINKS: FooterLink[] = [
-  { href: "/app/customise", label: "SETTINGS" },
-  { href: "/app/history", label: "HISTORY" },
-  { href: "/app/race", label: "RACES" },
-];
-
+// Only meta + utility links here — primary nav (PRACTICE / DRILLS / RACES /
+// HISTORY / CUSTOMISE) lives in the topbar; duplicating it here is noise.
 const META_LINKS: FooterLink[] = [
-  { href: "https://github.com/", label: "GITHUB", external: true },
+  { href: GITHUB_URL, label: "GITHUB", external: true },
   { href: "#status", label: "STATUS" },
   { href: "#privacy", label: "PRIVACY" },
 ];
@@ -69,9 +66,6 @@ export function AppFooter({ dark = false }: { dark?: boolean }) {
       </div>
 
       <nav className="flex flex-wrap gap-x-5 gap-y-2 lg:gap-6">
-        {PRIMARY_LINKS.map((l) => (
-          <FooterLink key={l.label} link={l} dark={dark} />
-        ))}
         <SignOutLink dark={dark} />
         <span aria-hidden className="hidden text-current/40 lg:inline">
           ·

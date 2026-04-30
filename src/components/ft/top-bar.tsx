@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { APP_VERSION_LABEL } from "@/lib/version";
+import { APP_VERSION_LABEL, GITHUB_URL } from "@/lib/version";
 import { Logo } from "./logo";
 import { MobileNav } from "./mobile-nav";
 
@@ -48,6 +48,23 @@ export function TopBar({
       )}
     >
       <Logo dark={dark} version={version} />
+
+      {/* OPEN SOURCE — clickable badge that lives next to the version
+          number and links to GitHub. Hidden < sm so the topbar stays
+          uncluttered on phones. */}
+      <a
+        href={GITHUB_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cn(
+          "hidden text-[11px] tracking-[0.06em] uppercase transition-colors sm:inline",
+          dark
+            ? "text-[#6E695F] hover:text-ft-ember"
+            : "text-ft-dim hover:text-ft-ember",
+        )}
+      >
+        <span aria-hidden className="mr-2">·</span>OPEN SOURCE
+      </a>
 
       {nav && nav.length > 0 ? (
         <nav

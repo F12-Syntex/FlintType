@@ -13,9 +13,9 @@ const LENGTHS: readonly Length[] = [25, 50, 100, 200];
 const LANGS: readonly Lang[] = ["EN", "EN-COMMON", "PROGRAMMING"];
 
 // ─── Segment shell ─────────────────────────────────────────────────
-// One labelled config group. Label sits above the controls so the eye
-// reads "what is this" → "what are my options" without crossing the
-// values themselves. Subtle border groups the options as one unit.
+// Solid white card on the warm paper page so each group reads as a
+// distinct unit. Subtle inner shadow / line-soft border carries the
+// edge.
 
 function Segment({
   label,
@@ -31,7 +31,7 @@ function Segment({
       </span>
       <div
         role="group"
-        className="inline-flex items-center gap-0.5 rounded-md border border-ft-line-soft bg-white/40 p-0.5"
+        className="inline-flex items-center gap-0.5 rounded-md border border-ft-line-soft bg-white p-0.5 shadow-[0_1px_0_0_hsl(38_20%_82%)]"
       >
         {children}
       </div>
@@ -40,9 +40,9 @@ function Segment({
 }
 
 // ─── Option pill ───────────────────────────────────────────────────
-// Segmented-control style: active = ink filled (high-contrast, obviously
-// selected), inactive = plain text, hover = paper-2 wash + ink colour
-// so the affordance is clear before the click. cursor-pointer always.
+// Active: ink filled, paper text — high contrast, obviously selected.
+// Inactive: dim text on the white card.
+// Hover: line-soft wash + ink colour — visible affordance over white.
 
 function Pill<T extends string | number>({
   value,
@@ -67,7 +67,7 @@ function Pill<T extends string | number>({
         "focus-visible:ring-1 focus-visible:ring-ft-ember focus-visible:ring-offset-1 focus-visible:ring-offset-ft-paper",
         active
           ? "bg-ft-ink text-ft-paper shadow-sm"
-          : "text-ft-dim-2 hover:bg-ft-paper-2 hover:text-ft-ink",
+          : "text-ft-dim-2 hover:bg-ft-line-soft hover:text-ft-ink",
       )}
     >
       {value}
@@ -101,8 +101,13 @@ function PillGroup<T extends string | number>({
 }
 
 // ─── Toggle ────────────────────────────────────────────────────────
-// Real switch — rounded-full pill, knob slides, cursor-pointer, hover
-// border darkens on the inactive state so it reads as actionable.
+// Off-state contrast tuned so the track sits visibly *inside* the
+// white segment card:
+//   off track:  ft-paper-2  (warm cream, darker than the white card)
+//   off knob:   ft-dim-2    (mid grey, clearly readable on the cream)
+//   off border: ft-dim/40   (defined boundary, not hairline-soft)
+//   on track:   ft-ember
+//   on knob:    white
 
 function Toggle({
   on,
@@ -128,14 +133,14 @@ function Toggle({
         "focus-visible:ring-1 focus-visible:ring-ft-ember focus-visible:ring-offset-1 focus-visible:ring-offset-ft-paper",
         on
           ? "border-ft-ember bg-ft-ember"
-          : "border-ft-line-soft bg-white hover:border-ft-dim-2",
+          : "border-ft-dim/40 bg-ft-paper-2 hover:border-ft-dim-2",
       )}
     >
       <span
         aria-hidden
         className={cn(
-          "size-4 rounded-full transition-transform",
-          on ? "translate-x-5 bg-white" : "translate-x-0 bg-ft-dim",
+          "size-4 rounded-full shadow-sm transition-transform",
+          on ? "translate-x-5 bg-white" : "translate-x-0 bg-ft-dim-2",
         )}
       />
     </button>

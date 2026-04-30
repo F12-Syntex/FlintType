@@ -1,17 +1,13 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { GITHUB_URL } from "@/lib/version";
 import { SignOutLink } from "./sign-out-link";
 
 type Item = { href: string; label: string; external?: boolean };
 
-const PRIMARY: Item[] = [
-  { href: "/app/customise", label: "SETTINGS" },
-  { href: "/app/history", label: "HISTORY" },
-  { href: "/app/race", label: "RACES" },
-];
-
+// Meta + utility only — primary nav already lives in the drawer above.
 const META: Item[] = [
-  { href: "https://github.com/", label: "GITHUB", external: true },
+  { href: GITHUB_URL, label: "GITHUB", external: true },
   { href: "#status", label: "STATUS" },
   { href: "#privacy", label: "PRIVACY" },
 ];
@@ -42,8 +38,8 @@ function FooterLink({
   );
 }
 
-/** The mobile drawer's bottom utility section for /app/* routes —
- *  matches the desktop AppFooter content. */
+/** Mobile drawer's bottom utility section — meta links + sign out only.
+ *  Page nav lives in the drawer body above; no duplication. */
 export function AppDrawerExtras({ dark = false }: { dark?: boolean }) {
   const linkClass = cn(
     "uppercase tracking-[0.16em] transition-colors",
@@ -53,12 +49,7 @@ export function AppDrawerExtras({ dark = false }: { dark?: boolean }) {
   return (
     <div className="flex flex-col gap-3 text-[11px]">
       <div className="flex flex-wrap gap-x-4 gap-y-2">
-        {PRIMARY.map((item) => (
-          <FooterLink key={item.label} item={item} className={linkClass} />
-        ))}
         <SignOutLink dark={dark} />
-      </div>
-      <div className="flex flex-wrap gap-x-4 gap-y-2">
         {META.map((item) => (
           <FooterLink key={item.label} item={item} className={linkClass} />
         ))}

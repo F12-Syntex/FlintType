@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { FtButton, Logo, Tag, TopBar, type NavItem } from "@/components/ft";
+import { GITHUB_URL } from "@/lib/version";
 import { buildPageMetadata } from "@/server/seo";
 import { ComparisonTable } from "./_components/landing-comparison";
 import { DemoPanel } from "./_components/landing-demo";
@@ -21,7 +22,7 @@ const NAV: NavItem[] = [
   { href: "#how", label: "HOW IT WORKS" },
   { href: "#races", label: "RACES" },
   { href: "#changelog", label: "CHANGELOG" },
-  { href: "https://github.com/", label: "GITHUB" },
+  { href: GITHUB_URL, label: "GITHUB" },
 ];
 
 function SignInButtons({ stacked = false }: { stacked?: boolean }) {
@@ -73,7 +74,14 @@ export default async function Landing() {
           FLINTTYPE © MMXXVI
         </span>
         <div className="hidden gap-7 md:flex">
-          <span>GITHUB</span>
+          <a
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-foreground"
+          >
+            GITHUB
+          </a>
           <span>DISCORD</span>
           <span>CHANGELOG</span>
           <span>STATUS</span>
