@@ -12,7 +12,8 @@
 - [UI Law](/docs/ui-law.md): design conventions (colors, spacing, typography, layout, backend integration)
 - [File organization](/docs/organization.md): length thresholds and decision table for where new files go
 - [SEO rules](/docs/seo.md): per-page metadata, semantic HTML, `llms.txt` sync
-- [AI rules](/docs/ai.md): OpenRouter presets, usage tracking, test patterns
+- [Auth](/docs/auth.md): Clerk integration, `requireAuth` middleware, session claims
+- [Database](/docs/database.md): two-tier Drizzle layer (Neon server / PGlite dev)
 
 ## Optional
 

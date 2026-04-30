@@ -5,8 +5,6 @@
 @docs/seo.md
 @docs/auth.md
 @docs/database.md
-@docs/ai.md
-@docs/payments.md
 
 # Project rules (flinttype)
 
@@ -57,8 +55,6 @@ Protocol:
 - **File organization** — `docs/organization.md` is cross-cutting. Length thresholds (≤150 fine, 200–300 split before adding, >300 split now), decision table for where new files go, anti-patterns, extraction triggers.
 - **SEO** — `docs/seo.md` is the authoritative guide for page metadata, semantic HTML, and `llms.txt` sync. 9 rules plus a per-page template. Every page change considers SEO.
 - **Authentication** — `docs/auth.md` is the authoritative guide for Clerk integration. `requireAuth` / `requireAdmin` middleware read `auth()` from `@clerk/nextjs/server`; `ctx.meta.userId` + `sessionClaims` flow downstream. Tests mock `@clerk/nextjs/server`. Keyless mode in dev, real keys via `.env.local` in prod.
-- **Database** — `docs/database.md` is the authoritative guide for the two-tier Drizzle layer. Server tier (Neon in prod, PGlite-Node in dev) accessed via `ctx.db.<repo>.<method>`. Client tier (browser PGlite) accessed via `useLocalDb()`. Shared schema in `src/db/schema/`. 8 rules (D1–D8).
-- **AI** — `docs/ai.md` is the authoritative guide for LLM calls via OpenRouter + Vercel AI SDK. Named presets (`ai.fast` / `ai.smart` / `ai.cheap`) resolve to concrete models in one edit point (`src/server/ai/presets.ts`). `ai.chat` route is auth-gated and logs token usage + cost to `ai_usage` per call. 7 rules (AI1–AI7).
-- **Payments** — `docs/payments.md` is the authoritative guide for Clerk Billing integration. `requirePlan(PLANS.pro)` middleware gates routes on `auth().has({ plan })`; `PAYMENT_REQUIRED` (HTTP 402) on the failure path. Plan keys live in `src/server/plans.ts` (one edit point, `user:`/`org:` prefix encoded there). `/billing` mounts Clerk's `<PricingTable />` — no Stripe webhook to maintain, no subscriptions table, USD-only at launch. 5 rules (P1–P5). Direct-Stripe migration recipe documented as an appendix.
+- **Database** — `docs/database.md` is the authoritative guide for the Drizzle layer. Server tier (Neon in prod, PGlite-Node in dev) accessed via `ctx.db.<repo>.<method>`. Shared schema in `src/db/schema/`. 8 rules (D1–D8). The repo currently ships with **no tables defined** — add domain schemas as needed.
 
-All eight are `@`-referenced above and auto-loaded into context. Consult them before writing code, amend them when introducing new conventions.
+All six are `@`-referenced above and auto-loaded into context. Consult them before writing code, amend them when introducing new conventions.

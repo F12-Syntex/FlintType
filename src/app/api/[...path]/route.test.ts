@@ -7,24 +7,14 @@ vi.mock('@clerk/nextjs/server', () => ({
     sessionClaims: null,
     has: () => false,
   })),
-  clerkClient: vi.fn(async () => ({
-    users: {
-      getUserList: vi.fn(async () => ({ data: [], totalCount: 0 })),
-      getUser: vi.fn(async () => {
-        throw new Error('Not Found');
-      }),
-    },
-  })),
 }));
 
-import { auth, clerkClient } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { POST } from './route';
 
 const mockAuth = vi.mocked(auth);
-const mockClerkClient = vi.mocked(clerkClient);
 
 type AuthReturn = Awaited<ReturnType<typeof auth>>;
-type ClientReturn = Awaited<ReturnType<typeof clerkClient>>;
 
 function req(path: string[], body?: unknown) {
   const init: { method: string; headers: Record<string, string>; body?: string } = {
@@ -39,20 +29,11 @@ const params = <T>(value: T) => ({ params: Promise.resolve(value) });
 
 beforeEach(() => {
   mockAuth.mockReset();
-  mockClerkClient.mockReset();
   mockAuth.mockResolvedValue({
     userId: null,
     sessionClaims: null,
     has: () => false,
   } as unknown as AuthReturn);
-  mockClerkClient.mockResolvedValue({
-    users: {
-      getUserList: vi.fn(async () => ({ data: [], totalCount: 0 })),
-      getUser: vi.fn(async () => {
-        throw new Error('Not Found');
-      }),
-    },
-  } as unknown as ClientReturn);
 });
 
 describe('dispatcher — /api/[...path]', () => {
@@ -78,69 +59,15 @@ describe('dispatcher — /api/[...path]', () => {
   });
 
   it('returns 400 VALIDATION on invalid JSON body', async () => {
-    const bad = new NextRequest('http://localhost/api/echo/say', {
+    const bad = new NextRequest('http://localhost/api/health/ping', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{ not valid json',
     });
-    const res = await POST(bad, params({ path: ['echo', 'say'] }));
+    const res = await POST(bad, params({ path: ['health', 'ping'] }));
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body).toMatchObject({ code: 'VALIDATION' });
-  });
-
-  it('maps ZodError from input validation to 400 VALIDATION with issues', async () => {
-    const res = await POST(
-      req(['echo', 'say'], { message: 42 }),
-      params({ path: ['echo', 'say'] }),
-    );
-    expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.code).toBe('VALIDATION');
-    expect(body.details).toHaveProperty('issues');
-    expect(Array.isArray(body.details.issues)).toBe(true);
-  });
-
-  it('maps BackendError from a handler to its status/code', async () => {
-    mockAuth.mockResolvedValue({
-      userId: 'user_1',
-      sessionClaims: { metadata: { role: 'admin' } },
-    } as unknown as AuthReturn);
-    // default mockClerkClient (empty list, getUser always throws) will make
-    // users.get throw NOT_FOUND for any id
-    const res = await POST(
-      req(['users', 'get'], { id: 'nope' }),
-      params({ path: ['users', 'get'] }),
-    );
-    expect(res.status).toBe(404);
-    const body = await res.json();
-    expect(body).toMatchObject({ code: 'NOT_FOUND', status: 404 });
-  });
-
-  it('maps UNAUTHORIZED from middleware to 401', async () => {
-    const res = await POST(
-      req(['users', 'list']),
-      params({ path: ['users', 'list'] }),
-    );
-    expect(res.status).toBe(401);
-    const body = await res.json();
-    expect(body.code).toBe('UNAUTHORIZED');
-  });
-
-  it('maps PAYMENT_REQUIRED from requirePlan to 402 with plans in details', async () => {
-    mockAuth.mockResolvedValue({
-      userId: 'user_1',
-      sessionClaims: null,
-      has: () => false,
-    } as unknown as AuthReturn);
-    const res = await POST(
-      req(['premium', 'ping']),
-      params({ path: ['premium', 'ping'] }),
-    );
-    expect(res.status).toBe(402);
-    const body = await res.json();
-    expect(body.code).toBe('PAYMENT_REQUIRED');
-    expect(body.details.plans).toEqual(['user:pro']);
   });
 
   it('handles empty body for void-input routes', async () => {
