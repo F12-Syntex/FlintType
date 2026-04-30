@@ -2,9 +2,9 @@
 
 The authoritative design document for this project. Every UI change must conform to the rules below.
 
-This file is intentionally a **blank slate**. Visual conventions (palette, spacing, typography, layouts) are decided per application — fill the sections below as you build. The structural rules (component reuse, async feedback, accessibility, backend integration, **mobile-first**, amending procedure) stay fixed because they belong to the boilerplate.
+flinttype is **editorial-mechanical**: warm paper background, near-black ink, JetBrains Mono everywhere, **one** ember-orange accent (`#E5532A`) used sparingly. Hairline borders, no rounded corners on product surfaces, tabular numerics on every stat. Charts are line-art SVG.
 
-**Mobile-first is not blank.** Section 10 mandates that every UI be designed for a 375 px viewport first and scaled up from there. Applications override palette, spacing scale, typography, and layout choices; they do **not** override the mobile-first direction.
+**Mobile-first is not optional.** Section 10 mandates every UI be authored for 375 px first and scaled up. The flinttype design source is desktop-first (1440 px artboards) — translate by stacking columns and reducing density on mobile, never by leaving small viewports broken.
 
 ## The Meta-Rule
 
@@ -47,25 +47,28 @@ Mirror-rule in `docs/backend-rules.md` R12 exclusions table.
 
 ## 2. Colors
 
-Two layers, used for different jobs:
+The flinttype palette is registered as Tailwind utilities via `@theme inline` in `src/app/globals.css`. Use the `ft-*` classes for product surfaces; never inline arbitrary hex.
 
-1. **Theme-aware semantic classes** — `bg-background`, `text-foreground`, `bg-primary`, `text-primary-foreground`, `bg-card`, `text-muted-foreground`, `border-border`, `border-input`, `ring`, `bg-destructive`, etc. These are wired to CSS variables in `src/app/globals.css` and `src/app/themes.css`, so they swap when the user picks a theme via `<ThemeSwitcher>` (see §9). Prefer these for any surface that should follow the active theme — every shadcn primitive (`Button`, `Input`, Card, Dialog, …) already uses them.
-2. **Fixed zinc literals** — the table below. Use these only when a surface must stay zinc regardless of theme — e.g. code-block surfaces in §4, the sticky header backdrop, or a demo row that intentionally reads as neutral.
+**One accent, used sparingly.** Ember (`#E5532A`) flags the user's gaze: the next-expected key, peak/stall callouts, the active CTA, an error word. If two ember elements compete on screen, drop one to ink or dim. The whole product reads as paper-and-ink with a single spark.
 
-Neutral palette for literals: **`zinc`**. Semantic: **`red`** for errors. No other palettes (no slate, gray, neutral, stone). No arbitrary hex.
+| Token            | Hex       | Tailwind class                          | Use                                                |
+|------------------|-----------|-----------------------------------------|----------------------------------------------------|
+| `ft-ink`         | `#0E0E0C` | `text-ft-ink`, `bg-ft-ink`              | Primary text. Solid CTA. Race screen background.   |
+| `ft-ink-2`       | `#1A1916` | `bg-ft-ink-2`                           | Card-on-dark surface (race screen panels).         |
+| `ft-line`        | `#2A2824` | `border-ft-line`                        | Hairline border on dark surfaces.                  |
+| `ft-line-soft`   | `#E4DFD4` | `border-ft-line-soft`                   | Hairline border on paper. Default rule.            |
+| `ft-paper`       | `#F4F1EA` | `bg-ft-paper`, `text-ft-paper`          | Page background (light). Text on dark.             |
+| `ft-paper-2`     | `#ECE7DB` | `bg-ft-paper-2`                         | Subtle inset surface (preview boxes).              |
+| `ft-dim`         | `#8A857C` | `text-ft-dim`                           | Muted text — eyebrows, secondary captions, gridlines. |
+| `ft-dim-2`       | `#5C5950` | `text-ft-dim-2`                         | Body copy when ink is too loud.                    |
+| `ft-ember`       | `#E5532A` | `text-ft-ember`, `bg-ft-ember`, `border-ft-ember` | The accent. Next-expected, active CTA, peak markers, error words. |
+| `ft-ember-soft`  | `#F2A484` | `text-ft-ember-soft`                    | Half-strength ember (e.g. mid-severity).           |
+| `ft-spark`       | `#F7D9C4` | `bg-ft-spark`                           | Quarter-strength tint for hover/highlight.         |
+| `ft-ok`          | `#4F7A4A` | `text-ft-ok`, `bg-ft-ok`                | Positive deltas, "win" indicator dot.              |
 
-| Purpose                  | Light                       | Dark                          |
-|--------------------------|-----------------------------|-------------------------------|
-| Page background          | `bg-zinc-50`                | `dark:bg-black`               |
-| Card / surface           | `bg-white`                  | `dark:bg-zinc-950`            |
-| Subtle / code-block surface | `bg-zinc-100`            | `dark:bg-zinc-900`            |
-| Inline-code surface      | `bg-zinc-200`               | `dark:bg-zinc-800`            |
-| Card border              | `border-zinc-200`           | `dark:border-zinc-800`        |
-| Input border             | `border-zinc-300`           | `dark:border-zinc-700`        |
-| Text primary             | `text-zinc-950`             | `dark:text-zinc-50`           |
-| Text secondary           | `text-zinc-600`             | `dark:text-zinc-400`          |
-| Text muted               | `text-zinc-500`             | *(no dark override — stays)*  |
-| Error text               | `text-red-600`              | `dark:text-red-400`           |
+**The dark variant** (race screen, supporter pricing card) inverts paper/ink: `bg-ft-ink` body, `text-ft-paper` foreground, `border-[#221F1A]` hairlines, `text-[#9C978A]` for secondary, `text-[#6E695F]` for tertiary, ember stays the same.
+
+Shadcn semantic classes (`bg-primary`, `text-foreground`, `border-border`) still resolve — `:root` in `globals.css` aliases them to flinttype tokens — so existing shadcn primitives (Button, Input) render in the new palette automatically.
 
 ---
 
@@ -93,17 +96,33 @@ Values are **mobile-first** — unprefixed classes target ≤ 375px viewports; `
 
 ## 4. Typography
 
-Font family: inherits (`font-sans`). Weights used: `400` (default), `500` (medium), `600` (semibold).
+**JetBrains Mono everywhere.** Loaded via `next/font/google` in `src/app/layout.tsx` as `--font-mono-primary`, applied to `body` and `html`. Weights in use: 300, 400, 500, 600, 700, 800. Tabular numerics on every stat (`tabular-nums`).
 
-| Role             | Class                                                                 |
-|------------------|-----------------------------------------------------------------------|
-| Eyebrow          | `text-xs font-medium uppercase tracking-widest text-zinc-500`         |
-| H1 (page title)  | `text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50` |
-| Body             | `text-base leading-7 text-zinc-600 dark:text-zinc-400`                |
-| Small / caption  | `text-xs text-zinc-500`                                               |
-| Inline code      | `rounded bg-zinc-200 px-1 py-0.5 text-sm dark:bg-zinc-800`            |
-| Code block       | `overflow-x-auto rounded bg-zinc-100 p-3 text-xs dark:bg-zinc-900`    |
-| Error text       | `text-sm text-red-600 dark:text-red-400`                              |
+No proportional sans, no serif, no second face. The mono is the design.
+
+| Role                  | Class                                                                                  |
+|-----------------------|----------------------------------------------------------------------------------------|
+| Display (hero h1)     | `text-5xl font-extrabold leading-[0.92] tracking-[-0.04em] text-ft-ink sm:text-7xl lg:text-[124px]` |
+| H1 (page title)       | `text-3xl font-extrabold tracking-tight text-ft-ink sm:text-5xl lg:text-6xl`           |
+| H2 (section)          | `text-2xl font-bold tracking-tight text-ft-ink sm:text-3xl lg:text-[44px]`             |
+| H3 (card title)       | `text-2xl font-bold tracking-tight text-ft-ink sm:text-3xl lg:text-4xl`                |
+| Body                  | `text-sm leading-relaxed text-ft-dim-2 sm:text-base`                                   |
+| Body strong           | `text-ft-ink font-semibold`                                                            |
+| Eyebrow / tag         | `text-[10px] font-medium uppercase tracking-[0.18em] text-ft-dim` — also via `<Tag>`   |
+| Nav link              | `text-[11px] uppercase tracking-[0.14em] text-ft-dim-2`                                |
+| Stat value (md)       | `text-[22px] font-semibold tracking-[-0.02em] tabular-nums text-ft-ink` — via `<Stat>` |
+| Stat value (lg)       | `text-4xl font-bold tracking-[-0.04em] tabular-nums`                                   |
+| Small / caption       | `text-[11px] text-ft-dim`                                                              |
+| Code (passage word)   | `text-2xl leading-[1.7] text-ft-dim sm:text-[26px]` — passage uses dim → ink as cursor advances |
+| Inline code           | `bg-ft-ink/10 px-1.5 py-0.5 text-xs text-ft-ink`                                       |
+| Error text (form)     | `text-sm text-ft-ember`                                                                |
+| Error word (passage)  | `text-ft-ember underline decoration-ft-ember underline-offset-[6px] decoration-1`      |
+
+**Tracking conventions** (load-bearing — these signal mode):
+- `tracking-[0.18em]` uppercase = label / tag (smallest, most spaced).
+- `tracking-[0.14em]` uppercase = nav link.
+- `tracking-[0.06em]` regular case = secondary metadata.
+- `tracking-[-0.02em]` to `tracking-[-0.04em]` = display weight (tight).
 
 ---
 
@@ -319,7 +338,30 @@ When you add a new row to the spacing or layout tables:
 
 ---
 
-## 11. Amending this document
+## 11. Flinttype primitives
+
+Reusable building blocks live in `src/components/ft/`. Use these — don't reproduce their markup inline.
+
+| Primitive   | Import                                       | Use                                                                 |
+|-------------|----------------------------------------------|---------------------------------------------------------------------|
+| `<TopBar>`  | `from "@/components/ft"` (with `<IdentDot>`) | Sticky app header: rotated ember mark + FLINTTYPE wordmark + version, optional nav array, optional ident slot. `dark` prop flips to ink-on-paper for the race screen. |
+| `<Tag>`     | `from "@/components/ft"`                     | Eyebrow / hairline label. Tone: `dim` (default), `ink`, `ember`, `ok`. |
+| `<Stat>`    | `from "@/components/ft"`                     | Labelled tabular value with optional delta + suffix. Sizes `sm \| md \| lg \| xl`. `accent` paints the value ember; `bordered` adds a right divider for stat strips. |
+| `<Panel>`   | `from "@/components/ft"`                     | Bordered surface with `title` + `subtitle` header (both via `<Tag>`), background `bg-[#FAF7F0]`. Used for every dashboard widget. |
+| `<Kbd>`     | `from "@/components/ft"`                     | Inline keycap chip: white bg, double-bottom border, mono small caps.   |
+| `<FtButton>`| `from "@/components/ft"`                     | Square-cornered, uppercase, mono, tracked button. Variants: `ink`, `ember`, `ghost`, `ghostDark`. Sizes `sm \| md \| lg`. |
+
+The shadcn `<Button>` is still preferred when the form/dialog already uses shadcn primitives — but flinttype-themed CTAs (the editorial buttons in screen designs) use `<FtButton>`.
+
+**Ember-mark (the wordmark glyph)** — a 10×10 square rotated 45°: `<span className="inline-block size-2.5 rotate-45 bg-ft-ember" aria-hidden />`. Always paired with `FLINTTYPE` wordmark.
+
+**Hairline rule** — any "section break" is a single 1px border in `border-ft-line-soft` (paper) or `border-[#221F1A]` (ink). No box-shadows on product surfaces, no double borders.
+
+**Severity dot** — a 6×6 square (not circle): `bg-ft-ember` (high), `bg-ft-ember-soft` (mid), `bg-ft-dim` (low), `bg-ft-ok` (resolved/win).
+
+---
+
+## 12. Amending this document
 
 When you introduce a new pattern:
 

@@ -1,19 +1,14 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Inter } from "next/font/google";
+import { JetBrains_Mono } from "next/font/google";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/themes";
 import { siteConfig } from "@/server/seo";
 import "./globals.css";
 
-const sans = Inter({
-  variable: "--font-sans-primary",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const mono = Geist_Mono({
+const mono = JetBrains_Mono({
   variable: "--font-mono-primary",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
   display: "swap",
 });
 
@@ -56,13 +51,13 @@ export default function RootLayout({
     <ClerkProvider>
       <html
         lang="en"
-        className={`${sans.variable} ${mono.variable} h-full antialiased`}
+        className={`${mono.variable} h-full antialiased`}
         suppressHydrationWarning
       >
         <head>
           <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
         </head>
-        <body className="min-h-full">{children}</body>
+        <body className="min-h-full bg-ft-paper text-ft-ink">{children}</body>
       </html>
     </ClerkProvider>
   );
