@@ -98,8 +98,8 @@ export function IdentDot({
   emberDot?: boolean;
 }) {
   return (
-    <span className="flex items-center gap-3 text-[11px] uppercase tracking-[0.14em]">
-      <span className="hidden sm:inline">{children}</span>
+    <span className="hidden items-center gap-3 text-[11px] uppercase tracking-[0.14em] md:flex">
+      <span>{children}</span>
       <span
         className={cn("size-1.5", emberDot ? "bg-ft-ember" : "bg-ft-ok")}
         aria-hidden

@@ -104,7 +104,7 @@ export function MobileNav({
   const drawer = open ? (
     <div
       className={cn(
-        "fixed inset-x-0 top-14 bottom-0 z-50 flex flex-col md:hidden",
+        "fixed inset-x-0 top-14 bottom-0 z-50 flex flex-col overflow-y-auto md:hidden",
         dark
           ? "bg-foreground text-background"
           : "bg-background text-foreground",
@@ -117,8 +117,8 @@ export function MobileNav({
       aria-label="Mobile navigation"
     >
       {nav && nav.length > 0 ? (
-        <nav className="flex flex-1 flex-col justify-center px-5 py-8 sm:px-7">
-          <ul className="flex flex-col gap-1">
+        <nav className="flex flex-col px-5 py-6 sm:px-7">
+          <ul className="flex flex-col">
             {nav.map((item) => {
               const active = isActive(item.href);
               return (
@@ -126,28 +126,15 @@ export function MobileNav({
                   <Link
                     href={item.href}
                     className={cn(
-                      "group flex items-center justify-between gap-3 px-2 py-4 text-2xl font-bold tracking-tight transition-colors sm:text-3xl",
-                      active && "text-ft-ember",
-                      !active &&
-                        (dark
+                      "block py-3 text-2xl font-bold tracking-tight transition-colors sm:text-3xl",
+                      active
+                        ? "text-ft-ember"
+                        : dark
                           ? "text-ft-paper hover:text-ft-ember"
-                          : "text-ft-ink hover:text-ft-ember"),
+                          : "text-ft-ink hover:text-ft-ember",
                     )}
                   >
-                    <span>{item.label}</span>
-                    <span
-                      className={cn(
-                        "text-base transition-transform group-hover:translate-x-1",
-                        active
-                          ? "text-ft-ember"
-                          : dark
-                            ? "text-[#6E695F]"
-                            : "text-ft-dim",
-                      )}
-                      aria-hidden
-                    >
-                      →
-                    </span>
+                    {item.label}
                   </Link>
                 </li>
               );
@@ -159,7 +146,7 @@ export function MobileNav({
       {drawerExtras ? (
         <div
           className={cn(
-            "shrink-0 border-t px-5 py-6 sm:px-7",
+            "mt-auto shrink-0 border-t px-5 py-5 sm:px-7",
             dark ? "border-[#221F1A]" : "border-ft-line-soft",
           )}
         >
