@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import { cn } from "@/lib/utils";
+import { type ReactNode, useCallback, useEffect, useRef } from "react";
 import { usePractice } from "./practice-state";
 
 const INTERACTIVE_SELECTOR =
@@ -22,14 +15,14 @@ const INTERACTIVE_SELECTOR =
  *  is the only reliable way to receive typed text on iOS / Android.
  *
  *  Children render inside a tap-to-focus wrapper so the user can press
- *  the passage to bring the OS keyboard back if they tap away. A small
- *  "tap to type" overlay is shown while the input is unfocused so
- *  there's a visible affordance.
+ *  the passage to bring the OS keyboard back if they tap away. There's
+ *  no separate "tap to type" overlay — the rest hint already carries
+ *  that affordance and a floating overlay would just stack on top of
+ *  the visible RestHint controls.
  */
 export function InputCapture({ children }: { children: ReactNode }) {
   const { state, dispatch } = usePractice();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [focused, setFocused] = useState(false);
 
   // Always read the latest phase inside event handlers without re-binding.
   const phaseRef = useRef(state.phase);
@@ -39,19 +32,14 @@ export function InputCapture({ children }: { children: ReactNode }) {
     inputRef.current?.focus({ preventScroll: true });
   }, []);
 
-  // Auto-focus on mount (desktop keyboards "just work"; iOS/Android still
-  // require a user gesture to actually open the OS keyboard, so the tap-to-
-  // focus wrapper handles that case).
-  useEffect(() => {
-    focus();
-  }, [focus]);
-
-  // Refocus when the run resets so the user can keep typing right after
-  // hitting RESTART. Programmatic .focus() does not reopen the OS keyboard
-  // on iOS, so on mobile this just keeps the desktop story tidy.
+  // Refocus on every fresh run. Depending on `state.words` rather than
+  // `state.phase` so a rest→rest restart (clicking "new passage" while
+  // already in rest phase) still pulls focus off the button and back to
+  // the input. Programmatic .focus() does not reopen the OS keyboard on
+  // iOS — for mobile this only matters between gestures.
   useEffect(() => {
     if (state.phase === "rest") focus();
-  }, [state.phase, focus]);
+  }, [state.words, state.phase, focus]);
 
   return (
     <>
@@ -75,8 +63,6 @@ export function InputCapture({ children }: { children: ReactNode }) {
         onChange={() => {
           /* handled in onBeforeInput */
         }}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
         onBeforeInput={(e) => {
           e.preventDefault();
           const ne = e.nativeEvent as InputEvent;
@@ -158,27 +144,6 @@ export function InputCapture({ children }: { children: ReactNode }) {
       >
         {children}
       </div>
-
-      {/* "Tap to type" affordance — only shown while the input is unfocused
-          so the user always knows how to bring the OS keyboard back. Mobile
-          only; on desktop the input is focused on mount and stays that way
-          unless the user clicks somewhere obviously interactive. */}
-      {!focused && state.phase !== "done" ? (
-        <button
-          type="button"
-          onClick={focus}
-          className={cn(
-            "fixed inset-x-4 bottom-4 z-30 mx-auto max-w-xs",
-            "rounded-md border border-ft-line-soft bg-white/95 px-4 py-3",
-            "text-[11px] font-semibold uppercase tracking-[0.18em] text-ft-ink",
-            "shadow-md backdrop-blur",
-            "md:hidden",
-          )}
-          aria-label="Focus typing input"
-        >
-          tap to type
-        </button>
-      ) : null}
     </>
   );
 }
