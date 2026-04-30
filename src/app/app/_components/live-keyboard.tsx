@@ -1,12 +1,5 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
 import { cn } from "@/lib/utils";
 import { usePractice } from "./practice-state";
 
@@ -110,18 +103,6 @@ const FINGER_COLOR = [
   "#9A7A52", "#5A9180", "#5B7FA8", "#7A6BA0",
 ];
 
-const HOME_KEY: Record<number, string> = {
-  1: "a",
-  2: "s",
-  3: "d",
-  4: "f",
-  5: "j",
-  6: "k",
-  7: "l",
-  8: ";",
-};
-const FINGERS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
-
 // ─── one key ───────────────────────────────────────────────────────
 type KeyProps = {
   k?: string;
@@ -132,7 +113,6 @@ type KeyProps = {
   heat: Record<string, number>;
   recent: readonly string[];
   maxHeat: number;
-  registerRef?: (el: HTMLDivElement | null) => void;
 };
 
 function Key({
@@ -144,7 +124,6 @@ function Key({
   heat,
   recent,
   maxHeat,
-  registerRef,
 }: KeyProps) {
   const v = (k && heat[k]) ?? 0;
   const intensity = maxHeat > 0 ? v / maxHeat : 0;
@@ -156,7 +135,6 @@ function Key({
 
   return (
     <div
-      ref={registerRef}
       className={cn(
         "relative flex items-center overflow-hidden rounded-md font-medium tabular-nums",
         isMod ? "justify-start pl-2" : "justify-center",
@@ -214,8 +192,6 @@ function Key({
 }
 
 // ─── public component ─────────────────────────────────────────────
-type KeyCenter = { x: number; y: number };
-
 export function LiveKeyboard() {
   const { state } = usePractice();
 
@@ -236,130 +212,8 @@ export function LiveKeyboard() {
 
   const layout = QWERTY_US;
 
-  // ─── geometry: measure key centers via refs ──────────────────────
-  const surfaceRef = useRef<HTMLDivElement>(null);
-  const keyEls = useRef<Record<string, HTMLDivElement | null>>({});
-  const spaceEl = useRef<HTMLDivElement | null>(null);
-  const [centers, setCenters] = useState<Record<string, KeyCenter>>({});
-
-  const measure = useCallback(() => {
-    const surface = surfaceRef.current;
-    if (!surface) return;
-    const sr = surface.getBoundingClientRect();
-    const out: Record<string, KeyCenter> = {};
-    for (const [k, el] of Object.entries(keyEls.current)) {
-      if (!el) continue;
-      const r = el.getBoundingClientRect();
-      out[k] = {
-        x: r.left - sr.left + r.width / 2,
-        y: r.top - sr.top + r.height / 2,
-      };
-    }
-    if (spaceEl.current) {
-      const r = spaceEl.current.getBoundingClientRect();
-      out.space = {
-        x: r.left - sr.left + r.width / 2,
-        y: r.top - sr.top + r.height / 2,
-      };
-    }
-    setCenters(out);
-  }, []);
-
-  useLayoutEffect(() => {
-    measure();
-    if (typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(measure);
-    if (surfaceRef.current) ro.observe(surfaceRef.current);
-    return () => ro.disconnect();
-  }, [measure]);
-
-  // ─── hand simulation: one finger flies to the pressed key ────────
-  const [pressed, setPressed] = useState<{
-    finger: number;
-    center: KeyCenter;
-  } | null>(null);
-
-  useEffect(() => {
-    if (state.lastKey == null || state.lastKeyAt == null) return;
-    const k = state.lastKey;
-    if (k === "space") return; // thumbs handled separately
-    const finger = FINGER[k];
-    if (!finger) return;
-    const center = centers[k];
-    if (!center) return;
-    setPressed({ finger, center });
-    const t = setTimeout(() => setPressed(null), 180);
-    return () => clearTimeout(t);
-  }, [state.lastKeyAt, state.lastKey, centers]);
-
-  const [thumbPressed, setThumbPressed] = useState<boolean>(false);
-  useEffect(() => {
-    if (state.lastKey !== "space" || state.lastKeyAt == null) return;
-    setThumbPressed(true);
-    const t = setTimeout(() => setThumbPressed(false), 180);
-    return () => clearTimeout(t);
-  }, [state.lastKeyAt, state.lastKey]);
-
   return (
-    <div
-      ref={surfaceRef}
-      className="relative flex w-full justify-center overflow-x-auto pt-7"
-    >
-      {/* ─── finger pucks overlay ──────────────────────────────────── */}
-      {FINGERS.map((f) => {
-        const homeKey = HOME_KEY[f]!;
-        const homeCenter = centers[homeKey];
-        if (!homeCenter) return null;
-        const isPressed = pressed?.finger === f;
-        const target = isPressed ? pressed.center : homeCenter;
-        const HOVER_OFFSET = 26;
-        const PRESS_OFFSET = 6;
-        const x = target.x;
-        const y = isPressed
-          ? target.y - PRESS_OFFSET
-          : homeCenter.y - HOVER_OFFSET;
-        return (
-          <span
-            key={f}
-            aria-hidden
-            className={cn(
-              "pointer-events-none absolute size-3 rounded-full border-[1.5px] border-white shadow-md transition-all duration-150 ease-out",
-              isPressed && "scale-110",
-            )}
-            style={{
-              left: x,
-              top: y,
-              transform: "translate(-50%, -50%)",
-              backgroundColor: FINGER_COLOR[f],
-            }}
-          />
-        );
-      })}
-
-      {/* ─── thumbs: hover above the spacebar, dive on press ───────── */}
-      {centers.space ? (
-        <>
-          {[-22, 22].map((dx, i) => (
-            <span
-              key={`thumb-${i}`}
-              aria-hidden
-              className={cn(
-                "pointer-events-none absolute size-3 rounded-full border-[1.5px] border-white bg-[#9A7A52] shadow-md transition-all duration-150 ease-out",
-                thumbPressed && "scale-110",
-              )}
-              style={{
-                left: centers.space.x + dx,
-                top: thumbPressed
-                  ? centers.space.y - 6
-                  : centers.space.y - 26,
-                transform: "translate(-50%, -50%)",
-              }}
-            />
-          ))}
-        </>
-      ) : null}
-
-      {/* ─── keyboard grid ──────────────────────────────────────────── */}
+    <div className="relative flex w-full justify-center overflow-x-auto pt-7">
       <div className="flex flex-col items-center" style={{ gap: ROW_GAP }}>
         {layout.rows.map((row, ri) => (
           <div
@@ -386,9 +240,6 @@ export function LiveKeyboard() {
                 heat={heat}
                 recent={recent}
                 maxHeat={maxHeat}
-                registerRef={(el) => {
-                  keyEls.current[k] = el;
-                }}
               />
             ))}
             {row.suffix ? (
@@ -418,7 +269,6 @@ export function LiveKeyboard() {
             />
           ))}
           <div
-            ref={spaceEl}
             className={cn(
               "flex items-center justify-center rounded-md text-[10px] tracking-[0.18em] transition-colors",
               nextKey === "space"
