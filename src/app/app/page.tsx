@@ -1,7 +1,7 @@
 import { Kbd } from "@/components/ft";
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "./_components/app-chrome";
-import { KeyboardLegend } from "./_components/keyboard-legend";
+import { LiveKeyboard } from "./_components/live-keyboard";
 import { ModeBar } from "./_components/mode-bar";
 import { Passage } from "./_components/passage";
 import { PracticeProvider } from "./_components/practice-state";
@@ -33,7 +33,7 @@ export default function PracticePage() {
 
           <div className="border-t border-ft-line-soft pt-1" />
 
-          <KeyboardLegend />
+          <LiveKeyboard />
 
           <div className="mt-6 flex flex-wrap justify-center gap-x-8 gap-y-2 border-t border-ft-line-soft pt-6 text-[10px] uppercase tracking-[0.18em] text-ft-dim">
             <span>

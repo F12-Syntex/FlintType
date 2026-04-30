@@ -1,15 +1,10 @@
+"use client";
+
 import { Tag } from "@/components/ft";
 import { cn } from "@/lib/utils";
+import { usePractice } from "./practice-state";
 
-const HEAT: Record<string, number> = {
-  t: 86, h: 78, o: 62, u: 58, b: 44, c: 30, q: 30, y: 28, e: 22, j: 22,
-  k: 18, m: 18, r: 16, i: 14, p: 12, w: 12, s: 12, g: 10, n: 8, d: 8,
-  f: 6, x: 8, v: 6, a: 6, l: 4, z: 0,
-};
-const MAX = 86;
-const NEXT_KEY = "n";
-const RECENT = ["s", "p", "e"];
-
+// ─── finger zones ────────────────────────────────────────────────────
 const FINGER: Record<string, number> = {
   q: 1, a: 1, z: 1, "1": 1,
   w: 2, s: 2, x: 2, "2": 2,
@@ -25,30 +20,47 @@ const FINGER_COLOR = [
   "#9A7A52", "#5A9180", "#5B7FA8", "#7A6BA0",
 ];
 
-const ROWS: { keys: string; offset: number; prefix?: { label: string; w: number }; suffix?: { label: string; w: number } }[] = [
+// ─── layout ──────────────────────────────────────────────────────────
+type RowDef = {
+  keys: string;
+  offset: number;
+  prefix?: { label: string; w: number };
+  suffix?: { label: string; w: number };
+};
+
+const ROWS: RowDef[] = [
   { keys: "`1234567890-=", offset: 0, suffix: { label: "⌫", w: 60 } },
   { keys: "qwertyuiop[]\\", offset: 28, prefix: { label: "tab", w: 50 } },
   { keys: "asdfghjkl;'", offset: 36, prefix: { label: "caps", w: 64 }, suffix: { label: "enter", w: 76 } },
   { keys: "zxcvbnm,./", offset: 50, prefix: { label: "shift", w: 88 }, suffix: { label: "shift", w: 96 } },
 ];
 
+// ─── one key ─────────────────────────────────────────────────────────
 function Key({
   k,
   label,
   w = 36,
   isPrefix,
   isSuffix,
+  nextKey,
+  heat,
+  recent,
+  maxHeat,
 }: {
   k?: string;
   label: string;
   w?: number;
   isPrefix?: boolean;
   isSuffix?: boolean;
+  nextKey?: string;
+  heat: Record<string, number>;
+  recent: readonly string[];
+  maxHeat: number;
 }) {
-  const v = (k && HEAT[k]) || 0;
-  const intensity = v / MAX;
-  const isNext = k === NEXT_KEY;
-  const recentIdx = k ? RECENT.indexOf(k) : -1;
+  const v = (k && heat[k]) ?? 0;
+  const intensity = maxHeat > 0 ? v / maxHeat : 0;
+  const isNext = !!k && k === nextKey;
+  const recentIdx = k ? recent.indexOf(k) : -1;
   const recentOpacity = recentIdx >= 0 ? 1 - recentIdx * 0.3 : 0;
   const isHot = intensity > 0.5;
 
@@ -105,62 +117,6 @@ function Key({
   );
 }
 
-export function LiveKeyboard() {
-  return (
-    <div className="mt-1">
-      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-        <Tag>
-          LIVE KEYBOARD · NEXT:{" "}
-          <span className="font-semibold text-ft-ember">
-            &quot;{NEXT_KEY}&quot;
-          </span>
-        </Tag>
-        <div className="flex flex-wrap gap-4">
-          <LegendChip color="var(--color-ft-ember)" label="NEXT EXPECTED" />
-          <LegendChip
-            color="rgba(229,83,42,0.3)"
-            label="HOT KEY · SLOW"
-          />
-          <LegendChip color="var(--color-ft-ink)" outline label="RECENTLY PRESSED" />
-        </div>
-      </div>
-      <div className="flex flex-col items-center gap-1 overflow-x-auto">
-        {ROWS.map((row, ri) => (
-          <div
-            key={ri}
-            className="flex gap-1"
-            style={{ marginLeft: row.offset }}
-          >
-            {row.prefix ? (
-              <Key label={row.prefix.label} w={row.prefix.w} isPrefix />
-            ) : null}
-            {row.keys.split("").map((k, i) => (
-              <Key key={k + i} k={k} label={k} w={36} />
-            ))}
-            {row.suffix ? (
-              <Key label={row.suffix.label} w={row.suffix.w} isSuffix />
-            ) : null}
-          </div>
-        ))}
-        <div className="flex gap-1">
-          <Key label="ctrl" w={50} isPrefix />
-          <Key label="opt" w={44} isPrefix />
-          <Key label="⌘" w={56} isPrefix />
-          <div
-            className="flex h-9 items-center justify-center border border-ft-line-soft bg-white text-[9px] tracking-[0.18em] text-ft-dim"
-            style={{ width: 360 }}
-          >
-            SPACE · +18MS
-          </div>
-          <Key label="⌘" w={56} isSuffix />
-          <Key label="opt" w={44} isSuffix />
-          <Key label="ctrl" w={50} isSuffix />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function LegendChip({
   color,
   outline,
@@ -182,5 +138,173 @@ function LegendChip({
       />
       {label}
     </span>
+  );
+}
+
+// ─── public component ────────────────────────────────────────────────
+/** Always-visible keyboard preview. Reads cursor / phase from
+ *  practice state and lights up the next-expected key. Heat &
+ *  recently-pressed are wired but currently unused (no per-key
+ *  latency tracking yet); they'll fill in when the timing layer
+ *  lands. */
+export function LiveKeyboard() {
+  const { state } = usePractice();
+
+  const word = state.words[state.cursorWord];
+  let nextKey: string | undefined;
+  if (word) {
+    if (state.cursorChar < word.length) {
+      nextKey = word[state.cursorChar]?.toLowerCase();
+    } else {
+      // After last char, the user must press space to advance.
+      nextKey = "space";
+    }
+  }
+
+  // Reserved for the future — keep the rendering branches alive.
+  const heat: Record<string, number> = {};
+  const recent: readonly string[] = [];
+  const maxHeat = 0;
+
+  const showStats = state.phase === "running";
+
+  return (
+    <div>
+      <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-2">
+        <Tag>
+          KEYBOARD
+          {nextKey ? (
+            <>
+              {" · NEXT: "}
+              <span className="font-semibold text-ft-ember">
+                &quot;{nextKey === " " ? "space" : nextKey}&quot;
+              </span>
+            </>
+          ) : null}
+        </Tag>
+        {showStats ? (
+          <div className="flex flex-wrap gap-4">
+            <LegendChip color="var(--color-ft-ember)" label="NEXT EXPECTED" />
+            <LegendChip
+              color="rgba(229,83,42,0.3)"
+              label="HOT KEY · SLOW"
+            />
+            <LegendChip color="var(--color-ft-ink)" outline label="RECENTLY PRESSED" />
+          </div>
+        ) : (
+          <Tag tone="ink">
+            <span className="text-ft-dim">PREVIEW · </span>
+            light up the next-expected key
+          </Tag>
+        )}
+      </div>
+      <div className="flex flex-col items-center gap-1 overflow-x-auto">
+        {ROWS.map((row, ri) => (
+          <div
+            key={ri}
+            className="flex gap-1"
+            style={{ marginLeft: row.offset }}
+          >
+            {row.prefix ? (
+              <Key
+                label={row.prefix.label}
+                w={row.prefix.w}
+                isPrefix
+                heat={heat}
+                recent={recent}
+                maxHeat={maxHeat}
+              />
+            ) : null}
+            {row.keys.split("").map((k, i) => (
+              <Key
+                key={k + i}
+                k={k}
+                label={k}
+                w={36}
+                nextKey={nextKey}
+                heat={heat}
+                recent={recent}
+                maxHeat={maxHeat}
+              />
+            ))}
+            {row.suffix ? (
+              <Key
+                label={row.suffix.label}
+                w={row.suffix.w}
+                isSuffix
+                heat={heat}
+                recent={recent}
+                maxHeat={maxHeat}
+              />
+            ) : null}
+          </div>
+        ))}
+        <div className="flex gap-1">
+          <Key
+            label="ctrl"
+            w={50}
+            isPrefix
+            heat={heat}
+            recent={recent}
+            maxHeat={maxHeat}
+          />
+          <Key
+            label="opt"
+            w={44}
+            isPrefix
+            heat={heat}
+            recent={recent}
+            maxHeat={maxHeat}
+          />
+          <Key
+            label="⌘"
+            w={56}
+            isPrefix
+            heat={heat}
+            recent={recent}
+            maxHeat={maxHeat}
+          />
+          <div
+            className={cn(
+              "flex h-9 items-center justify-center border text-[9px] tracking-[0.18em] transition-colors",
+              nextKey === "space"
+                ? "border-[1.5px] border-ft-ember bg-ft-ember font-bold text-white"
+                : "border-ft-line-soft bg-white text-ft-dim",
+            )}
+            style={{
+              width: 360,
+              boxShadow:
+                nextKey === "space" ? "0 0 0 4px rgba(229,83,42,0.15)" : undefined,
+            }}
+          >
+            SPACE
+          </div>
+          <Key
+            label="⌘"
+            w={56}
+            isSuffix
+            heat={heat}
+            recent={recent}
+            maxHeat={maxHeat}
+          />
+          <Key
+            label="opt"
+            w={44}
+            isSuffix
+            heat={heat}
+            recent={recent}
+            maxHeat={maxHeat}
+          />
+          <Key
+            label="ctrl"
+            w={50}
+            isSuffix
+            heat={heat}
+            recent={recent}
+            maxHeat={maxHeat}
+          />
+        </div>
+      </div>
+    </div>
   );
 }
