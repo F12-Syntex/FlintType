@@ -80,14 +80,16 @@ export function TopBar({
         </nav>
       ) : null}
 
-      <div
-        className={cn(
-          "flex items-center gap-3",
-          (!nav || nav.length === 0) && "ml-auto",
-        )}
-      >
+      {/* Right group — always pinned to the far right (ml-auto) so the
+          hamburger sits on the right edge on mobile. */}
+      <div className="ml-auto flex items-center gap-3">
         {right ? <div className="flex items-center gap-2">{right}</div> : null}
-        <MobileNav nav={nav} drawerExtras={drawerExtras} dark={dark} />
+        <MobileNav
+          nav={nav}
+          drawerExtras={drawerExtras}
+          version={version}
+          dark={dark}
+        />
       </div>
     </header>
   );
