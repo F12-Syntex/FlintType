@@ -69,9 +69,18 @@ export default function RootLayout({
         <body className="min-h-full flex flex-col">
           <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
             <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-8 sm:py-4">
-              <span className="truncate text-xs font-medium uppercase tracking-widest text-zinc-500">
-                {siteConfig.name}
-              </span>
+              <Link href="/" className="flex items-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/flinttype-logo.svg"
+                  alt=""
+                  aria-hidden
+                  className="h-5 w-auto"
+                />
+                <span className="truncate text-xs font-medium uppercase tracking-widest text-zinc-500">
+                  {siteConfig.name}
+                </span>
+              </Link>
               <div className="flex flex-wrap items-center gap-2">
                 <ThemeSwitcher />
                 <ModeToggle />

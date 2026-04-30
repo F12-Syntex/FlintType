@@ -19,9 +19,18 @@ export default async function Landing() {
     <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
       <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-10 sm:gap-10 sm:px-8 sm:py-20">
         <header className="flex flex-col gap-3">
-          <span className="text-xs font-medium uppercase tracking-widest text-zinc-500">
-            flinttype
-          </span>
+          <div className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/flinttype-logo.svg"
+              alt=""
+              aria-hidden
+              className="h-12 w-auto"
+            />
+            <span className="text-xs font-medium uppercase tracking-widest text-zinc-500">
+              flinttype
+            </span>
+          </div>
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
             Ship a typed full-stack app in a weekend.
           </h1>
