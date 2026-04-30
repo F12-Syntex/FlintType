@@ -1,8 +1,9 @@
-import { IdentDot, TopBar, type NavItem } from "@/components/ft";
+import { TopBar, type NavItem } from "@/components/ft";
 import { cn } from "@/lib/utils";
 import { AppDrawerExtras } from "./app-drawer-extras";
 import { AppFooter } from "./app-footer";
 import { ScrollToTop } from "./scroll-to-top";
+import { TopbarActions } from "./topbar-actions";
 
 const NAV: NavItem[] = [
   { href: "/app", label: "PRACTICE" },
@@ -43,7 +44,7 @@ export function AppChrome({
       <TopBar
         nav={NAV}
         dark={dark}
-        right={ident ?? <IdentDot>@you · 84 wpm avg</IdentDot>}
+        right={ident ?? <TopbarActions dark={dark} />}
         drawerExtras={<AppDrawerExtras dark={dark} />}
       />
       <main

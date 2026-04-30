@@ -5,7 +5,13 @@ import { SignOutLink } from "./sign-out-link";
 
 type Item = { href: string; label: string; external?: boolean };
 
-// Meta + utility only — primary nav already lives in the drawer above.
+// Account / utility links — primary product nav already lives in the
+// drawer body above. PROFILE is here (not in the main nav) because it's
+// an account-style entry the user only opens occasionally.
+const ACCOUNT: Item[] = [
+  { href: "/app/profile", label: "PROFILE" },
+];
+
 const META: Item[] = [
   { href: GITHUB_URL, label: "GITHUB", external: true },
   { href: "#status", label: "STATUS" },
@@ -38,8 +44,8 @@ function FooterLink({
   );
 }
 
-/** Mobile drawer's bottom utility section — meta links + sign out only.
- *  Page nav lives in the drawer body above; no duplication. */
+/** Mobile drawer's bottom utility section — account links + meta links +
+ *  sign out. Page nav lives in the drawer body above; no duplication. */
 export function AppDrawerExtras({ dark = false }: { dark?: boolean }) {
   const linkClass = cn(
     "uppercase tracking-[0.16em] transition-colors",
@@ -49,6 +55,9 @@ export function AppDrawerExtras({ dark = false }: { dark?: boolean }) {
   return (
     <div className="flex flex-col gap-3 text-[11px]">
       <div className="flex flex-wrap gap-x-4 gap-y-2">
+        {ACCOUNT.map((item) => (
+          <FooterLink key={item.label} item={item} className={linkClass} />
+        ))}
         <SignOutLink dark={dark} />
         {META.map((item) => (
           <FooterLink key={item.label} item={item} className={linkClass} />

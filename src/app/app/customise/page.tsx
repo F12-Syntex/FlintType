@@ -1,4 +1,4 @@
-import { FtButton, IdentDot, Tag } from "@/components/ft";
+import { FtButton, Tag } from "@/components/ft";
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../_components/app-chrome";
 import { CustomiseNav } from "../_components/customise-nav";
@@ -14,7 +14,7 @@ export const metadata = buildPageMetadata({
 
 export default function CustomisePage() {
   return (
-    <AppChrome ident={<IdentDot>@you</IdentDot>}>
+    <AppChrome>
       <header className="border-b border-ft-line-soft px-5 pt-7 pb-6 sm:px-14">
         <div className="mb-3.5 flex items-center gap-3.5">
           <span className="inline-block h-px w-7 bg-ft-ember" aria-hidden />
