@@ -1,5 +1,6 @@
 import { Kbd } from "@/components/ft";
 import { buildPageMetadata } from "@/server/seo";
+import { AppChrome } from "./_components/app-chrome";
 import { KeyboardLegend } from "./_components/keyboard-legend";
 import { LiveKeyboard } from "./_components/live-keyboard";
 import { LiveTrace } from "./_components/live-trace";
@@ -31,7 +32,7 @@ export default async function PracticePage({
   const cursorChar = 3;
 
   return (
-    <div className="flex flex-col">
+    <AppChrome>
       <ModeBar />
 
       <div className="relative flex flex-col gap-6 px-5 pt-8 pb-24 sm:px-20">
@@ -61,6 +62,6 @@ export default async function PracticePage({
           <span className="text-ft-dim-2">session #1042</span>
         </div>
       </div>
-    </div>
+    </AppChrome>
   );
 }

@@ -1,5 +1,6 @@
-import { FtButton, Tag } from "@/components/ft";
+import { FtButton, IdentDot, Tag } from "@/components/ft";
 import { buildPageMetadata } from "@/server/seo";
+import { AppChrome } from "../_components/app-chrome";
 import { CustomiseNav } from "../_components/customise-nav";
 import { CustomisePreview } from "../_components/customise-preview";
 import { CustomiseSettings } from "../_components/customise-settings";
@@ -13,7 +14,7 @@ export const metadata = buildPageMetadata({
 
 export default function CustomisePage() {
   return (
-    <div className="flex flex-col">
+    <AppChrome ident={<IdentDot>@you</IdentDot>}>
       <header className="border-b border-ft-line-soft px-5 pt-7 pb-6 sm:px-14">
         <div className="mb-3.5 flex items-center gap-3.5">
           <span className="inline-block h-px w-7 bg-ft-ember" aria-hidden />
@@ -37,6 +38,6 @@ export default function CustomisePage() {
         <CustomisePreview />
         <CustomiseSettings />
       </div>
-    </div>
+    </AppChrome>
   );
 }
