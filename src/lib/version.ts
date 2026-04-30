@@ -2,4 +2,6 @@
 // `next.config.ts` → `env.NEXT_PUBLIC_APP_VERSION`. Safe to import in
 // both client and server modules.
 export const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0";
-export const APP_VERSION_LABEL = `v${APP_VERSION} · OPEN SOURCE`;
+export const APP_VERSION_LABEL = `v${APP_VERSION}`;
+
+export const GITHUB_URL = "https://github.com/F12-Syntex/FlintType";
