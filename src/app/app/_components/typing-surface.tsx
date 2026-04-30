@@ -1,3 +1,4 @@
+import { InputCapture } from "./input-capture";
 import { LiveKeyboard } from "./live-keyboard";
 import { ModeBar } from "./mode-bar";
 import { Passage } from "./passage";
@@ -31,18 +32,21 @@ export function TypingSurface({
 }: TypingSurfaceProps = {}) {
   return (
     <PracticeProvider>
-      {showModeBar ? <ModeBar /> : null}
-      <div className="flex flex-1 flex-col gap-6 px-5 py-6 sm:px-12 sm:py-8 lg:px-20">
-        {showReadouts ? <Readouts /> : null}
-        <Passage />
-        {showRestHint ? <RestHint /> : null}
-        {belowHint}
-        {showKeyboard ? (
-          <div className="mt-auto">
-            <LiveKeyboard />
-          </div>
-        ) : null}
-      </div>
+      <InputCapture>
+        {showModeBar ? <ModeBar /> : null}
+        <div className="flex flex-1 flex-col gap-5 px-4 py-5 sm:gap-6 sm:px-12 sm:py-8 lg:px-20">
+          {showReadouts ? <Readouts /> : null}
+          <Passage />
+          {showRestHint ? <RestHint /> : null}
+          {belowHint}
+          {showKeyboard ? (
+            // Desktop-only — the OS virtual keyboard takes this space on mobile.
+            <div className="mt-auto hidden md:block">
+              <LiveKeyboard />
+            </div>
+          ) : null}
+        </div>
+      </InputCapture>
     </PracticeProvider>
   );
 }

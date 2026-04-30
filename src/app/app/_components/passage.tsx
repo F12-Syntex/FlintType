@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { usePractice } from "./practice-state";
 
@@ -24,16 +25,18 @@ function ActiveWord({
   word,
   cursorChar,
   showCaret,
+  registerRef,
 }: {
   word: string;
   cursorChar: number;
   showCaret: boolean;
+  registerRef: (el: HTMLSpanElement | null) => void;
 }) {
   const chars = [...word];
   // `inline-block whitespace-nowrap` keeps the word as one line-break unit
   // so per-character spans inside don't make the browser break mid-word.
   return (
-    <span className="inline-block whitespace-nowrap">
+    <span ref={registerRef} className="inline-block whitespace-nowrap">
       {chars.map((char, ci) => {
         const isCursorBefore = ci === cursorChar && showCaret;
         const isCursorAfterLast =
@@ -63,8 +66,19 @@ export function Passage() {
   const { words, cursorWord, cursorChar, errorWords, phase } = state;
   const showCaret = phase !== "done";
 
+  // Keep the active word visible as the cursor advances. Critical on
+  // mobile where the OS keyboard occupies the lower half of the viewport
+  // — without this, scrolled-off words would type into nothing visible.
+  const activeWordRef = useRef<HTMLSpanElement | null>(null);
+  useEffect(() => {
+    activeWordRef.current?.scrollIntoView({
+      block: "center",
+      behavior: "smooth",
+    });
+  }, [cursorWord]);
+
   return (
-    <div className="text-xl leading-[1.7] font-normal text-ft-dim sm:text-2xl lg:text-[26px]">
+    <div className="text-lg leading-[1.65] font-normal text-ft-dim sm:text-2xl sm:leading-[1.7] lg:text-[26px]">
       {words.map((word, wi) => {
         if (wi < cursorWord) {
           const isErr = errorWords.has(wi);
@@ -88,6 +102,9 @@ export function Passage() {
                 word={word}
                 cursorChar={cursorChar}
                 showCaret={showCaret}
+                registerRef={(el) => {
+                  activeWordRef.current = el;
+                }}
               />{" "}
             </span>
           );

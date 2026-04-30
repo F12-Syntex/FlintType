@@ -64,7 +64,7 @@ function Pill<T extends string | number>({
         e.currentTarget.blur();
       }}
       className={cn(
-        "cursor-pointer rounded px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.12em] transition-all outline-none",
+        "cursor-pointer rounded px-2 py-1.5 text-[10px] font-medium uppercase tracking-[0.12em] transition-all outline-none sm:px-2.5 sm:text-[11px]",
         "focus-visible:ring-1 focus-visible:ring-ft-ember focus-visible:ring-offset-1 focus-visible:ring-offset-ft-paper",
         active
           ? "bg-ft-ember text-white shadow-sm"
@@ -157,8 +157,8 @@ export function ModeBar() {
   const { state, dispatch } = usePractice();
 
   return (
-    <div className="flex shrink-0 items-center justify-center px-5 py-4 sm:px-7">
-      <div className="flex flex-wrap items-end justify-center gap-x-8 gap-y-4">
+    <div className="flex shrink-0 items-center justify-center px-3 py-3 sm:px-7 sm:py-4">
+      <div className="flex flex-wrap items-end justify-center gap-x-4 gap-y-3 sm:gap-x-8 sm:gap-y-4">
         <Segment label="mode">
           <PillGroup
             ariaLabel="Test mode"
