@@ -32,8 +32,12 @@ export function RestHint() {
   }
 
   if (state.phase === "running") {
+    // Desktop: nothing here. The cursor counter duplicates the WORD x/y
+    // readout above, and the esc-to-cancel keycap is noise during a run —
+    // power users already know esc works. Mobile keeps the row because
+    // the cancel *button* is the only way to abort without a physical key.
     return (
-      <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em] text-ft-dim">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em] text-ft-dim md:hidden">
         <span className="text-ft-ink">
           {state.cursorWord}/{wordCount}
         </span>
@@ -84,25 +88,20 @@ function RestartControl({
 }
 
 function CancelControl({ onCancel }: { onCancel: () => void }) {
+  // Mobile-only: the running-phase row that hosts this is hidden at md+.
   return (
-    <>
-      <div className="hidden items-center gap-2 md:flex">
-        <Kbd>esc</Kbd>
-        <span>cancel</span>
-      </div>
-      <button
-        type="button"
-        onClick={onCancel}
-        className={cn(
-          "inline-flex h-11 min-w-[112px] items-center justify-center md:hidden",
-          "rounded-md border border-ft-line-soft bg-white px-4",
-          "text-[11px] font-semibold uppercase tracking-[0.18em] text-ft-ink",
-          "transition-colors hover:border-ft-ember hover:text-ft-ember",
-          "active:bg-ft-spark",
-        )}
-      >
-        cancel
-      </button>
-    </>
+    <button
+      type="button"
+      onClick={onCancel}
+      className={cn(
+        "inline-flex h-11 min-w-[112px] items-center justify-center",
+        "rounded-md border border-ft-line-soft bg-white px-4",
+        "text-[11px] font-semibold uppercase tracking-[0.18em] text-ft-ink",
+        "transition-colors hover:border-ft-ember hover:text-ft-ember",
+        "active:bg-ft-spark",
+      )}
+    >
+      cancel
+    </button>
   );
 }
