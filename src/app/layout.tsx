@@ -57,7 +57,9 @@ export default function RootLayout({
         <head>
           <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
         </head>
-        <body className="min-h-full bg-ft-paper text-ft-ink">{children}</body>
+        <body className="min-h-full bg-ft-paper text-ft-ink font-mono">
+          {children}
+        </body>
       </html>
     </ClerkProvider>
   );
