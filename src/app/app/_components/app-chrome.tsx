@@ -1,5 +1,7 @@
 import { IdentDot, TopBar, type NavItem } from "@/components/ft";
 import { cn } from "@/lib/utils";
+import { AppFooter } from "./app-footer";
+import { ScrollToTop } from "./scroll-to-top";
 
 const NAV: NavItem[] = [
   { href: "/app", label: "PRACTICE" },
@@ -28,12 +30,14 @@ export function AppChrome({
         className,
       )}
     >
+      <ScrollToTop />
       <TopBar
         nav={NAV}
         dark={dark}
-        ident={ident ?? <IdentDot>@you · 84 wpm avg</IdentDot>}
+        right={ident ?? <IdentDot>@you · 84 wpm avg</IdentDot>}
       />
       <main className="flex-1">{children}</main>
+      <AppFooter dark={dark} />
     </div>
   );
 }
