@@ -17,18 +17,24 @@ export function AppChrome({
   dark = false,
   ident,
   className,
+  compact = false,
 }: {
   children: React.ReactNode;
   dark?: boolean;
   ident?: React.ReactNode;
   className?: string;
+  /** Practice-style chrome: footer is hidden at <md and main does not
+   *  scroll. Use for surfaces that must fit in a single viewport on
+   *  mobile so the OS keyboard never pushes content off-screen. */
+  compact?: boolean;
 }) {
   return (
     <div
       className={cn(
-        // Always match the viewport. main scrolls internally if a page
-        // outgrows the available height; the chrome (topbar + footer) stays put.
-        "flex h-screen flex-col overflow-hidden",
+        // h-dvh tracks the dynamic viewport — on iOS Safari it shrinks
+        // when the OS keyboard rises, so the inner flex layout collapses
+        // gracefully instead of overflowing behind the keyboard.
+        "flex h-dvh flex-col overflow-hidden",
         dark ? "bg-ft-ink text-ft-paper" : "bg-ft-paper text-ft-ink",
         className,
       )}
@@ -40,10 +46,17 @@ export function AppChrome({
         right={ident ?? <IdentDot>@you · 84 wpm avg</IdentDot>}
         drawerExtras={<AppDrawerExtras dark={dark} />}
       />
-      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <main
+        className={cn(
+          "flex min-h-0 flex-1 flex-col",
+          compact ? "overflow-hidden" : "overflow-y-auto",
+        )}
+      >
         {children}
       </main>
-      <AppFooter dark={dark} />
+      <div className={cn(compact && "hidden md:block")}>
+        <AppFooter dark={dark} />
+      </div>
     </div>
   );
 }

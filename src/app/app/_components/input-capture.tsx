@@ -144,7 +144,7 @@ export function InputCapture({ children }: { children: ReactNode }) {
           handler. Skip refocus when the gesture targets an interactive
           control so the pill / restart button click isn't disrupted. */}
       <div
-        className="flex flex-1 flex-col"
+        className="flex min-h-0 flex-1 flex-col"
         onMouseDown={(e) => {
           const target = e.target as HTMLElement;
           if (target.closest(INTERACTIVE_SELECTOR)) return;

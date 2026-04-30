@@ -22,7 +22,13 @@ export type TypingSurfaceProps = {
 /** Self-contained typing test. Wraps everything in <PracticeProvider> so
  *  it owns its own state — drop it anywhere inside <AppChrome> and it
  *  works. Reuse-friendly: drills, focused practice, and embedded mock
- *  surfaces all hang off this. */
+ *  surfaces all hang off this.
+ *
+ *  Mobile vertical budget (no scroll, see <AppChrome compact>):
+ *  TopBar — collapsed ModeBar strip — compact Readouts strip — flex-1
+ *  Passage (internal scroll-into-view only) — RestHint footer row.
+ *  Desktop keeps the looser layout with the keyboard preview on at md+.
+ */
 export function TypingSurface({
   showModeBar = true,
   showKeyboard = true,
@@ -34,9 +40,26 @@ export function TypingSurface({
     <PracticeProvider>
       <InputCapture>
         {showModeBar ? <ModeBar /> : null}
-        <div className="flex flex-1 flex-col gap-5 px-4 py-5 sm:gap-6 sm:px-12 sm:py-8 lg:px-20">
-          {showReadouts ? <Readouts /> : null}
-          <Passage />
+        {/* Edge-to-edge readouts strip on mobile (rendered inside this
+            wrapper but using its own padding); the desktop readouts pick
+            up the column padding below. */}
+        {showReadouts ? (
+          <div className="md:hidden">
+            <Readouts />
+          </div>
+        ) : null}
+        <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pt-4 pb-3 sm:gap-6 sm:px-12 sm:py-8 lg:px-20">
+          {showReadouts ? (
+            <div className="hidden md:block">
+              <Readouts />
+            </div>
+          ) : null}
+          {/* Passage gets the leftover vertical space and scrolls
+              internally. scroll-into-view in <Passage> keeps the cursor
+              centered, so the passage's own scrollbar is invisible. */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+            <Passage />
+          </div>
           {showRestHint ? <RestHint /> : null}
           {belowHint}
           {showKeyboard ? (

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   type Lang,
@@ -31,7 +32,7 @@ function Segment({
       </span>
       <div
         role="group"
-        className="inline-flex items-center gap-0.5 rounded-md border border-ft-line-soft bg-white p-0.5 shadow-[0_1px_0_0_hsl(38_20%_82%)]"
+        className="inline-flex flex-wrap items-center gap-0.5 rounded-md border border-ft-line-soft bg-white p-0.5 shadow-[0_1px_0_0_hsl(38_20%_82%)]"
       >
         {children}
       </div>
@@ -40,10 +41,6 @@ function Segment({
 }
 
 // ─── Option pill ───────────────────────────────────────────────────
-// Active: ember filled (the brand accent — same colour the rest of the
-// app uses to signal "this is the live thing"). White text reads cleanly.
-// Inactive: dim text on the white card.
-// Hover: line-soft wash + ink colour — visible affordance over white.
 
 function Pill<T extends string | number>({
   value,
@@ -102,13 +99,6 @@ function PillGroup<T extends string | number>({
 }
 
 // ─── Toggle ────────────────────────────────────────────────────────
-// Off-state contrast tuned so the track sits visibly *inside* the
-// white segment card:
-//   off track:  ft-paper-2  (warm cream, darker than the white card)
-//   off knob:   ft-dim-2    (mid grey, clearly readable on the cream)
-//   off border: ft-dim/40   (defined boundary, not hairline-soft)
-//   on track:   ft-ember
-//   on knob:    white
 
 function Toggle({
   on,
@@ -148,56 +138,112 @@ function Toggle({
   );
 }
 
-// ─── The dock ──────────────────────────────────────────────────────
-// No bottom border, no vertical sep between segments — segment cards
-// carry their own edges, gap-x-8 between them is visual separator
-// enough. Less chrome, fewer hairlines.
+// ─── Full pill UI shared by mobile (expanded) and desktop ───────────
+// Vertical stack on mobile, horizontal flow on md+.
+
+function ModeControls() {
+  const { state, dispatch } = usePractice();
+  return (
+    <div className="flex flex-col items-stretch gap-3 md:flex-row md:flex-wrap md:items-end md:justify-center md:gap-x-8 md:gap-y-4">
+      <Segment label="mode">
+        <PillGroup
+          ariaLabel="Test mode"
+          items={MODES}
+          active={state.mode}
+          onSelect={(mode) => dispatch({ type: "SET_MODE", mode })}
+        />
+      </Segment>
+
+      <Segment label="length">
+        <PillGroup
+          ariaLabel="Word count"
+          items={LENGTHS}
+          active={state.length}
+          onSelect={(length) => dispatch({ type: "SET_LENGTH", length })}
+        />
+      </Segment>
+
+      <Segment label="language">
+        <PillGroup
+          ariaLabel="Language"
+          items={LANGS}
+          active={state.lang}
+          onSelect={(lang) => dispatch({ type: "SET_LANG", lang })}
+        />
+      </Segment>
+
+      <label className="flex cursor-pointer items-center gap-2.5 md:self-end md:pb-[7px]">
+        <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-ft-dim">
+          adapt
+        </span>
+        <Toggle
+          on={state.adapt}
+          onToggle={() => dispatch({ type: "TOGGLE_ADAPT" })}
+          ariaLabel="Adaptive drilling"
+        />
+      </label>
+    </div>
+  );
+}
+
+// ─── Mobile: collapsed summary that expands inline ────────────────
+// Closed: a single thin row showing the current selections so the user
+// always sees state. Tap to expand the full pill UI; tap again or pick
+// any option to leave it open until they collapse it themselves.
+
+function MobileBar() {
+  const { state } = usePractice();
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-b border-ft-line-soft bg-white md:hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-controls="mode-bar-controls"
+        className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-[10px] uppercase tracking-[0.16em] text-ft-dim transition-colors hover:text-ft-ink"
+      >
+        <span className="flex min-w-0 items-center gap-1.5 truncate">
+          <span className="font-semibold text-ft-ink">{state.mode}</span>
+          <span aria-hidden className="text-ft-dim/60">·</span>
+          <span className="font-semibold text-ft-ink">{state.length}</span>
+          <span aria-hidden className="text-ft-dim/60">·</span>
+          <span className="font-semibold text-ft-ink">{state.lang}</span>
+          {state.adapt ? (
+            <>
+              <span aria-hidden className="text-ft-dim/60">·</span>
+              <span className="font-semibold text-ft-ember">adapt</span>
+            </>
+          ) : null}
+        </span>
+        <span aria-hidden className="text-[12px] leading-none">
+          {open ? "▴" : "▾"}
+        </span>
+      </button>
+      {open ? (
+        <div id="mode-bar-controls" className="px-4 pt-1 pb-3">
+          <ModeControls />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// ─── Desktop: original horizontal dock ─────────────────────────────
+
+function DesktopBar() {
+  return (
+    <div className="hidden shrink-0 items-center justify-center px-7 py-4 md:flex">
+      <ModeControls />
+    </div>
+  );
+}
 
 export function ModeBar() {
-  const { state, dispatch } = usePractice();
-
   return (
-    <div className="flex shrink-0 items-center justify-center px-3 py-3 sm:px-7 sm:py-4">
-      <div className="flex flex-wrap items-end justify-center gap-x-4 gap-y-3 sm:gap-x-8 sm:gap-y-4">
-        <Segment label="mode">
-          <PillGroup
-            ariaLabel="Test mode"
-            items={MODES}
-            active={state.mode}
-            onSelect={(mode) => dispatch({ type: "SET_MODE", mode })}
-          />
-        </Segment>
-
-        <Segment label="length">
-          <PillGroup
-            ariaLabel="Word count"
-            items={LENGTHS}
-            active={state.length}
-            onSelect={(length) => dispatch({ type: "SET_LENGTH", length })}
-          />
-        </Segment>
-
-        <Segment label="language">
-          <PillGroup
-            ariaLabel="Language"
-            items={LANGS}
-            active={state.lang}
-            onSelect={(lang) => dispatch({ type: "SET_LANG", lang })}
-          />
-        </Segment>
-
-        {/* ADAPT — single switch, no card. */}
-        <label className="flex cursor-pointer items-center gap-2.5 self-end pb-[7px]">
-          <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-ft-dim">
-            adapt
-          </span>
-          <Toggle
-            on={state.adapt}
-            onToggle={() => dispatch({ type: "TOGGLE_ADAPT" })}
-            ariaLabel="Adaptive drilling"
-          />
-        </label>
-      </div>
-    </div>
+    <>
+      <MobileBar />
+      <DesktopBar />
+    </>
   );
 }

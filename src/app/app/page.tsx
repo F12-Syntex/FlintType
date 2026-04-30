@@ -12,7 +12,7 @@ export const metadata = buildPageMetadata({
 
 export default function PracticePage() {
   return (
-    <AppChrome>
+    <AppChrome compact>
       <TypingSurface />
     </AppChrome>
   );
