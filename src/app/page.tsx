@@ -49,7 +49,6 @@ export default async function Landing() {
     <div className="min-h-screen bg-background text-foreground">
       <TopBar
         nav={NAV}
-        version="v0.4 · OPEN SOURCE"
         right={
           <div className="hidden gap-2 sm:flex">
             <SignInButtons />
