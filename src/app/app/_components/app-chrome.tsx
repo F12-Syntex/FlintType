@@ -1,5 +1,6 @@
 import { IdentDot, TopBar, type NavItem } from "@/components/ft";
 import { cn } from "@/lib/utils";
+import { AppDrawerExtras } from "./app-drawer-extras";
 import { AppFooter } from "./app-footer";
 import { ScrollToTop } from "./scroll-to-top";
 
@@ -35,6 +36,7 @@ export function AppChrome({
         nav={NAV}
         dark={dark}
         right={ident ?? <IdentDot>@you · 84 wpm avg</IdentDot>}
+        drawerExtras={<AppDrawerExtras dark={dark} />}
       />
       <main className="flex-1">{children}</main>
       <AppFooter dark={dark} />
