@@ -1,6 +1,6 @@
-# Instructions — cloning this boilerplate
+# Instructions — cloning flinttype
 
-Start-to-finish setup for a new project built on this boilerplate. Everything else (rules, patterns, deep docs) lives under `docs/`.
+Start-to-finish setup for a new project built on flinttype's scaffolding base. Everything else (rules, patterns, deep docs) lives under `docs/`.
 
 ## What's in the box
 

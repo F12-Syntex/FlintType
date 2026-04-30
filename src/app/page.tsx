@@ -7,7 +7,7 @@ import { buildPageMetadata } from '@/server/seo';
 export const metadata = buildPageMetadata({
   title: 'Home',
   description:
-    'A batteries-included Next.js + shadcn boilerplate: typed backend via useBackend(), Clerk auth + billing, Drizzle on Neon and browser PGlite, OpenRouter AI, structured logging.',
+    'flinttype — open-source typing speed test. Practice, measure your WPM, and track your progress.',
   path: '/',
 });
 
@@ -20,7 +20,7 @@ export default async function Landing() {
       <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-10 sm:gap-10 sm:px-8 sm:py-20">
         <header className="flex flex-col gap-3">
           <span className="text-xs font-medium uppercase tracking-widest text-zinc-500">
-            shadcn-nextjs-boilerplate
+            flinttype
           </span>
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
             Ship a typed full-stack app in a weekend.

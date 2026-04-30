@@ -1,10 +1,10 @@
-# shadcn-nextjs-boilerplate
+# flinttype
 
-> Minimal Next.js + shadcn boilerplate with a typed backend (Zod-validated), cascading middleware, and structured logging. The frontend consumes the backend via a recursive Proxy typed from the server's route tree — `useBackend()`.
+> Open-source typing speed test. Practice, measure your WPM, and track your progress. Built on Next.js + shadcn with a typed `useBackend()` client, Drizzle on Neon, and Clerk auth.
 
 ## Pages
 
-- [Home](/): landing page — overview of the boilerplate's features and links to sign-in / sign-up. Authenticated users are redirected to `/app`.
+- [Home](/): landing page — links to sign-in / sign-up. Authenticated users are redirected to `/app`.
 
 ## Conventions
 

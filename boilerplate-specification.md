@@ -1,6 +1,6 @@
 # Boilerplate Specification
 
-Complete feature inventory for the shadcn-nextjs-boilerplate. This documents what is shipped, not how to use it.
+Complete feature inventory for flinttype's scaffolding base. This documents what is shipped, not how to use it.
 
 **Version:** 0.19.2  
 **Last updated:** 2026-04-17

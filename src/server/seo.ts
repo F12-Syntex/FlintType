@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import { env } from './env';
 
 export const siteConfig = {
-  name: 'shadcn-nextjs-boilerplate',
+  name: 'flinttype',
   description:
-    'Next.js + shadcn boilerplate with a typed hierarchical backend, Zod-validated inputs, cascading middleware, and structured request-scoped logging.',
+    'Open-source typing speed test. Practice, measure your WPM, and track your progress.',
   url: env.SITE_URL,
   locale: 'en_US',
 } as const;

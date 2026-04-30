@@ -8,9 +8,9 @@
 @docs/ai.md
 @docs/payments.md
 
-# Project rules (shadcn-nextjs-boilerplate)
+# Project rules (flinttype)
 
-This is a **boilerplate**, not a product. Keep scaffolding generic and reusable.
+flinttype is an open-source typing speed test, built on top of a generic Next.js + shadcn scaffolding base. Keep boilerplate-style scaffolding generic and reusable; product-specific code (typing tests, results, leaderboards) lives alongside it.
 
 ## Spec (specificaiton.md)
 1. Next.js + shadcn frontend.

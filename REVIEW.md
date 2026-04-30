@@ -1,4 +1,4 @@
-# Depth Review — `shadcn-nextjs-boilerplate` @ v0.20.0
+# Depth Review — `flinttype` @ v0.20.0
 
 **Scope.** Full-repository audit. Every `src/**/*.ts(x)` non-test module read, every route handler inspected, every middleware walked, every domain doc (`docs/*.md`) cross-referenced against the implementation. Green-field evaluation — rules treated as the contract, code treated as the claim against that contract.
 

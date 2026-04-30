@@ -1,6 +1,6 @@
-# shadcn-nextjs-boilerplate
+# flinttype
 
-Next.js + shadcn boilerplate with a **hierarchical, Zod-validated backend** and a **typed `useBackend()` client** that mirrors the server tree.
+Open-source typing speed test. Built on Next.js + shadcn with a **hierarchical, Zod-validated backend** and a **typed `useBackend()` client** that mirrors the server tree.
 
 ## Stack
 
