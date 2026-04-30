@@ -1,7 +1,7 @@
-import { SignOutButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { Logo } from "@/components/ft";
 import { cn } from "@/lib/utils";
+import { SignOutLink } from "./sign-out-link";
 
 type FooterLink = {
   href: string;
@@ -72,17 +72,7 @@ export function AppFooter({ dark = false }: { dark?: boolean }) {
         {PRIMARY_LINKS.map((l) => (
           <FooterLink key={l.label} link={l} dark={dark} />
         ))}
-        <SignOutButton>
-          <button
-            type="button"
-            className={cn(
-              "uppercase tracking-[0.16em] transition-colors",
-              dark ? "hover:text-ft-paper" : "hover:text-ft-ink",
-            )}
-          >
-            SIGN OUT
-          </button>
-        </SignOutButton>
+        <SignOutLink dark={dark} />
         <span aria-hidden className="hidden text-current/40 lg:inline">
           ·
         </span>
