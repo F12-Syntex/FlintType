@@ -30,16 +30,11 @@ export function RestHint() {
 
   if (state.phase === "running") {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em]">
-        <div className="flex items-center gap-2 text-ft-ember">
-          <span className="size-1.5 animate-pulse bg-ft-ember" aria-hidden />
-          <span className="font-semibold">recording</span>
-          <span className="text-ft-dim-2">·</span>
-          <span className="text-ft-ink">
-            {state.cursorWord}/{wordCount}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 text-ft-dim">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em] text-ft-dim">
+        <span className="text-ft-ink">
+          {state.cursorWord}/{wordCount}
+        </span>
+        <div className="flex items-center gap-2">
           <Kbd>esc</Kbd>
           <span>cancel</span>
         </div>
