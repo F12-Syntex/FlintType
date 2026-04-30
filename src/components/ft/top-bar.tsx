@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { APP_VERSION_LABEL } from "@/lib/version";
 import { Logo } from "./logo";
 import { MobileNav } from "./mobile-nav";
 
@@ -15,7 +16,7 @@ export function TopBar({
   nav,
   right,
   drawerExtras,
-  version = "v0.4 · OPEN SOURCE",
+  version = APP_VERSION_LABEL,
   dark = false,
   sticky = true,
   className,
