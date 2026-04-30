@@ -12,13 +12,37 @@ const MODES: readonly Mode[] = ["WORDS", "TIME", "QUOTE", "CODE"];
 const LENGTHS: readonly Length[] = [25, 50, 100, 200];
 const LANGS: readonly Lang[] = ["EN", "EN-COMMON", "PROGRAMMING"];
 
-function GroupLabel({ children }: { children: React.ReactNode }) {
+// ─── Segment shell ─────────────────────────────────────────────────
+// One labelled config group. Label sits above the controls so the eye
+// reads "what is this" → "what are my options" without crossing the
+// values themselves. Subtle border groups the options as one unit.
+
+function Segment({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
-    <span className="text-[10px] uppercase tracking-[0.2em] text-ft-dim">
-      {children}
-    </span>
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-ft-dim">
+        {label}
+      </span>
+      <div
+        role="group"
+        className="inline-flex items-center gap-0.5 rounded-md border border-ft-line-soft bg-white/40 p-0.5"
+      >
+        {children}
+      </div>
+    </div>
   );
 }
+
+// ─── Option pill ───────────────────────────────────────────────────
+// Segmented-control style: active = ink filled (high-contrast, obviously
+// selected), inactive = plain text, hover = paper-2 wash + ink colour
+// so the affordance is clear before the click. cursor-pointer always.
 
 function Pill<T extends string | number>({
   value,
@@ -39,11 +63,11 @@ function Pill<T extends string | number>({
         e.currentTarget.blur();
       }}
       className={cn(
-        "rounded-md px-2.5 py-1 text-xs uppercase tracking-[0.1em] transition-colors outline-none",
-        "focus-visible:ring-1 focus-visible:ring-ft-ember",
+        "cursor-pointer rounded px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.12em] transition-all outline-none",
+        "focus-visible:ring-1 focus-visible:ring-ft-ember focus-visible:ring-offset-1 focus-visible:ring-offset-ft-paper",
         active
-          ? "bg-ft-ember/10 font-semibold text-ft-ember"
-          : "text-ft-dim hover:text-ft-ink",
+          ? "bg-ft-ink text-ft-paper shadow-sm"
+          : "text-ft-dim-2 hover:bg-ft-paper-2 hover:text-ft-ink",
       )}
     >
       {value}
@@ -51,35 +75,34 @@ function Pill<T extends string | number>({
   );
 }
 
-function Group<T extends string | number>({
-  label,
+function PillGroup<T extends string | number>({
   ariaLabel,
   items,
   active,
   onSelect,
 }: {
-  label: string;
   ariaLabel: string;
   items: readonly T[];
   active: T;
   onSelect: (value: T) => void;
 }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <GroupLabel>{label}</GroupLabel>
-      <div role="radiogroup" aria-label={ariaLabel} className="flex gap-0.5">
-        {items.map((it) => (
-          <Pill
-            key={String(it)}
-            value={it}
-            active={it === active}
-            onClick={() => onSelect(it)}
-          />
-        ))}
-      </div>
+    <div role="radiogroup" aria-label={ariaLabel} className="contents">
+      {items.map((it) => (
+        <Pill
+          key={String(it)}
+          value={it}
+          active={it === active}
+          onClick={() => onSelect(it)}
+        />
+      ))}
     </div>
   );
 }
+
+// ─── Toggle ────────────────────────────────────────────────────────
+// Real switch — rounded-full pill, knob slides, cursor-pointer, hover
+// border darkens on the inactive state so it reads as actionable.
 
 function Toggle({
   on,
@@ -101,54 +124,82 @@ function Toggle({
         e.currentTarget.blur();
       }}
       className={cn(
-        "inline-flex h-4 w-7 items-center rounded-full border p-0.5 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ft-ember",
-        on ? "border-ft-ember bg-ft-ember" : "border-ft-line-soft hover:border-ft-dim",
+        "inline-flex h-6 w-11 cursor-pointer items-center rounded-full border p-0.5 transition-colors outline-none",
+        "focus-visible:ring-1 focus-visible:ring-ft-ember focus-visible:ring-offset-1 focus-visible:ring-offset-ft-paper",
+        on
+          ? "border-ft-ember bg-ft-ember"
+          : "border-ft-line-soft bg-white hover:border-ft-dim-2",
       )}
     >
       <span
         aria-hidden
         className={cn(
-          "size-2.5 rounded-full transition-transform",
-          on ? "translate-x-3 bg-white" : "translate-x-0 bg-ft-dim",
+          "size-4 rounded-full transition-transform",
+          on ? "translate-x-5 bg-white" : "translate-x-0 bg-ft-dim",
         )}
       />
     </button>
   );
 }
 
+// ─── Vertical separator ────────────────────────────────────────────
+
+function Sep() {
+  return (
+    <span aria-hidden className="hidden h-9 w-px bg-ft-line-soft md:inline" />
+  );
+}
+
+// ─── The dock ──────────────────────────────────────────────────────
+
 export function ModeBar() {
   const { state, dispatch } = usePractice();
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center justify-center gap-x-6 gap-y-2 border-b border-ft-line-soft px-5 py-3.5 sm:px-7">
-      <Group
-        label="mode"
-        ariaLabel="Test mode"
-        items={MODES}
-        active={state.mode}
-        onSelect={(mode) => dispatch({ type: "SET_MODE", mode })}
-      />
-      <Group
-        label="length"
-        ariaLabel="Word count"
-        items={LENGTHS}
-        active={state.length}
-        onSelect={(length) => dispatch({ type: "SET_LENGTH", length })}
-      />
-      <Group
-        label="lang"
-        ariaLabel="Language"
-        items={LANGS}
-        active={state.lang}
-        onSelect={(lang) => dispatch({ type: "SET_LANG", lang })}
-      />
-      <div className="flex items-center gap-2">
-        <GroupLabel>adapt</GroupLabel>
-        <Toggle
-          on={state.adapt}
-          onToggle={() => dispatch({ type: "TOGGLE_ADAPT" })}
-          ariaLabel="Adaptive drilling"
-        />
+    <div className="flex shrink-0 items-center justify-center border-b border-ft-line-soft px-5 py-4 sm:px-7">
+      <div className="flex flex-wrap items-end justify-center gap-x-6 gap-y-4">
+        <Segment label="mode">
+          <PillGroup
+            ariaLabel="Test mode"
+            items={MODES}
+            active={state.mode}
+            onSelect={(mode) => dispatch({ type: "SET_MODE", mode })}
+          />
+        </Segment>
+
+        <Sep />
+
+        <Segment label="length">
+          <PillGroup
+            ariaLabel="Word count"
+            items={LENGTHS}
+            active={state.length}
+            onSelect={(length) => dispatch({ type: "SET_LENGTH", length })}
+          />
+        </Segment>
+
+        <Sep />
+
+        <Segment label="language">
+          <PillGroup
+            ariaLabel="Language"
+            items={LANGS}
+            active={state.lang}
+            onSelect={(lang) => dispatch({ type: "SET_LANG", lang })}
+          />
+        </Segment>
+
+        <Sep />
+
+        <Segment label="adapt">
+          <div className="flex h-[34px] items-center px-1.5">
+            <Toggle
+              on={state.adapt}
+              onToggle={() => dispatch({ type: "TOGGLE_ADAPT" })}
+              ariaLabel="Adaptive drilling"
+            />
+          </div>
+        </Segment>
       </div>
     </div>
   );
