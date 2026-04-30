@@ -197,6 +197,19 @@
     text-rendering: geometricPrecision;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Block text selection app-wide — flinttype is interactive, not a
+       document. Form fields opt back in below. */
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  /* Inputs / textareas / contenteditable still allow selection so users
+     can edit what they typed (sign-in fields, settings inputs, etc.). */
+  input,
+  textarea,
+  select,
+  [contenteditable="true"] {
+    user-select: text;
+    -webkit-user-select: text;
   }
 }
 
