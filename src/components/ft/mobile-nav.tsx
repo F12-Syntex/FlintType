@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { HiOutlineBars3, HiOutlineXMark } from "react-icons/hi2";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
@@ -20,14 +21,20 @@ export function MobileNav({
   dark?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
 
-  // Close on route change
+  // Portal needs document — only available after mount.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Close on route change.
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
-  // Lock body scroll + close on Escape while open
+  // Lock body scroll + close on Escape while open.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -48,6 +55,102 @@ export function MobileNav({
     href === pathname ||
     (href !== "/" && href !== "/app" && pathname?.startsWith(href));
 
+  const drawer = open ? (
+    <div
+      className={cn(
+        "fixed inset-0 z-[100] flex flex-col md:hidden",
+        "animate-in fade-in slide-in-from-top-4 duration-200",
+        dark
+          ? "bg-foreground text-background"
+          : "bg-background text-foreground",
+      )}
+      style={{
+        // Inline opaque colour — guarantees no bleed-through from page content
+        // even if the utility class is purged or overridden.
+        backgroundColor: dark ? "hsl(0 0% 8%)" : "hsl(38 33% 92%)",
+      }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Mobile navigation"
+    >
+      {/* Drawer header — mirrors the topbar layout */}
+      <div
+        className={cn(
+          "flex h-14 shrink-0 items-center justify-between border-b px-5 sm:px-7",
+          dark ? "border-[#221F1A]" : "border-ft-line-soft",
+        )}
+      >
+        <Logo dark={dark} version={version} />
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          aria-label="Close menu"
+          className={cn(
+            "-mr-2 flex size-11 items-center justify-center transition-colors",
+            dark
+              ? "text-ft-paper hover:bg-white/5"
+              : "text-ft-ink hover:bg-black/5",
+          )}
+        >
+          <HiOutlineXMark className="size-6" aria-hidden />
+        </button>
+      </div>
+
+      {/* Nav links — large, centered vertically */}
+      {nav && nav.length > 0 ? (
+        <nav className="flex flex-1 flex-col justify-center px-5 py-8 sm:px-7">
+          <ul className="flex flex-col gap-1">
+            {nav.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      "group flex items-center justify-between gap-3 px-2 py-4 text-2xl font-bold tracking-tight transition-colors sm:text-3xl",
+                      active && "text-ft-ember",
+                      !active &&
+                        (dark
+                          ? "text-ft-paper hover:text-ft-ember"
+                          : "text-ft-ink hover:text-ft-ember"),
+                    )}
+                  >
+                    <span>{item.label}</span>
+                    <span
+                      className={cn(
+                        "text-base transition-transform group-hover:translate-x-1",
+                        active
+                          ? "text-ft-ember"
+                          : dark
+                            ? "text-[#6E695F]"
+                            : "text-ft-dim",
+                      )}
+                      aria-hidden
+                    >
+                      →
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      ) : null}
+
+      {/* Drawer extras (auth CTAs etc.) pinned to the bottom */}
+      {drawerExtras ? (
+        <div
+          className={cn(
+            "shrink-0 border-t px-5 py-6 sm:px-7",
+            dark ? "border-[#221F1A]" : "border-ft-line-soft",
+          )}
+        >
+          {drawerExtras}
+        </div>
+      ) : null}
+    </div>
+  ) : null;
+
   return (
     <>
       <button
@@ -65,102 +168,11 @@ export function MobileNav({
         <HiOutlineBars3 className="size-6" aria-hidden />
       </button>
 
-      {open ? (
-        <div
-          className={cn(
-            "fixed inset-0 z-50 flex flex-col md:hidden",
-            "animate-in fade-in slide-in-from-top-4 duration-200",
-            dark
-              ? "bg-foreground text-background"
-              : "bg-background text-foreground",
-          )}
-          style={{
-            // Belt-and-suspenders: guarantee an opaque surface even if a
-            // Tailwind utility somehow gets purged or shadowed. The drawer
-            // must NEVER be transparent — page content sits behind it.
-            backgroundColor: dark ? "hsl(0 0% 8%)" : "hsl(38 33% 92%)",
-          }}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Mobile navigation"
-        >
-          {/* Drawer header — mirrors the topbar layout */}
-          <div
-            className={cn(
-              "flex h-14 shrink-0 items-center justify-between border-b px-5 sm:px-7",
-              dark ? "border-[#221F1A]" : "border-ft-line-soft",
-            )}
-          >
-            <Logo dark={dark} version={version} />
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Close menu"
-              className={cn(
-                "-mr-2 flex size-11 items-center justify-center transition-colors",
-                dark
-                  ? "text-ft-paper hover:bg-white/5"
-                  : "text-ft-ink hover:bg-black/5",
-              )}
-            >
-              <HiOutlineXMark className="size-6" aria-hidden />
-            </button>
-          </div>
-
-          {/* Nav links — large, centered vertically */}
-          {nav && nav.length > 0 ? (
-            <nav className="flex flex-1 flex-col justify-center px-5 py-8 sm:px-7">
-              <ul className="flex flex-col gap-1">
-                {nav.map((item) => {
-                  const active = isActive(item.href);
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        className={cn(
-                          "group flex items-center justify-between gap-3 px-2 py-4 text-2xl font-bold tracking-tight transition-colors sm:text-3xl",
-                          active && "text-ft-ember",
-                          !active &&
-                            (dark
-                              ? "text-ft-paper hover:text-ft-ember"
-                              : "text-ft-ink hover:text-ft-ember"),
-                        )}
-                      >
-                        <span>{item.label}</span>
-                        <span
-                          className={cn(
-                            "text-base transition-transform group-hover:translate-x-1",
-                            active
-                              ? "text-ft-ember"
-                              : dark
-                                ? "text-[#6E695F]"
-                                : "text-ft-dim",
-                          )}
-                          aria-hidden
-                        >
-                          →
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </nav>
-          ) : null}
-
-          {/* Drawer extras (auth CTAs etc.) pinned to the bottom */}
-          {drawerExtras ? (
-            <div
-              className={cn(
-                "shrink-0 border-t px-5 py-6 sm:px-7",
-                dark ? "border-[#221F1A]" : "border-ft-line-soft",
-              )}
-            >
-              {drawerExtras}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+      {/* Portal the drawer onto document.body so it escapes the topbar's
+          stacking context. The TopBar is `sticky z-30` which creates a new
+          stacking context — without portal, <main> (later in DOM) would
+          paint on top of the drawer despite z-50. */}
+      {mounted && drawer ? createPortal(drawer, document.body) : null}
     </>
   );
 }
