@@ -70,8 +70,16 @@ export function MobileNav({
           className={cn(
             "fixed inset-0 z-50 flex flex-col md:hidden",
             "animate-in fade-in slide-in-from-top-4 duration-200",
-            dark ? "bg-ft-ink text-ft-paper" : "bg-ft-paper text-ft-ink",
+            dark
+              ? "bg-foreground text-background"
+              : "bg-background text-foreground",
           )}
+          style={{
+            // Belt-and-suspenders: guarantee an opaque surface even if a
+            // Tailwind utility somehow gets purged or shadowed. The drawer
+            // must NEVER be transparent — page content sits behind it.
+            backgroundColor: dark ? "hsl(0 0% 8%)" : "hsl(38 33% 92%)",
+          }}
           role="dialog"
           aria-modal="true"
           aria-label="Mobile navigation"
