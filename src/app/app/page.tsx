@@ -35,21 +35,25 @@ export default async function PracticePage({
     <AppChrome>
       <ModeBar />
 
-      <div className="relative flex flex-col gap-6 px-5 pt-8 pb-24 sm:px-20">
+      <div className="relative flex flex-col gap-7 px-5 pt-8 pb-24 sm:px-20">
         <Readouts active={active} cursorWord={cursorWord} />
 
-        <Passage
-          words={PASSAGE}
-          active={active}
-          cursorWord={cursorWord}
-          cursorChar={cursorChar}
-        />
+        <div className="border-b border-ft-line-soft pb-7">
+          <Passage
+            words={PASSAGE}
+            active={active}
+            cursorWord={cursorWord}
+            cursorChar={cursorChar}
+          />
+        </div>
 
         {active ? <LiveTrace /> : <RestHint />}
 
+        <div className="border-t border-ft-line-soft pt-1" />
+
         {active ? <LiveKeyboard /> : <KeyboardLegend />}
 
-        <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-[10px] uppercase tracking-[0.18em] text-ft-dim">
+        <div className="mt-6 flex flex-wrap justify-center gap-x-8 gap-y-2 border-t border-ft-line-soft pt-6 text-[10px] uppercase tracking-[0.18em] text-ft-dim">
           <span>
             <Kbd>tab</Kbd> restart
           </span>

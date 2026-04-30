@@ -41,18 +41,18 @@
   --color-sidebar-border: hsl(var(--sidebar-border));
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 
-  /* ft-* tokens — flinttype palette aliases (point at the same vars
-     where there's a 1:1 with shadcn semantic tokens; keep distinct
-     constants for design-only shades) */
-  --color-ft-ink: hsl(var(--foreground));
+  /* ft-* tokens — flinttype palette as concrete HSL literals.
+     No var() chains here so Tailwind v4 always emits resolvable
+     utilities (bg-ft-paper, text-ft-ember, border-ft-line-soft, …). */
+  --color-ft-ink: hsl(0 0% 8%);
   --color-ft-ink-2: hsl(0 0% 11%);
   --color-ft-line: hsl(0 0% 16%);
   --color-ft-line-soft: hsl(38 20% 86%);
-  --color-ft-paper: hsl(var(--background));
-  --color-ft-paper-2: hsl(38 25% 88%);
-  --color-ft-dim: hsl(var(--muted-foreground));
+  --color-ft-paper: hsl(38 33% 92%);
+  --color-ft-paper-2: hsl(38 28% 88%);
+  --color-ft-dim: hsl(0 0% 55%);
   --color-ft-dim-2: hsl(0 0% 35%);
-  --color-ft-ember: hsl(var(--primary));
+  --color-ft-ember: hsl(9 78% 58%);
   --color-ft-ember-soft: hsl(15 80% 75%);
   --color-ft-spark: hsl(20 75% 88%);
   --color-ft-ok: hsl(110 25% 39%);

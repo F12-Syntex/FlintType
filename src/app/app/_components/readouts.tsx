@@ -8,7 +8,7 @@ export function Readouts({
   cursorWord: number;
 }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ft-line-soft pb-5">
       <div className="flex flex-wrap gap-x-10 gap-y-3">
         <Stat label="WPM" value={active ? "92" : "—"} accent={active} />
         <Stat label="ACC" value={active ? "97.2%" : "—"} />

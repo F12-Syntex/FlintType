@@ -18,10 +18,10 @@ function ModeGroup({
           <span
             key={it}
             className={cn(
-              "px-2 py-1 text-[11px] tracking-[0.1em]",
+              "px-2 py-1 text-[11px] tracking-[0.1em] transition-colors",
               it === active
                 ? "border border-ft-ink bg-ft-ink text-ft-paper"
-                : "border border-transparent text-ft-dim-2",
+                : "border border-transparent text-ft-dim-2 hover:border-ft-line-soft hover:bg-ft-paper hover:text-ft-ink",
             )}
           >
             {it}
@@ -52,7 +52,7 @@ function Toggle({ on }: { on: boolean }) {
 
 export function ModeBar() {
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 border-b border-ft-line-soft px-5 py-4 sm:px-7">
+    <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 border-b border-ft-line-soft bg-ft-paper-2/45 px-5 py-4 sm:px-7">
       <ModeGroup label="MODE" items={["WORDS", "TIME", "QUOTE", "CODE"]} active="WORDS" />
       <span aria-hidden className="hidden h-5 w-px bg-ft-line-soft md:inline" />
       <ModeGroup label="LENGTH" items={["25", "50", "100", "200"]} active="50" />
