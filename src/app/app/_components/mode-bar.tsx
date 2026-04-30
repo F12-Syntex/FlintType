@@ -40,7 +40,8 @@ function Segment({
 }
 
 // ─── Option pill ───────────────────────────────────────────────────
-// Active: ink filled, paper text — high contrast, obviously selected.
+// Active: ember filled (the brand accent — same colour the rest of the
+// app uses to signal "this is the live thing"). White text reads cleanly.
 // Inactive: dim text on the white card.
 // Hover: line-soft wash + ink colour — visible affordance over white.
 
@@ -66,7 +67,7 @@ function Pill<T extends string | number>({
         "cursor-pointer rounded px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.12em] transition-all outline-none",
         "focus-visible:ring-1 focus-visible:ring-ft-ember focus-visible:ring-offset-1 focus-visible:ring-offset-ft-paper",
         active
-          ? "bg-ft-ink text-ft-paper shadow-sm"
+          ? "bg-ft-ember text-white shadow-sm"
           : "text-ft-dim-2 hover:bg-ft-line-soft hover:text-ft-ink",
       )}
     >
@@ -196,15 +197,20 @@ export function ModeBar() {
 
         <Sep />
 
-        <Segment label="adapt">
-          <div className="flex h-[34px] items-center px-1.5">
-            <Toggle
-              on={state.adapt}
-              onToggle={() => dispatch({ type: "TOGGLE_ADAPT" })}
-              ariaLabel="Adaptive drilling"
-            />
-          </div>
-        </Segment>
+        {/* ADAPT — single switch, no card. A bordered container around one
+            control reads like wasted chrome. Inline label + switch keeps
+            the control on the same baseline as the segments while
+            visually deferring to them. */}
+        <label className="flex cursor-pointer items-center gap-2.5 self-end pb-[7px]">
+          <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-ft-dim">
+            adapt
+          </span>
+          <Toggle
+            on={state.adapt}
+            onToggle={() => dispatch({ type: "TOGGLE_ADAPT" })}
+            ariaLabel="Adaptive drilling"
+          />
+        </label>
       </div>
     </div>
   );
