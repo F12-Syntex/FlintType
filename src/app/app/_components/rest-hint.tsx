@@ -32,12 +32,8 @@ export function RestHint() {
   }
 
   if (state.phase === "running") {
-    // Desktop: nothing here. The cursor counter duplicates the WORD x/y
-    // readout above, and the esc-to-cancel keycap is noise during a run —
-    // power users already know esc works. Mobile keeps the row because
-    // the cancel *button* is the only way to abort without a physical key.
     return (
-      <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em] text-ft-dim md:hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em] text-ft-dim">
         <span className="text-ft-ink">
           {state.cursorWord}/{wordCount}
         </span>

@@ -60,7 +60,14 @@ export function TypingSurface({
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
             <Passage />
           </div>
-          {showRestHint ? <RestHint /> : null}
+          {/* RestHint is mobile-only. On desktop the readouts strip already
+              shows progress + final stats; the keycap hints (tab/esc) are
+              power-user knowledge and just crowded the keyboard preview. */}
+          {showRestHint ? (
+            <div className="md:hidden">
+              <RestHint />
+            </div>
+          ) : null}
           {belowHint}
           {showKeyboard ? (
             // Desktop-only — the OS virtual keyboard takes this space on mobile.
