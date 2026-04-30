@@ -148,22 +148,17 @@ function Toggle({
   );
 }
 
-// ─── Vertical separator ────────────────────────────────────────────
-
-function Sep() {
-  return (
-    <span aria-hidden className="hidden h-9 w-px bg-ft-line-soft md:inline" />
-  );
-}
-
 // ─── The dock ──────────────────────────────────────────────────────
+// No bottom border, no vertical sep between segments — segment cards
+// carry their own edges, gap-x-8 between them is visual separator
+// enough. Less chrome, fewer hairlines.
 
 export function ModeBar() {
   const { state, dispatch } = usePractice();
 
   return (
-    <div className="flex shrink-0 items-center justify-center border-b border-ft-line-soft px-5 py-4 sm:px-7">
-      <div className="flex flex-wrap items-end justify-center gap-x-6 gap-y-4">
+    <div className="flex shrink-0 items-center justify-center px-5 py-4 sm:px-7">
+      <div className="flex flex-wrap items-end justify-center gap-x-8 gap-y-4">
         <Segment label="mode">
           <PillGroup
             ariaLabel="Test mode"
@@ -172,8 +167,6 @@ export function ModeBar() {
             onSelect={(mode) => dispatch({ type: "SET_MODE", mode })}
           />
         </Segment>
-
-        <Sep />
 
         <Segment label="length">
           <PillGroup
@@ -184,8 +177,6 @@ export function ModeBar() {
           />
         </Segment>
 
-        <Sep />
-
         <Segment label="language">
           <PillGroup
             ariaLabel="Language"
@@ -195,12 +186,7 @@ export function ModeBar() {
           />
         </Segment>
 
-        <Sep />
-
-        {/* ADAPT — single switch, no card. A bordered container around one
-            control reads like wasted chrome. Inline label + switch keeps
-            the control on the same baseline as the segments while
-            visually deferring to them. */}
+        {/* ADAPT — single switch, no card. */}
         <label className="flex cursor-pointer items-center gap-2.5 self-end pb-[7px]">
           <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-ft-dim">
             adapt

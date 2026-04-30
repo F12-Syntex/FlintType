@@ -17,7 +17,7 @@ export function Readouts() {
   const wordIdx = Math.min(state.cursorWord + (running ? 1 : 0), wordCount);
 
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ft-line-soft pb-5">
+    <div className="flex flex-wrap items-end justify-between gap-4">
       <div className="flex flex-wrap gap-x-10 gap-y-3">
         <Stat label="WPM" value={String(wpm)} accent={running} />
         <Stat label="ACC" value={`${Math.round(accuracy)}%`} />
