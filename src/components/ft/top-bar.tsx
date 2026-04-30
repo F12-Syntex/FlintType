@@ -15,7 +15,7 @@ export function TopBar({
   nav,
   right,
   drawerExtras,
-  version = "v0.4",
+  version = "v0.4 · OPEN SOURCE",
   dark = false,
   sticky = true,
   className,
