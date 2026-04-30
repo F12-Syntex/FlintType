@@ -19,15 +19,9 @@ export function Readouts() {
   return (
     <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ft-line-soft pb-5">
       <div className="flex flex-wrap gap-x-10 gap-y-3">
-        <Stat label="WPM" value={running ? String(wpm) : "—"} accent={running} />
-        <Stat
-          label="ACC"
-          value={running ? `${accuracy.toFixed(1)}%` : "—"}
-        />
-        <Stat
-          label="ERR"
-          value={running ? String(state.errorWords.size) : "—"}
-        />
+        <Stat label="WPM" value={String(wpm)} accent={running} />
+        <Stat label="ACC" value={`${Math.round(accuracy)}%`} />
+        <Stat label="ERR" value={String(state.errorWords.size)} />
       </div>
       <div className="flex flex-wrap gap-x-10 gap-y-3">
         <Stat label="WORD" value={`${wordIdx}/${wordCount}`} align="right" />

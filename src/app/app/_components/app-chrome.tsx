@@ -26,7 +26,9 @@ export function AppChrome({
   return (
     <div
       className={cn(
-        "flex min-h-screen flex-col",
+        // Always match the viewport. main scrolls internally if a page
+        // outgrows the available height; the chrome (topbar + footer) stays put.
+        "flex h-screen flex-col overflow-hidden",
         dark ? "bg-ft-ink text-ft-paper" : "bg-ft-paper text-ft-ink",
         className,
       )}
@@ -38,7 +40,9 @@ export function AppChrome({
         right={ident ?? <IdentDot>@you · 84 wpm avg</IdentDot>}
         drawerExtras={<AppDrawerExtras dark={dark} />}
       />
-      <main className="flex-1">{children}</main>
+      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        {children}
+      </main>
       <AppFooter dark={dark} />
     </div>
   );

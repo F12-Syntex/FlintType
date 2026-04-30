@@ -1,27 +1,28 @@
 "use client";
 
-import { Kbd, Tag } from "@/components/ft";
+import { Kbd } from "@/components/ft";
 import { usePractice } from "./practice-state";
 
+/** A single quiet line below the passage — three states.
+ *  No cards, no callouts, no "today's target" interruption. */
 export function RestHint() {
-  const { state, wpm } = usePractice();
+  const { state, wpm, accuracy } = usePractice();
+  const wordCount = state.words.length;
 
   if (state.phase === "done") {
     return (
-      <div className="flex flex-wrap items-stretch justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3 border-l-2 border-ft-ember bg-ft-ember/[0.06] px-4 py-2.5">
-          <Tag tone="ember">RUN COMPLETE</Tag>
-          <span className="text-[13px] font-medium text-ft-ink">
-            you typed {state.words.length} words at{" "}
-            <span className="text-ft-ember">{wpm} wpm</span>
-          </span>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em]">
+        <div className="flex flex-wrap items-center gap-3 text-ft-ember">
+          <span className="size-1.5 bg-ft-ember" aria-hidden />
+          <span className="font-semibold">complete</span>
+          <span className="text-ft-dim-2">·</span>
+          <span className="text-ft-ink">{wpm} wpm</span>
+          <span className="text-ft-dim-2">·</span>
+          <span className="text-ft-ink">{Math.round(accuracy)}% acc</span>
         </div>
-        <div className="flex flex-wrap items-center gap-3 border border-dashed border-ft-line-soft bg-ft-paper-2/40 px-4 py-2.5">
-          <Tag>RESTART</Tag>
-          <span className="text-[11px] tracking-wide text-ft-dim-2">
-            · press
-          </span>
-          <Kbd>TAB</Kbd>
+        <div className="flex items-center gap-2 text-ft-dim">
+          <Kbd>tab</Kbd>
+          <span>restart</span>
         </div>
       </div>
     );
@@ -29,38 +30,29 @@ export function RestHint() {
 
   if (state.phase === "running") {
     return (
-      <div className="flex flex-wrap items-stretch justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3 border-l-2 border-ft-ember bg-ft-ember/[0.06] px-4 py-2.5">
-          <Tag tone="ember">● RECORDING</Tag>
-          <span className="text-[11px] tracking-wide text-ft-dim-2">
-            · keep typing
+      <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em]">
+        <div className="flex items-center gap-2 text-ft-ember">
+          <span className="size-1.5 animate-pulse bg-ft-ember" aria-hidden />
+          <span className="font-semibold">recording</span>
+          <span className="text-ft-dim-2">·</span>
+          <span className="text-ft-ink">
+            {state.cursorWord}/{wordCount}
           </span>
         </div>
-        <div className="flex flex-wrap items-center gap-3 border border-dashed border-ft-line-soft bg-ft-paper-2/40 px-4 py-2.5">
-          <Tag>CANCEL</Tag>
-          <span className="text-[11px] tracking-wide text-ft-dim-2">
-            · press
-          </span>
-          <Kbd>ESC</Kbd>
+        <div className="flex items-center gap-2 text-ft-dim">
+          <Kbd>esc</Kbd>
+          <span>cancel</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-wrap items-stretch justify-between gap-3">
-      <div className="flex flex-wrap items-center gap-3 border border-dashed border-ft-line-soft bg-ft-paper-2/40 px-4 py-2.5">
-        <Tag tone="ember">START TYPING TO BEGIN</Tag>
-        <span className="text-[11px] tracking-wide text-ft-dim-2">
-          · just start
-        </span>
-      </div>
-      <div className="flex flex-wrap items-center gap-3 border-l-2 border-ft-ember bg-ft-ember/[0.06] px-4 py-2.5">
-        <Tag tone="ember">TODAY&apos;S TARGET</Tag>
-        <span className="text-[13px] font-medium text-ft-ink">
-          break 95 wpm without breaking accuracy
-        </span>
-        <span className="size-1.5 bg-ft-ember" aria-hidden />
+    <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em] text-ft-dim">
+      <span>start typing to begin</span>
+      <div className="flex items-center gap-2">
+        <Kbd>tab</Kbd>
+        <span>new passage</span>
       </div>
     </div>
   );

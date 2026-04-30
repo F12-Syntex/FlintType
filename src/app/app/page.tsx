@@ -1,4 +1,3 @@
-import { Kbd } from "@/components/ft";
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "./_components/app-chrome";
 import { LiveKeyboard } from "./_components/live-keyboard";
@@ -22,29 +21,12 @@ export default function PracticePage() {
       <PracticeProvider>
         <ModeBar />
 
-        <div className="relative flex flex-col gap-7 px-5 pt-8 pb-24 sm:px-20">
+        <div className="flex flex-1 flex-col gap-6 px-5 py-6 sm:px-12 sm:py-8 lg:px-20">
           <Readouts />
-
-          <div className="border-b border-ft-line-soft pb-7">
-            <Passage />
-          </div>
-
+          <Passage />
           <RestHint />
-
-          <div className="border-t border-ft-line-soft pt-1" />
-
-          <LiveKeyboard />
-
-          <div className="mt-6 flex flex-wrap justify-center gap-x-8 gap-y-2 border-t border-ft-line-soft pt-6 text-[10px] uppercase tracking-[0.18em] text-ft-dim">
-            <span>
-              <Kbd>tab</Kbd> restart
-            </span>
-            <span>
-              <Kbd>esc</Kbd> cancel
-            </span>
-            <span>
-              <Kbd>⌘</Kbd>+<Kbd>K</Kbd> command
-            </span>
+          <div className="mt-auto">
+            <LiveKeyboard />
           </div>
         </div>
       </PracticeProvider>

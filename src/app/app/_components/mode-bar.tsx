@@ -1,6 +1,5 @@
 "use client";
 
-import { Tag } from "@/components/ft";
 import { cn } from "@/lib/utils";
 import {
   type Lang,
@@ -13,7 +12,15 @@ const MODES: readonly Mode[] = ["WORDS", "TIME", "QUOTE", "CODE"];
 const LENGTHS: readonly Length[] = [25, 50, 100, 200];
 const LANGS: readonly Lang[] = ["EN", "EN-COMMON", "PROGRAMMING"];
 
-function Option<T extends string | number>({
+function GroupLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-[10px] uppercase tracking-[0.2em] text-ft-dim">
+      {children}
+    </span>
+  );
+}
+
+function Pill<T extends string | number>({
   value,
   active,
   onClick,
@@ -32,10 +39,10 @@ function Option<T extends string | number>({
         e.currentTarget.blur();
       }}
       className={cn(
-        "px-1 py-1 text-[11px] tracking-[0.1em] uppercase transition-colors outline-none",
-        "focus-visible:text-ft-ink",
+        "rounded-md px-2.5 py-1 text-xs uppercase tracking-[0.1em] transition-colors outline-none",
+        "focus-visible:ring-1 focus-visible:ring-ft-ember",
         active
-          ? "border-b border-ft-ember pb-0.5 font-semibold text-ft-ink"
+          ? "bg-ft-ember/10 font-semibold text-ft-ember"
           : "text-ft-dim hover:text-ft-ink",
       )}
     >
@@ -46,23 +53,23 @@ function Option<T extends string | number>({
 
 function Group<T extends string | number>({
   label,
+  ariaLabel,
   items,
   active,
   onSelect,
-  ariaLabel,
 }: {
   label: string;
+  ariaLabel: string;
   items: readonly T[];
   active: T;
   onSelect: (value: T) => void;
-  ariaLabel: string;
 }) {
   return (
-    <div className="flex items-center gap-3">
-      <Tag>{label}</Tag>
-      <div role="radiogroup" aria-label={ariaLabel} className="flex gap-3">
+    <div className="flex items-center gap-1.5">
+      <GroupLabel>{label}</GroupLabel>
+      <div role="radiogroup" aria-label={ariaLabel} className="flex gap-0.5">
         {items.map((it) => (
-          <Option
+          <Pill
             key={String(it)}
             value={it}
             active={it === active}
@@ -74,7 +81,7 @@ function Group<T extends string | number>({
   );
 }
 
-function Switch({
+function Toggle({
   on,
   onToggle,
   ariaLabel,
@@ -94,14 +101,14 @@ function Switch({
         e.currentTarget.blur();
       }}
       className={cn(
-        "inline-flex h-3.5 w-7 items-center border p-px transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ft-ember",
-        on ? "border-ft-ember bg-ft-ember" : "border-ft-dim hover:border-ft-ink",
+        "inline-flex h-4 w-7 items-center rounded-full border p-0.5 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ft-ember",
+        on ? "border-ft-ember bg-ft-ember" : "border-ft-line-soft hover:border-ft-dim",
       )}
     >
       <span
         aria-hidden
         className={cn(
-          "size-2.5 transition-transform",
+          "size-2.5 rounded-full transition-transform",
           on ? "translate-x-3 bg-white" : "translate-x-0 bg-ft-dim",
         )}
       />
@@ -109,46 +116,35 @@ function Switch({
   );
 }
 
-function Dot() {
-  return (
-    <span aria-hidden className="text-ft-line-soft text-xs">
-      ·
-    </span>
-  );
-}
-
 export function ModeBar() {
   const { state, dispatch } = usePractice();
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 border-b border-ft-line-soft px-5 py-5 sm:px-7">
+    <div className="flex shrink-0 flex-wrap items-center justify-center gap-x-6 gap-y-2 border-b border-ft-line-soft px-5 py-3.5 sm:px-7">
       <Group
-        label="MODE"
+        label="mode"
         ariaLabel="Test mode"
         items={MODES}
         active={state.mode}
         onSelect={(mode) => dispatch({ type: "SET_MODE", mode })}
       />
-      <Dot />
       <Group
-        label="LENGTH"
+        label="length"
         ariaLabel="Word count"
         items={LENGTHS}
         active={state.length}
         onSelect={(length) => dispatch({ type: "SET_LENGTH", length })}
       />
-      <Dot />
       <Group
-        label="LANG"
+        label="lang"
         ariaLabel="Language"
         items={LANGS}
         active={state.lang}
         onSelect={(lang) => dispatch({ type: "SET_LANG", lang })}
       />
-      <Dot />
-      <div className="flex items-center gap-3">
-        <Tag>ADAPT</Tag>
-        <Switch
+      <div className="flex items-center gap-2">
+        <GroupLabel>adapt</GroupLabel>
+        <Toggle
           on={state.adapt}
           onToggle={() => dispatch({ type: "TOGGLE_ADAPT" })}
           ariaLabel="Adaptive drilling"

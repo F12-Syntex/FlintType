@@ -67,7 +67,7 @@ function Key({
   return (
     <div
       className={cn(
-        "relative flex h-9 items-center text-xs font-medium tabular-nums",
+        "relative flex h-9 items-center overflow-hidden rounded-md text-xs font-medium tabular-nums",
         isPrefix || isSuffix ? "justify-start pl-1.5" : "justify-center",
         isPrefix || isSuffix
           ? "text-[9px] uppercase tracking-[0.14em] text-ft-dim-2"
@@ -88,7 +88,7 @@ function Key({
       <span>{label}</span>
       {recentIdx >= 0 ? (
         <span
-          className="pointer-events-none absolute inset-0 border-[1.5px] border-ft-ember"
+          className="pointer-events-none absolute inset-0 rounded-md border-[1.5px] border-ft-ember"
           style={{ opacity: recentOpacity * 0.6 }}
           aria-hidden
         />
@@ -266,7 +266,7 @@ export function LiveKeyboard() {
           />
           <div
             className={cn(
-              "flex h-9 items-center justify-center border text-[9px] tracking-[0.18em] transition-colors",
+              "flex h-9 items-center justify-center rounded-md border text-[9px] tracking-[0.18em] transition-colors",
               nextKey === "space"
                 ? "border-[1.5px] border-ft-ember bg-ft-ember font-bold text-white"
                 : "border-ft-line-soft bg-white text-ft-dim",
