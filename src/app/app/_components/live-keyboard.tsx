@@ -305,59 +305,165 @@ export function LiveKeyboard() {
       ref={surfaceRef}
       className="relative flex w-full justify-center overflow-x-auto pt-7"
     >
-      {/* ─── finger pucks overlay ──────────────────────────────────── */}
-      {FINGERS.map((f) => {
-        const homeKey = HOME_KEY[f]!;
-        const homeCenter = centers[homeKey];
-        if (!homeCenter) return null;
-        const isPressed = pressed?.finger === f;
-        const target = isPressed ? pressed.center : homeCenter;
-        const HOVER_OFFSET = 26;
-        const PRESS_OFFSET = 6;
-        const x = target.x;
-        const y = isPressed
-          ? target.y - PRESS_OFFSET
-          : homeCenter.y - HOVER_OFFSET;
-        return (
-          <span
-            key={f}
-            aria-hidden
-            className={cn(
-              "pointer-events-none absolute size-3 rounded-full border-[1.5px] border-white shadow-md transition-all duration-150 ease-out",
-              isPressed && "scale-110",
-            )}
-            style={{
-              left: x,
-              top: y,
-              transform: "translate(-50%, -50%)",
-              backgroundColor: FINGER_COLOR[f],
-            }}
-          />
-        );
-      })}
+      {/* ─── hand simulation overlay ──────────────────────────────────── */}
+      <svg
+        className="pointer-events-none absolute inset-0 z-10 size-full overflow-visible"
+        aria-hidden
+      >
+        <defs>
+          <filter id="hologram-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
 
-      {/* ─── thumbs: hover above the spacebar, dive on press ───────── */}
-      {centers.space ? (
-        <>
-          {[-22, 22].map((dx, i) => (
-            <span
-              key={`thumb-${i}`}
-              aria-hidden
-              className={cn(
-                "pointer-events-none absolute size-3 rounded-full border-[1.5px] border-white bg-[#9A7A52] shadow-md transition-all duration-150 ease-out",
-                thumbPressed && "scale-110",
-              )}
-              style={{
-                left: centers.space.x + dx,
-                top: thumbPressed
-                  ? centers.space.y - 6
-                  : centers.space.y - 26,
-                transform: "translate(-50%, -50%)",
-              }}
-            />
-          ))}
-        </>
-      ) : null}
+        {centers["a"] && centers[";"] && centers.space && (
+          <>
+            {[false, true].map((isRight) => {
+              const fingers = isRight ? [5, 6, 7, 8] : [1, 2, 3, 4];
+              const wristX = isRight ? centers["k"].x + 20 : centers["d"].x - 20;
+              const wristY = centers["k"].y + 160;
+
+              const palmX = isRight ? centers["k"].x : centers["d"].x;
+              const palmY = centers["k"].y + 70;
+
+              const thumbBaseX = isRight ? palmX - 20 : palmX + 20;
+              const thumbBaseY = palmY + 20;
+
+              const thumbKnuckleX = isRight ? palmX - 40 : palmX + 40;
+              const thumbKnuckleY = palmY + 40;
+
+              const thumbTipX = centers.space.x + (isRight ? 30 : -30);
+              const thumbTipY = thumbPressed
+                ? centers.space.y - 6
+                : centers.space.y - 26;
+
+              // Holographic cyan theme
+              const strokeColor = "#00ffff";
+              const opacityBase = 0.6;
+              const opacityHigh = 0.8;
+
+              return (
+                <g key={isRight ? "right" : "left"} filter="url(#hologram-glow)">
+                  {/* Wrist to Palm */}
+                  <line
+                    x1={wristX}
+                    y1={wristY}
+                    x2={palmX}
+                    y2={palmY}
+                    stroke={strokeColor}
+                    strokeWidth="3"
+                    opacity={opacityBase}
+                  />
+                  <circle cx={wristX} cy={wristY} r="4" fill={strokeColor} opacity={opacityHigh} />
+                  <circle cx={palmX} cy={palmY} r="5" fill={strokeColor} opacity={opacityHigh} />
+
+                  {/* Palm to Thumb */}
+                  <line
+                    x1={palmX}
+                    y1={palmY}
+                    x2={thumbBaseX}
+                    y2={thumbBaseY}
+                    stroke={strokeColor}
+                    strokeWidth="2.5"
+                    opacity={opacityBase}
+                  />
+                  <line
+                    x1={thumbBaseX}
+                    y1={thumbBaseY}
+                    x2={thumbKnuckleX}
+                    y2={thumbKnuckleY}
+                    stroke={strokeColor}
+                    strokeWidth="2.5"
+                    opacity={opacityBase}
+                  />
+                  <line
+                    x1={thumbKnuckleX}
+                    y1={thumbKnuckleY}
+                    x2={thumbTipX}
+                    y2={thumbTipY}
+                    stroke={strokeColor}
+                    strokeWidth="2.5"
+                    opacity={opacityHigh}
+                    className="transition-all duration-150 ease-out"
+                  />
+
+                  <circle cx={thumbBaseX} cy={thumbBaseY} r="3" fill={strokeColor} opacity={0.7} />
+                  <circle cx={thumbKnuckleX} cy={thumbKnuckleY} r="3" fill={strokeColor} opacity={0.7} />
+                  <circle
+                    cx={thumbTipX}
+                    cy={thumbTipY}
+                    r={thumbPressed ? "8" : "6"}
+                    fill={strokeColor}
+                    className="transition-all duration-150 ease-out"
+                  />
+
+                  {/* Fingers */}
+                  {fingers.map((f) => {
+                    const homeKey = HOME_KEY[f]!;
+                    const homeCenter = centers[homeKey];
+                    if (!homeCenter) return null;
+
+                    const isPressed = pressed?.finger === f;
+                    const target = isPressed ? pressed.center : homeCenter;
+                    const HOVER_OFFSET = 26;
+                    const PRESS_OFFSET = 6;
+
+                    const tipX = target.x;
+                    const tipY = isPressed
+                      ? target.y - PRESS_OFFSET
+                      : homeCenter.y - HOVER_OFFSET;
+
+                    const knuckleX = homeCenter.x;
+                    const knuckleY = palmY - 20;
+
+                    return (
+                      <g key={f}>
+                        {/* Palm to Knuckle */}
+                        <line
+                          x1={palmX}
+                          y1={palmY}
+                          x2={knuckleX}
+                          y2={knuckleY}
+                          stroke={strokeColor}
+                          strokeWidth="2.5"
+                          opacity={opacityBase}
+                        />
+                        <circle cx={knuckleX} cy={knuckleY} r="3" fill={strokeColor} opacity={0.7} />
+
+                        {/* Knuckle to Tip */}
+                        <line
+                          x1={knuckleX}
+                          y1={knuckleY}
+                          x2={tipX}
+                          y2={tipY}
+                          stroke={strokeColor}
+                          strokeWidth="2.5"
+                          opacity={opacityHigh}
+                          className="transition-all duration-150 ease-out"
+                        />
+
+                        {/* Tip */}
+                        <circle
+                          cx={tipX}
+                          cy={tipY}
+                          r={isPressed ? "8" : "6"}
+                          fill={strokeColor}
+                          className="transition-all duration-150 ease-out"
+                        />
+                      </g>
+                    );
+                  })}
+                </g>
+              );
+            })}
+          </>
+        )}
+      </svg>
 
       {/* ─── keyboard grid ──────────────────────────────────────────── */}
       <div className="flex flex-col items-center" style={{ gap: ROW_GAP }}>
