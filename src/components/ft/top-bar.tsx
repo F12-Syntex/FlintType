@@ -92,18 +92,14 @@ export function TopBar({
 
 export function IdentDot({
   children,
-  emberDot = false,
 }: {
   children: React.ReactNode;
+  /** @deprecated retained so existing callers compile; the indicator dot was removed. */
   emberDot?: boolean;
 }) {
   return (
-    <span className="hidden items-center gap-3 text-[11px] uppercase tracking-[0.14em] md:flex">
-      <span>{children}</span>
-      <span
-        className={cn("size-1.5", emberDot ? "bg-ft-ember" : "bg-ft-ok")}
-        aria-hidden
-      />
+    <span className="hidden items-center text-[11px] uppercase tracking-[0.14em] md:flex">
+      {children}
     </span>
   );
 }
