@@ -26,12 +26,13 @@ export function Key({
   return (
     <div
       aria-hidden
+      data-pressed={hot ? "true" : "false"}
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       className={cn(
-        "relative flex h-9 items-center justify-center rounded-[6px] border font-mono text-sm transition-colors sm:h-10",
+        "relative flex h-9 items-center justify-center rounded-[6px] border font-mono text-sm transition-all duration-100 ease-out sm:h-10",
         hot
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-foreground/10 bg-card text-card-foreground",
+          ? "scale-[0.92] border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/40"
+          : "scale-100 border-foreground/10 bg-card text-card-foreground shadow-none",
         def.variant === "modifier" && "text-[10px] uppercase tracking-[0.14em]",
       )}
     >
