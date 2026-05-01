@@ -47,7 +47,7 @@ export function TypingSurface({
             <Readouts />
           </div>
         ) : null}
-        <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pt-4 pb-3 sm:gap-6 sm:px-12 sm:py-8 lg:px-20">
+        <div className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-4 px-4 pt-4 pb-3 sm:gap-6 sm:py-8">
           {/* Passage gets the leftover vertical space and scrolls
               internally. scroll-into-view in <Passage> keeps the cursor
               centered, so the passage's own scrollbar is invisible. */}
