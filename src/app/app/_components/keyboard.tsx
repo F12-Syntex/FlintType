@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   type KeyDef,
@@ -10,10 +9,7 @@ import {
 } from "./keyboard-layouts";
 
 export type KeyboardProps = {
-  /** Initial layout. Defaults to qwerty. The user can switch via the
-   *  selector on the panel; nothing else in the app needs to change. */
   layout?: LayoutId;
-  /** Hide the layout selector strip if the host page already exposes one. */
   showLayoutPicker?: boolean;
   className?: string;
 };
@@ -66,12 +62,9 @@ export function Keyboard({
   return (
     <div
       className={cn(
-        // Panel: light, modern surface — soft tint off the page, hairline
-        // border, no heavy shadow. Hex so Tailwind doesn't trip on
-        // arbitrary HSL parsing.
-        "mx-auto flex w-full max-w-2xl flex-col gap-2 rounded-xl border p-3",
-        "border-black/8 bg-[#EFE9DB]",
-        "dark:border-white/8 dark:bg-[#1B1A17]",
+        "mx-auto flex w-full max-w-2xl flex-col gap-2 border p-3",
+        "border-ft-line-soft bg-ft-paper-2",
+        "dark:border-ft-line dark:bg-ft-ink-2",
         className,
       )}
       role="img"
@@ -80,9 +73,9 @@ export function Keyboard({
       {showLayoutPicker && (
         <LayoutPicker active={active} onChange={setActive} />
       )}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         {rows.map((row, i) => (
-          <div key={i} className="flex w-full gap-1.5">
+          <div key={i} className="flex w-full gap-1">
             {row.map((k) => (
               <Key
                 key={k.code}
@@ -111,19 +104,25 @@ function LayoutPicker({
 }) {
   return (
     <div className="flex items-center justify-center gap-1">
-      {(Object.keys(LAYOUTS) as LayoutId[]).map((id) => (
-        <Button
-          key={id}
-          type="button"
-          tabIndex={-1}
-          size="xs"
-          variant={id === active ? "default" : "ghost"}
-          onClick={() => onChange(id)}
-          className="font-mono text-[10px] uppercase tracking-[0.16em]"
-        >
-          {LAYOUTS[id].name}
-        </Button>
-      ))}
+      {(Object.keys(LAYOUTS) as LayoutId[]).map((id) => {
+        const isActive = id === active;
+        return (
+          <button
+            key={id}
+            type="button"
+            tabIndex={-1}
+            onClick={() => onChange(id)}
+            className={cn(
+              "border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] transition-colors",
+              isActive
+                ? "border-ft-ink bg-ft-ink text-ft-paper dark:border-ft-paper dark:bg-ft-paper dark:text-ft-ink"
+                : "border-transparent text-ft-dim hover:text-ft-ink dark:hover:text-ft-paper",
+            )}
+          >
+            {LAYOUTS[id].name}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -135,9 +134,8 @@ function Key({
   upper,
 }: {
   def: KeyDef;
-  pressed: boolean;
-  /** Modifier in its "on" state (CapsLock active, Shift held). */
   lit: boolean;
+  pressed: boolean;
   upper: boolean;
 }) {
   const units = def.units ?? 1;
@@ -151,30 +149,22 @@ function Key({
   const hot = pressed || lit;
 
   return (
-    <Button
-      type="button"
-      tabIndex={-1}
-      size="sm"
-      variant={hot ? "default" : "outline"}
+    <div
+      aria-hidden
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
-      aria-pressed={hot}
       className={cn(
-        // Flat, modern keycap — no 3D shadow. Hairline border + flat fill,
-        // both surfaces explicit so the panel tint never bleeds through.
-        "relative h-9 px-0 font-mono text-sm transition-colors sm:h-10",
-        "border-black/8 bg-white text-zinc-800 shadow-none hover:bg-white",
-        "dark:border-white/8 dark:bg-[#2A2825] dark:text-zinc-100 dark:hover:bg-[#2A2825]",
-        def.variant === "modifier" &&
-          "text-[10px] uppercase tracking-[0.14em]",
-        hot &&
-          "border-primary bg-primary text-primary-foreground hover:bg-primary dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary",
+        "relative flex h-9 items-center justify-center border font-mono text-sm transition-colors sm:h-10",
+        hot
+          ? "border-ft-ember bg-ft-ember text-ft-paper"
+          : "border-ft-line-soft bg-white text-ft-ink dark:border-ft-line dark:bg-ft-ink dark:text-ft-paper",
+        def.variant === "modifier" && "text-[10px] uppercase tracking-[0.14em]",
       )}
     >
       {def.shiftLabel && def.variant !== "modifier" && (
         <span
           className={cn(
-            "pointer-events-none absolute top-0.5 left-1.5 text-[9px] tabular-nums opacity-50",
-            hot && "opacity-80",
+            "pointer-events-none absolute top-0.5 left-1.5 text-[9px] tabular-nums",
+            hot ? "text-ft-paper/80" : "text-ft-dim",
           )}
         >
           {def.shiftLabel}
@@ -185,6 +175,6 @@ function Key({
       ) : (
         <span className="tabular-nums">{main}</span>
       )}
-    </Button>
+    </div>
   );
 }
