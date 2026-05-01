@@ -211,7 +211,22 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    /* User-controlled scale multiplier (set from /app/customise/appearance).
+       Defaults to 1, multiplies the browser's 16px root, so every rem-based
+       size in the app scales consistently. */
+    font-size: calc(var(--ft-font-scale, 1) * 100%);
+  }
   body {
     @apply bg-background text-foreground;
+    /* Custom font family override (set from appearance). Falls back to
+       the Plus Jakarta Sans wired in layout.tsx. */
+    font-family: var(--ft-font-family, var(--font-sans));
+    /* Custom background image (set from appearance). data: URLs ok. */
+    background-image: var(--ft-bg-image, none);
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
   }
 }

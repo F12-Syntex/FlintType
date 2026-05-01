@@ -4,7 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 
 const STORAGE_KEY = "ft-theme-vars";
 
+/** Every CSS variable the user can override from the appearance page.
+ *  The page may set any of these on `:root` via inline style; absence
+ *  falls back to the default in globals.css. */
 export const THEME_VARS = [
+  // Color tokens
   "--background",
   "--foreground",
   "--card",
@@ -18,7 +22,12 @@ export const THEME_VARS = [
   "--border",
   "--input",
   "--ring",
+  // Geometry / typography
   "--radius",
+  // Custom flinttype customization tokens (consumed by globals.css body)
+  "--ft-bg-image",
+  "--ft-font-family",
+  "--ft-font-scale",
 ] as const;
 
 export type ThemeVar = (typeof THEME_VARS)[number];

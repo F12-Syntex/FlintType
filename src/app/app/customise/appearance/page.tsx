@@ -1,5 +1,7 @@
 "use client";
 
+import { ChevronDown, Upload } from "lucide-react";
+import { useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,11 +11,25 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  ColorPicker,
+  type ColorPickerValue,
+} from "@/components/ui/color-picker";
+import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import {
   type ThemeVar,
   useThemeOverrides,
 } from "@/lib/theme-customization";
+
+// ─── Color section ─────────────────────────────────────────────────
+
+type ColorRow = {
+  var: ThemeVar;
+  label: string;
+  desc: string;
+  preview: PreviewKind;
+};
 
 type PreviewKind =
   | "page"
@@ -29,32 +45,7 @@ type PreviewKind =
   | "input"
   | "ring";
 
-type ColorSetting = {
-  var: ThemeVar;
-  label: string;
-  desc: string;
-  preview: PreviewKind;
-};
-
-const COLOR_SETTINGS: readonly ColorSetting[] = [
-  {
-    var: "--background",
-    label: "Page background",
-    desc: "The main canvas behind every screen",
-    preview: "page",
-  },
-  {
-    var: "--foreground",
-    label: "Body text",
-    desc: "Default text color for headlines and prose",
-    preview: "text",
-  },
-  {
-    var: "--card",
-    label: "Card surface",
-    desc: "Lifted panels — settings rows, popovers, the practice mode-bar",
-    preview: "card",
-  },
+const COLOR_ROWS: readonly ColorRow[] = [
   {
     var: "--primary",
     label: "Primary accent",
@@ -80,6 +71,24 @@ const COLOR_SETTINGS: readonly ColorSetting[] = [
     preview: "accent-foreground",
   },
   {
+    var: "--background",
+    label: "Page background",
+    desc: "The main canvas behind every screen",
+    preview: "page",
+  },
+  {
+    var: "--foreground",
+    label: "Body text",
+    desc: "Default text color for headlines and prose",
+    preview: "text",
+  },
+  {
+    var: "--card",
+    label: "Card surface",
+    desc: "Lifted panels — settings rows, popovers, mode-bar",
+    preview: "card",
+  },
+  {
     var: "--muted",
     label: "Muted surface",
     desc: "Sidebars and de-emphasized regions",
@@ -100,7 +109,7 @@ const COLOR_SETTINGS: readonly ColorSetting[] = [
   {
     var: "--input",
     label: "Input track",
-    desc: "Form field backgrounds and toggle off-state tracks",
+    desc: "Form fields and toggle off-state tracks",
     preview: "input",
   },
   {
@@ -170,47 +179,55 @@ function Preview({ kind }: { kind: PreviewKind }) {
         </div>
       );
     case "ring":
-      return (
-        <div className="h-9 w-20 rounded-sm bg-card ring-2 ring-ring" />
-      );
+      return <div className="h-9 w-20 rounded-sm bg-card ring-2 ring-ring" />;
   }
 }
 
-function ColorRow({
-  setting,
+function ColorRowCard({
+  row,
   value,
   onChange,
   onClear,
 }: {
-  setting: ColorSetting;
+  row: ColorRow;
   value: string | undefined;
-  onChange: (v: string) => void;
+  onChange: (hex: string) => void;
   onClear: () => void;
 }) {
-  // <input type="color"> only accepts hex. If the user has stored a hex,
-  // surface it. Otherwise default the picker to mid-grey — the actual
-  // swatch reads the current resolved CSS variable so it stays accurate
-  // regardless of underlying format (oklch in globals.css, hex from the
-  // user, hsl, etc.).
-  const inputValue =
-    value && /^#[0-9a-f]{6}$/i.test(value) ? value : "#888888";
+  const swatch = value ?? undefined;
   const customized = value !== undefined;
 
   return (
     <Card className="rounded-md shadow-sm ring-border">
       <CardHeader>
-        <CardTitle className="text-sm font-semibold">{setting.label}</CardTitle>
-        <CardDescription>{setting.desc}</CardDescription>
+        <CardTitle className="text-sm font-semibold">{row.label}</CardTitle>
+        <CardDescription>{row.desc}</CardDescription>
         <CardAction>
           <div className="flex items-center gap-3">
-            <Preview kind={setting.preview} />
-            <input
-              type="color"
-              aria-label={setting.label}
-              value={inputValue}
-              onChange={(e) => onChange(e.target.value)}
-              className="h-8 w-12 cursor-pointer rounded-md border border-border bg-card"
-            />
+            <Preview kind={row.preview} />
+            <ColorPicker
+              value={
+                swatch && /^#[0-9a-f]{6}$/i.test(swatch)
+                  ? (swatch as `#${string}`)
+                  : "#888888"
+              }
+              onValueChange={(v: ColorPickerValue) => onChange(v.hex)}
+              hideContrastRatio
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                aria-label={`Pick ${row.label}`}
+              >
+                <span
+                  className="inline-block h-4 w-4 rounded-sm border border-border"
+                  style={{ backgroundColor: `var(${row.var})` }}
+                />
+                {swatch ?? "Default"}
+                <ChevronDown size={14} />
+              </Button>
+            </ColorPicker>
             {customized ? (
               <Button variant="ghost" size="sm" onClick={onClear}>
                 Reset
@@ -222,6 +239,8 @@ function ColorRow({
     </Card>
   );
 }
+
+// ─── Radius ────────────────────────────────────────────────────────
 
 function RadiusRow({
   value,
@@ -243,20 +262,33 @@ function RadiusRow({
         </CardDescription>
         <CardAction>
           <div className="flex items-center gap-3">
-            <div
-              aria-hidden
-              className="h-9 w-9 border-2 border-primary bg-card"
-              style={{ borderRadius: `var(--radius)` }}
-            />
+            <div className="flex gap-2">
+              <div
+                aria-hidden
+                className="h-9 w-9 border-2 border-primary bg-card"
+                style={{ borderRadius: "var(--radius)" }}
+              />
+              <div
+                aria-hidden
+                className="h-9 w-12 border border-border bg-muted"
+                style={{ borderRadius: "var(--radius)" }}
+              />
+              <span
+                aria-hidden
+                className="inline-flex h-9 items-center bg-primary px-3 text-xs font-semibold text-primary-foreground"
+                style={{ borderRadius: "var(--radius)" }}
+              >
+                Save
+              </span>
+            </div>
             <Slider
               value={[numeric]}
               min={0}
               max={1.5}
               step={0.05}
               onValueChange={(v) => {
-                if (Array.isArray(v) && typeof v[0] === "number") {
+                if (Array.isArray(v) && typeof v[0] === "number")
                   onChange(v[0]);
-                }
               }}
               className="w-44"
             />
@@ -275,6 +307,261 @@ function RadiusRow({
   );
 }
 
+// ─── Font family ───────────────────────────────────────────────────
+
+const FONT_OPTIONS: ReadonlyArray<{ id: string; label: string; stack: string }> =
+  [
+    {
+      id: "default",
+      label: "Plus Jakarta Sans (default)",
+      stack: "var(--font-sans)",
+    },
+    {
+      id: "mono",
+      label: "IBM Plex Mono",
+      stack: "var(--font-mono)",
+    },
+    {
+      id: "serif",
+      label: "Lora",
+      stack: "var(--font-serif)",
+    },
+    {
+      id: "system",
+      label: "System UI",
+      stack:
+        "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif",
+    },
+    {
+      id: "georgia",
+      label: "Georgia",
+      stack: "Georgia, 'Times New Roman', serif",
+    },
+  ];
+
+function FontFamilyRow({
+  value,
+  onChange,
+  onClear,
+}: {
+  value: string | undefined;
+  onChange: (stack: string) => void;
+  onClear: () => void;
+}) {
+  // Identify the active option by stack equality so the visual selection
+  // survives a remount (cleared override → "default" highlighted again).
+  const active =
+    FONT_OPTIONS.find((o) => o.stack === value)?.id ?? "default";
+
+  return (
+    <Card className="rounded-md shadow-sm ring-border">
+      <CardHeader>
+        <CardTitle className="text-sm font-semibold">Font family</CardTitle>
+        <CardDescription>
+          Pick a face — the sample under each option renders in that font
+        </CardDescription>
+      </CardHeader>
+      <div className="flex flex-col gap-2 px-4 pb-4">
+        {FONT_OPTIONS.map((opt) => (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() =>
+              opt.id === "default" ? onClear() : onChange(opt.stack)
+            }
+            className={
+              "flex flex-col items-start gap-1 rounded-md border p-3 text-left transition-colors " +
+              (active === opt.id
+                ? "border-primary bg-primary/5"
+                : "border-border hover:bg-muted")
+            }
+            style={{ fontFamily: opt.stack }}
+          >
+            <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+              {opt.label}
+            </span>
+            <span className="text-xl font-semibold text-foreground">
+              The quick brown fox jumps over the lazy dog
+            </span>
+            <span className="text-sm text-muted-foreground">
+              0123456789 — &amp;@#%
+            </span>
+          </button>
+        ))}
+        {value !== undefined ? (
+          <div className="flex justify-end">
+            <Button variant="ghost" size="sm" onClick={onClear}>
+              Reset to default
+            </Button>
+          </div>
+        ) : null}
+      </div>
+    </Card>
+  );
+}
+
+// ─── Font size ─────────────────────────────────────────────────────
+
+const SIZE_PRESETS: ReadonlyArray<{ label: string; scale: number }> = [
+  { label: "S", scale: 0.875 },
+  { label: "M", scale: 1.0 },
+  { label: "L", scale: 1.125 },
+  { label: "XL", scale: 1.25 },
+];
+
+function FontSizeRow({
+  value,
+  onChange,
+  onClear,
+}: {
+  value: string | undefined;
+  onChange: (scale: number) => void;
+  onClear: () => void;
+}) {
+  const scale = value ? Number.parseFloat(value) : 1;
+
+  return (
+    <Card className="rounded-md shadow-sm ring-border">
+      <CardHeader>
+        <CardTitle className="text-sm font-semibold">Font size</CardTitle>
+        <CardDescription>
+          Scales every rem-based size across the app — pick a preset or
+          fine-tune below
+        </CardDescription>
+      </CardHeader>
+      <div className="flex flex-col gap-3 px-4 pb-4">
+        <div className="flex flex-wrap gap-2">
+          {SIZE_PRESETS.map((p) => (
+            <Button
+              key={p.label}
+              variant={Math.abs(p.scale - scale) < 0.01 ? "default" : "outline"}
+              size="sm"
+              onClick={() => onChange(p.scale)}
+            >
+              {p.label} <span className="ml-1 opacity-60">{p.scale}×</span>
+            </Button>
+          ))}
+        </div>
+        <div className="flex items-center gap-3">
+          <Slider
+            value={[scale]}
+            min={0.75}
+            max={1.5}
+            step={0.025}
+            onValueChange={(v) => {
+              if (Array.isArray(v) && typeof v[0] === "number") onChange(v[0]);
+            }}
+            className="w-60"
+          />
+          <Badge variant="outline" className="px-2 tabular-nums">
+            {scale.toFixed(3)}×
+          </Badge>
+          {value !== undefined ? (
+            <Button variant="ghost" size="sm" onClick={onClear}>
+              Reset
+            </Button>
+          ) : null}
+        </div>
+        <div
+          className="rounded-md border border-border bg-card p-4"
+          style={{ fontSize: `${scale}rem` }}
+        >
+          <p className="text-base text-foreground">
+            Sample paragraph — every rem you read is now at the chosen
+            scale. Headlines below scale in proportion.
+          </p>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">
+            Heading sample
+          </p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// ─── Background ────────────────────────────────────────────────────
+
+function BackgroundRow({
+  bgImage,
+  onSetImage,
+  onClearImage,
+}: {
+  bgImage: string | undefined;
+  onSetImage: (cssValue: string) => void;
+  onClearImage: () => void;
+}) {
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
+  function handleFile(file: File) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result;
+      if (typeof result === "string") {
+        onSetImage(`url("${result}")`);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <Card className="rounded-md shadow-sm ring-border">
+      <CardHeader>
+        <CardTitle className="text-sm font-semibold">
+          Custom background image
+        </CardTitle>
+        <CardDescription>
+          Upload an image — covers the page beneath every surface. PNG / JPG
+          / WebP. Stored locally as a data URL.
+        </CardDescription>
+      </CardHeader>
+      <div className="flex flex-col gap-3 px-4 pb-4">
+        <div
+          className="h-32 rounded-md border border-border"
+          style={{
+            backgroundImage: bgImage ?? "none",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundColor: bgImage ? "transparent" : "var(--muted)",
+          }}
+          aria-hidden
+        />
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFile(file);
+            }}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fileRef.current?.click()}
+            className="gap-2"
+          >
+            <Upload size={14} /> Upload image
+          </Button>
+          <Input
+            placeholder='or paste url("https://…")'
+            value={bgImage ?? ""}
+            onChange={(e) => onSetImage(e.target.value)}
+          />
+          {bgImage ? (
+            <Button variant="ghost" size="sm" onClick={onClearImage}>
+              Remove
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// ─── Page ──────────────────────────────────────────────────────────
+
 export default function AppearancePage() {
   const { overrides, setVar, clearVar, reset } = useThemeOverrides();
   const customizedCount = Object.keys(overrides).length;
@@ -292,7 +579,7 @@ export default function AppearancePage() {
           <h2 className="text-2xl font-bold tracking-tight">Appearance</h2>
           <div className="flex items-center gap-3">
             <Badge variant="secondary" className="px-2 text-[0.65rem]">
-              {COLOR_SETTINGS.length + 1} options
+              {COLOR_ROWS.length + 4} options
             </Badge>
             {customizedCount > 0 ? (
               <Badge className="px-2 text-[0.65rem]">
@@ -311,23 +598,61 @@ export default function AppearancePage() {
         </div>
       </header>
 
-      <div className="flex flex-col gap-3">
-        {COLOR_SETTINGS.map((setting) => (
-          <ColorRow
-            key={setting.var}
-            setting={setting}
-            value={overrides[setting.var]}
-            onChange={(v) => setVar(setting.var, v)}
-            onClear={() => clearVar(setting.var)}
+      <SectionHeader label="Colors" />
+      <div className="mb-8 flex flex-col gap-3">
+        {COLOR_ROWS.map((row) => (
+          <ColorRowCard
+            key={row.var}
+            row={row}
+            value={overrides[row.var]}
+            onChange={(hex) => setVar(row.var, hex)}
+            onClear={() => clearVar(row.var)}
           />
         ))}
+      </div>
 
+      <SectionHeader label="Geometry" />
+      <div className="mb-8 flex flex-col gap-3">
         <RadiusRow
           value={overrides["--radius"]}
           onChange={(rem) => setVar("--radius", `${rem}rem`)}
           onClear={() => clearVar("--radius")}
         />
       </div>
+
+      <SectionHeader label="Typography" />
+      <div className="mb-8 flex flex-col gap-3">
+        <FontFamilyRow
+          value={overrides["--ft-font-family"]}
+          onChange={(stack) => setVar("--ft-font-family", stack)}
+          onClear={() => clearVar("--ft-font-family")}
+        />
+        <FontSizeRow
+          value={overrides["--ft-font-scale"]}
+          onChange={(scale) => setVar("--ft-font-scale", String(scale))}
+          onClear={() => clearVar("--ft-font-scale")}
+        />
+      </div>
+
+      <SectionHeader label="Background" />
+      <div className="mb-8 flex flex-col gap-3">
+        <BackgroundRow
+          bgImage={overrides["--ft-bg-image"]}
+          onSetImage={(v) => setVar("--ft-bg-image", v)}
+          onClearImage={() => clearVar("--ft-bg-image")}
+        />
+      </div>
     </section>
+  );
+}
+
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <div className="mb-3 flex items-center gap-3">
+      <span aria-hidden className="inline-block h-px w-5 bg-primary" />
+      <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+        {label}
+      </h3>
+    </div>
   );
 }
