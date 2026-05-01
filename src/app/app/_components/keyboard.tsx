@@ -168,8 +168,10 @@ export function Keyboard({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        // Card surface — distinct from the warm page background.
-        "mx-auto flex w-full max-w-2xl flex-col gap-1.5 rounded-lg border border-border bg-card p-2.5 shadow-sm",
+        // Tonal panel — slightly darker than the page in light mode, slightly
+        // lighter in dark mode. Uses foreground-tinted overlay so it tracks
+        // the active theme automatically.
+        "mx-auto flex w-full max-w-2xl flex-col gap-1.5 rounded-lg border border-border bg-foreground/[0.06] p-2.5 shadow-sm dark:bg-foreground/[0.08]",
         className,
       )}
       role="img"
@@ -222,10 +224,10 @@ function Key({
       size="sm"
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       className={cn(
-        // Keys sit on the white card panel — use muted so they're visibly
-        // distinct from the panel surface. Border + bottom shadow give the
-        // physical-keycap look in both themes.
-        "relative h-9 overflow-hidden border-border bg-muted px-0 font-mono text-sm text-foreground shadow-[inset_0_-2px_0_0_hsl(var(--border))] transition-all hover:bg-muted sm:h-10",
+        // Keys sit on the tonal panel — use bg-card (white in light, raised
+        // dark surface in dark) so each cap separates from the panel. Border
+        // + inset bottom shadow give the physical-keycap look in both themes.
+        "relative h-9 overflow-hidden border-border bg-card px-0 font-mono text-sm text-card-foreground shadow-[inset_0_-2px_0_0_hsl(var(--border))] transition-all hover:bg-card sm:h-10",
         def.variant === "modifier" &&
           "text-[10px] uppercase tracking-[0.14em]",
         lit &&
