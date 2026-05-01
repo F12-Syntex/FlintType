@@ -85,11 +85,19 @@ export function usePressedKeys(): PressedKeysState {
       setPressed(new Set());
     };
 
+    // Belt-and-braces: attach to both window and document, both capture
+    // phase. Whichever one the host environment delivers events through,
+    // the hook catches them. Browsers dedupe identical (target, type,
+    // listener, capture) tuples, so we won't double-fire.
+    window.addEventListener("keydown", onDown, { capture: true });
+    window.addEventListener("keyup", onUp, { capture: true });
     document.addEventListener("keydown", onDown, { capture: true });
     document.addEventListener("keyup", onUp, { capture: true });
     window.addEventListener("blur", onBlur);
 
     return () => {
+      window.removeEventListener("keydown", onDown, { capture: true });
+      window.removeEventListener("keyup", onUp, { capture: true });
       document.removeEventListener("keydown", onDown, { capture: true });
       document.removeEventListener("keyup", onUp, { capture: true });
       window.removeEventListener("blur", onBlur);
