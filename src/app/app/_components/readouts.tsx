@@ -125,17 +125,23 @@ function DesktopStats({
   running,
 }: StatsProps) {
   return (
-    <div className="hidden flex-wrap items-end justify-between gap-4 md:flex">
-      <div className="flex flex-wrap gap-x-10 gap-y-3">
-        <Stat label="WPM" value={String(wpm)} accent={running} />
-        <Stat label="ACC" value={`${Math.round(accuracy)}%`} />
-        <Stat label="ERR" value={String(errs)} />
+    <div className="hidden flex-wrap items-end justify-between gap-4 select-none md:flex">
+      <div className="flex flex-wrap gap-x-12 gap-y-3">
+        <Stat label="WPM" value={String(wpm)} size="lg" accent={running} />
+        <Stat label="ACC" value={`${Math.round(accuracy)}%`} size="lg" />
+        <Stat label="ERR" value={String(errs)} size="lg" />
       </div>
-      <div className="flex flex-wrap gap-x-10 gap-y-3">
-        <Stat label="WORD" value={`${wordIdx}/${wordCount}`} align="right" />
+      <div className="flex flex-wrap gap-x-12 gap-y-3">
+        <Stat
+          label="WORD"
+          value={`${wordIdx}/${wordCount}`}
+          size="lg"
+          align="right"
+        />
         <Stat
           label="ELAPSED"
           value={formatElapsed(elapsedMs)}
+          size="lg"
           align="right"
         />
       </div>
