@@ -29,10 +29,13 @@ export function Key({
       data-pressed={hot ? "true" : "false"}
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       className={cn(
-        "relative flex h-9 items-center justify-center rounded-[6px] border font-mono text-sm transition-colors duration-75 sm:h-10",
+        "relative flex h-9 items-center justify-center rounded-[6px] border font-mono text-sm sm:h-10",
         hot
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-foreground/10 bg-card text-card-foreground",
+          ? // Instant flash on press — no transition so the lit colour
+            // appears the same frame the key goes down.
+            "border-primary bg-primary text-primary-foreground transition-none"
+          : // Smooth fade back to the resting state.
+            "border-foreground/10 bg-card text-card-foreground transition-colors duration-150",
         def.variant === "modifier" && "text-[10px] uppercase tracking-[0.14em]",
       )}
     >

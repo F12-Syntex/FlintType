@@ -7,11 +7,12 @@ export type PressedKeysState = {
 };
 
 /** How long a press visual must be held, in ms, even if the user releases
- *  the key sooner. A real touch-typist's keypress is 50–100 ms; without a
- *  floor, the browser may release before React commits the next paint and
- *  the visual flash never appears. 120 ms is comfortable to perceive
- *  without trailing during fast typing. */
-const MIN_VISIBLE_MS = 120;
+ *  the key sooner. A real touch-typist's keypress is 50–100 ms and the
+ *  CSS colour transition needs ~150 ms to peak — without a generous floor
+ *  the highlight starts fading before it ever reaches full brightness, so
+ *  the flash looks invisible. 180 ms = ~11 frames at 60 Hz, comfortably
+ *  perceivable, still feels snappy at typing speed. */
+const MIN_VISIBLE_MS = 180;
 
 /** Subscribes to the global keydown/keyup stream and tracks which physical
  *  keys are currently down, plus the latched modifier state (Shift held,
@@ -31,10 +32,6 @@ export function usePressedKeys(): PressedKeysState {
   const [caps, setCaps] = useState(false);
 
   useEffect(() => {
-    // TEMP debug — remove once the keyboard press visual is confirmed
-    // working in the user's environment.
-    console.log("[keyboard] usePressedKeys mounted, attaching listeners");
-
     const downAt = new Map<string, number>();
     const removeTimers = new Map<string, number>();
 
@@ -62,8 +59,6 @@ export function usePressedKeys(): PressedKeysState {
     };
 
     const onDown = (e: KeyboardEvent) => {
-      // TEMP debug — remove once confirmed working.
-      console.log("[keyboard] keydown", e.code, "target=", (e.target as Element | null)?.tagName ?? "?");
       cancelRemoval(e.code);
       downAt.set(e.code, performance.now());
       setPressed((prev) => {
