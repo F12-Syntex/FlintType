@@ -1,5 +1,15 @@
 "use client";
 
+import {
+  ArrowBigUp,
+  ChevronUp,
+  Command,
+  CornerDownLeft,
+  Delete,
+  Menu,
+  Option,
+  type LucideIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -9,8 +19,12 @@ import { cn } from "@/lib/utils";
  *  to Ctrl, Dvorak, etc. don't break the highlight). */
 type KeyDef = {
   code: string;
-  label: string;
+  /** Glyph (text). Used unless `icon` is set. */
+  label?: string;
+  /** Shifted glyph for symbol keys (1 → !). */
   shiftLabel?: string;
+  /** Lucide icon for modifier glyphs that read better as symbols. */
+  icon?: LucideIcon;
   /** Width in keyboard units. 1u = standard letter key. */
   units?: number;
   /** Modifier keys render with smaller, uppercase text. */
@@ -33,7 +47,7 @@ const ROWS: readonly (readonly KeyDef[])[] = [
     { code: "Digit0", label: "0", shiftLabel: ")" },
     { code: "Minus", label: "-", shiftLabel: "_" },
     { code: "Equal", label: "=", shiftLabel: "+" },
-    { code: "Backspace", label: "⌫", units: 2, variant: "modifier" },
+    { code: "Backspace", icon: Delete, units: 2, variant: "modifier" },
   ],
   [
     { code: "Tab", label: "Tab", units: 1.5, variant: "modifier" },
@@ -64,10 +78,15 @@ const ROWS: readonly (readonly KeyDef[])[] = [
     { code: "KeyL", label: "l" },
     { code: "Semicolon", label: ";", shiftLabel: ":" },
     { code: "Quote", label: "'", shiftLabel: '"' },
-    { code: "Enter", label: "↵", units: 2.25, variant: "modifier" },
+    { code: "Enter", icon: CornerDownLeft, units: 2.25, variant: "modifier" },
   ],
   [
-    { code: "ShiftLeft", label: "⇧", units: 2.25, variant: "modifier" },
+    {
+      code: "ShiftLeft",
+      icon: ArrowBigUp,
+      units: 2.25,
+      variant: "modifier",
+    },
     { code: "KeyZ", label: "z" },
     { code: "KeyX", label: "x" },
     { code: "KeyC", label: "c" },
@@ -78,17 +97,32 @@ const ROWS: readonly (readonly KeyDef[])[] = [
     { code: "Comma", label: ",", shiftLabel: "<" },
     { code: "Period", label: ".", shiftLabel: ">" },
     { code: "Slash", label: "/", shiftLabel: "?" },
-    { code: "ShiftRight", label: "⇧", units: 2.75, variant: "modifier" },
+    {
+      code: "ShiftRight",
+      icon: ArrowBigUp,
+      units: 2.75,
+      variant: "modifier",
+    },
   ],
   [
-    { code: "ControlLeft", label: "Ctrl", units: 1.25, variant: "modifier" },
-    { code: "MetaLeft", label: "⊞", units: 1.25, variant: "modifier" },
-    { code: "AltLeft", label: "Alt", units: 1.25, variant: "modifier" },
-    { code: "Space", label: " ", units: 6.25 },
-    { code: "AltRight", label: "Alt", units: 1.25, variant: "modifier" },
-    { code: "MetaRight", label: "⊞", units: 1.25, variant: "modifier" },
-    { code: "ContextMenu", label: "☰", units: 1.25, variant: "modifier" },
-    { code: "ControlRight", label: "Ctrl", units: 1.25, variant: "modifier" },
+    {
+      code: "ControlLeft",
+      icon: ChevronUp,
+      units: 1.25,
+      variant: "modifier",
+    },
+    { code: "MetaLeft", icon: Command, units: 1.25, variant: "modifier" },
+    { code: "AltLeft", icon: Option, units: 1.25, variant: "modifier" },
+    { code: "Space", label: "", units: 6.25 },
+    { code: "AltRight", icon: Option, units: 1.25, variant: "modifier" },
+    { code: "MetaRight", icon: Command, units: 1.25, variant: "modifier" },
+    { code: "ContextMenu", icon: Menu, units: 1.25, variant: "modifier" },
+    {
+      code: "ControlRight",
+      icon: ChevronUp,
+      units: 1.25,
+      variant: "modifier",
+    },
   ],
 ];
 
@@ -134,14 +168,15 @@ export function Keyboard({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "mx-auto flex w-full max-w-2xl flex-col gap-1 rounded-lg border bg-muted p-2",
+        // Card surface — distinct from the warm page background.
+        "mx-auto flex w-full max-w-2xl flex-col gap-1.5 rounded-lg border border-border bg-card p-2.5 shadow-sm",
         className,
       )}
       role="img"
       aria-label="virtual keyboard"
     >
       {ROWS.map((row, i) => (
-        <div key={i} className="flex w-full gap-1">
+        <div key={i} className="flex w-full gap-1.5">
           {row.map((k) => (
             <Key
               key={k.code}
@@ -172,36 +207,43 @@ function Key({
   upper: boolean;
 }) {
   const units = def.units ?? 1;
-  const isLetter = !def.variant && /^[a-z]$/.test(def.label);
-  const main = isLetter && upper ? def.label.toUpperCase() : def.label;
+  const isLetter = !def.variant && def.label && /^[a-z]$/.test(def.label);
+  const main =
+    isLetter && upper && def.label ? def.label.toUpperCase() : def.label ?? "";
   const showShiftGlyph = !!def.shiftLabel && def.variant !== "modifier";
-
+  const Icon = def.icon;
   const lit = pressed || active;
 
   return (
     <Button
       type="button"
       tabIndex={-1}
-      variant={lit ? "default" : "outline"}
+      variant="outline"
       size="sm"
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       className={cn(
-        "relative h-8 px-0 font-mono text-xs transition-all sm:h-9 sm:text-sm",
-        "border-border bg-card text-card-foreground shadow-[0_2px_0_0_hsl(var(--border))]",
+        // Keys sit on the white card panel — use muted so they're visibly
+        // distinct from the panel surface. Border + bottom shadow give the
+        // physical-keycap look in both themes.
+        "relative h-9 overflow-hidden border-border bg-muted px-0 font-mono text-sm text-foreground shadow-[inset_0_-2px_0_0_hsl(var(--border))] transition-all hover:bg-muted sm:h-10",
         def.variant === "modifier" &&
           "text-[10px] uppercase tracking-[0.14em]",
         lit &&
-          "border-primary bg-primary text-primary-foreground shadow-[0_2px_0_0_hsl(var(--primary))]",
-        pressed && "translate-y-[2px] shadow-none",
+          "border-primary bg-primary text-primary-foreground shadow-[inset_0_-2px_0_0_hsl(var(--primary))] hover:bg-primary",
+        pressed && "translate-y-[1px] shadow-none",
       )}
       aria-pressed={active || pressed}
     >
       {showShiftGlyph && (
-        <span className="absolute top-0.5 left-1.5 text-[9px] tabular-nums opacity-60">
+        <span className="pointer-events-none absolute top-0.5 left-1.5 text-[9px] tabular-nums opacity-50">
           {def.shiftLabel}
         </span>
       )}
-      <span className="tabular-nums">{main}</span>
+      {Icon ? (
+        <Icon className="size-4" strokeWidth={2} />
+      ) : (
+        <span className="tabular-nums">{main}</span>
+      )}
     </Button>
   );
 }
