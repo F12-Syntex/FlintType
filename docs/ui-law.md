@@ -2,7 +2,7 @@
 
 The authoritative design document for this project. Every UI change must conform to the rules below.
 
-flinttype is **editorial-mechanical**: warm paper background, near-black ink, JetBrains Mono everywhere, **one** ember-orange accent (`#E5532A`) used sparingly. Hairline borders, no rounded corners on product surfaces, tabular numerics on every stat. Charts are line-art SVG.
+flinttype is **editorial-mechanical**: warm paper background, near-black ink, JetBrains Mono everywhere, **one** ember-orange accent (`#E5532A`) used sparingly. Hairline borders, no rounded corners on product surfaces, tabular numerics on every stat. Charts are line-art SVG. **Keycap-style affordances** (the `<Kbd>` chip and the `/app` `<Keyboard>` widget) are the one allowed exception and may use small rounding (~4–10 px) to imitate physical keys; the surrounding panel of the `<Keyboard>` widget itself sits on the page background (`bg-ft-paper` / `dark:bg-ft-ink`) so the keys read as the figure, not the panel.
 
 **Mobile-first is not optional.** Section 10 mandates every UI be authored for 375 px first and scaled up. The flinttype design source is desktop-first (1440 px artboards) — translate by stacking columns and reducing density on mobile, never by leaving small viewports broken.
 

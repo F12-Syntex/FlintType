@@ -16,7 +16,7 @@ export type KeyboardProps = {
 
 export function Keyboard({
   layout = "qwerty",
-  showLayoutPicker = true,
+  showLayoutPicker = false,
   className,
 }: KeyboardProps) {
   const [active, setActive] = useState<LayoutId>(layout);
@@ -62,9 +62,9 @@ export function Keyboard({
   return (
     <div
       className={cn(
-        "mx-auto flex w-full max-w-2xl flex-col gap-2 border p-3",
-        "border-ft-line-soft bg-ft-paper-2",
-        "dark:border-ft-line dark:bg-ft-ink-2",
+        "mx-auto flex w-full max-w-2xl flex-col gap-2 rounded-[10px] border p-3",
+        "border-ft-line-soft bg-ft-paper",
+        "dark:border-ft-line dark:bg-ft-ink",
         className,
       )}
       role="img"
@@ -153,10 +153,10 @@ function Key({
       aria-hidden
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       className={cn(
-        "relative flex h-9 items-center justify-center border font-mono text-sm transition-colors sm:h-10",
+        "relative flex h-9 items-center justify-center rounded-[6px] border font-mono text-sm transition-colors sm:h-10",
         hot
           ? "border-ft-ember bg-ft-ember text-ft-paper"
-          : "border-ft-line-soft bg-white text-ft-ink dark:border-ft-line dark:bg-ft-ink dark:text-ft-paper",
+          : "border-ft-line-soft bg-white text-ft-ink dark:border-ft-line dark:bg-ft-ink-2 dark:text-ft-paper",
         def.variant === "modifier" && "text-[10px] uppercase tracking-[0.14em]",
       )}
     >
