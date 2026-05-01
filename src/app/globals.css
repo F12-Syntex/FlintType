@@ -161,6 +161,22 @@
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-xl);
   --shadow-2xl: var(--shadow-2xl);
+
+  /* flinttype brand tokens — fixed across themes. Concrete HSL so
+     Tailwind v4 emits resolvable utilities (bg-ft-paper, text-ft-ember,
+     border-ft-line-soft, …). */
+  --color-ft-ink: hsl(0 0% 8%);
+  --color-ft-ink-2: hsl(0 0% 11%);
+  --color-ft-line: hsl(0 0% 16%);
+  --color-ft-line-soft: hsl(38 20% 86%);
+  --color-ft-paper: hsl(38 33% 92%);
+  --color-ft-paper-2: hsl(38 28% 88%);
+  --color-ft-dim: hsl(0 0% 55%);
+  --color-ft-dim-2: hsl(0 0% 35%);
+  --color-ft-ember: hsl(9 78% 58%);
+  --color-ft-ember-soft: hsl(15 80% 75%);
+  --color-ft-spark: hsl(20 75% 88%);
+  --color-ft-ok: hsl(110 25% 39%);
 }
 
 @layer base {
