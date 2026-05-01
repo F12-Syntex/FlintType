@@ -7,15 +7,18 @@ import { SECTIONS } from "./data";
 
 /** Section navigation for the Settings layout.
  *
- *  Behaviour
- *  - Desktop (lg+): sticky vertical column, full layout-row height, **no
- *    scroll**. The grid parent is min-h-0; if section count ever grows
- *    past viewport we'll need to revisit, but with 3 sections we have
- *    plenty of headroom.
- *  - Mobile: horizontal strip at the top of the page, scrolls only
- *    horizontally if entries overflow (overflow-x-auto on the wrapper).
+ *  Surfaces (light → dark for hierarchy):
+ *  - Page content panel    bg-background (paper)
+ *  - This sidebar          bg-muted (visibly tinted off-paper)
+ *  - Active sidebar entry  bg-card (white) — lifts above the muted column
+ *  - Inactive on hover     bg-card/60 — partial lift, softer than active
  *
- *  Active highlight is route-driven via usePathname. */
+ *  Behaviour
+ *  - Desktop (lg+): full-height column, lg:overflow-hidden — the
+ *    sidebar itself never scrolls. The content panel next door is the
+ *    only scrolling region.
+ *  - Mobile: horizontal strip; entries scroll horizontally if they
+ *    overflow the viewport. */
 export function Sidebar() {
   const pathname = usePathname();
 
@@ -23,10 +26,7 @@ export function Sidebar() {
     <nav
       aria-label="Settings sections"
       className={cn(
-        // Mobile: just a horizontal strip with a bottom hairline.
-        "border-b border-ft-line-soft py-3",
-        // Desktop: full-height column, hairline on the right, padding,
-        // never scrolls on either axis (overflow-hidden).
+        "bg-muted border-b border-ft-line-soft py-3",
         "lg:flex lg:h-full lg:flex-col lg:overflow-hidden lg:border-r lg:border-b-0 lg:py-6",
       )}
     >
@@ -36,7 +36,7 @@ export function Sidebar() {
         </span>
       </div>
 
-      <ul className="flex gap-0 overflow-x-auto px-2 lg:flex-col lg:overflow-x-visible">
+      <ul className="flex gap-0 overflow-x-auto px-2 lg:flex-col lg:gap-1 lg:overflow-x-visible">
         {SECTIONS.map((s) => {
           const href = `/app/customise/${s.id}`;
           const isActive = pathname === href;
@@ -48,8 +48,8 @@ export function Sidebar() {
                 className={cn(
                   "flex w-full items-center justify-between gap-3 rounded-md px-3 py-2.5 transition-colors",
                   isActive
-                    ? "bg-ft-ember/[0.08] text-ft-ink"
-                    : "text-ft-dim-2 hover:bg-ft-ink/[0.04] hover:text-ft-ink",
+                    ? "bg-card text-ft-ink shadow-sm ring-1 ring-foreground/10"
+                    : "text-ft-dim-2 hover:bg-card/60 hover:text-ft-ink",
                 )}
               >
                 <span className="text-[11px] font-semibold tracking-[0.14em]">
@@ -57,8 +57,10 @@ export function Sidebar() {
                 </span>
                 <span
                   className={cn(
-                    "text-[10px] tabular-nums",
-                    isActive ? "text-ft-ember" : "text-ft-dim",
+                    "rounded-md px-1.5 text-[10px] tabular-nums",
+                    isActive
+                      ? "bg-ft-ember/10 text-ft-ember"
+                      : "text-ft-dim",
                   )}
                 >
                   {s.settings.length}
