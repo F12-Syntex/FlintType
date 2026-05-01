@@ -2,7 +2,6 @@
 
 import { notFound, useParams } from "next/navigation";
 import { useState } from "react";
-import { Tag } from "@/components/ft";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -11,10 +10,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { SegmentedControl } from "@/components/ui/segmented-control";
+import { OptionSwitch } from "@/components/ui/option-switch";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { SECTIONS } from "../_components/data";
+
+function titleCase(name: string): string {
+  return name
+    .toLowerCase()
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
 
 export default function SectionPage() {
   const params = useParams<{ section: string }>();
@@ -32,18 +39,22 @@ export default function SectionPage() {
     setValues((prev) => ({ ...prev, [id]: v }));
 
   return (
-    <section>
+    <section className="text-foreground">
       <header className="mb-6 border-b border-border pb-4">
         <div className="mb-2 flex items-center gap-3">
-          <span className="inline-block h-px w-5 bg-ft-ember" aria-hidden />
-          <Tag>SECTION</Tag>
+          <span
+            aria-hidden
+            className="inline-block h-px w-5 bg-primary"
+          />
+          <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            Section
+          </span>
         </div>
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-2xl font-bold tracking-tight">
-            {data.name.charAt(0)}
-            {data.name.slice(1).toLowerCase()}
+            {titleCase(data.name)}
           </h2>
-          <Badge variant="secondary" className="px-2 text-[10px]">
+          <Badge variant="secondary" className="px-2 text-[0.65rem]">
             {data.settings.length} options
           </Badge>
         </div>
@@ -53,7 +64,9 @@ export default function SectionPage() {
         {data.settings.map((s) => (
           <Card key={s.id} className="shadow-sm">
             <CardHeader>
-              <CardTitle className="text-sm font-semibold">{s.label}</CardTitle>
+              <CardTitle className="text-sm font-semibold">
+                {s.label}
+              </CardTitle>
               {s.desc ? (
                 <CardDescription>{s.desc}</CardDescription>
               ) : null}
@@ -65,13 +78,16 @@ export default function SectionPage() {
                   />
                 ) : null}
                 {s.type === "select" ? (
-                  <SegmentedControl
+                  <OptionSwitch
+                    name={s.id}
+                    size="small"
                     value={values[s.id] as string}
                     onValueChange={(v) => set(s.id, v)}
-                    options={s.options}
-                    size="sm"
-                    ariaLabel={s.label}
-                  />
+                  >
+                    {s.options.map((o) => (
+                      <OptionSwitch.Control key={o} label={o} value={o} />
+                    ))}
+                  </OptionSwitch>
                 ) : null}
                 {s.type === "slider" ? (
                   <div className="flex w-44 items-center gap-3">
