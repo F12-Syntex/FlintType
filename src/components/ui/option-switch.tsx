@@ -115,7 +115,7 @@ const OptionSwitchControl = ({
           clsx(
             "flex items-center justify-center flex-1 cursor-pointer font-medium font-sans duration-150",
             checked
-              ? "bg-gray-100 text-gray-1000 fill-gray-1000 rounded-[4px]"
+              ? "bg-primary text-primary-foreground fill-primary-foreground rounded-[4px]"
               : "text-gray-900 hover:text-gray-1000 fill-gray-900 hover:fill-gray-1000 rounded-[4px]",
             disabled && "text-gray-800 fill-gray-800",
             !icon && size === "small" && "text-xs px-2.5",
