@@ -25,7 +25,7 @@ export default function CustomiseLayout({ children }: { children: ReactNode }) {
   return (
     <AppChrome compact>
       <div className="flex h-full min-h-0 flex-col bg-background text-foreground">
-        <header className="shrink-0 border-b border-border bg-background px-6 pt-7 pb-6 sm:px-10">
+        <header className="shrink-0 border-b border-border bg-card px-6 pt-7 pb-6 shadow-sm sm:px-10">
           <div className="mb-3 flex items-center gap-3">
             <span
               aria-hidden

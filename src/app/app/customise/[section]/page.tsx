@@ -62,7 +62,7 @@ export default function SectionPage() {
 
       <div className="flex flex-col gap-3">
         {data.settings.map((s) => (
-          <Card key={s.id} className="shadow-sm">
+          <Card key={s.id} className="rounded-md shadow-sm ring-border">
             <CardHeader>
               <CardTitle className="text-sm font-semibold">
                 {s.label}
