@@ -1,27 +1,31 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SECTIONS } from "./data";
 
-/** Left sidebar listing every settings section. Each entry is an in-page
- *  anchor that scrolls the settings panel to that section. The active
- *  highlight is set by the URL hash; on first paint with no hash it
- *  reads as the first section (visually "selected" via aria-current).
- *
- *  Mobile (<lg): the sidebar collapses into a horizontally-scrolling
- *  strip at the top, same layout pattern the old customise-nav used. */
-export function Sidebar({ active }: { active?: string }) {
+/** Section navigation for the Settings layout. Each entry is a real
+ *  Next.js route (`/app/customise/<id>`); the active one is detected via
+ *  usePathname. Mobile collapses the sidebar into a horizontal scroll
+ *  strip above the active page. */
+export function Sidebar() {
+  const pathname = usePathname();
+
   return (
     <nav
       aria-label="Settings sections"
       className="overflow-x-auto border-b border-ft-line-soft py-3 lg:border-r lg:border-b-0 lg:py-6"
     >
       <ul className="flex gap-0 lg:flex-col">
-        {SECTIONS.map((s, i) => {
-          const isActive = active ? s.id === active : i === 0;
+        {SECTIONS.map((s) => {
+          const href = `/app/customise/${s.id}`;
+          const isActive = pathname === href;
           return (
             <li key={s.id} className="shrink-0">
-              <a
-                href={`#${s.id}`}
-                aria-current={isActive ? "true" : undefined}
+              <Link
+                href={href}
+                aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "flex w-full items-center justify-between gap-3 border-l-2 px-5 py-2.5 transition-colors",
                   isActive
@@ -42,7 +46,7 @@ export function Sidebar({ active }: { active?: string }) {
                 <span className="text-[10px] tabular-nums text-ft-dim">
                   {s.settings.length}
                 </span>
-              </a>
+              </Link>
             </li>
           );
         })}
