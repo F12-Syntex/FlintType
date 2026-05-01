@@ -3,7 +3,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const ftButtonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap border font-mono uppercase tracking-[0.16em] transition-colors disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border font-mono uppercase tracking-[0.16em] transition-colors disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {

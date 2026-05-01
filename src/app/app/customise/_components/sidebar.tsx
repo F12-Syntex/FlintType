@@ -27,10 +27,10 @@ export function Sidebar() {
                 href={href}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex w-full items-center justify-between gap-3 border-l-2 px-5 py-2.5 transition-colors",
+                  "mx-2 flex w-full items-center justify-between gap-3 rounded-md border-l-2 px-3 py-2.5 transition-colors",
                   isActive
                     ? "border-ft-ember bg-ft-ember/[0.06]"
-                    : "border-transparent hover:bg-ft-ink/[0.03]",
+                    : "border-transparent hover:bg-ft-ink/[0.04]",
                 )}
               >
                 <span

@@ -22,7 +22,7 @@ export function TopbarActions({ dark = false }: { dark?: boolean }) {
         href="/app/customise"
         aria-label="Settings"
         className={cn(
-          "hidden size-9 items-center justify-center transition-colors md:flex",
+          "hidden size-9 items-center justify-center rounded-md transition-colors md:flex",
           dark
             ? "text-ft-paper hover:bg-white/5"
             : "text-ft-ink hover:bg-black/5",
@@ -34,7 +34,7 @@ export function TopbarActions({ dark = false }: { dark?: boolean }) {
         href="/app/profile"
         aria-label="Profile"
         className={cn(
-          "hidden size-9 items-center justify-center transition-colors md:flex",
+          "hidden size-9 items-center justify-center rounded-md transition-colors md:flex",
           dark
             ? "text-ft-paper hover:bg-white/5"
             : "text-ft-ink hover:bg-black/5",

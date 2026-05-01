@@ -2,7 +2,7 @@
 
 The authoritative design document for this project. Every UI change must conform to the rules below.
 
-flinttype is **editorial-mechanical**: a single coral/ember accent used sparingly against a paper-and-ink palette in JetBrains Mono. Hairline borders, no rounded corners on product surfaces, tabular numerics on every stat. Charts are line-art SVG. **Keycap-style affordances** (the `<Kbd>` chip and the `/app` `<Keyboard>` widget) are the one allowed exception and may use small rounding (~4–10 px) to imitate physical keys; the surrounding panel of the `<Keyboard>` widget itself sits on the page background (`bg-background`) so the keys read as the figure, not the panel.
+flinttype is **editorial-mechanical**: a single coral/ember accent used sparingly against a paper-and-ink palette in JetBrains Mono. Hairline borders, **interactive surfaces use `rounded-md`** (the project's `--radius-md`) for a consistent visual rhythm — buttons, nav links, hover backgrounds, popovers, the mode-bar segment, the keyboard keycaps. Tabular numerics on every stat. Charts are line-art SVG. The keyboard panel itself sits on the page background (`bg-background`) so the keys read as the figure, not the panel. The brand bias is still mechanical, not pillowy: keep the radius small. If you find yourself reaching for `rounded-xl` or larger on a control surface, stop — bump the project-wide `--radius` in `globals.css` instead, so the change applies to every component at once.
 
 **Mobile-first is not optional.** Section 10 mandates every UI be authored for 375 px first and scaled up. The flinttype design source is desktop-first (1440 px artboards) — translate by stacking columns and reducing density on mobile, never by leaving small viewports broken.
 

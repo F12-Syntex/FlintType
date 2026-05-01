@@ -86,7 +86,7 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
         aria-expanded={open}
         aria-haspopup="dialog"
         className={cn(
-          "relative flex size-11 items-center justify-center transition-colors md:size-9",
+          "relative flex size-11 items-center justify-center rounded-md transition-colors md:size-9",
           dark
             ? "text-ft-paper hover:bg-white/5"
             : "text-ft-ink hover:bg-black/5",
@@ -110,7 +110,7 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
             "fixed inset-x-2 top-[60px] z-40 max-h-[70vh] overflow-y-auto",
             // Desktop: anchored to the bell, fixed width.
             "md:absolute md:inset-x-auto md:top-full md:right-0 md:mt-2 md:w-[320px]",
-            "border bg-white shadow-lg",
+            "rounded-md border bg-white shadow-lg",
             dark
               ? "border-[#221F1A] bg-ft-ink text-ft-paper"
               : "border-ft-line-soft text-ft-ink",

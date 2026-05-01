@@ -165,7 +165,7 @@ export function MobileNav({
         aria-expanded={open}
         aria-controls="mobile-nav-drawer"
         className={cn(
-          "-mr-2 flex size-11 items-center justify-center transition-colors md:hidden",
+          "-mr-2 flex size-11 items-center justify-center rounded-md transition-colors md:hidden",
           dark
             ? "text-ft-paper hover:bg-white/5"
             : "text-ft-ink hover:bg-black/5",
