@@ -78,7 +78,7 @@ export function Passage() {
   }, [cursorWord]);
 
   return (
-    <div className="text-lg leading-[1.65] font-normal text-ft-dim sm:text-2xl sm:leading-[1.7] lg:text-[26px]">
+    <div className="text-2xl leading-[2] font-normal text-ft-dim tracking-[0.01em] sm:text-3xl sm:leading-[2.05] lg:text-4xl lg:leading-[2.1]">
       {words.map((word, wi) => {
         if (wi < cursorWord) {
           const isErr = errorWords.has(wi);
