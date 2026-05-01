@@ -133,7 +133,10 @@ export function Keyboard({ className }: { className?: string }) {
 
   return (
     <div
-      className={cn("flex w-full flex-col gap-1", className)}
+      className={cn(
+        "mx-auto flex w-full max-w-2xl flex-col gap-1",
+        className,
+      )}
       role="img"
       aria-label="virtual keyboard"
     >
@@ -181,7 +184,7 @@ function Key({
       size="sm"
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       className={cn(
-        "relative h-9 px-0 font-mono text-sm transition-transform sm:h-11",
+        "relative h-8 px-0 font-mono text-xs transition-transform sm:h-9 sm:text-sm",
         def.variant === "modifier" &&
           "text-[10px] uppercase tracking-[0.14em]",
         pressed && "translate-y-px scale-[0.97] shadow-inner",
