@@ -30,16 +30,17 @@ export function Key({
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       className={cn(
         "relative flex h-9 items-center justify-center rounded-[6px] border font-mono text-sm sm:h-10",
-        // Pressed state uses ft-ember (the brand-fixed spark token) and
-        // not bg-primary. bg-primary chains through `--color-primary:
-        // hsl(var(--primary))` in globals.css, which produces invalid CSS
-        // for any community palette where --primary is oklch(...) — the
-        // resulting `hsl(oklch(...))` is dropped silently. ft-ember is
-        // defined as a literal HSL with no var indirection, so it always
-        // resolves to the brand coral regardless of active palette.
+        // Default key colour matches the brand "grayed text" token
+        // (ft-dim = hsl(0 0% 55%) — same value as --muted-foreground in
+        // the default theme). Using ft-dim instead of bg-muted-foreground
+        // because every semantic shadcn token chains through
+        // `hsl(var(--token))` in globals.css and produces invalid CSS
+        // under community palettes (oklch values). ft-dim is registered
+        // without that indirection so it renders under any palette.
+        // Same reason ft-ember is used for the pressed state.
         hot
           ? "border-ft-ember bg-ft-ember text-white transition-none"
-          : "border-zinc-300 bg-white text-zinc-900 transition-colors duration-150 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100",
+          : "border-ft-dim bg-ft-dim text-white transition-colors duration-150",
         def.variant === "modifier" && "text-[10px] uppercase tracking-[0.14em]",
       )}
     >
@@ -47,7 +48,9 @@ export function Key({
         <span
           className={cn(
             "pointer-events-none absolute top-0.5 left-1.5 text-[9px] tabular-nums",
-            hot ? "text-primary-foreground/80" : "text-muted-foreground",
+            // Both palette-agnostic: white@70 for legibility on the gray
+            // ft-dim and the coral ft-ember surfaces alike.
+            hot ? "text-white/80" : "text-white/70",
           )}
         >
           {def.shiftLabel}
