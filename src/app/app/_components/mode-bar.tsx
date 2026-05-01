@@ -90,7 +90,7 @@ function ModeControls() {
           onValueChange={(v) => dispatch({ type: "SET_MODE", mode: v as Mode })}
         >
           {MODES.map((m) => (
-            <OptionSwitch.Control key={m} label={m} value={m} />
+            <OptionSwitch.Control key={m} label={m.toLowerCase()} value={m} />
           ))}
         </OptionSwitch>
       </Field>
@@ -118,7 +118,11 @@ function ModeControls() {
           onValueChange={(v) => dispatch({ type: "SET_LANG", lang: v as Lang })}
         >
           {LANGS.map((l) => (
-            <OptionSwitch.Control key={l} label={l} value={l} />
+            <OptionSwitch.Control
+              key={l}
+              label={l.toLowerCase().replace("en-common", "common")}
+              value={l}
+            />
           ))}
         </OptionSwitch>
       </Field>
