@@ -31,7 +31,7 @@ export function Keyboard({
   return (
     <div
       className={cn(
-        "mx-auto flex w-full max-w-2xl flex-col gap-2 rounded-[10px] border border-foreground/10 bg-background p-3",
+        "mx-auto flex w-full max-w-2xl flex-col gap-2",
         className,
       )}
       role="img"
