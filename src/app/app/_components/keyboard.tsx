@@ -187,7 +187,7 @@ function Key({
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       className={cn(
         "relative h-8 px-0 font-mono text-xs transition-all sm:h-9 sm:text-sm",
-        "border-border bg-background shadow-[0_2px_0_0_hsl(var(--border))]",
+        "border-border bg-card text-card-foreground shadow-[0_2px_0_0_hsl(var(--border))]",
         def.variant === "modifier" &&
           "text-[10px] uppercase tracking-[0.14em]",
         lit &&

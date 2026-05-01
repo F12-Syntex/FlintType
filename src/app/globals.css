@@ -82,10 +82,13 @@
   --background: 38 33% 92%;          /* warm cream paper */
   --foreground: 0 0% 8%;             /* near-black ink */
 
-  --card: 38 33% 92%;
+  /* Components on top of the warm paper read as ink-on-white cards —
+     keeps the page warm while every surface (cards, popovers, keys,
+     inputs) lifts off it with real contrast. */
+  --card: 0 0% 100%;
   --card-foreground: 0 0% 8%;
 
-  --popover: 38 33% 96%;
+  --popover: 0 0% 100%;
   --popover-foreground: 0 0% 8%;
 
   /* Brand — the coral/red accent */
