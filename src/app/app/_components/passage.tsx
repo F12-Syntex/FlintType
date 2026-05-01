@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { usePractice } from "./practice-state";
 
@@ -66,55 +66,86 @@ export function Passage() {
   const { words, cursorWord, cursorChar, errorWords, phase } = state;
   const showCaret = phase !== "done";
 
-  // Keep the active word visible as the cursor advances. Critical on
-  // mobile where the OS keyboard occupies the lower half of the viewport
-  // — without this, scrolled-off words would type into nothing visible.
+  // Smooth line scroll: the inner block translates up so the active word
+  // stays vertically centered in the visible viewport. Replaces the old
+  // scrollIntoView() which jumped abruptly when a word wrapped to the
+  // next visual line.
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const innerRef = useRef<HTMLDivElement | null>(null);
   const activeWordRef = useRef<HTMLSpanElement | null>(null);
-  useEffect(() => {
-    activeWordRef.current?.scrollIntoView({
-      block: "center",
-      behavior: "smooth",
-    });
-  }, [cursorWord]);
+  const [translateY, setTranslateY] = useState(0);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const inner = innerRef.current;
+    const word = activeWordRef.current;
+    if (!container || !inner || !word) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const wordRect = word.getBoundingClientRect();
+    const innerRect = inner.getBoundingClientRect();
+
+    // Word's top, relative to the inner block's natural origin (cancelling
+    // the current translateY by reading getBoundingClientRect on the inner
+    // container). We want the word centered vertically in the viewport.
+    const wordTopWithinInner = wordRect.top - innerRect.top;
+    const target =
+      containerRect.height / 2 - wordTopWithinInner - wordRect.height / 2;
+
+    setTranslateY(target);
+  }, [cursorWord, words.length]);
 
   return (
-    <div className="select-none text-2xl leading-[2.2] font-normal text-ft-dim tracking-[0.04em] [word-spacing:0.25em] sm:text-3xl sm:leading-[2.3] lg:text-4xl lg:leading-[2.4]">
-      {words.map((word, wi) => {
-        if (wi < cursorWord) {
-          const isErr = errorWords.has(wi);
+    <div
+      ref={containerRef}
+      className="relative h-full w-full overflow-hidden"
+    >
+      <div
+        ref={innerRef}
+        style={{
+          transform: `translate3d(0, ${translateY}px, 0)`,
+          transition: "transform 260ms cubic-bezier(.22, 0.8, 0.22, 1)",
+          willChange: "transform",
+        }}
+        className="select-none text-2xl leading-[2.2] font-normal text-ft-dim tracking-[0.04em] [word-spacing:0.25em] sm:text-3xl sm:leading-[2.3] lg:text-4xl lg:leading-[2.4]"
+      >
+        {words.map((word, wi) => {
+          if (wi < cursorWord) {
+            const isErr = errorWords.has(wi);
+            return (
+              <span
+                key={wi}
+                className={cn(
+                  "text-ft-ink",
+                  isErr &&
+                    "text-ft-ember underline decoration-1 underline-offset-[6px]",
+                )}
+              >
+                {word}{" "}
+              </span>
+            );
+          }
+          if (wi === cursorWord) {
+            return (
+              <span key={wi}>
+                <ActiveWord
+                  word={word}
+                  cursorChar={cursorChar}
+                  showCaret={showCaret}
+                  registerRef={(el) => {
+                    activeWordRef.current = el;
+                  }}
+                />{" "}
+              </span>
+            );
+          }
           return (
-            <span
-              key={wi}
-              className={cn(
-                "text-ft-ink",
-                isErr &&
-                  "text-ft-ember underline decoration-1 underline-offset-[6px]",
-              )}
-            >
+            <span key={wi} className="text-ft-dim">
               {word}{" "}
             </span>
           );
-        }
-        if (wi === cursorWord) {
-          return (
-            <span key={wi}>
-              <ActiveWord
-                word={word}
-                cursorChar={cursorChar}
-                showCaret={showCaret}
-                registerRef={(el) => {
-                  activeWordRef.current = el;
-                }}
-              />{" "}
-            </span>
-          );
-        }
-        return (
-          <span key={wi} className="text-ft-dim">
-            {word}{" "}
-          </span>
-        );
-      })}
+        })}
+      </div>
     </div>
   );
 }

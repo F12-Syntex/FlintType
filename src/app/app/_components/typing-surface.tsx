@@ -56,10 +56,10 @@ export function TypingSurface({
               <Readouts />
             </div>
           ) : null}
-          {/* Passage gets the leftover vertical space and scrolls
-              internally. scroll-into-view in <Passage> keeps the cursor
-              centered, so the passage's own scrollbar is invisible. */}
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+          {/* Passage gets the leftover vertical space. <Passage>
+              translates its inner content vertically to keep the active
+              word centered, so the container itself never scrolls. */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <Passage />
           </div>
           {/* RestHint is mobile-only. On desktop the readouts strip already
