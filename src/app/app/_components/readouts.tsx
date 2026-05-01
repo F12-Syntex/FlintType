@@ -127,23 +127,24 @@ function DesktopStats({
   return (
     <div className="hidden flex-wrap items-end justify-between gap-4 select-none md:flex">
       <div className="flex flex-wrap gap-x-12 gap-y-3">
-        <Stat label="WPM" value={String(wpm)} size="lg" accent={running} />
-        <Stat label="ACC" value={`${Math.round(accuracy)}%`} size="lg" />
-        <Stat label="ERR" value={String(errs)} size="lg" />
+        <Stat label="ELAPSED" value={formatElapsed(elapsedMs)} size="lg" />
+        <Stat label="WORD" value={`${wordIdx}/${wordCount}`} size="lg" />
       </div>
       <div className="flex flex-wrap gap-x-12 gap-y-3">
         <Stat
-          label="WORD"
-          value={`${wordIdx}/${wordCount}`}
+          label="WPM"
+          value={String(wpm)}
           size="lg"
+          accent={running}
           align="right"
         />
         <Stat
-          label="ELAPSED"
-          value={formatElapsed(elapsedMs)}
+          label="ACC"
+          value={`${Math.round(accuracy)}%`}
           size="lg"
           align="right"
         />
+        <Stat label="ERR" value={String(errs)} size="lg" align="right" />
       </div>
     </div>
   );

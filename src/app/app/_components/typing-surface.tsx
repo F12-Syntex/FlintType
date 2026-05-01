@@ -47,7 +47,15 @@ export function TypingSurface({
             <Readouts />
           </div>
         ) : null}
-        <div className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-4 px-4 pt-4 pb-3 sm:gap-6 sm:py-8">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pt-4 pb-3 sm:gap-6 sm:px-12 sm:py-8 lg:px-20">
+          {/* Desktop readouts — sit just above the passage so the user
+              glances up and sees ELAPSED on the left, WPM on the right
+              while typing. */}
+          {showReadouts ? (
+            <div className="hidden md:block">
+              <Readouts />
+            </div>
+          ) : null}
           {/* Passage gets the leftover vertical space and scrolls
               internally. scroll-into-view in <Passage> keeps the cursor
               centered, so the passage's own scrollbar is invisible. */}
@@ -63,15 +71,8 @@ export function TypingSurface({
             </div>
           ) : null}
           {belowHint}
-          {/* Desktop readouts — pinned to bottom, above the keyboard, so
-              the typing area at the top stays uncluttered. */}
-          {showReadouts ? (
-            <div className="mt-auto hidden md:block">
-              <Readouts />
-            </div>
-          ) : null}
           {showKeyboard ? (
-            <div className="hidden md:block">
+            <div className="mt-auto hidden md:block">
               <Keyboard />
             </div>
           ) : null}
