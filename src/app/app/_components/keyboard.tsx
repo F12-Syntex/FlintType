@@ -176,18 +176,21 @@ function Key({
   const main = isLetter && upper ? def.label.toUpperCase() : def.label;
   const showShiftGlyph = !!def.shiftLabel && def.variant !== "modifier";
 
+  const lit = pressed || active;
+
   return (
     <Button
       type="button"
       tabIndex={-1}
-      variant={active ? "default" : "outline"}
+      variant={lit ? "default" : "secondary"}
       size="sm"
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       className={cn(
-        "relative h-8 px-0 font-mono text-xs transition-transform sm:h-9 sm:text-sm",
+        "relative h-8 px-0 font-mono text-xs shadow-sm ring-1 ring-border transition-transform sm:h-9 sm:text-sm",
         def.variant === "modifier" &&
           "text-[10px] uppercase tracking-[0.14em]",
-        pressed && "translate-y-px scale-[0.97] shadow-inner",
+        lit && "ring-primary",
+        pressed && "translate-y-px scale-[0.97]",
       )}
       aria-pressed={active || pressed}
     >
