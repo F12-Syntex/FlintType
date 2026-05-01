@@ -168,10 +168,10 @@ export function Keyboard({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        // Tonal panel — slightly darker than the page in light mode, slightly
-        // lighter in dark mode. Uses foreground-tinted overlay so it tracks
+        // Tonal panel — noticeably darker than the page in light mode,
+        // noticeably lighter in dark mode. Foreground-tinted overlay tracks
         // the active theme automatically.
-        "mx-auto flex w-full max-w-2xl flex-col gap-1.5 rounded-lg border border-border bg-foreground/[0.06] p-2.5 shadow-sm dark:bg-foreground/[0.08]",
+        "mx-auto flex w-full max-w-2xl flex-col gap-1.5 rounded-xl border border-border/60 bg-foreground/[0.12] p-3 shadow-md dark:border-border dark:bg-foreground/[0.08]",
         className,
       )}
       role="img"
