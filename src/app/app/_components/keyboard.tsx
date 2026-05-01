@@ -134,7 +134,7 @@ export function Keyboard({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "mx-auto flex w-full max-w-2xl flex-col gap-1",
+        "mx-auto flex w-full max-w-2xl flex-col gap-1 rounded-lg border bg-muted p-2",
         className,
       )}
       role="img"
@@ -182,15 +182,17 @@ function Key({
     <Button
       type="button"
       tabIndex={-1}
-      variant={lit ? "default" : "secondary"}
+      variant={lit ? "default" : "outline"}
       size="sm"
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       className={cn(
-        "relative h-8 px-0 font-mono text-xs shadow-sm ring-1 ring-border transition-transform sm:h-9 sm:text-sm",
+        "relative h-8 px-0 font-mono text-xs transition-all sm:h-9 sm:text-sm",
+        "border-border bg-background shadow-[0_2px_0_0_hsl(var(--border))]",
         def.variant === "modifier" &&
           "text-[10px] uppercase tracking-[0.14em]",
-        lit && "ring-primary",
-        pressed && "translate-y-px scale-[0.97]",
+        lit &&
+          "border-primary bg-primary text-primary-foreground shadow-[0_2px_0_0_hsl(var(--primary))]",
+        pressed && "translate-y-[2px] shadow-none",
       )}
       aria-pressed={active || pressed}
     >
