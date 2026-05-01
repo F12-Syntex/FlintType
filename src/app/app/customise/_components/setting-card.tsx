@@ -9,9 +9,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type {
   SelectSetting,
   Setting,
@@ -84,28 +84,13 @@ function SelectCard({ setting }: { setting: SelectSetting }) {
       setting={setting}
       current={{ ...setting, value }}
       control={
-        <ToggleGroup
-          value={[value]}
-          onValueChange={(v) => {
-            // Base UI ToggleGroup is multi-by-default and reports an
-            // array. Treat empty array (user clicked the active pill)
-            // as "no change" to keep the row always-selected.
-            const next = v[0];
-            if (typeof next === "string") setValue(next);
-          }}
-          variant="outline"
+        <SegmentedControl
+          value={value}
+          onValueChange={setValue}
+          options={setting.options}
           size="sm"
-        >
-          {setting.options.map((o) => (
-            <ToggleGroupItem
-              key={o}
-              value={o}
-              className="px-3 text-[10px] uppercase tracking-[0.1em]"
-            >
-              {o}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+          ariaLabel={setting.label}
+        />
       }
     />
   );

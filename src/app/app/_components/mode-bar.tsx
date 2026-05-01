@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { cn } from "@/lib/utils";
 import {
   type Lang,
@@ -13,12 +14,11 @@ const MODES: readonly Mode[] = ["WORDS", "TIME", "QUOTE", "CODE"];
 const LENGTHS: readonly Length[] = [25, 50, 100, 200];
 const LANGS: readonly Lang[] = ["EN", "EN-COMMON", "PROGRAMMING"];
 
-// ─── Segment shell ─────────────────────────────────────────────────
-// Solid white card on the warm paper page so each group reads as a
-// distinct unit. Subtle inner shadow / line-soft border carries the
-// edge.
-
-function Segment({
+/** Label-on-top wrapper used for each control group. The pill row
+ *  itself is `<SegmentedControl>` from `@/components/ui` — same
+ *  primitive used by Settings, so the two surfaces stay visually
+ *  consistent. */
+function Field({
   label,
   children,
 }: {
@@ -30,70 +30,7 @@ function Segment({
       <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-ft-dim">
         {label}
       </span>
-      <div
-        role="group"
-        className="inline-flex flex-wrap items-center gap-0.5 rounded-md border border-ft-line-soft bg-white p-0.5 shadow-[0_1px_0_0_hsl(38_20%_82%)]"
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-// ─── Option pill ───────────────────────────────────────────────────
-
-function Pill<T extends string | number>({
-  value,
-  active,
-  onClick,
-}: {
-  value: T;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={active}
-      onClick={(e) => {
-        onClick();
-        e.currentTarget.blur();
-      }}
-      className={cn(
-        "cursor-pointer rounded px-2 py-1.5 text-[10px] font-medium uppercase tracking-[0.12em] transition-all outline-none sm:px-2.5 sm:text-[11px]",
-        "focus-visible:ring-1 focus-visible:ring-ft-ember focus-visible:ring-offset-1 focus-visible:ring-offset-ft-paper",
-        active
-          ? "bg-ft-ember text-white shadow-sm"
-          : "text-ft-dim-2 hover:bg-ft-line-soft hover:text-ft-ink",
-      )}
-    >
-      {value}
-    </button>
-  );
-}
-
-function PillGroup<T extends string | number>({
-  ariaLabel,
-  items,
-  active,
-  onSelect,
-}: {
-  ariaLabel: string;
-  items: readonly T[];
-  active: T;
-  onSelect: (value: T) => void;
-}) {
-  return (
-    <div role="radiogroup" aria-label={ariaLabel} className="contents">
-      {items.map((it) => (
-        <Pill
-          key={String(it)}
-          value={it}
-          active={it === active}
-          onClick={() => onSelect(it)}
-        />
-      ))}
+      {children}
     </div>
   );
 }
@@ -145,32 +82,32 @@ function ModeControls() {
   const { state, dispatch } = usePractice();
   return (
     <div className="flex flex-col items-stretch gap-3 md:flex-row md:flex-wrap md:items-end md:justify-center md:gap-x-8 md:gap-y-4">
-      <Segment label="mode">
-        <PillGroup
+      <Field label="mode">
+        <SegmentedControl
+          value={state.mode}
+          onValueChange={(mode) => dispatch({ type: "SET_MODE", mode })}
+          options={MODES}
           ariaLabel="Test mode"
-          items={MODES}
-          active={state.mode}
-          onSelect={(mode) => dispatch({ type: "SET_MODE", mode })}
         />
-      </Segment>
+      </Field>
 
-      <Segment label="length">
-        <PillGroup
+      <Field label="length">
+        <SegmentedControl
+          value={state.length}
+          onValueChange={(length) => dispatch({ type: "SET_LENGTH", length })}
+          options={LENGTHS}
           ariaLabel="Word count"
-          items={LENGTHS}
-          active={state.length}
-          onSelect={(length) => dispatch({ type: "SET_LENGTH", length })}
         />
-      </Segment>
+      </Field>
 
-      <Segment label="language">
-        <PillGroup
+      <Field label="language">
+        <SegmentedControl
+          value={state.lang}
+          onValueChange={(lang) => dispatch({ type: "SET_LANG", lang })}
+          options={LANGS}
           ariaLabel="Language"
-          items={LANGS}
-          active={state.lang}
-          onSelect={(lang) => dispatch({ type: "SET_LANG", lang })}
         />
-      </Segment>
+      </Field>
 
       <label className="flex cursor-pointer items-center gap-2.5 md:self-end md:pb-[7px]">
         <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-ft-dim">
