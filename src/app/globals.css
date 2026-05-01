@@ -3,17 +3,17 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.9940 0 0);
+  --background: oklch(0.9450 0.0180 85);
   --foreground: oklch(0 0 0);
-  --card: oklch(0.9940 0 0);
+  --card: oklch(0.9650 0.0150 85);
   --card-foreground: oklch(0 0 0);
-  --popover: oklch(0.9911 0 0);
+  --popover: oklch(0.9650 0.0150 85);
   --popover-foreground: oklch(0 0 0);
   --primary: oklch(0.6551 0.2312 34.7438);
   --primary-foreground: oklch(1.0000 0 0);
   --secondary: oklch(0.9535 0.0080 253.8538);
   --secondary-foreground: oklch(0.1344 0 0);
-  --muted: oklch(0.9702 0 0);
+  --muted: oklch(0.9300 0.0200 85);
   --muted-foreground: oklch(0.4386 0 0);
   --accent: oklch(0.9656 0.0176 39.4009);
   --accent-foreground: oklch(0.5657 0.1994 34.7994);
@@ -63,7 +63,7 @@
   --ds-gray-900: hsla(0, 0%, 40%, 1);
   --ds-gray-1000: hsla(0, 0%, 9%, 1);
   --ds-gray-alpha-400: hsla(0, 0%, 0%, 0.08);
-  --ds-background-100: hsla(0, 0%, 100%, 1);
+  --ds-background-100: oklch(0.9650 0.0150 85);
 }
 
 .dark {

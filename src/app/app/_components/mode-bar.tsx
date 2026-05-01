@@ -150,7 +150,7 @@ function MobileBar() {
   const { state } = usePractice();
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-b border-ft-line-soft bg-white md:hidden">
+    <div className="border-b border-ft-line-soft bg-card md:hidden">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

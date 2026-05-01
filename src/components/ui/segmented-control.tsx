@@ -48,7 +48,7 @@ export function SegmentedControl<T extends string | number>({
       className={cn(
         "inline-flex flex-wrap items-center gap-0.5",
         framed &&
-          "rounded-md border border-ft-line-soft bg-white p-0.5 shadow-[0_1px_0_0_hsl(38_20%_82%)]",
+          "rounded-md border border-border bg-card p-0.5 shadow-sm",
         className,
       )}
     >

@@ -71,7 +71,7 @@ function RestartControl({
         onClick={onRestart}
         className={cn(
           "inline-flex h-11 min-w-[112px] items-center justify-center md:hidden",
-          "rounded-md border border-ft-line-soft bg-white px-4",
+          "rounded-md border border-ft-line-soft bg-card px-4",
           "text-[11px] font-semibold uppercase tracking-[0.18em] text-ft-ink",
           "transition-colors hover:border-ft-ember hover:text-ft-ember",
           "active:bg-ft-spark",
@@ -91,7 +91,7 @@ function CancelControl({ onCancel }: { onCancel: () => void }) {
       onClick={onCancel}
       className={cn(
         "inline-flex h-11 min-w-[112px] items-center justify-center",
-        "rounded-md border border-ft-line-soft bg-white px-4",
+        "rounded-md border border-ft-line-soft bg-card px-4",
         "text-[11px] font-semibold uppercase tracking-[0.18em] text-ft-ink",
         "transition-colors hover:border-ft-ember hover:text-ft-ember",
         "active:bg-ft-spark",

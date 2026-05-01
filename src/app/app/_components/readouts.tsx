@@ -66,7 +66,7 @@ function MobileStrip({
   running,
 }: StatsProps) {
   return (
-    <div className="flex items-center justify-between gap-2 border-b border-ft-line-soft bg-white/60 px-4 py-2 text-[11px] tabular-nums md:hidden">
+    <div className="flex items-center justify-between gap-2 border-b border-ft-line-soft bg-card/60 px-4 py-2 text-[11px] tabular-nums md:hidden">
       <div className="flex items-baseline gap-1">
         <span
           className={cn(
