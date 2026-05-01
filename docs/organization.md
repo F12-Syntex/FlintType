@@ -38,12 +38,46 @@ If all four pointed away from the existing file, create a new one.
 | A method whose handler body > 30 lines              | `src/server/routes/<ns>/<method>.ts`, imported into `index.ts`                             |
 | A new middleware                                    | `src/server/middleware/<purpose>.ts`  (one concern per file; group tightly related middleware in the same file) |
 | A new domain's server-side data access              | `src/server/db/<domain>.ts`  (promote from `src/server/db.ts` when the first module is added) |
-| A shared React component                            | `src/components/<name>.tsx`                                                                |
-| A route-scoped component                            | `src/app/<route>/_components/<name>.tsx`                                                   |
+| A shared React component (single file)              | `src/components/<name>.tsx`                                                                |
+| A route-scoped component (single file)              | `src/app/<route>/_components/<name>.tsx`                                                   |
+| A higher-level component with ≥ 2 supporting files  | promote to a folder: `src/.../<name>/index.tsx` + private siblings — see **Component folders** below |
 | A cross-cutting client or isomorphic helper         | `src/lib/<purpose>.ts`                                                                     |
 | A cross-domain type (used by > 1 domain)            | `src/types/<name>.ts` at the top level, not nested in a domain file                         |
 | A test for any of the above                         | co-located `*.test.ts` / `index.test.ts` next to the subject                                |
 | A new documented convention                         | amend the relevant doc (`docs/backend-rules.md`, `docs/ui-law.md`, or this file)            |
+
+## Component folders
+
+A component that is more than one file's worth of cohesive code — its own subcomponents, custom hook, internal data tables or types — must be promoted to a folder. The flat `<name>.tsx` form is only for single-file components.
+
+Layout:
+
+```
+src/app/app/_components/keyboard/
+  index.tsx              # the Keyboard component itself — this file IS the component
+  key.tsx                # private subcomponent
+  layout-picker.tsx      # private subcomponent
+  layouts.ts             # data tables, only consumed inside the folder
+  types.ts               # types only this folder uses
+  use-pressed-keys.ts    # hook only this component uses
+```
+
+Rules:
+
+- The folder's `index.tsx` IS the component (a real component file). It is **not** a re-export barrel — `export { Keyboard } from './keyboard'` is forbidden, exactly like every other barrel in the repo.
+- Internal modules (`key.tsx`, `use-pressed-keys.ts`, `layouts.ts`, …) are **private to the folder**. Do not import them from outside. If you find yourself reaching into another component's folder, the symbol you want belongs *outside* the folder — promote it to `src/components/`, `src/lib/`, or `src/types/`.
+- Importers refer to the folder, not the index file: `import { Keyboard } from '@/app/app/_components/keyboard'`.
+- Each internal file follows the same length thresholds (§ above) as any other file. The folder structure is not a license to grow individual files.
+
+When to promote a single file into a folder:
+
+- ≥ 2 supporting modules (subcomponent, hook, data table, internal type) naturally belong with the component.
+- The single file would otherwise pass the 200-line line.
+- A subcomponent has its own props surface complex enough to type and reason about separately.
+
+When **not** to promote:
+
+- A file under 150 lines with one exported component and zero internal types — keep it flat as `<name>.tsx`. Folders for tiny components add noise without benefit.
 
 ## When to extract a symbol into its own file
 

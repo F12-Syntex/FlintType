@@ -2,7 +2,7 @@
 
 The authoritative design document for this project. Every UI change must conform to the rules below.
 
-flinttype is **editorial-mechanical**: warm paper background, near-black ink, JetBrains Mono everywhere, **one** ember-orange accent (`#E5532A`) used sparingly. Hairline borders, no rounded corners on product surfaces, tabular numerics on every stat. Charts are line-art SVG. **Keycap-style affordances** (the `<Kbd>` chip and the `/app` `<Keyboard>` widget) are the one allowed exception and may use small rounding (~4–10 px) to imitate physical keys; the surrounding panel of the `<Keyboard>` widget itself sits on the page background (`bg-ft-paper` / `dark:bg-ft-ink`) so the keys read as the figure, not the panel.
+flinttype is **editorial-mechanical**: a single coral/ember accent used sparingly against a paper-and-ink palette in JetBrains Mono. Hairline borders, no rounded corners on product surfaces, tabular numerics on every stat. Charts are line-art SVG. **Keycap-style affordances** (the `<Kbd>` chip and the `/app` `<Keyboard>` widget) are the one allowed exception and may use small rounding (~4–10 px) to imitate physical keys; the surrounding panel of the `<Keyboard>` widget itself sits on the page background (`bg-background`) so the keys read as the figure, not the panel.
 
 **Mobile-first is not optional.** Section 10 mandates every UI be authored for 375 px first and scaled up. The flinttype design source is desktop-first (1440 px artboards) — translate by stacking columns and reducing density on mobile, never by leaving small viewports broken.
 
@@ -47,28 +47,60 @@ Mirror-rule in `docs/backend-rules.md` R12 exclusions table.
 
 ## 2. Colors
 
-The flinttype palette is registered as Tailwind utilities via `@theme inline` in `src/app/globals.css`. Use the `ft-*` classes for product surfaces; never inline arbitrary hex.
+**Use the theme-aware semantic classes defined in `src/app/globals.css`. Never inline arbitrary hex.**
 
-**One accent, used sparingly.** Ember (`#E5532A`) flags the user's gaze: the next-expected key, peak/stall callouts, the active CTA, an error word. If two ember elements compete on screen, drop one to ink or dim. The whole product reads as paper-and-ink with a single spark.
+The semantic classes (`bg-background`, `bg-card`, `text-foreground`, `border-border`, `bg-primary`, …) are defined once for light (`:root`) and once for dark (`.dark`) in `globals.css`, with per-palette overrides in `themes.css`. They swap automatically with `<ModeToggle>` (light/dark) and `<ThemeSwitcher>` (palette). Reach for them by default — every product surface should follow the user's chosen theme.
 
-| Token            | Hex       | Tailwind class                          | Use                                                |
-|------------------|-----------|-----------------------------------------|----------------------------------------------------|
-| `ft-ink`         | `#0E0E0C` | `text-ft-ink`, `bg-ft-ink`              | Primary text. Solid CTA. Race screen background.   |
-| `ft-ink-2`       | `#1A1916` | `bg-ft-ink-2`                           | Card-on-dark surface (race screen panels).         |
-| `ft-line`        | `#2A2824` | `border-ft-line`                        | Hairline border on dark surfaces.                  |
-| `ft-line-soft`   | `#E4DFD4` | `border-ft-line-soft`                   | Hairline border on paper. Default rule.            |
-| `ft-paper`       | `#F4F1EA` | `bg-ft-paper`, `text-ft-paper`          | Page background (light). Text on dark.             |
-| `ft-paper-2`     | `#ECE7DB` | `bg-ft-paper-2`                         | Subtle inset surface (preview boxes).              |
-| `ft-dim`         | `#8A857C` | `text-ft-dim`                           | Muted text — eyebrows, secondary captions, gridlines. |
-| `ft-dim-2`       | `#5C5950` | `text-ft-dim-2`                         | Body copy when ink is too loud.                    |
-| `ft-ember`       | `#E5532A` | `text-ft-ember`, `bg-ft-ember`, `border-ft-ember` | The accent. Next-expected, active CTA, peak markers, error words. |
-| `ft-ember-soft`  | `#F2A484` | `text-ft-ember-soft`                    | Half-strength ember (e.g. mid-severity).           |
-| `ft-spark`       | `#F7D9C4` | `bg-ft-spark`                           | Quarter-strength tint for hover/highlight.         |
-| `ft-ok`          | `#4F7A4A` | `text-ft-ok`, `bg-ft-ok`                | Positive deltas, "win" indicator dot.              |
+**One accent, used sparingly.** The brand coral lives in `--primary`. It flags the user's gaze: the next-expected key, the active CTA, peak/stall callouts, an error word. If two primary-coloured elements compete on screen, drop one to ink or muted. The whole product reads as paper-and-ink with a single spark.
 
-**The dark variant** (race screen, supporter pricing card) inverts paper/ink: `bg-ft-ink` body, `text-ft-paper` foreground, `border-[#221F1A]` hairlines, `text-[#9C978A]` for secondary, `text-[#6E695F]` for tertiary, ember stays the same.
+### 2.1 The semantic palette
 
-Shadcn semantic classes (`bg-primary`, `text-foreground`, `border-border`) still resolve — `:root` in `globals.css` aliases them to flinttype tokens — so existing shadcn primitives (Button, Input) render in the new palette automatically.
+| Class                                              | CSS var                                  | Use                                                            |
+|----------------------------------------------------|------------------------------------------|----------------------------------------------------------------|
+| `bg-background`                                    | `--background`                           | Page background. Also the right surface for a panel that should melt into the page. |
+| `text-foreground`                                  | `--foreground`                           | Primary text.                                                  |
+| `bg-card`, `text-card-foreground`                  | `--card`, `--card-foreground`            | Card / keycap / lifted surface against the page.               |
+| `bg-popover`, `text-popover-foreground`            | `--popover`, `--popover-foreground`      | Popover, dropdown, dialog panel.                               |
+| `bg-muted`                                         | `--muted`                                | De-emphasised surface (rail, chip, inset row).                 |
+| `text-muted-foreground`                            | `--muted-foreground`                     | De-emphasised text — captions, secondary metadata, shift-glyph on a key. |
+| `bg-primary`, `text-primary-foreground`, `border-primary` | `--primary`, `--primary-foreground` | **The brand spark.** Pressed key, active CTA, peak marker, error word. The brand coral in the default palette; remains the active-state colour under community palettes. |
+| `bg-secondary`, `text-secondary-foreground`        | `--secondary`, `--secondary-foreground`  | Secondary surface (the dark quote band in the default palette). |
+| `bg-accent`, `text-accent-foreground`              | `--accent`, `--accent-foreground`        | Hover / highlight tint.                                        |
+| `bg-destructive`, `text-destructive-foreground`    | `--destructive`, `--destructive-foreground` | Destructive action.                                         |
+| `border-border`                                    | `--border`                               | Default shadcn hairline (used by Button, Input, etc.).         |
+| `border-foreground/10`                             | `--foreground` @ 10%                     | **Soft** hairline that swaps with theme — the right default for keycap-style affordances and most panel borders. |
+| `bg-foreground`, `text-background`                 | `--foreground`, `--background`           | Full inversion (active toggle, picker pill).                   |
+
+### 2.2 Choosing the right class
+
+| You want…                                                                  | Reach for…                                          |
+|----------------------------------------------------------------------------|-----------------------------------------------------|
+| The page background                                                        | `bg-background` (with `text-foreground`)           |
+| A card / lifted surface against the page                                   | `bg-card text-card-foreground`                      |
+| The single brand spark (active state, next-expected key, error word)       | `bg-primary text-primary-foreground border-primary` |
+| De-emphasised text                                                         | `text-muted-foreground`                             |
+| A panel that should melt into the page (e.g. the Keyboard widget surround) | `bg-background border border-foreground/10`        |
+| A soft hairline that swaps with theme                                      | `border-foreground/10`                              |
+| The crisp shadcn outline border (Button, Input)                            | `border-border`                                     |
+
+### 2.3 `ft-*` tokens — fixed-palette layer (use sparingly)
+
+A parallel `ft-*` palette (`bg-ft-paper`, `text-ft-ink`, `bg-ft-ember`, …) is also registered via `@theme` in `globals.css`. These tokens are **fixed** — they don't swap with `<ModeToggle>` or `<ThemeSwitcher>`. Several existing components (`<Tag>`, `<Stat>`, `<Panel>`, `<FtButton>`, `<TopBar>`) are built on them.
+
+For *new* components, prefer §2.1 semantic classes — they follow the user's chosen theme. Reach for `ft-*` only when you genuinely want a fixed surface (the dark race screen, the supporter pricing card) that ignores the user's palette by design.
+
+When you touch an existing `ft-*`-styled component for an unrelated reason, leave the existing classes alone — incidental migrations create noisy diffs. When you touch it specifically to make it theme-aware, swap using this table:
+
+| Fixed `ft-*`                                 | Theme-aware replacement                               |
+|----------------------------------------------|-------------------------------------------------------|
+| `bg-ft-paper`, `bg-ft-paper-2`               | `bg-background` (page) / `bg-card` (lifted surface)   |
+| `bg-ft-ink`, `bg-ft-ink-2`                   | `bg-background` (page in dark) / `bg-card`            |
+| `text-ft-ink`, `text-ft-paper`               | `text-foreground`                                     |
+| `text-ft-dim`, `text-ft-dim-2`               | `text-muted-foreground`                               |
+| `border-ft-line-soft`, `border-ft-line`      | `border-foreground/10` (soft) / `border-border` (crisp) |
+| `bg-ft-ember`, `text-ft-ember`, `border-ft-ember` | `bg-primary`, `text-primary-foreground`, `border-primary` |
+| `bg-ft-spark`                                | `bg-accent` (hover/highlight)                         |
+| `text-ft-ok`, `bg-ft-ok`                     | no theme equivalent yet — keep `text-ft-ok` until a `--success` var lands |
 
 ---
 
