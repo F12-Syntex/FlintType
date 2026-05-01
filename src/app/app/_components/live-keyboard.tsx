@@ -125,7 +125,7 @@ function Key({
   recent,
   maxHeat,
 }: KeyProps) {
-  const v = (k && heat[k]) ?? 0;
+  const v = (k ? heat[k] : 0) ?? 0;
   const intensity = maxHeat > 0 ? v / maxHeat : 0;
   const isNext = !!k && k === nextKey;
   const recentIdx = k ? recent.indexOf(k) : -1;
