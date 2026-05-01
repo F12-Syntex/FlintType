@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { APP_VERSION_LABEL, GITHUB_URL } from "@/lib/version";
+import { GITHUB_URL } from "@/lib/version";
+import { useAppVersionLabel } from "@/lib/version-context";
 import { Logo } from "./logo";
 import { MobileNav } from "./mobile-nav";
 
@@ -16,7 +17,7 @@ export function TopBar({
   nav,
   right,
   drawerExtras,
-  version = APP_VERSION_LABEL,
+  version,
   dark = false,
   sticky = true,
   className,
@@ -26,12 +27,17 @@ export function TopBar({
   right?: React.ReactNode;
   /** Extra content shown only inside the mobile drawer (below nav links). */
   drawerExtras?: React.ReactNode;
+  /** Override the version pill. When omitted, falls back to the
+   *  request-time VERSION read via <VersionProvider>, then to the
+   *  build-time env var snapshot. */
   version?: string;
   dark?: boolean;
   sticky?: boolean;
   className?: string;
 }) {
   const pathname = usePathname();
+  const ctxVersion = useAppVersionLabel();
+  const resolvedVersion = version ?? ctxVersion;
   const isActive = (href: string) =>
     href === pathname ||
     (href !== "/" && href !== "/app" && pathname?.startsWith(href));
@@ -47,7 +53,7 @@ export function TopBar({
         className,
       )}
     >
-      <Logo dark={dark} version={version} />
+      <Logo dark={dark} version={resolvedVersion} />
 
       {/* OPEN SOURCE — clickable badge that lives next to the version
           number and links to GitHub. Hidden < sm so the topbar stays

@@ -1,5 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { VersionProvider } from "@/lib/version-context";
+import { getAppVersion } from "@/server/version";
 
 export default async function AppLayout({
   children,
@@ -8,5 +10,6 @@ export default async function AppLayout({
 }) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
-  return <>{children}</>;
+  const version = getAppVersion();
+  return <VersionProvider value={version}>{children}</VersionProvider>;
 }
