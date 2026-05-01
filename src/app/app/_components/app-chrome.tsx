@@ -10,7 +10,6 @@ const NAV: NavItem[] = [
   { href: "/app/drills", label: "DRILLS" },
   { href: "/app/race", label: "RACES" },
   { href: "/app/history", label: "HISTORY" },
-  { href: "/app/customise", label: "CUSTOMISE" },
 ];
 
 export function AppChrome({

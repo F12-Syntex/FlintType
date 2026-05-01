@@ -6,10 +6,13 @@ import { SignOutLink } from "./sign-out-link";
 type Item = { href: string; label: string; external?: boolean };
 
 // Account / utility links — primary product nav already lives in the
-// drawer body above. PROFILE is here (not in the main nav) because it's
-// an account-style entry the user only opens occasionally.
+// drawer body above. PROFILE and SETTINGS are here (not in the main nav)
+// because they're account/config entries the user only opens
+// occasionally; on desktop the same destinations live behind the gear /
+// avatar icons in the topbar.
 const ACCOUNT: Item[] = [
   { href: "/app/profile", label: "PROFILE" },
+  { href: "/app/customise", label: "SETTINGS" },
 ];
 
 const META: Item[] = [
