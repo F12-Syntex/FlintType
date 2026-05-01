@@ -31,6 +31,10 @@ export function usePressedKeys(): PressedKeysState {
   const [caps, setCaps] = useState(false);
 
   useEffect(() => {
+    // TEMP debug — remove once the keyboard press visual is confirmed
+    // working in the user's environment.
+    console.log("[keyboard] usePressedKeys mounted, attaching listeners");
+
     const downAt = new Map<string, number>();
     const removeTimers = new Map<string, number>();
 
@@ -58,6 +62,8 @@ export function usePressedKeys(): PressedKeysState {
     };
 
     const onDown = (e: KeyboardEvent) => {
+      // TEMP debug — remove once confirmed working.
+      console.log("[keyboard] keydown", e.code, "target=", (e.target as Element | null)?.tagName ?? "?");
       cancelRemoval(e.code);
       downAt.set(e.code, performance.now());
       setPressed((prev) => {
