@@ -35,10 +35,6 @@ export type State = {
   correctChars: number;
   startTime: number | null;
   endTime: number | null;
-
-  // visual feedback (used by hand simulation in <LiveKeyboard>)
-  lastKey: string | null; // most recent printable char typed (lowercase) or "space"
-  lastKeyAt: number | null; // timestamp; changes on every press so effects re-fire
 };
 
 type Action =
@@ -130,8 +126,6 @@ export const initialState: State = {
   correctChars: 0,
   startTime: null,
   endTime: null,
-  lastKey: null,
-  lastKeyAt: null,
 };
 
 // ─── Reducer ────────────────────────────────────────────────────────
@@ -190,8 +184,6 @@ function reducer(s: State, a: Action): State {
         errorWords: correct
           ? s.errorWords
           : new Set([...s.errorWords, s.cursorWord]),
-        lastKey: a.char.toLowerCase(),
-        lastKeyAt: a.now,
       };
     }
     case "BACKSPACE": {
@@ -213,16 +205,12 @@ function reducer(s: State, a: Action): State {
           ...s,
           phase: "done",
           endTime: a.now,
-          lastKey: "space",
-          lastKeyAt: a.now,
         };
       }
       return {
         ...s,
         cursorWord: next,
         cursorChar: 0,
-        lastKey: "space",
-        lastKeyAt: a.now,
       };
     }
     default:

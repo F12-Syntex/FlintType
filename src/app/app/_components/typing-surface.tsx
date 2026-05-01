@@ -1,5 +1,4 @@
 import { InputCapture } from "./input-capture";
-import { LiveKeyboard } from "./live-keyboard";
 import { ModeBar } from "./mode-bar";
 import { Passage } from "./passage";
 import { PracticeProvider } from "./practice-state";
@@ -9,8 +8,6 @@ import { RestHint } from "./rest-hint";
 export type TypingSurfaceProps = {
   /** Show the mode/length/lang/adapt config dock above the typing area. */
   showModeBar?: boolean;
-  /** Show the keyboard preview at the bottom. */
-  showKeyboard?: boolean;
   /** Show the rest/running/done hint line under the passage. */
   showRestHint?: boolean;
   /** Show the live readout strip (WPM / ACC / ERR / WORD / ELAPSED). */
@@ -27,11 +24,9 @@ export type TypingSurfaceProps = {
  *  Mobile vertical budget (no scroll, see <AppChrome compact>):
  *  TopBar — collapsed ModeBar strip — compact Readouts strip — flex-1
  *  Passage (internal scroll-into-view only) — RestHint footer row.
- *  Desktop keeps the looser layout with the keyboard preview on at md+.
  */
 export function TypingSurface({
   showModeBar = true,
-  showKeyboard = true,
   showRestHint = true,
   showReadouts = true,
   belowHint,
@@ -69,12 +64,6 @@ export function TypingSurface({
             </div>
           ) : null}
           {belowHint}
-          {showKeyboard ? (
-            // Desktop-only — the OS virtual keyboard takes this space on mobile.
-            <div className="mt-auto hidden md:block">
-              <LiveKeyboard />
-            </div>
-          ) : null}
         </div>
       </InputCapture>
     </PracticeProvider>
