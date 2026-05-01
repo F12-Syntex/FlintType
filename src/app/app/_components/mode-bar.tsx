@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { SegmentedControl } from "@/components/ui/segmented-control";
+import { OptionSwitch } from "@/components/ui/option-switch";
 import { cn } from "@/lib/utils";
 import {
   type Lang,
@@ -83,30 +83,44 @@ function ModeControls() {
   return (
     <div className="flex flex-col items-stretch gap-3 md:flex-row md:flex-wrap md:items-end md:justify-center md:gap-x-8 md:gap-y-4">
       <Field label="mode">
-        <SegmentedControl
+        <OptionSwitch
+          name="mode"
+          size="small"
           value={state.mode}
-          onValueChange={(mode) => dispatch({ type: "SET_MODE", mode })}
-          options={MODES}
-          ariaLabel="Test mode"
-        />
+          onValueChange={(v) => dispatch({ type: "SET_MODE", mode: v as Mode })}
+        >
+          {MODES.map((m) => (
+            <OptionSwitch.Control key={m} label={m} value={m} />
+          ))}
+        </OptionSwitch>
       </Field>
 
       <Field label="length">
-        <SegmentedControl
-          value={state.length}
-          onValueChange={(length) => dispatch({ type: "SET_LENGTH", length })}
-          options={LENGTHS}
-          ariaLabel="Word count"
-        />
+        <OptionSwitch
+          name="length"
+          size="small"
+          value={String(state.length)}
+          onValueChange={(v) =>
+            dispatch({ type: "SET_LENGTH", length: Number(v) as Length })
+          }
+        >
+          {LENGTHS.map((l) => (
+            <OptionSwitch.Control key={l} label={String(l)} value={String(l)} />
+          ))}
+        </OptionSwitch>
       </Field>
 
       <Field label="language">
-        <SegmentedControl
+        <OptionSwitch
+          name="language"
+          size="small"
           value={state.lang}
-          onValueChange={(lang) => dispatch({ type: "SET_LANG", lang })}
-          options={LANGS}
-          ariaLabel="Language"
-        />
+          onValueChange={(v) => dispatch({ type: "SET_LANG", lang: v as Lang })}
+        >
+          {LANGS.map((l) => (
+            <OptionSwitch.Control key={l} label={l} value={l} />
+          ))}
+        </OptionSwitch>
       </Field>
 
       <label className="flex cursor-pointer items-center gap-2.5 md:self-end md:pb-[7px]">

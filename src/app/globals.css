@@ -55,6 +55,15 @@
   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
   --tracking-normal: 0em;
   --spacing: 0.27rem;
+
+  /* Geist DS variables consumed by upstream component snippets. */
+  --context-card-border: hsla(0, 0%, 92%, 1);
+  --ds-gray-100: hsla(0, 0%, 95%, 1);
+  --ds-gray-800: hsla(0, 0%, 49%, 1);
+  --ds-gray-900: hsla(0, 0%, 40%, 1);
+  --ds-gray-1000: hsla(0, 0%, 9%, 1);
+  --ds-gray-alpha-400: hsla(0, 0%, 0%, 0.08);
+  --ds-background-100: hsla(0, 0%, 100%, 1);
 }
 
 .dark {
@@ -108,6 +117,14 @@
   --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 4px 6px -1px hsl(0 0% 0% / 0.10);
   --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 8px 10px -1px hsl(0 0% 0% / 0.10);
   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+
+  --context-card-border: hsla(0, 0%, 18%, 1);
+  --ds-gray-100: hsla(0, 0%, 10%, 1);
+  --ds-gray-800: hsla(0, 0%, 49%, 1);
+  --ds-gray-900: hsla(0, 0%, 63%, 1);
+  --ds-gray-1000: hsla(0, 0%, 93%, 1);
+  --ds-gray-alpha-400: hsla(0, 0%, 100%, 0.14);
+  --ds-background-100: hsla(0, 0%, 4%, 1);
 }
 
 @theme inline {
@@ -161,6 +178,17 @@
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-xl);
   --shadow-2xl: var(--shadow-2xl);
+
+  /* Geist / Vercel design-system tokens used by upstream component
+     snippets (e.g. the Switch options swap). Sourced as concrete
+     hsla so Tailwind v4 emits resolvable utilities. */
+  --color-context-card-border: var(--context-card-border);
+  --color-gray-100: var(--ds-gray-100);
+  --color-gray-800: var(--ds-gray-800);
+  --color-gray-900: var(--ds-gray-900);
+  --color-gray-1000: var(--ds-gray-1000);
+  --color-gray-alpha-400: var(--ds-gray-alpha-400);
+  --color-background-100: var(--ds-background-100);
 
   /* flinttype brand tokens — fixed across themes. Concrete HSL so
      Tailwind v4 emits resolvable utilities (bg-ft-paper, text-ft-ember,
