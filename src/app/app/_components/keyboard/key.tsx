@@ -30,12 +30,14 @@ export function Key({
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       className={cn(
         "relative flex h-9 items-center justify-center rounded-[6px] border font-mono text-sm sm:h-10",
+        // DEBUG (1.30.8): hard-coded Tailwind built-in colours instead
+        // of theme tokens, to isolate whether the colour swap itself is
+        // the problem. If red flashes appear → bg-primary was failing
+        // and we hunt the theme. If still nothing → the className isn't
+        // landing on the element and we hunt the class application.
         hot
-          ? // Instant flash on press — no transition so the lit colour
-            // appears the same frame the key goes down.
-            "border-primary bg-primary text-primary-foreground transition-none"
-          : // Smooth fade back to the resting state.
-            "border-foreground/10 bg-card text-card-foreground transition-colors duration-150",
+          ? "border-red-500 bg-red-500 text-white transition-none"
+          : "border-zinc-300 bg-white text-zinc-900 transition-colors duration-150 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100",
         def.variant === "modifier" && "text-[10px] uppercase tracking-[0.14em]",
       )}
     >
