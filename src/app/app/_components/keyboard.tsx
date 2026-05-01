@@ -168,10 +168,11 @@ export function Keyboard({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        // Tonal panel — noticeably darker than the page in light mode,
-        // noticeably lighter in dark mode. Foreground-tinted overlay tracks
-        // the active theme automatically.
-        "mx-auto flex w-full max-w-2xl flex-col gap-1.5 rounded-xl border border-border/60 bg-foreground/[0.12] p-3 shadow-md dark:border-border dark:bg-foreground/[0.08]",
+        // Solid panel surface — a true "background-but-darker" tone in light
+        // mode (the page is hsl(38 33% 92%); panel is hsl(38 25% 80%)) and
+        // "background-but-lighter" in dark mode (page hsl(0 0% 8%); panel
+        // hsl(0 0% 16%)). Solid HSL — no alpha bleed through to the page.
+        "mx-auto flex w-full max-w-2xl flex-col gap-1.5 rounded-xl border border-border/60 bg-[hsl(38_25%_80%)] p-3 shadow-md dark:border-border dark:bg-[hsl(0_0%_16%)]",
         className,
       )}
       role="img"
