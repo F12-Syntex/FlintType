@@ -1,4 +1,5 @@
 import { InputCapture } from "./input-capture";
+import { Keyboard } from "./keyboard";
 import { ModeBar } from "./mode-bar";
 import { Passage } from "./passage";
 import { PracticeProvider } from "./practice-state";
@@ -8,6 +9,8 @@ import { RestHint } from "./rest-hint";
 export type TypingSurfaceProps = {
   /** Show the mode/length/lang/adapt config dock above the typing area. */
   showModeBar?: boolean;
+  /** Show the live virtual keyboard preview (desktop only). */
+  showKeyboard?: boolean;
   /** Show the rest/running/done hint line under the passage. */
   showRestHint?: boolean;
   /** Show the live readout strip (WPM / ACC / ERR / WORD / ELAPSED). */
@@ -27,6 +30,7 @@ export type TypingSurfaceProps = {
  */
 export function TypingSurface({
   showModeBar = true,
+  showKeyboard = true,
   showRestHint = true,
   showReadouts = true,
   belowHint,
@@ -64,6 +68,11 @@ export function TypingSurface({
             </div>
           ) : null}
           {belowHint}
+          {showKeyboard ? (
+            <div className="mt-auto hidden md:block">
+              <Keyboard />
+            </div>
+          ) : null}
         </div>
       </InputCapture>
     </PracticeProvider>
