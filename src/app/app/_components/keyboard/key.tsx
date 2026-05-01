@@ -30,13 +30,15 @@ export function Key({
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       className={cn(
         "relative flex h-9 items-center justify-center rounded-[6px] border font-mono text-sm sm:h-10",
-        // DEBUG (1.30.8): hard-coded Tailwind built-in colours instead
-        // of theme tokens, to isolate whether the colour swap itself is
-        // the problem. If red flashes appear → bg-primary was failing
-        // and we hunt the theme. If still nothing → the className isn't
-        // landing on the element and we hunt the class application.
+        // Pressed state uses ft-ember (the brand-fixed spark token) and
+        // not bg-primary. bg-primary chains through `--color-primary:
+        // hsl(var(--primary))` in globals.css, which produces invalid CSS
+        // for any community palette where --primary is oklch(...) — the
+        // resulting `hsl(oklch(...))` is dropped silently. ft-ember is
+        // defined as a literal HSL with no var indirection, so it always
+        // resolves to the brand coral regardless of active palette.
         hot
-          ? "border-red-500 bg-red-500 text-white transition-none"
+          ? "border-ft-ember bg-ft-ember text-white transition-none"
           : "border-zinc-300 bg-white text-zinc-900 transition-colors duration-150 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100",
         def.variant === "modifier" && "text-[10px] uppercase tracking-[0.14em]",
       )}
