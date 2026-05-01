@@ -66,12 +66,12 @@ export function Keyboard({
   return (
     <div
       className={cn(
-        // Panel: solid surface, slightly darker than the warm page in
-        // light mode, slightly lighter than the ink page in dark mode.
-        // Hex colors so Tailwind doesn't trip on arbitrary HSL parsing.
-        "mx-auto flex w-full max-w-2xl flex-col gap-2 rounded-xl border p-3 shadow-md",
-        "border-black/10 bg-[#DBCFB8]",
-        "dark:border-white/10 dark:bg-[#26241F]",
+        // Panel: light, modern surface — soft tint off the page, hairline
+        // border, no heavy shadow. Hex so Tailwind doesn't trip on
+        // arbitrary HSL parsing.
+        "mx-auto flex w-full max-w-2xl flex-col gap-2 rounded-xl border p-3",
+        "border-black/8 bg-[#EFE9DB]",
+        "dark:border-white/8 dark:bg-[#1B1A17]",
         className,
       )}
       role="img"
@@ -159,17 +159,15 @@ function Key({
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       aria-pressed={hot}
       className={cn(
-        // Sit on the panel: white keycap in light, raised slate in dark,
-        // bottom-edge inset shadow for the keycap feel. Both surfaces are
-        // explicit so we don't inherit the panel's tint.
-        "relative h-9 px-0 font-mono text-sm transition-all sm:h-10",
-        "border-black/15 bg-white text-zinc-800 shadow-[inset_0_-1.5px_0_0_rgba(0,0,0,0.12)] hover:bg-white",
-        "dark:border-white/10 dark:bg-[#3A3833] dark:text-zinc-100 dark:shadow-[inset_0_-1.5px_0_0_rgba(0,0,0,0.5)] dark:hover:bg-[#3A3833]",
+        // Flat, modern keycap — no 3D shadow. Hairline border + flat fill,
+        // both surfaces explicit so the panel tint never bleeds through.
+        "relative h-9 px-0 font-mono text-sm transition-colors sm:h-10",
+        "border-black/8 bg-white text-zinc-800 shadow-none hover:bg-white",
+        "dark:border-white/8 dark:bg-[#2A2825] dark:text-zinc-100 dark:hover:bg-[#2A2825]",
         def.variant === "modifier" &&
           "text-[10px] uppercase tracking-[0.14em]",
         hot &&
-          "border-primary bg-primary text-primary-foreground shadow-[inset_0_-1.5px_0_0_hsl(var(--primary)/0.5)] hover:bg-primary dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary",
-        pressed && "translate-y-[1px] shadow-none",
+          "border-primary bg-primary text-primary-foreground hover:bg-primary dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary",
       )}
     >
       {def.shiftLabel && def.variant !== "modifier" && (
