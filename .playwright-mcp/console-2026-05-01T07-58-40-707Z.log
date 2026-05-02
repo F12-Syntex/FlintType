@@ -1,0 +1,436 @@
+[     149ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[     165ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[     288ms] [WARNING] Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[     582ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3000/sign-in:0
+[    3560ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[   10746ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[   10857ms] [LOG] [Fast Refresh] done in 220ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  371658ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  371721ms] [LOG] [Fast Refresh] done in 110ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  374672ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  378015ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  378086ms] [LOG] [Fast Refresh] done in 97ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  381038ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  383033ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  383096ms] [LOG] [Fast Refresh] done in 101ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  386041ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  433608ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  433670ms] [LOG] [Fast Refresh] done in 122ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  436637ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  437277ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  437426ms] [LOG] [Fast Refresh] done in 263ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  437605ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  437719ms] [LOG] [Fast Refresh] done in 215ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  437837ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  438019ms] [LOG] [Fast Refresh] done in 289ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  440804ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  445457ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  445536ms] [LOG] [Fast Refresh] done in 181ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  445724ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  445788ms] [LOG] [Fast Refresh] done in 180ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  445961ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  446091ms] [LOG] [Fast Refresh] done in 236ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  448835ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  457996ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  457999ms] [LOG] [Fast Refresh] done in 79ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  458186ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  458257ms] [LOG] [Fast Refresh] done in 178ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  458421ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  458526ms] [LOG] [Fast Refresh] done in 207ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  461405ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  467137ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  467453ms] [LOG] [Fast Refresh] done in 424ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  579796ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  579818ms] [LOG] [Fast Refresh] done in 126ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  593101ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  593104ms] [LOG] [Fast Refresh] done in 103ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  593280ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  593345ms] [LOG] [Fast Refresh] done in 168ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  593517ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  593663ms] [LOG] [Fast Refresh] done in 248ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  596453ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  597155ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  597180ms] [LOG] [Fast Refresh] done in 125ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  599153ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  599200ms] [LOG] [Fast Refresh] done in 152ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  599386ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  599473ms] [LOG] [Fast Refresh] done in 191ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  599683ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  599717ms] [LOG] [Fast Refresh] done in 137ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  602478ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  603557ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  603673ms] [LOG] [Fast Refresh] done in 219ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  606660ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  606670ms] [LOG] [Fast Refresh] done in 113ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  606863ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  606913ms] [LOG] [Fast Refresh] done in 165ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  607051ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  607198ms] [LOG] [Fast Refresh] done in 254ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  609927ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  610400ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  610404ms] [LOG] [Fast Refresh] done in 87ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  610582ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  610653ms] [LOG] [Fast Refresh] done in 176ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  610771ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  610903ms] [LOG] [Fast Refresh] done in 243ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  613909ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  618764ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  618922ms] [LOG] [Fast Refresh] done in 264ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  646818ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  646839ms] [LOG] [Fast Refresh] done in 125ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  647022ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  647077ms] [LOG] [Fast Refresh] done in 161ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  647226ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  647323ms] [LOG] [Fast Refresh] done in 198ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  649731ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  649888ms] [LOG] [Fast Refresh] done in 261ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  650091ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  679747ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  679830ms] [LOG] [Fast Refresh] done in 186ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  681275ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  681320ms] [LOG] [Fast Refresh] done in 152ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  681511ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  681614ms] [LOG] [Fast Refresh] done in 215ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  683702ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  683875ms] [LOG] [Fast Refresh] done in 277ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  684624ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  694980ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  695033ms] [LOG] [Fast Refresh] done in 158ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  695154ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  695250ms] [LOG] [Fast Refresh] done in 203ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  717701ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  717749ms] [LOG] [Fast Refresh] done in 152ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  717934ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  718035ms] [LOG] [Fast Refresh] done in 204ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  718213ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  718374ms] [LOG] [Fast Refresh] done in 266ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  721051ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  721665ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  721837ms] [LOG] [Fast Refresh] done in 276ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  817536ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  817539ms] [LOG] [Fast Refresh] done in 108ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  817733ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  817821ms] [LOG] [Fast Refresh] done in 204ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  820461ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  820531ms] [LOG] [Fast Refresh] done in 174ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  820828ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  830819ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  830827ms] [LOG] [Fast Refresh] done in 111ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  831005ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  831072ms] [LOG] [Fast Refresh] done in 174ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  831194ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  831340ms] [LOG] [Fast Refresh] done in 254ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  834352ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  839450ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  839462ms] [LOG] [Fast Refresh] done in 116ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  839637ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  839692ms] [LOG] [Fast Refresh] done in 158ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  839811ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  839948ms] [LOG] [Fast Refresh] done in 241ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  842707ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  847149ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  847276ms] [LOG] [Fast Refresh] done in 234ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  873944ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  873948ms] [LOG] [Fast Refresh] done in 98ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  874146ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  874233ms] [LOG] [Fast Refresh] done in 190ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  874351ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  874527ms] [LOG] [Fast Refresh] done in 282ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  876601ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  876772ms] [LOG] [Fast Refresh] done in 276ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  877539ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  885030ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  885079ms] [LOG] [Fast Refresh] done in 153ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  935344ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  935408ms] [LOG] [Fast Refresh] done in 117ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  935594ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  935657ms] [LOG] [Fast Refresh] done in 177ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  935828ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  935996ms] [LOG] [Fast Refresh] done in 276ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  938704ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[  944036ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  944067ms] [LOG] [Fast Refresh] done in 135ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  944255ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  944307ms] [LOG] [Fast Refresh] done in 162ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  944427ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  944577ms] [LOG] [Fast Refresh] done in 255ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  946430ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  946589ms] [LOG] [Fast Refresh] done in 265ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[  947311ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1063893ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1064241ms] [LOG] [Fast Refresh] done in 450ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1064453ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1064544ms] [LOG] [Fast Refresh] done in 203ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1064751ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1065084ms] [LOG] [Fast Refresh] done in 446ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1068217ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1077704ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1077786ms] [LOG] [Fast Refresh] done in 189ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1077970ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1078084ms] [LOG] [Fast Refresh] done in 217ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1078204ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1078341ms] [LOG] [Fast Refresh] done in 243ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1081356ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1085193ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1085335ms] [LOG] [Fast Refresh] done in 252ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1249122ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1249182ms] [LOG] [Fast Refresh] done in 174ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1282433ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1282512ms] [LOG] [Fast Refresh] done in 146ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1285498ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1288324ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1288391ms] [LOG] [Fast Refresh] done in 173ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1288592ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1288676ms] [LOG] [Fast Refresh] done in 194ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1288858ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1288981ms] [LOG] [Fast Refresh] done in 227ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1291728ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1293606ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1293670ms] [LOG] [Fast Refresh] done in 167ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1293871ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1293937ms] [LOG] [Fast Refresh] done in 182ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1294059ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1294227ms] [LOG] [Fast Refresh] done in 274ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1296104ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1296245ms] [LOG] [Fast Refresh] done in 244ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1296979ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1298964ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1299018ms] [LOG] [Fast Refresh] done in 160ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1299182ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1299240ms] [LOG] [Fast Refresh] done in 161ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1326537ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1326615ms] [LOG] [Fast Refresh] done in 149ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1329601ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1329931ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1329995ms] [LOG] [Fast Refresh] done in 124ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1332967ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1334069ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1334147ms] [LOG] [Fast Refresh] done in 114ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1337085ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1346412ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1346416ms] [LOG] [Fast Refresh] done in 83ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1346601ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1346660ms] [LOG] [Fast Refresh] done in 172ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1349671ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1354798ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1354801ms] [LOG] [Fast Refresh] done in 82ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1354983ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1355076ms] [LOG] [Fast Refresh] done in 201ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1358081ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1358805ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1358840ms] [LOG] [Fast Refresh] done in 139ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1359025ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1359105ms] [LOG] [Fast Refresh] done in 188ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1362178ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1372940ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1373112ms] [LOG] [Fast Refresh] done in 279ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1514009ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1514083ms] [LOG] [Fast Refresh] done in 96ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1517017ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1519126ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1519185ms] [LOG] [Fast Refresh] done in 92ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1522136ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1523759ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1523823ms] [LOG] [Fast Refresh] done in 169ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1532168ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1532191ms] [LOG] [Fast Refresh] done in 128ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1532370ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1532451ms] [LOG] [Fast Refresh] done in 186ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1532638ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1532713ms] [LOG] [Fast Refresh] done in 190ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1535472ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1539767ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1539784ms] [LOG] [Fast Refresh] done in 123ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1539973ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1540018ms] [LOG] [Fast Refresh] done in 160ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1540145ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1540246ms] [LOG] [Fast Refresh] done in 207ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1543027ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1544548ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1544552ms] [LOG] [Fast Refresh] done in 93ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1544737ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1544775ms] [LOG] [Fast Refresh] done in 154ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1544957ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1545065ms] [LOG] [Fast Refresh] done in 221ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1547790ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1548869ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1548871ms] [LOG] [Fast Refresh] done in 75ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1549048ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1549101ms] [LOG] [Fast Refresh] done in 158ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1549221ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1549342ms] [LOG] [Fast Refresh] done in 227ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1552112ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1560958ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1561132ms] [LOG] [Fast Refresh] done in 280ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1966200ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1966270ms] [LOG] [Fast Refresh] done in 175ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1966482ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1966610ms] [LOG] [Fast Refresh] done in 234ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1966781ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1966921ms] [LOG] [Fast Refresh] done in 242ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1969621ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 1971966ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1971972ms] [LOG] [Fast Refresh] done in 113ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1972171ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1972267ms] [LOG] [Fast Refresh] done in 205ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1972437ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1972561ms] [LOG] [Fast Refresh] done in 234ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1974485ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1974659ms] [LOG] [Fast Refresh] done in 277ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 1975283ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 2036845ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2036871ms] [LOG] [Fast Refresh] done in 130ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2037049ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2037116ms] [LOG] [Fast Refresh] done in 174ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2037300ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2037426ms] [LOG] [Fast Refresh] done in 238ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2040134ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 2040416ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2040573ms] [LOG] [Fast Refresh] done in 264ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2072691ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2072750ms] [LOG] [Fast Refresh] done in 103ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2072930ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2073004ms] [LOG] [Fast Refresh] done in 175ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2073166ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2073253ms] [LOG] [Fast Refresh] done in 191ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2076007ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 2080960ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2081117ms] [LOG] [Fast Refresh] done in 261ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2109997ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2110104ms] [LOG] [Fast Refresh] done in 215ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2273674ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2273814ms] [LOG] [Fast Refresh] done in 244ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2274034ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2274160ms] [LOG] [Fast Refresh] done in 236ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2274286ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2274298ms] [LOG] [Fast Refresh] done in 120ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2274536ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2274640ms] [LOG] [Fast Refresh] done in 207ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2275127ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2275173ms] [LOG] [Fast Refresh] done in 150ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2275933ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2275962ms] [LOG] [Fast Refresh] done in 130ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2279662ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 2284365ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2284483ms] [LOG] [Fast Refresh] done in 153ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2284673ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2284802ms] [LOG] [Fast Refresh] done in 232ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2288020ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 2294434ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2294594ms] [LOG] [Fast Refresh] done in 266ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2383579ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2383673ms] [LOG] [Fast Refresh] done in 200ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2383800ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2383955ms] [LOG] [Fast Refresh] done in 263ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2385572ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2385947ms] [LOG] [Fast Refresh] done in 483ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2476207ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2476208ms] [LOG] [Fast Refresh] done in 105ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2491434ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2492944ms] [LOG] [Fast Refresh] done in 1614ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2493401ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2493533ms] [LOG] [Fast Refresh] done in 239ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2493727ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2493868ms] [LOG] [Fast Refresh] done in 251ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2496623ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2496931ms] [LOG] [Fast Refresh] done in 413ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2497122ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2497269ms] [LOG] [Fast Refresh] done in 253ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2497391ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2497530ms] [LOG] [Fast Refresh] done in 251ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2497782ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2497831ms] [LOG] [Fast Refresh] done in 158ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2500893ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 2505152ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2506304ms] [LOG] [Fast Refresh] done in 1256ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2506485ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2506558ms] [LOG] [Fast Refresh] done in 178ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2506678ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2506831ms] [LOG] [Fast Refresh] done in 259ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2507070ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2507129ms] [LOG] [Fast Refresh] done in 163ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2509041ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2509356ms] [LOG] [Fast Refresh] done in 418ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2509560ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2509702ms] [LOG] [Fast Refresh] done in 247ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2509812ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2509968ms] [LOG] [Fast Refresh] done in 257ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2510203ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2510205ms] [LOG] [Fast Refresh] done in 113ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2513287ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 2536892ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2537065ms] [LOG] [Fast Refresh] done in 279ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2541912ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2541912ms] [LOG] [Fast Refresh] done in 107ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2554484ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2554687ms] [LOG] [Fast Refresh] done in 311ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2686735ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2686737ms] [LOG] [Fast Refresh] done in 82ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2686920ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2687011ms] [LOG] [Fast Refresh] done in 191ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2690016ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 2699298ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2699301ms] [LOG] [Fast Refresh] done in 99ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2699477ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2699547ms] [LOG] [Fast Refresh] done in 172ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2702633ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 2708384ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2708527ms] [LOG] [Fast Refresh] done in 252ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2724256ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2724413ms] [LOG] [Fast Refresh] done in 262ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2724523ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2724648ms] [LOG] [Fast Refresh] done in 234ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2727197ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2727339ms] [LOG] [Fast Refresh] done in 245ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2727449ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2727559ms] [LOG] [Fast Refresh] done in 219ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2727668ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2727795ms] [LOG] [Fast Refresh] done in 236ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2768666ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2768729ms] [LOG] [Fast Refresh] done in 90ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2771685ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 2777997ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2778058ms] [LOG] [Fast Refresh] done in 76ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2781013ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 2812726ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2812790ms] [LOG] [Fast Refresh] done in 73ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2815752ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 2826904ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2826906ms] [LOG] [Fast Refresh] done in 106ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2827109ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2827241ms] [LOG] [Fast Refresh] done in 245ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2827422ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2827508ms] [LOG] [Fast Refresh] done in 202ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2830255ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 2835006ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2835069ms] [LOG] [Fast Refresh] done in 108ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2838017ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 2883358ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2883427ms] [LOG] [Fast Refresh] done in 171ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2883578ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2883723ms] [LOG] [Fast Refresh] done in 247ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2908604ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2908947ms] [LOG] [Fast Refresh] done in 430ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2909133ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2909269ms] [LOG] [Fast Refresh] done in 247ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2912431ms] [WARNING] The resource http://localhost:3000/flinttype-logo.svg was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/sign-in:0
+[ 2924237ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2924425ms] [LOG] [Fast Refresh] done in 293ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2995063ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2995129ms] [LOG] [Fast Refresh] done in 172ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2995284ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 2995357ms] [LOG] [Fast Refresh] done in 174ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 3001128ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 3001173ms] [LOG] [Fast Refresh] done in 149ms @ http://localhost:3000/_next/static/chunks/00zq_next_dist_08wvll-._.js:2431
+[ 3082833ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=Fxuye6TURPY5FPoHW3NLd' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/00zq_next_dist_client_0ope9b9._.js:13299
+[ 3086171ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=Fxuye6TURPY5FPoHW3NLd' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/00zq_next_dist_client_0ope9b9._.js:13299
+[ 3089514ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=Fxuye6TURPY5FPoHW3NLd' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/00zq_next_dist_client_0ope9b9._.js:13299
+[ 3092847ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=Fxuye6TURPY5FPoHW3NLd' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/00zq_next_dist_client_0ope9b9._.js:13299
+[ 3096186ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=Fxuye6TURPY5FPoHW3NLd' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/00zq_next_dist_client_0ope9b9._.js:13299
+[ 3103544ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=Fxuye6TURPY5FPoHW3NLd' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/00zq_next_dist_client_0ope9b9._.js:13299
+[ 3110877ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=Fxuye6TURPY5FPoHW3NLd' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/00zq_next_dist_client_0ope9b9._.js:13299
+[ 3118234ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=Fxuye6TURPY5FPoHW3NLd' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/00zq_next_dist_client_0ope9b9._.js:13299
+[ 3125594ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=Fxuye6TURPY5FPoHW3NLd' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/00zq_next_dist_client_0ope9b9._.js:13299
+[ 3132976ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=Fxuye6TURPY5FPoHW3NLd' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/00zq_next_dist_client_0ope9b9._.js:13299
+[ 3140347ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=Fxuye6TURPY5FPoHW3NLd' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/00zq_next_dist_client_0ope9b9._.js:13299
+[ 3147827ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=Fxuye6TURPY5FPoHW3NLd' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/00zq_next_dist_client_0ope9b9._.js:13299
