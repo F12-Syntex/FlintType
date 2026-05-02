@@ -289,22 +289,43 @@ function reducer(s: State, a: Action): State {
     case "SPACE": {
       if (s.phase === "done" || s.phase === "rest") return s;
       const next = s.cursorWord + 1;
+      // Match monkeytype: the inter-word space counts as a character for
+      // both raw and net WPM. Append a synthetic correct space event so
+      // every downstream analytic (chart buckets, headline raw / wpm,
+      // accuracy denominator) treats the space the same way.
+      const startTime = s.startTime ?? a.now;
+      const spaceEvent: KeyEvent = {
+        t: a.now - startTime,
+        expected: " ",
+        typed: " ",
+        correct: true,
+      };
+      const baseStats = {
+        correctChars: s.correctChars + 1,
+        totalChars: s.totalChars + 1,
+        events: [...s.events, spaceEvent],
+      };
       if (next >= s.words.length) {
-        // TIME mode finishes on the timer, not when words run out — top
-        // up the buffer with another batch so fast typists don't stall.
         if (s.mode === "TIME") {
           const more = generateWords(TIME_BUFFER, Date.now());
           return {
             ...s,
+            ...baseStats,
             words: [...s.words, ...more],
             cursorWord: next,
             cursorChar: 0,
           };
         }
-        return { ...s, phase: "done", endTime: a.now };
+        return {
+          ...s,
+          ...baseStats,
+          phase: "done",
+          endTime: a.now,
+        };
       }
       return {
         ...s,
+        ...baseStats,
         cursorWord: next,
         cursorChar: 0,
       };
