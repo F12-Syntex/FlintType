@@ -1,10 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { type Mode, MODE_STORAGE_KEY } from "./mode-bootstrap";
 
-export const MODE_STORAGE_KEY = "ft-mode";
-
-export type Mode = "light" | "dark" | "system";
+export type { Mode };
 
 function readSystem(): "light" | "dark" {
   if (typeof window === "undefined") return "light";
@@ -59,12 +58,4 @@ export function useMode() {
   }, []);
 
   return { mode, setMode, resolvedMode, mounted } as const;
-}
-
-/** Inline-script body that runs in <head> before paint, so the saved
- *  mode (light/dark/system → resolved) is on the html element before
- *  the first frame. Prevents the dark→light flash. */
-export function buildModeBootstrapScript(): string {
-  const key = JSON.stringify(MODE_STORAGE_KEY);
-  return `(function(){try{var m=localStorage.getItem(${key});var resolved=m;if(!m||m==='system')resolved=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';if(resolved==='dark')document.documentElement.classList.add('dark');}catch(e){}})();`;
 }

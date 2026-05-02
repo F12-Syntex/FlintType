@@ -3,8 +3,8 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Lora, IBM_Plex_Mono } from "next/font/google";
+import { buildModeBootstrapScript } from "@/lib/themes/mode-bootstrap";
 import { buildBootstrapScript } from "@/lib/themes/registry";
-import { buildModeBootstrapScript } from "@/lib/themes/use-mode";
 import "./globals.css";
 
 const fontSans = Plus_Jakarta_Sans({
