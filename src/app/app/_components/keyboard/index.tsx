@@ -44,13 +44,22 @@ export function Keyboard({
   const upper = shift !== caps;
   const rows = LAYOUTS[active].rows;
 
-  // Compact mode hides modifier-style keys (Tab, Caps, Shift, Ctrl,
-  // Alt, Meta, Backspace, Enter) plus Space, but keeps their slots so
-  // every other key stays exactly where it was. Predicate lives here
-  // so it stays close to the layout shape it's gating on.
-  const isHidden = (def: { code: string; variant?: string }) =>
-    effective.compact &&
-    (def.variant === "modifier" || def.code === "Space");
+  // Compact mode drops modifier-style keys (Tab, Caps, Shift, Ctrl,
+  // Alt, Meta, Backspace, Enter) plus Space, then centres each row
+  // proportionally to its remaining unit count. Result is an
+  // upside-down pyramid: 13 → 12 → 11 → 10 keys per row, each row
+  // narrower than the one above and centred under the parent.
+  const isCompactHidden = (def: { code: string; variant?: string }) =>
+    def.variant === "modifier" || def.code === "Space";
+
+  const widestRowUnits = rows.reduce(
+    (max, row) =>
+      Math.max(
+        max,
+        row.reduce((sum, k) => sum + (k.units ?? 1), 0),
+      ),
+    1,
+  );
 
   const isHot = (code: string) =>
     pressed.has(code) ||
@@ -70,26 +79,48 @@ export function Keyboard({
         <LayoutPicker active={active} onChange={setActive} />
       )}
       <div className="flex flex-col gap-1">
-        {rows.map((row, i) => (
-          <div key={i} className="flex w-full gap-1">
-            {row.map((k) => (
-              <Key
-                key={k.code}
-                def={k}
-                pressed={isHot(k.code)}
-                lit={
-                  (k.code === "CapsLock" && caps) ||
-                  (k.code.startsWith("Shift") && shift)
-                }
-                upper={upper}
-                design={effective.design}
-                shape={effective.shape}
-                showShiftLabel={effective.showShiftLabels}
-                hidden={isHidden(k)}
-              />
-            ))}
-          </div>
-        ))}
+        {rows.map((row, i) => {
+          const visible = effective.compact
+            ? row.filter((k) => !isCompactHidden(k))
+            : row;
+          if (visible.length === 0) return null;
+          const rowUnits = visible.reduce((s, k) => s + (k.units ?? 1), 0);
+          const rowStyle: React.CSSProperties | undefined = effective.compact
+            ? {
+                // Width proportional to the widest row so each row
+                // contracts toward the centre as it loses keys —
+                // the upside-down pyramid shape.
+                width: `${(rowUnits / widestRowUnits) * 100}%`,
+                marginInline: "auto",
+              }
+            : undefined;
+          return (
+            <div
+              key={i}
+              className={cn(
+                "flex gap-1",
+                !effective.compact && "w-full",
+              )}
+              style={rowStyle}
+            >
+              {visible.map((k) => (
+                <Key
+                  key={k.code}
+                  def={k}
+                  pressed={isHot(k.code)}
+                  lit={
+                    (k.code === "CapsLock" && caps) ||
+                    (k.code.startsWith("Shift") && shift)
+                  }
+                  upper={upper}
+                  design={effective.design}
+                  shape={effective.shape}
+                  showShiftLabel={effective.showShiftLabels}
+                />
+              ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

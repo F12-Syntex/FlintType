@@ -15,7 +15,6 @@ export function Key({
   design,
   shape,
   showShiftLabel,
-  hidden = false,
 }: {
   def: KeyDef;
   pressed: boolean;
@@ -28,9 +27,6 @@ export function Key({
   shape: KeyboardShape;
   /** Render the small shift-label glyph above the main label. */
   showShiftLabel: boolean;
-  /** Reserve the slot but render nothing — keeps the surrounding keys
-   *  in their original positions while hiding the key itself. */
-  hidden?: boolean;
 }) {
   const units = def.units ?? 1;
   const isLetter =
@@ -41,14 +37,6 @@ export function Key({
       : (def.label ?? "");
   const Icon = def.icon;
   const hot = pressed || lit;
-
-  if (hidden) {
-    // Invisible placeholder — same flex sizing as the live key so the
-    // row keeps its rhythm and the surviving keys don't shift.
-    return (
-      <div aria-hidden style={{ flex: `${units} 1 0`, minWidth: 0 }} />
-    );
-  }
 
   const [resting, hotCls] = designClasses(design);
 
