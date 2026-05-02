@@ -10,10 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  ColorPicker,
-  type ColorPickerValue,
-} from "@/components/ui/color-picker";
+import { ColorPresetPicker } from "@/components/ui/color-preset-picker";
 import {
   type ThemeVar,
   useThemeOverrides,
@@ -118,15 +115,7 @@ function ColorRowCard({
         <CardDescription>{row.desc}</CardDescription>
         <CardAction>
           <div className="flex items-center gap-3">
-            <ColorPicker
-              value={
-                swatch && /^#[0-9a-f]{6}$/i.test(swatch)
-                  ? (swatch as `#${string}`)
-                  : "#888888"
-              }
-              onValueChange={(v: ColorPickerValue) => onChange(v.hex)}
-              hideContrastRatio
-            >
+            <ColorPresetPicker value={swatch} onChange={onChange}>
               <Button
                 variant="outline"
                 size="sm"
@@ -140,7 +129,7 @@ function ColorRowCard({
                 {swatch ?? "Default"}
                 <ChevronDown size={14} />
               </Button>
-            </ColorPicker>
+            </ColorPresetPicker>
             {customized ? (
               <Button variant="ghost" size="sm" onClick={onClear}>
                 Reset
