@@ -1,6 +1,5 @@
 "use client";
 
-import { Check } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,10 +24,10 @@ const STYLES: ReadonlyArray<{ id: CaretStyle; label: string }> = [
 ];
 
 const THICKNESS_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
-  { label: "S", value: 1 },
-  { label: "M", value: 2 },
-  { label: "L", value: 3 },
-  { label: "XL", value: 4 },
+  { label: "1px", value: 1 },
+  { label: "2px", value: 2 },
+  { label: "3px", value: 3 },
+  { label: "4px", value: 4 },
 ];
 
 const RADIUS_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
@@ -38,9 +37,8 @@ const RADIUS_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
 ];
 
 // ─── Caret rendering primitive ──────────────────────────────────────
-// Used by both the hero preview and the per-chip mini previews so the
-// shape the user sees in the chip == the shape that lands in the
-// passage.
+// Used by the hero preview AND mirrored in passage.tsx, so what the
+// user sees up top is exactly what lands in the live passage.
 
 function CaretShape({
   style,
@@ -49,7 +47,6 @@ function CaretShape({
   blink,
   charW,
   charH,
-  color = "var(--primary)",
 }: {
   style: CaretStyle;
   width: number;
@@ -57,7 +54,6 @@ function CaretShape({
   blink: boolean;
   charW: number;
   charH: number;
-  color?: string;
 }) {
   if (style === "off") return null;
 
@@ -66,6 +62,7 @@ function CaretShape({
     position: "absolute",
     borderRadius: radius,
     animation,
+    backgroundColor: "var(--primary)",
   };
 
   if (style === "line") {
@@ -78,7 +75,6 @@ function CaretShape({
           height: charH * 0.85,
           left: 0,
           top: (charH - charH * 0.85) / 2,
-          backgroundColor: color,
         }}
       />
     );
@@ -93,7 +89,8 @@ function CaretShape({
           height: charH,
           left: 0,
           top: 0,
-          backgroundColor: `color-mix(in oklch, ${color} 35%, transparent)`,
+          backgroundColor:
+            "color-mix(in oklch, var(--primary) 35%, transparent)",
         }}
       />
     );
@@ -108,7 +105,6 @@ function CaretShape({
           height: width,
           left: 0,
           top: charH - width,
-          backgroundColor: color,
         }}
       />
     );
@@ -123,25 +119,22 @@ function CaretShape({
         height: charH,
         left: 0,
         top: 0,
-        border: `${width}px solid ${color}`,
+        backgroundColor: "transparent",
+        border: `${width}px solid var(--primary)`,
       }}
     />
   );
 }
 
 // ─── Hero preview ──────────────────────────────────────────────────
-// A line of fake passage text with the live caret cycling through it.
-// This is the "no guesswork" surface — you see exactly what you'll get
-// in the live passage as you tweak settings.
 
 const PREVIEW_WORDS = ["the", "quick", "brown", "fox", "jumps"];
 
 function HeroPreview({ settings }: { settings: CaretSettings }) {
-  const total = PREVIEW_WORDS.join(" ").length + 1;
-  const [cursor, setCursor] = useState(8); // start mid-word
+  const flat = PREVIEW_WORDS.join(" ");
+  const total = flat.length + 1;
+  const [cursor, setCursor] = useState(8);
 
-  // Slowly march the caret across the preview line so the smooth /
-  // blink toggles are visible at a glance.
   useEffect(() => {
     const id = window.setInterval(() => {
       setCursor((c) => (c + 1) % total);
@@ -149,11 +142,6 @@ function HeroPreview({ settings }: { settings: CaretSettings }) {
     return () => window.clearInterval(id);
   }, [total]);
 
-  const flat = PREVIEW_WORDS.join(" ");
-  // Measure the target char in a layout effect so we never call
-  // setState during render (the ref-callback approach we had was firing
-  // setState every commit, which re-rendered, which fired the ref
-  // again — infinite loop).
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [target, setTarget] = useState<{
     left: number;
@@ -190,7 +178,7 @@ function HeroPreview({ settings }: { settings: CaretSettings }) {
             data-char
             className={i < cursor ? "text-foreground" : ""}
           >
-            {ch === " " ? " " : ch}
+            {ch === " " ? " " : ch}
           </span>
         ))}
         {target && settings.style !== "off" ? (
@@ -223,69 +211,19 @@ function HeroPreview({ settings }: { settings: CaretSettings }) {
   );
 }
 
-// ─── Chip + small preview helpers ───────────────────────────────────
+// ─── Plain chip group ──────────────────────────────────────────────
+// Text-only chips. The hero preview above is the single source of
+// truth for "what does this look like" — having a mini preview inside
+// every chip turns the card into a wall of carets.
 
-function ChipPreview({
-  style,
-  width,
-  radius,
-  active,
-}: {
-  style: CaretStyle;
-  width: number;
-  radius: number;
-  active: boolean;
-}) {
-  const charW = 22;
-  const charH = 28;
-  return (
-    <div className="relative h-9 w-9">
-      {style !== "off" ? (
-        <span
-          aria-hidden
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-sm bg-foreground/15"
-          style={{ width: charW, height: charH }}
-        />
-      ) : (
-        <span className="absolute inset-0 flex items-center justify-center text-[10px] text-muted-foreground">
-          —
-        </span>
-      )}
-      <span
-        className="absolute"
-        style={{
-          left: `calc(50% - ${charW / 2}px)`,
-          top: `calc(50% - ${charH / 2}px)`,
-          width: charW,
-          height: charH,
-        }}
-      >
-        <CaretShape
-          style={style}
-          width={width}
-          radius={radius}
-          blink={false}
-          charW={charW}
-          charH={charH}
-          color={active ? "var(--primary)" : "var(--foreground)"}
-        />
-      </span>
-    </div>
-  );
-}
-
-function PresetChip({
+function Chip({
   label,
-  hint,
   active,
   onClick,
-  preview,
 }: {
   label: string;
-  hint?: string;
   active: boolean;
   onClick: () => void;
-  preview?: React.ReactNode;
 }) {
   return (
     <button
@@ -293,40 +231,40 @@ function PresetChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "flex flex-col items-center gap-1.5 rounded-md border p-2 text-center transition-colors",
+        "rounded-md border px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-colors",
         active
-          ? "border-primary bg-primary/5"
-          : "border-border hover:bg-muted",
+          ? "border-primary bg-primary/10 text-primary"
+          : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
-      {preview}
-      <span className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider">
-        {active ? <Check size={10} className="text-primary" /> : null}
-        {label}
-      </span>
-      {hint ? (
-        <span className="text-[9px] text-muted-foreground">{hint}</span>
-      ) : null}
+      {label}
     </button>
   );
 }
 
-function SubSectionLabel({ children }: { children: React.ReactNode }) {
+function ControlRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
-    <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-      {children}
-    </span>
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+      <span className="w-24 shrink-0 text-[10px] font-medium uppercase tracking-widest text-muted-foreground sm:text-xs">
+        {label}
+      </span>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
   );
 }
 
 function ToggleRow({
   label,
-  desc,
   on,
   onChange,
 }: {
   label: string;
-  desc: string;
   on: boolean;
   onChange: (next: boolean) => void;
 }) {
@@ -334,12 +272,10 @@ function ToggleRow({
     <button
       type="button"
       onClick={() => onChange(!on)}
-      className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2 text-left transition-colors hover:bg-muted"
+      aria-pressed={on}
+      className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2 transition-colors hover:bg-muted"
     >
-      <span className="flex flex-col">
-        <span className="text-sm font-medium text-foreground">{label}</span>
-        <span className="text-xs text-muted-foreground">{desc}</span>
-      </span>
+      <span className="text-sm font-medium text-foreground">{label}</span>
       <span
         aria-hidden
         className={cn(
@@ -372,98 +308,58 @@ export function CaretRow() {
       <CardHeader>
         <CardTitle className="text-sm font-semibold">Caret &amp; cursor</CardTitle>
         <CardDescription>
-          The cursor that moves through the passage as you type. The preview
-          below cycles live so you see exactly what you'll get.
+          The cursor that moves through the passage. The preview below cycles
+          live so you see what each setting does.
         </CardDescription>
       </CardHeader>
 
       <div className="flex flex-col gap-5 px-4 pb-4">
         <HeroPreview settings={settings} />
 
-        <div className="flex flex-col gap-2">
-          <SubSectionLabel>Style</SubSectionLabel>
-          <div className="grid grid-cols-5 gap-2">
-            {STYLES.map((s) => (
-              <PresetChip
-                key={s.id}
-                label={s.label}
-                active={settings.style === s.id}
-                onClick={() => update({ style: s.id })}
-                preview={
-                  <ChipPreview
-                    style={s.id}
-                    width={settings.width}
-                    radius={settings.radius}
-                    active={settings.style === s.id}
-                  />
-                }
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <SubSectionLabel>Thickness</SubSectionLabel>
-          <div className="grid grid-cols-4 gap-2">
-            {THICKNESS_PRESETS.map((p) => (
-              <PresetChip
-                key={p.label}
-                label={p.label}
-                hint={`${p.value}px`}
-                active={settings.width === p.value}
-                onClick={() => update({ width: p.value })}
-                preview={
-                  <ChipPreview
-                    style={settings.style === "off" ? "line" : settings.style}
-                    width={p.value}
-                    radius={settings.radius}
-                    active={settings.width === p.value}
-                  />
-                }
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <SubSectionLabel>Roundness</SubSectionLabel>
-          <div className="grid grid-cols-3 gap-2">
-            {RADIUS_PRESETS.map((p) => (
-              <PresetChip
-                key={p.label}
-                label={p.label}
-                hint={`${p.value}px`}
-                active={settings.radius === p.value}
-                onClick={() => update({ radius: p.value })}
-                preview={
-                  <ChipPreview
-                    style={settings.style === "off" ? "line" : settings.style}
-                    width={settings.width}
-                    radius={p.value}
-                    active={settings.radius === p.value}
-                  />
-                }
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <SubSectionLabel>Motion</SubSectionLabel>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <ToggleRow
-              label="Blink"
-              desc="Pulse the caret on a 1s cycle"
-              on={settings.blink}
-              onChange={(v) => update({ blink: v })}
+        <ControlRow label="Style">
+          {STYLES.map((s) => (
+            <Chip
+              key={s.id}
+              label={s.label}
+              active={settings.style === s.id}
+              onClick={() => update({ style: s.id })}
             />
-            <ToggleRow
-              label="Smooth motion"
-              desc="Glide between characters instead of jumping"
-              on={settings.smooth}
-              onChange={(v) => update({ smooth: v })}
+          ))}
+        </ControlRow>
+
+        <ControlRow label="Thickness">
+          {THICKNESS_PRESETS.map((p) => (
+            <Chip
+              key={p.label}
+              label={p.label}
+              active={settings.width === p.value}
+              onClick={() => update({ width: p.value })}
             />
-          </div>
+          ))}
+        </ControlRow>
+
+        <ControlRow label="Roundness">
+          {RADIUS_PRESETS.map((p) => (
+            <Chip
+              key={p.label}
+              label={p.label}
+              active={settings.radius === p.value}
+              onClick={() => update({ radius: p.value })}
+            />
+          ))}
+        </ControlRow>
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          <ToggleRow
+            label="Blink"
+            on={settings.blink}
+            onChange={(v) => update({ blink: v })}
+          />
+          <ToggleRow
+            label="Smooth motion"
+            on={settings.smooth}
+            onChange={(v) => update({ smooth: v })}
+          />
         </div>
 
         {isCustomised ? (
