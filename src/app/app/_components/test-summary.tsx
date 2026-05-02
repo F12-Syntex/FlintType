@@ -1,8 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
-import { Stat, Tag } from "@/components/ft";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Button } from "@/components/ui/button";
 import {
   type ChartConfig,
@@ -13,100 +18,41 @@ import {
 import { cn } from "@/lib/utils";
 import { type KeyEvent, usePractice } from "./practice-state";
 
-/** Theme-aware replacement for the fixed-paper `<SummarySection>` so the summary
- *  follows the active palette + light/dark mode instead of locking to the
- *  default ink-on-paper surface. Same shape, theme-aware classes. */
-function SummarySection({
-  title,
-  subtitle,
-  children,
-  className,
-  contentClassName,
-  compact = false,
-}: {
-  title?: string;
-  subtitle?: string;
-  children: React.ReactNode;
-  className?: string;
-  contentClassName?: string;
-  compact?: boolean;
-}) {
-  return (
-    <section
-      className={cn(
-        "flex flex-col rounded-md border border-border bg-card text-foreground",
-        compact ? "gap-2 p-3" : "gap-3 p-4 sm:p-5",
-        className,
-      )}
-    >
-      {(title || subtitle) && (
-        <div className="flex items-baseline justify-between gap-3">
-          {title ? <Tag tone="ink">{title}</Tag> : <span />}
-          {subtitle ? <Tag>{subtitle}</Tag> : null}
-        </div>
-      )}
-      <div className={cn("flex-1", contentClassName)}>{children}</div>
-    </section>
-  );
-}
+// ─── Stats ─────────────────────────────────────────────────────────
 
-/** Per-second WPM bucket. We treat 5 *correct* characters as one word
- *  (the standard typing-speed convention) and slot every event into the
- *  second it landed in. Last bucket is whatever fraction of a second is
- *  left over. */
-type WpmBucket = { sec: number; wpm: number };
+type Bucket = { sec: number; wpm: number; raw: number };
 
-function bucketWpm(events: readonly KeyEvent[]): WpmBucket[] {
+function bucketRun(events: readonly KeyEvent[]): Bucket[] {
   if (events.length === 0) return [];
   const lastT = events[events.length - 1]!.t;
   const seconds = Math.max(1, Math.ceil(lastT / 1000));
-  const correctPerSec = new Array<number>(seconds).fill(0);
+  const correct = new Array<number>(seconds).fill(0);
+  const total = new Array<number>(seconds).fill(0);
   for (const e of events) {
-    if (!e.correct) continue;
     const i = Math.min(seconds - 1, Math.floor(e.t / 1000));
-    correctPerSec[i] = (correctPerSec[i] ?? 0) + 1;
+    total[i] = (total[i] ?? 0) + 1;
+    if (e.correct) correct[i] = (correct[i] ?? 0) + 1;
   }
-  return correctPerSec.map((c, i) => ({ sec: i + 1, wpm: (c / 5) * 60 }));
+  return correct.map((c, i) => ({
+    sec: i + 1,
+    wpm: (c / 5) * 60,
+    raw: ((total[i] ?? 0) / 5) * 60,
+  }));
 }
 
-function peakWpm(buckets: readonly WpmBucket[]): number {
+function peakWpm(buckets: readonly Bucket[]): number {
   return buckets.reduce((m, b) => (b.wpm > m ? b.wpm : m), 0);
 }
 
-function consistency(buckets: readonly WpmBucket[]): number {
+function consistencyScore(buckets: readonly Bucket[]): number {
   if (buckets.length < 2) return 100;
   const avg = buckets.reduce((s, b) => s + b.wpm, 0) / buckets.length;
   if (avg === 0) return 0;
   const variance =
     buckets.reduce((s, b) => s + (b.wpm - avg) ** 2, 0) / buckets.length;
   const stdDev = Math.sqrt(variance);
-  // Coefficient-of-variation → 0-100 consistency score (clamped).
   const cv = stdDev / avg;
   return Math.max(0, Math.min(100, Math.round(100 * (1 - cv))));
-}
-
-type CharStat = { char: string; total: number; wrong: number; rate: number };
-
-function analyseChars(events: readonly KeyEvent[]): CharStat[] {
-  const counts = new Map<string, { total: number; wrong: number }>();
-  for (const e of events) {
-    if (!e.expected) continue;
-    const c = e.expected.toLowerCase();
-    const cur = counts.get(c) ?? { total: 0, wrong: 0 };
-    cur.total += 1;
-    if (!e.correct) cur.wrong += 1;
-    counts.set(c, cur);
-  }
-  return [...counts.entries()]
-    .map(([char, v]) => ({
-      char,
-      total: v.total,
-      wrong: v.wrong,
-      rate: v.total > 0 ? v.wrong / v.total : 0,
-    }))
-    .filter((s) => s.wrong > 0)
-    .sort((a, b) => b.wrong - a.wrong || b.rate - a.rate)
-    .slice(0, 8);
 }
 
 type PairStat = { pair: string; samples: number; avgMs: number };
@@ -119,7 +65,7 @@ function analysePairs(events: readonly KeyEvent[]): PairStat[] {
     if (!prev.correct || !cur.correct) continue;
     if (!prev.expected || !cur.expected) continue;
     const dt = cur.t - prev.t;
-    if (dt <= 0 || dt > 2000) continue; // ignore outliers
+    if (dt <= 0 || dt > 2000) continue;
     const key = `${prev.expected.toLowerCase()}${cur.expected.toLowerCase()}`;
     const b = buckets.get(key) ?? { samples: 0, total: 0 };
     b.samples += 1;
@@ -128,40 +74,86 @@ function analysePairs(events: readonly KeyEvent[]): PairStat[] {
   }
   return [...buckets.entries()]
     .filter(([, b]) => b.samples >= 2)
-    .map(([pair, b]) => ({ pair, samples: b.samples, avgMs: b.total / b.samples }))
+    .map(([pair, b]) => ({
+      pair,
+      samples: b.samples,
+      avgMs: b.total / b.samples,
+    }))
     .sort((a, b) => b.avgMs - a.avgMs)
-    .slice(0, 8);
+    .slice(0, 6);
 }
 
-const wpmChartConfig = {
-  wpm: { label: "WPM", color: "var(--primary)" },
+// ─── Pieces ────────────────────────────────────────────────────────
+
+function BigStat({
+  label,
+  value,
+  suffix,
+  accent = false,
+}: {
+  label: string;
+  value: string | number;
+  suffix?: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1 leading-none">
+      <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+        {label}
+      </span>
+      <span
+        className={cn(
+          "text-3xl font-semibold tabular-nums sm:text-4xl",
+          accent ? "text-primary" : "text-foreground",
+        )}
+      >
+        {value}
+        {suffix ? (
+          <span className="text-base font-normal text-muted-foreground">
+            {suffix}
+          </span>
+        ) : null}
+      </span>
+    </div>
+  );
+}
+
+const chartConfig = {
+  wpm: { label: "wpm", color: "var(--primary)" },
+  raw: { label: "raw", color: "var(--muted-foreground)" },
 } satisfies ChartConfig;
 
-function WpmTraceChart({ buckets }: { buckets: readonly WpmBucket[] }) {
+function WpmChart({ buckets }: { buckets: readonly Bucket[] }) {
   if (buckets.length < 2) {
     return (
       <p className="text-sm text-muted-foreground">
-        need a longer run for a chart.
+        run too short for a chart.
       </p>
     );
   }
   return (
-    <ChartContainer config={wpmChartConfig} className="aspect-auto h-44 w-full">
+    <ChartContainer
+      config={chartConfig}
+      className="aspect-auto h-full max-h-72 w-full"
+    >
       <LineChart
         accessibilityLayer
-        data={buckets as WpmBucket[]}
-        margin={{ left: 8, right: 12, top: 8, bottom: 0 }}
+        data={buckets as Bucket[]}
+        margin={{ left: 8, right: 16, top: 12, bottom: 0 }}
       >
-        <CartesianGrid vertical={false} stroke="currentColor" strokeOpacity={0.08} />
+        <CartesianGrid
+          vertical={false}
+          stroke="currentColor"
+          strokeOpacity={0.08}
+        />
         <XAxis
           dataKey="sec"
           tickLine={false}
           axisLine={false}
           tickMargin={6}
-          tickFormatter={(v: number) => `${v}s`}
+          tickFormatter={(v: number) => `${v}`}
         />
         <YAxis
-          dataKey="wpm"
           tickLine={false}
           axisLine={false}
           tickMargin={6}
@@ -173,19 +165,31 @@ function WpmTraceChart({ buckets }: { buckets: readonly WpmBucket[] }) {
             <ChartTooltipContent
               indicator="dot"
               labelFormatter={(_, items) => {
-                const first = (items as Array<{ payload?: WpmBucket }>)[0];
+                const first = (items as Array<{ payload?: Bucket }>)[0];
                 return `${first?.payload?.sec ?? 0}s`;
               }}
             />
           }
         />
         <Line
+          dataKey="raw"
+          type="monotone"
+          stroke="var(--color-raw)"
+          strokeWidth={1.5}
+          strokeOpacity={0.6}
+          dot={false}
+        />
+        <Line
           dataKey="wpm"
           type="monotone"
           stroke="var(--color-wpm)"
-          strokeWidth={2}
+          strokeWidth={2.25}
           dot={false}
-          activeDot={{ r: 3, stroke: "var(--color-wpm)", fill: "var(--background)" }}
+          activeDot={{
+            r: 3,
+            stroke: "var(--color-wpm)",
+            fill: "var(--background)",
+          }}
         />
       </LineChart>
     </ChartContainer>
@@ -193,12 +197,9 @@ function WpmTraceChart({ buckets }: { buckets: readonly WpmBucket[] }) {
 }
 
 /** Render the run's source passage with each character coloured by its
- *  *speed* — how many ms passed between landing on the previous correct
- *  key and this one. Fast = foreground (white/black per theme), slow =
- *  primary (full). Average lands near the midway blend.
- *
- *  Latencies span the 10th → 90th percentile of the run so a single
- *  outlier (a yawn, an interruption) doesn't crush the colour scale. */
+ *  *speed* — fast = foreground (white/black per theme), slow = primary
+ *  full. The 10th–90th-percentile range becomes the colour scale so a
+ *  single outlier (a yawn) doesn't crush the gradient. */
 function PassageHeatmap({
   words,
   events,
@@ -206,8 +207,6 @@ function PassageHeatmap({
   words: readonly string[];
   events: readonly KeyEvent[];
 }) {
-  // Walk events, advance a virtual (word, char) cursor on correct keys,
-  // and record the per-position latency.
   const latencyByPos = useMemo(() => {
     const map = new Map<string, number>();
     let w = 0;
@@ -217,8 +216,7 @@ function PassageHeatmap({
       if (!e.correct) continue;
       const word = words[w];
       if (!word) break;
-      const dt = Math.max(0, e.t - prevT);
-      map.set(`${w}:${c}`, dt);
+      map.set(`${w}:${c}`, Math.max(0, e.t - prevT));
       prevT = e.t;
       c += 1;
       if (c >= word.length) {
@@ -229,7 +227,6 @@ function PassageHeatmap({
     return map;
   }, [events, words]);
 
-  // 10th / 90th percentile bounds for the colour scale.
   const [lo, hi] = useMemo(() => {
     const sorted = [...latencyByPos.values()].sort((a, b) => a - b);
     if (sorted.length < 4) return [0, 1] as const;
@@ -238,19 +235,17 @@ function PassageHeatmap({
     return [p10, Math.max(p90, p10 + 1)] as const;
   }, [latencyByPos]);
 
-  if (words.length === 0) {
-    return <p className="text-sm text-muted-foreground">no passage to map.</p>;
-  }
+  if (words.length === 0) return null;
 
   return (
-    <div className="font-mono text-sm leading-[1.7] tracking-[0.04em] [word-spacing:0.25em]">
+    <div className="font-mono text-base leading-[1.7] tracking-[0.04em] [word-spacing:0.25em]">
       {words.map((word, wi) => (
         <span key={wi}>
           {[...word].map((ch, ci) => {
             const lat = latencyByPos.get(`${wi}:${ci}`);
             if (lat == null) {
               return (
-                <span key={ci} className="text-muted-foreground">
+                <span key={ci} className="text-muted-foreground/60">
                   {ch}
                 </span>
               );
@@ -272,7 +267,7 @@ function PassageHeatmap({
             );
           })}
           {wi < words.length - 1 ? (
-            <span className="text-muted-foreground">{" "}</span>
+            <span className="text-muted-foreground/60">{" "}</span>
           ) : null}
         </span>
       ))}
@@ -280,54 +275,41 @@ function PassageHeatmap({
   );
 }
 
-/** Visualises the slow letter pairs as letter chips connected by an
- *  arrow. Stronger primary tint + thicker arrow = slower transition. */
 function PairFlow({ pairs }: { pairs: readonly PairStat[] }) {
-  if (pairs.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Need a longer run to surface slow pairs.
-      </p>
-    );
-  }
+  if (pairs.length === 0) return null;
   const maxMs = Math.max(0, ...pairs.map((p) => p.avgMs));
   return (
-    <ul className="flex flex-wrap gap-3">
+    <ul className="flex flex-wrap items-center gap-x-4 gap-y-2">
       {pairs.map((p) => {
         const intensity = maxMs > 0 ? p.avgMs / maxMs : 0;
-        const stroke = 1 + intensity * 2.4;
         const a = p.pair[0] ?? "";
         const b = p.pair[1] ?? "";
         return (
           <li
             key={p.pair}
-            className="flex items-center gap-1 rounded-md border border-border/60 bg-card px-2 py-1"
+            className="flex items-center gap-1.5 text-sm tabular-nums"
           >
             <Glyph char={a} intensity={intensity} />
             <svg
-              width={26}
-              height={14}
+              width={22}
+              height={10}
               aria-hidden
-              className="text-primary"
-              style={{ opacity: 0.4 + intensity * 0.6 }}
+              className="text-muted-foreground"
+              style={{ opacity: 0.5 + intensity * 0.5 }}
             >
               <line
-                x1={2}
-                y1={7}
-                x2={18}
-                y2={7}
+                x1={1}
+                y1={5}
+                x2={15}
+                y2={5}
                 stroke="currentColor"
-                strokeWidth={stroke}
-                strokeLinecap="round"
+                strokeWidth={1 + intensity * 1.5}
               />
-              <polygon
-                points="18,2 26,7 18,12"
-                fill="currentColor"
-              />
+              <polygon points="15,1 22,5 15,9" fill="currentColor" />
             </svg>
             <Glyph char={b} intensity={intensity} />
-            <span className="ml-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground tabular-nums">
-              {Math.round(p.avgMs)}ms · {p.samples}×
+            <span className="ml-1 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+              {Math.round(p.avgMs)}ms
             </span>
           </li>
         );
@@ -337,14 +319,11 @@ function PairFlow({ pairs }: { pairs: readonly PairStat[] }) {
 }
 
 function Glyph({ char, intensity }: { char: string; intensity: number }) {
-  const bgPct = Math.round(intensity * 35);
   return (
     <span
-      className="inline-flex h-7 w-7 items-center justify-center rounded-md border font-mono text-sm font-semibold"
+      className="font-mono text-base font-semibold leading-none"
       style={{
-        backgroundColor: `color-mix(in oklch, var(--primary) ${bgPct}%, transparent)`,
-        borderColor: `color-mix(in oklch, var(--primary) ${Math.round(40 + intensity * 60)}%, var(--border))`,
-        color: intensity > 0.5 ? "var(--primary)" : "var(--foreground)",
+        color: `color-mix(in oklch, var(--primary) ${Math.round(intensity * 100)}%, var(--foreground))`,
       }}
     >
       {char === " " ? "␣" : char}
@@ -352,162 +331,98 @@ function Glyph({ char, intensity }: { char: string; intensity: number }) {
   );
 }
 
-function WeakChars({ stats }: { stats: readonly CharStat[] }) {
-  if (stats.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Clean run — no character mistakes recorded.
-      </p>
-    );
-  }
-  return (
-    <ul className="flex flex-col gap-2">
-      {stats.map((s) => (
-        <li
-          key={s.char}
-          className="flex items-baseline justify-between gap-3 border-b border-border/60 pb-1.5 last:border-b-0 last:pb-0"
-        >
-          <span className="flex items-baseline gap-3">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card font-mono text-base font-semibold">
-              {s.char === " " ? "␣" : s.char}
-            </span>
-            <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              {s.wrong} miss · {s.total} total
-            </span>
-          </span>
-          <span
-            className={cn(
-              "text-sm font-semibold tabular-nums",
-              s.rate >= 0.2 ? "text-primary" : "text-foreground",
-            )}
-          >
-            {Math.round(s.rate * 100)}%
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function SlowPairs({ pairs }: { pairs: readonly PairStat[] }) {
-  if (pairs.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Need a longer run to spot slow letter pairs.
-      </p>
-    );
-  }
-  return (
-    <ul className="flex flex-col gap-2">
-      {pairs.map((p) => (
-        <li
-          key={p.pair}
-          className="flex items-baseline justify-between gap-3 border-b border-border/60 pb-1.5 last:border-b-0 last:pb-0"
-        >
-          <span className="flex items-baseline gap-3">
-            <span className="font-mono text-base font-semibold">
-              {p.pair.split("").map((c, i) => (
-                <span key={i} className="px-0.5">
-                  {c === " " ? "␣" : c}
-                </span>
-              ))}
-            </span>
-            <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              {p.samples}×
-            </span>
-          </span>
-          <span className="text-sm font-semibold tabular-nums text-foreground">
-            {Math.round(p.avgMs)} ms
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
+// ─── Page ──────────────────────────────────────────────────────────
 
 export function TestSummary() {
   const { state, restart, wpm, accuracy, elapsedMs } = usePractice();
-  const buckets = useMemo(() => bucketWpm(state.events), [state.events]);
+  const buckets = useMemo(() => bucketRun(state.events), [state.events]);
   const peak = Math.round(peakWpm(buckets));
-  const cons = consistency(buckets);
-  const weakChars = useMemo(() => analyseChars(state.events), [state.events]);
+  const cons = consistencyScore(buckets);
   const slowPairs = useMemo(() => analysePairs(state.events), [state.events]);
   const wrongTotal = state.events.filter((e) => !e.correct).length;
   const elapsedSec = Math.max(1, Math.round(elapsedMs / 1000));
-
-  // Top weak / slow lists are tighter so the whole summary fits without
-  // scrolling on standard laptop heights (~720 px content area).
-  const topWeak = weakChars.slice(0, 5);
-  const topPairs = slowPairs.slice(0, 6);
+  const lastBucket = buckets[buckets.length - 1];
+  const rawWpm = lastBucket
+    ? Math.round(
+        (state.events.length /
+          5 /
+          (Math.max(1, state.events[state.events.length - 1]!.t) / 60_000)),
+      )
+    : 0;
+  const modeLabel =
+    state.mode === "TIME"
+      ? `time ${state.length}`
+      : state.mode === "QUOTE"
+        ? "quote"
+        : `words ${state.length}`;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden px-1 py-1">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span aria-hidden className="size-1.5 bg-primary" />
-          <Tag>complete</Tag>
+    <div className="flex h-full min-h-0 flex-col justify-center gap-5 px-2 sm:gap-7 sm:px-4">
+      {/* Top row: stat column on the left, big chart on the right. */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 items-center gap-6 lg:grid-cols-[180px_1fr]">
+        <div className="flex flex-col gap-4">
+          <BigStat label="wpm" value={wpm} accent />
+          <BigStat label="acc" value={`${Math.round(accuracy * 10) / 10}%`} accent />
+          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <div>test type</div>
+            <div className="mt-1 text-foreground">{modeLabel}</div>
+            <div className="text-foreground">english</div>
+          </div>
         </div>
-        <Button variant="outline" size="sm" onClick={() => restart()}>
-          New run · Tab
-        </Button>
-      </header>
+        <div className="min-h-0 self-stretch">
+          <WpmChart buckets={buckets} />
+        </div>
+      </div>
 
-      <section className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-        <Stat label="WPM" value={String(wpm)} size="md" accent bordered />
-        <Stat
-          label="ACC"
-          value={`${Math.round(accuracy * 10) / 10}%`}
-          size="md"
-          bordered
+      {/* Inline stats row, monkeytype-style. */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
+        <BigStat label="raw" value={rawWpm} accent />
+        <BigStat
+          label="characters"
+          value={`${state.correctChars}/${wrongTotal}/0/0`}
+          accent
         />
-        <Stat label="PEAK" value={String(peak)} size="md" bordered />
-        <Stat label="ERRORS" value={String(wrongTotal)} size="md" bordered />
-        <Stat
-          label="CONS."
-          value={String(cons)}
-          suffix="/100"
-          size="md"
-          bordered
-        />
-        <Stat label="TIME" value={`${elapsedSec}s`} size="md" />
-      </section>
+        <BigStat label="consistency" value={`${cons}%`} accent />
+        <BigStat label="time" value={`${elapsedSec}s`} accent />
+      </div>
 
-      <section className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[3fr_2fr]">
-        <SummarySection
-          title="PASSAGE HEATMAP"
-          subtitle="redder = slower · gray = unseen / space"
-          className="min-h-0 overflow-hidden"
-          contentClassName="min-h-0 overflow-y-auto pr-1"
-        >
+      {/* Heatmap strip — speed-coloured passage. */}
+      {state.words.length > 0 ? (
+        <div className="rounded-md border border-border/40 bg-card/40 px-4 py-3">
+          <div className="mb-2 flex items-baseline justify-between gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <span>passage heatmap</span>
+            <span className="text-muted-foreground/70">
+              fast → slow · hover for ms
+            </span>
+          </div>
           <PassageHeatmap words={state.words} events={state.events} />
-        </SummarySection>
-        <div className="grid min-h-0 grid-rows-[auto_1fr] gap-3">
-          <SummarySection
-            title="WPM TRACE"
-            subtitle={`peak ${peak} · ${buckets.length}s`}
-            className="min-h-0"
-          >
-            <WpmTraceChart buckets={buckets} />
-          </SummarySection>
-          <SummarySection
-            title="PAIR FLOW"
-            subtitle="from → to · arrow weight = delay"
-            className="min-h-0 overflow-hidden"
-            contentClassName="min-h-0 overflow-y-auto pr-1"
-          >
-            <PairFlow pairs={topPairs} />
-          </SummarySection>
         </div>
-      </section>
+      ) : null}
 
-      <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <SummarySection title="WEAK KEYS" subtitle="top 5 by misses" compact>
-          <WeakChars stats={topWeak} />
-        </SummarySection>
-        <SummarySection title="SLOW PAIRS" subtitle="top 6 by avg latency" compact>
-          <SlowPairs pairs={topPairs} />
-        </SummarySection>
-      </section>
+      {/* Slow pairs — only render if we have any. */}
+      {slowPairs.length > 0 ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-baseline justify-between gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <span>slow pairs</span>
+            <span className="text-muted-foreground/70">
+              top {slowPairs.length} · arrow weight = delay
+            </span>
+          </div>
+          <PairFlow pairs={slowPairs} />
+        </div>
+      ) : null}
+
+      {/* Restart hint — quiet footer, monkeytype keeps the keys at the
+          bottom of the page. */}
+      <div className="flex items-center justify-center gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="rounded-sm border border-border bg-card px-2 py-1 font-mono normal-case text-foreground">
+          tab
+        </span>
+        <span>restart · peak {peak}</span>
+        <Button variant="ghost" size="sm" onClick={() => restart()}>
+          new run
+        </Button>
+      </div>
     </div>
   );
 }
