@@ -2,6 +2,7 @@
 
 import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
+import { ApplyThemeOverrides } from "@/lib/apply-theme-overrides";
 import { PaletteProvider } from "@/lib/themes/use-palette";
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -12,7 +13,10 @@ export function Providers({ children }: { children: ReactNode }) {
       enableSystem
       disableTransitionOnChange
     >
-      <PaletteProvider>{children}</PaletteProvider>
+      <PaletteProvider>
+        <ApplyThemeOverrides />
+        {children}
+      </PaletteProvider>
     </ThemeProvider>
   );
 }

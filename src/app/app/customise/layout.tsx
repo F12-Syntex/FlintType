@@ -6,11 +6,11 @@ import { SettingsSidebar } from "./_components/sidebar";
 export default function CustomiseLayout({ children }: { children: ReactNode }) {
   return (
     <AppChrome compact>
-      <div className="grid h-full min-h-0 grid-cols-1 bg-background text-foreground lg:grid-cols-[220px_1fr]">
+      <div className="grid h-full min-h-0 grid-cols-1 text-foreground lg:grid-cols-[220px_1fr]">
         <SettingsSidebar />
 
-        <div className="min-h-0 overflow-y-auto bg-background">
-          <header className="border-b border-border bg-background px-6 py-4 sm:px-10">
+        <div className="min-h-0 overflow-y-auto">
+          <header className="border-b border-border px-6 py-4 sm:px-10">
             <div className="flex flex-wrap justify-end gap-2">
               <Button variant="outline" size="sm">Export</Button>
               <Button variant="outline" size="sm">Import</Button>

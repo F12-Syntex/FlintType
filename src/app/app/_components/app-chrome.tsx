@@ -37,7 +37,7 @@ export function AppChrome({
         "flex h-dvh flex-col overflow-hidden",
         dark
           ? "bg-ft-ink text-ft-paper"
-          : "bg-background text-foreground",
+          : "text-foreground",
         className,
       )}
     >
