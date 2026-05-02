@@ -56,9 +56,8 @@ export function TypingSurface({
               <Readouts />
             </div>
           ) : null}
-          {/* Passage gets the leftover vertical space. <Passage>
-              translates its inner content vertically to keep the active
-              word centered, so the container itself never scrolls. */}
+          {/* Passage gets the leftover vertical space. Inner content is
+              static; the caret slides between character positions. */}
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <Passage />
           </div>
