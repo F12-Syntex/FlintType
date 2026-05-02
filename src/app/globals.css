@@ -207,6 +207,12 @@
   --color-ft-ok: hsl(110 25% 39%);
 }
 
+@keyframes ft-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

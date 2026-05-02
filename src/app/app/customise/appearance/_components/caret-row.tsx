@@ -3,17 +3,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   type CaretSettings,
   type CaretStyle,
   useCaretSettings,
 } from "@/lib/caret-settings";
 import { cn } from "@/lib/utils";
+import { SettingsRow } from "../../_components/row";
 
 const STYLES: ReadonlyArray<{ id: CaretStyle; label: string }> = [
   { id: "line", label: "Line" },
@@ -36,9 +31,6 @@ const RADIUS_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
   { label: "Round", value: 6 },
 ];
 
-// Blink + smooth speed presets. The first chip is always "Off" so the
-// rows match the rest of the card (consistent shape: Off + named
-// speeds), and disabling either is a single tap. ms == 0 = disabled.
 const BLINK_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
   { label: "Off", value: 0 },
   { label: "Slow", value: 1500 },
@@ -54,8 +46,6 @@ const SMOOTH_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
 ];
 
 // ─── Caret rendering primitive ──────────────────────────────────────
-// Used by the hero preview AND mirrored in passage.tsx, so what the
-// user sees up top is exactly what lands in the live passage.
 
 function CaretShape({
   style,
@@ -146,7 +136,7 @@ function CaretShape({
   );
 }
 
-// ─── Hero preview ──────────────────────────────────────────────────
+// ─── Hero preview card ─────────────────────────────────────────────
 
 const PREVIEW_WORDS = ["the", "quick", "brown", "fox", "jumps"];
 
@@ -187,7 +177,7 @@ function HeroPreview({ settings }: { settings: CaretSettings }) {
   }, [cursor, flat]);
 
   return (
-    <div className="rounded-md border border-border bg-muted/30 px-5 py-6">
+    <div className="rounded-md border border-border bg-card px-5 py-6">
       <div
         ref={containerRef}
         className="relative mx-auto w-fit font-mono text-2xl leading-[1.6] text-muted-foreground sm:text-3xl"
@@ -232,10 +222,7 @@ function HeroPreview({ settings }: { settings: CaretSettings }) {
   );
 }
 
-// ─── Plain chip group ──────────────────────────────────────────────
-// Text-only chips. The hero preview above is the single source of
-// truth for "what does this look like" — having a mini preview inside
-// every chip turns the card into a wall of carets.
+// ─── Plain chip ────────────────────────────────────────────────────
 
 function Chip({
   label,
@@ -252,7 +239,7 @@ function Chip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "rounded-md border px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-colors",
+        "rounded-md border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider transition-colors",
         active
           ? "border-primary bg-primary/10 text-primary"
           : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -263,20 +250,11 @@ function Chip({
   );
 }
 
-function ControlRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function ChipGroup({ children }: { children: React.ReactNode }) {
+  // Right-aligned, wraps onto a second line on narrow viewports without
+  // pushing the SettingsRow past its max height (3× min).
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-      <span className="w-24 shrink-0 text-[10px] font-medium uppercase tracking-widest text-muted-foreground sm:text-xs">
-        {label}
-      </span>
-      <div className="flex flex-wrap gap-2">{children}</div>
-    </div>
+    <div className="flex flex-wrap justify-end gap-1.5">{children}</div>
   );
 }
 
@@ -286,82 +264,97 @@ export function CaretRow() {
   const { settings, update, reset, isCustomised } = useCaretSettings();
 
   return (
-    <Card className="rounded-md shadow-sm ring-border min-h-16">
-      <CardHeader>
-        <CardTitle className="text-sm font-semibold">Caret &amp; cursor</CardTitle>
-        <CardDescription>
-          The cursor that moves through the passage. The preview below cycles
-          live so you see what each setting does.
-        </CardDescription>
-      </CardHeader>
+    <div className="flex flex-col gap-3">
+      <HeroPreview settings={settings} />
 
-      <div className="flex flex-col gap-5 px-4 pb-4">
-        <HeroPreview settings={settings} />
+      <SettingsRow
+        label="Style"
+        control={
+          <ChipGroup>
+            {STYLES.map((s) => (
+              <Chip
+                key={s.id}
+                label={s.label}
+                active={settings.style === s.id}
+                onClick={() => update({ style: s.id })}
+              />
+            ))}
+          </ChipGroup>
+        }
+      />
 
-        <ControlRow label="Style">
-          {STYLES.map((s) => (
-            <Chip
-              key={s.id}
-              label={s.label}
-              active={settings.style === s.id}
-              onClick={() => update({ style: s.id })}
-            />
-          ))}
-        </ControlRow>
+      <SettingsRow
+        label="Thickness"
+        control={
+          <ChipGroup>
+            {THICKNESS_PRESETS.map((p) => (
+              <Chip
+                key={p.label}
+                label={p.label}
+                active={settings.width === p.value}
+                onClick={() => update({ width: p.value })}
+              />
+            ))}
+          </ChipGroup>
+        }
+      />
 
-        <ControlRow label="Thickness">
-          {THICKNESS_PRESETS.map((p) => (
-            <Chip
-              key={p.label}
-              label={p.label}
-              active={settings.width === p.value}
-              onClick={() => update({ width: p.value })}
-            />
-          ))}
-        </ControlRow>
+      <SettingsRow
+        label="Roundness"
+        control={
+          <ChipGroup>
+            {RADIUS_PRESETS.map((p) => (
+              <Chip
+                key={p.label}
+                label={p.label}
+                active={settings.radius === p.value}
+                onClick={() => update({ radius: p.value })}
+              />
+            ))}
+          </ChipGroup>
+        }
+      />
 
-        <ControlRow label="Roundness">
-          {RADIUS_PRESETS.map((p) => (
-            <Chip
-              key={p.label}
-              label={p.label}
-              active={settings.radius === p.value}
-              onClick={() => update({ radius: p.value })}
-            />
-          ))}
-        </ControlRow>
+      <SettingsRow
+        label="Blink"
+        control={
+          <ChipGroup>
+            {BLINK_PRESETS.map((p) => (
+              <Chip
+                key={p.label}
+                label={p.label}
+                active={settings.blinkSpeed === p.value}
+                onClick={() => update({ blinkSpeed: p.value })}
+              />
+            ))}
+          </ChipGroup>
+        }
+      />
 
-        <ControlRow label="Blink">
-          {BLINK_PRESETS.map((p) => (
-            <Chip
-              key={p.label}
-              label={p.label}
-              active={settings.blinkSpeed === p.value}
-              onClick={() => update({ blinkSpeed: p.value })}
-            />
-          ))}
-        </ControlRow>
+      <SettingsRow
+        label="Smooth"
+        control={
+          <ChipGroup>
+            {SMOOTH_PRESETS.map((p) => (
+              <Chip
+                key={p.label}
+                label={p.label}
+                active={settings.smoothSpeed === p.value}
+                onClick={() => update({ smoothSpeed: p.value })}
+              />
+            ))}
+          </ChipGroup>
+        }
+      />
 
-        <ControlRow label="Smooth">
-          {SMOOTH_PRESETS.map((p) => (
-            <Chip
-              key={p.label}
-              label={p.label}
-              active={settings.smoothSpeed === p.value}
-              onClick={() => update({ smoothSpeed: p.value })}
-            />
-          ))}
-        </ControlRow>
-
-        {isCustomised ? (
-          <div className="flex justify-end">
-            <Button variant="ghost" size="sm" onClick={reset}>
-              Reset to default
-            </Button>
-          </div>
-        ) : null}
-      </div>
-    </Card>
+      {isCustomised ? (
+        <div className="flex justify-end">
+          <Button variant="ghost" size="sm" onClick={reset}>
+            Reset to default
+          </Button>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
