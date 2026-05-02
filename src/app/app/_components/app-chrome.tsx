@@ -35,7 +35,9 @@ export function AppChrome({
         // when the OS keyboard rises, so the inner flex layout collapses
         // gracefully instead of overflowing behind the keyboard.
         "flex h-dvh flex-col overflow-hidden",
-        dark ? "bg-ft-ink text-ft-paper" : "bg-ft-paper text-ft-ink",
+        dark
+          ? "bg-ft-ink text-ft-paper"
+          : "bg-background text-foreground",
         className,
       )}
     >

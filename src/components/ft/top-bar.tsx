@@ -49,7 +49,7 @@ export function TopBar({
         sticky && "sticky top-0",
         dark
           ? "border-[#221F1A] bg-ft-ink/85 text-ft-paper"
-          : "border-ft-line-soft bg-ft-paper/85 text-ft-ink",
+          : "border-border bg-background/85 text-foreground",
         className,
       )}
     >
@@ -66,7 +66,7 @@ export function TopBar({
           "hidden text-[11px] tracking-[0.06em] uppercase transition-colors sm:inline",
           dark
             ? "text-[#6E695F] hover:text-ft-ember"
-            : "text-ft-dim hover:text-ft-ember",
+            : "text-muted-foreground hover:text-primary",
         )}
       >
         <span aria-hidden className="mr-2">·</span>OPEN SOURCE
@@ -76,7 +76,7 @@ export function TopBar({
         <nav
           className={cn(
             "ml-6 hidden flex-1 items-center gap-6 text-[11px] uppercase tracking-[0.14em] md:flex",
-            dark ? "text-[#B5AF9F]" : "text-ft-dim-2",
+            dark ? "text-[#B5AF9F]" : "text-muted-foreground",
           )}
         >
           {nav.map((item) => {
@@ -89,11 +89,13 @@ export function TopBar({
                   "relative py-1 transition-colors",
                   "after:absolute after:right-0 after:bottom-0 after:left-0 after:h-px after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-150",
                   "hover:after:scale-x-100",
-                  dark ? "hover:text-ft-paper" : "hover:text-ft-ink",
+                  dark ? "hover:text-ft-paper" : "hover:text-foreground",
                   active &&
                     cn(
-                      "border-b border-ft-ember after:hidden",
-                      dark ? "text-ft-paper" : "text-ft-ink",
+                      "after:hidden",
+                      dark
+                        ? "border-b border-ft-ember text-ft-paper"
+                        : "border-b border-primary text-foreground",
                     ),
                 )}
               >

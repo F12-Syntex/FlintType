@@ -128,10 +128,10 @@ export function MobileNav({
                     className={cn(
                       "block py-3 text-2xl font-bold tracking-tight transition-colors sm:text-3xl",
                       active
-                        ? "text-ft-ember"
+                        ? "text-primary"
                         : dark
                           ? "text-ft-paper hover:text-ft-ember"
-                          : "text-ft-ink hover:text-ft-ember",
+                          : "text-foreground hover:text-primary",
                     )}
                   >
                     {item.label}
@@ -147,7 +147,7 @@ export function MobileNav({
         <div
           className={cn(
             "mt-auto shrink-0 border-t px-5 py-5 sm:px-7",
-            dark ? "border-[#221F1A]" : "border-ft-line-soft",
+            dark ? "border-[#221F1A]" : "border-border",
           )}
         >
           {drawerExtras}
@@ -168,7 +168,7 @@ export function MobileNav({
           "-mr-2 flex size-11 items-center justify-center rounded-md transition-colors md:hidden",
           dark
             ? "text-ft-paper hover:bg-white/5"
-            : "text-ft-ink hover:bg-black/5",
+            : "text-foreground hover:bg-foreground/5",
         )}
       >
         <MorphIcon open={open} />

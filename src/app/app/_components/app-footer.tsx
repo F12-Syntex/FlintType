@@ -27,7 +27,7 @@ function FooterLink({
 }) {
   const className = cn(
     "transition-colors",
-    dark ? "hover:text-ft-paper" : "hover:text-ft-ink",
+    dark ? "hover:text-ft-paper" : "hover:text-foreground",
   );
   if (link.external) {
     return (
@@ -55,12 +55,12 @@ export function AppFooter({ dark = false }: { dark?: boolean }) {
         "flex flex-col gap-6 border-t px-5 py-7 text-[10px] uppercase tracking-[0.16em] sm:px-7 lg:flex-row lg:items-center lg:justify-between lg:gap-8 lg:py-6",
         dark
           ? "border-[#221F1A] bg-ft-ink text-[#9C978A]"
-          : "border-ft-line-soft bg-ft-paper text-ft-dim",
+          : "border-border bg-background text-muted-foreground",
       )}
     >
       <div className="flex items-center gap-4">
         <Logo size="sm" dark={dark} />
-        <span className={cn(dark ? "text-[#6E695F]" : "text-ft-dim-2")}>
+        <span className={cn(dark ? "text-[#6E695F]" : "text-muted-foreground/70")}>
           © MMXXVI
         </span>
       </div>
@@ -78,7 +78,7 @@ export function AppFooter({ dark = false }: { dark?: boolean }) {
       <span
         className={cn(
           "hidden lg:inline",
-          dark ? "text-[#6E695F]" : "text-ft-dim-2",
+          dark ? "text-[#6E695F]" : "text-muted-foreground/70",
         )}
       >
         STRIKE · SPARK · SHARPEN

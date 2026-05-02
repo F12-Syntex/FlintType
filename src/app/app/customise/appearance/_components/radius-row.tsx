@@ -49,16 +49,21 @@ function PresetTile({
       )}
       aria-pressed={active}
     >
-      {/* Live preview: a real button using THIS preset's radius so you
-          see what each option looks like on a control surface, all at
-          once. */}
-      <span
-        aria-hidden
-        className="inline-flex h-9 w-full items-center justify-center bg-primary px-3 text-xs font-semibold text-primary-foreground"
-        style={{ borderRadius: `${rem}rem` }}
-      >
-        Save
-      </span>
+      {/* Corner-only preview: an L-shape where only the top-left corner
+          uses this preset's radius — easier to compare across presets
+          than a full surface. */}
+      <div className="relative h-12 w-12">
+        <div
+          aria-hidden
+          className={cn(
+            "absolute inset-0 border-l-[5px] border-t-[5px] transition-colors",
+            active
+              ? "border-primary"
+              : "border-foreground/40 group-hover:border-foreground",
+          )}
+          style={{ borderTopLeftRadius: `${rem}rem` }}
+        />
+      </div>
       <div className="flex flex-col items-center">
         <span className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider">
           {active ? <Check size={11} className="text-primary" /> : null}

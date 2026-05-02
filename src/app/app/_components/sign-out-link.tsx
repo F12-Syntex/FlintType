@@ -11,7 +11,7 @@ export function SignOutLink({ dark = false }: { dark?: boolean }) {
       onClick={() => signOut({ redirectUrl: "/" })}
       className={cn(
         "uppercase tracking-[0.16em] transition-colors",
-        dark ? "hover:text-ft-paper" : "hover:text-ft-ink",
+        dark ? "hover:text-ft-paper" : "hover:text-foreground",
       )}
     >
       SIGN OUT

@@ -26,7 +26,7 @@ export function TopbarActions({ dark = false }: { dark?: boolean }) {
           "hidden size-9 items-center justify-center rounded-md transition-colors md:flex",
           dark
             ? "text-ft-paper hover:bg-white/5"
-            : "text-ft-ink hover:bg-black/5",
+            : "text-foreground hover:bg-foreground/5",
         )}
       >
         <GearIcon />
@@ -59,7 +59,7 @@ function ProfileLink({ dark }: { dark: boolean }) {
         "hidden items-center gap-2 rounded-md px-2 py-1 transition-colors md:flex",
         dark
           ? "text-ft-paper hover:bg-white/5"
-          : "text-ft-ink hover:bg-black/5",
+          : "text-foreground hover:bg-foreground/5",
       )}
     >
       <Avatar initial={initial} dark={dark} />
@@ -98,7 +98,7 @@ function Avatar({ initial, dark }: { initial: string; dark: boolean }) {
         "flex size-7 items-center justify-center rounded-full text-[10px] font-bold tracking-wide",
         dark
           ? "bg-ft-paper/10 text-ft-paper"
-          : "bg-ft-ember/10 text-ft-ember",
+          : "bg-primary/10 text-primary",
       )}
     >
       {initial}
