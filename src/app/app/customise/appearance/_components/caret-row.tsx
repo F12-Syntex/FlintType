@@ -7,7 +7,7 @@ import {
   type CaretStyle,
   useCaretSettings,
 } from "@/lib/caret-settings";
-import { cn } from "@/lib/utils";
+import { Chip, ChipGroup } from "../../_components/chip";
 import { SettingsRow } from "../../_components/row";
 
 const STYLES: ReadonlyArray<{ id: CaretStyle; label: string }> = [
@@ -226,42 +226,6 @@ function HeroPreview({ settings }: { settings: CaretSettings }) {
         ) : null}
       </div>
     </div>
-  );
-}
-
-// ─── Plain chip ────────────────────────────────────────────────────
-
-function Chip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        "rounded-md border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider transition-colors",
-        active
-          ? "border-primary bg-primary/10 text-primary"
-          : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
-      )}
-    >
-      {label}
-    </button>
-  );
-}
-
-function ChipGroup({ children }: { children: React.ReactNode }) {
-  // Right-aligned, wraps onto a second line on narrow viewports without
-  // pushing the SettingsRow past its max height (3× min).
-  return (
-    <div className="flex flex-wrap justify-end gap-1.5">{children}</div>
   );
 }
 

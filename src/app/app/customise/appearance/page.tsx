@@ -14,7 +14,6 @@ import {
   ColorPicker,
   type ColorPickerValue,
 } from "@/components/ui/color-picker";
-import { Slider } from "@/components/ui/slider";
 import {
   type ThemeVar,
   useThemeOverrides,
@@ -25,6 +24,7 @@ import { BackgroundRow } from "./_components/background-row";
 import { CaretRow } from "./_components/caret-row";
 import { RadiusRow } from "./_components/radius-row";
 import { ThemesRow } from "./_components/themes-row";
+import { TypographyRows } from "./_components/typography-row";
 
 // ─── Color section ─────────────────────────────────────────────────
 
@@ -153,178 +153,6 @@ function ColorRowCard({
   );
 }
 
-// ─── Font family ───────────────────────────────────────────────────
-
-const FONT_OPTIONS: ReadonlyArray<{ id: string; label: string; stack: string }> =
-  [
-    {
-      id: "default",
-      label: "Plus Jakarta Sans (default)",
-      stack: "var(--font-sans)",
-    },
-    {
-      id: "mono",
-      label: "IBM Plex Mono",
-      stack: "var(--font-mono)",
-    },
-    {
-      id: "serif",
-      label: "Lora",
-      stack: "var(--font-serif)",
-    },
-    {
-      id: "system",
-      label: "System UI",
-      stack:
-        "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif",
-    },
-    {
-      id: "georgia",
-      label: "Georgia",
-      stack: "Georgia, 'Times New Roman', serif",
-    },
-  ];
-
-function FontFamilyRow({
-  value,
-  onChange,
-  onClear,
-}: {
-  value: string | undefined;
-  onChange: (stack: string) => void;
-  onClear: () => void;
-}) {
-  // Identify the active option by stack equality so the visual selection
-  // survives a remount (cleared override → "default" highlighted again).
-  const active =
-    FONT_OPTIONS.find((o) => o.stack === value)?.id ?? "default";
-
-  return (
-    <Card className="rounded-md shadow-sm ring-border min-h-16">
-      <CardHeader>
-        <CardTitle className="text-sm font-semibold">Font family</CardTitle>
-        <CardDescription>
-          Pick a face — the sample under each option renders in that font
-        </CardDescription>
-      </CardHeader>
-      <div className="flex flex-col gap-2 px-4 pb-4">
-        {FONT_OPTIONS.map((opt) => (
-          <button
-            key={opt.id}
-            type="button"
-            onClick={() =>
-              opt.id === "default" ? onClear() : onChange(opt.stack)
-            }
-            className={
-              "flex flex-col items-start gap-1 rounded-md border p-3 text-left transition-colors " +
-              (active === opt.id
-                ? "border-primary bg-primary/5"
-                : "border-border hover:bg-muted")
-            }
-            style={{ fontFamily: opt.stack }}
-          >
-            <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-              {opt.label}
-            </span>
-            <span className="text-xl font-semibold text-foreground">
-              The quick brown fox jumps over the lazy dog
-            </span>
-            <span className="text-sm text-muted-foreground">
-              0123456789 — &amp;@#%
-            </span>
-          </button>
-        ))}
-        {value !== undefined ? (
-          <div className="flex justify-end">
-            <Button variant="ghost" size="sm" onClick={onClear}>
-              Reset to default
-            </Button>
-          </div>
-        ) : null}
-      </div>
-    </Card>
-  );
-}
-
-// ─── Font size ─────────────────────────────────────────────────────
-
-const SIZE_PRESETS: ReadonlyArray<{ label: string; scale: number }> = [
-  { label: "S", scale: 0.875 },
-  { label: "M", scale: 1.0 },
-  { label: "L", scale: 1.125 },
-  { label: "XL", scale: 1.25 },
-];
-
-function FontSizeRow({
-  value,
-  onChange,
-  onClear,
-}: {
-  value: string | undefined;
-  onChange: (scale: number) => void;
-  onClear: () => void;
-}) {
-  const scale = value ? Number.parseFloat(value) : 1;
-
-  return (
-    <Card className="rounded-md shadow-sm ring-border min-h-16">
-      <CardHeader>
-        <CardTitle className="text-sm font-semibold">Font size</CardTitle>
-        <CardDescription>
-          Scales every rem-based size across the app — pick a preset or
-          fine-tune below
-        </CardDescription>
-      </CardHeader>
-      <div className="flex flex-col gap-3 px-4 pb-4">
-        <div className="flex flex-wrap gap-2">
-          {SIZE_PRESETS.map((p) => (
-            <Button
-              key={p.label}
-              variant={Math.abs(p.scale - scale) < 0.01 ? "default" : "outline"}
-              size="sm"
-              onClick={() => onChange(p.scale)}
-            >
-              {p.label} <span className="ml-1 opacity-60">{p.scale}×</span>
-            </Button>
-          ))}
-        </div>
-        <div className="flex items-center gap-3">
-          <Slider
-            value={[scale]}
-            min={0.75}
-            max={1.5}
-            step={0.025}
-            onValueChange={(v) => {
-              if (Array.isArray(v) && typeof v[0] === "number") onChange(v[0]);
-            }}
-            className="w-60"
-          />
-          <Badge variant="outline" className="px-2 tabular-nums">
-            {scale.toFixed(3)}×
-          </Badge>
-          {value !== undefined ? (
-            <Button variant="ghost" size="sm" onClick={onClear}>
-              Reset
-            </Button>
-          ) : null}
-        </div>
-        <div
-          className="rounded-md border border-border bg-card p-4"
-          style={{ fontSize: `${scale}rem` }}
-        >
-          <p className="text-base text-foreground">
-            Sample paragraph — every rem you read is now at the chosen
-            scale. Headlines below scale in proportion.
-          </p>
-          <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">
-            Heading sample
-          </p>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
 // ─── Page ──────────────────────────────────────────────────────────
 
 export default function AppearancePage() {
@@ -411,16 +239,7 @@ export default function AppearancePage() {
 
       <SectionHeader label="Typography" />
       <div className="mb-8 flex flex-col gap-3">
-        <FontFamilyRow
-          value={overrides["--ft-font-family"]}
-          onChange={(stack) => setVar("--ft-font-family", stack)}
-          onClear={() => clearVar("--ft-font-family")}
-        />
-        <FontSizeRow
-          value={overrides["--ft-font-scale"]}
-          onChange={(scale) => setVar("--ft-font-scale", String(scale))}
-          onClear={() => clearVar("--ft-font-scale")}
-        />
+        <TypographyRows />
       </div>
 
       <SectionHeader label="Background" />

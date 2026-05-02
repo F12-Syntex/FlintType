@@ -401,12 +401,66 @@ The shadcn `<Button>` is still preferred when the form/dialog already uses shadc
 
 ---
 
-## 12. Amending this document
+## 12. Settings layout convention
+
+Every settings surface (`/app/customise/<section>` and friends) follows the same shape so a user can move between sections without re-learning the layout each time.
+
+### 12.1 Anatomy of a section
+
+A *section* is a labelled group of related settings. Top-down order:
+
+1. **Section header** — `<SectionHeader label="…">` from `src/app/app/customise/_components/...`. Uppercase eyebrow with a primary accent bar. One per section.
+2. **Hero preview (optional)** — a single bordered card on `bg-card` showing what the section's settings produce *live*. Use whenever a setting's effect is visual (Caret, Typography, Geometry/Radius, Background, Themes-not-yet). Use the user's current values; animate or cycle when that helps the user understand.
+3. **Setting rows** — one per option. Use `<SettingsRow label="…" control={…} />` from `customise/_components/row.tsx`. Each row has the label on the left and a right-aligned control. `min-h-16` baseline, `max-h-48` (3×) cap.
+4. **Reset** — when the section can be customised away from defaults, a single ghost-button row at the bottom: `Reset to default`.
+
+### 12.2 What lives in `control={…}`
+
+Pick the smallest control that fits the choice space:
+
+| Choice space                                                  | Control                                  |
+|---------------------------------------------------------------|------------------------------------------|
+| 2–6 short discrete values (Style, Thickness, Mode)           | `<ChipGroup>` of text chips, right-aligned, wraps to a second row on narrow viewports |
+| 7+ values, or values whose names are long                    | `<DropdownMenu>` with the active swatch + label on the trigger button (Theme) |
+| Single binary toggle                                         | a chip-group with `[Off] [On]` so the row shape stays uniform |
+| Free input (URL, hex, name)                                  | `<Input>` (right-aligned within the row) |
+| Continuous numeric                                           | a chip-group of named presets (e.g. Sharp / Soft / Round). Sliders are reserved for sections that genuinely need fine-tuning, never inside a `SettingsRow` |
+
+`SettingsCard` (a Card with title + description + body) is **only** for controls that genuinely need their own description and a body too tall for a row — color picker rows (label + desc + swatch picker) and the background image upload zone. New rich-content settings should ask "can this be a SettingsRow?" first.
+
+### 12.3 Nesting rule
+
+Every option that belongs to the same parent topic lives **inside the same section**. Examples:
+
+- **Caret & cursor** — Style, Thickness, Roundness, Blink, Smooth — *all in one section*.
+- **Typography** — Family, Size — *all in one section*.
+- **Geometry** — Radius (and any future spacing scale) — *all in one section*.
+
+Don't sprinkle related settings across sections; if you find yourself doing that, rename the section or split it cleanly.
+
+### 12.4 Spacing inside a section
+
+| What                                         | Class                            |
+|----------------------------------------------|----------------------------------|
+| Space between section header and first row   | `mb-3` on the header             |
+| Space between rows / hero / reset            | `gap-3` on the wrapping `<div>`  |
+| Space between adjacent sections              | `mb-8` on the wrapping `<div>`   |
+
+### 12.5 Don't
+
+- **Don't** re-implement the row shell ad-hoc with `<div className="border bg-card …">`. Always use `<SettingsRow>` so future tweaks (radius bump, padding shift) ripple uniformly.
+- **Don't** put a description on a row whose label already explains itself; descriptions belong on `SettingsCard`s. The label-on-the-left convention assumes the label is enough.
+- **Don't** add a per-chip preview tile when a section already has a hero preview. The hero is the single source of truth for "what does this look like" — chip-level previews multiplied across rows turn the card into a wall of demos.
+- **Don't** mix slider + chip presets for the same setting unless the slider is in a separate fine-tune block; the rule of thumb is one control per row.
+
+---
+
+## 13. Amending this document
 
 When you introduce a new pattern:
 
 1. Open this file.
-2. Add a row to the matching table (§2 color, §3 spacing, §4 typography, §5 layout) **or** a new section with the next sequential number.
+2. Add a row to the matching table (§2 color, §3 spacing, §4 typography, §5 layout, §12 settings) **or** a new section with the next sequential number.
 3. Include a one-line rationale — why this pattern, what problem it solves.
 4. Commit the doc change **in the same commit** as the code using it.
 5. From that commit forward, all UI must follow the new rule.
