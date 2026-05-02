@@ -16,7 +16,10 @@ import {
   useBehaviourPrefs,
 } from "@/lib/behaviour-prefs";
 import { loadQuotes, pickQuote, type QuoteGroup } from "@/lib/quotes";
+import { calcWpmAndRaw, countChars } from "@/lib/wpm";
 import englishWords from "@/data/english.json";
+
+export type WpmSample = { t: number; wpm: number; raw: number };
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -56,6 +59,11 @@ export type State = {
   startTime: number | null;
   endTime: number | null;
   events: KeyEvent[];
+  /** Per-word typed input — `typed[i]` is exactly what the user has
+   *  entered for `words[i]` (excluding the trailing space).  This is the
+   *  source of truth monkeytype uses when computing WPM at the end of a
+   *  run, so we maintain it on every TYPE_CHAR / BACKSPACE / SPACE. */
+  typed: string[];
   /** Source label for QUOTE mode — shown under the passage. */
   quoteSource: string | null;
 };
@@ -170,6 +178,7 @@ export const initialState: State = {
   startTime: null,
   endTime: null,
   events: [],
+  typed: [],
   quoteSource: null,
 };
 
@@ -193,7 +202,25 @@ function freshRun(
     startTime: null,
     endTime: null,
     events: [],
+    typed: [],
   };
+}
+
+/** Append `char` to typed[index], creating empty entries if needed. */
+function pushTyped(typed: readonly string[], index: number, char: string): string[] {
+  const next = [...typed];
+  while (next.length <= index) next.push("");
+  next[index] = (next[index] ?? "") + char;
+  return next;
+}
+
+/** Remove the last char from typed[index]. */
+function popTyped(typed: readonly string[], index: number): string[] {
+  const next = [...typed];
+  if (index < next.length) {
+    next[index] = (next[index] ?? "").slice(0, -1);
+  }
+  return next;
 }
 
 function reducer(s: State, a: Action): State {
@@ -240,6 +267,8 @@ function reducer(s: State, a: Action): State {
       };
 
       if (!correct && a.stopOnError) {
+        // stop-on-error blocks the wrong char from being entered; typed
+        // doesn't grow, cursor doesn't advance.
         return {
           ...s,
           phase: s.phase === "rest" ? "running" : s.phase,
@@ -250,6 +279,7 @@ function reducer(s: State, a: Action): State {
         };
       }
 
+      const nextTyped = pushTyped(s.typed, s.cursorWord, a.char);
       const nextCursorChar = s.cursorChar + 1;
       // Auto-finish: a correct keystroke that completes the final char of
       // the final word ends the run for WORDS / QUOTE — TIME ignores the
@@ -273,22 +303,40 @@ function reducer(s: State, a: Action): State {
           ? s.errorWords
           : new Set([...s.errorWords, s.cursorWord]),
         events: [...s.events, event],
+        typed: nextTyped,
       };
     }
     case "BACKSPACE": {
       if (s.phase === "done") return s;
       if (s.cursorChar === 0) {
-        // Walk back one word if possible (only into words that had errors).
         if (s.cursorWord === 0 || !s.errorWords.has(s.cursorWord - 1))
           return s;
-        const prev = s.words[s.cursorWord - 1]!;
-        return { ...s, cursorWord: s.cursorWord - 1, cursorChar: prev.length };
+        // Cursor lands at the end of whatever the user actually typed
+        // for the previous word (could be < target.length if they pressed
+        // space early); typed[] keeps that prior input intact so it can
+        // be edited.
+        const prevTyped = s.typed[s.cursorWord - 1] ?? "";
+        return {
+          ...s,
+          cursorWord: s.cursorWord - 1,
+          cursorChar: prevTyped.length,
+        };
       }
-      return { ...s, cursorChar: s.cursorChar - 1 };
+      return {
+        ...s,
+        cursorChar: s.cursorChar - 1,
+        typed: popTyped(s.typed, s.cursorWord),
+      };
     }
     case "SPACE": {
       if (s.phase === "done" || s.phase === "rest") return s;
       const next = s.cursorWord + 1;
+      // Make sure typed has an entry for the just-completed word, even
+      // if the user pressed space without typing anything (rare, but the
+      // monkeytype WPM walk wants every position present).
+      const sealedTyped = s.typed.length > s.cursorWord
+        ? s.typed
+        : pushTyped(s.typed, s.cursorWord, "");
       if (next >= s.words.length) {
         if (s.mode === "TIME") {
           const more = generateWords(TIME_BUFFER, Date.now());
@@ -297,14 +345,21 @@ function reducer(s: State, a: Action): State {
             words: [...s.words, ...more],
             cursorWord: next,
             cursorChar: 0,
+            typed: sealedTyped,
           };
         }
-        return { ...s, phase: "done", endTime: a.now };
+        return {
+          ...s,
+          phase: "done",
+          endTime: a.now,
+          typed: sealedTyped,
+        };
       }
       return {
         ...s,
         cursorWord: next,
         cursorChar: 0,
+        typed: sealedTyped,
       };
     }
     default:
@@ -326,7 +381,12 @@ type PracticeCtx = {
   restart: () => void;
   elapsedMs: number;
   wpm: number;
+  raw: number;
   accuracy: number;
+  /** Per-second sample of (wpm, raw, t-since-first-keystroke). Cleared on
+   *  every fresh run; populated by an interval while the test is running
+   *  so the chart and any history view share the same data. */
+  wpmHistory: readonly WpmSample[];
 };
 
 const Ctx = createContext<PracticeCtx | null>(null);
@@ -377,6 +437,48 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(id);
   }, [state.phase, state.startTime, state.endTime]);
 
+  // Per-second WPM sampling — same approach monkeytype uses to power its
+  // chart. We read the latest typed[] / words via a ref so the interval
+  // stays mounted across keystrokes (the array changes every key).
+  const stateForSampleRef = useRef(state);
+  stateForSampleRef.current = state;
+  const [wpmHistory, setWpmHistory] = useState<WpmSample[]>([]);
+  useEffect(() => {
+    if (state.phase === "rest") {
+      setWpmHistory([]);
+      return;
+    }
+    if (state.phase !== "running" || state.startTime == null) return;
+    const startTime = state.startTime;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    const tick = () => {
+      const s = stateForSampleRef.current;
+      if (s.startTime == null) return;
+      const t = Date.now() - startTime;
+      const { wpm, raw } = calcWpmAndRaw(s.typed, s.words, t, false);
+      setWpmHistory((prev) => [
+        ...prev,
+        {
+          t,
+          wpm: Math.round(wpm * 10) / 10,
+          raw: Math.round(raw * 10) / 10,
+        },
+      ]);
+    };
+    // Schedule the first sample at the next 1s boundary so consecutive
+    // samples land on whole-second ticks.
+    const firstDelay = Math.max(50, 1000 - (Date.now() - startTime));
+    timeoutId = setTimeout(() => {
+      tick();
+      intervalId = setInterval(tick, 1000);
+    }, firstDelay);
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [state.phase, state.startTime]);
+
   // TIME mode countdown: end the run when the duration elapses. We let
   // setTimeout handle the wake-up so we don't poll Date.now() on every
   // keystroke; the elapsed-tick effect above stays purely cosmetic.
@@ -397,12 +499,22 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
   }, [state.mode, state.phase, state.startTime, state.length]);
 
   const value = useMemo<PracticeCtx>(() => {
-    const minutes = elapsedMs / 60_000;
-    const wpm =
-      minutes > 0 ? Math.round(state.correctChars / 5 / minutes) : 0;
+    const isFinal = state.phase === "done";
+    const { wpm: rawWpm, raw: rawRaw } = calcWpmAndRaw(
+      state.typed,
+      state.words,
+      elapsedMs,
+      isFinal,
+    );
+    const wpm = Math.round(rawWpm);
+    const raw = Math.round(rawRaw);
+    // Accuracy uses monkeytype's char counts (correct vs incorrect).
+    const counts = countChars(state.typed, state.words, isFinal);
+    const correct = counts.allCorrectChars;
+    const incorrect = counts.incorrectChars + counts.extraChars;
     const accuracy =
-      state.totalChars > 0
-        ? Math.round((state.correctChars / state.totalChars) * 1000) / 10
+      correct + incorrect > 0
+        ? Math.round((correct / (correct + incorrect)) * 1000) / 10
         : 100;
     const buildCfg = (): WordCfg => {
       const p = prefsRef.current;
@@ -436,7 +548,9 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
       dispatch,
       elapsedMs,
       wpm,
+      raw,
       accuracy,
+      wpmHistory,
       setMode: (mode) => {
         const length = defaultLengthFor(mode);
         const cfg = buildCfg();
@@ -481,7 +595,7 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
         });
       },
     };
-  }, [state, elapsedMs]);
+  }, [state, elapsedMs, wpmHistory]);
 
   // Keyboard listener — only when user isn't typing into another input.
   const stateRef = useRef(state);

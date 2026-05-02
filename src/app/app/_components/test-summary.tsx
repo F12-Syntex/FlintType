@@ -22,35 +22,6 @@ import { type KeyEvent, usePractice } from "./practice-state";
 
 type Bucket = { sec: number; wpm: number; raw: number };
 
-/** Cumulative WPM at each second boundary — same definition as the
- *  displayed top-line WPM (correct chars / 5 / minutes). The chart's
- *  final value lines up with the headline number, and the curve smooths
- *  out the per-second jitter that an instantaneous bucket produces. */
-function bucketRun(events: readonly KeyEvent[]): Bucket[] {
-  if (events.length === 0) return [];
-  const lastT = Math.max(1, events[events.length - 1]!.t);
-  const seconds = Math.max(1, Math.ceil(lastT / 1000));
-  const out: Bucket[] = [];
-  let correct = 0;
-  let total = 0;
-  let i = 0;
-  for (let sec = 1; sec <= seconds; sec += 1) {
-    const cutoff = sec * 1000;
-    while (i < events.length && events[i]!.t < cutoff) {
-      total += 1;
-      if (events[i]!.correct) correct += 1;
-      i += 1;
-    }
-    const minutes = sec / 60;
-    out.push({
-      sec,
-      wpm: minutes > 0 ? (correct / 5) / minutes : 0,
-      raw: minutes > 0 ? (total / 5) / minutes : 0,
-    });
-  }
-  return out;
-}
-
 function peakWpm(buckets: readonly Bucket[]): number {
   return buckets.reduce((m, b) => (b.wpm > m ? b.wpm : m), 0);
 }
@@ -488,21 +459,29 @@ function ReplayView({
 // ─── Page ──────────────────────────────────────────────────────────
 
 export function TestSummary() {
-  const { state, restart, wpm, accuracy, elapsedMs } = usePractice();
+  const { state, restart, wpm, raw, accuracy, elapsedMs, wpmHistory } =
+    usePractice();
   const [replaying, setReplaying] = useState(false);
-  const buckets = useMemo(() => bucketRun(state.events), [state.events]);
+  // Convert the live wpmHistory samples into chart buckets keyed by
+  // whole-second markers. monkeytype draws its WPM trace from exactly
+  // this stream.
+  const buckets = useMemo<Bucket[]>(
+    () =>
+      wpmHistory.map((s) => ({
+        sec: Math.max(1, Math.round(s.t / 1000)),
+        wpm: s.wpm,
+        raw: s.raw,
+      })),
+    [wpmHistory],
+  );
   const peak = Math.round(peakWpm(buckets));
   const cons = consistencyScore(buckets);
   const slowPairs = useMemo(() => analysePairs(state.events), [state.events]);
   const wrongTotal = state.events.filter((e) => !e.correct).length;
   const elapsedSec = Math.max(1, Math.round(elapsedMs / 1000));
-  // Raw shares the same time window as the headline WPM (first → last
-  // keystroke) so the two numbers stay comparable: raw counts every key
-  // typed, WPM only counts correct ones.
-  const rawWpm =
-    elapsedMs > 0
-      ? Math.round((state.events.length / 5) / (elapsedMs / 60_000))
-      : 0;
+  // Raw comes straight from the practice state now — same monkeytype
+  // formula as WPM but without the "only-perfect-words" filter.
+  const rawWpm = raw;
   const modeLabel =
     state.mode === "TIME"
       ? `time ${state.length}`
