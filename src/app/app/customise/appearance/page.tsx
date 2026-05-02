@@ -1,7 +1,6 @@
 "use client";
 
-import { ChevronDown, Upload } from "lucide-react";
-import { useRef } from "react";
+import { ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +14,6 @@ import {
   ColorPicker,
   type ColorPickerValue,
 } from "@/components/ui/color-picker";
-import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import {
   type ThemeVar,
@@ -23,6 +21,7 @@ import {
 } from "@/lib/theme-customization";
 import { ModeSwitcher } from "@/components/ui/mode-switcher";
 import { SettingsRow } from "../_components/row";
+import { BackgroundRow } from "./_components/background-row";
 import { RadiusRow } from "./_components/radius-row";
 import { ThemesRow } from "./_components/themes-row";
 
@@ -319,87 +318,6 @@ function FontSizeRow({
           <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">
             Heading sample
           </p>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-// ─── Background ────────────────────────────────────────────────────
-
-function BackgroundRow({
-  bgImage,
-  onSetImage,
-  onClearImage,
-}: {
-  bgImage: string | undefined;
-  onSetImage: (cssValue: string) => void;
-  onClearImage: () => void;
-}) {
-  const fileRef = useRef<HTMLInputElement | null>(null);
-
-  function handleFile(file: File) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result;
-      if (typeof result === "string") {
-        onSetImage(`url("${result}")`);
-      }
-    };
-    reader.readAsDataURL(file);
-  }
-
-  return (
-    <Card className="rounded-md shadow-sm ring-border min-h-16">
-      <CardHeader>
-        <CardTitle className="text-sm font-semibold">
-          Custom background image
-        </CardTitle>
-        <CardDescription>
-          Upload an image — covers the page beneath every surface. PNG / JPG
-          / WebP. Stored locally as a data URL.
-        </CardDescription>
-      </CardHeader>
-      <div className="flex flex-col gap-3 px-4 pb-4">
-        <div
-          className="h-32 rounded-md border border-border"
-          style={{
-            backgroundImage: bgImage ?? "none",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundColor: bgImage ? "transparent" : "var(--muted)",
-          }}
-          aria-hidden
-        />
-        <div className="flex items-center gap-2">
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleFile(file);
-            }}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fileRef.current?.click()}
-            className="gap-2"
-          >
-            <Upload size={14} /> Upload image
-          </Button>
-          <Input
-            placeholder='or paste url("https://…")'
-            value={bgImage ?? ""}
-            onChange={(e) => onSetImage(e.target.value)}
-          />
-          {bgImage ? (
-            <Button variant="ghost" size="sm" onClick={onClearImage}>
-              Remove
-            </Button>
-          ) : null}
         </div>
       </div>
     </Card>

@@ -45,10 +45,16 @@ function readStored(): ThemeOverrides {
 
 function writeStored(overrides: ThemeOverrides) {
   if (typeof window === "undefined") return;
-  if (Object.keys(overrides).length === 0) {
-    window.localStorage.removeItem(STORAGE_KEY);
-  } else {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
+  try {
+    if (Object.keys(overrides).length === 0) {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } else {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
+    }
+  } catch {
+    // Quota exceeded (typically a large data URL background). Surface
+    // is already applied to root.style for the session — we just lose
+    // persistence across reloads. Better than throwing all the way up.
   }
 }
 
