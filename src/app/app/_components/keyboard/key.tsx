@@ -30,17 +30,13 @@ export function Key({
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       className={cn(
         "relative flex h-9 items-center justify-center rounded-[6px] border font-mono text-sm sm:h-10",
-        // Default key colour matches the brand "grayed text" token
-        // (ft-dim = hsl(0 0% 55%) — same value as --muted-foreground in
-        // the default theme). Using ft-dim instead of bg-muted-foreground
-        // because every semantic shadcn token chains through
-        // `hsl(var(--token))` in globals.css and produces invalid CSS
-        // under community palettes (oklch values). ft-dim is registered
-        // without that indirection so it renders under any palette.
-        // Same reason ft-ember is used for the pressed state.
+        // Theme-aware keycap palette: muted-foreground for the resting
+        // gray surface, primary for the active glow. Both sit on top of
+        // text-background / text-primary-foreground so the label is
+        // legible on every theme.
         hot
-          ? "border-ft-ember bg-ft-ember text-white transition-none"
-          : "border-ft-dim bg-ft-dim text-white transition-colors duration-150",
+          ? "border-primary bg-primary text-primary-foreground transition-none"
+          : "border-muted-foreground bg-muted-foreground text-background transition-colors duration-150",
         def.variant === "modifier" && "text-[10px] uppercase tracking-[0.14em]",
       )}
     >
@@ -48,9 +44,10 @@ export function Key({
         <span
           className={cn(
             "pointer-events-none absolute top-0.5 left-1.5 text-[9px] tabular-nums",
-            // Both palette-agnostic: white@70 for legibility on the gray
-            // ft-dim and the coral ft-ember surfaces alike.
-            hot ? "text-white/80" : "text-white/70",
+            // current/70 follows the surrounding text color so the shift
+            // label fades to the same hue as the main label on either
+            // surface.
+            hot ? "text-current/80" : "text-current/70",
           )}
         >
           {def.shiftLabel}

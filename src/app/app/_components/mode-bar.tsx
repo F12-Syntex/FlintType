@@ -27,7 +27,7 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-ft-dim">
+      <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
         {label}
       </span>
       {children}
@@ -58,17 +58,19 @@ function Toggle({
       }}
       className={cn(
         "inline-flex h-6 w-11 cursor-pointer items-center rounded-full border p-0.5 transition-colors outline-none",
-        "focus-visible:ring-1 focus-visible:ring-ft-ember focus-visible:ring-offset-1 focus-visible:ring-offset-ft-paper",
+        "focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
         on
-          ? "border-ft-ember bg-ft-ember"
-          : "border-ft-dim/40 bg-ft-paper-2 hover:border-ft-dim-2",
+          ? "border-primary bg-primary"
+          : "border-muted-foreground/40 bg-muted hover:border-muted-foreground",
       )}
     >
       <span
         aria-hidden
         className={cn(
           "size-4 rounded-full shadow-sm transition-transform",
-          on ? "translate-x-5 bg-white" : "translate-x-0 bg-ft-dim-2",
+          on
+            ? "translate-x-5 bg-primary-foreground"
+            : "translate-x-0 bg-muted-foreground",
         )}
       />
     </button>
@@ -128,7 +130,7 @@ function ModeControls() {
       </Field>
 
       <label className="flex cursor-pointer items-center gap-2.5 md:self-end md:pb-[7px]">
-        <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-ft-dim">
+        <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
           adapt
         </span>
         <Toggle
@@ -150,24 +152,24 @@ function MobileBar() {
   const { state } = usePractice();
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-b border-ft-line-soft bg-card md:hidden">
+    <div className="border-b border-border bg-card md:hidden">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-controls="mode-bar-controls"
-        className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-[10px] uppercase tracking-[0.16em] text-ft-dim transition-colors hover:text-ft-ink"
+        className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-[10px] uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground"
       >
         <span className="flex min-w-0 items-center gap-1.5 truncate">
-          <span className="font-semibold text-ft-ink">{state.mode}</span>
-          <span aria-hidden className="text-ft-dim/60">·</span>
-          <span className="font-semibold text-ft-ink">{state.length}</span>
-          <span aria-hidden className="text-ft-dim/60">·</span>
-          <span className="font-semibold text-ft-ink">{state.lang}</span>
+          <span className="font-semibold text-foreground">{state.mode}</span>
+          <span aria-hidden className="text-muted-foreground/60">·</span>
+          <span className="font-semibold text-foreground">{state.length}</span>
+          <span aria-hidden className="text-muted-foreground/60">·</span>
+          <span className="font-semibold text-foreground">{state.lang}</span>
           {state.adapt ? (
             <>
-              <span aria-hidden className="text-ft-dim/60">·</span>
-              <span className="font-semibold text-ft-ember">adapt</span>
+              <span aria-hidden className="text-muted-foreground/60">·</span>
+              <span className="font-semibold text-primary">adapt</span>
             </>
           ) : null}
         </span>

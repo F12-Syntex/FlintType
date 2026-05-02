@@ -39,7 +39,7 @@ export function Stat({
       className={cn(
         "flex flex-col gap-1.5",
         align === "right" && "items-end text-right",
-        bordered && "border-r border-ft-line-soft pr-6",
+        bordered && "border-r border-border pr-6",
         className,
       )}
     >
@@ -47,20 +47,20 @@ export function Stat({
       <span
         className={cn(
           "font-bold tracking-tight tabular-nums",
-          accent ? "text-ft-ember" : "text-ft-ink",
+          accent ? "text-primary" : "text-foreground",
           sizeClass,
         )}
       >
         {value}
         {suffix ? (
-          <span className="text-sm font-normal text-ft-dim">{suffix}</span>
+          <span className="text-sm font-normal text-muted-foreground">{suffix}</span>
         ) : null}
       </span>
       {delta ? (
         <span
           className={cn(
             "text-[11px] tabular-nums tracking-wide",
-            isGood ? "text-ft-ok" : "text-ft-ember",
+            isGood ? "text-ft-ok" : "text-primary",
           )}
         >
           {delta}

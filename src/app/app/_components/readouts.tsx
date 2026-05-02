@@ -66,17 +66,17 @@ function MobileStrip({
   running,
 }: StatsProps) {
   return (
-    <div className="flex items-center justify-between gap-2 border-b border-ft-line-soft bg-card/60 px-4 py-2 text-[11px] tabular-nums md:hidden">
+    <div className="flex items-center justify-between gap-2 border-b border-border bg-card/60 px-4 py-2 text-[11px] tabular-nums md:hidden">
       <div className="flex items-baseline gap-1">
         <span
           className={cn(
             "text-base font-bold tracking-tight",
-            running ? "text-ft-ember" : "text-ft-ink",
+            running ? "text-primary" : "text-foreground",
           )}
         >
           {wpm}
         </span>
-        <span className="text-[9px] uppercase tracking-[0.18em] text-ft-dim">
+        <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
           wpm
         </span>
       </div>
@@ -103,12 +103,12 @@ function Pip({
       <span
         className={cn(
           "text-sm font-semibold tracking-tight",
-          tone === "ember" ? "text-ft-ember" : "text-ft-ink",
+          tone === "ember" ? "text-primary" : "text-foreground",
         )}
       >
         {value}
       </span>
-      <span className="text-[9px] uppercase tracking-[0.18em] text-ft-dim">
+      <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </span>
     </div>

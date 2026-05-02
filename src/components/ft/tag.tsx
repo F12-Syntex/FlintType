@@ -10,9 +10,11 @@ export function Tag({
   tone?: "dim" | "ink" | "ember" | "ok";
 }) {
   const toneClass = {
-    dim: "text-ft-dim",
-    ink: "text-ft-ink",
-    ember: "text-ft-ember",
+    dim: "text-muted-foreground",
+    ink: "text-foreground",
+    ember: "text-primary",
+    // No theme equivalent for "ok" yet — leaving the fixed token until
+    // a --success var lands (ui-law §2.3).
     ok: "text-ft-ok",
   }[tone];
   return (

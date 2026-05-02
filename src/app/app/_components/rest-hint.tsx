@@ -18,13 +18,13 @@ export function RestHint() {
   if (state.phase === "done") {
     return (
       <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em]">
-        <div className="flex flex-wrap items-center gap-3 text-ft-ember">
-          <span className="size-1.5 bg-ft-ember" aria-hidden />
+        <div className="flex flex-wrap items-center gap-3 text-primary">
+          <span className="size-1.5 bg-primary" aria-hidden />
           <span className="font-semibold">complete</span>
-          <span className="text-ft-dim-2">·</span>
-          <span className="text-ft-ink">{wpm} wpm</span>
-          <span className="text-ft-dim-2">·</span>
-          <span className="text-ft-ink">{Math.round(accuracy)}% acc</span>
+          <span className="text-muted-foreground/80">·</span>
+          <span className="text-foreground">{wpm} wpm</span>
+          <span className="text-muted-foreground/80">·</span>
+          <span className="text-foreground">{Math.round(accuracy)}% acc</span>
         </div>
         <RestartControl onRestart={restart} />
       </div>
@@ -33,8 +33,8 @@ export function RestHint() {
 
   if (state.phase === "running") {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em] text-ft-dim">
-        <span className="text-ft-ink">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+        <span className="text-foreground">
           {state.cursorWord}/{wordCount}
         </span>
         <CancelControl onCancel={restart} />
@@ -43,7 +43,7 @@ export function RestHint() {
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em] text-ft-dim">
+    <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
       <span>start typing to begin</span>
       <RestartControl onRestart={restart} label="new passage" />
     </div>
@@ -61,7 +61,7 @@ function RestartControl({
   return (
     <>
       {/* Desktop — keep the keycap hint */}
-      <div className="hidden items-center gap-2 text-ft-dim md:flex">
+      <div className="hidden items-center gap-2 text-muted-foreground md:flex">
         <Kbd>tab</Kbd>
         <span>{label}</span>
       </div>
@@ -71,10 +71,10 @@ function RestartControl({
         onClick={onRestart}
         className={cn(
           "inline-flex h-11 min-w-[112px] items-center justify-center md:hidden",
-          "rounded-md border border-ft-line-soft bg-card px-4",
-          "text-[11px] font-semibold uppercase tracking-[0.18em] text-ft-ink",
-          "transition-colors hover:border-ft-ember hover:text-ft-ember",
-          "active:bg-ft-spark",
+          "rounded-md border border-border bg-card px-4",
+          "text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground",
+          "transition-colors hover:border-primary hover:text-primary",
+          "active:bg-accent",
         )}
       >
         {label}
@@ -91,10 +91,10 @@ function CancelControl({ onCancel }: { onCancel: () => void }) {
       onClick={onCancel}
       className={cn(
         "inline-flex h-11 min-w-[112px] items-center justify-center",
-        "rounded-md border border-ft-line-soft bg-card px-4",
-        "text-[11px] font-semibold uppercase tracking-[0.18em] text-ft-ink",
-        "transition-colors hover:border-ft-ember hover:text-ft-ember",
-        "active:bg-ft-spark",
+        "rounded-md border border-border bg-card px-4",
+        "text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground",
+        "transition-colors hover:border-primary hover:text-primary",
+        "active:bg-accent",
       )}
     >
       cancel

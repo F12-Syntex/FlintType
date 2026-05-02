@@ -34,7 +34,7 @@ function ActiveWord({
           <span
             key={ci}
             ref={ref}
-            className={ci < cursorChar ? "text-ft-ink" : "text-ft-dim"}
+            className={ci < cursorChar ? "text-foreground" : "text-muted-foreground"}
           >
             {char}
           </span>
@@ -90,12 +90,12 @@ export function Passage() {
     <div className="relative h-full w-full overflow-hidden">
       <div
         ref={innerRef}
-        className="relative select-none text-2xl leading-[2.2] font-normal text-ft-dim tracking-[0.04em] [word-spacing:0.25em] sm:text-3xl sm:leading-[2.3] lg:text-4xl lg:leading-[2.4]"
+        className="relative select-none text-2xl leading-[2.2] font-normal text-muted-foreground tracking-[0.04em] [word-spacing:0.25em] sm:text-3xl sm:leading-[2.3] lg:text-4xl lg:leading-[2.4]"
       >
         {showCaret && caret ? (
           <span
             aria-hidden
-            className="pointer-events-none absolute top-0 left-0 w-0.5 bg-ft-ember"
+            className="pointer-events-none absolute top-0 left-0 w-0.5 bg-primary"
             style={{
               height: caret.height * 0.8,
               transform: `translate3d(${caret.left}px, ${caret.top + caret.height * 0.1}px, 0)`,
@@ -114,9 +114,9 @@ export function Passage() {
               <span
                 key={wi}
                 className={cn(
-                  "text-ft-ink",
+                  "text-foreground",
                   isErr &&
-                    "text-ft-ember underline decoration-1 underline-offset-[6px]",
+                    "text-primary underline decoration-1 underline-offset-[6px]",
                 )}
               >
                 {word}{" "}
@@ -135,7 +135,7 @@ export function Passage() {
             );
           }
           return (
-            <span key={wi} className="text-ft-dim">
+            <span key={wi} className="text-muted-foreground">
               {word}{" "}
             </span>
           );
