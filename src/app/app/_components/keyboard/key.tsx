@@ -1,6 +1,8 @@
 import {
   type KeyboardDesign,
+  type KeyboardShape,
   designClasses,
+  shapeClass,
 } from "@/lib/keyboard-settings";
 import { cn } from "@/lib/utils";
 import type { KeyDef } from "./types";
@@ -11,6 +13,8 @@ export function Key({
   lit,
   upper,
   design,
+  shape,
+  showShiftLabel,
 }: {
   def: KeyDef;
   pressed: boolean;
@@ -19,6 +23,10 @@ export function Key({
   upper: boolean;
   /** Visual variant — see `KEYBOARD_DESIGNS` in keyboard-settings.ts. */
   design: KeyboardDesign;
+  /** Corner radius preset — see `KEYBOARD_SHAPES`. */
+  shape: KeyboardShape;
+  /** Render the small shift-label glyph above the main label. */
+  showShiftLabel: boolean;
 }) {
   const units = def.units ?? 1;
   const isLetter =
@@ -30,7 +38,7 @@ export function Key({
   const Icon = def.icon;
   const hot = pressed || lit;
 
-  const [resting, hotClass] = designClasses(design);
+  const [resting, hotCls] = designClasses(design);
 
   return (
     <div
@@ -38,12 +46,13 @@ export function Key({
       data-pressed={hot ? "true" : "false"}
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       className={cn(
-        "relative flex h-9 items-center justify-center rounded-[6px] border font-mono text-sm sm:h-10",
-        hot ? cn(hotClass, "transition-none") : cn(resting, "transition-colors duration-150"),
+        "relative flex h-9 items-center justify-center border font-mono text-sm sm:h-10",
+        shapeClass(shape),
+        hot ? cn(hotCls, "transition-none") : cn(resting, "transition-colors duration-150"),
         def.variant === "modifier" && "text-[10px] uppercase tracking-[0.14em]",
       )}
     >
-      {def.shiftLabel && def.variant !== "modifier" && (
+      {showShiftLabel && def.shiftLabel && def.variant !== "modifier" && (
         <span
           className={cn(
             "pointer-events-none absolute top-0.5 left-1.5 text-[9px] tabular-nums",

@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useKeyboardSettings } from "@/lib/keyboard-settings";
+import {
+  HOME_ROW_PEGS,
+  type KeyboardSettings,
+  isLetterCode,
+  useKeyboardSettings,
+} from "@/lib/keyboard-settings";
 import { cn } from "@/lib/utils";
 import { Key } from "./key";
 import { LayoutPicker } from "./layout-picker";
@@ -20,31 +25,38 @@ export type KeyboardProps = {
    *  the design's hot palette is visible without anyone typing. The
    *  union of these and any actually-pressed keys is highlighted. */
   forcedPressed?: ReadonlySet<string>;
-  /** Override the active design (preview chips). Defaults to the
-   *  user-saved keyboard design. */
-  design?: KeyboardDesignOverride;
+  /** Override one or more saved settings — used by the appearance
+   *  preview to render variants without touching localStorage. */
+  settingsOverride?: Partial<KeyboardSettings>;
   className?: string;
 };
-
-type KeyboardDesignOverride = ReturnType<
-  typeof useKeyboardSettings
->["settings"]["design"];
 
 export function Keyboard({
   layout = "qwerty",
   showLayoutPicker = false,
   forcedPressed,
-  design: designOverride,
+  settingsOverride,
   className,
 }: KeyboardProps) {
   const [active, setActive] = useState<LayoutId>(layout);
   const { pressed, shift, caps } = usePressedKeys();
   const { settings } = useKeyboardSettings();
-  const design = designOverride ?? settings.design;
+  const effective = { ...settings, ...settingsOverride };
   const upper = shift !== caps;
   const rows = LAYOUTS[active].rows;
+
+  // Compact mode strips every row down to its letter keys; rows with no
+  // letters (number row, function row) drop out entirely.
+  const renderRows = effective.compact
+    ? rows
+        .map((row) => row.filter((k) => isLetterCode(k.code)))
+        .filter((row) => row.length > 0)
+    : rows;
+
   const isHot = (code: string) =>
-    pressed.has(code) || (forcedPressed?.has(code) ?? false);
+    pressed.has(code) ||
+    (forcedPressed?.has(code) ?? false) ||
+    (effective.highlightHomeRow && HOME_ROW_PEGS.has(code));
 
   return (
     <div
@@ -59,7 +71,7 @@ export function Keyboard({
         <LayoutPicker active={active} onChange={setActive} />
       )}
       <div className="flex flex-col gap-1">
-        {rows.map((row, i) => (
+        {renderRows.map((row, i) => (
           <div key={i} className="flex w-full gap-1">
             {row.map((k) => (
               <Key
@@ -71,7 +83,9 @@ export function Keyboard({
                   (k.code.startsWith("Shift") && shift)
                 }
                 upper={upper}
-                design={design}
+                design={effective.design}
+                shape={effective.shape}
+                showShiftLabel={effective.showShiftLabels}
               />
             ))}
           </div>
