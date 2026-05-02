@@ -42,28 +42,23 @@ function PresetTile({
       type="button"
       onClick={onClick}
       className={cn(
-        "group flex flex-col items-center gap-2 rounded-md border p-3 text-left transition-colors",
+        "group flex flex-col items-center gap-3 rounded-md border p-3 text-left transition-colors",
         active
           ? "border-primary bg-primary/5"
           : "border-border hover:bg-muted",
       )}
       aria-pressed={active}
     >
-      {/* Corner-only preview: a chunky L-shape where the radius is
-          obvious — far easier to compare across presets than a full box
-          with four equal corners. */}
-      <div className="relative h-14 w-14">
-        <div
-          aria-hidden
-          className={cn(
-            "absolute inset-0 border-l-[6px] border-t-[6px] transition-colors",
-            active
-              ? "border-primary"
-              : "border-foreground/40 group-hover:border-foreground",
-          )}
-          style={{ borderTopLeftRadius: `${rem}rem` }}
-        />
-      </div>
+      {/* Live preview: a real button using THIS preset's radius so you
+          see what each option looks like on a control surface, all at
+          once. */}
+      <span
+        aria-hidden
+        className="inline-flex h-9 w-full items-center justify-center bg-primary px-3 text-xs font-semibold text-primary-foreground"
+        style={{ borderRadius: `${rem}rem` }}
+      >
+        Save
+      </span>
       <div className="flex flex-col items-center">
         <span className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider">
           {active ? <Check size={11} className="text-primary" /> : null}
@@ -102,28 +97,7 @@ export function RadiusRow({
       </CardHeader>
 
       <div className="flex flex-col gap-4 px-4 pb-4">
-        {/* Preview row — three real surfaces using the live radius */}
-        <div className="flex items-center justify-center gap-3 rounded-md border border-border bg-muted py-5">
-          <div
-            aria-hidden
-            className="h-10 w-10 border-2 border-primary bg-card"
-            style={{ borderRadius: "var(--radius)" }}
-          />
-          <div
-            aria-hidden
-            className="h-10 w-16 border border-border bg-background"
-            style={{ borderRadius: "var(--radius)" }}
-          />
-          <span
-            aria-hidden
-            className="inline-flex h-10 items-center bg-primary px-4 text-sm font-semibold text-primary-foreground"
-            style={{ borderRadius: "var(--radius)" }}
-          >
-            Save
-          </span>
-        </div>
-
-        {/* Preset tiles */}
+        {/* Preset tiles — each tile previews its own radius on a button */}
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
           {RADIUS_PRESETS.map((p) => (
             <PresetTile
