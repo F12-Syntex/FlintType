@@ -207,17 +207,26 @@
   --color-ft-ok: hsl(110 25% 39%);
 }
 
+/* Half cycle at the element's natural opacity (1 multiplied with whatever
+   alpha its background already has), half cycle fully transparent. Two
+   adjacent stops (49.99% / 50%) flip discretely without a fade — the
+   keyframe is intrinsically square so we don't need a steps() easing. */
 @keyframes ft-blink {
-  to {
+  0%,
+  49.99% {
+    opacity: 1;
+  }
+  50%,
+  100% {
     opacity: 0;
   }
 }
 
 /* Caret blink applied via this class so the animation isn't restarted
-   on every parent re-render. The duration reads from a CSS variable so
-   speed changes don't reset the animation either. */
+   on every parent re-render. Speed flows in via a CSS variable so it
+   can change without resetting the animation either. */
 .ft-caret-blink {
-  animation: ft-blink var(--ft-blink-speed, 1000ms) steps(2) infinite;
+  animation: ft-blink var(--ft-blink-speed, 1000ms) infinite;
 }
 
 @layer base {
