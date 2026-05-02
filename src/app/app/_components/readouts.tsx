@@ -24,39 +24,37 @@ export function Readouts() {
   const wordCount = state.words.length;
   const wordIdx = Math.min(state.cursorWord + (running ? 1 : 0), wordCount);
 
-  // Blind mode hides every live signal except the elapsed timer and the
-  // word-progress so the user can still know the run is moving.
+  // TIME mode shows the time-left as the progress signal — word count is
+  // meaningless when the buffer is intentionally oversized.
+  const isTime = state.mode === "TIME";
+  const remainingMs = isTime
+    ? Math.max(0, state.length * 1000 - elapsedMs)
+    : 0;
+
   const blind = prefs.blindMode;
   const showWpm = !blind && prefs.liveWpm;
   const showAccuracy = !blind && prefs.liveAccuracy;
   const showErrs = !blind;
 
+  const props: StatsProps = {
+    wpm,
+    accuracy,
+    errs: state.errorWords.size,
+    wordIdx,
+    wordCount,
+    elapsedMs,
+    running,
+    showWpm,
+    showAccuracy,
+    showErrs,
+    isTime,
+    remainingMs,
+  };
+
   return (
     <>
-      <MobileStrip
-        wpm={wpm}
-        accuracy={accuracy}
-        errs={state.errorWords.size}
-        wordIdx={wordIdx}
-        wordCount={wordCount}
-        elapsedMs={elapsedMs}
-        running={running}
-        showWpm={showWpm}
-        showAccuracy={showAccuracy}
-        showErrs={showErrs}
-      />
-      <DesktopStats
-        wpm={wpm}
-        accuracy={accuracy}
-        errs={state.errorWords.size}
-        wordIdx={wordIdx}
-        wordCount={wordCount}
-        elapsedMs={elapsedMs}
-        running={running}
-        showWpm={showWpm}
-        showAccuracy={showAccuracy}
-        showErrs={showErrs}
-      />
+      <MobileStrip {...props} />
+      <DesktopStats {...props} />
     </>
   );
 }
@@ -72,6 +70,8 @@ type StatsProps = {
   showWpm: boolean;
   showAccuracy: boolean;
   showErrs: boolean;
+  isTime: boolean;
+  remainingMs: number;
 };
 
 function MobileStrip({
@@ -85,6 +85,8 @@ function MobileStrip({
   showWpm,
   showAccuracy,
   showErrs,
+  isTime,
+  remainingMs,
 }: StatsProps) {
   return (
     <div className="flex items-center justify-between gap-2 border-b border-border bg-card/60 px-4 py-2 text-[11px] tabular-nums md:hidden">
@@ -110,7 +112,11 @@ function MobileStrip({
       {showErrs ? (
         <Pip label="err" value={String(errs)} tone={errs > 0 ? "ember" : "ink"} />
       ) : null}
-      <Pip label="word" value={`${wordIdx}/${wordCount}`} />
+      {isTime ? (
+        <Pip label="left" value={formatElapsed(remainingMs)} />
+      ) : (
+        <Pip label="word" value={`${wordIdx}/${wordCount}`} />
+      )}
       <Pip label="time" value={formatElapsed(elapsedMs)} />
     </div>
   );
@@ -153,12 +159,23 @@ function DesktopStats({
   showWpm,
   showAccuracy,
   showErrs,
+  isTime,
+  remainingMs,
 }: StatsProps) {
   return (
     <div className="hidden flex-wrap items-end justify-between gap-4 select-none md:flex">
       <div className="flex flex-wrap gap-x-12 gap-y-3">
         <Stat label="ELAPSED" value={formatElapsed(elapsedMs)} size="lg" />
-        <Stat label="WORD" value={`${wordIdx}/${wordCount}`} size="lg" />
+        {isTime ? (
+          <Stat
+            label="REMAINING"
+            value={formatElapsed(remainingMs)}
+            size="lg"
+            accent={running}
+          />
+        ) : (
+          <Stat label="WORD" value={`${wordIdx}/${wordCount}`} size="lg" />
+        )}
       </div>
       <div className="flex flex-wrap gap-x-12 gap-y-3">
         {showWpm ? (

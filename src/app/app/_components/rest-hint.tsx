@@ -10,9 +10,20 @@ import { usePractice } from "./practice-state";
  *  Mobile: a tappable RESTART button replaces the Tab/Esc keycap hints
  *  (those keys don't exist on virtual keyboards). On desktop the keycap
  *  hints stay visible — they're how power users restart fastest. */
+function formatMs(ms: number): string {
+  const total = Math.floor(ms / 1000);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 export function RestHint() {
-  const { state, restart, wpm, accuracy } = usePractice();
+  const { state, restart, wpm, accuracy, elapsedMs } = usePractice();
   const wordCount = state.words.length;
+  const isTime = state.mode === "TIME";
+  const remainingMs = isTime
+    ? Math.max(0, state.length * 1000 - elapsedMs)
+    : 0;
 
   if (state.phase === "done") {
     return (
@@ -34,7 +45,7 @@ export function RestHint() {
     return (
       <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
         <span className="text-foreground">
-          {state.cursorWord}/{wordCount}
+          {isTime ? formatMs(remainingMs) : `${state.cursorWord}/${wordCount}`}
         </span>
         <CancelControl onCancel={() => restart()} />
       </div>
