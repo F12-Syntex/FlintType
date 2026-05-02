@@ -103,7 +103,7 @@ function BigStat({
       </span>
       <span
         className={cn(
-          "text-3xl font-semibold tabular-nums sm:text-4xl",
+          "text-2xl font-semibold tabular-nums sm:text-3xl lg:text-4xl",
           accent ? "text-primary" : "text-foreground",
         )}
       >
@@ -134,7 +134,7 @@ function WpmChart({ buckets }: { buckets: readonly Bucket[] }) {
   return (
     <ChartContainer
       config={chartConfig}
-      className="aspect-auto h-44 w-full sm:h-52"
+      className="aspect-auto h-32 w-full sm:h-44 lg:h-52"
     >
       <LineChart
         accessibilityLayer
@@ -357,18 +357,18 @@ export function TestSummary() {
         : `words ${state.length}`;
 
   return (
-    <div className="flex h-full min-h-0 flex-col items-center justify-center px-2 sm:px-4">
-      <div className="flex w-full max-w-3xl flex-col gap-5 sm:gap-6">
+    <div className="flex h-full min-h-0 flex-col items-center overflow-y-auto px-2 py-3 sm:justify-center sm:overflow-hidden sm:px-4 sm:py-0">
+      <div className="flex w-full max-w-5xl flex-col gap-4 sm:gap-6">
         {/* Top row: stat column on the left, smaller centered chart. */}
-        <div className="grid grid-cols-1 items-center gap-6 sm:grid-cols-[140px_1fr]">
-          <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[140px_1fr] sm:gap-6 lg:grid-cols-[160px_1fr]">
+          <div className="flex flex-row items-baseline gap-6 sm:flex-col sm:items-start sm:gap-4">
             <BigStat label="wpm" value={wpm} accent />
             <BigStat
               label="acc"
               value={`${Math.round(accuracy * 10) / 10}%`}
               accent
             />
-            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="hidden text-[11px] uppercase tracking-[0.18em] text-muted-foreground sm:block">
               <div>test type</div>
               <div className="mt-1 text-foreground">{modeLabel}</div>
               <div className="text-foreground">english</div>
@@ -423,9 +423,6 @@ export function TestSummary() {
             tab
           </span>
           <span>restart · peak {peak}</span>
-          <Button variant="ghost" size="sm" onClick={() => restart()}>
-            new run
-          </Button>
         </div>
       </div>
     </div>
