@@ -1,10 +1,25 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { useCaretSettings } from "@/lib/caret-settings";
 import { cn } from "@/lib/utils";
 import { usePractice } from "./practice-state";
+
+/** How many text lines stay visible at once. */
+const VISIBLE_LINES = 3;
+/** Slide the window forward when the cursor lands this many lines into
+ *  the visible window (i.e. once the lines above have been completed). */
+const SLIDE_TRIGGER_LINE = 2;
+
+type LineLayout = {
+  /** offsetTop in px for the start of each line. */
+  lineTops: number[];
+  /** Line height in px (median of consecutive top deltas). */
+  lineHeight: number;
+  /** wordIndex → lineIndex. */
+  lineOf: number[];
+};
 
 type CaretPos = {
   /** Left edge of the target char (inside the inner block). */
@@ -75,19 +90,96 @@ export function Passage() {
   const blind = prefs.blindMode;
   const showCaret = phase !== "done" && caretSettings.style !== "off";
 
-  // Single, absolutely-positioned caret. Its transform animates between
-  // character positions so the | slides forward instead of teleporting.
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
   const innerRef = useRef<HTMLDivElement | null>(null);
   const targetRef = useRef<HTMLSpanElement | null>(null);
   const targetSideRef = useRef<"left" | "right">("left");
   const firstMeasureRef = useRef(true);
   const [caret, setCaret] = useState<CaretPos | null>(null);
   const [animate, setAnimate] = useState(false);
+  const [layout, setLayout] = useState<LineLayout | null>(null);
+  const [viewStartLine, setViewStartLine] = useState(0);
 
   const registerTarget = (el: HTMLSpanElement | null, side: "left" | "right") => {
     targetRef.current = el;
     targetSideRef.current = side;
   };
+
+  // Reset the visible window when the passage itself changes (new run).
+  useEffect(() => {
+    setViewStartLine(0);
+  }, [words]);
+
+  // Measure word positions → group into lines. Re-runs when words change
+  // or the inner block resizes (font size / viewport / word-spacing).
+  useLayoutEffect(() => {
+    const inner = innerRef.current;
+    if (!inner) return;
+    const measure = () => {
+      const wordEls = inner.querySelectorAll<HTMLElement>("[data-word]");
+      if (wordEls.length === 0) {
+        setLayout(null);
+        return;
+      }
+      const tops: number[] = [];
+      const lineOf: number[] = [];
+      wordEls.forEach((el) => {
+        const wi = Number(el.dataset.word);
+        const top = el.offsetTop;
+        let lineIdx = tops.indexOf(top);
+        if (lineIdx === -1) {
+          lineIdx = tops.length;
+          tops.push(top);
+        }
+        lineOf[wi] = lineIdx;
+      });
+      // Use the median delta between consecutive line tops as the line
+      // height. Constant across the passage in practice; the median is
+      // just defensive against rounding.
+      const deltas: number[] = [];
+      for (let i = 1; i < tops.length; i += 1) {
+        deltas.push(tops[i]! - tops[i - 1]!);
+      }
+      deltas.sort((a, b) => a - b);
+      const lineHeight =
+        deltas.length > 0
+          ? deltas[Math.floor(deltas.length / 2)]!
+          : inner.getBoundingClientRect().height;
+      setLayout((prev) => {
+        if (
+          prev &&
+          prev.lineHeight === lineHeight &&
+          prev.lineOf.length === lineOf.length &&
+          prev.lineOf.every((v, i) => v === lineOf[i]) &&
+          prev.lineTops.length === tops.length &&
+          prev.lineTops.every((v, i) => v === tops[i])
+        ) {
+          return prev;
+        }
+        return { lineTops: tops, lineHeight, lineOf };
+      });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(inner);
+    return () => ro.disconnect();
+  }, [words]);
+
+  // Slide the visible window: when the cursor reaches the trigger line
+  // inside the current window, advance the window so the cursor lands
+  // back at line 0 of a fresh 3-line view.
+  useEffect(() => {
+    if (!layout) return;
+    const cursorLine = layout.lineOf[cursorWord];
+    if (cursorLine == null) return;
+    if (cursorLine - viewStartLine >= SLIDE_TRIGGER_LINE) {
+      setViewStartLine(cursorLine);
+    } else if (cursorLine < viewStartLine) {
+      // Cursor walked backwards (backspace into prior word) — keep it in
+      // view rather than leaving it scrolled off.
+      setViewStartLine(cursorLine);
+    }
+  }, [cursorWord, layout, viewStartLine]);
 
   useLayoutEffect(() => {
     const inner = innerRef.current;
@@ -110,18 +202,34 @@ export function Passage() {
     });
     if (firstMeasureRef.current) {
       firstMeasureRef.current = false;
-      // Re-enable the transition on the next frame so the very first
-      // placement doesn't animate from (0, 0).
       requestAnimationFrame(() => setAnimate(true));
     }
-  }, [cursorWord, cursorChar, words]);
+  }, [cursorWord, cursorChar, words, viewStartLine]);
+
+  const lineHeight = layout?.lineHeight ?? null;
+  const wrapperHeight =
+    lineHeight != null ? `${lineHeight * VISIBLE_LINES}px` : undefined;
+  const translateY =
+    layout && layout.lineTops[viewStartLine] != null
+      ? -layout.lineTops[viewStartLine]!
+      : 0;
 
   return (
-    <div className="relative h-full w-full overflow-hidden">
+    <div className="w-full">
+      <div
+        ref={wrapperRef}
+        className="relative w-full overflow-hidden"
+        style={{ height: wrapperHeight }}
+      >
       <div
         ref={innerRef}
         className="relative select-none text-2xl leading-[2.2] font-normal text-muted-foreground tracking-[0.04em] sm:text-3xl sm:leading-[2.3] lg:text-4xl lg:leading-[2.4]"
-        style={{ wordSpacing: "var(--ft-word-spacing, 0.25em)" }}
+        style={{
+          wordSpacing: "var(--ft-word-spacing, 0.25em)",
+          transform: `translateY(${translateY}px)`,
+          transition: "transform 240ms cubic-bezier(.22, 0.8, 0.22, 1)",
+          willChange: "transform",
+        }}
       >
         {showCaret && caret ? (
           <CaretGlyph
@@ -136,6 +244,7 @@ export function Passage() {
             return (
               <span
                 key={wi}
+                data-word={wi}
                 className={cn(
                   blind ? "text-muted-foreground" : "text-foreground",
                   !blind &&
@@ -143,28 +252,36 @@ export function Passage() {
                     "text-primary underline decoration-1 underline-offset-[6px]",
                 )}
               >
-                {word}{" "}
+                {word}
+                {" "}
               </span>
             );
           }
           if (wi === cursorWord) {
             return (
-              <span key={wi}>
+              <span key={wi} data-word={wi}>
                 <ActiveWord
                   word={word}
                   cursorChar={cursorChar}
                   registerTarget={registerTarget}
                   blind={blind}
-                />{" "}
+                />
+                {" "}
               </span>
             );
           }
           return (
-            <span key={wi} className="text-muted-foreground">
-              {word}{" "}
+            <span
+              key={wi}
+              data-word={wi}
+              className="text-muted-foreground"
+            >
+              {word}
+              {" "}
             </span>
           );
         })}
+      </div>
       </div>
       {state.mode === "QUOTE" && state.quoteSource ? (
         <p className="mt-6 text-xs uppercase tracking-[0.18em] text-muted-foreground">
