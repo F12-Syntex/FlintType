@@ -21,8 +21,8 @@ import {
   type ThemeVar,
   useThemeOverrides,
 } from "@/lib/theme-customization";
+import { ModeSwitcher } from "@/components/ui/mode-switcher";
 import { usePalette } from "@/lib/themes/use-palette";
-import { ModeToggle } from "./_components/mode-toggle";
 import { RadiusRow } from "./_components/radius-row";
 import { ThemesRow } from "./_components/themes-row";
 
@@ -457,14 +457,13 @@ export default function AppearancePage() {
         return to the defaults at any time.
       </p>
 
-      <SectionHeader label="Mode" />
-      <div className="mb-8 flex flex-col gap-3">
-        <ModeToggle />
-      </div>
-
       <SectionHeader label="Themes" />
       <div className="mb-8 flex flex-col gap-3">
         <ThemesRow />
+        <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2">
+          <span className="text-sm font-medium text-foreground">Mode</span>
+          <ModeSwitcher />
+        </div>
       </div>
 
       <SectionHeader label="Colors" />
