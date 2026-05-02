@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -22,22 +22,33 @@ import { type KeyEvent, usePractice } from "./practice-state";
 
 type Bucket = { sec: number; wpm: number; raw: number };
 
+/** Cumulative WPM at each second boundary — same definition as the
+ *  displayed top-line WPM (correct chars / 5 / minutes). The chart's
+ *  final value lines up with the headline number, and the curve smooths
+ *  out the per-second jitter that an instantaneous bucket produces. */
 function bucketRun(events: readonly KeyEvent[]): Bucket[] {
   if (events.length === 0) return [];
-  const lastT = events[events.length - 1]!.t;
+  const lastT = Math.max(1, events[events.length - 1]!.t);
   const seconds = Math.max(1, Math.ceil(lastT / 1000));
-  const correct = new Array<number>(seconds).fill(0);
-  const total = new Array<number>(seconds).fill(0);
-  for (const e of events) {
-    const i = Math.min(seconds - 1, Math.floor(e.t / 1000));
-    total[i] = (total[i] ?? 0) + 1;
-    if (e.correct) correct[i] = (correct[i] ?? 0) + 1;
+  const out: Bucket[] = [];
+  let correct = 0;
+  let total = 0;
+  let i = 0;
+  for (let sec = 1; sec <= seconds; sec += 1) {
+    const cutoff = sec * 1000;
+    while (i < events.length && events[i]!.t < cutoff) {
+      total += 1;
+      if (events[i]!.correct) correct += 1;
+      i += 1;
+    }
+    const minutes = sec / 60;
+    out.push({
+      sec,
+      wpm: minutes > 0 ? (correct / 5) / minutes : 0,
+      raw: minutes > 0 ? (total / 5) / minutes : 0,
+    });
   }
-  return correct.map((c, i) => ({
-    sec: i + 1,
-    wpm: (c / 5) * 60,
-    raw: ((total[i] ?? 0) / 5) * 60,
-  }));
+  return out;
 }
 
 function peakWpm(buckets: readonly Bucket[]): number {
@@ -331,30 +342,183 @@ function Glyph({ char, intensity }: { char: string; intensity: number }) {
   );
 }
 
+// ─── Replay ────────────────────────────────────────────────────────
+
+function reconstructCursor(
+  events: readonly KeyEvent[],
+  words: readonly string[],
+  upTo: number,
+) {
+  let w = 0;
+  let c = 0;
+  const errorWords = new Set<number>();
+  for (let i = 0; i < upTo; i += 1) {
+    const e = events[i]!;
+    const word = words[w];
+    if (!word) break;
+    if (e.correct) {
+      c += 1;
+      if (c >= word.length) {
+        w += 1;
+        c = 0;
+      }
+    } else {
+      errorWords.add(w);
+    }
+  }
+  return { wordIdx: w, charIdx: c, errorWords };
+}
+
+function ReplayView({
+  words,
+  events,
+  onExit,
+}: {
+  words: readonly string[];
+  events: readonly KeyEvent[];
+  onExit: () => void;
+}) {
+  const [step, setStep] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [speed, setSpeed] = useState(1);
+
+  useEffect(() => {
+    if (paused) return;
+    if (step >= events.length) {
+      const id = setTimeout(onExit, 1500);
+      return () => clearTimeout(id);
+    }
+    const cur = events[step]!;
+    const next = events[step + 1];
+    const realDelay = next ? Math.max(20, next.t - cur.t) : 600;
+    const id = setTimeout(
+      () => setStep((s) => s + 1),
+      realDelay / speed,
+    );
+    return () => clearTimeout(id);
+  }, [step, events, paused, speed, onExit]);
+
+  const { wordIdx, charIdx, errorWords } = useMemo(
+    () => reconstructCursor(events, words, step),
+    [events, words, step],
+  );
+
+  const pct =
+    events.length > 0 ? Math.min(100, Math.round((step / events.length) * 100)) : 0;
+  const elapsed = step > 0 && events[step - 1] ? events[step - 1]!.t : 0;
+
+  return (
+    <div className="flex h-full min-h-0 flex-col items-center justify-center overflow-hidden px-4 py-6">
+      <div className="flex w-full max-w-4xl flex-col gap-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          <span>
+            replay · {pct}% · {(elapsed / 1000).toFixed(1)}s
+          </span>
+          <div className="flex items-center gap-1">
+            {[0.5, 1, 2].map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setSpeed(s)}
+                className={cn(
+                  "rounded-sm border px-2 py-0.5 font-mono normal-case",
+                  speed === s
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-card text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {s}×
+              </button>
+            ))}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setPaused((p) => !p)}
+            >
+              {paused ? "play" : "pause"}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onExit}>
+              stop
+            </Button>
+          </div>
+        </div>
+
+        <div
+          aria-hidden
+          className="h-0.5 w-full overflow-hidden rounded-full bg-border"
+        >
+          <div
+            className="h-full bg-primary transition-[width] duration-100 ease-linear"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+
+        <div className="font-mono text-xl leading-[1.7] tracking-[0.04em]">
+          {words.map((word, wi) => (
+            <span key={wi}>
+              {[...word].map((ch, ci) => {
+                const typed =
+                  wi < wordIdx || (wi === wordIdx && ci < charIdx);
+                const cls = !typed
+                  ? "text-muted-foreground"
+                  : errorWords.has(wi)
+                    ? "text-primary underline decoration-1 underline-offset-[6px]"
+                    : "text-foreground";
+                const isCursor = wi === wordIdx && ci === charIdx;
+                return (
+                  <span
+                    key={ci}
+                    className={cn(cls, isCursor && "border-l-2 border-primary")}
+                  >
+                    {ch}
+                  </span>
+                );
+              })}
+              {wi < words.length - 1 ? (
+                <span className="text-muted-foreground">{" "}</span>
+              ) : null}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ──────────────────────────────────────────────────────────
 
 export function TestSummary() {
   const { state, restart, wpm, accuracy, elapsedMs } = usePractice();
+  const [replaying, setReplaying] = useState(false);
   const buckets = useMemo(() => bucketRun(state.events), [state.events]);
   const peak = Math.round(peakWpm(buckets));
   const cons = consistencyScore(buckets);
   const slowPairs = useMemo(() => analysePairs(state.events), [state.events]);
   const wrongTotal = state.events.filter((e) => !e.correct).length;
   const elapsedSec = Math.max(1, Math.round(elapsedMs / 1000));
-  const lastBucket = buckets[buckets.length - 1];
-  const rawWpm = lastBucket
-    ? Math.round(
-        (state.events.length /
-          5 /
-          (Math.max(1, state.events[state.events.length - 1]!.t) / 60_000)),
-      )
-    : 0;
+  // Raw shares the same time window as the headline WPM (first → last
+  // keystroke) so the two numbers stay comparable: raw counts every key
+  // typed, WPM only counts correct ones.
+  const rawWpm =
+    elapsedMs > 0
+      ? Math.round((state.events.length / 5) / (elapsedMs / 60_000))
+      : 0;
   const modeLabel =
     state.mode === "TIME"
       ? `time ${state.length}`
       : state.mode === "QUOTE"
         ? "quote"
         : `words ${state.length}`;
+
+  if (replaying) {
+    return (
+      <ReplayView
+        words={state.words}
+        events={state.events}
+        onExit={() => setReplaying(false)}
+      />
+    );
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col items-center overflow-y-auto px-2 py-3 sm:justify-center sm:overflow-hidden sm:px-4 sm:py-0">
@@ -418,11 +582,21 @@ export function TestSummary() {
         ) : null}
 
         {/* Restart hint — quiet footer. */}
-        <div className="flex items-center justify-center gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
           <span className="rounded-sm border border-border bg-card px-2 py-1 font-mono normal-case text-foreground">
             tab
           </span>
           <span>restart · peak {peak}</span>
+          {state.events.length > 0 ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setReplaying(true)}
+              className="text-[11px] uppercase tracking-[0.18em]"
+            >
+              ▶ replay
+            </Button>
+          ) : null}
         </div>
       </div>
     </div>
