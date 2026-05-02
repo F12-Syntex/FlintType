@@ -9,8 +9,6 @@ import { cn } from "@/lib/utils";
 import { AppChrome } from "../_components/app-chrome";
 import { SECTIONS } from "./_components/data";
 
-const TOTAL_SETTINGS = SECTIONS.reduce((n, s) => n + s.settings.length, 0);
-
 function titleCase(name: string): string {
   return name
     .toLowerCase()
@@ -68,26 +66,12 @@ export default function CustomiseLayout({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="min-h-0 overflow-y-auto bg-background">
-          <header className="border-b border-border bg-background px-6 pt-10 pb-8 sm:px-10">
-            <div className="mb-3 flex items-center gap-3">
-              <span
-                aria-hidden
-                className="inline-block h-px w-7 bg-primary"
-              />
-              <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                Settings · {TOTAL_SETTINGS} options
-              </span>
-            </div>
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-                Make it <span className="text-primary">yours</span>.
-              </h1>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm">Export</Button>
-                <Button variant="outline" size="sm">Import</Button>
-                <Button variant="ghost" size="sm">Reset</Button>
-                <Button size="sm">Save</Button>
-              </div>
+          <header className="border-b border-border bg-background px-6 py-4 sm:px-10">
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="outline" size="sm">Export</Button>
+              <Button variant="outline" size="sm">Import</Button>
+              <Button variant="ghost" size="sm">Reset</Button>
+              <Button size="sm">Save</Button>
             </div>
           </header>
 
