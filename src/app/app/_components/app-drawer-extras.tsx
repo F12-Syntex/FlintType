@@ -52,7 +52,7 @@ function FooterLink({
 export function AppDrawerExtras({ dark = false }: { dark?: boolean }) {
   const linkClass = cn(
     "uppercase tracking-[0.16em] transition-colors",
-    dark ? "text-[#9C978A] hover:text-ft-paper" : "text-ft-dim hover:text-ft-ink",
+    dark ? "text-ft-warm-2 hover:text-ft-paper" : "text-ft-dim hover:text-ft-ink",
   );
 
   return (
@@ -69,7 +69,7 @@ export function AppDrawerExtras({ dark = false }: { dark?: boolean }) {
       <span
         className={cn(
           "mt-1 text-[10px] uppercase tracking-[0.16em]",
-          dark ? "text-[#6E695F]" : "text-ft-dim-2",
+          dark ? "text-ft-warm-3" : "text-ft-dim-2",
         )}
       >
         STRIKE · SPARK · SHARPEN

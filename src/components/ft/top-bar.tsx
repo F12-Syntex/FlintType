@@ -48,7 +48,7 @@ export function TopBar({
         "safe-pt z-30 flex h-14 items-center gap-4 border-b px-5 backdrop-blur-md sm:px-7",
         sticky && "sticky top-0",
         dark
-          ? "border-[#221F1A] bg-ft-ink/85 text-ft-paper"
+          ? "border-ft-ink-line bg-ft-ink/85 text-ft-paper"
           : "border-border bg-background/85 text-foreground",
         className,
       )}
@@ -65,7 +65,7 @@ export function TopBar({
         className={cn(
           "hidden text-[11px] tracking-[0.06em] uppercase transition-colors sm:inline",
           dark
-            ? "text-[#6E695F] hover:text-ft-ember"
+            ? "text-ft-warm-3 hover:text-ft-ember"
             : "text-muted-foreground hover:text-primary",
         )}
       >
@@ -76,7 +76,7 @@ export function TopBar({
         <nav
           className={cn(
             "ml-6 hidden flex-1 items-center gap-6 text-[11px] uppercase tracking-[0.14em] md:flex",
-            dark ? "text-[#B5AF9F]" : "text-muted-foreground",
+            dark ? "text-ft-warm-1" : "text-muted-foreground",
           )}
         >
           {nav.map((item) => {

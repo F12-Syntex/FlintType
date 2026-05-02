@@ -1,17 +1,17 @@
 export function RacePassage() {
   return (
-    <div className="flex flex-1 flex-col border border-[#221F1A] bg-[#0A0A09] px-7 py-8 sm:px-9">
+    <div className="flex flex-1 flex-col border border-ft-ink-line bg-ft-ink-deep px-7 py-8 sm:px-9">
       <div className="mb-5 flex flex-wrap justify-between gap-2">
-        <span className="text-[10px] uppercase tracking-[0.18em] text-[#6E695F]">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-ft-warm-3">
           YOUR TRACK · POSITION 3 OF 4
         </span>
-        <div className="flex flex-wrap gap-x-6 gap-y-1 text-[10px] uppercase tracking-[0.16em] text-[#9C978A]">
+        <div className="flex flex-wrap gap-x-6 gap-y-1 text-[10px] uppercase tracking-[0.16em] text-ft-warm-2">
           <span className="text-ft-ember">WPM 92</span>
           <span>ACC 97.2%</span>
           <span>21/50 WORDS</span>
         </div>
       </div>
-      <p className="m-0 text-lg leading-[1.7] text-[#5C5950] sm:text-xl lg:text-[22px]">
+      <p className="m-0 text-lg leading-[1.7] text-ft-warm-4 sm:text-xl lg:text-[22px]">
         <span className="text-ft-paper">
           the sharpest blade is the one that has been struck the most times
           against

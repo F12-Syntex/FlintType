@@ -19,16 +19,16 @@ export default function RacePage() {
       dark
       ident={<IdentDot emberDot>RACE #4081 · 1V3 · 50 WORDS</IdentDot>}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#221F1A] px-5 py-3.5 sm:px-14">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ft-ink-line px-5 py-3.5 sm:px-14">
         <div className="flex flex-wrap items-baseline gap-3 sm:gap-8">
           <span className="text-[10px] uppercase tracking-[0.18em] text-ft-ember">
             ● RACE LIVE · 0:14 ELAPSED
           </span>
-          <span className="text-[11px] tracking-wide text-[#B5AF9F]">
+          <span className="text-[11px] tracking-wide text-ft-warm-1">
             Round 1 of 3 · seasonal ladder · ranked
           </span>
         </div>
-        <div className="hidden gap-6 text-[10px] uppercase tracking-[0.16em] text-[#B5AF9F] md:flex">
+        <div className="hidden gap-6 text-[10px] uppercase tracking-[0.16em] text-ft-warm-1 md:flex">
           <span>YOUR RANK · #1,284</span>
           <span>SEASON · 12 days left</span>
         </div>

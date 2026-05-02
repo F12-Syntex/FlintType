@@ -37,10 +37,10 @@ export function Pricing() {
             <span className="text-sm font-semibold text-ft-ember">SUPPORTER</span>
             <span className="text-3xl font-bold tracking-[-0.04em] tabular-nums sm:text-4xl">
               $4
-              <span className="text-sm font-normal text-[#9C978A]">/mo</span>
+              <span className="text-sm font-normal text-ft-warm-2">/mo</span>
             </span>
           </div>
-          <p className="mb-6 text-[13px] leading-relaxed text-[#B5AF9F]">
+          <p className="mb-6 text-[13px] leading-relaxed text-ft-warm-1">
             Tip jar with perks. You&apos;re paying because you like what
             we&apos;re doing — not to unlock anything that matters.
           </p>

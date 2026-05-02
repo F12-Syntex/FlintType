@@ -112,14 +112,14 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
             "md:absolute md:inset-x-auto md:top-full md:right-0 md:mt-2 md:w-[320px]",
             "rounded-md border bg-white shadow-lg",
             dark
-              ? "border-[#221F1A] bg-ft-ink text-ft-paper"
+              ? "border-ft-ink-line bg-ft-ink text-ft-paper"
               : "border-ft-line-soft text-ft-ink",
           )}
         >
           <div
             className={cn(
               "flex items-center justify-between gap-3 border-b px-4 py-3",
-              dark ? "border-[#221F1A]" : "border-ft-line-soft",
+              dark ? "border-ft-ink-line" : "border-ft-line-soft",
             )}
           >
             <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">
@@ -132,7 +132,7 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
                 className={cn(
                   "text-[10px] uppercase tracking-[0.14em] transition-colors",
                   dark
-                    ? "text-[#9C978A] hover:text-ft-paper"
+                    ? "text-ft-warm-2 hover:text-ft-paper"
                     : "text-ft-dim hover:text-ft-ink",
                 )}
               >
@@ -145,7 +145,7 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
             <div
               className={cn(
                 "px-4 py-6 text-center text-[12px]",
-                dark ? "text-[#9C978A]" : "text-ft-dim",
+                dark ? "text-ft-warm-2" : "text-ft-dim",
               )}
             >
               All caught up.
@@ -157,7 +157,7 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
                   key={n.id}
                   className={cn(
                     i > 0 && "border-t",
-                    dark ? "border-[#221F1A]" : "border-ft-line-soft",
+                    dark ? "border-ft-ink-line" : "border-ft-line-soft",
                   )}
                 >
                   <Row item={n} dark={dark} />
@@ -183,7 +183,7 @@ function Row({ item, dark }: { item: Notification; dark: boolean }) {
               ? "bg-ft-ember"
               : "bg-ft-ink"
             : dark
-              ? "bg-[#3A3833]"
+              ? "bg-ft-ink-popover"
               : "bg-ft-line-soft",
         )}
       />
@@ -200,7 +200,7 @@ function Row({ item, dark }: { item: Notification; dark: boolean }) {
           <span
             className={cn(
               "shrink-0 text-[10px] uppercase tracking-[0.12em]",
-              dark ? "text-[#6E695F]" : "text-ft-dim-2",
+              dark ? "text-ft-warm-3" : "text-ft-dim-2",
             )}
           >
             {item.when}
@@ -209,7 +209,7 @@ function Row({ item, dark }: { item: Notification; dark: boolean }) {
         <p
           className={cn(
             "text-[11px] leading-snug",
-            dark ? "text-[#9C978A]" : "text-ft-dim-2",
+            dark ? "text-ft-warm-2" : "text-ft-dim-2",
           )}
         >
           {item.body}

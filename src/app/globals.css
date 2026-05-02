@@ -205,6 +205,24 @@
   --color-ft-ember-soft: hsl(15 80% 75%);
   --color-ft-spark: hsl(20 75% 88%);
   --color-ft-ok: hsl(110 25% 39%);
+
+  /* Warm-ink palette — fixed dark-screen tokens used by the race UI,
+     dark TopBar/footer, popovers, and editorial dark surfaces. Names are
+     ramps from deep ink to light warm-dim, so consumers can pick the right
+     step instead of inlining hex. Documented in docs/ui-law.md §2.3. */
+  --color-ft-ink-deep: #0a0a09;
+  --color-ft-ink-track: #1a1815;
+  --color-ft-ink-popover: #3a3833;
+  --color-ft-ink-line: #221f1a;
+  --color-ft-paper-soft: #faf7f0;
+  --color-ft-warm-1: #b5af9f;
+  --color-ft-warm-2: #9c978a;
+  --color-ft-warm-3: #6e695f;
+  --color-ft-warm-4: #5c5950;
+  /* Ghost-track diagonal-stripe pair — used only by the race lanes for the
+     "ghost runner" track pattern. Two tones close to ft-ink-popover. */
+  --color-ft-ghost-stripe-a: #3a3530;
+  --color-ft-ghost-stripe-b: #2a2620;
 }
 
 /* Half cycle at the element's natural opacity (1 multiplied with whatever

@@ -93,7 +93,7 @@ Even if the containing file is short, pull a symbol out when any of these are tr
 
 - **No junk-drawer files.** `utils.ts`, `helpers.ts`, `misc.ts`, `common.ts` — forbidden. Every file's name declares a specific purpose.
   - **Exception:** `src/lib/utils.ts` is shadcn-generated and framework-mandated — it holds `cn()` and is referenced by every shadcn component. Don't rename it. Don't add unrelated helpers to it either; keep it to shadcn's `cn` (and whatever shadcn writes there when you `yarn shadcn add <component>`).
-- **No barrel re-exports.** The only barrel in the repo is `src/server/index.ts` (public API of the server module). Don't add `src/components/index.ts`, `src/types/index.ts`, etc.
+- **No barrel re-exports.** The only sanctioned barrels are `src/server/index.ts` (public API of the server module) and `src/components/ft/index.ts` (flinttype design-system primitives — referenced as `@/components/ft` throughout `docs/ui-law.md` §11). Don't add new barrels — `src/components/index.ts`, `src/types/index.ts`, etc. are forbidden.
 - **No inline types that belong in `src/types/`.** Backend R1 is absolute; don't work around it with local type aliases.
 - **No "temporary" files.** If it's worth writing, it's worth naming correctly now. Rename as you go.
 - **No dumping unrelated utilities into a file just because it's already imported.** That's how files grow past 300 lines.

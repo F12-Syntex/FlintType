@@ -6,14 +6,14 @@ export function DemoPanel() {
       <div className="bg-ft-ink p-7 text-ft-paper sm:p-12 sm:px-14">
         <div className="mb-8 flex flex-wrap items-baseline justify-between gap-3">
           <div className="flex items-baseline gap-4">
-            <span className="text-[10px] uppercase tracking-[0.18em] text-[#6E695F]">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-ft-warm-3">
               LIVE PREVIEW
             </span>
             <span className="text-[10px] uppercase tracking-[0.18em] text-ft-ember">
               ● RECORDING
             </span>
           </div>
-          <div className="flex flex-wrap gap-x-8 gap-y-1 text-[11px] uppercase tracking-[0.1em] text-[#9C978A]">
+          <div className="flex flex-wrap gap-x-8 gap-y-1 text-[11px] uppercase tracking-[0.1em] text-ft-warm-2">
             <span>WORDS · 50</span>
             <span>EN-COMMON</span>
             <span>ADAPT ON</span>
@@ -36,7 +36,7 @@ export function DemoPanel() {
               style={{ animation: "ft-blink 1s steps(2) infinite" }}
               aria-hidden
             />
-            <span className="text-[#5C5950]">
+            <span className="text-ft-warm-4">
               ery the great ones do not avoid mistakes they simply spend less time
               on them than you do
             </span>
@@ -50,7 +50,7 @@ export function DemoPanel() {
             <DarkStat label="PEAK" value="118" />
             <DarkStat label="ELAPSED" value="0:18" />
           </div>
-          <div className="text-right text-[10px] uppercase tracking-[0.16em] text-[#6E695F]">
+          <div className="text-right text-[10px] uppercase tracking-[0.16em] text-ft-warm-3">
             ↓ STALLED ON &quot;th&quot; 4× · 2.1S LOST
             <br />
             <span className="text-ft-ember">→ DRILLING NEXT RUN</span>
@@ -74,7 +74,7 @@ function DarkStat({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[10px] uppercase tracking-[0.18em] text-[#6E695F]">
+      <span className="text-[10px] uppercase tracking-[0.18em] text-ft-warm-3">
         {label}
       </span>
       <span

@@ -25,13 +25,13 @@ function Lane({ racer, pos }: { racer: Racer; pos: number }) {
       <span
         className={cn(
           "text-sm font-bold tabular-nums",
-          pos === 1 ? "text-ft-ember" : "text-[#6E695F]",
+          pos === 1 ? "text-ft-ember" : "text-ft-warm-3",
         )}
       >
         {String(pos).padStart(2, "0")}
       </span>
       <div className="flex items-center gap-2.5">
-        <span className="text-[13px] text-[#9C978A]">{racer.flag}</span>
+        <span className="text-[13px] text-ft-warm-2">{racer.flag}</span>
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={cn(
@@ -39,35 +39,35 @@ function Lane({ racer, pos }: { racer: Racer; pos: number }) {
               racer.you
                 ? "text-ft-ember"
                 : racer.ghost
-                  ? "text-[#6E695F] italic"
+                  ? "text-ft-warm-3 italic"
                   : "text-ft-paper",
             )}
           >
             {racer.name}
           </span>
           {racer.badge ? (
-            <span className="text-[8px] tracking-[0.16em] text-[#6E695F]">
+            <span className="text-[8px] tracking-[0.16em] text-ft-warm-3">
               {racer.badge}
             </span>
           ) : null}
         </div>
       </div>
-      <div className="relative col-span-2 h-5 border border-[#221F1A] bg-[#1A1815] sm:col-span-1">
+      <div className="relative col-span-2 h-5 border border-ft-ink-line bg-ft-ink-track sm:col-span-1">
         <div
           className={cn(
             "absolute top-0 bottom-0 left-0",
             racer.you
               ? "bg-ft-ember"
               : racer.ghost
-                ? "bg-[repeating-linear-gradient(45deg,#3A3530_0_4px,#2A2620_4px_8px)]"
-                : "bg-[#9C978A]",
+                ? "bg-[repeating-linear-gradient(45deg,var(--color-ft-ghost-stripe-a)_0_4px,var(--color-ft-ghost-stripe-b)_4px_8px)]"
+                : "bg-ft-warm-2",
           )}
           style={{ width: `${racer.prog * 100}%` }}
         />
         {[0.25, 0.5, 0.75].map((t) => (
           <div
             key={t}
-            className="absolute top-0 bottom-0 w-px bg-[#221F1A]"
+            className="absolute top-0 bottom-0 w-px bg-ft-ink-line"
             style={{ left: `${t * 100}%` }}
             aria-hidden
           />
@@ -83,7 +83,7 @@ function Lane({ racer, pos }: { racer: Racer; pos: number }) {
         >
           {racer.wpm}
         </span>
-        <span className="text-[9px] tracking-wide text-[#6E695F] tabular-nums">
+        <span className="text-[9px] tracking-wide text-ft-warm-3 tabular-nums">
           {racer.acc}% acc
         </span>
       </div>

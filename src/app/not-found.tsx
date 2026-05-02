@@ -50,7 +50,7 @@ export default function NotFound() {
           </div>
 
           {/* Right — fake "run report" panel that reads as the broken state */}
-          <aside className="flex flex-col border border-ft-line-soft bg-[#FAF7F0] p-6 sm:p-8">
+          <aside className="flex flex-col border border-ft-line-soft bg-ft-paper-soft p-6 sm:p-8">
             <div className="mb-5 flex items-baseline justify-between">
               <Tag tone="ink">RUN ABORTED</Tag>
               <Tag tone="ember">● HALTED 0:00</Tag>

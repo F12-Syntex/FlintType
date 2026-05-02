@@ -41,7 +41,7 @@ export function Logo({
         <span
           className={cn(
             "hidden text-[11px] tracking-[0.06em] sm:inline",
-            dark ? "text-[#6E695F]" : "text-muted-foreground",
+            dark ? "text-ft-warm-3" : "text-muted-foreground",
           )}
         >
           {version}

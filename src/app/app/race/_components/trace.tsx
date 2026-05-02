@@ -22,7 +22,7 @@ export function RaceTrace() {
   return (
     <div>
       <div className="mb-1.5 flex flex-wrap justify-between gap-2">
-        <span className="text-[10px] uppercase tracking-[0.18em] text-[#6E695F]">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-ft-warm-3">
           RACE TRACE · ALL RACERS · WPM/SEC
         </span>
         <span className="text-[10px] uppercase tracking-[0.16em] text-ft-ember">

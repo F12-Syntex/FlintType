@@ -15,7 +15,7 @@ export function Panel({
   return (
     <div
       className={cn(
-        "border border-ft-line-soft bg-[#FAF7F0] p-5 sm:p-6",
+        "border border-ft-line-soft bg-ft-paper-soft p-5 sm:p-6",
         className,
       )}
     >

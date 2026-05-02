@@ -102,6 +102,24 @@ When you touch an existing `ft-*`-styled component for an unrelated reason, leav
 | `bg-ft-spark`                                | `bg-accent` (hover/highlight)                         |
 | `text-ft-ok`, `bg-ft-ok`                     | no theme equivalent yet — keep `text-ft-ok` until a `--success` var lands |
 
+#### Warm-ink ramp (dark editorial surfaces)
+
+The dark race screen, dark TopBar/footer, popovers, and editorial dark panels share a warm-toned ink palette. Use these tokens — never inline the hex.
+
+| Token                  | Hex      | Use                                              |
+|------------------------|----------|--------------------------------------------------|
+| `bg-ft-ink-deep`       | `#0A0A09`| Deepest surface — passage bg on the race screen. |
+| `bg-ft-ink-track`      | `#1A1815`| Track / slot bg (race lane).                     |
+| `bg-ft-ink-popover`    | `#3A3833`| Dark popover detail (e.g. unread dot bg).        |
+| `border-ft-ink-line`   | `#221F1A`| Hairline on dark surfaces.                       |
+| `bg-ft-paper-soft`     | `#FAF7F0`| Warmer paper than `bg-ft-paper` — error/404 panels, supporter card. |
+| `text-ft-warm-1`       | `#B5AF9F`| Brightest warm-dim text on ink.                  |
+| `text-ft-warm-2`       | `#9C978A`| Mid warm-dim text on ink.                        |
+| `text-ft-warm-3`       | `#6E695F`| Deeper warm-dim text on ink.                     |
+| `text-ft-warm-4`       | `#5C5950`| Deepest warm-dim text on ink — passage chars not yet typed. |
+
+These are part of the §2.3 fixed layer — they do not swap with `<ModeToggle>` / `<ThemeSwitcher>`. Reach for them only on surfaces that are *intentionally* dark regardless of the user's palette.
+
 ---
 
 ## 3. Spacing

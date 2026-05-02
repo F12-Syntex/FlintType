@@ -147,7 +147,7 @@ export function MobileNav({
         <div
           className={cn(
             "mt-auto shrink-0 border-t px-5 py-5 sm:px-7",
-            dark ? "border-[#221F1A]" : "border-border",
+            dark ? "border-ft-ink-line" : "border-border",
           )}
         >
           {drawerExtras}

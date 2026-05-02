@@ -44,13 +44,13 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-b border-[#221F1A] px-6 py-5">
+    <div className="border-b border-ft-ink-line px-6 py-5">
       <div className="mb-3.5 flex justify-between gap-2">
         <span className="text-[10px] uppercase tracking-[0.18em] text-ft-paper">
           {title}
         </span>
         {rightHint ? (
-          <span className="text-[10px] uppercase tracking-[0.16em] text-[#6E695F]">
+          <span className="text-[10px] uppercase tracking-[0.16em] text-ft-warm-3">
             {rightHint}
           </span>
         ) : null}
@@ -62,7 +62,7 @@ function Section({
 
 export function RaceSidebar() {
   return (
-    <aside className="flex flex-col border-t border-[#221F1A] lg:border-t-0 lg:border-l">
+    <aside className="flex flex-col border-t border-ft-ink-line lg:border-t-0 lg:border-l">
       <Section title="RACE FEED" rightHint="LIVE">
         <div className="flex flex-col gap-2.5">
           {FEED.map((e, i) => (
@@ -70,19 +70,19 @@ export function RaceSidebar() {
               key={i}
               className="grid grid-cols-[32px_1fr] items-baseline gap-2"
             >
-              <span className="text-[10px] tabular-nums text-[#6E695F]">
+              <span className="text-[10px] tabular-nums text-ft-warm-3">
                 {e.t}
               </span>
               <div className="text-[11px] leading-snug">
                 <span
                   className={cn(
                     "font-semibold",
-                    e.accent ? "text-ft-ember" : "text-[#B5AF9F]",
+                    e.accent ? "text-ft-ember" : "text-ft-warm-1",
                   )}
                 >
                   {e.who}
                 </span>{" "}
-                <span className="text-[#B5AF9F]">{e.ev}</span>
+                <span className="text-ft-warm-1">{e.ev}</span>
               </div>
             </div>
           ))}
@@ -93,14 +93,14 @@ export function RaceSidebar() {
         <div className="flex flex-col gap-2.5 text-[11px]">
           {STAKES.map((s) => (
             <div key={s.label} className="flex justify-between">
-              <span className="text-[#9C978A]">{s.label}</span>
+              <span className="text-ft-warm-2">{s.label}</span>
               <span
                 className={cn(
                   "tabular-nums",
                   s.accent
                     ? "text-ft-ember"
                     : s.muted
-                      ? "text-[#9C978A]"
+                      ? "text-ft-warm-2"
                       : "text-ft-paper",
                 )}
               >
@@ -120,7 +120,7 @@ export function RaceSidebar() {
                 "flex justify-between gap-3 border px-2 py-1.5",
                 m.active
                   ? "border-ft-ember bg-ft-ember/[0.08]"
-                  : "border-[#221F1A]",
+                  : "border-ft-ink-line",
               )}
             >
               <div>
@@ -132,7 +132,7 @@ export function RaceSidebar() {
                 >
                   {m.name}
                 </div>
-                <div className="mt-0.5 text-[10px] text-[#9C978A]">
+                <div className="mt-0.5 text-[10px] text-ft-warm-2">
                   {m.detail}
                 </div>
               </div>
@@ -148,14 +148,14 @@ export function RaceSidebar() {
               key={i}
               className={cn(
                 "grid grid-cols-[50px_1fr_auto] gap-2 py-1",
-                row[3] || row[4] ? "text-ft-ember" : "text-[#B5AF9F]",
+                row[3] || row[4] ? "text-ft-ember" : "text-ft-warm-1",
               )}
             >
               <span className="tabular-nums">{row[0]}</span>
               <span className={row[4] ? "font-bold" : "font-medium"}>
                 {row[1]}
               </span>
-              <span className="tabular-nums text-[#9C978A]">{row[2]}</span>
+              <span className="tabular-nums text-ft-warm-2">{row[2]}</span>
             </div>
           ))}
         </div>
