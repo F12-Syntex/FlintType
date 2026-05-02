@@ -172,12 +172,12 @@ function CaretGlyph({
     style: "line" | "block" | "underline" | "outline" | "off";
     width: number;
     radius: number;
-    blink: boolean;
-    smooth: boolean;
+    blinkSpeed: number;
+    smoothSpeed: number;
   };
   animate: boolean;
 }) {
-  const { style, width, radius, blink, smooth } = settings;
+  const { style, width, radius, blinkSpeed, smoothSpeed } = settings;
 
   // Position + dimensions per style.
   const lineX = caret.side === "left" ? caret.charLeft : caret.charRight;
@@ -224,10 +224,13 @@ function CaretGlyph({
         borderRadius: r,
         transform: `translate3d(${x}px, ${y}px, 0)`,
         transition:
-          animate && smooth
-            ? "transform 110ms cubic-bezier(.22, 0.8, 0.22, 1)"
+          animate && smoothSpeed > 0
+            ? `transform ${smoothSpeed}ms cubic-bezier(.22, 0.8, 0.22, 1)`
             : "none",
-        animation: blink ? "ft-blink 1s steps(2) infinite" : undefined,
+        animation:
+          blinkSpeed > 0
+            ? `ft-blink ${blinkSpeed}ms steps(2) infinite`
+            : undefined,
         willChange: "transform",
       }}
     />

@@ -12,18 +12,18 @@ export type CaretSettings = {
   width: number;
   /** Corner roundness in px. */
   radius: number;
-  /** Blink the caret on a 1s interval. */
-  blink: boolean;
-  /** Animate position changes between characters. */
-  smooth: boolean;
+  /** Blink cycle in ms. 0 disables the blink animation entirely. */
+  blinkSpeed: number;
+  /** Position-transition duration in ms. 0 makes the caret teleport. */
+  smoothSpeed: number;
 };
 
 export const DEFAULT_CARET: CaretSettings = {
   style: "line",
   width: 2,
   radius: 0,
-  blink: true,
-  smooth: true,
+  blinkSpeed: 1000,
+  smoothSpeed: 110,
 };
 
 function readStored(): CaretSettings {
@@ -73,8 +73,8 @@ export function useCaretSettings() {
     settings.style !== DEFAULT_CARET.style ||
     settings.width !== DEFAULT_CARET.width ||
     settings.radius !== DEFAULT_CARET.radius ||
-    settings.blink !== DEFAULT_CARET.blink ||
-    settings.smooth !== DEFAULT_CARET.smooth;
+    settings.blinkSpeed !== DEFAULT_CARET.blinkSpeed ||
+    settings.smoothSpeed !== DEFAULT_CARET.smoothSpeed;
 
   return { settings, update, reset, isCustomised } as const;
 }

@@ -36,6 +36,23 @@ const RADIUS_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
   { label: "Round", value: 6 },
 ];
 
+// Blink + smooth speed presets. The first chip is always "Off" so the
+// rows match the rest of the card (consistent shape: Off + named
+// speeds), and disabling either is a single tap. ms == 0 = disabled.
+const BLINK_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
+  { label: "Off", value: 0 },
+  { label: "Slow", value: 1500 },
+  { label: "Normal", value: 1000 },
+  { label: "Fast", value: 500 },
+];
+
+const SMOOTH_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
+  { label: "Off", value: 0 },
+  { label: "Snappy", value: 60 },
+  { label: "Normal", value: 110 },
+  { label: "Easy", value: 200 },
+];
+
 // ─── Caret rendering primitive ──────────────────────────────────────
 // Used by the hero preview AND mirrored in passage.tsx, so what the
 // user sees up top is exactly what lands in the live passage.
@@ -44,20 +61,23 @@ function CaretShape({
   style,
   width,
   radius,
-  blink,
+  blinkSpeed,
   charW,
   charH,
 }: {
   style: CaretStyle;
   width: number;
   radius: number;
-  blink: boolean;
+  blinkSpeed: number;
   charW: number;
   charH: number;
 }) {
   if (style === "off") return null;
 
-  const animation = blink ? "ft-blink 1s steps(2) infinite" : undefined;
+  const animation =
+    blinkSpeed > 0
+      ? `ft-blink ${blinkSpeed}ms steps(2) infinite`
+      : undefined;
   const common: React.CSSProperties = {
     position: "absolute",
     borderRadius: radius,
@@ -191,16 +211,17 @@ function HeroPreview({ settings }: { settings: CaretSettings }) {
               width: target.w,
               height: target.h,
               transform: `translate3d(${target.left}px, ${target.top}px, 0)`,
-              transition: settings.smooth
-                ? "transform 110ms cubic-bezier(.22, 0.8, 0.22, 1)"
-                : "none",
+              transition:
+                settings.smoothSpeed > 0
+                  ? `transform ${settings.smoothSpeed}ms cubic-bezier(.22, 0.8, 0.22, 1)`
+                  : "none",
             }}
           >
             <CaretShape
               style={settings.style}
               width={settings.width}
               radius={settings.radius}
-              blink={settings.blink}
+              blinkSpeed={settings.blinkSpeed}
               charW={target.w}
               charH={target.h}
             />
@@ -259,45 +280,6 @@ function ControlRow({
   );
 }
 
-function ToggleRow({
-  label,
-  on,
-  onChange,
-}: {
-  label: string;
-  on: boolean;
-  onChange: (next: boolean) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!on)}
-      aria-pressed={on}
-      className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2 transition-colors hover:bg-muted"
-    >
-      <span className="text-sm font-medium text-foreground">{label}</span>
-      <span
-        aria-hidden
-        className={cn(
-          "inline-flex h-5 w-9 shrink-0 items-center rounded-full border p-0.5 transition-colors",
-          on
-            ? "border-primary bg-primary"
-            : "border-muted-foreground/40 bg-muted",
-        )}
-      >
-        <span
-          className={cn(
-            "size-4 rounded-full transition-transform",
-            on
-              ? "translate-x-4 bg-primary-foreground"
-              : "translate-x-0 bg-muted-foreground",
-          )}
-        />
-      </span>
-    </button>
-  );
-}
-
 // ─── Card ──────────────────────────────────────────────────────────
 
 export function CaretRow() {
@@ -349,18 +331,27 @@ export function CaretRow() {
           ))}
         </ControlRow>
 
-        <div className="grid gap-2 sm:grid-cols-2">
-          <ToggleRow
-            label="Blink"
-            on={settings.blink}
-            onChange={(v) => update({ blink: v })}
-          />
-          <ToggleRow
-            label="Smooth motion"
-            on={settings.smooth}
-            onChange={(v) => update({ smooth: v })}
-          />
-        </div>
+        <ControlRow label="Blink">
+          {BLINK_PRESETS.map((p) => (
+            <Chip
+              key={p.label}
+              label={p.label}
+              active={settings.blinkSpeed === p.value}
+              onClick={() => update({ blinkSpeed: p.value })}
+            />
+          ))}
+        </ControlRow>
+
+        <ControlRow label="Smooth">
+          {SMOOTH_PRESETS.map((p) => (
+            <Chip
+              key={p.label}
+              label={p.label}
+              active={settings.smoothSpeed === p.value}
+              onClick={() => update({ smoothSpeed: p.value })}
+            />
+          ))}
+        </ControlRow>
 
         {isCustomised ? (
           <div className="flex justify-end">
