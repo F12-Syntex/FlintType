@@ -1,7 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -150,14 +150,20 @@ function HeroPreview({ settings }: { settings: CaretSettings }) {
   }, [total]);
 
   const flat = PREVIEW_WORDS.join(" ");
-  // Build per-char spans + attach a ref to the target char.
+  // Measure the target char in a layout effect so we never call
+  // setState during render (the ref-callback approach we had was firing
+  // setState every commit, which re-rendered, which fired the ref
+  // again — infinite loop).
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [target, setTarget] = useState<{
     left: number;
     top: number;
     w: number;
     h: number;
   } | null>(null);
-  const containerRef = (el: HTMLDivElement | null) => {
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
     if (!el) return;
     const wrap = el.getBoundingClientRect();
     const idx = Math.min(cursor, flat.length - 1);
@@ -170,7 +176,7 @@ function HeroPreview({ settings }: { settings: CaretSettings }) {
       w: r.width,
       h: r.height,
     });
-  };
+  }, [cursor, flat]);
 
   return (
     <div className="rounded-md border border-border bg-muted/30 px-5 py-6">
