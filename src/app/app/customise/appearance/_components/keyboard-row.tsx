@@ -7,6 +7,7 @@ import {
   KEYBOARD_DESIGNS,
   KEYBOARD_SHAPES,
   type KeyboardDesign,
+  type KeyboardSettings,
   type KeyboardShape,
   shapeClass,
   useKeyboardSettings,
@@ -15,10 +16,13 @@ import { cn } from "@/lib/utils";
 import { Chip, ChipGroup } from "../../_components/chip";
 import { SettingsRow } from "../../_components/row";
 
-function HeroPreview() {
+function HeroPreview({ settings }: { settings: KeyboardSettings }) {
+  // Pass the live settings down explicitly — useKeyboardSettings makes
+  // its own state per call, so the inner Keyboard wouldn't otherwise
+  // see this row's edits until the next mount.
   return (
     <div className="rounded-md border border-border bg-card p-4 sm:p-5">
-      <Keyboard />
+      <Keyboard settingsOverride={settings} />
     </div>
   );
 }
@@ -75,7 +79,7 @@ export function KeyboardRow() {
 
   return (
     <div className="flex flex-col gap-3">
-      <HeroPreview />
+      <HeroPreview settings={settings} />
 
       <SettingsRow
         label="Design"
