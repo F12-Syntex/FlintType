@@ -1,8 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { Stat, Tag } from "@/components/ft";
 import { Button } from "@/components/ui/button";
+import {
+  type ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/line-chart";
 import { cn } from "@/lib/utils";
 import { type KeyEvent, usePractice } from "./practice-state";
 
@@ -114,68 +121,200 @@ function analysePairs(events: readonly KeyEvent[]): PairStat[] {
     .slice(0, 8);
 }
 
+const wpmChartConfig = {
+  wpm: { label: "WPM", color: "var(--primary)" },
+} satisfies ChartConfig;
+
 function WpmTraceChart({ buckets }: { buckets: readonly WpmBucket[] }) {
-  if (buckets.length === 0) {
+  if (buckets.length < 2) {
     return (
-      <p className="text-sm text-muted-foreground">no data — run too short.</p>
+      <p className="text-sm text-muted-foreground">
+        need a longer run for a chart.
+      </p>
     );
   }
-  const w = 600;
-  const h = 160;
-  const pad = 12;
-  const peak = Math.max(1, peakWpm(buckets));
-  const xStep = buckets.length === 1 ? 0 : (w - 2 * pad) / (buckets.length - 1);
-  const points = buckets
-    .map((b, i) => {
-      const x = pad + xStep * i;
-      const y = h - pad - (b.wpm / peak) * (h - 2 * pad);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-
-  const ticks = [0, peak / 2, peak].map((v) => Math.round(v));
   return (
-    <svg
-      role="img"
-      aria-label="WPM over time"
-      viewBox={`0 0 ${w} ${h}`}
-      className="h-40 w-full"
-      preserveAspectRatio="none"
-    >
-      {ticks.map((t, i) => {
-        const y = h - pad - (t / peak) * (h - 2 * pad);
-        return (
-          <g key={i}>
-            <line
-              x1={pad}
-              x2={w - pad}
-              y1={y}
-              y2={y}
-              stroke="currentColor"
-              strokeOpacity={0.08}
-              strokeWidth={1}
+    <ChartContainer config={wpmChartConfig} className="aspect-auto h-44 w-full">
+      <LineChart
+        accessibilityLayer
+        data={buckets as WpmBucket[]}
+        margin={{ left: 8, right: 12, top: 8, bottom: 0 }}
+      >
+        <CartesianGrid vertical={false} stroke="currentColor" strokeOpacity={0.08} />
+        <XAxis
+          dataKey="sec"
+          tickLine={false}
+          axisLine={false}
+          tickMargin={6}
+          tickFormatter={(v: number) => `${v}s`}
+        />
+        <YAxis
+          dataKey="wpm"
+          tickLine={false}
+          axisLine={false}
+          tickMargin={6}
+          width={28}
+        />
+        <ChartTooltip
+          cursor={{ stroke: "currentColor", strokeOpacity: 0.2 }}
+          content={
+            <ChartTooltipContent
+              indicator="dot"
+              labelFormatter={(_, items) => {
+                const first = (items as Array<{ payload?: WpmBucket }>)[0];
+                return `${first?.payload?.sec ?? 0}s`;
+              }}
             />
-            <text
-              x={pad}
-              y={y - 2}
-              fontSize={9}
-              fill="currentColor"
-              opacity={0.5}
-            >
-              {t}
-            </text>
-          </g>
+          }
+        />
+        <Line
+          dataKey="wpm"
+          type="monotone"
+          stroke="var(--color-wpm)"
+          strokeWidth={2}
+          dot={false}
+          activeDot={{ r: 3, stroke: "var(--color-wpm)", fill: "var(--background)" }}
+        />
+      </LineChart>
+    </ChartContainer>
+  );
+}
+
+/** Render the source passage with each character tinted by how often it
+ *  was missed during the run. Heatmap intensity = miss count for that
+ *  character (case-insensitive) ÷ the worst character's count. */
+function PassageHeatmap({
+  words,
+  events,
+}: {
+  words: readonly string[];
+  events: readonly KeyEvent[];
+}) {
+  const missByChar = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of events) {
+      if (e.correct || !e.expected) continue;
+      const k = e.expected.toLowerCase();
+      m.set(k, (m.get(k) ?? 0) + 1);
+    }
+    return m;
+  }, [events]);
+
+  const maxMiss = useMemo(
+    () => Math.max(0, ...missByChar.values()),
+    [missByChar],
+  );
+
+  if (words.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">no passage to map.</p>
+    );
+  }
+
+  const text = words.join(" ");
+  return (
+    <div className="font-mono text-base leading-[2] tracking-wide">
+      {[...text].map((ch, i) => {
+        const k = ch.toLowerCase();
+        const m = missByChar.get(k) ?? 0;
+        const intensity = maxMiss > 0 ? m / maxMiss : 0;
+        if (intensity === 0) {
+          return (
+            <span key={i} className="text-muted-foreground">
+              {ch === " " ? " " : ch}
+            </span>
+          );
+        }
+        // Stronger tint = redder background + ember text.
+        const bgPct = Math.round(15 + intensity * 60);
+        const textColor = intensity > 0.5 ? "var(--primary)" : "var(--foreground)";
+        return (
+          <span
+            key={i}
+            className="rounded-sm px-0.5"
+            style={{
+              backgroundColor: `color-mix(in oklch, var(--primary) ${bgPct}%, transparent)`,
+              color: textColor,
+            }}
+            title={`${m} miss${m === 1 ? "" : "es"} on "${ch}"`}
+          >
+            {ch}
+          </span>
         );
       })}
-      <polyline
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        points={points}
-      />
-    </svg>
+    </div>
+  );
+}
+
+/** Visualises the slow letter pairs as letter chips connected by an
+ *  arrow. Stronger primary tint + thicker arrow = slower transition. */
+function PairFlow({ pairs }: { pairs: readonly PairStat[] }) {
+  if (pairs.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Need a longer run to surface slow pairs.
+      </p>
+    );
+  }
+  const maxMs = Math.max(0, ...pairs.map((p) => p.avgMs));
+  return (
+    <ul className="flex flex-wrap gap-3">
+      {pairs.map((p) => {
+        const intensity = maxMs > 0 ? p.avgMs / maxMs : 0;
+        const stroke = 1 + intensity * 2.4;
+        const a = p.pair[0] ?? "";
+        const b = p.pair[1] ?? "";
+        return (
+          <li
+            key={p.pair}
+            className="flex items-center gap-1 rounded-md border border-border/60 bg-card px-2 py-1"
+          >
+            <Glyph char={a} intensity={intensity} />
+            <svg
+              width={26}
+              height={14}
+              aria-hidden
+              className="text-primary"
+              style={{ opacity: 0.4 + intensity * 0.6 }}
+            >
+              <line
+                x1={2}
+                y1={7}
+                x2={18}
+                y2={7}
+                stroke="currentColor"
+                strokeWidth={stroke}
+                strokeLinecap="round"
+              />
+              <polygon
+                points="18,2 26,7 18,12"
+                fill="currentColor"
+              />
+            </svg>
+            <Glyph char={b} intensity={intensity} />
+            <span className="ml-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground tabular-nums">
+              {Math.round(p.avgMs)}ms · {p.samples}×
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function Glyph({ char, intensity }: { char: string; intensity: number }) {
+  const bgPct = Math.round(intensity * 35);
+  return (
+    <span
+      className="inline-flex h-7 w-7 items-center justify-center rounded-md border font-mono text-sm font-semibold"
+      style={{
+        backgroundColor: `color-mix(in oklch, var(--primary) ${bgPct}%, transparent)`,
+        borderColor: `color-mix(in oklch, var(--primary) ${Math.round(40 + intensity * 60)}%, var(--border))`,
+        color: intensity > 0.5 ? "var(--primary)" : "var(--foreground)",
+      }}
+    >
+      {char === " " ? "␣" : char}
+    </span>
   );
 }
 
@@ -304,8 +443,26 @@ export function TestSummary() {
       </section>
 
       <section className="grid grid-cols-1 gap-5">
-        <SummarySection title="SLOW PAIRS" subtitle="avg ms between two correct keys">
+        <SummarySection
+          title="PASSAGE HEATMAP"
+          subtitle="darker red = more misses on that letter"
+        >
+          <PassageHeatmap words={state.words} events={state.events} />
+        </SummarySection>
+      </section>
+
+      <section className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_1fr]">
+        <SummarySection
+          title="SLOW PAIRS"
+          subtitle="ranked by avg ms between correct keys"
+        >
           <SlowPairs pairs={slowPairs} />
+        </SummarySection>
+        <SummarySection
+          title="PAIR FLOW"
+          subtitle="from → to · arrow weight scales with delay"
+        >
+          <PairFlow pairs={slowPairs} />
         </SummarySection>
       </section>
     </div>
