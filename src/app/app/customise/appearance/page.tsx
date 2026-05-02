@@ -19,6 +19,7 @@ import { ModeSwitcher } from "@/components/ui/mode-switcher";
 import { SettingsRow } from "../_components/row";
 import { BackgroundRow } from "./_components/background-row";
 import { CaretRow } from "./_components/caret-row";
+import { KeyboardRow } from "./_components/keyboard-row";
 import { RadiusRow } from "./_components/radius-row";
 import { ThemesRow } from "./_components/themes-row";
 import { TypographyRows } from "./_components/typography-row";
@@ -229,6 +230,11 @@ export default function AppearancePage() {
       <SectionHeader label="Typography" />
       <div className="mb-8 flex flex-col gap-3">
         <TypographyRows />
+      </div>
+
+      <SectionHeader label="Keyboard" />
+      <div className="mb-8 flex flex-col gap-3">
+        <KeyboardRow />
       </div>
 
       <SectionHeader label="Background" />

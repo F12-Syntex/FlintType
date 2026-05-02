@@ -1,3 +1,7 @@
+import {
+  type KeyboardDesign,
+  designClasses,
+} from "@/lib/keyboard-settings";
 import { cn } from "@/lib/utils";
 import type { KeyDef } from "./types";
 
@@ -6,12 +10,15 @@ export function Key({
   pressed,
   lit,
   upper,
+  design,
 }: {
   def: KeyDef;
   pressed: boolean;
   /** Modifier in its "on" state (CapsLock active, Shift held). */
   lit: boolean;
   upper: boolean;
+  /** Visual variant — see `KEYBOARD_DESIGNS` in keyboard-settings.ts. */
+  design: KeyboardDesign;
 }) {
   const units = def.units ?? 1;
   const isLetter =
@@ -23,6 +30,8 @@ export function Key({
   const Icon = def.icon;
   const hot = pressed || lit;
 
+  const [resting, hotClass] = designClasses(design);
+
   return (
     <div
       aria-hidden
@@ -30,13 +39,7 @@ export function Key({
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       className={cn(
         "relative flex h-9 items-center justify-center rounded-[6px] border font-mono text-sm sm:h-10",
-        // Theme-aware keycap palette: muted-foreground for the resting
-        // gray surface, primary for the active glow. Both sit on top of
-        // text-background / text-primary-foreground so the label is
-        // legible on every theme.
-        hot
-          ? "border-primary bg-primary text-primary-foreground transition-none"
-          : "border-muted-foreground bg-muted-foreground text-background transition-colors duration-150",
+        hot ? cn(hotClass, "transition-none") : cn(resting, "transition-colors duration-150"),
         def.variant === "modifier" && "text-[10px] uppercase tracking-[0.14em]",
       )}
     >

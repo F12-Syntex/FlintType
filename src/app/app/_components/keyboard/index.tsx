@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useKeyboardSettings } from "@/lib/keyboard-settings";
 import { cn } from "@/lib/utils";
 import { Key } from "./key";
 import { LayoutPicker } from "./layout-picker";
@@ -25,6 +26,7 @@ export function Keyboard({
 }: KeyboardProps) {
   const [active, setActive] = useState<LayoutId>(layout);
   const { pressed, shift, caps } = usePressedKeys();
+  const { settings } = useKeyboardSettings();
   const upper = shift !== caps;
   const rows = LAYOUTS[active].rows;
 
@@ -53,6 +55,7 @@ export function Keyboard({
                   (k.code.startsWith("Shift") && shift)
                 }
                 upper={upper}
+                design={settings.design}
               />
             ))}
           </div>
