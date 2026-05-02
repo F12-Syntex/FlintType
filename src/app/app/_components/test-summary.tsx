@@ -134,7 +134,7 @@ function WpmChart({ buckets }: { buckets: readonly Bucket[] }) {
   return (
     <ChartContainer
       config={chartConfig}
-      className="aspect-auto h-full max-h-72 w-full"
+      className="aspect-auto h-44 w-full sm:h-52"
     >
       <LineChart
         accessibilityLayer
@@ -357,71 +357,76 @@ export function TestSummary() {
         : `words ${state.length}`;
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-5 px-2 sm:gap-7 sm:px-4">
-      {/* Top row: stat column on the left, big chart on the right. */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 items-center gap-6 lg:grid-cols-[180px_1fr]">
-        <div className="flex flex-col gap-4">
-          <BigStat label="wpm" value={wpm} accent />
-          <BigStat label="acc" value={`${Math.round(accuracy * 10) / 10}%`} accent />
-          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            <div>test type</div>
-            <div className="mt-1 text-foreground">{modeLabel}</div>
-            <div className="text-foreground">english</div>
+    <div className="flex h-full min-h-0 flex-col items-center justify-center px-2 sm:px-4">
+      <div className="flex w-full max-w-3xl flex-col gap-5 sm:gap-6">
+        {/* Top row: stat column on the left, smaller centered chart. */}
+        <div className="grid grid-cols-1 items-center gap-6 sm:grid-cols-[140px_1fr]">
+          <div className="flex flex-col gap-4">
+            <BigStat label="wpm" value={wpm} accent />
+            <BigStat
+              label="acc"
+              value={`${Math.round(accuracy * 10) / 10}%`}
+              accent
+            />
+            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              <div>test type</div>
+              <div className="mt-1 text-foreground">{modeLabel}</div>
+              <div className="text-foreground">english</div>
+            </div>
+          </div>
+          <div className="w-full">
+            <WpmChart buckets={buckets} />
           </div>
         </div>
-        <div className="min-h-0 self-stretch">
-          <WpmChart buckets={buckets} />
+
+        {/* Inline stats row, monkeytype-style. */}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
+          <BigStat label="raw" value={rawWpm} accent />
+          <BigStat
+            label="characters"
+            value={`${state.correctChars}/${wrongTotal}/0/0`}
+            accent
+          />
+          <BigStat label="consistency" value={`${cons}%`} accent />
+          <BigStat label="time" value={`${elapsedSec}s`} accent />
         </div>
-      </div>
 
-      {/* Inline stats row, monkeytype-style. */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
-        <BigStat label="raw" value={rawWpm} accent />
-        <BigStat
-          label="characters"
-          value={`${state.correctChars}/${wrongTotal}/0/0`}
-          accent
-        />
-        <BigStat label="consistency" value={`${cons}%`} accent />
-        <BigStat label="time" value={`${elapsedSec}s`} accent />
-      </div>
-
-      {/* Heatmap strip — speed-coloured passage. */}
-      {state.words.length > 0 ? (
-        <div className="rounded-md border border-border/40 bg-card/40 px-4 py-3">
-          <div className="mb-2 flex items-baseline justify-between gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            <span>passage heatmap</span>
-            <span className="text-muted-foreground/70">
-              fast → slow · hover for ms
-            </span>
+        {/* Heatmap strip — speed-coloured passage. */}
+        {state.words.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              <span>passage heatmap</span>
+              <span className="text-muted-foreground/70">
+                fast → slow · hover for ms
+              </span>
+            </div>
+            <PassageHeatmap words={state.words} events={state.events} />
           </div>
-          <PassageHeatmap words={state.words} events={state.events} />
-        </div>
-      ) : null}
+        ) : null}
 
-      {/* Slow pairs — only render if we have any. */}
-      {slowPairs.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-baseline justify-between gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            <span>slow pairs</span>
-            <span className="text-muted-foreground/70">
-              top {slowPairs.length} · arrow weight = delay
-            </span>
+        {/* Slow pairs — only render if we have any. */}
+        {slowPairs.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              <span>slow pairs</span>
+              <span className="text-muted-foreground/70">
+                top {slowPairs.length} · arrow weight = delay
+              </span>
+            </div>
+            <PairFlow pairs={slowPairs} />
           </div>
-          <PairFlow pairs={slowPairs} />
-        </div>
-      ) : null}
+        ) : null}
 
-      {/* Restart hint — quiet footer, monkeytype keeps the keys at the
-          bottom of the page. */}
-      <div className="flex items-center justify-center gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-        <span className="rounded-sm border border-border bg-card px-2 py-1 font-mono normal-case text-foreground">
-          tab
-        </span>
-        <span>restart · peak {peak}</span>
-        <Button variant="ghost" size="sm" onClick={() => restart()}>
-          new run
-        </Button>
+        {/* Restart hint — quiet footer. */}
+        <div className="flex items-center justify-center gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          <span className="rounded-sm border border-border bg-card px-2 py-1 font-mono normal-case text-foreground">
+            tab
+          </span>
+          <span>restart · peak {peak}</span>
+          <Button variant="ghost" size="sm" onClick={() => restart()}>
+            new run
+          </Button>
+        </div>
       </div>
     </div>
   );
