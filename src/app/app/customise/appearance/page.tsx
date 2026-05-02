@@ -21,6 +21,8 @@ import {
   type ThemeVar,
   useThemeOverrides,
 } from "@/lib/theme-customization";
+import { RadiusRow } from "./_components/radius-row";
+import { ThemesRow } from "./_components/themes-row";
 
 // ─── Color section ─────────────────────────────────────────────────
 
@@ -229,73 +231,6 @@ function ColorRowCard({
               </Button>
             </ColorPicker>
             {customized ? (
-              <Button variant="ghost" size="sm" onClick={onClear}>
-                Reset
-              </Button>
-            ) : null}
-          </div>
-        </CardAction>
-      </CardHeader>
-    </Card>
-  );
-}
-
-// ─── Radius ────────────────────────────────────────────────────────
-
-function RadiusRow({
-  value,
-  onChange,
-  onClear,
-}: {
-  value: string | undefined;
-  onChange: (rem: number) => void;
-  onClear: () => void;
-}) {
-  const numeric = value ? Number.parseFloat(value) : 0.5;
-
-  return (
-    <Card className="rounded-md shadow-sm ring-border">
-      <CardHeader>
-        <CardTitle className="text-sm font-semibold">Corner radius</CardTitle>
-        <CardDescription>
-          How rounded every surface, button, and card is
-        </CardDescription>
-        <CardAction>
-          <div className="flex items-center gap-3">
-            <div className="flex gap-2">
-              <div
-                aria-hidden
-                className="h-9 w-9 border-2 border-primary bg-card"
-                style={{ borderRadius: "var(--radius)" }}
-              />
-              <div
-                aria-hidden
-                className="h-9 w-12 border border-border bg-muted"
-                style={{ borderRadius: "var(--radius)" }}
-              />
-              <span
-                aria-hidden
-                className="inline-flex h-9 items-center bg-primary px-3 text-xs font-semibold text-primary-foreground"
-                style={{ borderRadius: "var(--radius)" }}
-              >
-                Save
-              </span>
-            </div>
-            <Slider
-              value={[numeric]}
-              min={0}
-              max={1.5}
-              step={0.05}
-              onValueChange={(v) => {
-                if (Array.isArray(v) && typeof v[0] === "number")
-                  onChange(v[0]);
-              }}
-              className="w-44"
-            />
-            <Badge variant="outline" className="px-2 tabular-nums">
-              {numeric.toFixed(2)}rem
-            </Badge>
-            {value !== undefined ? (
               <Button variant="ghost" size="sm" onClick={onClear}>
                 Reset
               </Button>
@@ -579,7 +514,7 @@ export default function AppearancePage() {
           <h2 className="text-2xl font-bold tracking-tight">Appearance</h2>
           <div className="flex items-center gap-3">
             <Badge variant="secondary" className="px-2 text-[0.65rem]">
-              {COLOR_ROWS.length + 4} options
+              {COLOR_ROWS.length + 5} options
             </Badge>
             {customizedCount > 0 ? (
               <Badge className="px-2 text-[0.65rem]">
@@ -597,6 +532,17 @@ export default function AppearancePage() {
           </div>
         </div>
       </header>
+
+      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+        Tweak any surface, color, or shape — changes apply instantly and stay
+        with you across reloads. Hit <span className="font-medium text-foreground">Reset all</span> to
+        return to the defaults at any time.
+      </p>
+
+      <SectionHeader label="Themes" />
+      <div className="mb-8 flex flex-col gap-3">
+        <ThemesRow />
+      </div>
 
       <SectionHeader label="Colors" />
       <div className="mb-8 flex flex-col gap-3">
