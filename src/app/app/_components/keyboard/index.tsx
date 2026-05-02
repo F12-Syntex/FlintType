@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   HOME_ROW_PEGS,
   type KeyboardSettings,
-  isLetterCode,
   useKeyboardSettings,
 } from "@/lib/keyboard-settings";
 import { cn } from "@/lib/utils";
@@ -45,13 +44,13 @@ export function Keyboard({
   const upper = shift !== caps;
   const rows = LAYOUTS[active].rows;
 
-  // Compact mode strips every row down to its letter keys; rows with no
-  // letters (number row, function row) drop out entirely.
-  const renderRows = effective.compact
-    ? rows
-        .map((row) => row.filter((k) => isLetterCode(k.code)))
-        .filter((row) => row.length > 0)
-    : rows;
+  // Compact mode hides modifier-style keys (Tab, Caps, Shift, Ctrl,
+  // Alt, Meta, Backspace, Enter) plus Space, but keeps their slots so
+  // every other key stays exactly where it was. Predicate lives here
+  // so it stays close to the layout shape it's gating on.
+  const isHidden = (def: { code: string; variant?: string }) =>
+    effective.compact &&
+    (def.variant === "modifier" || def.code === "Space");
 
   const isHot = (code: string) =>
     pressed.has(code) ||
@@ -71,7 +70,7 @@ export function Keyboard({
         <LayoutPicker active={active} onChange={setActive} />
       )}
       <div className="flex flex-col gap-1">
-        {renderRows.map((row, i) => (
+        {rows.map((row, i) => (
           <div key={i} className="flex w-full gap-1">
             {row.map((k) => (
               <Key
@@ -86,6 +85,7 @@ export function Keyboard({
                 design={effective.design}
                 shape={effective.shape}
                 showShiftLabel={effective.showShiftLabels}
+                hidden={isHidden(k)}
               />
             ))}
           </div>

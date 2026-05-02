@@ -63,11 +63,6 @@ export const HOME_ROW_PEGS: ReadonlySet<string> = new Set([
   "KeyJ",
 ]);
 
-/** Letter-only key codes (a–z). Used by the `compact` filter. */
-export function isLetterCode(code: string): boolean {
-  return /^Key[A-Z]$/.test(code);
-}
-
 function readStored(): KeyboardSettings {
   if (typeof window === "undefined") return DEFAULT_KEYBOARD;
   try {
