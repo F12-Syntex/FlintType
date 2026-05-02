@@ -22,6 +22,7 @@ import {
   useThemeOverrides,
 } from "@/lib/theme-customization";
 import { ModeSwitcher } from "@/components/ui/mode-switcher";
+import { SettingsRow } from "../_components/row";
 import { RadiusRow } from "./_components/radius-row";
 import { ThemesRow } from "./_components/themes-row";
 
@@ -111,7 +112,7 @@ function ColorRowCard({
   const customized = value !== undefined;
 
   return (
-    <Card className="rounded-md shadow-sm ring-border">
+    <Card className="rounded-md shadow-sm ring-border min-h-16">
       <CardHeader>
         <CardTitle className="text-sm font-semibold">{row.label}</CardTitle>
         <CardDescription>{row.desc}</CardDescription>
@@ -199,7 +200,7 @@ function FontFamilyRow({
     FONT_OPTIONS.find((o) => o.stack === value)?.id ?? "default";
 
   return (
-    <Card className="rounded-md shadow-sm ring-border">
+    <Card className="rounded-md shadow-sm ring-border min-h-16">
       <CardHeader>
         <CardTitle className="text-sm font-semibold">Font family</CardTitle>
         <CardDescription>
@@ -266,7 +267,7 @@ function FontSizeRow({
   const scale = value ? Number.parseFloat(value) : 1;
 
   return (
-    <Card className="rounded-md shadow-sm ring-border">
+    <Card className="rounded-md shadow-sm ring-border min-h-16">
       <CardHeader>
         <CardTitle className="text-sm font-semibold">Font size</CardTitle>
         <CardDescription>
@@ -349,7 +350,7 @@ function BackgroundRow({
   }
 
   return (
-    <Card className="rounded-md shadow-sm ring-border">
+    <Card className="rounded-md shadow-sm ring-border min-h-16">
       <CardHeader>
         <CardTitle className="text-sm font-semibold">
           Custom background image
@@ -459,10 +460,7 @@ export default function AppearancePage() {
       <SectionHeader label="Themes" />
       <div className="mb-8 flex flex-col gap-3">
         <ThemesRow />
-        <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2">
-          <span className="text-sm font-medium text-foreground">Mode</span>
-          <ModeSwitcher />
-        </div>
+        <SettingsRow label="Mode" control={<ModeSwitcher />} />
       </div>
 
       <SectionHeader label="Colors" />

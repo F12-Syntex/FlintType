@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { type Theme, usePalette } from "@/lib/themes/use-palette";
+import { SettingsRow } from "../../_components/row";
 
 function ThemeSwatches({ theme }: { theme: Theme }) {
   const v = theme.cssVars.light;
@@ -38,9 +39,10 @@ export function ThemesRow() {
     : null;
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2">
-      <span className="text-sm font-medium text-foreground">Theme</span>
-      <DropdownMenu>
+    <SettingsRow
+      label="Theme"
+      control={
+        <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
@@ -92,6 +94,7 @@ export function ThemesRow() {
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-    </div>
+      }
+    />
   );
 }

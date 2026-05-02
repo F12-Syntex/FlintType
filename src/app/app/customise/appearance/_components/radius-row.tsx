@@ -92,7 +92,7 @@ export function RadiusRow({
   );
 
   return (
-    <Card className="rounded-md shadow-sm ring-border">
+    <Card className="rounded-md shadow-sm ring-border min-h-16">
       <CardHeader>
         <CardTitle className="text-sm font-semibold">Corner radius</CardTitle>
         <CardDescription>
