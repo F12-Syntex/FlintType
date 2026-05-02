@@ -274,7 +274,7 @@ function HeroPreview({ settings }: { settings: CaretSettings }) {
               transform: `translate3d(${target.left}px, ${target.top}px, 0)`,
               transition:
                 settings.smoothSpeed > 0
-                  ? `transform ${settings.smoothSpeed}ms cubic-bezier(.22, 0.8, 0.22, 1)`
+                  ? `transform ${settings.smoothSpeed}ms cubic-bezier(0.16, 1, 0.3, 1)`
                   : "none",
             }}
           >

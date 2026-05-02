@@ -23,7 +23,7 @@ export const DEFAULT_CARET: CaretSettings = {
   width: 2,
   radius: 0,
   blinkSpeed: 1000,
-  smoothSpeed: 110,
+  smoothSpeed: 140,
 };
 
 function readStored(): CaretSettings {

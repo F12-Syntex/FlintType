@@ -255,9 +255,13 @@ function reducer(s: State, a: Action): State {
       if (s.phase === "done") return s;
       const word = s.words[s.cursorWord];
       if (!word) return s;
-      if (s.cursorChar >= word.length) return s;
-      const expected = word[s.cursorChar]!;
-      const correct = a.char === expected;
+      // Cap extras at word.length + EXTRA_CAP so a stuck key can't blow up
+      // the layout. Past the cap, the keystroke is a no-op.
+      const EXTRA_CAP = 10;
+      if (s.cursorChar >= word.length + EXTRA_CAP) return s;
+      const isExtra = s.cursorChar >= word.length;
+      const expected = isExtra ? "" : word[s.cursorChar]!;
+      const correct = !isExtra && a.char === expected;
       const startTime = s.startTime ?? a.now;
       const event: KeyEvent = {
         t: a.now - startTime,
@@ -283,7 +287,9 @@ function reducer(s: State, a: Action): State {
       const nextCursorChar = s.cursorChar + 1;
       // Auto-finish: a correct keystroke that completes the final char of
       // the final word ends the run for WORDS / QUOTE — TIME ignores the
-      // word boundary and lets the timer end the run instead.
+      // word boundary and lets the timer end the run instead. Extras past
+      // word.length never auto-finish: the user must backspace the extras
+      // and hit space (or land exactly on word.length) to advance.
       const isLastWord = s.cursorWord === s.words.length - 1;
       const finishedRun =
         correct &&
@@ -302,6 +308,7 @@ function reducer(s: State, a: Action): State {
         errorWords: correct
           ? s.errorWords
           : new Set([...s.errorWords, s.cursorWord]),
+        // ^ extras are never `correct`, so they correctly flag errorWords too.
         events: [...s.events, event],
         typed: nextTyped,
       };
@@ -330,9 +337,15 @@ function reducer(s: State, a: Action): State {
     }
     case "SPACE": {
       if (s.phase === "done" || s.phase === "rest") return s;
+      // Strict-advance: the current word must be typed exactly (no
+      // missing chars, no incorrect chars, no extras) before space can
+      // advance. Forces the user to backspace and fix mistakes instead
+      // of bypassing them with a space.
+      const target = s.words[s.cursorWord] ?? "";
+      const typedHere = s.typed[s.cursorWord] ?? "";
+      if (typedHere !== target) return s;
       const next = s.cursorWord + 1;
-      // Make sure typed has an entry for the just-completed word, even
-      // if the user pressed space without typing anything (rare, but the
+      // Make sure typed has an entry for the just-completed word (the
       // monkeytype WPM walk wants every position present).
       const sealedTyped = s.typed.length > s.cursorWord
         ? s.typed

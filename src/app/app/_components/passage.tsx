@@ -23,43 +23,58 @@ type CaretPos = {
 
 function ActiveWord({
   word,
+  typed,
   cursorChar,
   registerTarget,
   blind,
 }: {
   word: string;
+  typed: string;
   cursorChar: number;
   registerTarget: (el: HTMLSpanElement | null, side: "left" | "right") => void;
   blind: boolean;
 }) {
-  const chars = [...word];
+  const targetChars = [...word];
+  const typedChars = [...typed];
+  const len = Math.max(targetChars.length, typedChars.length);
   // `inline-block whitespace-nowrap` keeps the word as one line-break unit
   // so per-character spans inside don't make the browser break mid-word.
   return (
     <span className="inline-block whitespace-nowrap">
-      {chars.map((char, ci) => {
-        const isBeforeTarget = ci === cursorChar;
+      {Array.from({ length: len }, (_, ci) => {
+        const expected = targetChars[ci];
+        const got = typedChars[ci];
+        const isExtra = ci >= targetChars.length;
+        // Show what the user actually typed (so they see their own input)
+        // for any position they've reached; fall back to the target glyph
+        // for positions still ahead of the cursor.
+        const glyph = got ?? expected ?? "";
+
+        let cls: string;
+        if (blind) cls = "text-muted-foreground";
+        else if (isExtra) cls = "text-primary";
+        else if (got === undefined) cls = "text-muted-foreground";
+        else if (got === expected) cls = "text-foreground";
+        else cls = "text-primary";
+
+        // Caret target:
+        //   cursorChar < len  → left edge of char at cursorChar
+        //   cursorChar >= len → right edge of last char (caret past the
+        //                        end, e.g. waiting for space on a perfect
+        //                        match, or sitting after the last extra).
+        const isBeforeTarget = ci === cursorChar && cursorChar < len;
         const isAfterLastTarget =
-          cursorChar >= chars.length && ci === chars.length - 1;
+          cursorChar >= len && ci === len - 1;
         const ref =
           isBeforeTarget
             ? (el: HTMLSpanElement | null) => registerTarget(el, "left")
             : isAfterLastTarget
               ? (el: HTMLSpanElement | null) => registerTarget(el, "right")
               : null;
+
         return (
-          <span
-            key={ci}
-            ref={ref}
-            className={
-              blind
-                ? "text-muted-foreground"
-                : ci < cursorChar
-                  ? "text-foreground"
-                  : "text-muted-foreground"
-            }
-          >
-            {char}
+          <span key={ci} ref={ref} className={cls}>
+            {glyph}
           </span>
         );
       })}
@@ -69,7 +84,7 @@ function ActiveWord({
 
 export function Passage() {
   const { state } = usePractice();
-  const { words, cursorWord, cursorChar, errorWords, phase } = state;
+  const { words, cursorWord, cursorChar, errorWords, phase, typed } = state;
   const { settings: caretSettings } = useCaretSettings();
   const { prefs } = useBehaviourPrefs();
   const blind = prefs.blindMode;
@@ -152,6 +167,7 @@ export function Passage() {
               <span key={wi}>
                 <ActiveWord
                   word={word}
+                  typed={typed[wi] ?? ""}
                   cursorChar={cursorChar}
                   registerTarget={registerTarget}
                   blind={blind}
@@ -254,7 +270,7 @@ function CaretGlyph({
         transform: `translate3d(${x}px, ${y}px, 0)`,
         transition:
           animate && smoothSpeed > 0
-            ? `transform ${smoothSpeed}ms cubic-bezier(.22, 0.8, 0.22, 1)`
+            ? `transform ${smoothSpeed}ms cubic-bezier(0.16, 1, 0.3, 1), width ${smoothSpeed}ms cubic-bezier(0.16, 1, 0.3, 1), height ${smoothSpeed}ms cubic-bezier(0.16, 1, 0.3, 1)`
             : "none",
         ["--ft-blink-speed" as string]: `${blinkSpeed}ms`,
         willChange: "transform",
