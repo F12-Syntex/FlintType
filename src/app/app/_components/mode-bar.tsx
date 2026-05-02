@@ -2,17 +2,27 @@
 
 import { useState } from "react";
 import { OptionSwitch } from "@/components/ui/option-switch";
+import { QUOTE_GROUPS } from "@/lib/quotes";
 import { cn } from "@/lib/utils";
-import {
-  type Lang,
-  type Length,
-  type Mode,
-  usePractice,
-} from "./practice-state";
+import { type Mode, usePractice } from "./practice-state";
 
-const MODES: readonly Mode[] = ["WORDS", "TIME", "QUOTE", "CODE"];
-const LENGTHS: readonly Length[] = [25, 50, 100, 200];
-const LANGS: readonly Lang[] = ["EN", "EN-COMMON", "PROGRAMMING"];
+const MODES: readonly Mode[] = ["WORDS", "TIME", "QUOTE"];
+
+type Preset = { value: number; label: string };
+
+/** Length picker presets per mode. WORDS counts words, TIME counts
+ *  seconds, QUOTE picks a length bracket from monkeytype's groups. */
+const LENGTH_PRESETS: Record<Mode, ReadonlyArray<Preset>> = {
+  WORDS: [25, 50, 100, 200].map((n) => ({ value: n, label: String(n) })),
+  TIME: [15, 30, 60, 120].map((n) => ({ value: n, label: String(n) })),
+  QUOTE: QUOTE_GROUPS.map((g) => ({ value: g.id, label: g.label })),
+};
+
+const LENGTH_FIELD_LABEL: Record<Mode, string> = {
+  WORDS: "length",
+  TIME: "duration",
+  QUOTE: "length",
+};
 
 /** Label-on-top wrapper used for each control group. The pill row
  *  itself is `<SegmentedControl>` from `@/components/ui` — same
@@ -81,7 +91,9 @@ function Toggle({
 // Vertical stack on mobile, horizontal flow on md+.
 
 function ModeControls() {
-  const { state, setMode, setLength, setLang, toggleAdapt } = usePractice();
+  const { state, setMode, setLength, toggleAdapt } = usePractice();
+  const presets = LENGTH_PRESETS[state.mode];
+  const lengthLabel = LENGTH_FIELD_LABEL[state.mode];
   return (
     <div className="flex flex-col items-stretch gap-3 md:flex-row md:flex-wrap md:items-end md:justify-center md:gap-x-8 md:gap-y-4">
       <Field label="mode">
@@ -97,31 +109,18 @@ function ModeControls() {
         </OptionSwitch>
       </Field>
 
-      <Field label="length">
+      <Field label={lengthLabel}>
         <OptionSwitch
           name="length"
           size="small"
           value={String(state.length)}
-          onValueChange={(v) => setLength(Number(v) as Length)}
+          onValueChange={(v) => setLength(Number(v))}
         >
-          {LENGTHS.map((l) => (
-            <OptionSwitch.Control key={l} label={String(l)} value={String(l)} />
-          ))}
-        </OptionSwitch>
-      </Field>
-
-      <Field label="language">
-        <OptionSwitch
-          name="language"
-          size="small"
-          value={state.lang}
-          onValueChange={(v) => setLang(v as Lang)}
-        >
-          {LANGS.map((l) => (
+          {presets.map((p) => (
             <OptionSwitch.Control
-              key={l}
-              label={l.toLowerCase().replace("en-common", "common")}
-              value={l}
+              key={p.value}
+              label={p.label}
+              value={String(p.value)}
             />
           ))}
         </OptionSwitch>
@@ -149,6 +148,14 @@ function ModeControls() {
 function MobileBar() {
   const { state } = usePractice();
   const [open, setOpen] = useState(false);
+  // Mobile summary line — show the mode-appropriate length label so the
+  // user can read state without expanding the controls.
+  const lengthSummary =
+    state.mode === "QUOTE"
+      ? (QUOTE_GROUPS[state.length as 0 | 1 | 2 | 3]?.label ?? "")
+      : state.mode === "TIME"
+        ? `${state.length}s`
+        : String(state.length);
   return (
     <div className="border-b border-border bg-card md:hidden">
       <button
@@ -161,9 +168,7 @@ function MobileBar() {
         <span className="flex min-w-0 items-center gap-1.5 truncate">
           <span className="font-semibold text-foreground">{state.mode}</span>
           <span aria-hidden className="text-muted-foreground/60">·</span>
-          <span className="font-semibold text-foreground">{state.length}</span>
-          <span aria-hidden className="text-muted-foreground/60">·</span>
-          <span className="font-semibold text-foreground">{state.lang}</span>
+          <span className="font-semibold text-foreground">{lengthSummary}</span>
           {state.adapt ? (
             <>
               <span aria-hidden className="text-muted-foreground/60">·</span>

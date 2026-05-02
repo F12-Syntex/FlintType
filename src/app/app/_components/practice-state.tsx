@@ -15,21 +15,23 @@ import {
   DEFAULT_BEHAVIOUR,
   useBehaviourPrefs,
 } from "@/lib/behaviour-prefs";
-import { EN_COMMON_1000 } from "@/data/en-common-1000";
+import { loadQuotes, pickQuote, type QuoteGroup } from "@/lib/quotes";
 import englishWords from "@/data/english.json";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
-export type Mode = "WORDS" | "TIME" | "QUOTE" | "CODE";
-export type Length = 25 | 50 | 100 | 200;
-export type Lang = "EN" | "EN-COMMON" | "PROGRAMMING";
+export type Mode = "WORDS" | "TIME" | "QUOTE";
+/** Numeric value whose meaning depends on `mode`:
+ *    WORDS — words to type (25 / 50 / 100 / 200)
+ *    TIME  — seconds to type for (15 / 30 / 60 / 120)
+ *    QUOTE — group index 0–3 (short / medium / long / thicc) */
+export type Length = number;
 export type Phase = "rest" | "running" | "done";
 
 export type State = {
   // config
   mode: Mode;
   length: Length;
-  lang: Lang;
   adapt: boolean;
 
   // run
@@ -42,6 +44,8 @@ export type State = {
   correctChars: number;
   startTime: number | null;
   endTime: number | null;
+  /** Source label for QUOTE mode — shown under the passage. */
+  quoteSource: string | null;
 };
 
 type WordCfg = Pick<
@@ -50,36 +54,23 @@ type WordCfg = Pick<
 >;
 
 type Action =
-  | { type: "SET_MODE"; mode: Mode; cfg: WordCfg }
-  | { type: "SET_LENGTH"; length: Length; cfg: WordCfg }
-  | { type: "SET_LANG"; lang: Lang; cfg: WordCfg }
+  | { type: "SET_MODE"; mode: Mode; length: Length; words: string[]; quoteSource: string | null }
+  | { type: "SET_LENGTH"; length: Length; words: string[]; quoteSource: string | null }
+  | { type: "SET_QUOTE"; words: string[]; source: string }
   | { type: "TOGGLE_ADAPT" }
   | { type: "TYPE_CHAR"; char: string; now: number; stopOnError: boolean }
   | { type: "BACKSPACE" }
   | { type: "SPACE"; now: number }
-  | { type: "RESTART"; seed?: number; cfg: WordCfg }
-  | { type: "REGENERATE"; cfg: WordCfg };
+  | { type: "RESTART"; words: string[]; quoteSource: string | null }
+  | { type: "REGENERATE"; cfg: WordCfg }
+  | { type: "FINISH_TIME"; now: number };
 
 // ─── Word lists ─────────────────────────────────────────────────────
 
-// EN-COMMON is the default practice list — sourced from monkeytype's
-// english.json (top ~200 most-frequent words). EN keeps the longer
-// 1000-word list for users who want more breadth.
-const WORDS: Record<Lang, readonly string[]> = {
-  "EN-COMMON": englishWords.words,
-  EN: EN_COMMON_1000,
-  PROGRAMMING: [
-    "function", "return", "const", "let", "var", "if", "else", "for",
-    "while", "true", "false", "null", "undefined", "async", "await",
-    "import", "export", "default", "class", "extends", "this", "new",
-    "public", "private", "static", "void", "int", "string", "boolean",
-    "console", "log", "error", "warn", "interface", "type", "enum",
-    "throw", "catch", "try", "finally", "break", "continue", "switch",
-    "case", "yield", "from", "as", "delete", "typeof", "instanceof",
-    "in", "of", "do", "Map", "Set", "Array", "Object", "Promise",
-    "then", "fetch", "JSON", "parse", "stringify", "number", "string",
-  ],
-};
+// Single english word pool — sourced from monkeytype's english.json (top
+// ~200 most-frequent words, frequency-ordered). The Lang concept is gone
+// from the UI; this is the only WORDS mode source.
+const WORD_POOL: readonly string[] = englishWords.words;
 
 // Seeded LCG so SSR & client agree on the initial passage.
 function seededRandom(seed: number) {
@@ -92,25 +83,24 @@ function seededRandom(seed: number) {
 
 const PUNCTUATION = [".", ",", ";", ":", "!", "?"] as const;
 
-function filteredList(lang: Lang, cfg: WordCfg): readonly string[] {
-  let list: readonly string[] = WORDS[lang];
+function filteredList(cfg: WordCfg): readonly string[] {
+  let list: readonly string[] = WORD_POOL;
   list = list.filter((w) => w.length >= cfg.minWordLength);
   if (cfg.difficulty === "easy") list = list.filter((w) => w.length <= 5);
   else if (cfg.difficulty === "expert") list = list.filter((w) => w.length >= 5);
   else if (cfg.difficulty === "master") list = list.filter((w) => w.length >= 7);
-  return list.length > 0 ? list : WORDS[lang];
+  return list.length > 0 ? list : WORD_POOL;
 }
 
 function generateWords(
-  lang: Lang,
-  length: number,
+  count: number,
   seed: number,
   cfg: WordCfg = DEFAULT_BEHAVIOUR,
 ): string[] {
-  const list = filteredList(lang, cfg);
+  const list = filteredList(cfg);
   const rand = seededRandom(seed);
   const base = Array.from(
-    { length },
+    { length: count },
     () => list[Math.floor(rand() * list.length)]!,
   );
   if (!cfg.showSecondary) return base;
@@ -122,19 +112,44 @@ function generateWords(
   });
 }
 
+/** TIME mode generates a long buffer up front so even fast typists never
+ *  run out before the timer expires. 300 words at 200 wpm ≈ 90 s of
+ *  typing, which covers every supported duration with margin. */
+const TIME_BUFFER = 300;
+
+function generateForMode(
+  mode: Mode,
+  length: Length,
+  cfg: WordCfg,
+): string[] {
+  if (mode === "TIME") return generateWords(TIME_BUFFER, Date.now(), cfg);
+  if (mode === "WORDS") return generateWords(length, Date.now(), cfg);
+  // QUOTE — words come from an async fetch; placeholder until SET_QUOTE.
+  return [];
+}
+
+function quoteToWords(text: string): string[] {
+  return text.split(/\s+/).filter(Boolean);
+}
+
 // ─── Initial state ──────────────────────────────────────────────────
 
 const INITIAL_LENGTH: Length = 50;
-const INITIAL_LANG: Lang = "EN-COMMON";
+
+/** Per-mode default for `length` when the user switches modes. */
+export function defaultLengthFor(mode: Mode): Length {
+  if (mode === "TIME") return 30;
+  if (mode === "QUOTE") return 1; // medium
+  return INITIAL_LENGTH;
+}
 
 export const initialState: State = {
   mode: "WORDS",
   length: INITIAL_LENGTH,
-  lang: INITIAL_LANG,
   adapt: true,
   phase: "rest",
   // Deterministic seed — same words on SSR + client, no hydration mismatch.
-  words: generateWords(INITIAL_LANG, INITIAL_LENGTH, 1),
+  words: generateWords(INITIAL_LENGTH, 1),
   cursorWord: 0,
   cursorChar: 0,
   errorWords: new Set(),
@@ -142,15 +157,21 @@ export const initialState: State = {
   correctChars: 0,
   startTime: null,
   endTime: null,
+  quoteSource: null,
 };
 
 // ─── Reducer ────────────────────────────────────────────────────────
 
-function freshRun(s: State, words?: string[]): State {
+function freshRun(
+  s: State,
+  patch: { words?: string[]; quoteSource?: string | null } = {},
+): State {
   return {
     ...s,
     phase: "rest",
-    words: words ?? s.words,
+    words: patch.words ?? s.words,
+    quoteSource:
+      patch.quoteSource !== undefined ? patch.quoteSource : s.quoteSource,
     cursorWord: 0,
     cursorChar: 0,
     errorWords: new Set(),
@@ -165,31 +186,30 @@ function reducer(s: State, a: Action): State {
   switch (a.type) {
     case "SET_MODE":
       return freshRun(
-        { ...s, mode: a.mode },
-        generateWords(s.lang, s.length, Date.now(), a.cfg),
+        { ...s, mode: a.mode, length: a.length },
+        { words: a.words, quoteSource: a.quoteSource },
       );
     case "SET_LENGTH":
       return freshRun(
         { ...s, length: a.length },
-        generateWords(s.lang, a.length, Date.now(), a.cfg),
+        { words: a.words, quoteSource: a.quoteSource },
       );
-    case "SET_LANG":
-      return freshRun(
-        { ...s, lang: a.lang },
-        generateWords(a.lang, s.length, Date.now(), a.cfg),
-      );
+    case "SET_QUOTE":
+      return freshRun(s, { words: a.words, quoteSource: a.source });
     case "TOGGLE_ADAPT":
       return { ...s, adapt: !s.adapt };
     case "RESTART":
-      return freshRun(
-        s,
-        generateWords(s.lang, s.length, a.seed ?? Date.now(), a.cfg),
-      );
+      return freshRun(s, { words: a.words, quoteSource: a.quoteSource });
     case "REGENERATE":
-      return freshRun(
-        s,
-        generateWords(s.lang, s.length, Date.now(), a.cfg),
-      );
+      // QUOTE mode passages aren't randomly generated — leave them alone
+      // when the user toggles a behaviour pref.
+      if (s.mode === "QUOTE") return s;
+      return freshRun(s, {
+        words: generateForMode(s.mode, s.length, a.cfg),
+      });
+    case "FINISH_TIME":
+      if (s.phase !== "running") return s;
+      return { ...s, phase: "done", endTime: a.now };
     case "TYPE_CHAR": {
       if (s.phase === "done") return s;
       const word = s.words[s.cursorWord];
@@ -235,11 +255,18 @@ function reducer(s: State, a: Action): State {
       if (s.phase === "done" || s.phase === "rest") return s;
       const next = s.cursorWord + 1;
       if (next >= s.words.length) {
-        return {
-          ...s,
-          phase: "done",
-          endTime: a.now,
-        };
+        // TIME mode finishes on the timer, not when words run out — top
+        // up the buffer with another batch so fast typists don't stall.
+        if (s.mode === "TIME") {
+          const more = generateWords(TIME_BUFFER, Date.now());
+          return {
+            ...s,
+            words: [...s.words, ...more],
+            cursorWord: next,
+            cursorChar: 0,
+          };
+        }
+        return { ...s, phase: "done", endTime: a.now };
       }
       return {
         ...s,
@@ -258,12 +285,12 @@ type PracticeCtx = {
   state: State;
   dispatch: React.Dispatch<Action>;
   /** Action helpers that auto-bind the current behaviour-prefs cfg
-   *  for word generation. Prefer these over raw dispatch in UI code. */
+   *  for word generation, kick the async quote fetch when the user
+   *  switches into QUOTE mode, and handle per-mode defaults. */
   setMode: (mode: Mode) => void;
   setLength: (length: Length) => void;
-  setLang: (lang: Lang) => void;
   toggleAdapt: () => void;
-  restart: (seed?: number) => void;
+  restart: () => void;
   elapsedMs: number;
   wpm: number;
   accuracy: number;
@@ -317,6 +344,25 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(id);
   }, [state.phase, state.startTime, state.endTime]);
 
+  // TIME mode countdown: end the run when the duration elapses. We let
+  // setTimeout handle the wake-up so we don't poll Date.now() on every
+  // keystroke; the elapsed-tick effect above stays purely cosmetic.
+  useEffect(() => {
+    if (
+      state.mode !== "TIME" ||
+      state.phase !== "running" ||
+      state.startTime == null
+    ) {
+      return;
+    }
+    const remaining =
+      state.length * 1000 - (Date.now() - state.startTime);
+    const id = setTimeout(() => {
+      dispatch({ type: "FINISH_TIME", now: Date.now() });
+    }, Math.max(0, remaining));
+    return () => clearTimeout(id);
+  }, [state.mode, state.phase, state.startTime, state.length]);
+
   const value = useMemo<PracticeCtx>(() => {
     const minutes = elapsedMs / 60_000;
     const wpm =
@@ -333,24 +379,82 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
         showSecondary: p.showSecondary,
       };
     };
+    const loadAndDispatchQuote = async (group: QuoteGroup) => {
+      try {
+        const all = await loadQuotes();
+        const q = pickQuote(all, group);
+        dispatch({
+          type: "SET_QUOTE",
+          words: quoteToWords(q.text),
+          source: q.source,
+        });
+      } catch {
+        // Network or parse failure — fall back to a generated passage so
+        // the user is never stuck staring at an empty screen.
+        dispatch({
+          type: "SET_QUOTE",
+          words: generateWords(50, Date.now(), buildCfg()),
+          source: "(quote unavailable)",
+        });
+      }
+    };
     return {
       state,
       dispatch,
       elapsedMs,
       wpm,
       accuracy,
-      setMode: (mode) => dispatch({ type: "SET_MODE", mode, cfg: buildCfg() }),
-      setLength: (length) =>
-        dispatch({ type: "SET_LENGTH", length, cfg: buildCfg() }),
-      setLang: (lang) => dispatch({ type: "SET_LANG", lang, cfg: buildCfg() }),
+      setMode: (mode) => {
+        const length = defaultLengthFor(mode);
+        const cfg = buildCfg();
+        dispatch({
+          type: "SET_MODE",
+          mode,
+          length,
+          words: generateForMode(mode, length, cfg),
+          quoteSource: null,
+        });
+        if (mode === "QUOTE") void loadAndDispatchQuote(length as QuoteGroup);
+      },
+      setLength: (length) => {
+        const cfg = buildCfg();
+        dispatch({
+          type: "SET_LENGTH",
+          length,
+          words: generateForMode(state.mode, length, cfg),
+          quoteSource: state.mode === "QUOTE" ? null : state.quoteSource,
+        });
+        if (state.mode === "QUOTE") {
+          void loadAndDispatchQuote(length as QuoteGroup);
+        }
+      },
       toggleAdapt: () => dispatch({ type: "TOGGLE_ADAPT" }),
-      restart: (seed) => dispatch({ type: "RESTART", seed, cfg: buildCfg() }),
+      restart: () => {
+        const cfg = buildCfg();
+        if (state.mode === "QUOTE") {
+          // Reset the run; new quote arrives when the fetch resolves.
+          dispatch({
+            type: "RESTART",
+            words: [],
+            quoteSource: null,
+          });
+          void loadAndDispatchQuote(state.length as QuoteGroup);
+          return;
+        }
+        dispatch({
+          type: "RESTART",
+          words: generateForMode(state.mode, state.length, cfg),
+          quoteSource: null,
+        });
+      },
     };
   }, [state, elapsedMs]);
 
   // Keyboard listener — only when user isn't typing into another input.
   const stateRef = useRef(state);
   stateRef.current = state;
+  const restartRef = useRef(value.restart);
+  restartRef.current = value.restart;
 
   const onKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -366,21 +470,16 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
 
     const s = stateRef.current;
     const p = prefsRef.current;
-    const cfg: WordCfg = {
-      minWordLength: p.minWordLength,
-      difficulty: p.difficulty,
-      showSecondary: p.showSecondary,
-    };
 
     if (e.key === "Tab") {
       // Quick restart off → let Tab do its native thing (focus shift).
       if (!p.quickRestart) return;
       e.preventDefault();
-      dispatch({ type: "RESTART", cfg });
+      restartRef.current();
       return;
     }
     if (e.key === "Escape") {
-      dispatch({ type: "RESTART", cfg });
+      restartRef.current();
       return;
     }
     if (s.phase === "done") return;

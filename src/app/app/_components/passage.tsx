@@ -166,6 +166,16 @@ export function Passage() {
           );
         })}
       </div>
+      {state.mode === "QUOTE" && state.quoteSource ? (
+        <p className="mt-6 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+          — {state.quoteSource}
+        </p>
+      ) : null}
+      {state.mode === "QUOTE" && words.length === 0 ? (
+        <p className="mt-6 text-sm text-muted-foreground">
+          loading quote…
+        </p>
+      ) : null}
     </div>
   );
 }
