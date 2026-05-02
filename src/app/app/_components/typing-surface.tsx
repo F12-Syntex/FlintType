@@ -5,9 +5,10 @@ import { InputCapture } from "./input-capture";
 import { Keyboard } from "./keyboard";
 import { ModeBar } from "./mode-bar";
 import { Passage } from "./passage";
-import { PracticeProvider } from "./practice-state";
+import { PracticeProvider, usePractice } from "./practice-state";
 import { Readouts } from "./readouts";
 import { RestHint } from "./rest-hint";
+import { TestSummary } from "./test-summary";
 
 export type TypingSurfaceProps = {
   /** Show the mode/length/lang/adapt config dock above the typing area. */
@@ -31,58 +32,65 @@ export type TypingSurfaceProps = {
  *  TopBar — collapsed ModeBar strip — compact Readouts strip — flex-1
  *  Passage (internal scroll-into-view only) — RestHint footer row.
  */
-export function TypingSurface({
+export function TypingSurface(props: TypingSurfaceProps = {}) {
+  return (
+    <PracticeProvider>
+      <InputCapture>
+        <TypingSurfaceBody {...props} />
+      </InputCapture>
+    </PracticeProvider>
+  );
+}
+
+function TypingSurfaceBody({
   showModeBar = true,
   showKeyboard = true,
   showRestHint = true,
   showReadouts = true,
   belowHint,
-}: TypingSurfaceProps = {}) {
+}: TypingSurfaceProps) {
   const { prefs } = useBehaviourPrefs();
+  const { state } = usePractice();
+  const done = state.phase === "done";
   // Behaviour-prefs gates: a `false` setting wins over the prop default.
-  const renderKeyboard = showKeyboard && prefs.liveKeyboard;
+  const renderKeyboard = showKeyboard && prefs.liveKeyboard && !done;
   return (
-    <PracticeProvider>
-      <InputCapture>
-        {showModeBar ? <ModeBar /> : null}
-        {/* Edge-to-edge readouts strip on mobile (rendered inside this
-            wrapper but using its own padding); the desktop readouts pick
-            up the column padding below. */}
-        {showReadouts ? (
-          <div className="md:hidden">
+    <>
+      {showModeBar ? <ModeBar /> : null}
+      {/* Live readouts disappear when the run finishes — the summary
+          carries every stat and more, so the strip is just noise. */}
+      {showReadouts && !done ? (
+        <div className="md:hidden">
+          <Readouts />
+        </div>
+      ) : null}
+      <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pt-4 pb-3 sm:gap-6 sm:px-12 sm:py-8 lg:px-20">
+        {showReadouts && !done ? (
+          <div className="hidden md:block">
             <Readouts />
           </div>
         ) : null}
-        <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pt-4 pb-3 sm:gap-6 sm:px-12 sm:py-8 lg:px-20">
-          {/* Desktop readouts — sit just above the passage so the user
-              glances up and sees ELAPSED on the left, WPM on the right
-              while typing. */}
-          {showReadouts ? (
-            <div className="hidden md:block">
-              <Readouts />
-            </div>
-          ) : null}
-          {/* Passage gets the leftover vertical space. Inner content is
-              static; the caret slides between character positions. */}
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <Passage />
-          </div>
-          {/* RestHint is mobile-only. On desktop the readouts strip already
-              shows progress + final stats; the keycap hints (tab/esc) are
-              power-user knowledge and just crowded the keyboard preview. */}
-          {showRestHint ? (
-            <div className="md:hidden">
-              <RestHint />
-            </div>
-          ) : null}
-          {belowHint}
-          {renderKeyboard ? (
-            <div className="mt-auto hidden md:block">
-              <Keyboard />
-            </div>
-          ) : null}
+        <div
+          className={
+            done
+              ? "flex min-h-0 flex-1 flex-col overflow-y-auto"
+              : "flex min-h-0 flex-1 flex-col overflow-hidden"
+          }
+        >
+          {done ? <TestSummary /> : <Passage />}
         </div>
-      </InputCapture>
-    </PracticeProvider>
+        {showRestHint && !done ? (
+          <div className="md:hidden">
+            <RestHint />
+          </div>
+        ) : null}
+        {!done ? belowHint : null}
+        {renderKeyboard ? (
+          <div className="mt-auto hidden md:block">
+            <Keyboard />
+          </div>
+        ) : null}
+      </div>
+    </>
   );
 }

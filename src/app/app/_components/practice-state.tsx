@@ -28,6 +28,17 @@ export type Mode = "WORDS" | "TIME" | "QUOTE";
 export type Length = number;
 export type Phase = "rest" | "running" | "done";
 
+/** One keystroke event captured for the run-summary. `t` is ms since the
+ *  run started; `expected` is the char we expected ("" if past word end);
+ *  `typed` is what the user pressed. Backspaces and spaces are not
+ *  recorded — only printable character attempts inside a word. */
+export type KeyEvent = {
+  t: number;
+  expected: string;
+  typed: string;
+  correct: boolean;
+};
+
 export type State = {
   // config
   mode: Mode;
@@ -44,6 +55,7 @@ export type State = {
   correctChars: number;
   startTime: number | null;
   endTime: number | null;
+  events: KeyEvent[];
   /** Source label for QUOTE mode — shown under the passage. */
   quoteSource: string | null;
 };
@@ -157,6 +169,7 @@ export const initialState: State = {
   correctChars: 0,
   startTime: null,
   endTime: null,
+  events: [],
   quoteSource: null,
 };
 
@@ -179,6 +192,7 @@ function freshRun(
     correctChars: 0,
     startTime: null,
     endTime: null,
+    events: [],
   };
 }
 
@@ -215,29 +229,50 @@ function reducer(s: State, a: Action): State {
       const word = s.words[s.cursorWord];
       if (!word) return s;
       if (s.cursorChar >= word.length) return s;
-      const expected = word[s.cursorChar];
+      const expected = word[s.cursorChar]!;
       const correct = a.char === expected;
-      // Stop-on-error: count the attempt + flag the word, but don't
-      // advance the cursor until the user types the expected character.
+      const startTime = s.startTime ?? a.now;
+      const event: KeyEvent = {
+        t: a.now - startTime,
+        expected,
+        typed: a.char,
+        correct,
+      };
+
       if (!correct && a.stopOnError) {
         return {
           ...s,
           phase: s.phase === "rest" ? "running" : s.phase,
-          startTime: s.startTime ?? a.now,
+          startTime,
           totalChars: s.totalChars + 1,
           errorWords: new Set([...s.errorWords, s.cursorWord]),
+          events: [...s.events, event],
         };
       }
+
+      const nextCursorChar = s.cursorChar + 1;
+      // Auto-finish: a correct keystroke that completes the final char of
+      // the final word ends the run for WORDS / QUOTE — TIME ignores the
+      // word boundary and lets the timer end the run instead.
+      const isLastWord = s.cursorWord === s.words.length - 1;
+      const finishedRun =
+        correct &&
+        s.mode !== "TIME" &&
+        isLastWord &&
+        nextCursorChar === word.length;
+
       return {
         ...s,
-        phase: s.phase === "rest" ? "running" : s.phase,
-        startTime: s.startTime ?? a.now,
-        cursorChar: s.cursorChar + 1,
+        phase: finishedRun ? "done" : s.phase === "rest" ? "running" : s.phase,
+        startTime,
+        endTime: finishedRun ? a.now : s.endTime,
+        cursorChar: nextCursorChar,
         totalChars: s.totalChars + 1,
         correctChars: s.correctChars + (correct ? 1 : 0),
         errorWords: correct
           ? s.errorWords
           : new Set([...s.errorWords, s.cursorWord]),
+        events: [...s.events, event],
       };
     }
     case "BACKSPACE": {
