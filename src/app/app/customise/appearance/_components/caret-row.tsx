@@ -64,21 +64,25 @@ function CaretShape({
 }) {
   if (style === "off") return null;
 
-  const animation =
-    blinkSpeed > 0
-      ? `ft-blink ${blinkSpeed}ms steps(2) infinite`
-      : undefined;
+  // Class-based blink (.ft-caret-blink) so React re-renders don't reset
+  // the animation. Duration flows in via the --ft-blink-speed CSS var,
+  // which can change without restarting the animation either.
+  const blinkClass = blinkSpeed > 0 ? "ft-caret-blink" : "";
+  const blinkVar = {
+    ["--ft-blink-speed" as string]: `${blinkSpeed}ms`,
+  } as React.CSSProperties;
   const common: React.CSSProperties = {
     position: "absolute",
     borderRadius: radius,
-    animation,
     backgroundColor: "var(--primary)",
+    ...blinkVar,
   };
 
   if (style === "line") {
     return (
       <span
         aria-hidden
+        className={blinkClass}
         style={{
           ...common,
           width,
@@ -93,6 +97,7 @@ function CaretShape({
     return (
       <span
         aria-hidden
+        className={blinkClass}
         style={{
           ...common,
           width: charW,
@@ -109,6 +114,7 @@ function CaretShape({
     return (
       <span
         aria-hidden
+        className={blinkClass}
         style={{
           ...common,
           width: charW,
@@ -123,6 +129,7 @@ function CaretShape({
   return (
     <span
       aria-hidden
+      className={blinkClass}
       style={{
         ...common,
         width: charW,

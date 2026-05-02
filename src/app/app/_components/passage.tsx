@@ -214,7 +214,12 @@ function CaretGlyph({
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute top-0 left-0"
+      className={cn(
+        "pointer-events-none absolute top-0 left-0",
+        // Class-based blink so per-keystroke re-renders don't restart
+        // the animation (would never reach the hidden half otherwise).
+        blinkSpeed > 0 && "ft-caret-blink",
+      )}
       style={{
         width: w,
         height: h,
@@ -227,10 +232,7 @@ function CaretGlyph({
           animate && smoothSpeed > 0
             ? `transform ${smoothSpeed}ms cubic-bezier(.22, 0.8, 0.22, 1)`
             : "none",
-        animation:
-          blinkSpeed > 0
-            ? `ft-blink ${blinkSpeed}ms steps(2) infinite`
-            : undefined,
+        ["--ft-blink-speed" as string]: `${blinkSpeed}ms`,
         willChange: "transform",
       }}
     />

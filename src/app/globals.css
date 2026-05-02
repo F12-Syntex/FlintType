@@ -209,8 +209,15 @@
 
 @keyframes ft-blink {
   to {
-    visibility: hidden;
+    opacity: 0;
   }
+}
+
+/* Caret blink applied via this class so the animation isn't restarted
+   on every parent re-render. The duration reads from a CSS variable so
+   speed changes don't reset the animation either. */
+.ft-caret-blink {
+  animation: ft-blink var(--ft-blink-speed, 1000ms) steps(2) infinite;
 }
 
 @layer base {
