@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { type Theme, useTheme } from "@/lib/themes/use-theme";
+import { type Theme, usePalette } from "@/lib/themes/use-palette";
 
 function ThemeSwatches({ theme }: { theme: Theme }) {
   const v = theme.cssVars.light;
@@ -32,7 +32,7 @@ function ThemeSwatches({ theme }: { theme: Theme }) {
 }
 
 export function ThemesRow() {
-  const { themes, activeId, apply, reset } = useTheme();
+  const { themes, activeId, apply, reset } = usePalette();
   const active = activeId
     ? themes.find((t) => t.id === activeId) ?? null
     : null;

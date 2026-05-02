@@ -45,10 +45,3 @@ export function findTheme(id: string | null | undefined): Theme | undefined {
   if (!id) return undefined;
   return THEMES.find((t) => t.id === id);
 }
-
-/** Inline-script body that runs synchronously in <head> before paint —
- *  prevents the user's saved theme from flashing the default one. */
-export function buildBootstrapScript(): string {
-  const json = JSON.stringify(THEMES);
-  return `(function(){try{var id=localStorage.getItem(${JSON.stringify(STORAGE_KEY)});if(!id)return;var themes=${json};var t=themes.find(function(x){return x.id===id});if(!t)return;var isDark=document.documentElement.classList.contains('dark');var vars=isDark?t.cssVars.dark:t.cssVars.light;for(var k in vars){document.documentElement.style.setProperty('--'+k,vars[k])}}catch(e){}})();`;
-}

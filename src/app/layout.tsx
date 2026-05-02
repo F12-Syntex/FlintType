@@ -3,8 +3,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Lora, IBM_Plex_Mono } from "next/font/google";
-import { buildModeBootstrapScript } from "@/lib/themes/mode-bootstrap";
-import { buildBootstrapScript } from "@/lib/themes/registry";
+import { Providers } from "./providers";
 import "./globals.css";
 
 const fontSans = Plus_Jakarta_Sans({
@@ -36,19 +35,8 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
-        <head>
-          {/* Apply mode (light/dark) and the saved palette synchronously
-              so neither flashes its default on first paint. Mode runs
-              first so the palette script can read the resolved mode. */}
-          <script
-            dangerouslySetInnerHTML={{ __html: buildModeBootstrapScript() }}
-          />
-          <script
-            dangerouslySetInnerHTML={{ __html: buildBootstrapScript() }}
-          />
-        </head>
         <body className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased`}>
-          {children}
+          <Providers>{children}</Providers>
         </body>
       </html>
     </ClerkProvider>

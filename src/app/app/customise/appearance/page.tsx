@@ -21,7 +21,7 @@ import {
   type ThemeVar,
   useThemeOverrides,
 } from "@/lib/theme-customization";
-import { useTheme } from "@/lib/themes/use-theme";
+import { usePalette } from "@/lib/themes/use-palette";
 import { ModeToggle } from "./_components/mode-toggle";
 import { RadiusRow } from "./_components/radius-row";
 import { ThemesRow } from "./_components/themes-row";
@@ -410,7 +410,7 @@ function BackgroundRow({
 
 export default function AppearancePage() {
   const { overrides, setVar, clearVar, reset } = useThemeOverrides();
-  const { activeId: activeThemeId, reset: resetTheme } = useTheme();
+  const { activeId: activeThemeId, reset: resetTheme } = usePalette();
   const customizedCount =
     Object.keys(overrides).length + (activeThemeId ? 1 : 0);
 

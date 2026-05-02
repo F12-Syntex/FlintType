@@ -2,12 +2,13 @@
 
 import { motion } from "framer-motion";
 import { Monitor, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 import type { ComponentType } from "react";
 import { cn } from "@/lib/utils";
-import { type Mode, useMode } from "@/lib/themes/use-mode";
 
 const OPTIONS: {
-  value: Mode;
+  value: "system" | "light" | "dark";
   icon: ComponentType<{ size?: number; className?: string }>;
   label: string;
 }[] = [
@@ -17,21 +18,20 @@ const OPTIONS: {
 ];
 
 export function ModeSwitcher({ className }: { className?: string }) {
-  const { mode, setMode, mounted } = useMode();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   if (!mounted) {
-    // Reserve the same footprint so the topbar layout doesn't jump on
-    // hydration. Three 32-px circles + ring = 96 + 2 = ~98px.
+    // Reserve the same footprint so the topbar layout doesn't shift
+    // on hydration.
     return <div className={cn("inline-flex h-8 w-24", className)} />;
   }
 
   return (
-    <motion.div
+    <div
       role="radiogroup"
       aria-label="Theme mode"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
       className={cn(
         "inline-flex items-center overflow-hidden rounded-full border border-border bg-card",
         className,
@@ -39,7 +39,7 @@ export function ModeSwitcher({ className }: { className?: string }) {
     >
       {OPTIONS.map((opt) => {
         const Icon = opt.icon;
-        const active = mode === opt.value;
+        const active = theme === opt.value;
         return (
           <button
             key={opt.value}
@@ -47,7 +47,7 @@ export function ModeSwitcher({ className }: { className?: string }) {
             role="radio"
             aria-checked={active}
             aria-label={`Switch to ${opt.label} mode`}
-            onClick={() => setMode(opt.value)}
+            onClick={() => setTheme(opt.value)}
             className={cn(
               "relative flex size-8 cursor-pointer items-center justify-center rounded-full transition-colors",
               active
@@ -66,6 +66,6 @@ export function ModeSwitcher({ className }: { className?: string }) {
           </button>
         );
       })}
-    </motion.div>
+    </div>
   );
 }

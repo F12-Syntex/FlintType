@@ -2,17 +2,16 @@
 
 import { motion } from "framer-motion";
 import { Monitor, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 import type { ComponentType } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { type Mode, useMode } from "@/lib/themes/use-mode";
 
 type Option = {
-  value: Mode;
+  value: "light" | "dark" | "system";
   label: string;
   icon: ComponentType<{ size?: number; className?: string }>;
-  /** Drives the preview tile's color frame so each card shows what
-   *  that mode looks like, regardless of the current resolved mode. */
   surfaceClass: string;
   textClass: string;
   borderClass: string;
@@ -39,8 +38,6 @@ const OPTIONS: Option[] = [
     value: "system",
     label: "System",
     icon: Monitor,
-    // Half-light / half-dark gradient so this tile is visibly distinct
-    // from the other two on every page background.
     surfaceClass:
       "bg-[linear-gradient(135deg,#fff_0%,#fff_50%,#0a0a0a_50%,#0a0a0a_100%)]",
     textClass: "text-zinc-700",
@@ -48,13 +45,7 @@ const OPTIONS: Option[] = [
   },
 ];
 
-function Preview({
-  option,
-  active,
-}: {
-  option: Option;
-  active: boolean;
-}) {
+function Preview({ option, active }: { option: Option; active: boolean }) {
   const Icon = option.icon;
   return (
     <div
@@ -77,7 +68,9 @@ function Preview({
 }
 
 export function ModeToggle() {
-  const { mode, setMode, mounted } = useMode();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   if (!mounted) {
     return <div className="h-32 rounded-md border border-border bg-card" />;
@@ -97,14 +90,14 @@ export function ModeToggle() {
         className="grid grid-cols-3 gap-3"
       >
         {OPTIONS.map((opt) => {
-          const active = mode === opt.value;
+          const active = theme === opt.value;
           return (
             <button
               key={opt.value}
               type="button"
               role="radio"
               aria-checked={active}
-              onClick={() => setMode(opt.value)}
+              onClick={() => setTheme(opt.value)}
               className={cn(
                 "group flex flex-col items-stretch gap-2 rounded-md border p-2 text-left transition-colors",
                 active
@@ -129,9 +122,9 @@ export function ModeToggle() {
           );
         })}
       </div>
-      {mode !== "system" ? (
+      {theme && theme !== "system" ? (
         <div className="flex justify-end">
-          <Button variant="ghost" size="sm" onClick={() => setMode("system")}>
+          <Button variant="ghost" size="sm" onClick={() => setTheme("system")}>
             Match system
           </Button>
         </div>
