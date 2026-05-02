@@ -1,10 +1,35 @@
 "use client";
 
 import { useMemo } from "react";
-import { Panel, Stat, Tag } from "@/components/ft";
+import { Stat, Tag } from "@/components/ft";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { type KeyEvent, usePractice } from "./practice-state";
+
+/** Theme-aware replacement for the fixed-paper `<SummarySection>` so the summary
+ *  follows the active palette + light/dark mode instead of locking to the
+ *  default ink-on-paper surface. Same shape, theme-aware classes. */
+function SummarySection({
+  title,
+  subtitle,
+  children,
+}: {
+  title?: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-md border border-border bg-card p-5 text-foreground sm:p-6">
+      {(title || subtitle) && (
+        <div className="mb-4 flex items-baseline justify-between gap-3">
+          {title ? <Tag tone="ink">{title}</Tag> : <span />}
+          {subtitle ? <Tag>{subtitle}</Tag> : null}
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
 
 /** Per-second WPM bucket. We treat 5 *correct* characters as one word
  *  (the standard typing-speed convention) and slot every event into the
@@ -270,18 +295,18 @@ export function TestSummary() {
       </section>
 
       <section className="grid grid-cols-1 gap-5 lg:grid-cols-[2fr_1fr]">
-        <Panel title="WPM TRACE" subtitle={`peak ${peak} · ${buckets.length}s`}>
+        <SummarySection title="WPM TRACE" subtitle={`peak ${peak} · ${buckets.length}s`}>
           <WpmTraceChart buckets={buckets} />
-        </Panel>
-        <Panel title="WEAK KEYS" subtitle="ranked by misses">
+        </SummarySection>
+        <SummarySection title="WEAK KEYS" subtitle="ranked by misses">
           <WeakChars stats={weakChars} />
-        </Panel>
+        </SummarySection>
       </section>
 
       <section className="grid grid-cols-1 gap-5">
-        <Panel title="SLOW PAIRS" subtitle="avg ms between two correct keys">
+        <SummarySection title="SLOW PAIRS" subtitle="avg ms between two correct keys">
           <SlowPairs pairs={slowPairs} />
-        </Panel>
+        </SummarySection>
       </section>
     </div>
   );
