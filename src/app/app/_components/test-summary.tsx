@@ -75,9 +75,6 @@ function analysePairs(events: readonly KeyEvent[]): PairStat[] {
     const cur = events[i]!;
     if (!prev.correct || !cur.correct) continue;
     if (!prev.expected || !cur.expected) continue;
-    // Drop transitions involving the synthetic word-space — they're
-    // mostly thinking-pause noise, not real letter-pair difficulty.
-    if (prev.expected === " " || cur.expected === " ") continue;
     const dt = cur.t - prev.t;
     if (dt <= 0 || dt > 2000) continue;
     const key = `${prev.expected.toLowerCase()}${cur.expected.toLowerCase()}`;
@@ -228,20 +225,15 @@ function PassageHeatmap({
     let prevT = 0;
     for (const e of events) {
       if (!e.correct) continue;
-      // Synthetic space events advance the cursor to the next word but
-      // don't get a heatmap cell of their own (we don't render spaces
-      // in the colour-by-speed strip).
-      if (e.expected === " ") {
-        w += 1;
-        c = 0;
-        prevT = e.t;
-        continue;
-      }
       const word = words[w];
       if (!word) break;
       map.set(`${w}:${c}`, Math.max(0, e.t - prevT));
       prevT = e.t;
       c += 1;
+      if (c >= word.length) {
+        w += 1;
+        c = 0;
+      }
     }
     return map;
   }, [events, words]);
@@ -362,15 +354,14 @@ function reconstructCursor(
   const errorWords = new Set<number>();
   for (let i = 0; i < upTo; i += 1) {
     const e = events[i]!;
-    if (e.correct && e.expected === " ") {
-      w += 1;
-      c = 0;
-      continue;
-    }
     const word = words[w];
     if (!word) break;
     if (e.correct) {
       c += 1;
+      if (c >= word.length) {
+        w += 1;
+        c = 0;
+      }
     } else {
       errorWords.add(w);
     }
