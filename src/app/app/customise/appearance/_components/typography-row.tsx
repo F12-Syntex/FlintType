@@ -33,12 +33,24 @@ const SIZE_PRESETS: ReadonlyArray<{ label: string; scale: number }> = [
   { label: "XL", scale: 1.25 },
 ];
 
+// Spacing between words on the passage. The default (0.25em) matches
+// what the passage shipped with — every other preset is relative to that.
+const WORD_SPACING_PRESETS: ReadonlyArray<{ label: string; em: number }> = [
+  { label: "Tight", em: 0.05 },
+  { label: "Snug", em: 0.15 },
+  { label: "Normal", em: 0.25 },
+  { label: "Loose", em: 0.45 },
+  { label: "Airy", em: 0.7 },
+];
+
 function HeroPreview({
   fontStack,
   scale,
+  wordSpacingEm,
 }: {
   fontStack: string | undefined;
   scale: number;
+  wordSpacingEm: number;
 }) {
   return (
     <div
@@ -46,6 +58,7 @@ function HeroPreview({
       style={{
         fontFamily: fontStack ?? "var(--font-sans)",
         fontSize: `${scale}rem`,
+        wordSpacing: `${wordSpacingEm}em`,
       }}
     >
       <p className="text-3xl font-bold tracking-tight text-foreground">
@@ -68,11 +81,24 @@ export function TypographyRows() {
     FONT_OPTIONS.find((o) => o.stack === family)?.id ?? "default";
   const activeScale =
     SIZE_PRESETS.find((p) => Math.abs(p.scale - scale) < 0.01)?.label ?? null;
-  const customised = family !== undefined || overrides["--ft-font-scale"] !== undefined;
+  const wordSpacing = overrides["--ft-word-spacing"]
+    ? Number.parseFloat(overrides["--ft-word-spacing"])
+    : 0.25;
+  const activeWordSpacing =
+    WORD_SPACING_PRESETS.find((p) => Math.abs(p.em - wordSpacing) < 0.01)
+      ?.label ?? null;
+  const customised =
+    family !== undefined ||
+    overrides["--ft-font-scale"] !== undefined ||
+    overrides["--ft-word-spacing"] !== undefined;
 
   return (
     <div className="flex flex-col gap-3">
-      <HeroPreview fontStack={family} scale={scale} />
+      <HeroPreview
+        fontStack={family}
+        scale={scale}
+        wordSpacingEm={wordSpacing}
+      />
 
       <SettingsRow
         label="Family"
@@ -114,6 +140,22 @@ export function TypographyRows() {
         }
       />
 
+      <SettingsRow
+        label="Word spacing"
+        control={
+          <ChipGroup>
+            {WORD_SPACING_PRESETS.map((p) => (
+              <Chip
+                key={p.label}
+                label={p.label}
+                active={activeWordSpacing === p.label}
+                onClick={() => setVar("--ft-word-spacing", `${p.em}em`)}
+              />
+            ))}
+          </ChipGroup>
+        }
+      />
+
       {customised ? (
         <div className="flex justify-end">
           <Button
@@ -122,6 +164,7 @@ export function TypographyRows() {
             onClick={() => {
               clearVar("--ft-font-family");
               clearVar("--ft-font-scale");
+              clearVar("--ft-word-spacing");
             }}
           >
             Reset to default

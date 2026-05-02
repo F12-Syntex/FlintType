@@ -15,6 +15,7 @@ import {
   DEFAULT_BEHAVIOUR,
   useBehaviourPrefs,
 } from "@/lib/behaviour-prefs";
+import { EN_COMMON_1000 } from "@/data/en-common-1000";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -61,17 +62,7 @@ type Action =
 // ─── Word lists ─────────────────────────────────────────────────────
 
 const WORDS: Record<Lang, readonly string[]> = {
-  "EN-COMMON": [
-    "the", "of", "and", "to", "in", "a", "is", "that", "for", "it",
-    "as", "was", "with", "be", "by", "on", "not", "he", "this", "are",
-    "or", "his", "from", "at", "which", "but", "have", "an", "had",
-    "they", "you", "were", "their", "one", "all", "we", "can", "has",
-    "there", "been", "if", "more", "when", "will", "who", "so", "no",
-    "would", "only", "other", "into", "than", "its", "two", "these",
-    "may", "then", "do", "first", "any", "my", "now", "such", "like",
-    "our", "over", "man", "me", "even", "most", "made", "after", "also",
-    "did", "many", "before", "must", "well", "back", "through", "years",
-  ],
+  "EN-COMMON": EN_COMMON_1000,
   EN: [
     "ability", "able", "about", "above", "accept", "according", "account",
     "across", "action", "activity", "actually", "address", "administration",

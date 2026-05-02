@@ -169,7 +169,7 @@ export default function AppearancePage() {
           <h2 className="text-2xl font-bold tracking-tight">Appearance</h2>
           <div className="flex items-center gap-3">
             <Badge variant="secondary" className="px-2 text-[0.65rem]">
-              {COLOR_ROWS.length + 5} options
+              {COLOR_ROWS.length + 6} options
             </Badge>
             {customizedCount > 0 ? (
               <Badge className="px-2 text-[0.65rem]">

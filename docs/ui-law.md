@@ -433,7 +433,7 @@ Pick the smallest control that fits the choice space:
 Every option that belongs to the same parent topic lives **inside the same section**. Examples:
 
 - **Caret & cursor** — Style, Thickness, Roundness, Blink, Smooth — *all in one section*.
-- **Typography** — Family, Size — *all in one section*.
+- **Typography** — Family, Size, Word spacing — *all in one section*.
 - **Geometry** — Radius (and any future spacing scale) — *all in one section*.
 
 Don't sprinkle related settings across sections; if you find yourself doing that, rename the section or split it cleanly.

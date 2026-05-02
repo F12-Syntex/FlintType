@@ -28,6 +28,8 @@ export const THEME_VARS = [
   "--ft-bg-image",
   "--ft-font-family",
   "--ft-font-scale",
+  // Spacing between words on the practice passage. Read by passage.tsx.
+  "--ft-word-spacing",
 ] as const;
 
 export type ThemeVar = (typeof THEME_VARS)[number];

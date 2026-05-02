@@ -120,7 +120,8 @@ export function Passage() {
     <div className="relative h-full w-full overflow-hidden">
       <div
         ref={innerRef}
-        className="relative select-none text-2xl leading-[2.2] font-normal text-muted-foreground tracking-[0.04em] [word-spacing:0.25em] sm:text-3xl sm:leading-[2.3] lg:text-4xl lg:leading-[2.4]"
+        className="relative select-none text-2xl leading-[2.2] font-normal text-muted-foreground tracking-[0.04em] sm:text-3xl sm:leading-[2.3] lg:text-4xl lg:leading-[2.4]"
+        style={{ wordSpacing: "var(--ft-word-spacing, 0.25em)" }}
       >
         {showCaret && caret ? (
           <CaretGlyph
