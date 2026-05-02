@@ -20,20 +20,32 @@ function SummarySection({
   title,
   subtitle,
   children,
+  className,
+  contentClassName,
+  compact = false,
 }: {
   title?: string;
   subtitle?: string;
   children: React.ReactNode;
+  className?: string;
+  contentClassName?: string;
+  compact?: boolean;
 }) {
   return (
-    <section className="rounded-md border border-border bg-card p-5 text-foreground sm:p-6">
+    <section
+      className={cn(
+        "flex flex-col rounded-md border border-border bg-card text-foreground",
+        compact ? "gap-2 p-3" : "gap-3 p-4 sm:p-5",
+        className,
+      )}
+    >
       {(title || subtitle) && (
-        <div className="mb-4 flex items-baseline justify-between gap-3">
+        <div className="flex items-baseline justify-between gap-3">
           {title ? <Tag tone="ink">{title}</Tag> : <span />}
           {subtitle ? <Tag>{subtitle}</Tag> : null}
         </div>
       )}
-      {children}
+      <div className={cn("flex-1", contentClassName)}>{children}</div>
     </section>
   );
 }
@@ -180,9 +192,13 @@ function WpmTraceChart({ buckets }: { buckets: readonly WpmBucket[] }) {
   );
 }
 
-/** Render the source passage with each character tinted by how often it
- *  was missed during the run. Heatmap intensity = miss count for that
- *  character (case-insensitive) ÷ the worst character's count. */
+/** Render the run's source passage with each character coloured by its
+ *  *speed* — how many ms passed between landing on the previous correct
+ *  key and this one. Fast = foreground (white/black per theme), slow =
+ *  primary (full). Average lands near the midway blend.
+ *
+ *  Latencies span the 10th → 90th percentile of the run so a single
+ *  outlier (a yawn, an interruption) doesn't crush the colour scale. */
 function PassageHeatmap({
   words,
   events,
@@ -190,58 +206,76 @@ function PassageHeatmap({
   words: readonly string[];
   events: readonly KeyEvent[];
 }) {
-  const missByChar = useMemo(() => {
-    const m = new Map<string, number>();
+  // Walk events, advance a virtual (word, char) cursor on correct keys,
+  // and record the per-position latency.
+  const latencyByPos = useMemo(() => {
+    const map = new Map<string, number>();
+    let w = 0;
+    let c = 0;
+    let prevT = 0;
     for (const e of events) {
-      if (e.correct || !e.expected) continue;
-      const k = e.expected.toLowerCase();
-      m.set(k, (m.get(k) ?? 0) + 1);
+      if (!e.correct) continue;
+      const word = words[w];
+      if (!word) break;
+      const dt = Math.max(0, e.t - prevT);
+      map.set(`${w}:${c}`, dt);
+      prevT = e.t;
+      c += 1;
+      if (c >= word.length) {
+        w += 1;
+        c = 0;
+      }
     }
-    return m;
-  }, [events]);
+    return map;
+  }, [events, words]);
 
-  const maxMiss = useMemo(
-    () => Math.max(0, ...missByChar.values()),
-    [missByChar],
-  );
+  // 10th / 90th percentile bounds for the colour scale.
+  const [lo, hi] = useMemo(() => {
+    const sorted = [...latencyByPos.values()].sort((a, b) => a - b);
+    if (sorted.length < 4) return [0, 1] as const;
+    const p10 = sorted[Math.floor(sorted.length * 0.1)] ?? 0;
+    const p90 = sorted[Math.floor(sorted.length * 0.9)] ?? 1;
+    return [p10, Math.max(p90, p10 + 1)] as const;
+  }, [latencyByPos]);
 
   if (words.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">no passage to map.</p>
-    );
+    return <p className="text-sm text-muted-foreground">no passage to map.</p>;
   }
 
-  const text = words.join(" ");
   return (
-    <div className="font-mono text-base leading-[2] tracking-wide">
-      {[...text].map((ch, i) => {
-        const k = ch.toLowerCase();
-        const m = missByChar.get(k) ?? 0;
-        const intensity = maxMiss > 0 ? m / maxMiss : 0;
-        if (intensity === 0) {
-          return (
-            <span key={i} className="text-muted-foreground">
-              {ch === " " ? " " : ch}
-            </span>
-          );
-        }
-        // Stronger tint = redder background + ember text.
-        const bgPct = Math.round(15 + intensity * 60);
-        const textColor = intensity > 0.5 ? "var(--primary)" : "var(--foreground)";
-        return (
-          <span
-            key={i}
-            className="rounded-sm px-0.5"
-            style={{
-              backgroundColor: `color-mix(in oklch, var(--primary) ${bgPct}%, transparent)`,
-              color: textColor,
-            }}
-            title={`${m} miss${m === 1 ? "" : "es"} on "${ch}"`}
-          >
-            {ch}
-          </span>
-        );
-      })}
+    <div className="font-mono text-sm leading-[1.7] tracking-[0.04em] [word-spacing:0.25em]">
+      {words.map((word, wi) => (
+        <span key={wi}>
+          {[...word].map((ch, ci) => {
+            const lat = latencyByPos.get(`${wi}:${ci}`);
+            if (lat == null) {
+              return (
+                <span key={ci} className="text-muted-foreground">
+                  {ch}
+                </span>
+              );
+            }
+            const span = hi - lo;
+            const intensity =
+              span > 0 ? Math.max(0, Math.min(1, (lat - lo) / span)) : 0;
+            const pct = Math.round(intensity * 100);
+            return (
+              <span
+                key={ci}
+                style={{
+                  color: `color-mix(in oklch, var(--primary) ${pct}%, var(--foreground))`,
+                }}
+                title={`${Math.round(lat)} ms`}
+              >
+                {ch}
+              </span>
+            );
+          })}
+          {wi < words.length - 1 ? (
+            <span className="text-muted-foreground">{" "}</span>
+          ) : null}
+        </span>
+      ))}
     </div>
   );
 }
@@ -401,9 +435,14 @@ export function TestSummary() {
   const wrongTotal = state.events.filter((e) => !e.correct).length;
   const elapsedSec = Math.max(1, Math.round(elapsedMs / 1000));
 
+  // Top weak / slow lists are tighter so the whole summary fits without
+  // scrolling on standard laptop heights (~720 px content area).
+  const topWeak = weakChars.slice(0, 5);
+  const topPairs = slowPairs.slice(0, 6);
+
   return (
-    <div className="flex flex-col gap-6 px-1 py-2">
-      <header className="flex flex-wrap items-baseline justify-between gap-3 border-b border-border pb-4">
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden px-1 py-1">
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span aria-hidden className="size-1.5 bg-primary" />
           <Tag>complete</Tag>
@@ -413,56 +452,60 @@ export function TestSummary() {
         </Button>
       </header>
 
-      <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        <Stat label="WPM" value={String(wpm)} size="lg" accent bordered />
+      <section className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+        <Stat label="WPM" value={String(wpm)} size="md" accent bordered />
         <Stat
           label="ACC"
           value={`${Math.round(accuracy * 10) / 10}%`}
-          size="lg"
+          size="md"
           bordered
         />
-        <Stat label="PEAK" value={String(peak)} size="lg" bordered />
-        <Stat label="ERRORS" value={String(wrongTotal)} size="lg" bordered />
+        <Stat label="PEAK" value={String(peak)} size="md" bordered />
+        <Stat label="ERRORS" value={String(wrongTotal)} size="md" bordered />
         <Stat
-          label="CONSISTENCY"
+          label="CONS."
           value={String(cons)}
           suffix="/100"
-          size="lg"
+          size="md"
           bordered
         />
-        <Stat label="TIME" value={`${elapsedSec}s`} size="lg" />
+        <Stat label="TIME" value={`${elapsedSec}s`} size="md" />
       </section>
 
-      <section className="grid grid-cols-1 gap-5 lg:grid-cols-[2fr_1fr]">
-        <SummarySection title="WPM TRACE" subtitle={`peak ${peak} · ${buckets.length}s`}>
-          <WpmTraceChart buckets={buckets} />
-        </SummarySection>
-        <SummarySection title="WEAK KEYS" subtitle="ranked by misses">
-          <WeakChars stats={weakChars} />
-        </SummarySection>
-      </section>
-
-      <section className="grid grid-cols-1 gap-5">
+      <section className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[3fr_2fr]">
         <SummarySection
           title="PASSAGE HEATMAP"
-          subtitle="darker red = more misses on that letter"
+          subtitle="redder = slower · gray = unseen / space"
+          className="min-h-0 overflow-hidden"
+          contentClassName="min-h-0 overflow-y-auto pr-1"
         >
           <PassageHeatmap words={state.words} events={state.events} />
         </SummarySection>
+        <div className="grid min-h-0 grid-rows-[auto_1fr] gap-3">
+          <SummarySection
+            title="WPM TRACE"
+            subtitle={`peak ${peak} · ${buckets.length}s`}
+            className="min-h-0"
+          >
+            <WpmTraceChart buckets={buckets} />
+          </SummarySection>
+          <SummarySection
+            title="PAIR FLOW"
+            subtitle="from → to · arrow weight = delay"
+            className="min-h-0 overflow-hidden"
+            contentClassName="min-h-0 overflow-y-auto pr-1"
+          >
+            <PairFlow pairs={topPairs} />
+          </SummarySection>
+        </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_1fr]">
-        <SummarySection
-          title="SLOW PAIRS"
-          subtitle="ranked by avg ms between correct keys"
-        >
-          <SlowPairs pairs={slowPairs} />
+      <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <SummarySection title="WEAK KEYS" subtitle="top 5 by misses" compact>
+          <WeakChars stats={topWeak} />
         </SummarySection>
-        <SummarySection
-          title="PAIR FLOW"
-          subtitle="from → to · arrow weight scales with delay"
-        >
-          <PairFlow pairs={slowPairs} />
+        <SummarySection title="SLOW PAIRS" subtitle="top 6 by avg latency" compact>
+          <SlowPairs pairs={topPairs} />
         </SummarySection>
       </section>
     </div>

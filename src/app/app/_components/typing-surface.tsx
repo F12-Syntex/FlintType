@@ -70,13 +70,7 @@ function TypingSurfaceBody({
             <Readouts />
           </div>
         ) : null}
-        <div
-          className={
-            done
-              ? "flex min-h-0 flex-1 flex-col overflow-y-auto"
-              : "flex min-h-0 flex-1 flex-col overflow-hidden"
-          }
-        >
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {done ? <TestSummary /> : <Passage />}
         </div>
         {showRestHint && !done ? (
