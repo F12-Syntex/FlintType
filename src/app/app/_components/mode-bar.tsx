@@ -13,10 +13,21 @@ type Preset = { value: number; label: string };
 /** Length picker presets per mode. WORDS counts words, TIME counts
  *  seconds, QUOTE picks a length bracket from monkeytype's groups. */
 const LENGTH_PRESETS: Record<Mode, ReadonlyArray<Preset>> = {
-  WORDS: [25, 50, 100, 200].map((n) => ({ value: n, label: String(n) })),
+  WORDS: [10, 25, 50, 100, 200].map((n) => ({ value: n, label: String(n) })),
   TIME: [15, 30, 60, 120].map((n) => ({ value: n, label: String(n) })),
   QUOTE: QUOTE_GROUPS.map((g) => ({ value: g.id, label: g.label })),
 };
+
+/** Modes that expose a free-form custom length input next to the preset
+ *  pills. WORDS supports any positive count; TIME any positive seconds.
+ *  QUOTE doesn't (group brackets are discrete). */
+const CUSTOM_ALLOWED: Record<Mode, boolean> = {
+  WORDS: true,
+  TIME: false,
+  QUOTE: false,
+};
+
+const CUSTOM_LIMITS = { min: 1, max: 1000 };
 
 const LENGTH_FIELD_LABEL: Record<Mode, string> = {
   WORDS: "length",
@@ -41,6 +52,111 @@ function Field({
         {label}
       </span>
       {children}
+    </div>
+  );
+}
+
+// ─── LengthPicker ──────────────────────────────────────────────────
+
+/** Pill-row of preset chips that visually matches `<OptionSwitch>` plus
+ *  an optional `custom` chip that swaps for an inline number input on
+ *  click. We re-implement the look here instead of nesting OptionSwitch
+ *  because OptionSwitch wraps each child in a radio label and doesn't
+ *  let an item morph into an input on demand. */
+function LengthPicker({
+  presets,
+  value,
+  onChange,
+  allowCustom,
+}: {
+  presets: ReadonlyArray<Preset>;
+  value: number;
+  onChange: (next: number) => void;
+  allowCustom: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const isPreset = presets.some((p) => p.value === value);
+  const customSelected = allowCustom && !isPreset;
+
+  const apply = () => {
+    const n = Number.parseInt(draft, 10);
+    if (Number.isFinite(n)) {
+      const clamped = Math.max(
+        CUSTOM_LIMITS.min,
+        Math.min(CUSTOM_LIMITS.max, n),
+      );
+      onChange(clamped);
+    }
+    setEditing(false);
+    setDraft("");
+  };
+
+  const cancel = () => {
+    setEditing(false);
+    setDraft("");
+  };
+
+  const chipClass = (active: boolean) =>
+    cn(
+      "flex h-full items-center justify-center rounded-sm px-2.5 text-xs font-medium transition-colors",
+      active
+        ? "bg-primary text-primary-foreground"
+        : "text-muted-foreground hover:text-foreground",
+    );
+
+  return (
+    <div className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-muted p-1">
+      {presets.map((p) => (
+        <button
+          key={p.value}
+          type="button"
+          onClick={() => {
+            cancel();
+            onChange(p.value);
+          }}
+          className={chipClass(value === p.value && !editing)}
+        >
+          {p.label}
+        </button>
+      ))}
+      {allowCustom ? (
+        editing ? (
+          <input
+            type="number"
+            min={CUSTOM_LIMITS.min}
+            max={CUSTOM_LIMITS.max}
+            placeholder={String(value)}
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={apply}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                apply();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                cancel();
+              }
+            }}
+            className="h-full w-14 rounded-sm bg-background px-2 text-xs text-foreground tabular-nums outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            aria-label="Custom length"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setDraft(customSelected ? String(value) : "");
+              setEditing(true);
+            }}
+            className={chipClass(customSelected)}
+            aria-label="Custom length"
+          >
+            {customSelected ? String(value) : "custom"}
+          </button>
+        )
+      ) : null}
     </div>
   );
 }
@@ -110,20 +226,12 @@ function ModeControls() {
       </Field>
 
       <Field label={lengthLabel}>
-        <OptionSwitch
-          name="length"
-          size="small"
-          value={String(state.length)}
-          onValueChange={(v) => setLength(Number(v))}
-        >
-          {presets.map((p) => (
-            <OptionSwitch.Control
-              key={p.value}
-              label={p.label}
-              value={String(p.value)}
-            />
-          ))}
-        </OptionSwitch>
+        <LengthPicker
+          presets={presets}
+          value={state.length}
+          onChange={setLength}
+          allowCustom={CUSTOM_ALLOWED[state.mode]}
+        />
       </Field>
 
       <label className="flex cursor-pointer items-center gap-2.5 md:self-end md:pb-[7px]">
