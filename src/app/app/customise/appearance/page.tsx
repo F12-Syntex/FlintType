@@ -22,6 +22,7 @@ import {
   useThemeOverrides,
 } from "@/lib/theme-customization";
 import { useTheme } from "@/lib/themes/use-theme";
+import { ModeToggle } from "./_components/mode-toggle";
 import { RadiusRow } from "./_components/radius-row";
 import { ThemesRow } from "./_components/themes-row";
 
@@ -455,6 +456,11 @@ export default function AppearancePage() {
         with you across reloads. Hit <span className="font-medium text-foreground">Reset all</span> to
         return to the defaults at any time.
       </p>
+
+      <SectionHeader label="Mode" />
+      <div className="mb-8 flex flex-col gap-3">
+        <ModeToggle />
+      </div>
 
       <SectionHeader label="Themes" />
       <div className="mb-8 flex flex-col gap-3">

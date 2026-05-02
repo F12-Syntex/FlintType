@@ -2,6 +2,7 @@
 
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import { ModeSwitcher } from "@/components/ui/mode-switcher";
 import { cn } from "@/lib/utils";
 import { NotificationsPopover } from "./notifications-popover";
 
@@ -17,7 +18,10 @@ import { NotificationsPopover } from "./notifications-popover";
  */
 export function TopbarActions({ dark = false }: { dark?: boolean }) {
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-2">
+      {/* Hide mode switch on the always-dark race surface so it can't
+          fight the screen's intentional fixed presentation. */}
+      {dark ? null : <ModeSwitcher className="hidden md:inline-flex" />}
       <NotificationsPopover dark={dark} />
       <Link
         href="/app/customise"

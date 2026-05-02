@@ -23,6 +23,25 @@ export function useTheme() {
     setActiveId(window.localStorage.getItem(STORAGE_KEY));
   }, []);
 
+  // Re-apply the active palette whenever the html `dark` class flips —
+  // light/dark vars come from different blocks of the registry, so a
+  // mode change without a re-apply leaves the chrome on the wrong set.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    const observer = new MutationObserver(() => {
+      const theme = findTheme(
+        window.localStorage.getItem(STORAGE_KEY),
+      );
+      if (theme) applyTheme(root, theme, currentMode());
+    });
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
   const apply = useCallback((id: string) => {
     if (typeof document === "undefined") return;
     const theme = findTheme(id);

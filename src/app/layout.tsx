@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Lora, IBM_Plex_Mono } from "next/font/google";
 import { buildBootstrapScript } from "@/lib/themes/registry";
+import { buildModeBootstrapScript } from "@/lib/themes/use-mode";
 import "./globals.css";
 
 const fontSans = Plus_Jakarta_Sans({
@@ -36,8 +37,12 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <head>
-          {/* Apply the user's saved theme synchronously so saved palettes
-              don't flash the default on first paint. */}
+          {/* Apply mode (light/dark) and the saved palette synchronously
+              so neither flashes its default on first paint. Mode runs
+              first so the palette script can read the resolved mode. */}
+          <script
+            dangerouslySetInnerHTML={{ __html: buildModeBootstrapScript() }}
+          />
           <script
             dangerouslySetInnerHTML={{ __html: buildBootstrapScript() }}
           />

@@ -47,7 +47,7 @@ export const OptionSwitch = ({
     <OptionSwitchContext.Provider value={{ value, setValue }}>
       <div
         className={clsx(
-          "inline-flex bg-background-100 p-1 border border-gray-alpha-400 rounded-md",
+          "inline-flex bg-muted p-1 border border-border rounded-md",
           size === "small" && "h-8",
           size === "medium" && "h-10",
           size === "large" && "h-12",
@@ -116,8 +116,8 @@ const OptionSwitchControl = ({
             "flex items-center justify-center flex-1 cursor-pointer font-medium font-sans duration-150",
             checked
               ? "bg-primary text-primary-foreground fill-primary-foreground rounded-sm"
-              : "text-gray-900 hover:text-gray-1000 fill-gray-900 hover:fill-gray-1000 rounded-sm",
-            disabled && "text-gray-800 fill-gray-800",
+              : "text-muted-foreground hover:text-foreground fill-muted-foreground hover:fill-foreground rounded-sm",
+            disabled && "text-muted-foreground/60 fill-muted-foreground/60",
             !icon && size === "small" && "text-xs px-2.5",
             !icon && size === "medium" && "text-sm px-3",
             !icon && size === "large" && "text-base px-4",
