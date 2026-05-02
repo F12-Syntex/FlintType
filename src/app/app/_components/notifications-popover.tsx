@@ -89,14 +89,14 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
           "relative flex size-11 items-center justify-center rounded-md transition-colors md:size-9",
           dark
             ? "text-ft-paper hover:bg-white/5"
-            : "text-ft-ink hover:bg-black/5",
+            : "text-foreground hover:bg-foreground/5",
         )}
       >
         <BellIcon />
         {unread > 0 ? (
           <span
             aria-hidden
-            className="absolute top-2 right-2 size-1.5 rounded-full bg-ft-ember md:top-1.5 md:right-1.5"
+            className="absolute top-2 right-2 size-1.5 rounded-full bg-primary md:top-1.5 md:right-1.5"
           />
         ) : null}
       </button>
