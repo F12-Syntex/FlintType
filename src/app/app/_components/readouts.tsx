@@ -1,6 +1,7 @@
 "use client";
 
 import { Stat } from "@/components/ft";
+import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { cn } from "@/lib/utils";
 import { usePractice } from "./practice-state";
 
@@ -18,9 +19,17 @@ function formatElapsed(ms: number): string {
  *  Desktop: the existing label-over-value Stat layout, two columns. */
 export function Readouts() {
   const { state, elapsedMs, wpm, accuracy } = usePractice();
+  const { prefs } = useBehaviourPrefs();
   const running = state.phase === "running" || state.phase === "done";
   const wordCount = state.words.length;
   const wordIdx = Math.min(state.cursorWord + (running ? 1 : 0), wordCount);
+
+  // Blind mode hides every live signal except the elapsed timer and the
+  // word-progress so the user can still know the run is moving.
+  const blind = prefs.blindMode;
+  const showWpm = !blind && prefs.liveWpm;
+  const showAccuracy = !blind && prefs.liveAccuracy;
+  const showErrs = !blind;
 
   return (
     <>
@@ -32,6 +41,9 @@ export function Readouts() {
         wordCount={wordCount}
         elapsedMs={elapsedMs}
         running={running}
+        showWpm={showWpm}
+        showAccuracy={showAccuracy}
+        showErrs={showErrs}
       />
       <DesktopStats
         wpm={wpm}
@@ -41,6 +53,9 @@ export function Readouts() {
         wordCount={wordCount}
         elapsedMs={elapsedMs}
         running={running}
+        showWpm={showWpm}
+        showAccuracy={showAccuracy}
+        showErrs={showErrs}
       />
     </>
   );
@@ -54,6 +69,9 @@ type StatsProps = {
   wordCount: number;
   elapsedMs: number;
   running: boolean;
+  showWpm: boolean;
+  showAccuracy: boolean;
+  showErrs: boolean;
 };
 
 function MobileStrip({
@@ -64,25 +82,34 @@ function MobileStrip({
   wordCount,
   elapsedMs,
   running,
+  showWpm,
+  showAccuracy,
+  showErrs,
 }: StatsProps) {
   return (
     <div className="flex items-center justify-between gap-2 border-b border-border bg-card/60 px-4 py-2 text-[11px] tabular-nums md:hidden">
-      <div className="flex items-baseline gap-1">
-        <span
-          className={cn(
-            "text-base font-bold tracking-tight",
-            running ? "text-primary" : "text-foreground",
-          )}
-        >
-          {wpm}
-        </span>
-        <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-          wpm
-        </span>
-      </div>
+      {showWpm ? (
+        <div className="flex items-baseline gap-1">
+          <span
+            className={cn(
+              "text-base font-bold tracking-tight",
+              running ? "text-primary" : "text-foreground",
+            )}
+          >
+            {wpm}
+          </span>
+          <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+            wpm
+          </span>
+        </div>
+      ) : null}
 
-      <Pip label="acc" value={`${Math.round(accuracy)}%`} />
-      <Pip label="err" value={String(errs)} tone={errs > 0 ? "ember" : "ink"} />
+      {showAccuracy ? (
+        <Pip label="acc" value={`${Math.round(accuracy)}%`} />
+      ) : null}
+      {showErrs ? (
+        <Pip label="err" value={String(errs)} tone={errs > 0 ? "ember" : "ink"} />
+      ) : null}
       <Pip label="word" value={`${wordIdx}/${wordCount}`} />
       <Pip label="time" value={formatElapsed(elapsedMs)} />
     </div>
@@ -123,6 +150,9 @@ function DesktopStats({
   wordCount,
   elapsedMs,
   running,
+  showWpm,
+  showAccuracy,
+  showErrs,
 }: StatsProps) {
   return (
     <div className="hidden flex-wrap items-end justify-between gap-4 select-none md:flex">
@@ -131,20 +161,26 @@ function DesktopStats({
         <Stat label="WORD" value={`${wordIdx}/${wordCount}`} size="lg" />
       </div>
       <div className="flex flex-wrap gap-x-12 gap-y-3">
-        <Stat
-          label="WPM"
-          value={String(wpm)}
-          size="lg"
-          accent={running}
-          align="right"
-        />
-        <Stat
-          label="ACC"
-          value={`${Math.round(accuracy)}%`}
-          size="lg"
-          align="right"
-        />
-        <Stat label="ERR" value={String(errs)} size="lg" align="right" />
+        {showWpm ? (
+          <Stat
+            label="WPM"
+            value={String(wpm)}
+            size="lg"
+            accent={running}
+            align="right"
+          />
+        ) : null}
+        {showAccuracy ? (
+          <Stat
+            label="ACC"
+            value={`${Math.round(accuracy)}%`}
+            size="lg"
+            align="right"
+          />
+        ) : null}
+        {showErrs ? (
+          <Stat label="ERR" value={String(errs)} size="lg" align="right" />
+        ) : null}
       </div>
     </div>
   );

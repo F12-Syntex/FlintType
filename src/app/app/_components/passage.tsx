@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
+import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { useCaretSettings } from "@/lib/caret-settings";
 import { cn } from "@/lib/utils";
 import { usePractice } from "./practice-state";
@@ -24,10 +25,12 @@ function ActiveWord({
   word,
   cursorChar,
   registerTarget,
+  blind,
 }: {
   word: string;
   cursorChar: number;
   registerTarget: (el: HTMLSpanElement | null, side: "left" | "right") => void;
+  blind: boolean;
 }) {
   const chars = [...word];
   // `inline-block whitespace-nowrap` keeps the word as one line-break unit
@@ -48,7 +51,13 @@ function ActiveWord({
           <span
             key={ci}
             ref={ref}
-            className={ci < cursorChar ? "text-foreground" : "text-muted-foreground"}
+            className={
+              blind
+                ? "text-muted-foreground"
+                : ci < cursorChar
+                  ? "text-foreground"
+                  : "text-muted-foreground"
+            }
           >
             {char}
           </span>
@@ -62,6 +71,8 @@ export function Passage() {
   const { state } = usePractice();
   const { words, cursorWord, cursorChar, errorWords, phase } = state;
   const { settings: caretSettings } = useCaretSettings();
+  const { prefs } = useBehaviourPrefs();
+  const blind = prefs.blindMode;
   const showCaret = phase !== "done" && caretSettings.style !== "off";
 
   // Single, absolutely-positioned caret. Its transform animates between
@@ -125,8 +136,9 @@ export function Passage() {
               <span
                 key={wi}
                 className={cn(
-                  "text-foreground",
-                  isErr &&
+                  blind ? "text-muted-foreground" : "text-foreground",
+                  !blind &&
+                    isErr &&
                     "text-primary underline decoration-1 underline-offset-[6px]",
                 )}
               >
@@ -141,6 +153,7 @@ export function Passage() {
                   word={word}
                   cursorChar={cursorChar}
                   registerTarget={registerTarget}
+                  blind={blind}
                 />{" "}
               </span>
             );

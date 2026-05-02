@@ -1,3 +1,6 @@
+"use client";
+
+import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { InputCapture } from "./input-capture";
 import { Keyboard } from "./keyboard";
 import { ModeBar } from "./mode-bar";
@@ -35,6 +38,9 @@ export function TypingSurface({
   showReadouts = true,
   belowHint,
 }: TypingSurfaceProps = {}) {
+  const { prefs } = useBehaviourPrefs();
+  // Behaviour-prefs gates: a `false` setting wins over the prop default.
+  const renderKeyboard = showKeyboard && prefs.liveKeyboard;
   return (
     <PracticeProvider>
       <InputCapture>
@@ -70,7 +76,7 @@ export function TypingSurface({
             </div>
           ) : null}
           {belowHint}
-          {showKeyboard ? (
+          {renderKeyboard ? (
             <div className="mt-auto hidden md:block">
               <Keyboard />
             </div>

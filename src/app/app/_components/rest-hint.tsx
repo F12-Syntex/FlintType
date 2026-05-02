@@ -11,9 +11,8 @@ import { usePractice } from "./practice-state";
  *  (those keys don't exist on virtual keyboards). On desktop the keycap
  *  hints stay visible — they're how power users restart fastest. */
 export function RestHint() {
-  const { state, dispatch, wpm, accuracy } = usePractice();
+  const { state, restart, wpm, accuracy } = usePractice();
   const wordCount = state.words.length;
-  const restart = () => dispatch({ type: "RESTART" });
 
   if (state.phase === "done") {
     return (
@@ -26,7 +25,7 @@ export function RestHint() {
           <span className="text-muted-foreground/80">·</span>
           <span className="text-foreground">{Math.round(accuracy)}% acc</span>
         </div>
-        <RestartControl onRestart={restart} />
+        <RestartControl onRestart={() => restart()} />
       </div>
     );
   }
@@ -37,7 +36,7 @@ export function RestHint() {
         <span className="text-foreground">
           {state.cursorWord}/{wordCount}
         </span>
-        <CancelControl onCancel={restart} />
+        <CancelControl onCancel={() => restart()} />
       </div>
     );
   }
@@ -45,7 +44,7 @@ export function RestHint() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
       <span>start typing to begin</span>
-      <RestartControl onRestart={restart} label="new passage" />
+      <RestartControl onRestart={() => restart()} label="new passage" />
     </div>
   );
 }

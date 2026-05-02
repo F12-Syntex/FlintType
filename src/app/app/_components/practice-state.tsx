@@ -10,6 +10,11 @@ import {
   useRef,
   useState,
 } from "react";
+import {
+  type BehaviourPrefs,
+  DEFAULT_BEHAVIOUR,
+  useBehaviourPrefs,
+} from "@/lib/behaviour-prefs";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -37,15 +42,21 @@ export type State = {
   endTime: number | null;
 };
 
+type WordCfg = Pick<
+  BehaviourPrefs,
+  "minWordLength" | "difficulty" | "showSecondary"
+>;
+
 type Action =
-  | { type: "SET_MODE"; mode: Mode }
-  | { type: "SET_LENGTH"; length: Length }
-  | { type: "SET_LANG"; lang: Lang }
+  | { type: "SET_MODE"; mode: Mode; cfg: WordCfg }
+  | { type: "SET_LENGTH"; length: Length; cfg: WordCfg }
+  | { type: "SET_LANG"; lang: Lang; cfg: WordCfg }
   | { type: "TOGGLE_ADAPT" }
-  | { type: "TYPE_CHAR"; char: string; now: number }
+  | { type: "TYPE_CHAR"; char: string; now: number; stopOnError: boolean }
   | { type: "BACKSPACE" }
   | { type: "SPACE"; now: number }
-  | { type: "RESTART"; seed?: number };
+  | { type: "RESTART"; seed?: number; cfg: WordCfg }
+  | { type: "REGENERATE"; cfg: WordCfg };
 
 // ─── Word lists ─────────────────────────────────────────────────────
 
@@ -100,10 +111,36 @@ function seededRandom(seed: number) {
   };
 }
 
-function generateWords(lang: Lang, length: number, seed: number): string[] {
-  const list = WORDS[lang];
+const PUNCTUATION = [".", ",", ";", ":", "!", "?"] as const;
+
+function filteredList(lang: Lang, cfg: WordCfg): readonly string[] {
+  let list: readonly string[] = WORDS[lang];
+  list = list.filter((w) => w.length >= cfg.minWordLength);
+  if (cfg.difficulty === "easy") list = list.filter((w) => w.length <= 5);
+  else if (cfg.difficulty === "expert") list = list.filter((w) => w.length >= 5);
+  else if (cfg.difficulty === "master") list = list.filter((w) => w.length >= 7);
+  return list.length > 0 ? list : WORDS[lang];
+}
+
+function generateWords(
+  lang: Lang,
+  length: number,
+  seed: number,
+  cfg: WordCfg = DEFAULT_BEHAVIOUR,
+): string[] {
+  const list = filteredList(lang, cfg);
   const rand = seededRandom(seed);
-  return Array.from({ length }, () => list[Math.floor(rand() * list.length)]!);
+  const base = Array.from(
+    { length },
+    () => list[Math.floor(rand() * list.length)]!,
+  );
+  if (!cfg.showSecondary) return base;
+  return base.map((w) => {
+    const r = rand();
+    if (r < 0.08) return Math.floor(rand() * 1000).toString();
+    if (r < 0.22) return w + PUNCTUATION[Math.floor(rand() * PUNCTUATION.length)];
+    return w;
+  });
 }
 
 // ─── Initial state ──────────────────────────────────────────────────
@@ -148,32 +185,50 @@ function freshRun(s: State, words?: string[]): State {
 function reducer(s: State, a: Action): State {
   switch (a.type) {
     case "SET_MODE":
-      return freshRun({ ...s, mode: a.mode });
+      return freshRun(
+        { ...s, mode: a.mode },
+        generateWords(s.lang, s.length, Date.now(), a.cfg),
+      );
     case "SET_LENGTH":
       return freshRun(
         { ...s, length: a.length },
-        generateWords(s.lang, a.length, Date.now()),
+        generateWords(s.lang, a.length, Date.now(), a.cfg),
       );
     case "SET_LANG":
       return freshRun(
         { ...s, lang: a.lang },
-        generateWords(a.lang, s.length, Date.now()),
+        generateWords(a.lang, s.length, Date.now(), a.cfg),
       );
     case "TOGGLE_ADAPT":
       return { ...s, adapt: !s.adapt };
     case "RESTART":
       return freshRun(
         s,
-        generateWords(s.lang, s.length, a.seed ?? Date.now()),
+        generateWords(s.lang, s.length, a.seed ?? Date.now(), a.cfg),
+      );
+    case "REGENERATE":
+      return freshRun(
+        s,
+        generateWords(s.lang, s.length, Date.now(), a.cfg),
       );
     case "TYPE_CHAR": {
       if (s.phase === "done") return s;
       const word = s.words[s.cursorWord];
       if (!word) return s;
-      // Block typing past word end — user must press space.
       if (s.cursorChar >= word.length) return s;
       const expected = word[s.cursorChar];
       const correct = a.char === expected;
+      // Stop-on-error: count the attempt + flag the word, but don't
+      // advance the cursor until the user types the expected character.
+      if (!correct && a.stopOnError) {
+        return {
+          ...s,
+          phase: s.phase === "rest" ? "running" : s.phase,
+          startTime: s.startTime ?? a.now,
+          totalChars: s.totalChars + 1,
+          errorWords: new Set([...s.errorWords, s.cursorWord]),
+        };
+      }
       return {
         ...s,
         phase: s.phase === "rest" ? "running" : s.phase,
@@ -223,6 +278,13 @@ function reducer(s: State, a: Action): State {
 type PracticeCtx = {
   state: State;
   dispatch: React.Dispatch<Action>;
+  /** Action helpers that auto-bind the current behaviour-prefs cfg
+   *  for word generation. Prefer these over raw dispatch in UI code. */
+  setMode: (mode: Mode) => void;
+  setLength: (length: Length) => void;
+  setLang: (lang: Lang) => void;
+  toggleAdapt: () => void;
+  restart: (seed?: number) => void;
   elapsedMs: number;
   wpm: number;
   accuracy: number;
@@ -238,6 +300,26 @@ export function usePractice(): PracticeCtx {
 
 export function PracticeProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const { prefs } = useBehaviourPrefs();
+  const prefsRef = useRef(prefs);
+  prefsRef.current = prefs;
+
+  // Regenerate the passage when the word-shape prefs change so the
+  // user sees the effect of difficulty / min-word / show-secondary
+  // immediately instead of after the next manual restart.
+  const wordCfgKey = `${prefs.minWordLength}|${prefs.difficulty}|${prefs.showSecondary}`;
+  useEffect(() => {
+    dispatch({
+      type: "REGENERATE",
+      cfg: {
+        minWordLength: prefs.minWordLength,
+        difficulty: prefs.difficulty,
+        showSecondary: prefs.showSecondary,
+      },
+    });
+    // wordCfgKey covers every cfg field that influences the passage.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wordCfgKey]);
 
   // Live elapsed (ticks every 100ms while running).
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -264,7 +346,27 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
       state.totalChars > 0
         ? Math.round((state.correctChars / state.totalChars) * 1000) / 10
         : 100;
-    return { state, dispatch, elapsedMs, wpm, accuracy };
+    const buildCfg = (): WordCfg => {
+      const p = prefsRef.current;
+      return {
+        minWordLength: p.minWordLength,
+        difficulty: p.difficulty,
+        showSecondary: p.showSecondary,
+      };
+    };
+    return {
+      state,
+      dispatch,
+      elapsedMs,
+      wpm,
+      accuracy,
+      setMode: (mode) => dispatch({ type: "SET_MODE", mode, cfg: buildCfg() }),
+      setLength: (length) =>
+        dispatch({ type: "SET_LENGTH", length, cfg: buildCfg() }),
+      setLang: (lang) => dispatch({ type: "SET_LANG", lang, cfg: buildCfg() }),
+      toggleAdapt: () => dispatch({ type: "TOGGLE_ADAPT" }),
+      restart: (seed) => dispatch({ type: "RESTART", seed, cfg: buildCfg() }),
+    };
   }, [state, elapsedMs]);
 
   // Keyboard listener — only when user isn't typing into another input.
@@ -284,34 +386,49 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
     }
 
     const s = stateRef.current;
+    const p = prefsRef.current;
+    const cfg: WordCfg = {
+      minWordLength: p.minWordLength,
+      difficulty: p.difficulty,
+      showSecondary: p.showSecondary,
+    };
 
     if (e.key === "Tab") {
+      // Quick restart off → let Tab do its native thing (focus shift).
+      if (!p.quickRestart) return;
       e.preventDefault();
-      dispatch({ type: "RESTART" });
+      dispatch({ type: "RESTART", cfg });
       return;
     }
     if (e.key === "Escape") {
-      dispatch({ type: "RESTART" });
+      dispatch({ type: "RESTART", cfg });
       return;
     }
     if (s.phase === "done") return;
 
     if (e.key === " ") {
       e.preventDefault();
-      // Space during rest starts the run on a real keystroke; we skip rest→running here.
       if (s.phase === "rest") return;
       dispatch({ type: "SPACE", now: Date.now() });
       return;
     }
     if (e.key === "Backspace") {
       e.preventDefault();
+      // Confidence: off = allow always; word = block jumping past word
+      // start; all = block backspace entirely.
+      if (p.confidence === "all") return;
+      if (p.confidence === "word" && s.cursorChar === 0) return;
       dispatch({ type: "BACKSPACE" });
       return;
     }
-    // Single printable character.
     if (e.key.length === 1) {
       e.preventDefault();
-      dispatch({ type: "TYPE_CHAR", char: e.key, now: Date.now() });
+      dispatch({
+        type: "TYPE_CHAR",
+        char: e.key,
+        now: Date.now(),
+        stopOnError: p.stopOnError,
+      });
     }
   }, []);
 

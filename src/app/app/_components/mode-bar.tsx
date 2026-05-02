@@ -81,7 +81,7 @@ function Toggle({
 // Vertical stack on mobile, horizontal flow on md+.
 
 function ModeControls() {
-  const { state, dispatch } = usePractice();
+  const { state, setMode, setLength, setLang, toggleAdapt } = usePractice();
   return (
     <div className="flex flex-col items-stretch gap-3 md:flex-row md:flex-wrap md:items-end md:justify-center md:gap-x-8 md:gap-y-4">
       <Field label="mode">
@@ -89,7 +89,7 @@ function ModeControls() {
           name="mode"
           size="small"
           value={state.mode}
-          onValueChange={(v) => dispatch({ type: "SET_MODE", mode: v as Mode })}
+          onValueChange={(v) => setMode(v as Mode)}
         >
           {MODES.map((m) => (
             <OptionSwitch.Control key={m} label={m.toLowerCase()} value={m} />
@@ -102,9 +102,7 @@ function ModeControls() {
           name="length"
           size="small"
           value={String(state.length)}
-          onValueChange={(v) =>
-            dispatch({ type: "SET_LENGTH", length: Number(v) as Length })
-          }
+          onValueChange={(v) => setLength(Number(v) as Length)}
         >
           {LENGTHS.map((l) => (
             <OptionSwitch.Control key={l} label={String(l)} value={String(l)} />
@@ -117,7 +115,7 @@ function ModeControls() {
           name="language"
           size="small"
           value={state.lang}
-          onValueChange={(v) => dispatch({ type: "SET_LANG", lang: v as Lang })}
+          onValueChange={(v) => setLang(v as Lang)}
         >
           {LANGS.map((l) => (
             <OptionSwitch.Control
@@ -135,7 +133,7 @@ function ModeControls() {
         </span>
         <Toggle
           on={state.adapt}
-          onToggle={() => dispatch({ type: "TOGGLE_ADAPT" })}
+          onToggle={toggleAdapt}
           ariaLabel="Adaptive drilling"
         />
       </label>

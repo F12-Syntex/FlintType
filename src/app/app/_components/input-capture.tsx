@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode, useCallback, useEffect, useRef } from "react";
+import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { usePractice } from "./practice-state";
 
 const INTERACTIVE_SELECTOR =
@@ -21,12 +22,16 @@ const INTERACTIVE_SELECTOR =
  *  the visible RestHint controls.
  */
 export function InputCapture({ children }: { children: ReactNode }) {
-  const { state, dispatch } = usePractice();
+  const { state, dispatch, restart } = usePractice();
+  const { prefs } = useBehaviourPrefs();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Always read the latest phase inside event handlers without re-binding.
   const phaseRef = useRef(state.phase);
   phaseRef.current = state.phase;
+  const cursorCharRef = useRef(state.cursorChar);
+  cursorCharRef.current = state.cursorChar;
+  const prefsRef = useRef(prefs);
+  prefsRef.current = prefs;
 
   const focus = useCallback(() => {
     inputRef.current?.focus({ preventScroll: true });
@@ -72,42 +77,47 @@ export function InputCapture({ children }: { children: ReactNode }) {
             t === "deleteWordBackward" ||
             t === "deleteSoftLineBackward"
           ) {
+            const p = prefsRef.current;
+            if (p.confidence === "all") return;
+            if (p.confidence === "word" && cursorCharRef.current === 0) return;
             dispatch({ type: "BACKSPACE" });
             return;
           }
           if (t === "insertText" || t === "insertCompositionText") {
             const data = ne.data ?? "";
             const now = Date.now();
+            const stopOnError = prefsRef.current.stopOnError;
             for (const ch of data) {
               if (ch === " " || ch === "\n") {
                 if (phaseRef.current !== "rest") {
                   dispatch({ type: "SPACE", now });
                 }
               } else {
-                dispatch({ type: "TYPE_CHAR", char: ch, now });
+                dispatch({ type: "TYPE_CHAR", char: ch, now, stopOnError });
               }
             }
           }
         }}
         onKeyDown={(e) => {
           if (e.ctrlKey || e.metaKey || e.altKey) return;
+          const p = prefsRef.current;
           if (e.key === "Tab") {
+            if (!p.quickRestart) return;
             e.preventDefault();
-            dispatch({ type: "RESTART" });
+            restart();
             return;
           }
           if (e.key === "Escape") {
             e.preventDefault();
-            dispatch({ type: "RESTART" });
+            restart();
             return;
           }
           if (phaseRef.current === "done") return;
 
-          // Backspace and printable characters: prefer the keydown path on
-          // desktop (synchronous, deterministic). Mobile virtual keyboards
-          // route the same intents through onBeforeInput above instead.
           if (e.key === "Backspace") {
             e.preventDefault();
+            if (p.confidence === "all") return;
+            if (p.confidence === "word" && cursorCharRef.current === 0) return;
             dispatch({ type: "BACKSPACE" });
             return;
           }
@@ -119,7 +129,12 @@ export function InputCapture({ children }: { children: ReactNode }) {
           }
           if (e.key.length === 1) {
             e.preventDefault();
-            dispatch({ type: "TYPE_CHAR", char: e.key, now: Date.now() });
+            dispatch({
+              type: "TYPE_CHAR",
+              char: e.key,
+              now: Date.now(),
+              stopOnError: p.stopOnError,
+            });
           }
         }}
       />
