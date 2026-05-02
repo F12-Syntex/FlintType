@@ -64,14 +64,31 @@ export function RadiusRow({
         label="Preset"
         control={
           <ChipGroup>
-            {RADIUS_PRESETS.map((p) => (
-              <Chip
-                key={p.id}
-                label={p.label}
-                active={matched?.id === p.id}
-                onClick={() => onChange(p.rem)}
-              />
-            ))}
+            {RADIUS_PRESETS.map((p) => {
+              const isActive = matched?.id === p.id;
+              return (
+                <Chip
+                  key={p.id}
+                  label={p.label}
+                  active={isActive}
+                  onClick={() => onChange(p.rem)}
+                  preview={
+                    // Top-left corner only — exaggerates the curvature
+                    // so even Subtle vs Small reads at a glance.
+                    <span
+                      aria-hidden
+                      className="block h-5 w-5 border-l-[3px] border-t-[3px]"
+                      style={{
+                        borderTopLeftRadius: `${p.rem}rem`,
+                        borderColor: isActive
+                          ? "var(--primary)"
+                          : "currentColor",
+                      }}
+                    />
+                  }
+                />
+              );
+            })}
           </ChipGroup>
         }
       />

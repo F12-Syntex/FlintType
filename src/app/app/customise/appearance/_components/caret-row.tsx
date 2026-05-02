@@ -143,6 +143,70 @@ function CaretShape({
   );
 }
 
+// ─── Per-chip mini previews ────────────────────────────────────────
+// Static (no blink) so the rows are scannable; the hero preview above
+// is the place for live behaviour.
+
+function StyleChipPreview({
+  style,
+  width,
+  radius,
+}: {
+  style: CaretStyle;
+  width: number;
+  radius: number;
+}) {
+  const charW = 16;
+  const charH = 20;
+  return (
+    <span className="relative block" style={{ width: charW, height: charH }}>
+      {style !== "off" ? (
+        <span
+          aria-hidden
+          className="absolute inset-0 rounded-sm bg-foreground/15"
+        />
+      ) : (
+        <span className="absolute inset-0 flex items-center justify-center text-[8px] text-muted-foreground">
+          —
+        </span>
+      )}
+      <CaretShape
+        style={style}
+        width={width}
+        radius={radius}
+        blinkSpeed={0}
+        charW={charW}
+        charH={charH}
+      />
+    </span>
+  );
+}
+
+function ThicknessChipPreview({ width }: { width: number }) {
+  // A vertical bar at the chosen thickness, using the chip's text
+  // color so it inverts to primary when the chip is active.
+  return (
+    <span
+      aria-hidden
+      className="block bg-current"
+      style={{ width, height: 18 }}
+    />
+  );
+}
+
+function RoundnessChipPreview({ radius }: { radius: number }) {
+  // A short bar with the chosen corner radius — same vertical shape as
+  // the line caret so the relationship between this row and Style
+  // reads at a glance.
+  return (
+    <span
+      aria-hidden
+      className="block bg-current"
+      style={{ width: 5, height: 18, borderRadius: radius }}
+    />
+  );
+}
+
 // ─── Hero preview card ─────────────────────────────────────────────
 
 const PREVIEW_WORDS = ["the", "quick", "brown", "fox", "jumps"];
@@ -248,6 +312,13 @@ export function CaretRow() {
                 label={s.label}
                 active={settings.style === s.id}
                 onClick={() => update({ style: s.id })}
+                preview={
+                  <StyleChipPreview
+                    style={s.id}
+                    width={settings.width}
+                    radius={settings.radius}
+                  />
+                }
               />
             ))}
           </ChipGroup>
@@ -264,6 +335,7 @@ export function CaretRow() {
                 label={p.label}
                 active={settings.width === p.value}
                 onClick={() => update({ width: p.value })}
+                preview={<ThicknessChipPreview width={p.value} />}
               />
             ))}
           </ChipGroup>
@@ -280,6 +352,7 @@ export function CaretRow() {
                 label={p.label}
                 active={settings.radius === p.value}
                 onClick={() => update({ radius: p.value })}
+                preview={<RoundnessChipPreview radius={p.value} />}
               />
             ))}
           </ChipGroup>

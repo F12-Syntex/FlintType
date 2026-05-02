@@ -420,7 +420,7 @@ Pick the smallest control that fits the choice space:
 
 | Choice space                                                  | Control                                  |
 |---------------------------------------------------------------|------------------------------------------|
-| 2–6 short discrete values (Style, Thickness, Mode)           | `<ChipGroup>` of text chips, right-aligned, wraps to a second row on narrow viewports |
+| 2–6 short discrete values (Style, Thickness, Mode)           | `<ChipGroup>` of chips, right-aligned, wraps to a second row on narrow viewports. Use the `preview` slot whenever the value is *visual* (radius shape, caret style, swatch) — text labels are guesswork for those |
 | 7+ values, or values whose names are long                    | `<DropdownMenu>` with the active swatch + label on the trigger button (Theme) |
 | Single binary toggle                                         | a chip-group with `[Off] [On]` so the row shape stays uniform |
 | Free input (URL, hex, name)                                  | `<Input>` (right-aligned within the row) |
@@ -450,7 +450,8 @@ Don't sprinkle related settings across sections; if you find yourself doing that
 
 - **Don't** re-implement the row shell ad-hoc with `<div className="border bg-card …">`. Always use `<SettingsRow>` so future tweaks (radius bump, padding shift) ripple uniformly.
 - **Don't** put a description on a row whose label already explains itself; descriptions belong on `SettingsCard`s. The label-on-the-left convention assumes the label is enough.
-- **Don't** add a per-chip preview tile when a section already has a hero preview. The hero is the single source of truth for "what does this look like" — chip-level previews multiplied across rows turn the card into a wall of demos.
+- **Don't** mix preview-chips and text-chips in the same row. Either every chip in the row carries a `preview`, or none does — visual rhythm matters more than per-chip cleverness.
+- **Don't** add per-chip previews on rows whose value is *temporal* (Blink speed, Smooth speed, animation timings). The chip's text label conveys the speed; a static preview can't, and an animated one would be noise.
 - **Don't** mix slider + chip presets for the same setting unless the slider is in a separate fine-tune block; the rule of thumb is one control per row.
 
 ---
