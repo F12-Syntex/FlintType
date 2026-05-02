@@ -16,6 +16,7 @@ import {
   useBehaviourPrefs,
 } from "@/lib/behaviour-prefs";
 import { EN_COMMON_1000 } from "@/data/en-common-1000";
+import englishWords from "@/data/english.json";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -61,25 +62,12 @@ type Action =
 
 // ─── Word lists ─────────────────────────────────────────────────────
 
+// EN-COMMON is the default practice list — sourced from monkeytype's
+// english.json (top ~200 most-frequent words). EN keeps the longer
+// 1000-word list for users who want more breadth.
 const WORDS: Record<Lang, readonly string[]> = {
-  "EN-COMMON": EN_COMMON_1000,
-  EN: [
-    "ability", "able", "about", "above", "accept", "according", "account",
-    "across", "action", "activity", "actually", "address", "administration",
-    "affect", "after", "again", "against", "agency", "agent", "ahead",
-    "almost", "alone", "along", "already", "although", "always", "among",
-    "amount", "analysis", "animal", "another", "answer", "anyone", "anything",
-    "appear", "apply", "approach", "area", "argue", "around", "arrive",
-    "article", "artist", "ask", "assume", "attack", "attention", "attorney",
-    "audience", "author", "authority", "available", "avoid", "away", "baby",
-    "back", "bad", "bag", "ball", "bank", "base", "beat", "beautiful",
-    "because", "become", "before", "begin", "behavior", "behind", "believe",
-    "benefit", "best", "better", "between", "beyond", "billion", "black",
-    "blood", "blue", "board", "body", "book", "born", "both", "break",
-    "bring", "brother", "budget", "build", "building", "business", "call",
-    "camera", "campaign", "candidate", "capital", "card", "care", "career",
-    "carry", "case", "catch", "cause", "cell", "center", "central", "century",
-  ],
+  "EN-COMMON": englishWords.words,
+  EN: EN_COMMON_1000,
   PROGRAMMING: [
     "function", "return", "const", "let", "var", "if", "else", "for",
     "while", "true", "false", "null", "undefined", "async", "await",
