@@ -123,6 +123,11 @@ Values are **mobile-first** — unprefixed classes target ≤ 375px viewports; `
 | Topbar vertical padding   | `py-3 sm:py-4`             |
 | Page horizontal padding   | `px-4 sm:px-8`             |
 | Page vertical padding     | `py-10 sm:py-20`           |
+| Notch / status bar inset  | `safe-pt` (utility)        |
+| Home-indicator inset      | `safe-pb` (utility)        |
+| Landscape edge inset      | `safe-pl` / `safe-pr` / `safe-px` (utility — body already applies `safe-px` globally) |
+
+`safe-*` are project-defined Tailwind v4 utilities (`@utility` in `globals.css`) that map to `env(safe-area-inset-*)`. They activate via `viewport.viewportFit = "cover"` in `src/app/layout.tsx`. Apply `safe-pt` to the topmost sticky chrome and `safe-pb` to the bottommost chrome on any surface that runs full-bleed on iOS/Android.
 
 ---
 

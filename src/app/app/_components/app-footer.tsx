@@ -52,7 +52,7 @@ export function AppFooter({ dark = false }: { dark?: boolean }) {
   return (
     <footer
       className={cn(
-        "flex flex-col gap-6 border-t px-5 py-7 text-[10px] uppercase tracking-[0.16em] sm:px-7 lg:flex-row lg:items-center lg:justify-between lg:gap-8 lg:py-6",
+        "safe-pb flex flex-col gap-6 border-t px-5 py-7 text-[10px] uppercase tracking-[0.16em] sm:px-7 lg:flex-row lg:items-center lg:justify-between lg:gap-8 lg:py-6",
         dark
           ? "border-[#221F1A] bg-ft-ink text-[#9C978A]"
           : "border-border bg-background text-muted-foreground",
