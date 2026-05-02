@@ -51,14 +51,21 @@ function PresetTile({
       )}
       aria-pressed={active}
     >
-      <div
-        aria-hidden
-        className={cn(
-          "h-14 w-14 border-2 transition-colors",
-          active ? "border-primary bg-primary/10" : "border-foreground/30 bg-card",
-        )}
-        style={{ borderRadius: `${rem}rem` }}
-      />
+      {/* Corner-only preview: a chunky L-shape where the radius is
+          obvious — far easier to compare across presets than a full box
+          with four equal corners. */}
+      <div className="relative h-14 w-14">
+        <div
+          aria-hidden
+          className={cn(
+            "absolute inset-0 border-l-[6px] border-t-[6px] transition-colors",
+            active
+              ? "border-primary"
+              : "border-foreground/40 group-hover:border-foreground",
+          )}
+          style={{ borderTopLeftRadius: `${rem}rem` }}
+        />
+      </div>
       <div className="flex flex-col items-center">
         <span className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider">
           {active ? <Check size={11} className="text-primary" /> : null}
@@ -132,8 +139,11 @@ export function RadiusRow({
           ))}
         </div>
 
-        {/* Slider — full width so it's actually visible */}
-        <div className="flex flex-col gap-2 rounded-md border border-border bg-muted/40 p-3">
+        {/* Fine-tune slider — wrapped in a card with a contrasting bg so
+            the track (which uses --input) doesn't blend into the page
+            background. The track-color override below makes it visible
+            on every theme. */}
+        <div className="flex flex-col gap-3 rounded-md border border-border bg-card p-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
               Fine-tune
@@ -150,7 +160,7 @@ export function RadiusRow({
             onValueChange={(v) => {
               if (Array.isArray(v) && typeof v[0] === "number") onChange(v[0]);
             }}
-            className="w-full"
+            className="w-full [&_[data-slot=slider-track]]:!h-3 [&_[data-slot=slider-track]]:!bg-foreground/15 [&_[data-slot=slider-thumb]]:!size-5"
           />
           <div className="flex justify-between text-[10px] uppercase tracking-widest text-muted-foreground">
             <span>0</span>

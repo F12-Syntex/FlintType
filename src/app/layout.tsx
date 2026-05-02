@@ -3,6 +3,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Lora, IBM_Plex_Mono } from "next/font/google";
+import { buildBootstrapScript } from "@/lib/themes/registry";
 import "./globals.css";
 
 const fontSans = Plus_Jakarta_Sans({
@@ -33,7 +34,14 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning>
+        <head>
+          {/* Apply the user's saved theme synchronously so saved palettes
+              don't flash the default on first paint. */}
+          <script
+            dangerouslySetInnerHTML={{ __html: buildBootstrapScript() }}
+          />
+        </head>
         <body className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased`}>
           {children}
         </body>

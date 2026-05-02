@@ -13,7 +13,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/server/migrate.ts",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "themes:add": "node scripts/themes-add.mjs",
+    "themes:remove": "node scripts/themes-remove.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",

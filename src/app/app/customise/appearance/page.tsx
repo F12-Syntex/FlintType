@@ -21,6 +21,7 @@ import {
   type ThemeVar,
   useThemeOverrides,
 } from "@/lib/theme-customization";
+import { useTheme } from "@/lib/themes/use-theme";
 import { RadiusRow } from "./_components/radius-row";
 import { ThemesRow } from "./_components/themes-row";
 
@@ -30,160 +31,70 @@ type ColorRow = {
   var: ThemeVar;
   label: string;
   desc: string;
-  preview: PreviewKind;
 };
-
-type PreviewKind =
-  | "page"
-  | "card"
-  | "text"
-  | "primary"
-  | "primary-foreground"
-  | "accent"
-  | "accent-foreground"
-  | "muted"
-  | "muted-foreground"
-  | "border"
-  | "input"
-  | "ring";
 
 const COLOR_ROWS: readonly ColorRow[] = [
   {
     var: "--primary",
     label: "Primary accent",
     desc: "Active states, CTAs, the brand spark",
-    preview: "primary",
   },
   {
     var: "--primary-foreground",
     label: "Primary text",
     desc: "Text rendered on top of the primary accent",
-    preview: "primary-foreground",
   },
   {
     var: "--accent",
     label: "Highlight tint",
     desc: "Soft hover backgrounds and accent surfaces",
-    preview: "accent",
   },
   {
     var: "--accent-foreground",
     label: "Highlight text",
     desc: "Text rendered on top of the highlight tint",
-    preview: "accent-foreground",
   },
   {
     var: "--background",
     label: "Page background",
     desc: "The main canvas behind every screen",
-    preview: "page",
   },
   {
     var: "--foreground",
     label: "Body text",
     desc: "Default text color for headlines and prose",
-    preview: "text",
   },
   {
     var: "--card",
     label: "Card surface",
     desc: "Lifted panels — settings rows, popovers, mode-bar",
-    preview: "card",
   },
   {
     var: "--muted",
     label: "Muted surface",
     desc: "Sidebars and de-emphasized regions",
-    preview: "muted",
   },
   {
     var: "--muted-foreground",
     label: "Muted text",
     desc: "Captions, eyebrow labels, secondary metadata",
-    preview: "muted-foreground",
   },
   {
     var: "--border",
     label: "Border",
     desc: "Hairline dividers and outlines",
-    preview: "border",
   },
   {
     var: "--input",
     label: "Input track",
     desc: "Form fields and toggle off-state tracks",
-    preview: "input",
   },
   {
     var: "--ring",
     label: "Focus ring",
     desc: "The outline that wraps a focused element",
-    preview: "ring",
   },
 ];
-
-function Preview({ kind }: { kind: PreviewKind }) {
-  switch (kind) {
-    case "page":
-      return (
-        <div className="h-9 w-20 rounded-sm border border-border bg-background" />
-      );
-    case "card":
-      return (
-        <div className="h-9 w-20 rounded-sm border border-border bg-card shadow-sm" />
-      );
-    case "text":
-      return (
-        <span className="text-2xl font-bold tracking-tight text-foreground">
-          Aa
-        </span>
-      );
-    case "primary":
-      return (
-        <span className="inline-flex h-7 items-center rounded-sm bg-primary px-3 text-xs font-semibold text-primary-foreground">
-          Save
-        </span>
-      );
-    case "primary-foreground":
-      return (
-        <span className="inline-flex h-7 items-center rounded-sm bg-primary px-3 text-xs font-semibold text-primary-foreground">
-          Aa
-        </span>
-      );
-    case "accent":
-      return (
-        <div className="h-9 w-20 rounded-sm border border-border bg-accent" />
-      );
-    case "accent-foreground":
-      return (
-        <span className="inline-flex h-7 items-center rounded-sm bg-accent px-3 text-xs font-semibold text-accent-foreground">
-          Aa
-        </span>
-      );
-    case "muted":
-      return (
-        <div className="h-9 w-20 rounded-sm border border-border bg-muted" />
-      );
-    case "muted-foreground":
-      return (
-        <span className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
-          Caption
-        </span>
-      );
-    case "border":
-      return (
-        <div className="h-9 w-20 rounded-sm border-2 border-border bg-card" />
-      );
-    case "input":
-      return (
-        <div className="flex h-9 w-20 items-center rounded-full bg-input p-1">
-          <div className="h-6 w-6 rounded-full bg-primary-foreground shadow-sm ring-1 ring-foreground/15" />
-        </div>
-      );
-    case "ring":
-      return <div className="h-9 w-20 rounded-sm bg-card ring-2 ring-ring" />;
-  }
-}
 
 function ColorRowCard({
   row,
@@ -206,7 +117,6 @@ function ColorRowCard({
         <CardDescription>{row.desc}</CardDescription>
         <CardAction>
           <div className="flex items-center gap-3">
-            <Preview kind={row.preview} />
             <ColorPicker
               value={
                 swatch && /^#[0-9a-f]{6}$/i.test(swatch)
@@ -223,7 +133,7 @@ function ColorRowCard({
                 aria-label={`Pick ${row.label}`}
               >
                 <span
-                  className="inline-block h-4 w-4 rounded-sm border border-border"
+                  className="inline-block h-5 w-5 rounded-sm border border-border shadow-inner"
                   style={{ backgroundColor: `var(${row.var})` }}
                 />
                 {swatch ?? "Default"}
@@ -499,7 +409,14 @@ function BackgroundRow({
 
 export default function AppearancePage() {
   const { overrides, setVar, clearVar, reset } = useThemeOverrides();
-  const customizedCount = Object.keys(overrides).length;
+  const { activeId: activeThemeId, reset: resetTheme } = useTheme();
+  const customizedCount =
+    Object.keys(overrides).length + (activeThemeId ? 1 : 0);
+
+  function handleResetAll() {
+    resetTheme();
+    reset();
+  }
 
   return (
     <section className="text-foreground">
@@ -524,7 +441,7 @@ export default function AppearancePage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={reset}
+              onClick={handleResetAll}
               disabled={customizedCount === 0}
             >
               Reset all

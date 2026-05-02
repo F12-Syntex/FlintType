@@ -1,7 +1,6 @@
 "use client";
 
-import { Check, Copy, ExternalLink } from "lucide-react";
-import { useState } from "react";
+import { Check, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,170 +8,144 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { type Theme, useTheme } from "@/lib/themes/use-theme";
 
-const FEATURED_THEMES: ReadonlyArray<{
-  id: string;
-  name: string;
-  url: string;
-  swatches: string[];
-}> = [
-  {
-    id: "tweakcn-cmlhfpjhw",
-    name: "Tweakcn · cmlhfpjhw",
-    url: "https://tweakcn.com/r/themes/cmlhfpjhw000004l4f4ax3m7z",
-    swatches: ["#0f172a", "#f97316", "#fafaf9", "#e7e5e4"],
-  },
-];
-
-function buildCommand(url: string): string {
-  return `yarn dlx shadcn@latest add ${url.trim()}`;
-}
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-
-  async function handleCopy() {
-    if (typeof navigator === "undefined") return;
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch {
-      // Clipboard blocked — fall through silently.
-    }
-  }
-
+function ThemeSwatches({ theme }: { theme: Theme }) {
+  // Pull a few representative colors so the card communicates the
+  // palette at a glance — no need to apply the theme to see it.
+  const v = theme.cssVars.light;
+  const order = ["primary", "background", "card", "accent", "border"];
+  const swatches = order
+    .map((k) => v[k])
+    .filter((c): c is string => Boolean(c));
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={handleCopy}
-      className="gap-2"
-      aria-label="Copy install command"
-    >
-      {copied ? <Check size={14} /> : <Copy size={14} />}
-      {copied ? "Copied" : "Copy"}
-    </Button>
-  );
-}
-
-function CommandLine({ command }: { command: string }) {
-  return (
-    <div className="flex items-center gap-2 rounded-md border border-border bg-muted/60 p-2 pl-3">
-      <span className="text-muted-foreground">$</span>
-      <code className="flex-1 truncate font-mono text-xs text-foreground">
-        {command}
-      </code>
-      <CopyButton text={command} />
+    <div className="flex">
+      {swatches.map((c, i) => (
+        <span
+          key={`${c}-${i}`}
+          aria-hidden
+          className={cn(
+            "h-7 w-7 rounded-full border-2 border-card",
+            i > 0 && "-ml-2",
+          )}
+          style={{ backgroundColor: c }}
+        />
+      ))}
     </div>
   );
 }
 
 function ThemeCard({
-  name,
-  url,
-  swatches,
+  theme,
+  active,
+  onApply,
 }: {
-  name: string;
-  url: string;
-  swatches: string[];
+  theme: Theme;
+  active: boolean;
+  onApply: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-md border border-border bg-card p-3">
+    <button
+      type="button"
+      onClick={onApply}
+      aria-pressed={active}
+      className={cn(
+        "flex flex-col gap-3 rounded-md border p-3 text-left transition-colors",
+        active
+          ? "border-primary bg-primary/5"
+          : "border-border bg-card hover:bg-muted",
+      )}
+    >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex">
-            {swatches.map((c, i) => (
-              <span
-                key={c}
-                aria-hidden
-                className={cn(
-                  "h-6 w-6 rounded-full border-2 border-card",
-                  i > 0 && "-ml-2",
-                )}
-                style={{ backgroundColor: c }}
-              />
-            ))}
-          </div>
-          <span className="text-sm font-semibold">{name}</span>
+          <ThemeSwatches theme={theme} />
+          <span className="text-sm font-semibold text-foreground">
+            {theme.name}
+          </span>
         </div>
+        {active ? (
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+            <Check size={14} /> Active
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground">Tap to apply</span>
+        )}
+      </div>
+      {theme.source ? (
         <a
-          href={url}
+          href={theme.source}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex w-fit items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
         >
-          View <ExternalLink size={12} />
+          source <ExternalLink size={11} />
         </a>
-      </div>
-      <CommandLine command={buildCommand(url)} />
-    </div>
+      ) : null}
+    </button>
   );
 }
 
 export function ThemesRow() {
-  const [url, setUrl] = useState("");
-  const cleanUrl = url.trim();
-  const isUrl = /^https?:\/\//i.test(cleanUrl);
+  const { themes, activeId, apply, reset } = useTheme();
 
   return (
     <Card className="rounded-md shadow-sm ring-border">
       <CardHeader>
-        <CardTitle className="text-sm font-semibold">Community themes</CardTitle>
+        <CardTitle className="text-sm font-semibold">Themes</CardTitle>
         <CardDescription>
-          Browse{" "}
-          <a
-            href="https://tweakcn.com"
-            target="_blank"
-            rel="noreferrer"
-            className="underline decoration-dotted underline-offset-4 hover:text-foreground"
-          >
-            tweakcn.com
-          </a>{" "}
-          for shadcn-compatible themes. Paste a theme URL below, copy the
-          install command, and run it in your project.
+          Pick a complete look — every color, font, and radius swaps at once.
         </CardDescription>
       </CardHeader>
 
-      <div className="flex flex-col gap-4 px-4 pb-4">
-        <div className="flex flex-col gap-2">
-          <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            Featured
-          </span>
-          <div className="flex flex-col gap-2">
-            {FEATURED_THEMES.map((t) => (
-              <ThemeCard key={t.id} {...t} />
-            ))}
-          </div>
+      <div className="flex flex-col gap-3 px-4 pb-4">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={reset}
+            aria-pressed={activeId === null}
+            className={cn(
+              "flex items-center justify-between gap-3 rounded-md border p-3 text-left transition-colors",
+              activeId === null
+                ? "border-primary bg-primary/5"
+                : "border-border bg-card hover:bg-muted",
+            )}
+          >
+            <span className="text-sm font-semibold">Default</span>
+            {activeId === null ? (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                <Check size={14} /> Active
+              </span>
+            ) : (
+              <span className="text-xs text-muted-foreground">Tap to apply</span>
+            )}
+          </button>
+          {themes.map((t) => (
+            <ThemeCard
+              key={t.id}
+              theme={t}
+              active={activeId === t.id}
+              onApply={() => apply(t.id)}
+            />
+          ))}
         </div>
 
-        <div className="flex flex-col gap-2">
-          <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            From a URL
-          </span>
-          <Input
-            placeholder="https://tweakcn.com/r/themes/…"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            spellCheck={false}
-            autoCapitalize="off"
-            autoCorrect="off"
-          />
-          {isUrl ? (
-            <CommandLine command={buildCommand(cleanUrl)} />
-          ) : cleanUrl.length > 0 ? (
-            <span className="text-xs text-destructive">
-              That doesn't look like a URL — it should start with http(s)://
-            </span>
-          ) : (
-            <span className="text-xs text-muted-foreground">
-              Paste a tweakcn (or any shadcn registry) URL to generate the
-              install command.
-            </span>
-          )}
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Want more? Maintainers can add a tweakcn theme with{" "}
+          <code className="rounded-sm bg-muted px-1.5 py-0.5 font-mono">
+            yarn themes:add &lt;url&gt;
+          </code>
+          .
+        </p>
+
+        {activeId !== null ? (
+          <div className="flex justify-end">
+            <Button variant="ghost" size="sm" onClick={reset}>
+              Reset to default
+            </Button>
+          </div>
+        ) : null}
       </div>
     </Card>
   );
