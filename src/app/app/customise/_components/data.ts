@@ -165,34 +165,7 @@ export const SECTIONS: readonly Section[] = [
       },
     ],
   },
-  {
-    id: "caret",
-    name: "CARET & CURSOR",
-    settings: [
-      {
-        type: "select",
-        id: "caret-style",
-        label: "Caret style",
-        desc: "How the cursor renders inside the passage",
-        value: "line",
-        options: ["line", "block", "under", "outline", "off"],
-        preview: "caret",
-      },
-      {
-        type: "toggle",
-        id: "caret-blink",
-        label: "Caret blink",
-        desc: "Blink animation on the active caret",
-        value: true,
-        preview: "caret",
-      },
-      {
-        type: "toggle",
-        id: "smooth-caret",
-        label: "Smooth caret",
-        desc: "Animate caret position changes between letters",
-        value: true,
-      },
-    ],
-  },
+  // Caret & cursor moved under Appearance — see appearance/page.tsx and
+  // appearance/_components/caret-row.tsx. Lives next to the rest of the
+  // visual customisation so users find it where they expect.
 ];

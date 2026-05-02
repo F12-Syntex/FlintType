@@ -404,7 +404,7 @@ export default function AppearancePage() {
         />
       </div>
 
-      <SectionHeader label="Caret" />
+      <SectionHeader label="Caret &amp; cursor" />
       <div className="mb-8 flex flex-col gap-3">
         <CaretRow />
       </div>
