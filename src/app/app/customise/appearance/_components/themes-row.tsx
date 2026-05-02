@@ -1,7 +1,6 @@
 "use client";
 
 import { Check, ChevronDown } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,9 +13,18 @@ import { cn } from "@/lib/utils";
 import { type Theme, usePalette } from "@/lib/themes/use-palette";
 import { SettingsRow } from "../../_components/row";
 
-const SWATCH_VARS = ["--primary", "--background", "--card", "--accent"];
+/** The Default theme's signature colors, mirrored from `:root` in
+ *  src/app/globals.css (--primary, --background, --card, --accent).
+ *  Hardcoded so the Default swatches stay correct even when another
+ *  palette is active — getComputedStyle would just read the override. */
+const DEFAULT_SWATCHES: readonly string[] = [
+  "oklch(0.6551 0.2312 34.7438)", // --primary  (coral/ember)
+  "oklch(0.9450 0.0180 85)", // --background (paper)
+  "oklch(0.9650 0.0150 85)", // --card       (lifted paper)
+  "oklch(0.9656 0.0176 39.4009)", // --accent (warm tint)
+];
 
-function PaletteSwatches({ colors }: { colors: string[] }) {
+function PaletteSwatches({ colors }: { colors: readonly string[] }) {
   return (
     <span className="inline-flex gap-0.5">
       {colors.map((c, i) => (
@@ -39,26 +47,8 @@ function ThemeSwatches({ theme }: { theme: Theme }) {
   return <PaletteSwatches colors={colors} />;
 }
 
-/** Read the live values of the default theme tokens off :root so the
- *  "Default" entry's swatches always reflect what the app actually
- *  resolves to (no need to hardcode oklch values from globals.css). */
-function useDefaultSwatches(): string[] {
-  const [colors, setColors] = useState<string[]>([]);
-  useEffect(() => {
-    // Pull a fresh sample on mount AND whenever the active palette
-    // changes, by clearing our overrides momentarily — except we can't,
-    // so instead we read once at mount when no theme is yet applied.
-    // For the dropdown trigger this stays accurate enough: if the user
-    // has a theme on, switching to Default shows the strip.
-    const root = getComputedStyle(document.documentElement);
-    setColors(SWATCH_VARS.map((v) => root.getPropertyValue(v).trim()));
-  }, []);
-  return colors;
-}
-
 export function ThemesRow() {
   const { themes, activeId, apply, reset } = usePalette();
-  const defaultSwatches = useDefaultSwatches();
   const active = activeId
     ? themes.find((t) => t.id === activeId) ?? null
     : null;
@@ -78,7 +68,7 @@ export function ThemesRow() {
               {active ? (
                 <ThemeSwatches theme={active} />
               ) : (
-                <PaletteSwatches colors={defaultSwatches} />
+                <PaletteSwatches colors={DEFAULT_SWATCHES} />
               )}
               <span className="font-medium">
                 {active ? active.name : "Default"}
@@ -97,7 +87,7 @@ export function ThemesRow() {
                 <Check size={14} />
               </span>
               <span className="flex-1">Default</span>
-              <PaletteSwatches colors={defaultSwatches} />
+              <PaletteSwatches colors={DEFAULT_SWATCHES} />
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             {themes.map((t) => (
