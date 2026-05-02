@@ -1,5 +1,6 @@
 "use client";
 
+import { Keyboard } from "@/app/app/_components/keyboard";
 import { Button } from "@/components/ui/button";
 import {
   designClasses,
@@ -11,28 +12,14 @@ import { cn } from "@/lib/utils";
 import { Chip, ChipGroup } from "../../_components/chip";
 import { SettingsRow } from "../../_components/row";
 
-const PREVIEW_KEYS = ["A", "S", "D"] as const;
+/** Force the home-row pegs into the lit state so the design's hot
+ *  palette is visible in the preview without anyone typing. */
+const PREVIEW_LIT = new Set(["KeyF", "KeyJ"]);
 
-/** Three-key strip rendered with the actual `designClasses` so the
- *  previews never drift from the live keyboard. The middle key is in
- *  its "pressed" state to show the hot-state colour too. */
 function KeyboardPreviewStrip({ design }: { design: KeyboardDesign }) {
-  const [resting, hot] = designClasses(design);
   return (
-    <div className="rounded-md border border-border bg-card px-6 py-5">
-      <div className="mx-auto flex max-w-xs gap-1">
-        {PREVIEW_KEYS.map((label, i) => (
-          <span
-            key={label}
-            className={cn(
-              "flex h-10 flex-1 items-center justify-center rounded-[6px] border font-mono text-sm",
-              i === 1 ? hot : resting,
-            )}
-          >
-            {label}
-          </span>
-        ))}
-      </div>
+    <div className="rounded-md border border-border bg-card p-4 sm:p-5">
+      <Keyboard design={design} forcedPressed={PREVIEW_LIT} />
     </div>
   );
 }

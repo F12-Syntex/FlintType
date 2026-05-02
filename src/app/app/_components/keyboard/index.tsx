@@ -16,19 +16,35 @@ export type KeyboardProps = {
    *  default — the picker is implemented and ready to expose, currently
    *  hidden until layout switching ships as a real setting. */
   showLayoutPicker?: boolean;
+  /** Demo / preview surfaces force a few keys into the lit state so
+   *  the design's hot palette is visible without anyone typing. The
+   *  union of these and any actually-pressed keys is highlighted. */
+  forcedPressed?: ReadonlySet<string>;
+  /** Override the active design (preview chips). Defaults to the
+   *  user-saved keyboard design. */
+  design?: KeyboardDesignOverride;
   className?: string;
 };
+
+type KeyboardDesignOverride = ReturnType<
+  typeof useKeyboardSettings
+>["settings"]["design"];
 
 export function Keyboard({
   layout = "qwerty",
   showLayoutPicker = false,
+  forcedPressed,
+  design: designOverride,
   className,
 }: KeyboardProps) {
   const [active, setActive] = useState<LayoutId>(layout);
   const { pressed, shift, caps } = usePressedKeys();
   const { settings } = useKeyboardSettings();
+  const design = designOverride ?? settings.design;
   const upper = shift !== caps;
   const rows = LAYOUTS[active].rows;
+  const isHot = (code: string) =>
+    pressed.has(code) || (forcedPressed?.has(code) ?? false);
 
   return (
     <div
@@ -49,13 +65,13 @@ export function Keyboard({
               <Key
                 key={k.code}
                 def={k}
-                pressed={pressed.has(k.code)}
+                pressed={isHot(k.code)}
                 lit={
                   (k.code === "CapsLock" && caps) ||
                   (k.code.startsWith("Shift") && shift)
                 }
                 upper={upper}
-                design={settings.design}
+                design={design}
               />
             ))}
           </div>
