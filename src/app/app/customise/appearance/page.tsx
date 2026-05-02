@@ -22,6 +22,7 @@ import {
 import { ModeSwitcher } from "@/components/ui/mode-switcher";
 import { SettingsRow } from "../_components/row";
 import { BackgroundRow } from "./_components/background-row";
+import { CaretRow } from "./_components/caret-row";
 import { RadiusRow } from "./_components/radius-row";
 import { ThemesRow } from "./_components/themes-row";
 
@@ -401,6 +402,11 @@ export default function AppearancePage() {
           onChange={(rem) => setVar("--radius", `${rem}rem`)}
           onClear={() => clearVar("--radius")}
         />
+      </div>
+
+      <SectionHeader label="Caret" />
+      <div className="mb-8 flex flex-col gap-3">
+        <CaretRow />
       </div>
 
       <SectionHeader label="Typography" />

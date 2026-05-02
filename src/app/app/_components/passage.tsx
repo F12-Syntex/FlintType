@@ -1,10 +1,24 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
+import { useCaretSettings } from "@/lib/caret-settings";
 import { cn } from "@/lib/utils";
 import { usePractice } from "./practice-state";
 
-type CaretPos = { left: number; top: number; height: number };
+type CaretPos = {
+  /** Left edge of the target char (inside the inner block). */
+  charLeft: number;
+  /** Right edge of the target char (inside the inner block). */
+  charRight: number;
+  /** Top of the target char (inside the inner block). */
+  top: number;
+  /** Char height. */
+  height: number;
+  /** Char width. */
+  width: number;
+  /** Which side of the char the line-style caret should hug. */
+  side: "left" | "right";
+};
 
 function ActiveWord({
   word,
@@ -47,7 +61,8 @@ function ActiveWord({
 export function Passage() {
   const { state } = usePractice();
   const { words, cursorWord, cursorChar, errorWords, phase } = state;
-  const showCaret = phase !== "done";
+  const { settings: caretSettings } = useCaretSettings();
+  const showCaret = phase !== "done" && caretSettings.style !== "off";
 
   // Single, absolutely-positioned caret. Its transform animates between
   // character positions so the | slides forward instead of teleporting.
@@ -74,10 +89,14 @@ export function Passage() {
     }
     const innerRect = inner.getBoundingClientRect();
     const r = target.getBoundingClientRect();
-    const left =
-      (targetSideRef.current === "left" ? r.left : r.right) - innerRect.left;
-    const top = r.top - innerRect.top;
-    setCaret({ left, top, height: r.height });
+    setCaret({
+      charLeft: r.left - innerRect.left,
+      charRight: r.right - innerRect.left,
+      top: r.top - innerRect.top,
+      height: r.height,
+      width: r.width,
+      side: targetSideRef.current,
+    });
     if (firstMeasureRef.current) {
       firstMeasureRef.current = false;
       // Re-enable the transition on the next frame so the very first
@@ -93,18 +112,10 @@ export function Passage() {
         className="relative select-none text-2xl leading-[2.2] font-normal text-muted-foreground tracking-[0.04em] [word-spacing:0.25em] sm:text-3xl sm:leading-[2.3] lg:text-4xl lg:leading-[2.4]"
       >
         {showCaret && caret ? (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute top-0 left-0 w-0.5 bg-primary"
-            style={{
-              height: caret.height * 0.8,
-              transform: `translate3d(${caret.left}px, ${caret.top + caret.height * 0.1}px, 0)`,
-              transition: animate
-                ? "transform 110ms cubic-bezier(.22, 0.8, 0.22, 1)"
-                : "none",
-              animation: "ft-blink 1s steps(2) infinite",
-              willChange: "transform",
-            }}
+          <CaretGlyph
+            caret={caret}
+            settings={caretSettings}
+            animate={animate}
           />
         ) : null}
         {words.map((word, wi) => {
@@ -142,5 +153,76 @@ export function Passage() {
         })}
       </div>
     </div>
+  );
+}
+
+/** Renders the caret glyph at the right place for the chosen style. The
+ *  five styles split into two groups:
+ *    - "line": a slim bar hugging the next-char edge (or right edge of the
+ *      last char when sitting at end-of-word). Width = user thickness.
+ *    - "block" / "underline" / "outline": always overlay the target char,
+ *      so they ignore which side the line-style caret would hug. */
+function CaretGlyph({
+  caret,
+  settings,
+  animate,
+}: {
+  caret: CaretPos;
+  settings: { style: "line" | "block" | "underline" | "outline" | "off"; width: number; radius: number };
+  animate: boolean;
+}) {
+  const { style, width, radius } = settings;
+
+  // Position + dimensions per style.
+  const lineX = caret.side === "left" ? caret.charLeft : caret.charRight;
+  const blockX = caret.charLeft;
+
+  let x = lineX;
+  let y = caret.top;
+  let w = width;
+  let h = caret.height * 0.85;
+  let bg = "var(--primary)";
+  let border = "transparent";
+  const r = `${radius}px`;
+
+  if (style === "line") {
+    y = caret.top + caret.height * 0.075;
+  } else if (style === "block") {
+    x = blockX;
+    w = caret.width;
+    h = caret.height;
+    bg = "color-mix(in oklch, var(--primary) 35%, transparent)";
+  } else if (style === "underline") {
+    x = blockX;
+    w = caret.width;
+    h = width;
+    y = caret.top + caret.height - width;
+  } else if (style === "outline") {
+    x = blockX;
+    w = caret.width;
+    h = caret.height;
+    bg = "transparent";
+    border = "var(--primary)";
+  }
+
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute top-0 left-0"
+      style={{
+        width: w,
+        height: h,
+        backgroundColor: bg,
+        border:
+          style === "outline" ? `${width}px solid ${border}` : undefined,
+        borderRadius: r,
+        transform: `translate3d(${x}px, ${y}px, 0)`,
+        transition: animate
+          ? "transform 110ms cubic-bezier(.22, 0.8, 0.22, 1)"
+          : "none",
+        animation: "ft-blink 1s steps(2) infinite",
+        willChange: "transform",
+      }}
+    />
   );
 }
