@@ -55,6 +55,29 @@ export type Section = {
 
 export const SECTIONS: readonly Section[] = [
   {
+    id: "appearance",
+    name: "APPEARANCE",
+    /** Rendered by the dedicated /app/customise/appearance/page.tsx — a
+     *  static route that preempts this generic section renderer. The
+     *  stub entries below exist only so the sidebar badge counts the
+     *  same number of customizable theme variables that page exposes. */
+    settings: [
+      { type: "toggle", id: "background", label: "Page background", value: false },
+      { type: "toggle", id: "foreground", label: "Body text", value: false },
+      { type: "toggle", id: "card", label: "Card surface", value: false },
+      { type: "toggle", id: "primary", label: "Primary accent", value: false },
+      { type: "toggle", id: "primary-foreground", label: "Primary text", value: false },
+      { type: "toggle", id: "accent", label: "Highlight tint", value: false },
+      { type: "toggle", id: "accent-foreground", label: "Highlight text", value: false },
+      { type: "toggle", id: "muted", label: "Muted surface", value: false },
+      { type: "toggle", id: "muted-foreground", label: "Muted text", value: false },
+      { type: "toggle", id: "border", label: "Border", value: false },
+      { type: "toggle", id: "input", label: "Input track", value: false },
+      { type: "toggle", id: "ring", label: "Focus ring", value: false },
+      { type: "toggle", id: "radius", label: "Corner radius", value: false },
+    ],
+  },
+  {
     id: "behaviour",
     name: "BEHAVIOUR",
     settings: [
@@ -170,29 +193,6 @@ export const SECTIONS: readonly Section[] = [
         desc: "Animate caret position changes between letters",
         value: true,
       },
-    ],
-  },
-  {
-    id: "appearance",
-    name: "APPEARANCE",
-    /** Rendered by the dedicated /app/customise/appearance/page.tsx — a
-     *  static route that preempts this generic section renderer. The
-     *  stub entries below exist only so the sidebar badge counts the
-     *  same number of customizable theme variables that page exposes. */
-    settings: [
-      { type: "toggle", id: "background", label: "Page background", value: false },
-      { type: "toggle", id: "foreground", label: "Body text", value: false },
-      { type: "toggle", id: "card", label: "Card surface", value: false },
-      { type: "toggle", id: "primary", label: "Primary accent", value: false },
-      { type: "toggle", id: "primary-foreground", label: "Primary text", value: false },
-      { type: "toggle", id: "accent", label: "Highlight tint", value: false },
-      { type: "toggle", id: "accent-foreground", label: "Highlight text", value: false },
-      { type: "toggle", id: "muted", label: "Muted surface", value: false },
-      { type: "toggle", id: "muted-foreground", label: "Muted text", value: false },
-      { type: "toggle", id: "border", label: "Border", value: false },
-      { type: "toggle", id: "input", label: "Input track", value: false },
-      { type: "toggle", id: "ring", label: "Focus ring", value: false },
-      { type: "toggle", id: "radius", label: "Corner radius", value: false },
     ],
   },
 ];
