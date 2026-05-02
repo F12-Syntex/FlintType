@@ -115,9 +115,11 @@ function MobileStrip({
       {isTime ? (
         <Pip label="left" value={formatElapsed(remainingMs)} />
       ) : (
-        <Pip label="word" value={`${wordIdx}/${wordCount}`} />
+        <>
+          <Pip label="word" value={`${wordIdx}/${wordCount}`} />
+          <Pip label="time" value={formatElapsed(elapsedMs)} />
+        </>
       )}
-      <Pip label="time" value={formatElapsed(elapsedMs)} />
     </div>
   );
 }
@@ -165,7 +167,6 @@ function DesktopStats({
   return (
     <div className="hidden flex-wrap items-end justify-between gap-4 select-none md:flex">
       <div className="flex flex-wrap gap-x-12 gap-y-3">
-        <Stat label="ELAPSED" value={formatElapsed(elapsedMs)} size="lg" />
         {isTime ? (
           <Stat
             label="REMAINING"
@@ -174,7 +175,10 @@ function DesktopStats({
             accent={running}
           />
         ) : (
-          <Stat label="WORD" value={`${wordIdx}/${wordCount}`} size="lg" />
+          <>
+            <Stat label="ELAPSED" value={formatElapsed(elapsedMs)} size="lg" />
+            <Stat label="WORD" value={`${wordIdx}/${wordCount}`} size="lg" />
+          </>
         )}
       </div>
       <div className="flex flex-wrap gap-x-12 gap-y-3">
