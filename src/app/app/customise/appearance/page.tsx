@@ -22,7 +22,6 @@ import {
   useThemeOverrides,
 } from "@/lib/theme-customization";
 import { ModeSwitcher } from "@/components/ui/mode-switcher";
-import { usePalette } from "@/lib/themes/use-palette";
 import { RadiusRow } from "./_components/radius-row";
 import { ThemesRow } from "./_components/themes-row";
 
@@ -410,12 +409,12 @@ function BackgroundRow({
 
 export default function AppearancePage() {
   const { overrides, setVar, clearVar, reset } = useThemeOverrides();
-  const { activeId: activeThemeId, reset: resetTheme } = usePalette();
-  const customizedCount =
-    Object.keys(overrides).length + (activeThemeId ? 1 : 0);
+  // Reset all only clears per-var overrides (colors, font, radius). The
+  // active theme stays put — switching theme is its own deliberate
+  // action via the Theme picker.
+  const customizedCount = Object.keys(overrides).length;
 
   function handleResetAll() {
-    resetTheme();
     reset();
   }
 
