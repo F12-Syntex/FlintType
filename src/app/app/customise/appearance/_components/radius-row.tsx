@@ -1,7 +1,6 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
 const RADIUS_PRESETS: ReadonlyArray<{
@@ -99,7 +97,7 @@ export function RadiusRow({
         <CardTitle className="text-sm font-semibold">Corner radius</CardTitle>
         <CardDescription>
           How rounded every surface, button, and card looks. Pick a preset
-          below or fine-tune with the slider.
+          below.
         </CardDescription>
       </CardHeader>
 
@@ -137,35 +135,6 @@ export function RadiusRow({
               onClick={() => onChange(p.rem)}
             />
           ))}
-        </div>
-
-        {/* Fine-tune slider — wrapped in a card with a contrasting bg so
-            the track (which uses --input) doesn't blend into the page
-            background. The track-color override below makes it visible
-            on every theme. */}
-        <div className="flex flex-col gap-3 rounded-md border border-border bg-card p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-              Fine-tune
-            </span>
-            <Badge variant="outline" className="px-2 tabular-nums">
-              {numeric.toFixed(2)}rem
-            </Badge>
-          </div>
-          <Slider
-            value={[numeric]}
-            min={0}
-            max={1.5}
-            step={0.05}
-            onValueChange={(v) => {
-              if (Array.isArray(v) && typeof v[0] === "number") onChange(v[0]);
-            }}
-            className="w-full [&_[data-slot=slider-track]]:!h-3 [&_[data-slot=slider-track]]:!bg-foreground/15 [&_[data-slot=slider-thumb]]:!size-5"
-          />
-          <div className="flex justify-between text-[10px] uppercase tracking-widest text-muted-foreground">
-            <span>0</span>
-            <span>1.5rem</span>
-          </div>
         </div>
 
         {value !== undefined ? (
