@@ -58,16 +58,16 @@ function ActiveWord({
         else if (got === expected) cls = "text-foreground";
         else cls = "text-primary";
 
-        // Per-letter emphasis. The caret already marks position; this is
-        // an extra static marker so the user sees the setting take.
+        // Per-letter emphasis. "letter" mode is the *default* behaviour
+        // — the caret itself marks the active letter, no extra static
+        // marker needed (a caret + underline at the same position
+        // reads as a visual bug). "next-letter" rings the cell so the
+        // user sees the upcoming target.
         const isCursorLetter = ci === cursorChar;
-        const letterCls = !blind && isCursorLetter
-          ? letterHighlight === "letter"
-            ? "underline decoration-primary decoration-2 underline-offset-[6px]"
-            : letterHighlight === "next-letter"
-              ? "rounded-sm bg-primary/15 text-primary px-0.5"
-              : ""
-          : "";
+        const letterCls =
+          !blind && isCursorLetter && letterHighlight === "next-letter"
+            ? "rounded-sm bg-primary/15 text-primary px-0.5"
+            : "";
 
         // Caret target:
         //   cursorChar < len  → left edge of char at cursorChar
