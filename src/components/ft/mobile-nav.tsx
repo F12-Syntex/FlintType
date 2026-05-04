@@ -109,9 +109,6 @@ export function MobileNav({
           ? "bg-foreground text-background"
           : "bg-background text-foreground",
       )}
-      style={{
-        backgroundColor: dark ? "hsl(0 0% 8%)" : "hsl(38 33% 92%)",
-      }}
       role="dialog"
       aria-modal="true"
       aria-label="Mobile navigation"

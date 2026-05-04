@@ -21,7 +21,7 @@ export default function CustomiseLayout({ children }: { children: ReactNode }) {
         >
           <div className="absolute inset-0 overflow-y-auto">
             <CustomiseHeader />
-            <div className="px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
+            <div className="px-4 py-4 sm:px-8 sm:py-8 lg:px-10">
               {children}
             </div>
           </div>
