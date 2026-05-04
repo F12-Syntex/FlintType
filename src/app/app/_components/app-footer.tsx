@@ -20,7 +20,7 @@ export function AppFooter({
     <footer
       data-ft-footer
       className={cn(
-        "safe-pb flex shrink-0 flex-wrap items-center justify-between gap-3 border-t px-5 py-3 text-[10px] uppercase tracking-[0.16em] sm:px-7",
+        "flex shrink-0 flex-wrap items-center justify-between gap-3 border-t px-5 pt-3 pb-5 text-[10px] uppercase tracking-[0.16em] sm:px-7 sm:pb-6",
         dark
           ? "border-ft-ink-line bg-ft-ink/85 text-ft-warm-2"
           : "border-border bg-background/85 text-muted-foreground",
