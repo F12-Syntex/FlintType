@@ -7,6 +7,7 @@ import { DEFAULT_CARET, type CaretSettings } from "./caret-settings";
 import { DEFAULT_KEYBOARD, type KeyboardSettings } from "./keyboard-settings";
 import { findTheme, THEMES } from "./themes/registry";
 import { getCache, loadPrefs, writeSlice } from "./prefs-store";
+import type { ThemeOverrides } from "./theme-customization";
 
 /** All known slice keys — every flinttype-managed pref slice the
  *  importer/exporter understands. Anything outside this list is left
@@ -116,8 +117,17 @@ export function importMonkeytype(payload: unknown): number {
   const behaviour = mapBehaviour(mt);
   const appearance = mapAppearance(mt);
   const background = mapBackground(mt);
-  const palette = mapPalette(mt);
   const practice = mapPractice(mt);
+  // Theme handling — MT's `customTheme` flag decides which side of the
+  // export is "active" for the user. When true, MT renders the
+  // customThemeColors array instead of the named palette, so we mirror
+  // that intent: write theme overrides and skip the palette pick.
+  // When false (or absent), translate the theme name to a flinttype
+  // palette id. Either way we also pull --ft-font-* out of fontFamily
+  // / fontSize so typography rides along with the colour import.
+  const useCustomColors = mt.customTheme === true;
+  const themeOverrides = mapThemeOverrides(mt, useCustomColors);
+  const palette = useCustomColors ? null : mapPalette(mt);
 
   let n = 0;
   if (caret) {
@@ -138,6 +148,10 @@ export function importMonkeytype(payload: unknown): number {
   }
   if (palette) {
     writeSlice("palette", palette);
+    n += 1;
+  }
+  if (themeOverrides) {
+    writeSlice("theme", themeOverrides);
     n += 1;
   }
   if (practice) {
@@ -334,6 +348,95 @@ function mapBackground(
 
 function clamp(n: number, lo: number, hi: number): number {
   return Math.min(Math.max(n, lo), hi);
+}
+
+// ─── MT theme + colour mapping ───────────────────────────────────────
+
+/** Translate MonkeyType's customThemeColors hex array, fontFamily, and
+ *  fontSize into the flinttype `theme` overrides slice.
+ *
+ *  MT's customThemeColors is a fixed-order array of CSS colours (any
+ *  format MT accepts — usually `#rrggbb`):
+ *    0 bgColor          → page background
+ *    1 mainColor        → brand accent
+ *    2 captionColor     → very dim caption text
+ *    3 subColor         → muted secondary text
+ *    4 textColor        → full-strength foreground
+ *    5 errorColor       → incorrect-key red
+ *    6 errorExtraColor  → "extra" character red
+ *    7 colorfulErrorColor       (when colorfulMode is on)
+ *    8 colorfulErrorExtraColor  (when colorfulMode is on)
+ *
+ *  flinttype's user-overridable token set is smaller (see THEME_VARS in
+ *  theme-customization.ts), so we fan one MT token onto every flinttype
+ *  token whose role overlaps:
+ *    bg   → --background, --card, --muted, --input, --primary-foreground, --accent-foreground
+ *    main → --primary, --accent, --ring
+ *    sub  → --muted-foreground, --border
+ *    text → --foreground, --card-foreground
+ *    caption → ignored (no clean fit; --muted-foreground already gets sub)
+ *    error → ignored (--destructive lives on the active palette, not
+ *             in the user-override list)
+ *
+ *  fontFamily ("JetBrains_Mono", "Fira_Code", …) becomes --ft-font-family
+ *  with an underscore→space normalization and a sensible fallback.
+ *  fontSize is a multiplier (1.0 default) → --ft-font-scale. */
+function mapThemeOverrides(
+  mt: MonkeytypeSettings,
+  applyColors: boolean,
+): ThemeOverrides | null {
+  const out: ThemeOverrides = {};
+
+  if (applyColors && Array.isArray(mt.customThemeColors)) {
+    const arr = mt.customThemeColors as unknown[];
+    const bg = pickColor(arr, 0);
+    const main = pickColor(arr, 1);
+    const sub = pickColor(arr, 3);
+    const text = pickColor(arr, 4);
+    if (bg) {
+      out["--background"] = bg;
+      out["--card"] = bg;
+      out["--muted"] = bg;
+      out["--input"] = bg;
+      out["--primary-foreground"] = bg;
+      out["--accent-foreground"] = bg;
+    }
+    if (main) {
+      out["--primary"] = main;
+      out["--accent"] = main;
+      out["--ring"] = main;
+    }
+    if (sub) {
+      out["--muted-foreground"] = sub;
+      out["--border"] = sub;
+    }
+    if (text) {
+      out["--foreground"] = text;
+      out["--card-foreground"] = text;
+    }
+  }
+
+  if (typeof mt.fontFamily === "string" && mt.fontFamily) {
+    const family = mt.fontFamily.replace(/_/g, " ");
+    // Default MT mono fallback — keeps text legible if the named family
+    // isn't installed locally.
+    out["--ft-font-family"] = `"${family}", ui-monospace, monospace`;
+  }
+  if (typeof mt.fontSize === "number" && mt.fontSize > 0) {
+    out["--ft-font-scale"] = String(clamp(mt.fontSize, 0.5, 3));
+  }
+
+  return Object.keys(out).length ? out : null;
+}
+
+/** Read a hex/colour string from MT's customThemeColors at a given
+ *  index. MT validates these on the way out, so we accept any non-empty
+ *  string (`#rrggbb`, `#rgb`, `rgb(...)`, even bare names). */
+function pickColor(arr: unknown[], i: number): string | null {
+  const v = arr[i];
+  if (typeof v !== "string") return null;
+  const trimmed = v.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 function mapPalette(mt: MonkeytypeSettings): { activeId: string | null } | null {

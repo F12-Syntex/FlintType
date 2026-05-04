@@ -69,6 +69,65 @@ describe("importMonkeytype", () => {
     expect(bg.darken).toBeCloseTo(0.3, 5);
   });
 
+  it("applies customThemeColors as theme overrides when customTheme is true", () => {
+    importMonkeytype({
+      customTheme: true,
+      customThemeColors: [
+        "#111111", // 0 bg
+        "#ff8800", // 1 main
+        "#777777", // 2 caption (ignored)
+        "#aaaaaa", // 3 sub
+        "#eeeeee", // 4 text
+        "#cc0000", // 5 error (ignored)
+      ],
+      // Should NOT write a palette pick when custom colours are active.
+      theme: "monokai",
+    });
+    const w = writes();
+    const t = w.theme as Record<string, string>;
+    expect(t["--background"]).toBe("#111111");
+    expect(t["--card"]).toBe("#111111");
+    expect(t["--muted"]).toBe("#111111");
+    expect(t["--primary"]).toBe("#ff8800");
+    expect(t["--accent"]).toBe("#ff8800");
+    expect(t["--ring"]).toBe("#ff8800");
+    expect(t["--muted-foreground"]).toBe("#aaaaaa");
+    expect(t["--border"]).toBe("#aaaaaa");
+    expect(t["--foreground"]).toBe("#eeeeee");
+    expect(t["--card-foreground"]).toBe("#eeeeee");
+    expect(w.palette).toBeUndefined();
+  });
+
+  it("falls back to palette pick when customTheme is false", () => {
+    importMonkeytype({
+      customTheme: false,
+      // light-green is one of the registered tweakcn community themes.
+      theme: "light-green",
+      customThemeColors: ["#111111", "#222222", "#333333"],
+    });
+    const w = writes();
+    expect(w.palette).toEqual({ activeId: "light-green" });
+    // Custom colours stayed in MT as a saved blob; we should not have
+    // imported them as overrides.
+    expect(w.theme).toBeUndefined();
+  });
+
+  it("imports fontFamily and fontSize as --ft-font-* overrides", () => {
+    importMonkeytype({
+      fontFamily: "JetBrains_Mono",
+      fontSize: 1.25,
+    });
+    const t = writes().theme as Record<string, string>;
+    expect(t["--ft-font-family"]).toBe('"JetBrains Mono", ui-monospace, monospace');
+    expect(t["--ft-font-scale"]).toBe("1.25");
+  });
+
+  it("clamps fontSize into the supported range", () => {
+    importMonkeytype({ fontSize: 99 });
+    const t = writes().theme as Record<string, string>;
+    expect(t["--ft-font-scale"]).toBe("3");
+  });
+
   it("translates the example settings.json end-to-end", () => {
     // Trimmed copy of the user's monkeytype export — the assertions
     // below check every slice the importer is supposed to populate.
