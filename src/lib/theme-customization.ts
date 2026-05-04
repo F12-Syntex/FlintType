@@ -30,6 +30,14 @@ export const THEME_VARS = [
   "--ft-font-scale",
   // Spacing between words on the practice passage. Read by passage.tsx.
   "--ft-word-spacing",
+  // Passage-specific colour tokens — separate from --foreground /
+  // --muted-foreground because the passage is the *only* place where
+  // typed/untyped letters need their own scale (MT's main/sub split,
+  // for instance). Defaulted to var(--foreground) and
+  // var(--muted-foreground) inside passage.tsx, so chrome text isn't
+  // affected by overrides scoped to the passage.
+  "--ft-passage-typed",
+  "--ft-passage-untyped",
 ] as const;
 
 export type ThemeVar = (typeof THEME_VARS)[number];

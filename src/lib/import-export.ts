@@ -371,9 +371,16 @@ function clamp(n: number, lo: number, hi: number): number {
  *  theme-customization.ts), so we fan one MT token onto every flinttype
  *  token whose role overlaps:
  *    bg   → --background, --card, --muted, --input, --primary-foreground, --accent-foreground
- *    main → --primary, --accent, --ring
- *    sub  → --muted-foreground, --border
+ *    main → --primary, --accent, --ring, --ft-passage-typed
+ *           Note: MT renders typed-correctly letters in mainColor (not
+ *           textColor) — and flinttype's passage now consumes
+ *           --ft-passage-typed directly so the chrome's --foreground
+ *           stays whatever the active palette / textColor says.
+ *    sub  → --muted-foreground, --border, --ft-passage-untyped
+ *           Untyped passage chars use this role in MT.
  *    text → --foreground, --card-foreground
+ *           MT's textColor is the chrome body text role (buttons,
+ *           headers) — distinct from the typed-letter colour.
  *    caption → ignored (no clean fit; --muted-foreground already gets sub)
  *    error → ignored (--destructive lives on the active palette, not
  *             in the user-override list)
@@ -405,12 +412,20 @@ function mapThemeOverrides(
       out["--primary"] = main;
       out["--accent"] = main;
       out["--ring"] = main;
+      // MT renders typed-correctly letters in mainColor — the passage
+      // consumes this var directly so chrome --foreground stays
+      // independent.
+      out["--ft-passage-typed"] = main;
     }
     if (sub) {
       out["--muted-foreground"] = sub;
       out["--border"] = sub;
+      // Untyped letters in the passage.
+      out["--ft-passage-untyped"] = sub;
     }
     if (text) {
+      // MT's textColor is the *chrome* body text colour (buttons,
+      // headers, captions) — distinct from typed-letter colour.
       out["--foreground"] = text;
       out["--card-foreground"] = text;
     }

@@ -7,6 +7,17 @@ import { useCaretSettings } from "@/lib/caret-settings";
 import { cn } from "@/lib/utils";
 import { usePractice } from "./practice-state";
 
+/** Practice-text colour roles — kept as separate tokens from the
+ *  global `--foreground` / `--muted-foreground` because the passage is
+ *  the only place where typed/untyped letters need to follow a
+ *  different scale. The MonkeyType import maps `mainColor` here, which
+ *  must NOT bleed into chrome body text. Defaults preserve flinttype's
+ *  pre-token behaviour (typed = foreground, untyped = muted-foreground)
+ *  so palette-only changes still work as before. */
+const TYPED_TEXT = "text-[var(--ft-passage-typed,var(--foreground))]";
+const UNTYPED_TEXT =
+  "text-[var(--ft-passage-untyped,var(--muted-foreground))]";
+
 type CaretPos = {
   /** Left edge of the target char (inside the inner block). */
   charLeft: number;
@@ -52,10 +63,10 @@ function ActiveWord({
         const glyph = got ?? expected ?? "";
 
         let cls: string;
-        if (blind) cls = "text-muted-foreground";
+        if (blind) cls = UNTYPED_TEXT;
         else if (isExtra) cls = "text-primary";
-        else if (got === undefined) cls = "text-muted-foreground";
-        else if (got === expected) cls = "text-foreground";
+        else if (got === undefined) cls = UNTYPED_TEXT;
+        else if (got === expected) cls = TYPED_TEXT;
         else cls = "text-primary";
 
         // Per-letter emphasis. "letter" mode is the *default* behaviour
@@ -112,10 +123,10 @@ function PastErrorWord({ target, typed }: { target: string; typed: string }) {
         const wrong = got !== undefined && got !== exp;
         const glyph = got ?? exp ?? "";
         const cls = missing
-          ? "text-muted-foreground"
+          ? UNTYPED_TEXT
           : wrong || isExtra
             ? "text-primary"
-            : "text-foreground";
+            : TYPED_TEXT;
         return (
           <span key={ci} className={cls}>
             {glyph}
@@ -198,7 +209,12 @@ export function Passage() {
         // arbitrary-value calcs so the user's Size preset scopes to the
         // passage only — bumping it here doesn't enlarge the chrome,
         // sidebar, or every other rem-based size in the app.
-        className="relative select-none font-normal text-muted-foreground tracking-[0.04em] text-[calc(var(--ft-font-scale,1)*1.5rem)] leading-[2.2] sm:text-[calc(var(--ft-font-scale,1)*1.875rem)] sm:leading-[2.3] lg:text-[calc(var(--ft-font-scale,1)*2.25rem)] lg:leading-[2.4]"
+        className={cn(
+          "relative select-none font-normal tracking-[0.04em] text-[calc(var(--ft-font-scale,1)*1.5rem)] leading-[2.2] sm:text-[calc(var(--ft-font-scale,1)*1.875rem)] sm:leading-[2.3] lg:text-[calc(var(--ft-font-scale,1)*2.25rem)] lg:leading-[2.4]",
+          // Default colour for any untyped span without an explicit
+          // class — the wrapper itself paints in the untyped role.
+          UNTYPED_TEXT,
+        )}
         style={{
           // Same scoping principle for the family override — it lives on
           // the passage, not body. Defaults inherit body's mono.
@@ -222,7 +238,7 @@ export function Passage() {
               <span
                 key={wi}
                 className={cn(
-                  blind ? "text-muted-foreground" : "text-foreground",
+                  blind ? UNTYPED_TEXT : TYPED_TEXT,
                   !blind &&
                     isErr &&
                     "underline decoration-primary decoration-1 underline-offset-[6px]",
@@ -246,7 +262,10 @@ export function Passage() {
                 key={wi}
                 className={cn(
                   highlightCurrentWord &&
-                    "rounded-sm bg-primary/15 px-1 ring-1 ring-primary/30 text-foreground",
+                    cn(
+                      "rounded-sm bg-primary/15 px-1 ring-1 ring-primary/30",
+                      TYPED_TEXT,
+                    ),
                 )}
               >
                 <ActiveWord
@@ -274,9 +293,12 @@ export function Passage() {
             <span
               key={wi}
               className={cn(
-                "text-muted-foreground",
+                UNTYPED_TEXT,
                 isNextWord &&
-                  "rounded-sm bg-foreground/10 px-1 text-foreground/80",
+                  cn(
+                    "rounded-sm bg-foreground/10 px-1 opacity-80",
+                    TYPED_TEXT,
+                  ),
               )}
             >
               {word}{" "}

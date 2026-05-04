@@ -91,8 +91,14 @@ describe("importMonkeytype", () => {
     expect(t["--primary"]).toBe("#ff8800");
     expect(t["--accent"]).toBe("#ff8800");
     expect(t["--ring"]).toBe("#ff8800");
+    // mainColor doubles as the typed-letter colour in MT — the passage
+    // consumes --ft-passage-typed directly.
+    expect(t["--ft-passage-typed"]).toBe("#ff8800");
     expect(t["--muted-foreground"]).toBe("#aaaaaa");
     expect(t["--border"]).toBe("#aaaaaa");
+    // subColor is the untyped-letter colour.
+    expect(t["--ft-passage-untyped"]).toBe("#aaaaaa");
+    // textColor is chrome body text, independent of the typed letter.
     expect(t["--foreground"]).toBe("#eeeeee");
     expect(t["--card-foreground"]).toBe("#eeeeee");
     expect(w.palette).toBeUndefined();
