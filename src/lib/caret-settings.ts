@@ -23,7 +23,10 @@ export const DEFAULT_CARET: CaretSettings = {
   width: 2,
   radius: 0,
   blinkSpeed: 1000,
-  smoothSpeed: 140,
+  // Default to a deliberately slow glide — the caret should feel
+  // intentional, not jumpy. Matches the `Drift` preset (300 ms) one
+  // step inside the Glide/Drift end of the smooth ramp.
+  smoothSpeed: 300,
 };
 
 function readStored(): CaretSettings {

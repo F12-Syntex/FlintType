@@ -38,11 +38,18 @@ const BLINK_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
   { label: "Fast", value: 500 },
 ];
 
+/** Smooth-caret motion presets. The first row is "Off" (no animation
+ *  at all); the rest sweep from quick to lazy. Names are atmospheric
+ *  on purpose — "Drift" reads better than "Slow" and lines up with the
+ *  product's editorial-mechanical feel. Default sits at the slow end
+ *  (Glide) which makes the caret feel deliberate. */
 const SMOOTH_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
   { label: "Off", value: 0 },
   { label: "Snappy", value: 60 },
-  { label: "Normal", value: 110 },
-  { label: "Easy", value: 200 },
+  { label: "Smooth", value: 120 },
+  { label: "Flow", value: 200 },
+  { label: "Glide", value: 300 },
+  { label: "Drift", value: 450 },
 ];
 
 // ─── Caret rendering primitive ──────────────────────────────────────
