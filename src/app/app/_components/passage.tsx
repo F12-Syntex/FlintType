@@ -8,15 +8,20 @@ import { cn } from "@/lib/utils";
 import { usePractice } from "./practice-state";
 
 /** Practice-text colour roles — kept as separate tokens from the
- *  global `--foreground` / `--muted-foreground` because the passage is
- *  the only place where typed/untyped letters need to follow a
- *  different scale. The MonkeyType import maps `mainColor` here, which
- *  must NOT bleed into chrome body text. Defaults preserve flinttype's
- *  pre-token behaviour (typed = foreground, untyped = muted-foreground)
- *  so palette-only changes still work as before. */
-const TYPED_TEXT = "text-[var(--ft-passage-typed,var(--foreground))]";
+ *  global palette because the passage is the only place where
+ *  typed/untyped/error letters need to follow their own scale (MT's
+ *  main/sub/error split, for instance). The MonkeyType import maps
+ *  `mainColor` / `subColor` / `errorColor` to these tokens directly so
+ *  they never bleed into chrome body text. Defaults track the active
+ *  theme: typed paints in `--primary` (the brand spark, also what MT
+ *  renders correctly-typed letters in), untyped in `--muted-foreground`,
+ *  and errors in `--destructive`. */
+const TYPED_TEXT = "text-[var(--ft-passage-typed,var(--primary))]";
 const UNTYPED_TEXT =
   "text-[var(--ft-passage-untyped,var(--muted-foreground))]";
+const ERROR_TEXT = "text-[var(--ft-passage-error,var(--destructive))]";
+const ERROR_DECORATION =
+  "decoration-[var(--ft-passage-error,var(--destructive))]";
 
 type CaretPos = {
   /** Left edge of the target char (inside the inner block). */
@@ -64,10 +69,10 @@ function ActiveWord({
 
         let cls: string;
         if (blind) cls = UNTYPED_TEXT;
-        else if (isExtra) cls = "text-primary";
+        else if (isExtra) cls = ERROR_TEXT;
         else if (got === undefined) cls = UNTYPED_TEXT;
         else if (got === expected) cls = TYPED_TEXT;
-        else cls = "text-primary";
+        else cls = ERROR_TEXT;
 
         // Per-letter emphasis. "letter" mode is the *default* behaviour
         // — the caret itself marks the active letter, no extra static
@@ -125,7 +130,7 @@ function PastErrorWord({ target, typed }: { target: string; typed: string }) {
         const cls = missing
           ? UNTYPED_TEXT
           : wrong || isExtra
-            ? "text-primary"
+            ? ERROR_TEXT
             : TYPED_TEXT;
         return (
           <span key={ci} className={cls}>
@@ -241,7 +246,10 @@ export function Passage() {
                   blind ? UNTYPED_TEXT : TYPED_TEXT,
                   !blind &&
                     isErr &&
-                    "underline decoration-primary decoration-1 underline-offset-[6px]",
+                    cn(
+                      "underline decoration-1 underline-offset-[6px]",
+                      ERROR_DECORATION,
+                    ),
                   // typedEffect: fade dims past words; strike crosses them.
                   !blind && typedEffect === "fade" && "opacity-40",
                   !blind && typedEffect === "strike" && "line-through decoration-1 opacity-70",

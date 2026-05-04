@@ -20,6 +20,7 @@ const DEFAULT_VARS: Record<"light" | "dark", PreviewVars> = {
     "muted-foreground": "oklch(0.45 0.04 35)",
     accent: "oklch(0.9656 0.0176 39.4009)",
     "accent-foreground": "oklch(0.18 0.04 35)",
+    destructive: "oklch(0.5800 0.2200 27)",
     border: "oklch(0.86 0.02 60)",
     "font-sans": "JetBrains Mono, ui-monospace, monospace",
     "font-mono": "JetBrains Mono, ui-monospace, monospace",
@@ -36,6 +37,7 @@ const DEFAULT_VARS: Record<"light" | "dark", PreviewVars> = {
     "muted-foreground": "oklch(0.72 0.02 60)",
     accent: "oklch(0.30 0.05 35)",
     "accent-foreground": "oklch(0.96 0.012 85)",
+    destructive: "oklch(0.6 0.2 27)",
     border: "oklch(0.32 0.02 35)",
     "font-sans": "JetBrains Mono, ui-monospace, monospace",
     "font-mono": "JetBrains Mono, ui-monospace, monospace",
@@ -54,6 +56,7 @@ type PreviewVars = {
   "muted-foreground": string;
   accent: string;
   "accent-foreground"?: string;
+  destructive?: string;
   border: string;
   "font-sans"?: string;
   "font-mono"?: string;
@@ -75,6 +78,7 @@ function pickVars(theme: Theme, mode: "light" | "dark"): PreviewVars | null {
     "muted-foreground": v["muted-foreground"] ?? v.foreground,
     accent: v.accent ?? v.primary,
     "accent-foreground": v["accent-foreground"],
+    destructive: v.destructive,
     border: v.border ?? v.foreground,
     "font-sans": v["font-sans"] ?? t["font-sans"],
     "font-mono": v["font-mono"] ?? t["font-mono"],
@@ -307,17 +311,19 @@ function ThemePreview({
           </span>
         </div>
 
-        {/* Reader text — typed (foreground), next char (primary), and
-         *  the rest in muted-foreground, mirroring passage.tsx's roles. */}
+        {/* Reader text — mirrors passage.tsx's three roles: typed
+         *  (--ft-passage-typed → primary), error (--ft-passage-error
+         *  → destructive), and untyped (--ft-passage-untyped →
+         *  muted-foreground). */}
         <p
           className="leading-relaxed"
           style={{ fontFamily: mono, fontSize: "11px" }}
         >
-          <span style={{ color: vars.foreground }}>The quick&nbsp;</span>
+          <span style={{ color: vars.primary }}>The quick&nbsp;</span>
           <span
             style={{
-              color: vars.primary,
-              borderBottom: `1.5px solid ${vars.primary}`,
+              color: vars.destructive ?? vars.primary,
+              borderBottom: `1.5px solid ${vars.destructive ?? vars.primary}`,
             }}
           >
             b

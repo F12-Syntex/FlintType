@@ -78,7 +78,7 @@ describe("importMonkeytype", () => {
         "#777777", // 2 caption (ignored)
         "#aaaaaa", // 3 sub
         "#eeeeee", // 4 text
-        "#cc0000", // 5 error (ignored)
+        "#cc0000", // 5 error → --ft-passage-error
       ],
       // Should NOT write a palette pick when custom colours are active.
       theme: "monokai",
@@ -101,6 +101,8 @@ describe("importMonkeytype", () => {
     // textColor is chrome body text, independent of the typed letter.
     expect(t["--foreground"]).toBe("#eeeeee");
     expect(t["--card-foreground"]).toBe("#eeeeee");
+    // errorColor is the passage-only mistyped-char colour.
+    expect(t["--ft-passage-error"]).toBe("#cc0000");
     expect(w.palette).toBeUndefined();
   });
 

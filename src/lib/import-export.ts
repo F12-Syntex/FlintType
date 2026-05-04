@@ -382,8 +382,12 @@ function clamp(n: number, lo: number, hi: number): number {
  *           MT's textColor is the chrome body text role (buttons,
  *           headers) — distinct from the typed-letter colour.
  *    caption → ignored (no clean fit; --muted-foreground already gets sub)
- *    error → ignored (--destructive lives on the active palette, not
- *             in the user-override list)
+ *    error → --ft-passage-error (the passage-only error colour). MT's
+ *           --destructive token isn't in flinttype's user-override list
+ *           by design — the chrome destructive stays on the active
+ *           palette. errorExtraColor (index 6) and the colourful-mode
+ *           variants are still ignored; flinttype draws extras and
+ *           wrong chars with the same role.
  *
  *  fontFamily ("JetBrains_Mono", "Fira_Code", …) becomes --ft-font-family
  *  with an underscore→space normalization and a sensible fallback.
@@ -400,6 +404,7 @@ function mapThemeOverrides(
     const main = pickColor(arr, 1);
     const sub = pickColor(arr, 3);
     const text = pickColor(arr, 4);
+    const error = pickColor(arr, 5);
     if (bg) {
       out["--background"] = bg;
       out["--card"] = bg;
@@ -428,6 +433,12 @@ function mapThemeOverrides(
       // headers, captions) — distinct from typed-letter colour.
       out["--foreground"] = text;
       out["--card-foreground"] = text;
+    }
+    if (error) {
+      // Mistyped/extra chars in the passage. Scoped to the passage so
+      // chrome --destructive (toasts, delete buttons) keeps tracking
+      // the active palette.
+      out["--ft-passage-error"] = error;
     }
   }
 
