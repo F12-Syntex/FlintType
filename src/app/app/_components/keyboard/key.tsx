@@ -1,3 +1,4 @@
+import type { KeymapLegend } from "@/lib/appearance-prefs";
 import {
   type KeyboardDesign,
   type KeyboardShape,
@@ -15,6 +16,7 @@ export function Key({
   design,
   shape,
   showShiftLabel,
+  legend = "dynamic",
 }: {
   def: KeyDef;
   pressed: boolean;
@@ -27,14 +29,23 @@ export function Key({
   shape: KeyboardShape;
   /** Render the small shift-label glyph above the main label. */
   showShiftLabel: boolean;
+  /** Letter-case rendering. */
+  legend?: KeymapLegend;
 }) {
   const units = def.units ?? 1;
   const isLetter =
     !def.variant && !!def.label && /^[a-z]$/.test(def.label);
-  const main =
-    isLetter && upper && def.label
-      ? def.label.toUpperCase()
-      : (def.label ?? "");
+  // Legend resolves which case (or absence) of the main label to render.
+  const labelByLegend = (() => {
+    if (!def.label) return "";
+    if (legend === "blank" && !def.variant) return "";
+    if (!isLetter) return def.label;
+    if (legend === "uppercase") return def.label.toUpperCase();
+    if (legend === "lowercase") return def.label;
+    // dynamic: follow shift+caps state
+    return upper ? def.label.toUpperCase() : def.label;
+  })();
+  const main = labelByLegend;
   const Icon = def.icon;
   const hot = pressed || lit;
 

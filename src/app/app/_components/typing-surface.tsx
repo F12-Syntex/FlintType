@@ -1,8 +1,11 @@
 "use client";
 
+import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { InputCapture } from "./input-capture";
 import { Keyboard } from "./keyboard";
+import type { LayoutId } from "./keyboard/layouts";
+import { LAYOUTS } from "./keyboard/layouts";
 import { ModeBar } from "./mode-bar";
 import { Passage } from "./passage";
 import { PracticeProvider, usePractice } from "./practice-state";
@@ -42,6 +45,29 @@ export function TypingSurface(props: TypingSurfaceProps = {}) {
   );
 }
 
+/** Translate the next character the user is expected to type into a
+ *  KeyboardEvent.code. Handles the lower-case alpha + digit cases that
+ *  cover ~95% of test glyphs; everything else (punctuation, shifted
+ *  symbols) falls back to undefined and the keymap simply won't
+ *  highlight a "next" key. */
+function nextExpectedKeyCode(
+  layout: LayoutId,
+  ch: string | undefined,
+): string | undefined {
+  if (!ch) return undefined;
+  const c = ch.toLowerCase();
+  if (c === " ") return "Space";
+  // Walk the keyboard layout's letter rows and find a key whose label
+  // matches. This stays correct under Dvorak / Colemak too.
+  for (const row of LAYOUTS[layout].rows) {
+    for (const k of row) {
+      if (k.label === c) return k.code;
+      if (k.shiftLabel === c) return k.code;
+    }
+  }
+  return undefined;
+}
+
 function TypingSurfaceBody({
   showModeBar = true,
   showKeyboard = true,
@@ -50,15 +76,26 @@ function TypingSurfaceBody({
   belowHint,
 }: TypingSurfaceProps) {
   const { prefs } = useBehaviourPrefs();
+  const { prefs: appearance } = useAppearancePrefs();
   const { state } = usePractice();
   const done = state.phase === "done";
-  // Behaviour-prefs gates: a `false` setting wins over the prop default.
-  const renderKeyboard = showKeyboard && prefs.liveKeyboard && !done;
+  // Both the behaviour toggle *and* appearance.keymap=off hide the
+  // keyboard. Anything else picks the appearance mode.
+  const keymapOff = appearance.keymap === "off";
+  const renderKeyboard =
+    showKeyboard && prefs.liveKeyboard && !keymapOff && !done;
+  const layout = (appearance.keymapLayout as LayoutId) in LAYOUTS
+    ? (appearance.keymapLayout as LayoutId)
+    : "qwerty";
+  const nextChar =
+    state.words[state.cursorWord]?.[state.cursorChar] ?? " ";
+  const nextKey =
+    appearance.keymap === "next"
+      ? nextExpectedKeyCode(layout, nextChar)
+      : undefined;
   return (
     <>
       {showModeBar ? <ModeBar /> : null}
-      {/* Live readouts disappear when the run finishes — the summary
-          carries every stat and more, so the strip is just noise. */}
       {showReadouts && !done ? (
         <div className="md:hidden">
           <Readouts />
@@ -81,7 +118,14 @@ function TypingSurfaceBody({
         {!done ? belowHint : null}
         {renderKeyboard ? (
           <div className="mt-auto hidden md:block">
-            <Keyboard />
+            <Keyboard
+              layout={layout}
+              mode={appearance.keymap}
+              legend={appearance.keymapLegend}
+              topRow={appearance.keymapTopRow}
+              scale={appearance.keymapSize}
+              nextKey={nextKey}
+            />
           </div>
         ) : null}
       </div>

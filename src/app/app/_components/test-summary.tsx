@@ -15,6 +15,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/line-chart";
+import { useAppearancePrefs } from "@/lib/appearance-prefs";
+import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
 import { cn } from "@/lib/utils";
 import { type KeyEvent, usePractice } from "./practice-state";
 
@@ -105,7 +107,13 @@ const chartConfig = {
   raw: { label: "raw", color: "var(--muted-foreground)" },
 } satisfies ChartConfig;
 
-function WpmChart({ buckets }: { buckets: readonly Bucket[] }) {
+function WpmChart({
+  buckets,
+  startAtZero,
+}: {
+  buckets: readonly Bucket[];
+  startAtZero: boolean;
+}) {
   if (buckets.length < 2) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -140,6 +148,7 @@ function WpmChart({ buckets }: { buckets: readonly Bucket[] }) {
           axisLine={false}
           tickMargin={6}
           width={28}
+          domain={startAtZero ? [0, "auto"] : ["auto", "auto"]}
         />
         <ChartTooltip
           cursor={{ stroke: "currentColor", strokeOpacity: 0.2 }}
@@ -461,6 +470,7 @@ function ReplayView({
 export function TestSummary() {
   const { state, restart, wpm, raw, accuracy, elapsedMs, wpmHistory } =
     usePractice();
+  const { prefs: appearance } = useAppearancePrefs();
   const [replaying, setReplaying] = useState(false);
   // Convert the live wpmHistory samples into chart buckets keyed by
   // whole-second markers. monkeytype draws its WPM trace from exactly
@@ -505,10 +515,22 @@ export function TestSummary() {
         {/* Top row: stat column on the left, smaller centered chart. */}
         <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[140px_1fr] sm:gap-6 lg:grid-cols-[160px_1fr]">
           <div className="flex flex-row items-baseline gap-6 sm:flex-col sm:items-start sm:gap-4">
-            <BigStat label="wpm" value={wpm} accent />
+            <BigStat
+              label={SPEED_UNIT_LABEL[appearance.typingSpeedUnit]}
+              value={formatSpeed(
+                wpm,
+                appearance.typingSpeedUnit,
+                appearance.alwaysShowDecimal,
+              )}
+              accent
+            />
             <BigStat
               label="acc"
-              value={`${Math.round(accuracy * 10) / 10}%`}
+              value={
+                appearance.alwaysShowDecimal
+                  ? `${(Math.round(accuracy * 10) / 10).toFixed(1)}%`
+                  : `${Math.round(accuracy * 10) / 10}%`
+              }
               accent
             />
             <div className="hidden text-[11px] uppercase tracking-[0.18em] text-muted-foreground sm:block">
@@ -518,13 +540,24 @@ export function TestSummary() {
             </div>
           </div>
           <div className="w-full">
-            <WpmChart buckets={buckets} />
+            <WpmChart
+              buckets={buckets}
+              startAtZero={appearance.startGraphsAtZero}
+            />
           </div>
         </div>
 
         {/* Inline stats row, monkeytype-style. */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
-          <BigStat label="raw" value={rawWpm} accent />
+          <BigStat
+            label="raw"
+            value={formatSpeed(
+              rawWpm,
+              appearance.typingSpeedUnit,
+              appearance.alwaysShowDecimal,
+            )}
+            accent
+          />
           <BigStat
             label="characters"
             value={`${state.correctChars}/${wrongTotal}/0/0`}

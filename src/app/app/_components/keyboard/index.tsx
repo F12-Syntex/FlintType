@@ -6,6 +6,11 @@ import {
   type KeyboardSettings,
   useKeyboardSettings,
 } from "@/lib/keyboard-settings";
+import type {
+  Keymap,
+  KeymapLegend,
+  KeymapTopRow,
+} from "@/lib/appearance-prefs";
 import { cn } from "@/lib/utils";
 import { Key } from "./key";
 import { LayoutPicker } from "./layout-picker";
@@ -27,6 +32,20 @@ export type KeyboardProps = {
   /** Override one or more saved settings — used by the appearance
    *  preview to render variants without touching localStorage. */
   settingsOverride?: Partial<KeyboardSettings>;
+  /** Appearance: how the keymap reacts during a test.
+   *   - "static": render the layout but never highlight a press
+   *   - "react":  highlight whatever was just pressed (default)
+   *   - "next":   highlight the next-expected key (uses `nextKey`)
+   *   - "off":    caller should not render <Keyboard/> at all */
+  mode?: Keymap;
+  /** Legend rendering for letter keys. */
+  legend?: KeymapLegend;
+  /** Whether to render the top numeric row. */
+  topRow?: KeymapTopRow;
+  /** CSS scale applied to the entire widget (1.0 = no change). */
+  scale?: number;
+  /** When `mode === "next"`, the key code to highlight next. */
+  nextKey?: string;
   className?: string;
 };
 
@@ -35,6 +54,11 @@ export function Keyboard({
   showLayoutPicker = false,
   forcedPressed,
   settingsOverride,
+  mode = "react",
+  legend = "dynamic",
+  topRow = "layout",
+  scale = 1,
+  nextKey,
   className,
 }: KeyboardProps) {
   const [active, setActive] = useState<LayoutId>(layout);
@@ -42,13 +66,11 @@ export function Keyboard({
   const { settings } = useKeyboardSettings();
   const effective = { ...settings, ...settingsOverride };
   const upper = shift !== caps;
-  const rows = LAYOUTS[active].rows;
+  const allRows = LAYOUTS[active].rows;
+  // First row in `LAYOUTS` is the number row. "never" drops it; the
+  // others keep it.
+  const rows = topRow === "never" ? allRows.slice(1) : allRows;
 
-  // Compact mode drops modifier-style keys (Tab, Caps, Shift, Ctrl,
-  // Alt, Meta, Backspace, Enter) plus Space, then centres each row
-  // proportionally to its remaining unit count. Result is an
-  // upside-down pyramid: 13 → 12 → 11 → 10 keys per row, each row
-  // narrower than the one above and centred under the parent.
   const isCompactHidden = (def: { code: string; variant?: string }) =>
     def.variant === "modifier" || def.code === "Space";
 
@@ -61,10 +83,16 @@ export function Keyboard({
     1,
   );
 
-  const isHot = (code: string) =>
-    pressed.has(code) ||
-    (forcedPressed?.has(code) ?? false) ||
-    (effective.highlightHomeRow && HOME_ROW_PEGS.has(code));
+  const isHot = (code: string) => {
+    if (mode === "static") return effective.highlightHomeRow && HOME_ROW_PEGS.has(code);
+    if (mode === "next")
+      return code === nextKey || (effective.highlightHomeRow && HOME_ROW_PEGS.has(code));
+    return (
+      pressed.has(code) ||
+      (forcedPressed?.has(code) ?? false) ||
+      (effective.highlightHomeRow && HOME_ROW_PEGS.has(code))
+    );
+  };
 
   return (
     <div
@@ -74,6 +102,11 @@ export function Keyboard({
       )}
       role="img"
       aria-label={`virtual keyboard, ${LAYOUTS[active].name} layout`}
+      style={
+        scale !== 1
+          ? { transform: `scale(${scale})`, transformOrigin: "top center" }
+          : undefined
+      }
     >
       {showLayoutPicker && (
         <LayoutPicker active={active} onChange={setActive} />
@@ -87,9 +120,6 @@ export function Keyboard({
           const rowUnits = visible.reduce((s, k) => s + (k.units ?? 1), 0);
           const rowStyle: React.CSSProperties | undefined = effective.compact
             ? {
-                // Width proportional to the widest row so each row
-                // contracts toward the centre as it loses keys —
-                // the upside-down pyramid shape.
                 width: `${(rowUnits / widestRowUnits) * 100}%`,
                 marginInline: "auto",
               }
@@ -116,6 +146,7 @@ export function Keyboard({
                   design={effective.design}
                   shape={effective.shape}
                   showShiftLabel={effective.showShiftLabels}
+                  legend={legend}
                 />
               ))}
             </div>

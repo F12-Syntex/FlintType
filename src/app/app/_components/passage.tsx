@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
+import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { useCaretSettings } from "@/lib/caret-settings";
 import { cn } from "@/lib/utils";
@@ -87,8 +88,23 @@ export function Passage() {
   const { words, cursorWord, cursorChar, errorWords, phase, typed } = state;
   const { settings: caretSettings } = useCaretSettings();
   const { prefs } = useBehaviourPrefs();
+  const { prefs: appearance } = useAppearancePrefs();
   const blind = prefs.blindMode;
   const showCaret = phase !== "done" && caretSettings.style !== "off";
+
+  // Appearance: highlightMode controls how the *current* word and the
+  // *next* token are visually emphasised. typedEffect fades or strikes
+  // through already-typed words. Both have an "off" no-op.
+  const hl = appearance.highlightMode;
+  const typedEffect = appearance.typedEffect;
+  const highlightCurrentWord = hl === "word";
+  const highlightNextWord = hl === "next-word";
+  const highlightNextLetter = hl === "next-letter";
+  // maxLineWidth in characters; 0 = stretch to container.
+  const maxWidthStyle =
+    appearance.maxLineWidth > 0
+      ? { maxWidth: `${appearance.maxLineWidth}ch`, marginInline: "auto" }
+      : undefined;
 
   // Single, absolutely-positioned caret. Its transform animates between
   // character positions so the | slides forward instead of teleporting.
@@ -136,7 +152,10 @@ export function Passage() {
       <div
         ref={innerRef}
         className="relative select-none text-2xl leading-[2.2] font-normal text-muted-foreground tracking-[0.04em] sm:text-3xl sm:leading-[2.3] lg:text-4xl lg:leading-[2.4]"
-        style={{ wordSpacing: "var(--ft-word-spacing, 0.25em)" }}
+        style={{
+          wordSpacing: "var(--ft-word-spacing, 0.25em)",
+          ...maxWidthStyle,
+        }}
       >
         {showCaret && caret ? (
           <CaretGlyph
@@ -156,6 +175,9 @@ export function Passage() {
                   !blind &&
                     isErr &&
                     "text-primary underline decoration-1 underline-offset-[6px]",
+                  // typedEffect: fade dims past words; strike crosses them.
+                  !blind && typedEffect === "fade" && "opacity-40",
+                  !blind && typedEffect === "strike" && "line-through decoration-1 opacity-70",
                 )}
               >
                 {word}{" "}
@@ -164,7 +186,13 @@ export function Passage() {
           }
           if (wi === cursorWord) {
             return (
-              <span key={wi}>
+              <span
+                key={wi}
+                className={cn(
+                  highlightCurrentWord &&
+                    "rounded-sm bg-primary/10 px-0.5 text-foreground",
+                )}
+              >
                 <ActiveWord
                   word={word}
                   typed={typed[wi] ?? ""}
@@ -175,8 +203,22 @@ export function Passage() {
               </span>
             );
           }
+          // Next word emphasis (only when no typing yet on current word).
+          const isNextWord =
+            highlightNextWord && wi === cursorWord + 1;
           return (
-            <span key={wi} className="text-muted-foreground">
+            <span
+              key={wi}
+              className={cn(
+                "text-muted-foreground",
+                isNextWord && "rounded-sm bg-foreground/5 px-0.5 text-foreground",
+                // Show the *first letter* of the next word as the
+                // "next-letter" hint when the cursor sits at the very
+                // start of that word would-be (i.e. no inter-word hint
+                // makes sense here, so do nothing extra in this branch).
+                highlightNextLetter && wi === cursorWord + 1 && "text-foreground",
+              )}
+            >
               {word}{" "}
             </span>
           );

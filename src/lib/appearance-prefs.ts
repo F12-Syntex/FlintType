@@ -73,7 +73,7 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   typingSpeedUnit: "wpm",
   startGraphsAtZero: true,
 
-  keymap: "off",
+  keymap: "react",
   keymapLayout: "qwerty",
   keymapStyle: "staggered",
   keymapLegend: "lowercase",
