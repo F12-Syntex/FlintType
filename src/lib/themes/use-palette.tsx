@@ -60,12 +60,17 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
+    // Hard reset on every switch: strip every var any static theme can
+    // set AND every var the reactive palette can set, before applying
+    // anything new. Without this, a switch from Reactive → Static (or
+    // Static A → Static B with non-overlapping var sets) can leave
+    // stray inline overrides on :root that bleed into the new palette.
+    clearThemeVars(root);
+    clearReactivePalette(root);
+
     if (activeId === BACKGROUND_REACTIVE_ID) {
-      // Reactive: clear any static-theme vars left over so the sampled
-      // palette has the field. Sampling is async; if the image isn't
-      // ready, fall back to defaults until it loads.
-      clearThemeVars(root);
-      clearReactivePalette(root);
+      // Sampling is async; if the image isn't ready, the just-cleared
+      // :root falls back to the default palette until it loads.
       if (!effectiveImage) return;
       let cancelled = false;
       void samplePalette(effectiveImage).then((palette) => {
@@ -76,14 +81,8 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
         cancelled = true;
       };
     }
-    // Any other path: clear reactive overrides first, then apply the
-    // selected static theme (or strip everything for "Default").
-    clearReactivePalette(root);
     const theme = findTheme(activeId);
-    if (!theme) {
-      clearThemeVars(root);
-      return;
-    }
+    if (!theme) return;
     const mode = resolvedTheme === "dark" ? "dark" : "light";
     applyTheme(root, theme, mode);
   }, [activeId, resolvedTheme, effectiveImage]);
