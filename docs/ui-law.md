@@ -343,7 +343,7 @@ Two independent axes:
 - **Palette** — `<ThemeSwitcher>` puts a `theme-<id>` class on `<html>`. Each class is a block of CSS variables in `src/app/themes.css`. The `default` theme uses `:root` / `.dark` from `globals.css` and sets no extra class. Palette dark variants live at `html.dark.theme-<id>` (both classes required). The `html` tag prefix is load-bearing — `themes.css` is imported before `:root` in `globals.css`, so plain class selectors would lose the tie-break to `:root`; `html.theme-<id>` raises specificity from (0,0,1,0) to (0,0,1,1).
 - **Mode (light/dark)** — `<ModeToggle>` toggles the `dark` class on `<html>`. `:root` / `.dark` handle the default palette; every community palette ships a `html.dark.theme-<id>` block too. If nothing is stored, the initial mode resolves from `prefers-color-scheme`.
 
-Ships with six community palettes sourced from [tweakcn.com](https://tweakcn.com): Claude, Supabase, T3 Chat, Mocha Mousse, Caffeine, Amethyst Haze. Registered in `src/lib/themes.ts` → `THEMES`.
+Ships with a selection of community palettes sourced from [tweakcn.com](https://tweakcn.com) — currently Amethyst Haze, Bold Tech, Bubblegum, Catppuccin, Claymorphism, Cosmic Night, Cyberpunk, Kodama Grove, Light Green, Tangerine, Twitter. Registered in `src/lib/themes/themes.json` and loaded via `src/lib/themes/registry.ts` → `THEMES`. Add more with `yarn themes:add <tweakcn-url>`.
 
 ### 9.1 What swaps, what doesn't
 - Theme-aware semantic classes (§2, layer 1) swap automatically.

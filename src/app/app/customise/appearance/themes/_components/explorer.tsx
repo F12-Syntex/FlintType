@@ -1,6 +1,5 @@
 "use client";
 
-import { Check } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { BACKGROUND_REACTIVE_ID } from "@/lib/themes/background-reactive";
@@ -168,9 +167,10 @@ export function ThemeExplorer() {
   );
 }
 
-/** Tile shell — handles selection ring, focus, click. The painted body
- *  is rendered as children so theme-specific tiles (Reactive) can swap
- *  it without losing the chrome. */
+/** Tile shell — handles selection state, focus, click. Active state is
+ *  expressed by the chrome itself (thicker primary border, a left
+ *  accent bar, and a SELECTED eyebrow inside the title bar) instead of
+ *  a corner checkmark, so nothing floats over the preview. */
 function TileShell({
   active,
   onPick,
@@ -192,24 +192,28 @@ function TileShell({
         "group relative block w-full overflow-hidden rounded-md border text-left transition-all",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         active
-          ? "border-primary ring-1 ring-primary"
+          ? "border-primary ring-2 ring-primary/40"
           : "border-border hover:border-foreground/30",
       )}
     >
-      {children}
+      {/* Left accent rail — the editorial selection mark. Sits flush
+          against the inner border so it never overlaps preview content. */}
       {active ? (
-        <span className="absolute top-1.5 right-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
-          <Check size={12} strokeWidth={3} />
-        </span>
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-primary"
+        />
       ) : null}
+      {children}
     </button>
   );
 }
 
 /** Tile rendered as a faux desktop window: a card-coloured title bar
  *  with traffic-light dots and the theme name, then a square painted
- *  body that previews the typing UI — sample passage, caret, stat
- *  row. Square aspect so tiles read as little app windows. */
+ *  body that previews the typing UI — passage, sparkline, stat strip,
+ *  keyboard row, and a swatch strip. Selected tiles surface their state
+ *  inside the title bar (eyebrow + dot) instead of a floating tick. */
 function ThemeTile({
   name,
   vars,
@@ -227,8 +231,8 @@ function ThemeTile({
         className="flex aspect-square flex-col"
         style={{ backgroundColor: vars.background }}
       >
-        {/* Window title bar — uses the card surface so it reads as a
-            distinct strip atop the page background. */}
+        {/* Window title bar — the SELECTED eyebrow replaces the corner
+            tick when the theme is active. */}
         <div
           className="flex shrink-0 items-center gap-2 border-b px-2.5 py-1.5"
           style={{
@@ -250,6 +254,19 @@ function ThemeTile({
               style={{ backgroundColor: vars.primary }}
             />
           </span>
+          {active ? (
+            <span
+              className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.18em]"
+              style={{ color: vars.primary }}
+            >
+              <span
+                aria-hidden
+                className="block h-1 w-1 rounded-full"
+                style={{ backgroundColor: vars.primary }}
+              />
+              Active
+            </span>
+          ) : null}
           <span
             className="ml-auto truncate text-[10px] font-semibold uppercase tracking-[0.14em]"
             style={{ color: vars["muted-foreground"] }}
@@ -258,11 +275,11 @@ function ThemeTile({
           </span>
         </div>
 
-        {/* Window body — the typing preview. */}
-        <div className="flex min-h-0 flex-1 flex-col justify-between gap-2 p-3">
-          {/* Sample passage — muted bulk, foreground typed, primary
-              current-word, with a blinking caret rendered as a thin bar. */}
-          <p className="font-mono text-[11px] leading-[1.6] sm:text-[12px]">
+        {/* Window body — denser typing preview. */}
+        <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
+          {/* Sample passage — two lines, with a primary current word
+              and a coloured caret bar. */}
+          <p className="font-mono text-[11px] leading-[1.55] sm:text-[12px]">
             <span style={{ color: vars["muted-foreground"] }}>the </span>
             <span style={{ color: vars.foreground }}>quick </span>
             <span
@@ -280,55 +297,149 @@ function ThemeTile({
               className="mx-px inline-block h-[1.05em] w-[2px] translate-y-[2px]"
               style={{ backgroundColor: vars.primary }}
             />
-            <span style={{ color: vars["muted-foreground"] }}>fox jumps</span>
+            <span style={{ color: vars["muted-foreground"] }}> fox jumps</span>
+            <br />
+            <span style={{ color: vars["muted-foreground"] }}>over the lazy dog</span>
           </p>
 
-          {/* Stat row — wpm + accuracy, both tabular-nums. */}
-          <div className="flex items-baseline justify-between">
-            <span className="inline-flex items-baseline gap-1">
-              <span
-                className="text-lg font-bold tabular-nums leading-none sm:text-xl"
-                style={{ color: vars.primary }}
-              >
-                82
-              </span>
-              <span
-                className="text-[8px] font-semibold uppercase tracking-[0.16em]"
-                style={{ color: vars["muted-foreground"] }}
-              >
-                wpm
-              </span>
-            </span>
-            <span className="inline-flex items-baseline gap-1">
-              <span
-                className="text-sm font-semibold tabular-nums leading-none"
-                style={{ color: vars.foreground }}
-              >
-                97
-              </span>
-              <span
-                className="text-[8px] font-semibold uppercase tracking-[0.16em]"
-                style={{ color: vars["muted-foreground"] }}
-              >
-                %
-              </span>
-            </span>
+          {/* Sparkline — primary stroke against a faint baseline.
+              Pure SVG so it scales with the tile. */}
+          <Sparkline vars={vars} />
+
+          {/* Stat strip — 3 stats separated by hairline dividers. */}
+          <div
+            className="flex items-baseline justify-between rounded-sm px-1.5 py-1"
+            style={{ backgroundColor: vars.muted }}
+          >
+            <Stat value="82" label="wpm" emphasis vars={vars} />
+            <span
+              aria-hidden
+              className="block h-3 w-px"
+              style={{ backgroundColor: vars.border }}
+            />
+            <Stat value="97" label="acc" vars={vars} />
+            <span
+              aria-hidden
+              className="block h-3 w-px"
+              style={{ backgroundColor: vars.border }}
+            />
+            <Stat value="0:42" label="time" vars={vars} />
           </div>
 
-          {/* Progress track — muted surface, primary fill. */}
+          {/* Mini keycap row — 5 keys, the middle one is the next-expected
+              key painted in primary. */}
+          <div className="flex shrink-0 items-center gap-1">
+            {["A", "S", "D", "F", "G"].map((k, i) => {
+              const isNext = i === 2;
+              return (
+                <span
+                  key={k}
+                  className="flex h-4 flex-1 items-center justify-center rounded-[2px] border text-[8px] font-semibold tabular-nums"
+                  style={{
+                    backgroundColor: isNext ? vars.primary : vars.card,
+                    color: isNext
+                      ? vars["primary-foreground"]
+                      : vars.foreground,
+                    borderColor: isNext ? vars.primary : vars.border,
+                  }}
+                >
+                  {k}
+                </span>
+              );
+            })}
+          </div>
+
+          {/* Swatch strip — surfaces the four most identifying colours
+              of the theme so adjacent tiles feel distinct at a glance. */}
           <div
-            className="h-1 w-full overflow-hidden rounded-full"
-            style={{ backgroundColor: vars.muted }}
+            className="mt-auto flex h-2 shrink-0 overflow-hidden rounded-[2px] border"
+            style={{ borderColor: vars.border }}
             aria-hidden
           >
+            <span className="flex-1" style={{ backgroundColor: vars.background }} />
+            <span className="flex-1" style={{ backgroundColor: vars.card }} />
+            <span className="flex-1" style={{ backgroundColor: vars.muted }} />
+            <span className="flex-1" style={{ backgroundColor: vars.accent }} />
             <span
-              className="block h-full"
-              style={{ width: "62%", backgroundColor: vars.primary }}
+              className="flex-[1.5]"
+              style={{ backgroundColor: vars.primary }}
             />
           </div>
         </div>
       </div>
     </TileShell>
+  );
+}
+
+function Stat({
+  value,
+  label,
+  emphasis,
+  vars,
+}: {
+  value: string;
+  label: string;
+  emphasis?: boolean;
+  vars: PreviewVars;
+}) {
+  return (
+    <span className="inline-flex items-baseline gap-1">
+      <span
+        className={cn(
+          "tabular-nums leading-none",
+          emphasis ? "text-[14px] font-bold" : "text-[12px] font-semibold",
+        )}
+        style={{ color: emphasis ? vars.primary : vars.foreground }}
+      >
+        {value}
+      </span>
+      <span
+        className="text-[8px] font-semibold uppercase tracking-[0.16em]"
+        style={{ color: vars["muted-foreground"] }}
+      >
+        {label}
+      </span>
+    </span>
+  );
+}
+
+/** WPM-over-time sparkline. 12 fixed sample points so every tile reads
+ *  the same shape; only the colours change. */
+function Sparkline({ vars }: { vars: PreviewVars }) {
+  const points = [42, 58, 51, 64, 72, 68, 78, 74, 82, 79, 85, 82];
+  const max = Math.max(...points);
+  const min = Math.min(...points);
+  const w = 100;
+  const h = 24;
+  const path = points
+    .map((p, i) => {
+      const x = (i / (points.length - 1)) * w;
+      const y = h - ((p - min) / (max - min)) * h;
+      return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  const fill = `${path} L${w},${h} L0,${h} Z`;
+  const lastX = w;
+  const lastY = h - ((points[points.length - 1] - min) / (max - min)) * h;
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      className="h-6 w-full shrink-0"
+      preserveAspectRatio="none"
+      aria-hidden
+    >
+      <path d={fill} fill={vars.primary} opacity={0.12} />
+      <path
+        d={path}
+        fill="none"
+        stroke={vars.primary}
+        strokeWidth={1.4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+      <circle cx={lastX} cy={lastY} r={1.6} fill={vars.primary} />
+    </svg>
   );
 }
 
@@ -358,30 +469,88 @@ function ReactiveTile({
             <span className="block h-2 w-2 rounded-full bg-white/40" />
             <span className="block h-2 w-2 rounded-full bg-white" />
           </span>
+          {active ? (
+            <span className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-white">
+              <span aria-hidden className="block h-1 w-1 rounded-full bg-white" />
+              Active
+            </span>
+          ) : null}
           <span className="ml-auto truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-white/80">
             Reactive
           </span>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col justify-between gap-2 p-3">
-          <p className="font-mono text-[11px] leading-[1.6] text-white/85 sm:text-[12px]">
-            sampled from your background
+        <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
+          <p className="font-mono text-[11px] leading-[1.55] text-white/85 sm:text-[12px]">
+            sampled from your<br />
+            background image
           </p>
 
-          <div className="flex items-baseline justify-between">
+          {/* Spectrum sparkline standing in for "live colour" */}
+          <svg
+            viewBox="0 0 100 24"
+            className="h-6 w-full shrink-0"
+            preserveAspectRatio="none"
+            aria-hidden
+          >
+            <defs>
+              <linearGradient id="reactive-spark" x1="0" x2="1" y1="0" y2="0">
+                <stop offset="0%" stopColor="rgba(255,255,255,0.95)" />
+                <stop offset="100%" stopColor="rgba(255,255,255,0.4)" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M0,18 L8,12 L16,16 L24,8 L32,11 L40,5 L48,9 L56,3 L64,7 L72,4 L80,6 L88,2 L100,4"
+              fill="none"
+              stroke="url(#reactive-spark)"
+              strokeWidth={1.4}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
+
+          <div className="flex items-baseline justify-between rounded-sm bg-white/15 px-1.5 py-1 backdrop-blur-sm">
             <span className="inline-flex items-baseline gap-1">
-              <span className="text-lg font-bold tabular-nums leading-none sm:text-xl">
+              <span className="text-[14px] font-bold tabular-nums leading-none">
                 live
               </span>
+              <span className="text-[8px] font-semibold uppercase tracking-[0.16em] text-white/70">
+                src
+              </span>
             </span>
-            <span className="rounded-sm border border-white/30 bg-white/10 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.16em] backdrop-blur-sm">
-              auto
+            <span aria-hidden className="block h-3 w-px bg-white/25" />
+            <span className="inline-flex items-baseline gap-1">
+              <span className="text-[12px] font-semibold tabular-nums leading-none">
+                auto
+              </span>
+              <span className="text-[8px] font-semibold uppercase tracking-[0.16em] text-white/70">
+                hue
+              </span>
             </span>
           </div>
 
-          <div className="h-1 w-full overflow-hidden rounded-full bg-white/15" aria-hidden>
-            <span className="block h-full w-3/4 bg-white/70" />
+          <div className="flex shrink-0 items-center gap-1">
+            {["A", "S", "D", "F", "G"].map((k, i) => (
+              <span
+                key={k}
+                className={cn(
+                  "flex h-4 flex-1 items-center justify-center rounded-[2px] border text-[8px] font-semibold tabular-nums",
+                  i === 2
+                    ? "border-white bg-white/90 text-black"
+                    : "border-white/30 bg-white/10 text-white/85",
+                )}
+              >
+                {k}
+              </span>
+            ))}
           </div>
+
+          <div
+            aria-hidden
+            className="mt-auto h-2 shrink-0 overflow-hidden rounded-[2px] border border-white/30"
+            style={{ background: grad }}
+          />
         </div>
       </div>
     </TileShell>
