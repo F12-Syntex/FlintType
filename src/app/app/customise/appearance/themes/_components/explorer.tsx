@@ -1,7 +1,6 @@
 "use client";
 
-import { ArrowLeft, Check } from "lucide-react";
-import Link from "next/link";
+import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -79,34 +78,24 @@ export function ThemeExplorer() {
   function handlePick(id: string | null) {
     if (id === null) reset();
     else apply(id);
-    // Bounce back to the main appearance page so the user can
-    // immediately see the change in context — and so the explorer
-    // doesn't pretend to be a permanent home.
+    // Bounce back so the user immediately sees the palette in
+    // context — explorer is a chooser, not a destination.
     router.push("/app/customise/appearance");
   }
 
   return (
     <section className="text-foreground">
-      <div className="mb-6 flex flex-col gap-3">
-        <Link
-          href="/app/customise/appearance"
-          className="inline-flex w-fit items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft size={14} />
-          Back to appearance
-        </Link>
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Theme explorer
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Each tile renders in its own colours so you can see exactly how
-            the theme will look. Pick one to apply it.
-          </p>
-        </div>
+      <div className="mb-8 flex flex-col gap-2">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+          Theme explorer
+        </h1>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Each tile renders in its own colours so you can see exactly how
+          the theme reads in the app. Tap one to apply it.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
         <ThemeCard
           name="Default"
           tagline="Coral on paper — flinttype's own palette"
@@ -161,138 +150,109 @@ function ThemeCard({
       onClick={onPick}
       aria-pressed={active}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-md border text-left transition-shadow",
-        "border-border hover:shadow-md",
-        active && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+        "group relative block overflow-hidden rounded-md border border-border text-left transition-all",
+        "hover:-translate-y-0.5 hover:shadow-lg",
+        active && "border-primary ring-2 ring-primary/40",
       )}
     >
-      {/* Preview surface — uses the theme's own colours */}
+      {/* Hero — pure theme paint, no app chrome */}
       <div
-        className="flex flex-col gap-3 p-5"
+        className="relative flex aspect-[4/3] flex-col justify-between p-5"
         style={{
           backgroundColor: vars.background,
           color: vars.foreground,
         }}
       >
-        {/* Faux topbar */}
-        <div className="flex items-center justify-between">
+        {/* Active badge top-right */}
+        {active ? (
           <span
-            className="text-[10px] font-semibold uppercase tracking-[0.16em]"
-            style={{ color: vars["muted-foreground"] }}
-          >
-            FLINTTYPE
-          </span>
-          <span
-            className="rounded-md px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em]"
+            className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]"
             style={{
               backgroundColor: vars.primary,
               color: vars["primary-foreground"],
             }}
           >
-            {name.split(" ")[0]}
+            <Check size={11} strokeWidth={3} />
+            Active
           </span>
-        </div>
+        ) : null}
 
-        {/* Faux passage */}
-        <div
-          className="rounded-md border p-4"
-          style={{
-            backgroundColor: vars.card,
-            borderColor: vars.border,
-            color: vars["card-foreground"] ?? vars.foreground,
-          }}
-        >
-          <p className="text-sm leading-relaxed">
-            <span style={{ color: vars["muted-foreground"] }}>the </span>
-            <span>quick </span>
+        {/* Sample passage — dim the bulk, leave the next-word in the
+            theme's foreground, and tag a single word in primary so the
+            accent reads at a glance. Mirrors how the real app paints. */}
+        <div className="flex-1 pt-1">
+          <p
+            className="font-mono text-[13px] leading-relaxed"
+            style={{ color: vars["muted-foreground"] }}
+          >
+            <span style={{ color: vars.foreground }}>the quick </span>
             <span
               style={{
                 color: vars.primary,
                 textDecoration: "underline",
-                textUnderlineOffset: "4px",
                 textDecorationThickness: "1px",
+                textUnderlineOffset: "4px",
               }}
             >
               brown
             </span>
-            <span> fox jumps</span>
-            <span style={{ color: vars["muted-foreground"] }}> over the lazy dog</span>
+            <span style={{ color: vars.foreground }}> fox</span>
+            <span> jumps over the lazy dog and keeps on going</span>
           </p>
         </div>
 
-        {/* Stat strip */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-baseline gap-1">
+        {/* Caret + sample WPM — gives the eye a brand-typical anchor */}
+        <div className="flex items-end justify-between gap-3">
+          <div className="flex items-baseline gap-2">
             <span
-              className="text-2xl font-bold tabular-nums tracking-tight"
+              className="text-3xl font-bold tabular-nums tracking-tight"
               style={{ color: vars.primary }}
             >
               82
             </span>
             <span
-              className="text-[10px] font-medium uppercase tracking-[0.16em]"
+              className="text-[10px] font-semibold uppercase tracking-[0.16em]"
               style={{ color: vars["muted-foreground"] }}
             >
               wpm
             </span>
           </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-bold tabular-nums tracking-tight">
-              97
-            </span>
-            <span
-              className="text-[10px] font-medium uppercase tracking-[0.16em]"
-              style={{ color: vars["muted-foreground"] }}
-            >
-              acc
-            </span>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span
-              className="text-2xl font-bold tabular-nums tracking-tight"
-              style={{ color: vars["muted-foreground"] }}
-            >
-              30
-            </span>
-            <span
-              className="text-[10px] font-medium uppercase tracking-[0.16em]"
-              style={{ color: vars["muted-foreground"] }}
-            >
-              s
-            </span>
-          </div>
-        </div>
-
-        {/* Swatch strip — every load-bearing surface in one row */}
-        <div className="flex h-3 w-full overflow-hidden rounded-md">
-          <span className="flex-1" style={{ backgroundColor: vars.background }} />
-          <span className="flex-1" style={{ backgroundColor: vars.card }} />
-          <span className="flex-1" style={{ backgroundColor: vars.muted }} />
-          <span className="flex-1" style={{ backgroundColor: vars.accent }} />
-          <span className="flex-1" style={{ backgroundColor: vars.primary }} />
-          <span className="flex-1" style={{ backgroundColor: vars.foreground }} />
+          <span
+            aria-hidden
+            className="block h-6 w-[3px] rounded-sm"
+            style={{ backgroundColor: vars.primary }}
+          />
         </div>
       </div>
 
-      {/* Footer in the *app* palette so names stay legible regardless
-          of how aggressive the previewed theme is */}
+      {/* Identity strip — kept in the *app* palette so names stay
+          readable across every theme variation. Swatch row sits inside
+          this strip rather than over the hero, so it doesn't compete
+          with the preview. */}
       <div className="flex items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-card-foreground">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-semibold">{name}</span>
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="truncate text-sm font-semibold">{name}</span>
           <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
             {tagline}
           </span>
         </div>
-        {active ? (
-          <span className="inline-flex items-center gap-1 rounded-md bg-primary/15 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-primary">
-            <Check size={12} />
-            Active
-          </span>
-        ) : (
-          <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-            Click to apply
-          </span>
-        )}
+        <div className="flex h-4 shrink-0 overflow-hidden rounded-md border border-border">
+          {[
+            vars.background,
+            vars.card,
+            vars.muted,
+            vars.accent,
+            vars.primary,
+            vars.foreground,
+          ].map((c, i) => (
+            <span
+              // eslint-disable-next-line react/no-array-index-key
+              key={i}
+              className="block h-full w-3"
+              style={{ backgroundColor: c }}
+            />
+          ))}
+        </div>
       </div>
     </button>
   );
@@ -305,48 +265,47 @@ function ReactiveCard({ active, onPick }: { active: boolean; onPick: () => void 
       onClick={onPick}
       aria-pressed={active}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-md border text-left transition-shadow",
-        "border-border hover:shadow-md",
-        active && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+        "group relative block overflow-hidden rounded-md border border-border text-left transition-all",
+        "hover:-translate-y-0.5 hover:shadow-lg",
+        active && "border-primary ring-2 ring-primary/40",
       )}
     >
       <div
-        className="flex h-[224px] flex-col items-center justify-center gap-3 p-5 text-white"
+        className="relative flex aspect-[4/3] flex-col justify-between p-5 text-white"
         style={{
           background:
             "linear-gradient(135deg, oklch(0.62 0.22 35) 0%, oklch(0.55 0.20 200) 50%, oklch(0.50 0.22 280) 100%)",
         }}
       >
+        {active ? (
+          <span className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-black">
+            <Check size={11} strokeWidth={3} />
+            Active
+          </span>
+        ) : null}
         <span className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-80">
           Synthetic
         </span>
-        <span className="text-center text-lg font-bold leading-tight">
-          Sampled from your background
-        </span>
-        <p className="text-center text-xs opacity-90">
-          The palette is generated from the average colour of your background
-          image — and follows it as you change it.
-        </p>
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xl font-bold leading-tight">
+            Sampled from your background
+          </h2>
+          <p className="text-xs leading-relaxed opacity-90">
+            The palette is generated from the average colour of your
+            background image — and follows it as you change it.
+          </p>
+        </div>
       </div>
       <div className="flex items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-card-foreground">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-semibold">Background reactive</span>
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="truncate text-sm font-semibold">
+            Background reactive
+          </span>
           <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
             Live from your image
           </span>
         </div>
-        {active ? (
-          <span className="inline-flex items-center gap-1 rounded-md bg-primary/15 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-primary">
-            <Check size={12} />
-            Active
-          </span>
-        ) : (
-          <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-            Click to apply
-          </span>
-        )}
       </div>
     </button>
   );
 }
-

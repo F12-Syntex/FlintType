@@ -84,7 +84,7 @@ export function SettingsSidebar() {
           a faint hover-tint surface — no shadow, no ring, no card. */}
       <nav
         aria-label="Settings sections"
-        className="hidden lg:flex lg:h-full lg:flex-col lg:overflow-y-auto lg:border-r lg:border-border"
+        className="hidden bg-background lg:flex lg:h-full lg:flex-col lg:overflow-y-auto lg:border-r lg:border-border"
       >
         <div className="px-4 pt-5 pb-3">
           <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
