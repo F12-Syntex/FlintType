@@ -38,15 +38,17 @@ export function SettingsSidebar() {
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
-              className="w-full justify-between font-medium"
+              className="flex w-full items-center justify-between gap-2 font-medium"
             >
-              <span className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-widest text-muted-foreground">
+              <span className="flex min-w-0 items-baseline gap-2 leading-none">
+                <span className="text-[10px] font-medium uppercase tracking-widest leading-none text-muted-foreground">
                   Section
                 </span>
-                <span>{activeName}</span>
+                <span className="truncate text-sm leading-none">
+                  {activeName}
+                </span>
               </span>
-              <ChevronDown size={14} />
+              <ChevronDown size={14} className="shrink-0" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-[calc(100vw-2rem)]">
