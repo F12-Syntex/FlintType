@@ -5,7 +5,9 @@ import { cn } from "@/lib/utils";
 import { BACKGROUND_REACTIVE_ID } from "@/lib/themes/background-reactive";
 import { type Theme, usePalette } from "@/lib/themes/use-palette";
 
-const DEFAULT_VARS = {
+/** Default-theme preview shape. The default palette has no community
+ *  theme entry, so we hand-roll a PreviewVars block matching it. */
+const DEFAULT_VARS: Record<"light" | "dark", PreviewVars> = {
   light: {
     background: "oklch(0.9450 0.0180 85)",
     foreground: "oklch(0.18 0.04 35)",
@@ -13,10 +15,23 @@ const DEFAULT_VARS = {
     "card-foreground": "oklch(0.18 0.04 35)",
     primary: "oklch(0.6551 0.2312 34.7438)",
     "primary-foreground": "oklch(0.985 0 0)",
+    secondary: "oklch(0.3717 0.0392 257.2870)",
+    "secondary-foreground": "oklch(0.96 0.01 85)",
     muted: "oklch(0.9300 0.0190 85)",
     "muted-foreground": "oklch(0.45 0.04 35)",
     accent: "oklch(0.9656 0.0176 39.4009)",
+    "accent-foreground": "oklch(0.18 0.04 35)",
+    destructive: "oklch(0.5800 0.2200 27)",
     border: "oklch(0.86 0.02 60)",
+    "chart-1": "oklch(0.6551 0.2312 34.7438)",
+    "chart-2": "oklch(0.55 0.18 60)",
+    "chart-3": "oklch(0.65 0.13 200)",
+    "chart-4": "oklch(0.6 0.15 280)",
+    "chart-5": "oklch(0.55 0.18 145)",
+    "font-sans": "JetBrains Mono, ui-monospace, monospace",
+    "font-serif": "Georgia, serif",
+    "font-mono": "JetBrains Mono, ui-monospace, monospace",
+    radius: "0.375rem",
   },
   dark: {
     background: "oklch(0.16 0.02 35)",
@@ -25,12 +40,25 @@ const DEFAULT_VARS = {
     "card-foreground": "oklch(0.96 0.012 85)",
     primary: "oklch(0.7300 0.2000 34.7438)",
     "primary-foreground": "oklch(0.16 0.02 35)",
+    secondary: "oklch(0.30 0.04 257)",
+    "secondary-foreground": "oklch(0.96 0.012 85)",
     muted: "oklch(0.24 0.02 35)",
     "muted-foreground": "oklch(0.72 0.02 60)",
     accent: "oklch(0.30 0.05 35)",
+    "accent-foreground": "oklch(0.96 0.012 85)",
+    destructive: "oklch(0.6 0.2 27)",
     border: "oklch(0.32 0.02 35)",
+    "chart-1": "oklch(0.7300 0.2000 34.7438)",
+    "chart-2": "oklch(0.65 0.18 60)",
+    "chart-3": "oklch(0.7 0.13 200)",
+    "chart-4": "oklch(0.65 0.15 280)",
+    "chart-5": "oklch(0.65 0.18 145)",
+    "font-sans": "JetBrains Mono, ui-monospace, monospace",
+    "font-serif": "Georgia, serif",
+    "font-mono": "JetBrains Mono, ui-monospace, monospace",
+    radius: "0.375rem",
   },
-} as const;
+};
 
 type PreviewVars = {
   background: string;
@@ -39,14 +67,28 @@ type PreviewVars = {
   "card-foreground"?: string;
   primary: string;
   "primary-foreground": string;
+  secondary?: string;
+  "secondary-foreground"?: string;
   muted: string;
   "muted-foreground": string;
   accent: string;
+  "accent-foreground"?: string;
+  destructive?: string;
   border: string;
+  "chart-1"?: string;
+  "chart-2"?: string;
+  "chart-3"?: string;
+  "chart-4"?: string;
+  "chart-5"?: string;
+  "font-sans"?: string;
+  "font-serif"?: string;
+  "font-mono"?: string;
+  radius?: string;
 };
 
 function pickVars(theme: Theme, mode: "light" | "dark"): PreviewVars | null {
   const v = mode === "dark" ? theme.cssVars.dark : theme.cssVars.light;
+  const t = theme.cssVars.theme ?? {};
   if (!v.background || !v.foreground || !v.primary) return null;
   return {
     background: v.background,
@@ -55,11 +97,31 @@ function pickVars(theme: Theme, mode: "light" | "dark"): PreviewVars | null {
     "card-foreground": v["card-foreground"] ?? v.foreground,
     primary: v.primary,
     "primary-foreground": v["primary-foreground"] ?? v.background,
+    secondary: v.secondary,
+    "secondary-foreground": v["secondary-foreground"],
     muted: v.muted ?? v.background,
     "muted-foreground": v["muted-foreground"] ?? v.foreground,
     accent: v.accent ?? v.primary,
+    "accent-foreground": v["accent-foreground"],
+    destructive: v.destructive,
     border: v.border ?? v.foreground,
+    "chart-1": v["chart-1"],
+    "chart-2": v["chart-2"],
+    "chart-3": v["chart-3"],
+    "chart-4": v["chart-4"],
+    "chart-5": v["chart-5"],
+    "font-sans": v["font-sans"] ?? t["font-sans"],
+    "font-serif": v["font-serif"] ?? t["font-serif"],
+    "font-mono": v["font-mono"] ?? t["font-mono"],
+    radius: v.radius ?? t.radius,
   };
+}
+
+/** First family in a font-stack — what the eyebrow displays. */
+function fontLabel(stack: string | undefined, fallback: string): string {
+  if (!stack) return fallback;
+  const first = stack.split(",")[0]?.trim().replace(/^['"]|['"]$/g, "") ?? "";
+  return first || fallback;
 }
 
 type Entry =
@@ -105,11 +167,9 @@ export function ThemeExplorer() {
             Appearance
           </span>
         </div>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Themes
-        </h1>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Themes</h1>
         <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted-foreground">
-          Each theme repaints the whole app — passages, buttons, stats, charts. Tap one to preview live.
+          Each theme repaints the whole app — palette, typography, and radius. Tap one to preview live.
         </p>
         <div className="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
           <span className="flex items-baseline gap-1.5">
@@ -168,9 +228,9 @@ export function ThemeExplorer() {
 }
 
 /** Tile shell — handles selection state, focus, click. Active state is
- *  expressed by the chrome itself (thicker primary border, a left
- *  accent bar, and a SELECTED eyebrow inside the title bar) instead of
- *  a corner checkmark, so nothing floats over the preview. */
+ *  expressed by a thicker primary border + a left accent rail flush
+ *  against the inner border, plus an ACTIVE eyebrow inside the title
+ *  bar (no floating tick, nothing overlapping the preview). */
 function TileShell({
   active,
   onPick,
@@ -196,12 +256,10 @@ function TileShell({
           : "border-border hover:border-foreground/30",
       )}
     >
-      {/* Left accent rail — the editorial selection mark. Sits flush
-          against the inner border so it never overlaps preview content. */}
       {active ? (
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-primary"
+          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[3px] bg-primary"
         />
       ) : null}
       {children}
@@ -209,11 +267,17 @@ function TileShell({
   );
 }
 
-/** Tile rendered as a faux desktop window: a card-coloured title bar
- *  with traffic-light dots and the theme name, then a square painted
- *  body that previews the typing UI — passage, sparkline, stat strip,
- *  keyboard row, and a swatch strip. Selected tiles surface their state
- *  inside the title bar (eyebrow + dot) instead of a floating tick. */
+/** Theme card — designed as a designer's swatch card, not a screen
+ *  mock. Three vertical zones:
+ *    1. Title bar: theme name + ACTIVE eyebrow.
+ *    2. Typography sample: large `Aa` glyph in font-serif, smaller `Aa`
+ *       in font-sans, plus a font-name eyebrow that names the actual
+ *       families this theme installs.
+ *    3. Palette grid: 8 swatches covering every load-bearing token,
+ *       a chart-1..5 dot row, and a UI atoms strip (button, badge,
+ *       destructive dot) so reuse of these tokens is visible.
+ *    The radius-token pillbox in the corner reuses the theme's own
+ *    --radius so the geometry of every theme reads at a glance. */
 function ThemeTile({
   name,
   vars,
@@ -225,14 +289,33 @@ function ThemeTile({
   active: boolean;
   onPick: () => void;
 }) {
+  const sansLabel = fontLabel(vars["font-sans"], "sans");
+  const serifLabel = fontLabel(vars["font-serif"], "serif");
+  const monoLabel = fontLabel(vars["font-mono"], "mono");
+  const radius = vars.radius ?? "0.5rem";
+  const charts = (
+    [vars["chart-1"], vars["chart-2"], vars["chart-3"], vars["chart-4"], vars["chart-5"]]
+      .filter(Boolean) as string[]
+  );
+  const swatches: Array<{ key: string; color: string; label: string }> = [
+    { key: "primary", color: vars.primary, label: "PRI" },
+    { key: "secondary", color: vars.secondary ?? vars.muted, label: "SEC" },
+    { key: "accent", color: vars.accent, label: "ACC" },
+    { key: "destructive", color: vars.destructive ?? vars.primary, label: "DST" },
+    { key: "card", color: vars.card, label: "CRD" },
+    { key: "muted", color: vars.muted, label: "MUT" },
+    { key: "border", color: vars.border, label: "BRD" },
+    { key: "foreground", color: vars.foreground, label: "FG " },
+  ];
+
   return (
     <TileShell active={active} onPick={onPick} ariaLabel={`Apply ${name} theme`}>
       <div
         className="flex aspect-square flex-col"
         style={{ backgroundColor: vars.background }}
       >
-        {/* Window title bar — the SELECTED eyebrow replaces the corner
-            tick when the theme is active. */}
+        {/* Title bar — sits on the card surface so it reads as a
+            distinct band against the page background. */}
         <div
           className="flex shrink-0 items-center gap-2 border-b px-2.5 py-1.5"
           style={{
@@ -240,20 +323,6 @@ function ThemeTile({
             borderColor: vars.border,
           }}
         >
-          <span className="flex shrink-0 gap-1" aria-hidden>
-            <span
-              className="block h-2 w-2 rounded-full"
-              style={{ backgroundColor: vars["muted-foreground"], opacity: 0.45 }}
-            />
-            <span
-              className="block h-2 w-2 rounded-full"
-              style={{ backgroundColor: vars["muted-foreground"], opacity: 0.45 }}
-            />
-            <span
-              className="block h-2 w-2 rounded-full"
-              style={{ backgroundColor: vars.primary }}
-            />
-          </span>
           {active ? (
             <span
               className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.18em]"
@@ -266,184 +335,241 @@ function ThemeTile({
               />
               Active
             </span>
-          ) : null}
+          ) : (
+            <span className="flex shrink-0 gap-1" aria-hidden>
+              <span
+                className="block h-2 w-2 rounded-full"
+                style={{ backgroundColor: vars.primary }}
+              />
+              <span
+                className="block h-2 w-2 rounded-full"
+                style={{ backgroundColor: vars.accent }}
+              />
+              <span
+                className="block h-2 w-2 rounded-full"
+                style={{
+                  backgroundColor: vars.destructive ?? vars["muted-foreground"],
+                }}
+              />
+            </span>
+          )}
           <span
             className="ml-auto truncate text-[10px] font-semibold uppercase tracking-[0.14em]"
-            style={{ color: vars["muted-foreground"] }}
+            style={{
+              color: vars["card-foreground"] ?? vars.foreground,
+              fontFamily: vars["font-sans"],
+            }}
           >
             {name}
           </span>
         </div>
 
-        {/* Window body — denser typing preview. */}
-        <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
-          {/* Sample passage — two lines, with a primary current word
-              and a coloured caret bar. */}
-          <p className="font-mono text-[11px] leading-[1.55] sm:text-[12px]">
-            <span style={{ color: vars["muted-foreground"] }}>the </span>
-            <span style={{ color: vars.foreground }}>quick </span>
+        {/* Typography zone — `Aa` paired in serif and sans, font-name
+            eyebrow underneath so the typeface registers immediately. */}
+        <div
+          className="flex shrink-0 items-end justify-between gap-2 px-3 pt-3"
+          style={{ color: vars.foreground }}
+        >
+          <span className="flex items-baseline gap-2">
             <span
+              className="leading-none"
               style={{
-                color: vars.primary,
-                textDecoration: "underline",
-                textDecorationThickness: "1px",
-                textUnderlineOffset: "3px",
+                fontFamily: vars["font-serif"],
+                fontSize: "32px",
+                fontWeight: 700,
+                letterSpacing: "-0.03em",
               }}
             >
-              brown
+              Aa
             </span>
             <span
-              aria-hidden
-              className="mx-px inline-block h-[1.05em] w-[2px] translate-y-[2px]"
-              style={{ backgroundColor: vars.primary }}
-            />
-            <span style={{ color: vars["muted-foreground"] }}> fox jumps</span>
-            <br />
-            <span style={{ color: vars["muted-foreground"] }}>over the lazy dog</span>
-          </p>
-
-          {/* Sparkline — primary stroke against a faint baseline.
-              Pure SVG so it scales with the tile. */}
-          <Sparkline vars={vars} />
-
-          {/* Stat strip — 3 stats separated by hairline dividers. */}
-          <div
-            className="flex items-baseline justify-between rounded-sm px-1.5 py-1"
-            style={{ backgroundColor: vars.muted }}
+              className="leading-none"
+              style={{
+                fontFamily: vars["font-sans"],
+                fontSize: "20px",
+                fontWeight: 600,
+                color: vars["muted-foreground"],
+              }}
+            >
+              Aa
+            </span>
+          </span>
+          {/* Radius pill — uses the theme's --radius so the geometry
+              shows. */}
+          <span
+            className="shrink-0 px-1.5 py-[1px] text-[8px] font-semibold uppercase tracking-[0.14em]"
+            style={{
+              borderRadius: radius,
+              backgroundColor: vars.muted,
+              color: vars["muted-foreground"],
+              border: `1px solid ${vars.border}`,
+              fontFamily: vars["font-mono"],
+            }}
           >
-            <Stat value="82" label="wpm" emphasis vars={vars} />
-            <span
-              aria-hidden
-              className="block h-3 w-px"
-              style={{ backgroundColor: vars.border }}
-            />
-            <Stat value="97" label="acc" vars={vars} />
-            <span
-              aria-hidden
-              className="block h-3 w-px"
-              style={{ backgroundColor: vars.border }}
-            />
-            <Stat value="0:42" label="time" vars={vars} />
-          </div>
+            r {radius.replace("rem", "")}
+          </span>
+        </div>
 
-          {/* Mini keycap row — 5 keys, the middle one is the next-expected
-              key painted in primary. */}
-          <div className="flex shrink-0 items-center gap-1">
-            {["A", "S", "D", "F", "G"].map((k, i) => {
-              const isNext = i === 2;
-              return (
-                <span
-                  key={k}
-                  className="flex h-4 flex-1 items-center justify-center rounded-[2px] border text-[8px] font-semibold tabular-nums"
-                  style={{
-                    backgroundColor: isNext ? vars.primary : vars.card,
-                    color: isNext
-                      ? vars["primary-foreground"]
-                      : vars.foreground,
-                    borderColor: isNext ? vars.primary : vars.border,
-                  }}
-                >
-                  {k}
-                </span>
-              );
-            })}
-          </div>
-
-          {/* Swatch strip — surfaces the four most identifying colours
-              of the theme so adjacent tiles feel distinct at a glance. */}
-          <div
-            className="mt-auto flex h-2 shrink-0 overflow-hidden rounded-[2px] border"
-            style={{ borderColor: vars.border }}
-            aria-hidden
+        {/* Font-name eyebrow — three families one line, truncated. */}
+        <div
+          className="mt-1 flex shrink-0 items-baseline gap-1.5 truncate px-3 text-[8px] font-semibold uppercase tracking-[0.16em]"
+          style={{ color: vars["muted-foreground"] }}
+        >
+          <span
+            className="truncate"
+            style={{ fontFamily: vars["font-sans"] }}
+            title={sansLabel}
           >
-            <span className="flex-1" style={{ backgroundColor: vars.background }} />
-            <span className="flex-1" style={{ backgroundColor: vars.card }} />
-            <span className="flex-1" style={{ backgroundColor: vars.muted }} />
-            <span className="flex-1" style={{ backgroundColor: vars.accent }} />
-            <span
-              className="flex-[1.5]"
-              style={{ backgroundColor: vars.primary }}
-            />
+            {sansLabel}
+          </span>
+          <span aria-hidden style={{ opacity: 0.5 }}>
+            ·
+          </span>
+          <span
+            className="truncate"
+            style={{ fontFamily: vars["font-serif"] }}
+            title={serifLabel}
+          >
+            {serifLabel}
+          </span>
+          <span aria-hidden style={{ opacity: 0.5 }}>
+            ·
+          </span>
+          <span
+            className="truncate"
+            style={{ fontFamily: vars["font-mono"] }}
+            title={monoLabel}
+          >
+            {monoLabel}
+          </span>
+        </div>
+
+        {/* Palette grid — 4×2 swatches showing the load-bearing tokens. */}
+        <div className="mt-2 grid shrink-0 grid-cols-4 gap-1 px-3">
+          {swatches.map((s) => (
+            <div
+              key={s.key}
+              className="flex aspect-[1.6/1] flex-col justify-end overflow-hidden border p-1"
+              style={{
+                backgroundColor: s.color,
+                borderColor: vars.border,
+                borderRadius: radius,
+              }}
+            >
+              <span
+                className="text-[7px] font-bold uppercase tracking-[0.12em] leading-none"
+                style={{
+                  color: contrastInk(
+                    s.color,
+                    vars.foreground,
+                    vars.background,
+                    vars["primary-foreground"],
+                  ),
+                  fontFamily: vars["font-mono"],
+                }}
+              >
+                {s.label}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Chart-1..5 dot row — secondary identifier for themes that
+            ship a richer chart palette. Falls back to a thin band of
+            primary if a theme has no chart vars. */}
+        {charts.length >= 3 ? (
+          <div className="mt-2 flex shrink-0 items-center gap-1 px-3">
+            {charts.map((c, i) => (
+              <span
+                key={i}
+                className="block h-1.5 flex-1"
+                style={{ backgroundColor: c, borderRadius: radius }}
+              />
+            ))}
           </div>
+        ) : null}
+
+        {/* UI atoms strip — primary button, accent badge, destructive
+            dot. Pinned to the bottom so every tile lines up. */}
+        <div
+          className="mt-auto flex shrink-0 items-center gap-1.5 border-t px-3 py-2"
+          style={{
+            backgroundColor: vars.card,
+            borderColor: vars.border,
+          }}
+        >
+          <span
+            className="inline-flex items-center justify-center px-2 py-[3px] text-[8px] font-semibold uppercase tracking-[0.12em] leading-none"
+            style={{
+              backgroundColor: vars.primary,
+              color: vars["primary-foreground"],
+              borderRadius: radius,
+              fontFamily: vars["font-sans"],
+            }}
+          >
+            Action
+          </span>
+          <span
+            className="inline-flex items-center justify-center px-1.5 py-[2px] text-[8px] font-semibold uppercase tracking-[0.12em] leading-none"
+            style={{
+              backgroundColor: vars.accent,
+              color: vars["accent-foreground"] ?? vars.foreground,
+              borderRadius: radius,
+              fontFamily: vars["font-sans"],
+              border: `1px solid ${vars.border}`,
+            }}
+          >
+            Tag
+          </span>
+          {vars.destructive ? (
+            <span
+              aria-hidden
+              className="ml-auto block h-2 w-2"
+              style={{
+                backgroundColor: vars.destructive,
+                borderRadius: radius,
+              }}
+            />
+          ) : null}
         </div>
       </div>
     </TileShell>
   );
 }
 
-function Stat({
-  value,
-  label,
-  emphasis,
-  vars,
-}: {
-  value: string;
-  label: string;
-  emphasis?: boolean;
-  vars: PreviewVars;
-}) {
-  return (
-    <span className="inline-flex items-baseline gap-1">
-      <span
-        className={cn(
-          "tabular-nums leading-none",
-          emphasis ? "text-[14px] font-bold" : "text-[12px] font-semibold",
-        )}
-        style={{ color: emphasis ? vars.primary : vars.foreground }}
-      >
-        {value}
-      </span>
-      <span
-        className="text-[8px] font-semibold uppercase tracking-[0.16em]"
-        style={{ color: vars["muted-foreground"] }}
-      >
-        {label}
-      </span>
-    </span>
-  );
+/** Pick the better-contrast text colour for a swatch label.
+ *  Naive luminance — good enough for ~12-pixel labels. */
+function contrastInk(
+  swatch: string,
+  fg: string,
+  bg: string,
+  primaryFg: string,
+): string {
+  const lum = oklchLightness(swatch);
+  if (lum === null) return fg;
+  if (lum > 0.6) return fg.includes("oklch") ? darkenInk(fg, bg) : fg;
+  return primaryFg;
 }
 
-/** WPM-over-time sparkline. 12 fixed sample points so every tile reads
- *  the same shape; only the colours change. */
-function Sparkline({ vars }: { vars: PreviewVars }) {
-  const points = [42, 58, 51, 64, 72, 68, 78, 74, 82, 79, 85, 82];
-  const max = Math.max(...points);
-  const min = Math.min(...points);
-  const w = 100;
-  const h = 24;
-  const path = points
-    .map((p, i) => {
-      const x = (i / (points.length - 1)) * w;
-      const y = h - ((p - min) / (max - min)) * h;
-      return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-  const fill = `${path} L${w},${h} L0,${h} Z`;
-  const lastX = w;
-  const lastY = h - ((points[points.length - 1] - min) / (max - min)) * h;
-  return (
-    <svg
-      viewBox={`0 0 ${w} ${h}`}
-      className="h-6 w-full shrink-0"
-      preserveAspectRatio="none"
-      aria-hidden
-    >
-      <path d={fill} fill={vars.primary} opacity={0.12} />
-      <path
-        d={path}
-        fill="none"
-        stroke={vars.primary}
-        strokeWidth={1.4}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        vectorEffect="non-scaling-stroke"
-      />
-      <circle cx={lastX} cy={lastY} r={1.6} fill={vars.primary} />
-    </svg>
-  );
+function oklchLightness(color: string): number | null {
+  const m = color.match(/oklch\(\s*([0-9.]+)/);
+  if (!m) return null;
+  const n = parseFloat(m[1]);
+  if (Number.isNaN(n)) return null;
+  return n > 1 ? n / 100 : n;
 }
 
-/** Reactive — wildcard tile. Same window shape, gradient body. */
+/** Returns whichever of fg/bg is darker — used as the label colour on
+ *  bright swatches so the small mono text stays readable. */
+function darkenInk(fg: string, bg: string): string {
+  const fgL = oklchLightness(fg) ?? 0;
+  const bgL = oklchLightness(bg) ?? 1;
+  return fgL < bgL ? fg : bg;
+}
+
+/** Reactive — wildcard tile. Keeps the typography + palette card
+ *  shape so it reads as a peer of the others, but the swatches are
+ *  replaced by a gradient sample. */
 function ReactiveTile({
   active,
   onPick,
@@ -464,93 +590,87 @@ function ReactiveTile({
         style={{ background: grad }}
       >
         <div className="flex shrink-0 items-center gap-2 border-b border-white/15 bg-black/20 px-2.5 py-1.5 backdrop-blur-sm">
-          <span className="flex shrink-0 gap-1" aria-hidden>
-            <span className="block h-2 w-2 rounded-full bg-white/40" />
-            <span className="block h-2 w-2 rounded-full bg-white/40" />
-            <span className="block h-2 w-2 rounded-full bg-white" />
-          </span>
           {active ? (
             <span className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-white">
               <span aria-hidden className="block h-1 w-1 rounded-full bg-white" />
               Active
             </span>
-          ) : null}
-          <span className="ml-auto truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-white/80">
+          ) : (
+            <span className="flex shrink-0 gap-1" aria-hidden>
+              <span className="block h-2 w-2 rounded-full bg-white/80" />
+              <span className="block h-2 w-2 rounded-full bg-white/55" />
+              <span className="block h-2 w-2 rounded-full bg-white/30" />
+            </span>
+          )}
+          <span className="ml-auto truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-white/85">
             Reactive
           </span>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
-          <p className="font-mono text-[11px] leading-[1.55] text-white/85 sm:text-[12px]">
-            sampled from your<br />
-            background image
-          </p>
+        <div className="flex shrink-0 items-end justify-between gap-2 px-3 pt-3">
+          <span className="flex items-baseline gap-2 text-white">
+            <span
+              className="leading-none"
+              style={{ fontSize: "32px", fontWeight: 700, letterSpacing: "-0.03em" }}
+            >
+              Aa
+            </span>
+            <span
+              className="leading-none text-white/70"
+              style={{ fontSize: "20px", fontWeight: 600 }}
+            >
+              Aa
+            </span>
+          </span>
+          <span className="shrink-0 rounded-md border border-white/30 bg-white/15 px-1.5 py-[1px] text-[8px] font-semibold uppercase tracking-[0.14em] text-white/85 backdrop-blur-sm">
+            auto
+          </span>
+        </div>
 
-          {/* Spectrum sparkline standing in for "live colour" */}
-          <svg
-            viewBox="0 0 100 24"
-            className="h-6 w-full shrink-0"
-            preserveAspectRatio="none"
-            aria-hidden
-          >
-            <defs>
-              <linearGradient id="reactive-spark" x1="0" x2="1" y1="0" y2="0">
-                <stop offset="0%" stopColor="rgba(255,255,255,0.95)" />
-                <stop offset="100%" stopColor="rgba(255,255,255,0.4)" />
-              </linearGradient>
-            </defs>
-            <path
-              d="M0,18 L8,12 L16,16 L24,8 L32,11 L40,5 L48,9 L56,3 L64,7 L72,4 L80,6 L88,2 L100,4"
-              fill="none"
-              stroke="url(#reactive-spark)"
-              strokeWidth={1.4}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
+        <div className="mt-1 truncate px-3 text-[8px] font-semibold uppercase tracking-[0.16em] text-white/65">
+          sampled · live · adaptive
+        </div>
+
+        {/* Gradient swatch grid — cells slide along the same gradient
+            so the tile reads as 'a palette generated for you'. */}
+        <div className="mt-2 grid shrink-0 grid-cols-4 gap-1 px-3">
+          {[0, 0.14, 0.28, 0.42, 0.56, 0.7, 0.84, 1].map((stop, i) => (
+            <div
+              key={i}
+              className="aspect-[1.6/1] overflow-hidden rounded-md border border-white/20"
+              style={{
+                background: grad,
+                backgroundSize: "400% 100%",
+                backgroundPosition: `${stop * 100}% 50%`,
+              }}
             />
-          </svg>
+          ))}
+        </div>
 
-          <div className="flex items-baseline justify-between rounded-sm bg-white/15 px-1.5 py-1 backdrop-blur-sm">
-            <span className="inline-flex items-baseline gap-1">
-              <span className="text-[14px] font-bold tabular-nums leading-none">
-                live
-              </span>
-              <span className="text-[8px] font-semibold uppercase tracking-[0.16em] text-white/70">
-                src
-              </span>
-            </span>
-            <span aria-hidden className="block h-3 w-px bg-white/25" />
-            <span className="inline-flex items-baseline gap-1">
-              <span className="text-[12px] font-semibold tabular-nums leading-none">
-                auto
-              </span>
-              <span className="text-[8px] font-semibold uppercase tracking-[0.16em] text-white/70">
-                hue
-              </span>
-            </span>
-          </div>
+        <div className="mt-2 flex shrink-0 items-center gap-1 px-3">
+          {[
+            "oklch(0.62 0.22 35)",
+            "oklch(0.55 0.22 60)",
+            "oklch(0.50 0.20 200)",
+            "oklch(0.45 0.20 260)",
+            "oklch(0.40 0.18 280)",
+          ].map((c, i) => (
+            <span
+              key={i}
+              className="block h-1.5 flex-1 rounded-md"
+              style={{ backgroundColor: c }}
+            />
+          ))}
+        </div>
 
-          <div className="flex shrink-0 items-center gap-1">
-            {["A", "S", "D", "F", "G"].map((k, i) => (
-              <span
-                key={k}
-                className={cn(
-                  "flex h-4 flex-1 items-center justify-center rounded-[2px] border text-[8px] font-semibold tabular-nums",
-                  i === 2
-                    ? "border-white bg-white/90 text-black"
-                    : "border-white/30 bg-white/10 text-white/85",
-                )}
-              >
-                {k}
-              </span>
-            ))}
-          </div>
-
-          <div
-            aria-hidden
-            className="mt-auto h-2 shrink-0 overflow-hidden rounded-[2px] border border-white/30"
-            style={{ background: grad }}
-          />
+        <div className="mt-auto flex shrink-0 items-center gap-1.5 border-t border-white/15 bg-black/20 px-3 py-2 backdrop-blur-sm">
+          <span className="inline-flex items-center justify-center rounded-md bg-white px-2 py-[3px] text-[8px] font-semibold uppercase tracking-[0.12em] leading-none text-black">
+            Sample
+          </span>
+          <span className="inline-flex items-center justify-center rounded-md border border-white/30 bg-white/10 px-1.5 py-[2px] text-[8px] font-semibold uppercase tracking-[0.12em] leading-none text-white/85">
+            Live
+          </span>
+          <span aria-hidden className="ml-auto block h-2 w-2 rounded-full bg-white/80" />
         </div>
       </div>
     </TileShell>
