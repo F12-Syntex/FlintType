@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useRemotePrefs } from "./use-remote-prefs";
 
 /** Every CSS variable the user can override from the appearance page.
@@ -54,10 +54,31 @@ export function useThemeOverrides() {
   const { value: overrides, update: updateRaw, reset: resetRaw } =
     useRemotePrefs<ThemeOverrides>("theme", EMPTY_OVERRIDES);
 
-  // Apply every override to :root whenever the slice changes — covers
-  // the initial async load and any subsequent edit.
+  // Apply only the vars this hook actually owns. The previous version
+  // unconditionally called applyVar(v, undefined) for every THEME_VAR
+  // not present in overrides, which trampled inline :root styles set
+  // by the reactive-palette sampler — every unrelated pref-store
+  // notify (caret toggle, behaviour change, anything) re-rendered
+  // useRemotePrefs with a fresh `overrides` object identity, the
+  // effect re-fired, and reactive's --primary / --background etc.
+  // got removeProperty'd back to defaults. Track the set of vars this
+  // hook has set and only remove the ones we wrote that no longer
+  // appear in `overrides`.
+  const appliedRef = useRef<Set<ThemeVar>>(new Set());
   useEffect(() => {
-    for (const v of THEME_VARS) applyVar(v, overrides[v]);
+    const prev = appliedRef.current;
+    const next = new Set<ThemeVar>();
+    for (const v of THEME_VARS) {
+      const value = overrides[v];
+      if (value != null && value !== "") {
+        applyVar(v, value);
+        next.add(v);
+      }
+    }
+    for (const v of prev) {
+      if (!next.has(v)) applyVar(v, undefined);
+    }
+    appliedRef.current = next;
   }, [overrides]);
 
   const setVar = useCallback(
