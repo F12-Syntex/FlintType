@@ -94,6 +94,38 @@ function ActiveWord({
   );
 }
 
+/** Renders a past word that the user got wrong — shows what they
+ *  actually typed (so the misspelling is visible) with per-char
+ *  colouring: matched chars stay foreground, mismatched chars go
+ *  primary, untyped target chars trail in muted, extras stay primary. */
+function PastErrorWord({ target, typed }: { target: string; typed: string }) {
+  const t = [...target];
+  const u = [...typed];
+  const len = Math.max(t.length, u.length);
+  return (
+    <span className="inline-block whitespace-nowrap">
+      {Array.from({ length: len }, (_, ci) => {
+        const exp = t[ci];
+        const got = u[ci];
+        const isExtra = ci >= t.length;
+        const missing = got === undefined && !isExtra;
+        const wrong = got !== undefined && got !== exp;
+        const glyph = got ?? exp ?? "";
+        const cls = missing
+          ? "text-muted-foreground"
+          : wrong || isExtra
+            ? "text-primary"
+            : "text-foreground";
+        return (
+          <span key={ci} className={cls}>
+            {glyph}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 export function Passage() {
   const { state } = usePractice();
   const { words, cursorWord, cursorChar, errorWords, phase, typed } = state;
@@ -178,6 +210,7 @@ export function Passage() {
         {words.map((word, wi) => {
           if (wi < cursorWord) {
             const isErr = errorWords.has(wi);
+            const typedWord = typed[wi] ?? "";
             return (
               <span
                 key={wi}
@@ -185,13 +218,18 @@ export function Passage() {
                   blind ? "text-muted-foreground" : "text-foreground",
                   !blind &&
                     isErr &&
-                    "text-primary underline decoration-1 underline-offset-[6px]",
+                    "underline decoration-primary decoration-1 underline-offset-[6px]",
                   // typedEffect: fade dims past words; strike crosses them.
                   !blind && typedEffect === "fade" && "opacity-40",
                   !blind && typedEffect === "strike" && "line-through decoration-1 opacity-70",
                 )}
               >
-                {word}{" "}
+                {!blind && isErr ? (
+                  <PastErrorWord target={word} typed={typedWord} />
+                ) : (
+                  word
+                )}
+                {" "}
               </span>
             );
           }
