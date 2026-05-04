@@ -35,7 +35,7 @@ export function SettingsPageHeader({
         </h2>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {customizedCount > 0 ? (
-            <Badge className="px-2 text-[0.65rem]">
+            <Badge size="md" variant="secondary">
               {customizedCount} customized
             </Badge>
           ) : null}
