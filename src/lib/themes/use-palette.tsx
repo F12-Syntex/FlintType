@@ -73,7 +73,9 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
       // :root falls back to the default palette until it loads.
       if (!effectiveImage) return;
       let cancelled = false;
-      void samplePalette(effectiveImage).then((palette) => {
+      const sampleMode: "light" | "dark" =
+        resolvedTheme === "dark" ? "dark" : "light";
+      void samplePalette(effectiveImage, sampleMode).then((palette) => {
         if (cancelled || !palette) return;
         applyReactivePalette(root, palette);
       });

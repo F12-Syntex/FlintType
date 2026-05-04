@@ -35,17 +35,21 @@ type Hsl = { h: number; s: number; l: number };
 
 export type ReactivePalette = Record<(typeof SAMPLE_VAR_NAMES)[number], string>;
 
-/** Sample the average colour of `imageUrl` from a 32x32 downscale.
- *  Resolves null when the image fails to load (CORS, broken URL) so
- *  callers can fall back gracefully. */
+/** Sample the average colour of `imageUrl` from a 32x32 downscale,
+ *  then synthesise a palette in the requested light/dark mode. The
+ *  hue/saturation come from the image; the lightness ramp is fixed by
+ *  `mode` so the user's mode toggle is always honoured even on a dark
+ *  photo in light mode (and vice-versa). Resolves null when the image
+ *  fails to load (CORS, broken URL) so callers can fall back. */
 export async function samplePalette(
   imageUrl: string,
+  mode: "light" | "dark" = "light",
 ): Promise<ReactivePalette | null> {
   if (!imageUrl) return null;
   const rgb = await averageColor(imageUrl);
   if (!rgb) return null;
   const base = rgbToHsl(rgb);
-  return buildPalette(base);
+  return buildPalette(base, mode);
 }
 
 function averageColor(
@@ -91,11 +95,12 @@ function averageColor(
   });
 }
 
-function buildPalette(base: Hsl): ReactivePalette {
-  // Decide whether the synthetic theme leans light or dark off the
-  // sampled luminance. Bright photos get a paper-toned palette; dark
-  // photos get an ink-toned one.
-  const dark = base.l < 0.5;
+function buildPalette(base: Hsl, mode: "light" | "dark"): ReactivePalette {
+  // The mode toggle is the source of truth — light or dark is always
+  // honoured regardless of how bright/dark the source image is. Only
+  // the *hue* and *saturation* of the synthesised palette come from
+  // the sampled image; the lightness ramp is fixed per mode.
+  const dark = mode === "dark";
   const accentHue = base.h;
   const accentSat = clamp(Math.max(base.s, 0.5), 0, 1);
   // Offset the hue 25° to keep "primary" feeling related but not

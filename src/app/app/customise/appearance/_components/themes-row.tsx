@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown, Sparkles } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -95,16 +95,6 @@ export function ThemesRow() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-[12rem]">
-            <DropdownMenuItem
-              onSelect={() => router.push("/app/customise/appearance/themes")}
-              className="gap-3"
-            >
-              <span className="inline-flex h-4 w-4 items-center justify-center text-primary">
-                <Sparkles size={14} />
-              </span>
-              <span className="flex-1 font-medium">Explore themes…</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={reset} className="gap-3">
               <span
                 className={cn(
@@ -136,6 +126,14 @@ export function ThemesRow() {
                 <ThemeSwatches theme={t} />
               </DropdownMenuItem>
             ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => router.push("/app/customise/appearance/themes")}
+              className="gap-3"
+            >
+              <span className="inline-flex h-4 w-4 items-center justify-center" />
+              <span className="flex-1 font-medium">Explore themes…</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       }
