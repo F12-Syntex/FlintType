@@ -84,6 +84,7 @@ function pickVars(theme: Theme, mode: "light" | "dark"): PreviewVars | null {
 
 type Entry =
   | { kind: "default"; vars: PreviewVars; active: boolean }
+  | { kind: "reactive"; active: boolean }
   | { kind: "theme"; theme: Theme; vars: PreviewVars; active: boolean };
 
 export function ThemeExplorer() {
@@ -100,7 +101,10 @@ export function ThemeExplorer() {
     { kind: "default", vars: DEFAULT_VARS[mode], active: activeId === null },
   ];
   for (const t of themes) {
-    if (t.id === BACKGROUND_REACTIVE_ID) continue;
+    if (t.id === BACKGROUND_REACTIVE_ID) {
+      entries.push({ kind: "reactive", active: activeId === t.id });
+      continue;
+    }
     const vars = pickVars(t, mode);
     if (!vars) continue;
     entries.push({ kind: "theme", theme: t, vars, active: activeId === t.id });
@@ -141,12 +145,12 @@ export function ThemeExplorer() {
         </div>
       </header>
 
-      <ol className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
         {entries.map((e) => {
           if (e.kind === "default") {
             return (
               <li key="default">
-                <ThemeWindow
+                <ThemePreview
                   name="Default"
                   vars={e.vars}
                   active={e.active}
@@ -155,9 +159,19 @@ export function ThemeExplorer() {
               </li>
             );
           }
+          if (e.kind === "reactive") {
+            return (
+              <li key="reactive">
+                <ReactivePreview
+                  active={e.active}
+                  onPick={() => handlePick(BACKGROUND_REACTIVE_ID)}
+                />
+              </li>
+            );
+          }
           return (
             <li key={e.theme.id}>
-              <ThemeWindow
+              <ThemePreview
                 name={e.theme.name}
                 vars={e.vars}
                 active={e.active}
@@ -171,13 +185,71 @@ export function ThemeExplorer() {
   );
 }
 
-/** Theme tile rendered as a miniature browser-window screenshot of the
- *  app under the candidate theme. Top: traffic-light dots + URL pill.
- *  Body: a faux flinttype app — wordmark, an in-progress passage that
- *  shows typed (foreground) vs untyped (muted) glyphs, a stats strip,
- *  and a primary CTA. Every colour, font, and radius reads from the
- *  theme's own tokens, so the tile *is* the preview. */
-function ThemeWindow({
+/** Tile shell — selection state, focus ring, click. The interior is
+ *  unframed: no window chrome, no bottom name ribbon. The theme name
+ *  is a caption below the preview frame. */
+function TileShell({
+  active,
+  onPick,
+  ariaLabel,
+  children,
+  caption,
+  captionTone,
+}: {
+  active: boolean;
+  onPick: () => void;
+  ariaLabel: string;
+  children: React.ReactNode;
+  caption: React.ReactNode;
+  captionTone: "default" | "ember";
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      aria-pressed={active}
+      aria-label={ariaLabel}
+      className={cn(
+        "group block w-full text-left transition-all",
+        "focus:outline-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+      )}
+    >
+      <div
+        className={cn(
+          "overflow-hidden rounded-md border transition-all",
+          active
+            ? "border-primary ring-2 ring-primary/40"
+            : "border-border group-hover:border-foreground/30",
+        )}
+      >
+        {children}
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-2 px-0.5">
+        <span
+          className={cn(
+            "truncate text-[11px] font-semibold uppercase tracking-[0.16em]",
+            captionTone === "ember" ? "text-primary" : "text-foreground",
+          )}
+        >
+          {caption}
+        </span>
+        {active ? (
+          <span className="flex shrink-0 items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-primary">
+            <span aria-hidden className="block h-1 w-1 rounded-full bg-primary" />
+            Active
+          </span>
+        ) : null}
+      </div>
+    </button>
+  );
+}
+
+/** Theme preview — a frameless slice of the app under the candidate
+ *  theme. No window chrome, no footer ribbon. Inside: a display
+ *  glyph, the practice passage (typed / next / untyped), a stat
+ *  strip, a primary CTA, and an accent badge. Every paint comes from
+ *  the theme's own tokens. */
+function ThemePreview({
   name,
   vars,
   active,
@@ -195,100 +267,51 @@ function ThemeWindow({
   const accentFg = vars["accent-foreground"] ?? vars.foreground;
 
   return (
-    <button
-      type="button"
-      onClick={onPick}
-      aria-pressed={active}
-      aria-label={`Apply ${name} theme`}
-      className={cn(
-        "group relative block w-full overflow-hidden rounded-md border text-left transition-all",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        active
-          ? "border-primary ring-2 ring-primary/40"
-          : "border-border hover:border-foreground/30",
-      )}
+    <TileShell
+      active={active}
+      onPick={onPick}
+      ariaLabel={`Apply ${name} theme`}
+      caption={name}
+      captionTone="default"
     >
       <div
-        className="flex aspect-[4/3] flex-col"
+        className="flex aspect-[5/4] flex-col gap-3 px-3 py-3"
         style={{ backgroundColor: vars.background, color: vars.foreground }}
       >
-        {/* Window chrome — traffic-light dots + URL pill + active flag. */}
-        <div
-          className="flex shrink-0 items-center gap-2 border-b px-3 py-2"
-          style={{ backgroundColor: vars.card, borderColor: vars.border }}
-        >
-          <span className="flex shrink-0 gap-1.5" aria-hidden>
-            <span
-              className="block h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: vars.primary }}
-            />
-            <span
-              className="block h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: vars.accent }}
-            />
-            <span
-              className="block h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: vars["muted-foreground"], opacity: 0.6 }}
-            />
+        {/* Display glyph — shows the theme's heading/serif weight at a
+         *  size you can read on a small tile. Tag chip floats opposite
+         *  to balance the row. */}
+        <div className="flex shrink-0 items-start justify-between gap-2">
+          <span
+            className="leading-none"
+            style={{
+              fontFamily: sans,
+              fontSize: "30px",
+              fontWeight: 800,
+              letterSpacing: "-0.04em",
+              color: vars.foreground,
+            }}
+          >
+            Aa
           </span>
           <span
-            className="ml-1 hidden flex-1 truncate px-2 py-[2px] text-[9px] font-medium tracking-[0.06em] sm:block"
+            className="shrink-0 px-1.5 py-[2px] text-[8px] font-semibold uppercase tracking-[0.16em] leading-none"
             style={{
-              backgroundColor: vars.muted,
-              color: vars["muted-foreground"],
+              backgroundColor: vars.accent,
+              color: accentFg,
               borderRadius: radius,
               fontFamily: mono,
             }}
           >
-            flinttype.app/{name.toLowerCase().replace(/\s+/g, "-")}
+            Practice
           </span>
-          {active ? (
-            <span
-              className="ml-auto flex shrink-0 items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.18em] sm:ml-0"
-              style={{ color: vars.primary }}
-            >
-              <span
-                aria-hidden
-                className="block h-1 w-1 rounded-full"
-                style={{ backgroundColor: vars.primary }}
-              />
-              Active
-            </span>
-          ) : null}
         </div>
 
-        {/* App topbar — wordmark + nav + faux user dot. */}
-        <div
-          className="flex shrink-0 items-center justify-between gap-3 border-b px-3 py-1.5"
-          style={{ borderColor: vars.border }}
-        >
-          <span
-            className="text-[11px] font-bold uppercase tracking-[0.18em]"
-            style={{ color: cardFg, fontFamily: sans }}
-          >
-            flinttype
-          </span>
-          <span
-            className="hidden items-center gap-2.5 text-[8px] uppercase tracking-[0.16em] sm:flex"
-            style={{ color: vars["muted-foreground"], fontFamily: sans }}
-          >
-            <span style={{ color: cardFg }}>Practice</span>
-            <span>Results</span>
-            <span>Settings</span>
-          </span>
-          <span
-            aria-hidden
-            className="block h-3.5 w-3.5"
-            style={{ backgroundColor: vars.primary, borderRadius: radius }}
-          />
-        </div>
-
-        {/* Passage — the heart of the preview. Typed glyphs paint with
-         *  --foreground, untyped with --muted-foreground, the next
-         *  character with --primary so the brand spark is visible. */}
-        <div
-          className="flex-1 px-3.5 py-3 leading-relaxed"
-          style={{ fontFamily: mono, fontSize: "12px" }}
+        {/* Reader text — typed (foreground), next char (primary), and
+         *  the rest in muted-foreground, mirroring passage.tsx's roles. */}
+        <p
+          className="leading-relaxed"
+          style={{ fontFamily: mono, fontSize: "11px" }}
         >
           <span style={{ color: vars.foreground }}>The quick&nbsp;</span>
           <span
@@ -300,37 +323,45 @@ function ThemeWindow({
             b
           </span>
           <span style={{ color: vars["muted-foreground"] }}>
-            rown fox jumps over the lazy dog every single morning.
+            rown fox jumps over the lazy dog.
           </span>
-        </div>
+        </p>
 
-        {/* Stats strip + primary CTA — pinned to bottom on a card-toned
-         *  surface so the row reads as a footer toolbar. */}
+        {/* Stat strip — tabular WPM/ACC, with the streak in primary so
+         *  the brand spark is in the row. */}
         <div
-          className="mt-auto flex shrink-0 items-center gap-2 border-t px-3 py-2"
-          style={{ backgroundColor: vars.card, borderColor: vars.border }}
+          className="flex shrink-0 items-baseline gap-3 border-y px-2 py-1.5"
+          style={{ borderColor: vars.border, backgroundColor: vars.card }}
         >
-          <Stat label="WPM" value="92" cardFg={cardFg} muted={vars["muted-foreground"]} mono={mono} />
-          <span
-            aria-hidden
-            className="block h-3 w-px"
-            style={{ backgroundColor: vars.border }}
+          <Stat
+            label="WPM"
+            value="92"
+            valueColor={cardFg}
+            muted={vars["muted-foreground"]}
+            mono={mono}
           />
-          <Stat label="ACC" value="98%" cardFg={cardFg} muted={vars["muted-foreground"]} mono={mono} />
-          <span
-            aria-hidden
-            className="block h-3 w-px"
-            style={{ backgroundColor: vars.border }}
+          <Stat
+            label="ACC"
+            value="98%"
+            valueColor={cardFg}
+            muted={vars["muted-foreground"]}
+            mono={mono}
           />
           <Stat
             label="STR"
             value="14"
-            cardFg={vars.primary}
+            valueColor={vars.primary}
             muted={vars["muted-foreground"]}
             mono={mono}
           />
+        </div>
+
+        {/* Components row — primary CTA, secondary chip, swatch dots
+         *  for primary/accent/muted-foreground so the palette breadth
+         *  shows even in this compact slot. */}
+        <div className="mt-auto flex shrink-0 items-center gap-1.5">
           <span
-            className="ml-auto inline-flex items-center justify-center px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] leading-none"
+            className="inline-flex items-center justify-center px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] leading-none"
             style={{
               backgroundColor: vars.primary,
               color: vars["primary-foreground"],
@@ -340,66 +371,163 @@ function ThemeWindow({
           >
             Restart
           </span>
-        </div>
-
-        {/* Theme name footer — ribbon outside the window content so the
-         *  preview itself stays clean. */}
-        <div
-          className="flex shrink-0 items-center justify-between gap-2 border-t px-3 py-1.5"
-          style={{
-            backgroundColor: vars.muted,
-            borderColor: vars.border,
-            color: vars["muted-foreground"],
-          }}
-        >
           <span
-            className="truncate text-[10px] font-semibold uppercase tracking-[0.16em]"
-            style={{ color: cardFg, fontFamily: sans }}
-            title={name}
-          >
-            {name}
-          </span>
-          <span
-            className="shrink-0 px-1.5 py-[1px] text-[8px] font-semibold uppercase tracking-[0.14em]"
+            className="inline-flex items-center justify-center px-1.5 py-[3px] text-[8px] font-semibold uppercase tracking-[0.14em] leading-none"
             style={{
-              backgroundColor: vars.accent,
-              color: accentFg,
+              backgroundColor: vars.muted,
+              color: vars["muted-foreground"],
               borderRadius: radius,
-              fontFamily: mono,
+              fontFamily: sans,
+              border: `1px solid ${vars.border}`,
             }}
           >
-            r {radius.replace("rem", "")}
+            60s
+          </span>
+          <span className="ml-auto flex shrink-0 items-center gap-1" aria-hidden>
+            <span
+              className="block h-2 w-2 rounded-full"
+              style={{ backgroundColor: vars.primary }}
+            />
+            <span
+              className="block h-2 w-2 rounded-full"
+              style={{ backgroundColor: vars.accent }}
+            />
+            <span
+              className="block h-2 w-2 rounded-full"
+              style={{ backgroundColor: vars["muted-foreground"] }}
+            />
           </span>
         </div>
       </div>
-    </button>
+    </TileShell>
   );
 }
 
 function Stat({
   label,
   value,
-  cardFg,
+  valueColor,
   muted,
   mono,
 }: {
   label: string;
   value: string;
-  cardFg: string;
+  valueColor: string;
   muted: string;
   mono: string | undefined;
 }) {
   return (
     <span className="flex items-baseline gap-1">
       <span
-        className="text-[9px] uppercase tracking-[0.16em]"
+        className="text-[8px] uppercase tracking-[0.18em]"
         style={{ color: muted, fontFamily: mono }}
       >
         {label}
       </span>
       <span
         className="text-[12px] font-bold tabular-nums leading-none"
-        style={{ color: cardFg, fontFamily: mono }}
+        style={{ color: valueColor, fontFamily: mono }}
+      >
+        {value}
+      </span>
+    </span>
+  );
+}
+
+/** Reactive — wildcard tile rendered as the same frameless preview but
+ *  painted from a synthetic gradient sample. Same body components so it
+ *  reads as a peer of the static themes. */
+function ReactivePreview({
+  active,
+  onPick,
+}: {
+  active: boolean;
+  onPick: () => void;
+}) {
+  const grad =
+    "linear-gradient(135deg, oklch(0.62 0.22 35) 0%, oklch(0.55 0.22 60) 35%, oklch(0.40 0.18 280) 100%)";
+  return (
+    <TileShell
+      active={active}
+      onPick={onPick}
+      ariaLabel="Apply background-reactive theme"
+      caption="Reactive"
+      captionTone="ember"
+    >
+      <div
+        className="flex aspect-[5/4] flex-col gap-3 px-3 py-3 text-white"
+        style={{ background: grad }}
+      >
+        <div className="flex shrink-0 items-start justify-between gap-2">
+          <span
+            className="leading-none"
+            style={{
+              fontSize: "30px",
+              fontWeight: 800,
+              letterSpacing: "-0.04em",
+            }}
+          >
+            Aa
+          </span>
+          <span className="shrink-0 rounded-md border border-white/30 bg-white/15 px-1.5 py-[2px] text-[8px] font-semibold uppercase tracking-[0.16em] leading-none text-white/85 backdrop-blur-sm">
+            Auto
+          </span>
+        </div>
+
+        <p
+          className="leading-relaxed"
+          style={{ fontSize: "11px", fontFamily: "ui-monospace, monospace" }}
+        >
+          <span className="text-white">The quick&nbsp;</span>
+          <span className="border-b border-white/90 text-white">b</span>
+          <span className="text-white/65">
+            rown fox jumps over the lazy dog.
+          </span>
+        </p>
+
+        <div className="flex shrink-0 items-baseline gap-3 border-y border-white/15 bg-black/20 px-2 py-1.5 backdrop-blur-sm">
+          <ReactiveStat label="WPM" value="92" />
+          <ReactiveStat label="ACC" value="98%" />
+          <ReactiveStat label="STR" value="14" emphasis />
+        </div>
+
+        <div className="mt-auto flex shrink-0 items-center gap-1.5">
+          <span className="inline-flex items-center justify-center rounded-md bg-white px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] leading-none text-black">
+            Restart
+          </span>
+          <span className="inline-flex items-center justify-center rounded-md border border-white/30 bg-white/10 px-1.5 py-[3px] text-[8px] font-semibold uppercase tracking-[0.14em] leading-none text-white/85">
+            60s
+          </span>
+          <span className="ml-auto flex shrink-0 items-center gap-1" aria-hidden>
+            <span className="block h-2 w-2 rounded-full bg-white/90" />
+            <span className="block h-2 w-2 rounded-full bg-white/55" />
+            <span className="block h-2 w-2 rounded-full bg-white/30" />
+          </span>
+        </div>
+      </div>
+    </TileShell>
+  );
+}
+
+function ReactiveStat({
+  label,
+  value,
+  emphasis,
+}: {
+  label: string;
+  value: string;
+  emphasis?: boolean;
+}) {
+  return (
+    <span className="flex items-baseline gap-1">
+      <span className="text-[8px] uppercase tracking-[0.18em] text-white/65">
+        {label}
+      </span>
+      <span
+        className={cn(
+          "text-[12px] font-bold tabular-nums leading-none",
+          emphasis ? "text-white" : "text-white/90",
+        )}
       >
         {value}
       </span>
