@@ -128,7 +128,7 @@ export function ThemeExplorer() {
         </div>
       </header>
 
-      <ol className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4">
+      <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
         {entries.map((e) => {
           if (e.kind === "default") {
             return (
@@ -206,9 +206,10 @@ function TileShell({
   );
 }
 
-/** Compact theme preview. Mobile: name + sample line + swatches. Desktop
- *  (sm+): adds a primary button, a muted chip, and a stat number to make
- *  the theme's intent legible. */
+/** Tile rendered as a faux desktop window: a card-coloured title bar
+ *  with traffic-light dots and the theme name, then a square painted
+ *  body that previews the typing UI — sample passage, caret, stat
+ *  row. Square aspect so tiles read as little app windows. */
 function ThemeTile({
   name,
   vars,
@@ -223,122 +224,115 @@ function ThemeTile({
   return (
     <TileShell active={active} onPick={onPick} ariaLabel={`Apply ${name} theme`}>
       <div
-        className="flex flex-col gap-2 p-3 sm:gap-2.5 sm:p-3.5"
-        style={{ backgroundColor: vars.background, color: vars.foreground }}
+        className="flex aspect-square flex-col"
+        style={{ backgroundColor: vars.background }}
       >
-        {/* Header: name */}
-        <div className="flex items-center justify-between gap-2">
+        {/* Window title bar — uses the card surface so it reads as a
+            distinct strip atop the page background. */}
+        <div
+          className="flex shrink-0 items-center gap-2 border-b px-2.5 py-1.5"
+          style={{
+            backgroundColor: vars.card,
+            borderColor: vars.border,
+          }}
+        >
+          <span className="flex shrink-0 gap-1" aria-hidden>
+            <span
+              className="block h-2 w-2 rounded-full"
+              style={{ backgroundColor: vars["muted-foreground"], opacity: 0.45 }}
+            />
+            <span
+              className="block h-2 w-2 rounded-full"
+              style={{ backgroundColor: vars["muted-foreground"], opacity: 0.45 }}
+            />
+            <span
+              className="block h-2 w-2 rounded-full"
+              style={{ backgroundColor: vars.primary }}
+            />
+          </span>
           <span
-            className="truncate text-[11px] font-semibold uppercase tracking-[0.14em]"
+            className="ml-auto truncate text-[10px] font-semibold uppercase tracking-[0.14em]"
             style={{ color: vars["muted-foreground"] }}
           >
             {name}
           </span>
         </div>
 
-        {/* Sample passage — always visible. Mirrors the typing area:
-            muted bulk + foreground next-word + primary current-word. */}
-        <p className="font-mono text-[11px] leading-snug sm:text-[12px]">
-          <span style={{ color: vars["muted-foreground"] }}>the </span>
-          <span style={{ color: vars.foreground }}>quick </span>
-          <span
-            style={{
-              color: vars.primary,
-              textDecoration: "underline",
-              textDecorationThickness: "1px",
-              textUnderlineOffset: "3px",
-            }}
-          >
-            brown
-          </span>
-          <span style={{ color: vars["muted-foreground"] }}> fox</span>
-        </p>
-
-        {/* Stat + chips — sm+ only. Demonstrates primary button colour,
-            muted surface, and stat tabular-nums in one row. */}
-        <div className="hidden flex-wrap items-center gap-1.5 sm:flex">
-          <span
-            className="rounded-sm px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em]"
-            style={{
-              backgroundColor: vars.primary,
-              color: vars["primary-foreground"],
-            }}
-          >
-            start
-          </span>
-          <span
-            className="rounded-sm px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.12em]"
-            style={{
-              backgroundColor: vars.muted,
-              color: vars["muted-foreground"],
-            }}
-          >
-            esc
-          </span>
-          <span className="ml-auto inline-flex items-baseline gap-1">
+        {/* Window body — the typing preview. */}
+        <div className="flex min-h-0 flex-1 flex-col justify-between gap-2 p-3">
+          {/* Sample passage — muted bulk, foreground typed, primary
+              current-word, with a blinking caret rendered as a thin bar. */}
+          <p className="font-mono text-[11px] leading-[1.6] sm:text-[12px]">
+            <span style={{ color: vars["muted-foreground"] }}>the </span>
+            <span style={{ color: vars.foreground }}>quick </span>
             <span
-              className="text-base font-bold tabular-nums leading-none"
-              style={{ color: vars.primary }}
+              style={{
+                color: vars.primary,
+                textDecoration: "underline",
+                textDecorationThickness: "1px",
+                textUnderlineOffset: "3px",
+              }}
             >
-              82
+              brown
             </span>
             <span
-              className="text-[8px] font-semibold uppercase tracking-[0.16em]"
-              style={{ color: vars["muted-foreground"] }}
-            >
-              wpm
+              aria-hidden
+              className="mx-px inline-block h-[1.05em] w-[2px] translate-y-[2px]"
+              style={{ backgroundColor: vars.primary }}
+            />
+            <span style={{ color: vars["muted-foreground"] }}>fox jumps</span>
+          </p>
+
+          {/* Stat row — wpm + accuracy, both tabular-nums. */}
+          <div className="flex items-baseline justify-between">
+            <span className="inline-flex items-baseline gap-1">
+              <span
+                className="text-lg font-bold tabular-nums leading-none sm:text-xl"
+                style={{ color: vars.primary }}
+              >
+                82
+              </span>
+              <span
+                className="text-[8px] font-semibold uppercase tracking-[0.16em]"
+                style={{ color: vars["muted-foreground"] }}
+              >
+                wpm
+              </span>
             </span>
-          </span>
-        </div>
+            <span className="inline-flex items-baseline gap-1">
+              <span
+                className="text-sm font-semibold tabular-nums leading-none"
+                style={{ color: vars.foreground }}
+              >
+                97
+              </span>
+              <span
+                className="text-[8px] font-semibold uppercase tracking-[0.16em]"
+                style={{ color: vars["muted-foreground"] }}
+              >
+                %
+              </span>
+            </span>
+          </div>
 
-        {/* Input track — sm+ only. Shows muted surface + foreground caret. */}
-        <div
-          className="hidden h-1.5 w-full overflow-hidden rounded-full sm:block"
-          style={{ backgroundColor: vars.muted }}
-          aria-hidden
-        >
-          <span
-            className="block h-full"
-            style={{ width: "62%", backgroundColor: vars.primary }}
-          />
+          {/* Progress track — muted surface, primary fill. */}
+          <div
+            className="h-1 w-full overflow-hidden rounded-full"
+            style={{ backgroundColor: vars.muted }}
+            aria-hidden
+          >
+            <span
+              className="block h-full"
+              style={{ width: "62%", backgroundColor: vars.primary }}
+            />
+          </div>
         </div>
-
-        {/* Swatch strip — always visible, summarises the palette. */}
-        <Swatches vars={vars} />
       </div>
     </TileShell>
   );
 }
 
-function Swatches({ vars }: { vars: PreviewVars }) {
-  const cols = [
-    vars.background,
-    vars.card,
-    vars.muted,
-    vars.accent,
-    vars.primary,
-    vars.foreground,
-  ];
-  return (
-    <span
-      className="flex h-2 w-full overflow-hidden rounded-sm"
-      style={{ outline: `1px solid ${vars.border}` }}
-      aria-hidden
-    >
-      {cols.map((c, i) => (
-        <span
-          // eslint-disable-next-line react/no-array-index-key
-          key={i}
-          className="block h-full flex-1"
-          style={{ backgroundColor: c }}
-        />
-      ))}
-    </span>
-  );
-}
-
-/** Reactive — wildcard tile. No fixed colours; renders an ember/violet
- *  gradient and a short caption so users understand the sampling. */
+/** Reactive — wildcard tile. Same window shape, gradient body. */
 function ReactiveTile({
   active,
   onPick,
@@ -355,40 +349,40 @@ function ReactiveTile({
       ariaLabel="Apply background-reactive theme"
     >
       <div
-        className="flex flex-col gap-2 p-3 text-white sm:gap-2.5 sm:p-3.5"
+        className="flex aspect-square flex-col text-white"
         style={{ background: grad }}
       >
-        <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-white/80">
+        <div className="flex shrink-0 items-center gap-2 border-b border-white/15 bg-black/20 px-2.5 py-1.5 backdrop-blur-sm">
+          <span className="flex shrink-0 gap-1" aria-hidden>
+            <span className="block h-2 w-2 rounded-full bg-white/40" />
+            <span className="block h-2 w-2 rounded-full bg-white/40" />
+            <span className="block h-2 w-2 rounded-full bg-white" />
+          </span>
+          <span className="ml-auto truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-white/80">
             Reactive
           </span>
-          <span className="rounded-sm border border-white/30 bg-white/10 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.16em] backdrop-blur-sm">
-            Auto
-          </span>
         </div>
 
-        <p className="font-mono text-[11px] leading-snug text-white/90 sm:text-[12px]">
-          sampled from your background image
-        </p>
+        <div className="flex min-h-0 flex-1 flex-col justify-between gap-2 p-3">
+          <p className="font-mono text-[11px] leading-[1.6] text-white/85 sm:text-[12px]">
+            sampled from your background
+          </p>
 
-        <div className="hidden flex-wrap items-center gap-1.5 sm:flex">
-          <span className="rounded-sm border border-white/30 bg-white/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em]">
-            live
-          </span>
-          <span className="rounded-sm bg-white/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.12em] text-white/80">
-            on change
-          </span>
+          <div className="flex items-baseline justify-between">
+            <span className="inline-flex items-baseline gap-1">
+              <span className="text-lg font-bold tabular-nums leading-none sm:text-xl">
+                live
+              </span>
+            </span>
+            <span className="rounded-sm border border-white/30 bg-white/10 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.16em] backdrop-blur-sm">
+              auto
+            </span>
+          </div>
+
+          <div className="h-1 w-full overflow-hidden rounded-full bg-white/15" aria-hidden>
+            <span className="block h-full w-3/4 bg-white/70" />
+          </div>
         </div>
-
-        <div className="hidden h-1.5 w-full overflow-hidden rounded-full bg-white/15 sm:block" aria-hidden>
-          <span className="block h-full w-3/4 bg-white/70" />
-        </div>
-
-        <span
-          className="flex h-2 w-full overflow-hidden rounded-sm"
-          style={{ outline: "1px solid rgba(255,255,255,0.3)", background: grad }}
-          aria-hidden
-        />
       </div>
     </TileShell>
   );
