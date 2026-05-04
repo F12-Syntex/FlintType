@@ -339,6 +339,14 @@
   html:not(.ft-bg-content) [data-bg-scope]::after {
     display: none;
   }
+  /* When a [data-bg-scope] contains another, only the innermost paints.
+     Lets nested layouts (e.g. settings: outer <main> + inner content
+     scroller next to a sidebar) shrink the painted area without the
+     wider element fighting it. */
+  html.ft-bg-content [data-bg-scope]:has([data-bg-scope])::before,
+  html.ft-bg-content [data-bg-scope]:has([data-bg-scope])::after {
+    display: none;
+  }
 
   /* Webkit scrollbars — slim, themed, no track chrome. */
   ::-webkit-scrollbar {

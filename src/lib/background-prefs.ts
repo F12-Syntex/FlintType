@@ -40,7 +40,10 @@ export const DEFAULT_BACKGROUND: BackgroundPrefs = {
   scope: "page",
   opacity: 1,
   blur: 0,
-  darken: 0,
+  // Photos almost always need taking down a notch under typing copy;
+  // 70% is the default sweet spot. The applier zeroes this when no
+  // image is set so the bare app doesn't go black.
+  darken: 0.7,
 };
 
 // ─── Local-only image (browser storage, never sent to the server) ────

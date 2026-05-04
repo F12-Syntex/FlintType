@@ -40,7 +40,9 @@ export function BackgroundApplier() {
 
     set("--ft-bg-opacity", String(prefs.opacity));
     set("--ft-bg-blur", `${prefs.blur}px`);
-    set("--ft-bg-darken", String(prefs.darken));
+    // Darken only paints over an image — without one, the scrim would
+    // just dim the bare app for no reason.
+    set("--ft-bg-darken", effectiveImage ? String(prefs.darken) : "0");
 
     if (prefs.scope === "content") {
       root.classList.add("ft-bg-content");

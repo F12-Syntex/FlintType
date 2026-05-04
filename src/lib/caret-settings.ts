@@ -21,7 +21,9 @@ export const DEFAULT_CARET: CaretSettings = {
   style: "line",
   width: 2,
   radius: 0,
-  blinkSpeed: 1000,
+  // No blink by default — a still caret reads as part of the text,
+  // a blinking one demands attention while the user is typing.
+  blinkSpeed: 0,
   // Default to a deliberately slow glide — the caret should feel
   // intentional, not jumpy. Matches the `Drift` preset (300 ms) one
   // step inside the Glide/Drift end of the smooth ramp.

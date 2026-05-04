@@ -9,7 +9,7 @@ export default function CustomiseLayout({ children }: { children: ReactNode }) {
       <div className="grid h-full min-h-0 grid-cols-1 text-foreground lg:grid-cols-[220px_1fr]">
         <SettingsSidebar />
 
-        <div className="min-h-0 overflow-y-auto">
+        <div data-bg-scope="content" className="min-h-0 overflow-y-auto">
           <header className="border-b border-border px-4 py-3 sm:px-8 sm:py-4 lg:px-10">
             <div className="flex flex-wrap items-center justify-end gap-2">
               <Button variant="outline" size="sm">Export</Button>
