@@ -5,13 +5,13 @@ import {
   type LiveStatStyle,
   useAppearancePrefs,
 } from "@/lib/appearance-prefs";
-import { ColorPresetPicker } from "@/components/ui/color-preset-picker";
 import {
   LabelWithDesc,
   SelectChips,
   SliderRow,
 } from "../../_components/controls";
 import { SettingsRow } from "../../_components/row";
+import { ColorRow } from "./color-row";
 
 const STYLE_OPTIONS: readonly { id: LiveStatStyle; label: string }[] = [
   { id: "off", label: "Off" },
@@ -82,28 +82,13 @@ export function LiveStatsRows() {
         onChange={(v) => update("liveBurstStyle", v)}
       />
 
-      <SettingsRow
-        label={
-          <LabelWithDesc
-            title="Live stats color"
-            desc="Color of the progress, live speed, accuracy and burst text."
-          />
-        }
-        control={
-          <ColorPresetPicker
-            value={prefs.liveStatsColor || undefined}
-            onChange={(hex) => update("liveStatsColor", hex)}
-          >
-            <button
-              type="button"
-              aria-label="Pick live stats color"
-              className="inline-block h-7 w-7 shrink-0 rounded-sm border border-border shadow-inner ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              style={{
-                backgroundColor: prefs.liveStatsColor || "var(--primary)",
-              }}
-            />
-          </ColorPresetPicker>
-        }
+      <ColorRow
+        label="Live stats color"
+        desc="Color of the progress, live speed, accuracy and burst text."
+        swatchColor={prefs.liveStatsColor || "var(--primary)"}
+        value={prefs.liveStatsColor || undefined}
+        onChange={(hex) => update("liveStatsColor", hex)}
+        onClear={() => update("liveStatsColor", "")}
       />
 
       <SettingsRow

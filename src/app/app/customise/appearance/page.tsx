@@ -1,15 +1,5 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardAction,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { ColorPresetPicker } from "@/components/ui/color-preset-picker";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import {
   type ThemeVar,
@@ -20,6 +10,7 @@ import { SectionHeader, SettingsPageHeader } from "../_components/page-header";
 import { SettingsRow } from "../_components/row";
 import { BackgroundRow } from "./_components/background-row";
 import { CaretRow } from "./_components/caret-row";
+import { ColorRow } from "./_components/color-row";
 import { KeyboardRow } from "./_components/keyboard-row";
 import { KeymapRows } from "./_components/keymap-rows";
 import { LiveStatsRows } from "./_components/live-stats-rows";
@@ -31,13 +22,13 @@ import { TypographyRows } from "./_components/typography-row";
 
 // ─── Color section ─────────────────────────────────────────────────
 
-type ColorRow = {
+type ColorRowDef = {
   var: ThemeVar;
   label: string;
   desc: string;
 };
 
-const COLOR_ROWS: readonly ColorRow[] = [
+const COLOR_ROWS: readonly ColorRowDef[] = [
   {
     var: "--primary",
     label: "Primary accent",
@@ -100,89 +91,9 @@ const COLOR_ROWS: readonly ColorRow[] = [
   },
 ];
 
-/** Two layouts that share state:
- *  - Mobile: tight key/value row — label on the left, swatch button
- *    on the right. No description — it duplicates the label on a 375
- *    px screen, and the desktop card already covers it.
- *  - Desktop (sm:+): the original Card with title + description and a
- *    full hex+chevron picker button. */
-function ColorRowCard({
-  row,
-  value,
-  onChange,
-  onClear,
-}: {
-  row: ColorRow;
-  value: string | undefined;
-  onChange: (hex: string) => void;
-  onClear: () => void;
-}) {
-  const swatch = value ?? undefined;
-  const customized = value !== undefined;
-
-  return (
-    <>
-      {/* Mobile only */}
-      <div className="flex min-h-12 items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2 sm:hidden">
-        <span className="truncate text-sm font-medium text-foreground">
-          {row.label}
-        </span>
-        <div className="flex items-center gap-2">
-          {customized ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClear}
-              className="h-7 px-2 text-xs"
-            >
-              Reset
-            </Button>
-          ) : null}
-          <ColorPresetPicker value={value} onChange={onChange}>
-            <button
-              type="button"
-              aria-label={`Pick ${row.label}`}
-              className="inline-block h-7 w-7 shrink-0 rounded-sm border border-border shadow-inner ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              style={{ backgroundColor: `var(${row.var})` }}
-            />
-          </ColorPresetPicker>
-        </div>
-      </div>
-
-      {/* Desktop only — original card layout */}
-      <Card className="hidden rounded-md shadow-sm ring-border min-h-16 sm:block">
-        <CardHeader>
-          <CardTitle className="text-sm font-semibold">{row.label}</CardTitle>
-          <CardDescription>{row.desc}</CardDescription>
-          <CardAction>
-            <div className="flex items-center gap-3">
-              <ColorPresetPicker value={swatch} onChange={onChange}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  aria-label={`Pick ${row.label}`}
-                >
-                  <span
-                    className="inline-block h-5 w-5 rounded-sm border border-border shadow-inner"
-                    style={{ backgroundColor: `var(${row.var})` }}
-                  />
-                  {swatch ?? "Default"}
-                  <ChevronDown size={14} />
-                </Button>
-              </ColorPresetPicker>
-              {customized ? (
-                <Button variant="ghost" size="sm" onClick={onClear}>
-                  Reset
-                </Button>
-              ) : null}
-            </div>
-          </CardAction>
-        </CardHeader>
-      </Card>
-    </>
-  );
-}
+// ColorRow lives in ./_components/color-row.tsx so the live-stats
+// row in live-stats-rows.tsx can reuse the same affordance — ui-law
+// §12 mandates a uniform colour-picker pattern across the page.
 
 // ─── Page ──────────────────────────────────────────────────────────
 
@@ -222,9 +133,11 @@ export default function AppearancePage() {
       <SectionHeader label="Colors" />
       <div className="mb-8 flex flex-col gap-3">
         {COLOR_ROWS.map((row) => (
-          <ColorRowCard
+          <ColorRow
             key={row.var}
-            row={row}
+            label={row.label}
+            desc={row.desc}
+            swatchColor={`var(${row.var})`}
             value={overrides[row.var]}
             onChange={(hex) => setVar(row.var, hex)}
             onClear={() => clearVar(row.var)}

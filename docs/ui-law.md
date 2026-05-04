@@ -446,6 +446,8 @@ Pick the smallest control that fits the choice space:
 
 `SettingsCard` (a Card with title + description + body) is **only** for controls that genuinely need their own description and a body too tall for a row — color picker rows (label + desc + swatch picker) and the background image upload zone. New rich-content settings should ask "can this be a SettingsRow?" first.
 
+**Color rows must use `<ColorRow>` (`src/app/app/customise/appearance/_components/color-row.tsx`).** Every colour-picker affordance on the appearance page — theme palette, live stats colour, future surfaces — routes through this single primitive so the swatch + hex + chevron button reads identically. Mobile renders a tight key/value row (label left, swatch right); desktop renders the Card layout above. Don't hand-roll an inline `<ColorPresetPicker>` trigger; reach for `<ColorRow>` instead.
+
 ### 12.3 Nesting rule
 
 Every option that belongs to the same parent topic lives **inside the same section**. Examples:
