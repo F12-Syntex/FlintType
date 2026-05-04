@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -65,6 +66,7 @@ function ThemeSwatches({ theme }: { theme: Theme }) {
 
 export function ThemesRow() {
   const { themes, activeId, apply, reset } = usePalette();
+  const router = useRouter();
   const active = activeId
     ? themes.find((t) => t.id === activeId) ?? null
     : null;
@@ -93,6 +95,16 @@ export function ThemesRow() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-[12rem]">
+            <DropdownMenuItem
+              onSelect={() => router.push("/app/customise/appearance/themes")}
+              className="gap-3"
+            >
+              <span className="inline-flex h-4 w-4 items-center justify-center text-primary">
+                <Sparkles size={14} />
+              </span>
+              <span className="flex-1 font-medium">Explore themes…</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={reset} className="gap-3">
               <span
                 className={cn(
