@@ -28,27 +28,27 @@ function ActiveWord({
   cursorChar,
   registerTarget,
   blind,
+  letterHighlight,
 }: {
   word: string;
   typed: string;
   cursorChar: number;
   registerTarget: (el: HTMLSpanElement | null, side: "left" | "right") => void;
   blind: boolean;
+  /** Per-letter highlight mode:
+   *   - "letter": underline the cursor position (current letter)
+   *   - "next-letter": ring the next letter the user will type */
+  letterHighlight: "off" | "letter" | "next-letter";
 }) {
   const targetChars = [...word];
   const typedChars = [...typed];
   const len = Math.max(targetChars.length, typedChars.length);
-  // `inline-block whitespace-nowrap` keeps the word as one line-break unit
-  // so per-character spans inside don't make the browser break mid-word.
   return (
     <span className="inline-block whitespace-nowrap">
       {Array.from({ length: len }, (_, ci) => {
         const expected = targetChars[ci];
         const got = typedChars[ci];
         const isExtra = ci >= targetChars.length;
-        // Show what the user actually typed (so they see their own input)
-        // for any position they've reached; fall back to the target glyph
-        // for positions still ahead of the cursor.
         const glyph = got ?? expected ?? "";
 
         let cls: string;
@@ -57,6 +57,17 @@ function ActiveWord({
         else if (got === undefined) cls = "text-muted-foreground";
         else if (got === expected) cls = "text-foreground";
         else cls = "text-primary";
+
+        // Per-letter emphasis. The caret already marks position; this is
+        // an extra static marker so the user sees the setting take.
+        const isCursorLetter = ci === cursorChar;
+        const letterCls = !blind && isCursorLetter
+          ? letterHighlight === "letter"
+            ? "underline decoration-primary decoration-2 underline-offset-[6px]"
+            : letterHighlight === "next-letter"
+              ? "rounded-sm bg-primary/15 text-primary px-0.5"
+              : ""
+          : "";
 
         // Caret target:
         //   cursorChar < len  → left edge of char at cursorChar
@@ -74,7 +85,7 @@ function ActiveWord({
               : null;
 
         return (
-          <span key={ci} ref={ref} className={cls}>
+          <span key={ci} ref={ref} className={cn(cls, letterCls)}>
             {glyph}
           </span>
         );
@@ -190,7 +201,7 @@ export function Passage() {
                 key={wi}
                 className={cn(
                   highlightCurrentWord &&
-                    "rounded-sm bg-primary/10 px-0.5 text-foreground",
+                    "rounded-sm bg-primary/15 px-1 ring-1 ring-primary/30 text-foreground",
                 )}
               >
                 <ActiveWord
@@ -199,24 +210,28 @@ export function Passage() {
                   cursorChar={cursorChar}
                   registerTarget={registerTarget}
                   blind={blind}
+                  letterHighlight={
+                    hl === "letter"
+                      ? "letter"
+                      : hl === "next-letter"
+                        ? "next-letter"
+                        : "off"
+                  }
                 />{" "}
               </span>
             );
           }
-          // Next word emphasis (only when no typing yet on current word).
+          // Next-word emphasis: lift the immediately following word.
           const isNextWord =
-            highlightNextWord && wi === cursorWord + 1;
+            (highlightNextWord || highlightNextLetter) &&
+            wi === cursorWord + 1;
           return (
             <span
               key={wi}
               className={cn(
                 "text-muted-foreground",
-                isNextWord && "rounded-sm bg-foreground/5 px-0.5 text-foreground",
-                // Show the *first letter* of the next word as the
-                // "next-letter" hint when the cursor sits at the very
-                // start of that word would-be (i.e. no inter-word hint
-                // makes sense here, so do nothing extra in this branch).
-                highlightNextLetter && wi === cursorWord + 1 && "text-foreground",
+                isNextWord &&
+                  "rounded-sm bg-foreground/10 px-1 text-foreground/80",
               )}
             >
               {word}{" "}

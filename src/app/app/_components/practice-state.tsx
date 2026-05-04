@@ -337,13 +337,16 @@ function reducer(s: State, a: Action): State {
     }
     case "SPACE": {
       if (s.phase === "done" || s.phase === "rest") return s;
-      // Strict-advance: the current word must be typed exactly (no
-      // missing chars, no incorrect chars, no extras) before space can
-      // advance. Forces the user to backspace and fix mistakes instead
-      // of bypassing them with a space.
       const target = s.words[s.cursorWord] ?? "";
       const typedHere = s.typed[s.cursorWord] ?? "";
-      if (typedHere !== target) return s;
+      // Space always advances the cursor — the user explicitly asked
+      // to skip past mistakes. If the typed word doesn't match the
+      // target, mark it as an error word so the summary still
+      // accounts for it (and it underlines in the passage).
+      const wordHasError = typedHere !== target;
+      const errorWords = wordHasError
+        ? new Set([...s.errorWords, s.cursorWord])
+        : s.errorWords;
       const next = s.cursorWord + 1;
       // Make sure typed has an entry for the just-completed word (the
       // monkeytype WPM walk wants every position present).
@@ -359,6 +362,7 @@ function reducer(s: State, a: Action): State {
             cursorWord: next,
             cursorChar: 0,
             typed: sealedTyped,
+            errorWords,
           };
         }
         return {
@@ -366,6 +370,7 @@ function reducer(s: State, a: Action): State {
           phase: "done",
           endTime: a.now,
           typed: sealedTyped,
+          errorWords,
         };
       }
       return {
@@ -373,6 +378,7 @@ function reducer(s: State, a: Action): State {
         cursorWord: next,
         cursorChar: 0,
         typed: sealedTyped,
+        errorWords,
       };
     }
     default:

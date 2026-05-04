@@ -95,6 +95,11 @@ function readStored(): AppearancePrefs {
   }
 }
 
+/** Broadcast channel for same-tab pref updates. The native `storage`
+ *  event only fires in *other* tabs, so without this every consumer
+ *  on the current tab would keep its own stale snapshot until remount. */
+const SAME_TAB_EVENT = "ft-appearance-prefs-changed";
+
 function writeStored(prefs: AppearancePrefs) {
   if (typeof window === "undefined") return;
   try {
@@ -102,6 +107,7 @@ function writeStored(prefs: AppearancePrefs) {
   } catch {
     /* quota — fine, value stays for the session */
   }
+  window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT));
 }
 
 // ─── hook ─────────────────────────────────────────────────────────────
@@ -111,11 +117,17 @@ export function useAppearancePrefs() {
 
   useEffect(() => {
     setPrefs(readStored());
+    const reread = () => setPrefs(readStored());
     const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setPrefs(readStored());
+      if (e.key === STORAGE_KEY) reread();
     };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    // Same-tab listener — fires for every writeStored() in this tab.
+    window.addEventListener(SAME_TAB_EVENT, reread);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(SAME_TAB_EVENT, reread);
+    };
   }, []);
 
   const update = useCallback(

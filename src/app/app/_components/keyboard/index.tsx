@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   HOME_ROW_PEGS,
   type KeyboardSettings,
@@ -62,6 +62,12 @@ export function Keyboard({
   className,
 }: KeyboardProps) {
   const [active, setActive] = useState<LayoutId>(layout);
+  // Keep the internal layout in step with the prop. Without this the
+  // Keyboard would lock onto whatever layout it mounted with and ignore
+  // later changes from the appearance settings.
+  useEffect(() => {
+    setActive(layout);
+  }, [layout]);
   const { pressed, shift, caps } = usePressedKeys();
   const { settings } = useKeyboardSettings();
   const effective = { ...settings, ...settingsOverride };

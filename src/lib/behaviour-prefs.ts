@@ -45,6 +45,9 @@ function readStored(): BehaviourPrefs {
   }
 }
 
+/** Same-tab broadcast channel — see appearance-prefs for the rationale. */
+const SAME_TAB_EVENT = "ft-behaviour-prefs-changed";
+
 function writeStored(prefs: BehaviourPrefs) {
   if (typeof window === "undefined") return;
   try {
@@ -52,6 +55,7 @@ function writeStored(prefs: BehaviourPrefs) {
   } catch {
     // Quota — fine, stays for the session.
   }
+  window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT));
 }
 
 export function useBehaviourPrefs() {
@@ -59,12 +63,16 @@ export function useBehaviourPrefs() {
 
   useEffect(() => {
     setPrefs(readStored());
-    // Cross-tab sync: re-read on storage events from other tabs.
+    const reread = () => setPrefs(readStored());
     const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setPrefs(readStored());
+      if (e.key === STORAGE_KEY) reread();
     };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener(SAME_TAB_EVENT, reread);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(SAME_TAB_EVENT, reread);
+    };
   }, []);
 
   const update = useCallback(<K extends keyof BehaviourPrefs>(
