@@ -256,10 +256,12 @@
        Defaults to 1, multiplies the browser's 16px root, so every rem-based
        size in the app scales consistently. */
     font-size: calc(var(--ft-font-scale, 1) * 100%);
-    /* Firefox scrollbar — themed via the active palette. Webkit gets the
-       block below. */
+    /* Modern scrollbar — themed via the active palette. The TRACK is
+       intentionally opaque (var(--background)) so the gutter blends
+       with the chrome it sits next to; a transparent track exposes
+       the page background image through a 10px strip on Windows. */
     scrollbar-color: color-mix(in oklch, var(--foreground) 25%, transparent)
-      transparent;
+      var(--background);
     scrollbar-width: thin;
   }
   body {
