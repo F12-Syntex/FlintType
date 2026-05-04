@@ -27,6 +27,10 @@ type ColorRowDef = {
   var: ThemeVar;
   label: string;
   desc: string;
+  /** CSS var name used as the swatch fallback when `row.var` is not set
+   *  on `:root` (e.g. `--ft-passage-typed` falls back to `--foreground`
+   *  inside passage.tsx; the swatch should show the same colour). */
+  fallbackVar?: ThemeVar;
 };
 
 const COLOR_ROWS: readonly ColorRowDef[] = [
@@ -90,6 +94,18 @@ const COLOR_ROWS: readonly ColorRowDef[] = [
     label: "Focus ring",
     desc: "The outline that wraps a focused element",
   },
+  {
+    var: "--ft-passage-typed",
+    label: "Practice text",
+    desc: "Letters you've already typed in the practice passage. Independent of body text.",
+    fallbackVar: "--foreground",
+  },
+  {
+    var: "--ft-passage-untyped",
+    label: "Practice text (pending)",
+    desc: "Letters not yet typed in the practice passage. Independent of muted text.",
+    fallbackVar: "--muted-foreground",
+  },
 ];
 
 // ColorRow lives in ./_components/color-row.tsx so the live-stats
@@ -138,7 +154,11 @@ export default function AppearancePage() {
             key={row.var}
             label={row.label}
             desc={row.desc}
-            swatchColor={`var(${row.var})`}
+            swatchColor={
+              row.fallbackVar
+                ? `var(${row.var}, var(${row.fallbackVar}))`
+                : `var(${row.var})`
+            }
             value={overrides[row.var]}
             onChange={(hex) => setVar(row.var, hex)}
             onClear={() => clearVar(row.var)}
