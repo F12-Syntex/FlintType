@@ -1,6 +1,7 @@
 import { TopBar, type NavItem } from "@/components/ft";
 import { cn } from "@/lib/utils";
 import { AppDrawerExtras } from "./app-drawer-extras";
+import { AppFooter } from "./app-footer";
 import { ScrollToTop } from "./scroll-to-top";
 import { TopbarActions } from "./topbar-actions";
 
@@ -56,6 +57,7 @@ export function AppChrome({
       >
         {children}
       </main>
+      <AppFooter dark={dark} compact={compact} />
     </div>
   );
 }
