@@ -46,7 +46,12 @@ export function Chip({
  *  line on narrow viewports without pushing the surrounding row past
  *  its `max-h-48` (3× min) cap. */
 export function ChipGroup({ children }: { children: ReactNode }) {
+  // Mobile: chips align left under the stacked label and wrap freely
+  // across the full row. From `sm:` up the row goes inline with the
+  // label on the left, so chips line up to the right edge.
   return (
-    <div className="flex flex-wrap justify-end gap-1.5">{children}</div>
+    <div className="flex flex-wrap justify-start gap-1.5 sm:justify-end">
+      {children}
+    </div>
   );
 }

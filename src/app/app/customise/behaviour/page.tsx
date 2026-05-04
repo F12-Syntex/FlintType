@@ -1,7 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   type BehaviourPrefs,
   type Confidence,
@@ -9,6 +7,7 @@ import {
   useBehaviourPrefs,
 } from "@/lib/behaviour-prefs";
 import { Chip, ChipGroup } from "../_components/chip";
+import { SectionHeader, SettingsPageHeader } from "../_components/page-header";
 import { SettingsRow } from "../_components/row";
 
 function ToggleChips({
@@ -73,17 +72,6 @@ const MIN_WORD_OPTIONS: readonly { id: number; label: string }[] = [
   { id: 8, label: "8" },
 ];
 
-function SectionHeader({ label }: { label: string }) {
-  return (
-    <div className="mb-3 flex items-center gap-3">
-      <span aria-hidden className="inline-block h-px w-5 bg-primary" />
-      <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-        {label}
-      </h3>
-    </div>
-  );
-}
-
 function ToggleRow({
   label,
   desc,
@@ -123,41 +111,13 @@ export default function BehaviourPage() {
 
   return (
     <section className="text-foreground">
-      <header className="mb-6 border-b border-border pb-4">
-        <div className="mb-2 flex items-center gap-3">
-          <span aria-hidden className="inline-block h-px w-5 bg-primary" />
-          <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            Section
-          </span>
-        </div>
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h2 className="text-2xl font-bold tracking-tight">Behaviour</h2>
-          <div className="flex items-center gap-3">
-            <Badge variant="secondary" className="px-2 text-[0.65rem]">
-              10 options
-            </Badge>
-            {customizedCount > 0 ? (
-              <Badge className="px-2 text-[0.65rem]">
-                {customizedCount} customized
-              </Badge>
-            ) : null}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={reset}
-              disabled={customizedCount === 0}
-            >
-              Reset all
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-        Tune how the test reacts while you type — restart shortcuts, live
-        signal, error handling, and word-list shape. Every change applies
-        to the next keystroke and persists across reloads.
-      </p>
+      <SettingsPageHeader
+        title="Behaviour"
+        optionsCount={10}
+        customizedCount={customizedCount}
+        onResetAll={reset}
+        description="Tune how the test reacts while you type — restart shortcuts, live signal, error handling, and word-list shape. Every change applies on the next keystroke."
+      />
 
       <SectionHeader label="Restart" />
       <div className="mb-8 flex flex-col gap-3">

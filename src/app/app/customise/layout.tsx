@@ -10,16 +10,22 @@ export default function CustomiseLayout({ children }: { children: ReactNode }) {
         <SettingsSidebar />
 
         <div className="min-h-0 overflow-y-auto">
-          <header className="border-b border-border px-6 py-4 sm:px-10">
-            <div className="flex flex-wrap justify-end gap-2">
-              <Button variant="outline" size="sm">Export</Button>
-              <Button variant="outline" size="sm">Import</Button>
+          <header className="border-b border-border px-4 py-3 sm:px-8 sm:py-4 lg:px-10">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {/* Export / Import are advanced and noisy on a phone — keep
+                  Save and Reset as the only mobile-visible actions. */}
+              <Button variant="outline" size="sm" className="hidden sm:inline-flex">
+                Export
+              </Button>
+              <Button variant="outline" size="sm" className="hidden sm:inline-flex">
+                Import
+              </Button>
               <Button variant="ghost" size="sm">Reset</Button>
               <Button size="sm">Save</Button>
             </div>
           </header>
 
-          <div className="px-6 py-8 sm:px-10">{children}</div>
+          <div className="px-4 py-6 sm:px-8 sm:py-8 lg:px-10">{children}</div>
         </div>
       </div>
     </AppChrome>

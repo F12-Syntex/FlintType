@@ -1,7 +1,6 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,6 +15,7 @@ import {
   useThemeOverrides,
 } from "@/lib/theme-customization";
 import { ModeSwitcher } from "@/components/ui/mode-switcher";
+import { SectionHeader, SettingsPageHeader } from "../_components/page-header";
 import { SettingsRow } from "../_components/row";
 import { BackgroundRow } from "./_components/background-row";
 import { CaretRow } from "./_components/caret-row";
@@ -111,11 +111,13 @@ function ColorRowCard({
 
   return (
     <Card className="rounded-md shadow-sm ring-border min-h-16">
-      <CardHeader>
+      <CardHeader className="@container/card-header">
         <CardTitle className="text-sm font-semibold">{row.label}</CardTitle>
-        <CardDescription>{row.desc}</CardDescription>
-        <CardAction>
-          <div className="flex items-center gap-3">
+        <CardDescription className="text-xs sm:text-sm">
+          {row.desc}
+        </CardDescription>
+        <CardAction className="col-span-2 row-start-3 mt-2 justify-self-start @[22rem]/card-header:col-span-1 @[22rem]/card-header:col-start-2 @[22rem]/card-header:row-span-2 @[22rem]/card-header:row-start-1 @[22rem]/card-header:mt-0 @[22rem]/card-header:justify-self-end">
+          <div className="flex flex-wrap items-center gap-2">
             <ColorPresetPicker value={swatch} onChange={onChange}>
               <Button
                 variant="outline"
@@ -127,7 +129,9 @@ function ColorRowCard({
                   className="inline-block h-5 w-5 rounded-sm border border-border shadow-inner"
                   style={{ backgroundColor: `var(${row.var})` }}
                 />
-                {swatch ?? "Default"}
+                <span className="font-mono text-xs">
+                  {swatch ?? "Default"}
+                </span>
                 <ChevronDown size={14} />
               </Button>
             </ColorPresetPicker>
@@ -158,41 +162,13 @@ export default function AppearancePage() {
 
   return (
     <section className="text-foreground">
-      <header className="mb-6 border-b border-border pb-4">
-        <div className="mb-2 flex items-center gap-3">
-          <span aria-hidden className="inline-block h-px w-5 bg-primary" />
-          <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            Section
-          </span>
-        </div>
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h2 className="text-2xl font-bold tracking-tight">Appearance</h2>
-          <div className="flex items-center gap-3">
-            <Badge variant="secondary" className="px-2 text-[0.65rem]">
-              {COLOR_ROWS.length + 6} options
-            </Badge>
-            {customizedCount > 0 ? (
-              <Badge className="px-2 text-[0.65rem]">
-                {customizedCount} customized
-              </Badge>
-            ) : null}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleResetAll}
-              disabled={customizedCount === 0}
-            >
-              Reset all
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-        Tweak any surface, color, or shape — changes apply instantly and stay
-        with you across reloads. Hit <span className="font-medium text-foreground">Reset all</span> to
-        return to the defaults at any time.
-      </p>
+      <SettingsPageHeader
+        title="Appearance"
+        optionsCount={COLOR_ROWS.length + 6}
+        customizedCount={customizedCount}
+        onResetAll={handleResetAll}
+        description="Tweak any surface, color, or shape — changes apply instantly and stay with you across reloads."
+      />
 
       <SectionHeader label="Themes" />
       <div className="mb-8 flex flex-col gap-3">
@@ -246,16 +222,5 @@ export default function AppearancePage() {
         />
       </div>
     </section>
-  );
-}
-
-function SectionHeader({ label }: { label: string }) {
-  return (
-    <div className="mb-3 flex items-center gap-3">
-      <span aria-hidden className="inline-block h-px w-5 bg-primary" />
-      <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-        {label}
-      </h3>
-    </div>
   );
 }

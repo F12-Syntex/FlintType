@@ -14,6 +14,7 @@ import { OptionSwitch } from "@/components/ui/option-switch";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { SECTIONS } from "../_components/data";
+import { SettingsPageHeader } from "../_components/page-header";
 
 function titleCase(name: string): string {
   return name
@@ -40,37 +41,24 @@ export default function SectionPage() {
 
   return (
     <section className="text-foreground">
-      <header className="mb-6 border-b border-border pb-4">
-        <div className="mb-2 flex items-center gap-3">
-          <span
-            aria-hidden
-            className="inline-block h-px w-5 bg-primary"
-          />
-          <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            Section
-          </span>
-        </div>
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-2xl font-bold tracking-tight">
-            {titleCase(data.name)}
-          </h2>
-          <Badge variant="secondary" className="px-2 text-[0.65rem]">
-            {data.settings.length} options
-          </Badge>
-        </div>
-      </header>
+      <SettingsPageHeader
+        title={titleCase(data.name)}
+        optionsCount={data.settings.length}
+      />
 
       <div className="flex flex-col gap-3">
         {data.settings.map((s) => (
           <Card key={s.id} className="rounded-md shadow-sm ring-border min-h-16">
-            <CardHeader>
+            <CardHeader className="@container/card-header">
               <CardTitle className="text-sm font-semibold">
                 {s.label}
               </CardTitle>
               {s.desc ? (
-                <CardDescription>{s.desc}</CardDescription>
+                <CardDescription className="text-xs sm:text-sm">
+                  {s.desc}
+                </CardDescription>
               ) : null}
-              <CardAction>
+              <CardAction className="col-span-2 row-start-3 mt-2 justify-self-start @[22rem]/card-header:col-span-1 @[22rem]/card-header:col-start-2 @[22rem]/card-header:row-span-2 @[22rem]/card-header:row-start-1 @[22rem]/card-header:mt-0 @[22rem]/card-header:justify-self-end">
                 {s.type === "toggle" ? (
                   <Switch
                     checked={values[s.id] as boolean}
@@ -90,7 +78,7 @@ export default function SectionPage() {
                   </OptionSwitch>
                 ) : null}
                 {s.type === "slider" ? (
-                  <div className="flex w-44 items-center gap-3">
+                  <div className="flex w-full items-center gap-3 sm:w-44">
                     <Slider
                       value={[values[s.id] as number]}
                       min={s.min}
