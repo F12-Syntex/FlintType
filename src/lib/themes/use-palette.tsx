@@ -8,7 +8,14 @@ import {
   useContext,
   useEffect,
 } from "react";
+import { useBackgroundPrefs } from "../background-prefs";
 import { useRemotePrefs } from "../use-remote-prefs";
+import {
+  applyReactivePalette,
+  BACKGROUND_REACTIVE_ID,
+  clearReactivePalette,
+  samplePalette,
+} from "./background-reactive";
 import {
   applyTheme,
   clearThemeVars,
@@ -16,6 +23,15 @@ import {
   THEMES,
   type Theme,
 } from "./registry";
+
+/** Synthetic theme entry for the picker. Has no static cssVars — when
+ *  selected, the provider samples the current background image and
+ *  writes the resulting palette as inline :root styles. */
+const REACTIVE_THEME: Theme = {
+  id: BACKGROUND_REACTIVE_ID,
+  name: "Background reactive",
+  cssVars: { light: {}, dark: {} },
+};
 
 type Ctx = {
   themes: readonly Theme[];
@@ -40,9 +56,29 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     DEFAULT_PALETTE,
   );
   const activeId = value.activeId;
+  const { effectiveImage } = useBackgroundPrefs();
 
   useEffect(() => {
     const root = document.documentElement;
+    if (activeId === BACKGROUND_REACTIVE_ID) {
+      // Reactive: clear any static-theme vars left over so the sampled
+      // palette has the field. Sampling is async; if the image isn't
+      // ready, fall back to defaults until it loads.
+      clearThemeVars(root);
+      clearReactivePalette(root);
+      if (!effectiveImage) return;
+      let cancelled = false;
+      void samplePalette(effectiveImage).then((palette) => {
+        if (cancelled || !palette) return;
+        applyReactivePalette(root, palette);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    // Any other path: clear reactive overrides first, then apply the
+    // selected static theme (or strip everything for "Default").
+    clearReactivePalette(root);
     const theme = findTheme(activeId);
     if (!theme) {
       clearThemeVars(root);
@@ -50,7 +86,7 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     }
     const mode = resolvedTheme === "dark" ? "dark" : "light";
     applyTheme(root, theme, mode);
-  }, [activeId, resolvedTheme]);
+  }, [activeId, resolvedTheme, effectiveImage]);
 
   const apply = useCallback(
     (id: string) => {
@@ -63,9 +99,14 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     reset();
   }, [reset]);
 
+  // Synthetic + static themes side by side. The reactive entry sits at
+  // the head so it surfaces above the alphabetical list of static
+  // tweakcn imports.
+  const themes = [REACTIVE_THEME, ...THEMES];
+
   return (
     <PaletteContext.Provider
-      value={{ themes: THEMES, activeId, apply, reset: resetPalette }}
+      value={{ themes, activeId, apply, reset: resetPalette }}
     >
       {children}
     </PaletteContext.Provider>

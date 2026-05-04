@@ -44,6 +44,7 @@ export function TopBar({
 
   return (
     <header
+      data-ft-topbar
       className={cn(
         "safe-pt z-30 flex h-14 items-center gap-4 border-b px-5 backdrop-blur-md sm:px-7",
         sticky && "sticky top-0",

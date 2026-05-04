@@ -347,6 +347,13 @@
   html.ft-bg-content [data-bg-scope]:has([data-bg-scope])::after {
     display: none;
   }
+  /* Page scope + an active image: drop the topbar's opaque tint so the
+     image runs edge-to-edge across the whole viewport. The blur and
+     thin border stay so the chrome still reads as a header. */
+  html.ft-bg-active:not(.ft-bg-content) [data-ft-topbar] {
+    background-color: transparent;
+    border-bottom-color: color-mix(in oklch, var(--foreground) 12%, transparent);
+  }
 
   /* Webkit scrollbars — slim, themed, no track chrome. */
   ::-webkit-scrollbar {

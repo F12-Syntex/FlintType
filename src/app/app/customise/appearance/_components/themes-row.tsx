@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { BACKGROUND_REACTIVE_ID } from "@/lib/themes/background-reactive";
 import { type Theme, usePalette } from "@/lib/themes/use-palette";
 import { SettingsRow } from "../../_components/row";
 
@@ -40,6 +41,21 @@ function PaletteSwatches({ colors }: { colors: readonly string[] }) {
 }
 
 function ThemeSwatches({ theme }: { theme: Theme }) {
+  if (theme.id === BACKGROUND_REACTIVE_ID) {
+    // The reactive theme has no static colours — it's whatever the
+    // user's current background image happens to be. Render a single
+    // gradient swatch as a visual hint.
+    return (
+      <span
+        aria-hidden
+        className="inline-block h-3 w-12 rounded-full border border-border"
+        style={{
+          background:
+            "linear-gradient(90deg, oklch(0.65 0.23 35), oklch(0.7 0.18 200), oklch(0.6 0.2 280))",
+        }}
+      />
+    );
+  }
   const v = theme.cssVars.light;
   const colors = ["primary", "background", "card", "accent"]
     .map((k) => v[k])

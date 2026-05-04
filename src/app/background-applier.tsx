@@ -49,6 +49,14 @@ export function BackgroundApplier() {
     } else {
       root.classList.remove("ft-bg-content");
     }
+    // ft-bg-active gates "the user has actually picked an image", so the
+    // topbar (and any other chrome) can drop their opaque backgrounds
+    // and let the image show through edge-to-edge under page scope.
+    if (effectiveImage) {
+      root.classList.add("ft-bg-active");
+    } else {
+      root.classList.remove("ft-bg-active");
+    }
   }, [prefs, effectiveImage]);
 
   return null;
