@@ -368,6 +368,37 @@
     border-color: color-mix(in oklch, var(--foreground) 12%, transparent);
   }
 
+  /* ── Global border visibility (set from /app/customise/appearance) ─
+     `data-ft-borders="soft"`   — every hairline drops to a 10% tint
+                                  of the current foreground. Borders
+                                  still divide regions but recede.
+     `data-ft-borders="hidden"` — every border-color in the cascade is
+                                  forced to transparent. Surfaces still
+                                  paint via their own background, but
+                                  no rule lines remain.
+     The rules use `!important` because the `*` selector at the top of
+     this layer (`@apply border-border`) and many shadcn primitives
+     write border-color inline; we need to win unconditionally. */
+  html[data-ft-borders="soft"] *,
+  html[data-ft-borders="soft"] *::before,
+  html[data-ft-borders="soft"] *::after {
+    border-color: color-mix(in oklch, var(--foreground) 10%, transparent) !important;
+  }
+  html[data-ft-borders="hidden"] *,
+  html[data-ft-borders="hidden"] *::before,
+  html[data-ft-borders="hidden"] *::after {
+    border-color: transparent !important;
+  }
+  /* Form fields still need a usable visual gutter when borders are
+     hidden — fall back to the input track surface so users can locate
+     them. The selector targets every input descendant that isn't the
+     borders-row preview itself. */
+  html[data-ft-borders="hidden"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  html[data-ft-borders="hidden"] textarea,
+  html[data-ft-borders="hidden"] select {
+    background-color: var(--input);
+  }
+
   /* Webkit scrollbars — slim, themed, no track chrome. */
   ::-webkit-scrollbar {
     width: 10px;

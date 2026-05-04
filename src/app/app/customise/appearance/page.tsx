@@ -9,6 +9,7 @@ import { ModeSwitcher } from "@/components/ui/mode-switcher";
 import { SectionHeader, SettingsPageHeader } from "../_components/page-header";
 import { SettingsRow } from "../_components/row";
 import { BackgroundRow } from "./_components/background-row";
+import { BordersRow } from "./_components/borders-row";
 import { CaretRow } from "./_components/caret-row";
 import { ColorRow } from "./_components/color-row";
 import { KeyboardRow } from "./_components/keyboard-row";
@@ -118,7 +119,7 @@ export default function AppearancePage() {
     <section className="text-foreground">
       <SettingsPageHeader
         title="Appearance"
-        optionsCount={COLOR_ROWS.length + 6}
+        optionsCount={COLOR_ROWS.length + 7}
         customizedCount={customizedCount}
         onResetAll={handleResetAll}
         description="Tweak any surface, color, or shape — changes apply instantly and stay with you across reloads."
@@ -152,6 +153,7 @@ export default function AppearancePage() {
           onChange={(rem) => setVar("--radius", `${rem}rem`)}
           onClear={() => clearVar("--radius")}
         />
+        <BordersRow />
       </div>
 
       <SectionHeader label="Caret &amp; cursor" />

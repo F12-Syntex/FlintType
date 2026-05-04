@@ -14,6 +14,7 @@ export type Keymap = "off" | "static" | "react" | "next";
 export type KeymapStyle = "staggered" | "matrix" | "split" | "alice";
 export type KeymapLegend = "lowercase" | "uppercase" | "blank" | "dynamic";
 export type KeymapTopRow = "always" | "layout" | "never";
+export type BordersMode = "default" | "soft" | "hidden";
 
 // ─── shape ────────────────────────────────────────────────────────────
 
@@ -49,6 +50,12 @@ export type AppearancePrefs = {
   keymapTopRow: KeymapTopRow;
   /** 0.5–3.5. */
   keymapSize: number;
+
+  /** Global border visibility — `soft` thins every hairline to a
+   *  10%-foreground tint, `hidden` makes them transparent everywhere
+   *  (themes pages, settings rows, popovers, buttons). Read by the
+   *  global rule in globals.css that targets `html[data-ft-borders]`. */
+  borders: BordersMode;
 };
 
 export const DEFAULT_APPEARANCE: AppearancePrefs = {
@@ -78,6 +85,8 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   keymapLegend: "lowercase",
   keymapTopRow: "layout",
   keymapSize: 1.0,
+
+  borders: "default",
 };
 
 export function useAppearancePrefs() {
