@@ -33,7 +33,7 @@ export function SettingsSidebar() {
     <>
       {/* Mobile: a single dropdown trigger row. Far easier to navigate
           on a 375px viewport than a horizontal-scroll chip strip. */}
-      <div className="border-b border-border bg-background px-4 py-3 lg:hidden">
+      <div className="border-b border-border bg-background/85 px-4 py-3 backdrop-blur-md lg:hidden">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -84,7 +84,7 @@ export function SettingsSidebar() {
           a faint hover-tint surface — no shadow, no ring, no card. */}
       <nav
         aria-label="Settings sections"
-        className="hidden bg-background lg:flex lg:h-full lg:flex-col lg:overflow-y-auto lg:border-r lg:border-border"
+        className="hidden bg-background/85 backdrop-blur-md lg:flex lg:h-full lg:flex-col lg:overflow-y-auto lg:border-r lg:border-border"
       >
         <div className="px-4 pt-5 pb-3">
           <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
