@@ -1,4 +1,3 @@
-// No tables defined yet. Add domain schemas here (e.g. ./runs) and re-export
-// from this barrel — the driver and migrations machinery already reads from
-// `@/db/schema/server`.
-export {};
+// Barrel for every server-side table. Drizzle's driver picks tables up
+// from this file via `import * as schema from '@/db/schema/server'`.
+export * from "./user-prefs";

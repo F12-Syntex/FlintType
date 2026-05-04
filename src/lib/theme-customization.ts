@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-
-const STORAGE_KEY = "ft-theme-vars";
+import { useCallback, useEffect } from "react";
+import { useRemotePrefs } from "./use-remote-prefs";
 
 /** Every CSS variable the user can override from the appearance page.
- *  The page may set any of these on `:root` via inline style; absence
+ *  The page sets any of these on `:root` via inline style; absence
  *  falls back to the default in globals.css. */
 export const THEME_VARS = [
   // Color tokens
@@ -35,31 +34,6 @@ export const THEME_VARS = [
 export type ThemeVar = (typeof THEME_VARS)[number];
 export type ThemeOverrides = Partial<Record<ThemeVar, string>>;
 
-function readStored(): ThemeOverrides {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as ThemeOverrides) : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeStored(overrides: ThemeOverrides) {
-  if (typeof window === "undefined") return;
-  try {
-    if (Object.keys(overrides).length === 0) {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } else {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
-    }
-  } catch {
-    // Quota exceeded (typically a large data URL background). Surface
-    // is already applied to root.style for the session — we just lose
-    // persistence across reloads. Better than throwing all the way up.
-  }
-}
-
 function applyVar(name: ThemeVar, value: string | undefined) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
@@ -70,41 +44,45 @@ function applyVar(name: ThemeVar, value: string | undefined) {
   }
 }
 
+const EMPTY_OVERRIDES: ThemeOverrides = {};
+
 export function useThemeOverrides() {
-  const [overrides, setOverrides] = useState<ThemeOverrides>({});
+  // The slice itself is the ThemeOverrides record. We deliberately use
+  // an empty-object default so peer slices (caret, behaviour, …) don't
+  // see leaked theme keys.
+  const { value: overrides, update: updateRaw, reset: resetRaw } =
+    useRemotePrefs<ThemeOverrides>("theme", EMPTY_OVERRIDES);
 
+  // Apply every override to :root whenever the slice changes — covers
+  // the initial async load and any subsequent edit.
   useEffect(() => {
-    const stored = readStored();
-    setOverrides(stored);
-    for (const [k, v] of Object.entries(stored)) {
-      applyVar(k as ThemeVar, v);
-    }
-  }, []);
+    for (const v of THEME_VARS) applyVar(v, overrides[v]);
+  }, [overrides]);
 
-  const setVar = useCallback((name: ThemeVar, value: string) => {
-    setOverrides((prev) => {
-      const next: ThemeOverrides = { ...prev, [name]: value };
-      writeStored(next);
-      return next;
-    });
-    applyVar(name, value);
-  }, []);
+  const setVar = useCallback(
+    (name: ThemeVar, value: string) => {
+      updateRaw((prev) => ({ ...prev, [name]: value }));
+      applyVar(name, value);
+    },
+    [updateRaw],
+  );
 
-  const clearVar = useCallback((name: ThemeVar) => {
-    setOverrides((prev) => {
-      const next = { ...prev };
-      delete next[name];
-      writeStored(next);
-      return next;
-    });
-    applyVar(name, undefined);
-  }, []);
+  const clearVar = useCallback(
+    (name: ThemeVar) => {
+      updateRaw((prev) => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+      applyVar(name, undefined);
+    },
+    [updateRaw],
+  );
 
   const reset = useCallback(() => {
     for (const v of THEME_VARS) applyVar(v, undefined);
-    setOverrides({});
-    writeStored({});
-  }, []);
+    resetRaw();
+  }, [resetRaw]);
 
   return { overrides, setVar, clearVar, reset };
 }

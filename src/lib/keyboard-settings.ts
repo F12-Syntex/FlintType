@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-
-const STORAGE_KEY = "ft-keyboard-settings";
+import { useMemo } from "react";
+import { useRemotePrefs } from "./use-remote-prefs";
 
 export type KeyboardDesign =
   | "solid"
@@ -63,54 +62,26 @@ export const HOME_ROW_PEGS: ReadonlySet<string> = new Set([
   "KeyJ",
 ]);
 
-function readStored(): KeyboardSettings {
-  if (typeof window === "undefined") return DEFAULT_KEYBOARD;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_KEYBOARD;
-    const parsed = JSON.parse(raw) as Partial<KeyboardSettings>;
-    return { ...DEFAULT_KEYBOARD, ...parsed };
-  } catch {
-    return DEFAULT_KEYBOARD;
-  }
-}
-
-function writeStored(settings: KeyboardSettings) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-  } catch {
-    /* quota — fine */
-  }
-}
-
 export function useKeyboardSettings() {
-  const [settings, setSettings] = useState<KeyboardSettings>(DEFAULT_KEYBOARD);
+  const { value: settings, update, reset } = useRemotePrefs(
+    "keyboard",
+    DEFAULT_KEYBOARD,
+  );
 
-  useEffect(() => {
-    setSettings(readStored());
-  }, []);
+  const isCustomised = useMemo(
+    () =>
+      (Object.keys(DEFAULT_KEYBOARD) as (keyof KeyboardSettings)[]).some(
+        (k) => settings[k] !== DEFAULT_KEYBOARD[k],
+      ),
+    [settings],
+  );
 
-  const update = useCallback((patch: Partial<KeyboardSettings>) => {
-    setSettings((prev) => {
-      const next: KeyboardSettings = { ...prev, ...patch };
-      writeStored(next);
-      return next;
-    });
-  }, []);
-
-  const reset = useCallback(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem(STORAGE_KEY);
-    }
-    setSettings(DEFAULT_KEYBOARD);
-  }, []);
-
-  const isCustomised = (
-    Object.keys(DEFAULT_KEYBOARD) as (keyof KeyboardSettings)[]
-  ).some((k) => settings[k] !== DEFAULT_KEYBOARD[k]);
-
-  return { settings, update, reset, isCustomised } as const;
+  return {
+    settings,
+    update: (patch: Partial<KeyboardSettings>) => update(patch),
+    reset,
+    isCustomised,
+  } as const;
 }
 
 /** Class fragments for each design. Exported separately so the

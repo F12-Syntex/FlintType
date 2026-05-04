@@ -4,8 +4,10 @@ import {
   type DriverMode,
   type ServerDrizzle,
 } from './driver';
+import { userPrefsRepo, type UserPrefsRepo } from './repositories/user-prefs';
 
 export type Database = {
+  userPrefs: UserPrefsRepo;
   $drizzle: ServerDrizzle;
 };
 
@@ -14,6 +16,7 @@ export function createDatabase(
   _driver: DriverMode,
 ): Database {
   return {
+    userPrefs: userPrefsRepo(drizzle),
     $drizzle: drizzle,
   };
 }

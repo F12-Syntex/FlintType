@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-
-const STORAGE_KEY = "ft-appearance-prefs";
+import { useCallback, useMemo } from "react";
+import { useRemotePrefs } from "./use-remote-prefs";
 
 // ─── enums ────────────────────────────────────────────────────────────
 
@@ -81,78 +80,26 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   keymapSize: 1.0,
 };
 
-// ─── persistence ──────────────────────────────────────────────────────
-
-function readStored(): AppearancePrefs {
-  if (typeof window === "undefined") return DEFAULT_APPEARANCE;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_APPEARANCE;
-    const parsed = JSON.parse(raw) as Partial<AppearancePrefs>;
-    return { ...DEFAULT_APPEARANCE, ...parsed };
-  } catch {
-    return DEFAULT_APPEARANCE;
-  }
-}
-
-/** Broadcast channel for same-tab pref updates. The native `storage`
- *  event only fires in *other* tabs, so without this every consumer
- *  on the current tab would keep its own stale snapshot until remount. */
-const SAME_TAB_EVENT = "ft-appearance-prefs-changed";
-
-function writeStored(prefs: AppearancePrefs) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
-  } catch {
-    /* quota — fine, value stays for the session */
-  }
-  window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT));
-}
-
-// ─── hook ─────────────────────────────────────────────────────────────
-
 export function useAppearancePrefs() {
-  const [prefs, setPrefs] = useState<AppearancePrefs>(DEFAULT_APPEARANCE);
-
-  useEffect(() => {
-    setPrefs(readStored());
-    const reread = () => setPrefs(readStored());
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) reread();
-    };
-    window.addEventListener("storage", onStorage);
-    // Same-tab listener — fires for every writeStored() in this tab.
-    window.addEventListener(SAME_TAB_EVENT, reread);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener(SAME_TAB_EVENT, reread);
-    };
-  }, []);
+  const { value: prefs, update: updateRaw, reset } = useRemotePrefs(
+    "appearance",
+    DEFAULT_APPEARANCE,
+  );
 
   const update = useCallback(
     <K extends keyof AppearancePrefs>(key: K, value: AppearancePrefs[K]) => {
-      setPrefs((prev) => {
-        const next = { ...prev, [key]: value };
-        writeStored(next);
-        return next;
-      });
+      updateRaw({ [key]: value } as Partial<AppearancePrefs>);
     },
-    [],
+    [updateRaw],
   );
 
-  const reset = useCallback(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem(STORAGE_KEY);
-    }
-    setPrefs(DEFAULT_APPEARANCE);
-  }, []);
-
-  const customizedCount = (
-    Object.keys(DEFAULT_APPEARANCE) as Array<keyof AppearancePrefs>
-  ).reduce(
-    (n, k) => n + (prefs[k] !== DEFAULT_APPEARANCE[k] ? 1 : 0),
-    0,
+  const customizedCount = useMemo(
+    () =>
+      (Object.keys(DEFAULT_APPEARANCE) as Array<keyof AppearancePrefs>).reduce(
+        (n, k) => n + (prefs[k] !== DEFAULT_APPEARANCE[k] ? 1 : 0),
+        0,
+      ),
+    [prefs],
   );
 
   return { prefs, update, reset, customizedCount } as const;
