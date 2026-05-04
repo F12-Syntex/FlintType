@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
 import { ApplyThemeOverrides } from "@/lib/apply-theme-overrides";
 import { PaletteProvider } from "@/lib/themes/use-palette";
+import { BackgroundApplier } from "./background-applier";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -15,6 +16,7 @@ export function Providers({ children }: { children: ReactNode }) {
     >
       <PaletteProvider>
         <ApplyThemeOverrides />
+        <BackgroundApplier />
         {children}
       </PaletteProvider>
     </ThemeProvider>

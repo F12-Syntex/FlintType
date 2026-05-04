@@ -48,6 +48,7 @@ export function AppChrome({
         drawerExtras={<AppDrawerExtras dark={dark} />}
       />
       <main
+        data-bg-scope="content"
         className={cn(
           "flex min-h-0 flex-1 flex-col",
           compact ? "overflow-hidden" : "overflow-y-auto",

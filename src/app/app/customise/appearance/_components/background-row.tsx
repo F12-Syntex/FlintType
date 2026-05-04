@@ -3,18 +3,35 @@
 import { Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  type BgFit,
+  type BgScope,
+  useBackgroundPrefs,
+} from "@/lib/background-prefs";
+import {
+  LabelWithDesc,
+  SelectChips,
+  SliderRow,
+} from "../../_components/controls";
+import { SettingsRow } from "../../_components/row";
 
 const MAX_DIM = 1920;
 const JPEG_QUALITY = 0.82;
 
-/** Read a File into an HTMLImageElement off a temporary object URL.
- *  Object URLs need to be revoked to avoid leaking the original blob. */
+const FIT_OPTIONS: readonly { id: BgFit; label: string }[] = [
+  { id: "cover", label: "Cover" },
+  { id: "contain", label: "Contain" },
+  { id: "auto", label: "Auto" },
+  { id: "tile", label: "Tile" },
+];
+
+const SCOPE_OPTIONS: readonly { id: BgScope; label: string }[] = [
+  { id: "page", label: "Page" },
+  { id: "content", label: "Content only" },
+];
+
+/** Read a File into an HTMLImageElement off a temporary object URL. */
 function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
@@ -32,7 +49,7 @@ function loadImage(file: File): Promise<HTMLImageElement> {
 }
 
 /** Downscale to fit within MAX_DIM on the longest edge and re-encode as
- *  JPEG. Phone photos are routinely 5–15 MB which busts localStorage's
+ *  JPEG. Phone photos are routinely 5-15 MB which busts localStorage's
  *  ~5 MB quota; capping the longest edge at 1920 px brings them under
  *  ~600 KB for the kind of shots people put behind a typing screen. */
 async function shrinkToDataUrl(file: File): Promise<string> {
@@ -41,7 +58,6 @@ async function shrinkToDataUrl(file: File): Promise<string> {
   const scale = longest > MAX_DIM ? MAX_DIM / longest : 1;
   const w = Math.round(img.width * scale);
   const h = Math.round(img.height * scale);
-
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
@@ -51,15 +67,16 @@ async function shrinkToDataUrl(file: File): Promise<string> {
   return canvas.toDataURL("image/jpeg", JPEG_QUALITY);
 }
 
-export function BackgroundRow({
-  bgImage,
-  onSetImage,
-  onClearImage,
-}: {
-  bgImage: string | undefined;
-  onSetImage: (cssValue: string) => void;
-  onClearImage: () => void;
-}) {
+export function BackgroundRow() {
+  const {
+    prefs,
+    effectiveImage,
+    hasLocalImage,
+    update,
+    setLocalImage,
+    clearLocalImage,
+  } = useBackgroundPrefs();
+
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,14 +86,8 @@ export function BackgroundRow({
     setError(null);
     try {
       const dataUrl = await shrinkToDataUrl(file);
-      // Wrap as a CSS url(...) so body's `background-image: var(...)`
-      // resolves to a real image — without the wrapper it's invalid CSS
-      // and the bg silently doesn't apply (the bug from before).
-      onSetImage(`url("${dataUrl}")`);
+      setLocalImage(dataUrl);
     } catch (e) {
-      // The most common failure here is localStorage quota, surfaced
-      // through onSetImage. Catch QuotaExceededError specifically so
-      // we can tell the user, but treat any throw as a load failure.
       setError(
         e instanceof DOMException && e.name === "QuotaExceededError"
           ? "Image is still too large after resizing — try a smaller crop."
@@ -87,75 +98,195 @@ export function BackgroundRow({
     }
   }
 
-  // The CSS value stored in --ft-bg-image is something like
-  // `url("data:image/jpeg;base64,…")`. Pull just the URL out for the
-  // preview <img> so we can render it cheaply.
-  const previewSrc = bgImage?.match(/url\("(.+)"\)/)?.[1] ?? null;
-
   return (
-    <Card className="rounded-md shadow-sm ring-border min-h-16">
-      <CardHeader>
-        <CardTitle className="text-sm font-semibold">
-          Background image
-        </CardTitle>
-        <CardDescription>
-          Add a photo behind every page. Auto-resized to fit (max
-          1920&nbsp;px, JPEG&nbsp;82%).
-        </CardDescription>
-      </CardHeader>
+    <div className="flex flex-col gap-3">
+      {/* Live preview — shows whatever's currently effective. */}
+      {effectiveImage ? (
+        <div className="relative h-40 overflow-hidden rounded-md border border-border bg-muted">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={effectiveImage}
+            alt=""
+            className="h-full w-full object-cover"
+          />
+        </div>
+      ) : (
+        <div className="flex h-40 items-center justify-center rounded-md border border-dashed border-border bg-muted/40 text-xs text-muted-foreground">
+          No background image
+        </div>
+      )}
 
-      <div className="flex flex-col gap-3 px-4 pb-4">
-        {previewSrc ? (
-          <div className="relative h-40 overflow-hidden rounded-md border border-border bg-muted">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previewSrc}
-              alt=""
-              className="h-full w-full object-cover"
+      {/* Image URL — synced across devices. */}
+      <SettingsRow
+        label={
+          <LabelWithDesc
+            title="Image URL"
+            desc="Paste a remote image link. Synced across devices."
+          />
+        }
+        control={
+          <div className="flex w-full items-center gap-2 sm:w-72">
+            <Input
+              type="url"
+              placeholder="https://example.com/image.jpg"
+              value={prefs.imageUrl}
+              onChange={(e) => update("imageUrl", e.target.value)}
+              className="h-8 text-xs"
             />
+            {prefs.imageUrl ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2"
+                onClick={() => update("imageUrl", "")}
+                aria-label="Clear image URL"
+              >
+                <X size={14} />
+              </Button>
+            ) : null}
+          </div>
+        }
+      />
+
+      {/* Local upload — browser-only, never leaves the device. */}
+      <SettingsRow
+        label={
+          <LabelWithDesc
+            title="Or upload"
+            desc="Stored on this device only. Overrides the URL while set."
+          />
+        }
+        control={
+          <div className="flex items-center gap-2">
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               size="sm"
-              onClick={onClearImage}
-              className="absolute top-2 right-2 gap-1"
+              onClick={() => fileRef.current?.click()}
+              disabled={busy}
+              className="gap-2"
             >
-              <X size={14} />
-              Remove
+              <Upload size={14} />
+              {busy ? "Uploading…" : hasLocalImage ? "Replace" : "Choose"}
             </Button>
+            {hasLocalImage ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={clearLocalImage}
+              >
+                Remove
+              </Button>
+            ) : null}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void handleFile(file);
+                e.target.value = "";
+              }}
+            />
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={busy}
-            className="flex h-40 flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/40 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Upload size={20} />
-            <span>{busy ? "Uploading…" : "Choose an image"}</span>
-            <span className="text-xs text-muted-foreground/80">
-              PNG · JPG · WebP
-            </span>
-          </button>
-        )}
+        }
+      />
 
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handleFile(file);
-            // Reset so picking the same file twice still fires onChange.
-            e.target.value = "";
-          }}
-        />
+      {error ? (
+        <p className="text-xs text-destructive">{error}</p>
+      ) : null}
 
-        {error ? (
-          <p className="text-xs text-destructive">{error}</p>
-        ) : null}
-      </div>
-    </Card>
+      <SettingsRow
+        label={
+          <LabelWithDesc
+            title="Fit"
+            desc="How the image scales to the area."
+          />
+        }
+        control={
+          <SelectChips
+            value={prefs.fit}
+            options={FIT_OPTIONS}
+            onChange={(v) => update("fit", v)}
+          />
+        }
+      />
+
+      <SettingsRow
+        label={
+          <LabelWithDesc
+            title="Scope"
+            desc="Page covers the full viewport; Content only paints inside the main area."
+          />
+        }
+        control={
+          <SelectChips
+            value={prefs.scope}
+            options={SCOPE_OPTIONS}
+            onChange={(v) => update("scope", v)}
+          />
+        }
+      />
+
+      <SettingsRow
+        label={
+          <LabelWithDesc
+            title="Opacity"
+            desc="Fade the image so foreground text stays readable."
+          />
+        }
+        control={
+          <SliderRow
+            value={prefs.opacity}
+            min={0}
+            max={1}
+            step={0.05}
+            format={(v) => `${Math.round(v * 100)}%`}
+            onChange={(v) => update("opacity", v)}
+          />
+        }
+      />
+
+      <SettingsRow
+        label={
+          <LabelWithDesc
+            title="Blur"
+            desc="Soften the image so it doesn't fight the typing surface."
+          />
+        }
+        control={
+          <SliderRow
+            value={prefs.blur}
+            min={0}
+            max={30}
+            step={1}
+            format={(v) => `${v}px`}
+            onChange={(v) => update("blur", v)}
+          />
+        }
+      />
+
+      <SettingsRow
+        label={
+          <LabelWithDesc
+            title="Darken"
+            desc="Black overlay strength on top of the image."
+          />
+        }
+        control={
+          <SliderRow
+            value={prefs.darken}
+            min={0}
+            max={1}
+            step={0.05}
+            format={(v) => `${Math.round(v * 100)}%`}
+            onChange={(v) => update("darken", v)}
+          />
+        }
+      />
+    </div>
   );
 }

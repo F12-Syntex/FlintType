@@ -170,12 +170,8 @@ export default function AppearancePage() {
       </div>
 
       <SectionHeader label="Background" />
-      <div className="mb-8 flex flex-col gap-3">
-        <BackgroundRow
-          bgImage={overrides["--ft-bg-image"]}
-          onSetImage={(v) => setVar("--ft-bg-image", v)}
-          onClearImage={() => clearVar("--ft-bg-image")}
-        />
+      <div className="mb-8">
+        <BackgroundRow />
       </div>
 
       <SectionHeader label="Live stats" />

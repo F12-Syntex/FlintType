@@ -267,17 +267,77 @@
     /* Custom font family override (set from appearance). Falls back to
        the Plus Jakarta Sans wired in layout.tsx. */
     font-family: var(--ft-font-family, var(--font-sans));
-    /* Custom background image (set from appearance). data: URLs ok. */
-    background-image: var(--ft-bg-image, none);
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-    background-repeat: no-repeat;
     /* Honour the device's safe-area insets (notches, home indicators,
        rounded corners). The chrome layout reads these via the
        `safe-*` Tailwind utilities defined below. */
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
+  }
+
+  /* ── Custom background image (set from appearance) ───────────────
+     Two pseudo-elements so we can vary opacity, blur and darken
+     independently of the image itself. The :before paints the image,
+     the :after paints a black scrim on top. Both are pinned to the
+     viewport via position:fixed and behind everything via z-index:-1.
+     "Page" scope (default) targets <body>; "content" scope hands the
+     pseudo over to the element marked with [data-bg-scope]. */
+  body::before,
+  body::after,
+  [data-bg-scope]::before,
+  [data-bg-scope]::after {
+    pointer-events: none;
+    content: "";
+  }
+  body::before {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-image: var(--ft-bg-image, none);
+    background-size: var(--ft-bg-size, cover);
+    background-position: var(--ft-bg-position, center);
+    background-repeat: var(--ft-bg-repeat, no-repeat);
+    background-attachment: fixed;
+    opacity: var(--ft-bg-opacity, 1);
+    filter: blur(var(--ft-bg-blur, 0));
+  }
+  body::after {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-color: rgba(0, 0, 0, var(--ft-bg-darken, 0));
+  }
+  /* "content" scope — kill the body-wide pseudos and paint inside
+     the data-bg-scope element instead. */
+  html.ft-bg-content body::before,
+  html.ft-bg-content body::after {
+    display: none;
+  }
+  [data-bg-scope] {
+    position: relative;
+    isolation: isolate;
+  }
+  [data-bg-scope]::before {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image: var(--ft-bg-image, none);
+    background-size: var(--ft-bg-size, cover);
+    background-position: var(--ft-bg-position, center);
+    background-repeat: var(--ft-bg-repeat, no-repeat);
+    opacity: var(--ft-bg-opacity, 1);
+    filter: blur(var(--ft-bg-blur, 0));
+  }
+  [data-bg-scope]::after {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-color: rgba(0, 0, 0, var(--ft-bg-darken, 0));
+  }
+  /* Image is body-scoped by default — disable the content-scope
+     pseudo unless explicitly enabled via html.ft-bg-content. */
+  html:not(.ft-bg-content) [data-bg-scope]::before,
+  html:not(.ft-bg-content) [data-bg-scope]::after {
+    display: none;
   }
 
   /* Webkit scrollbars — slim, themed, no track chrome. */

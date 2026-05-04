@@ -23,8 +23,9 @@ export const THEME_VARS = [
   "--ring",
   // Geometry / typography
   "--radius",
-  // Custom flinttype customization tokens (consumed by globals.css body)
-  "--ft-bg-image",
+  // Custom flinttype customization tokens (consumed by globals.css body).
+  // The --ft-bg-* family is owned by background-prefs.ts / BackgroundApplier
+  // and intentionally absent from this list.
   "--ft-font-family",
   "--ft-font-scale",
   // Spacing between words on the practice passage. Read by passage.tsx.
