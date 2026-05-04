@@ -3,22 +3,20 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-/** Header used at the top of every settings page. Mobile-first:
- *
- *  - title gets its own row, full-width
- *  - the "N options" / "N customized" badges + Reset all button sit
- *    underneath in a separate row that wraps freely
- *
- *  From `sm:` up the title and the meta row go side-by-side. */
+/** Header used at the top of every settings page. Mobile-first: title
+ *  and the Reset all button stack on small viewports, then go inline
+ *  from `sm:` up. */
 export function SettingsPageHeader({
   title,
-  optionsCount,
   customizedCount = 0,
   onResetAll,
   description,
 }: {
   title: string;
-  optionsCount: number;
+  /** Kept on the type for backwards compat with callers that compute
+   *  it; the visible "N options" badge was removed because the user
+   *  doesn't need it as a header chrome. */
+  optionsCount?: number;
   customizedCount?: number;
   onResetAll?: () => void;
   description?: string;
@@ -31,14 +29,11 @@ export function SettingsPageHeader({
           Section
         </span>
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
           {title}
         </h2>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <Badge variant="secondary" className="px-2 text-[0.65rem]">
-            {optionsCount} options
-          </Badge>
           {customizedCount > 0 ? (
             <Badge className="px-2 text-[0.65rem]">
               {customizedCount} customized
@@ -46,7 +41,7 @@ export function SettingsPageHeader({
           ) : null}
           {onResetAll ? (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={onResetAll}
               disabled={customizedCount === 0}

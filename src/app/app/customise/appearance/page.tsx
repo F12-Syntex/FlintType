@@ -1,6 +1,14 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { ColorPresetPicker } from "@/components/ui/color-preset-picker";
 import {
   type ThemeVar,
@@ -87,10 +95,12 @@ const COLOR_ROWS: readonly ColorRow[] = [
   },
 ];
 
-/** Color rows are a tight one-line affordance: swatch as the trigger,
- *  label next to it, hex (when customised) and a small Reset on the
- *  right. No CardHeader / CardDescription — the description repeated
- *  what the label already says, especially on a small screen. */
+/** Two layouts that share state:
+ *  - Mobile: tight key/value row — label on the left, swatch button
+ *    on the right. No description — it duplicates the label on a 375
+ *    px screen, and the desktop card already covers it.
+ *  - Desktop (sm:+): the original Card with title + description and a
+ *    full hex+chevron picker button. */
 function ColorRowCard({
   row,
   value,
@@ -102,39 +112,70 @@ function ColorRowCard({
   onChange: (hex: string) => void;
   onClear: () => void;
 }) {
+  const swatch = value ?? undefined;
   const customized = value !== undefined;
 
   return (
-    <div className="flex min-h-12 items-center gap-3 rounded-md border border-border bg-card px-3 py-2">
-      <ColorPresetPicker value={value} onChange={onChange}>
-        <button
-          type="button"
-          aria-label={`Pick ${row.label}`}
-          className="inline-block h-7 w-7 shrink-0 rounded-sm border border-border shadow-inner ring-offset-background transition-shadow focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          style={{ backgroundColor: `var(${row.var})` }}
-        />
-      </ColorPresetPicker>
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+    <>
+      {/* Mobile only */}
+      <div className="flex min-h-12 items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2 sm:hidden">
         <span className="truncate text-sm font-medium text-foreground">
           {row.label}
         </span>
-        {customized ? (
-          <span className="truncate font-mono text-[11px] text-muted-foreground">
-            {value}
-          </span>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {customized ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClear}
+              className="h-7 px-2 text-xs"
+            >
+              Reset
+            </Button>
+          ) : null}
+          <ColorPresetPicker value={value} onChange={onChange}>
+            <button
+              type="button"
+              aria-label={`Pick ${row.label}`}
+              className="inline-block h-7 w-7 shrink-0 rounded-sm border border-border shadow-inner ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              style={{ backgroundColor: `var(${row.var})` }}
+            />
+          </ColorPresetPicker>
+        </div>
       </div>
-      {customized ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClear}
-          className="h-7 px-2 text-xs"
-        >
-          Reset
-        </Button>
-      ) : null}
-    </div>
+
+      {/* Desktop only — original card layout */}
+      <Card className="hidden rounded-md shadow-sm ring-border min-h-16 sm:block">
+        <CardHeader>
+          <CardTitle className="text-sm font-semibold">{row.label}</CardTitle>
+          <CardDescription>{row.desc}</CardDescription>
+          <CardAction>
+            <div className="flex items-center gap-3">
+              <ColorPresetPicker value={swatch} onChange={onChange}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  aria-label={`Pick ${row.label}`}
+                >
+                  <span
+                    className="inline-block h-5 w-5 rounded-sm border border-border shadow-inner"
+                    style={{ backgroundColor: `var(${row.var})` }}
+                  />
+                  {swatch ?? "Default"}
+                  <ChevronDown size={14} />
+                </Button>
+              </ColorPresetPicker>
+              {customized ? (
+                <Button variant="ghost" size="sm" onClick={onClear}>
+                  Reset
+                </Button>
+              ) : null}
+            </div>
+          </CardAction>
+        </CardHeader>
+      </Card>
+    </>
   );
 }
 

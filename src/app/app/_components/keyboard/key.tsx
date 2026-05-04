@@ -46,7 +46,7 @@ export function Key({
       data-pressed={hot ? "true" : "false"}
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       className={cn(
-        "relative flex h-7 items-center justify-center border font-mono text-xs sm:h-9 sm:text-sm md:h-10",
+        "relative flex h-7 items-center justify-center border font-mono text-xs sm:h-10 sm:text-sm",
         shapeClass(shape),
         hot ? cn(hotCls, "transition-none") : cn(resting, "transition-colors duration-150"),
         def.variant === "modifier" && "text-[8px] uppercase tracking-[0.12em] sm:text-[10px] sm:tracking-[0.14em]",
