@@ -16,6 +16,7 @@ import {
   useBehaviourPrefs,
 } from "@/lib/behaviour-prefs";
 import { loadQuotes, pickQuote, type QuoteGroup } from "@/lib/quotes";
+import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { calcWpmAndRaw, countChars } from "@/lib/wpm";
 import englishWords from "@/data/english.json";
 
@@ -416,11 +417,68 @@ export function usePractice(): PracticeCtx {
   return ctx;
 }
 
+/** Persisted slice — the user's mode / length / adapt preferences,
+ *  remembered across sessions via the user_prefs blob. The rest of
+ *  the practice state (run-in-progress: phase, cursor, events…) is
+ *  ephemeral and stays in the reducer. */
+type PracticeSlice = { mode: Mode; length: Length; adapt: boolean };
+const DEFAULT_PRACTICE_SLICE: PracticeSlice = {
+  mode: "WORDS",
+  length: INITIAL_LENGTH,
+  adapt: true,
+};
+
 export function PracticeProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { prefs } = useBehaviourPrefs();
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;
+  const {
+    value: practiceSlice,
+    update: updatePracticeSlice,
+  } = useRemotePrefs("practice", DEFAULT_PRACTICE_SLICE);
+  // Tracks whether we've already mirrored a given slice snapshot into
+  // the reducer — prevents the "slice → dispatch → state → slice" loop
+  // when the user flips a control: we cause the slice change ourselves
+  // and don't want the effect to re-dispatch when our own write echoes
+  // back.
+  const lastAppliedSliceRef = useRef<string>("");
+
+  // Mirror the persisted slice into the reducer whenever the slice
+  // identity changes. The cache returns DEFAULT_PRACTICE_SLICE before
+  // the GET resolves, so the *first* fire is harmless (state already
+  // matches defaults); the *second* fire — once the cache loads —
+  // restores the user's last mode / length / adapt picks. Subsequent
+  // fires triggered by our own writes are short-circuited because
+  // state already matches the slice.
+  useEffect(() => {
+    const key = `${practiceSlice.mode}|${practiceSlice.length}|${practiceSlice.adapt}`;
+    if (lastAppliedSliceRef.current === key) return;
+    lastAppliedSliceRef.current = key;
+    if (
+      practiceSlice.mode !== state.mode ||
+      practiceSlice.length !== state.length
+    ) {
+      const cfg = {
+        minWordLength: prefsRef.current.minWordLength,
+        difficulty: prefsRef.current.difficulty,
+        showSecondary: prefsRef.current.showSecondary,
+      };
+      dispatch({
+        type: "SET_MODE",
+        mode: practiceSlice.mode,
+        length: practiceSlice.length,
+        words: generateForMode(practiceSlice.mode, practiceSlice.length, cfg),
+        quoteSource: null,
+      });
+    }
+    if (practiceSlice.adapt !== state.adapt) {
+      dispatch({ type: "TOGGLE_ADAPT" });
+    }
+    // Intentionally exclude state from deps — we only want to react to
+    // slice changes, not to every keystroke that touches state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [practiceSlice]);
 
   // Regenerate the passage when the word-shape prefs change so the
   // user sees the effect of difficulty / min-word / show-secondary
@@ -580,6 +638,11 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
           words: generateForMode(mode, length, cfg),
           quoteSource: null,
         });
+        // Persist the user's pick so the next visit lands here too.
+        // Mark it as already-applied so the slice→state effect skips
+        // the echo and doesn't redispatch / regenerate words again.
+        lastAppliedSliceRef.current = `${mode}|${length}|${state.adapt}`;
+        updatePracticeSlice({ mode, length });
         if (mode === "QUOTE") void loadAndDispatchQuote(length as QuoteGroup);
       },
       setLength: (length) => {
@@ -590,11 +653,18 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
           words: generateForMode(state.mode, length, cfg),
           quoteSource: state.mode === "QUOTE" ? null : state.quoteSource,
         });
+        lastAppliedSliceRef.current = `${state.mode}|${length}|${state.adapt}`;
+        updatePracticeSlice({ length });
         if (state.mode === "QUOTE") {
           void loadAndDispatchQuote(length as QuoteGroup);
         }
       },
-      toggleAdapt: () => dispatch({ type: "TOGGLE_ADAPT" }),
+      toggleAdapt: () => {
+        dispatch({ type: "TOGGLE_ADAPT" });
+        const next = !state.adapt;
+        lastAppliedSliceRef.current = `${state.mode}|${state.length}|${next}`;
+        updatePracticeSlice({ adapt: next });
+      },
       restart: () => {
         const cfg = buildCfg();
         if (state.mode === "QUOTE") {
