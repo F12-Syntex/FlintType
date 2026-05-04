@@ -46,16 +46,16 @@ export function Key({
       data-pressed={hot ? "true" : "false"}
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       className={cn(
-        "relative flex h-9 items-center justify-center border font-mono text-sm sm:h-10",
+        "relative flex h-7 items-center justify-center border font-mono text-xs sm:h-9 sm:text-sm md:h-10",
         shapeClass(shape),
         hot ? cn(hotCls, "transition-none") : cn(resting, "transition-colors duration-150"),
-        def.variant === "modifier" && "text-[10px] uppercase tracking-[0.14em]",
+        def.variant === "modifier" && "text-[8px] uppercase tracking-[0.12em] sm:text-[10px] sm:tracking-[0.14em]",
       )}
     >
       {showShiftLabel && def.shiftLabel && def.variant !== "modifier" && (
         <span
           className={cn(
-            "pointer-events-none absolute top-0.5 left-1.5 text-[9px] tabular-nums",
+            "pointer-events-none absolute top-0.5 left-1 text-[7px] tabular-nums sm:left-1.5 sm:text-[9px]",
             // current/70 follows the surrounding text color so the shift
             // label fades to the same hue as the main label on either
             // surface.

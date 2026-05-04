@@ -78,7 +78,7 @@ export function Keyboard({
       {showLayoutPicker && (
         <LayoutPicker active={active} onChange={setActive} />
       )}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-0.5 sm:gap-1">
         {rows.map((row, i) => {
           const visible = effective.compact
             ? row.filter((k) => !isCompactHidden(k))
@@ -98,7 +98,7 @@ export function Keyboard({
             <div
               key={i}
               className={cn(
-                "flex gap-1",
+                "flex gap-0.5 sm:gap-1",
                 !effective.compact && "w-full",
               )}
               style={rowStyle}

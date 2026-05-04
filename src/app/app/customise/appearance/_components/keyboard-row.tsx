@@ -21,7 +21,7 @@ function HeroPreview({ settings }: { settings: KeyboardSettings }) {
   // its own state per call, so the inner Keyboard wouldn't otherwise
   // see this row's edits until the next mount.
   return (
-    <div className="rounded-md border border-border bg-card p-4 sm:p-5">
+    <div className="rounded-md border border-border bg-card p-2 sm:p-4 md:p-5">
       <Keyboard settingsOverride={settings} />
     </div>
   );
