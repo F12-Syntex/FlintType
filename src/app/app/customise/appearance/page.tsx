@@ -144,7 +144,7 @@ export default function AppearancePage() {
     <section className="text-foreground">
       <SettingsPageHeader
         title="Appearance"
-        optionsCount={COLOR_ROWS.length + 8}
+        optionsCount={COLOR_ROWS.length + 7}
         customizedCount={customizedCount}
         onResetAll={handleResetAll}
         description="Tweak any surface, color, or shape — changes apply instantly and stay with you across reloads."
