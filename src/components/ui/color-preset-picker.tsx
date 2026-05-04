@@ -1,12 +1,12 @@
 "use client";
 
-import { Pipette } from "lucide-react";
+import { hexToHsva, type HsvaColor, hsvaToHex } from "@uiw/color-convert";
+import Hue from "@uiw/react-color-hue";
+import Saturation from "@uiw/react-color-saturation";
+import { ArrowLeft, Pipette } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  ColorPicker,
-  type ColorPickerValue,
-} from "@/components/ui/color-picker";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -14,16 +14,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
-// ColorPicker's prop type doesn't include open/onOpenChange even though
-// the underlying Popover supports them — quietly extend the call site.
-const ControlledColorPicker = ColorPicker as unknown as React.FC<
-  React.ComponentProps<typeof ColorPicker> & {
-    open?: boolean;
-    onOpenChange?: (open: boolean) => void;
-  }
->;
-
-/** Curated palette — six rows of eight Tailwind-style swatches. The
+/** Curated palette — five rows of eight Tailwind-style swatches. The
  *  goal is "good defaults for 95% of picks" so most users never have to
  *  open the colour wheel. Order goes neutrals → warm → cool. */
 const PRESET_SWATCHES: readonly string[] = [
@@ -100,9 +91,87 @@ function Swatch({
   );
 }
 
+/** Custom-wheel view shown inside the same popover after the user
+ *  taps Custom. Inlined Saturation + Hue + hex input — no nested
+ *  popover, with a back arrow that returns to the swatch grid. */
+function CustomWheel({
+  value,
+  onChange,
+  onBack,
+}: {
+  value: string | undefined;
+  onChange: (hex: string) => void;
+  onBack: () => void;
+}) {
+  const initial: HsvaColor =
+    value && /^#[0-9a-f]{6}$/i.test(value)
+      ? hexToHsva(value)
+      : { h: 0, s: 0, v: 0, a: 1 };
+  const [hsv, setHsv] = useState<HsvaColor>(initial);
+  const [hexDraft, setHexDraft] = useState(hsvaToHex(initial));
+
+  function update(next: HsvaColor) {
+    setHsv(next);
+    const hex = hsvaToHex(next);
+    setHexDraft(hex);
+    onChange(hex);
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 w-7 p-0"
+          onClick={onBack}
+          aria-label="Back to presets"
+        >
+          <ArrowLeft size={14} />
+        </Button>
+        <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          Custom
+        </span>
+      </div>
+      <Saturation
+        hsva={hsv}
+        onChange={update}
+        style={{
+          width: "100%",
+          height: "auto",
+          aspectRatio: "4/2",
+          borderRadius: "0.3rem",
+        }}
+        className="border border-border"
+      />
+      <Hue
+        hue={hsv.h}
+        onChange={(h) => update({ ...hsv, ...h })}
+        className="[&>div:first-child]:overflow-hidden [&>div:first-child]:!rounded"
+        style={{ width: "100%", height: "0.9rem", borderRadius: "0.3rem" }}
+      />
+      <Input
+        value={hexDraft}
+        onChange={(e) => {
+          setHexDraft(e.target.value);
+          try {
+            const next = hexToHsva(e.target.value);
+            setHsv(next);
+            onChange(e.target.value);
+          } catch {
+            /* ignore mid-typing invalid hex */
+          }
+        }}
+        className="h-8 font-mono text-xs"
+      />
+    </div>
+  );
+}
+
 /** Color picker that leads with a curated swatch grid. Most users land
- *  on a chosen color in one tap; the "Custom" footer expands the full
- *  saturation + hue wheel for the long tail. */
+ *  on a chosen color in one tap; the "Custom" button swaps the popover
+ *  content in-place to a colour wheel with a back arrow — no second
+ *  nested popover. */
 export function ColorPresetPicker({
   value,
   onChange,
@@ -115,7 +184,7 @@ export function ColorPresetPicker({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const [showWheel, setShowWheel] = useState(false);
+  const [view, setView] = useState<"presets" | "custom">("presets");
 
   const normalised = value?.toLowerCase();
 
@@ -124,48 +193,52 @@ export function ColorPresetPicker({
     setOpen(false);
   }
 
+  // Reset view back to presets each time the popover closes so the
+  // next open-fresh-from-trigger is always the swatch grid.
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (!next) setView("presets");
+  }
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent align="end" className="w-auto p-3">
-        <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-8 gap-1.5">
-            {PRESET_SWATCHES.map((hex) => (
-              <Swatch
-                key={hex}
-                hex={hex}
-                active={normalised === hex.toLowerCase()}
-                onClick={() => pick(hex)}
-              />
-            ))}
-          </div>
+        {view === "presets" ? (
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-8 gap-1.5">
+              {PRESET_SWATCHES.map((hex) => (
+                <Swatch
+                  key={hex}
+                  hex={hex}
+                  active={normalised === hex.toLowerCase()}
+                  onClick={() => pick(hex)}
+                />
+              ))}
+            </div>
 
-          <div className="flex items-center justify-between border-t border-border pt-2">
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              {value ? value.toUpperCase() : "Default"}
-            </span>
-            <ControlledColorPicker
-              value={
-                value && /^#[0-9a-f]{6}$/i.test(value)
-                  ? (value as `#${string}`)
-                  : "#888888"
-              }
-              onValueChange={(v: ColorPickerValue) => onChange(v.hex)}
-              hideContrastRatio
-              open={showWheel}
-              onOpenChange={setShowWheel}
-            >
+            <div className="flex items-center justify-between border-t border-border pt-2">
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                {value ? value.toUpperCase() : "Default"}
+              </span>
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-7 gap-1 text-[10px] uppercase tracking-widest"
+                onClick={() => setView("custom")}
               >
                 <Pipette size={12} />
                 Custom
               </Button>
-            </ControlledColorPicker>
+            </div>
           </div>
-        </div>
+        ) : (
+          <CustomWheel
+            value={value}
+            onChange={onChange}
+            onBack={() => setView("presets")}
+          />
+        )}
       </PopoverContent>
     </Popover>
   );
