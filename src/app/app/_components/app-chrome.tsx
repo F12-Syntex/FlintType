@@ -48,14 +48,22 @@ export function AppChrome({
         right={ident ?? <TopbarActions dark={dark} />}
         drawerExtras={<AppDrawerExtras dark={dark} />}
       />
+      {/* main owns the bg-scope but does NOT scroll — its ::before
+          paints the bg image with position:absolute inset:0, which
+          must stay pinned to the visible main area. The inner div
+          handles scrolling so the bg never scrolls off the top. */}
       <main
         data-bg-scope="content"
-        className={cn(
-          "flex min-h-0 flex-1 flex-col",
-          compact ? "overflow-hidden" : "overflow-y-auto",
-        )}
+        className="relative min-h-0 flex-1 overflow-hidden"
       >
-        {children}
+        <div
+          className={cn(
+            "absolute inset-0 flex flex-col",
+            compact ? "overflow-hidden" : "overflow-y-auto",
+          )}
+        >
+          {children}
+        </div>
       </main>
       <AppFooter dark={dark} compact={compact} />
     </div>

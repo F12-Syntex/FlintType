@@ -60,29 +60,37 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    // Hard reset on every switch: strip every var any static theme can
-    // set AND every var the reactive palette can set, before applying
-    // anything new. Without this, a switch from Reactive → Static (or
-    // Static A → Static B with non-overlapping var sets) can leave
-    // stray inline overrides on :root that bleed into the new palette.
-    clearThemeVars(root);
-    clearReactivePalette(root);
 
     if (activeId === BACKGROUND_REACTIVE_ID) {
-      // Sampling is async; if the image isn't ready, the just-cleared
-      // :root falls back to the default palette until it loads.
-      if (!effectiveImage) return;
+      // Reactive is async — sampling takes a frame or two. If we
+      // cleared :root upfront and *then* sampled, every re-render
+      // (e.g. an unrelated pref-store notify that re-instantiates
+      // this effect) would briefly drop the user back to the default
+      // palette until the sample resolves. Instead, leave the prior
+      // reactive palette in place and swap atomically inside the
+      // .then — clear + apply in the same paint, no flash.
+      if (!effectiveImage) {
+        clearThemeVars(root);
+        clearReactivePalette(root);
+        return;
+      }
       let cancelled = false;
       const sampleMode: "light" | "dark" =
         resolvedTheme === "dark" ? "dark" : "light";
       void samplePalette(effectiveImage, sampleMode).then((palette) => {
         if (cancelled || !palette) return;
+        clearThemeVars(root);
         applyReactivePalette(root, palette);
       });
       return () => {
         cancelled = true;
       };
     }
+
+    // Non-reactive paths are synchronous — clear and apply in one
+    // pass with no observable gap.
+    clearThemeVars(root);
+    clearReactivePalette(root);
     const theme = findTheme(activeId);
     if (!theme) return;
     const mode = resolvedTheme === "dark" ? "dark" : "light";

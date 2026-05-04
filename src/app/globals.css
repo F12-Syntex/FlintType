@@ -349,11 +349,13 @@
   html.ft-bg-content [data-bg-scope]:has([data-bg-scope])::after {
     display: none;
   }
-  /* Page scope + an active image: drop the topbar/footer opaque tints
-     so the image runs edge-to-edge across the whole viewport. The
-     thin border stays so the chrome still reads as discrete chrome. */
+  /* Page scope + an active image: drop EVERY chrome tint so the
+     image runs edge-to-edge behind the whole viewport (topbar,
+     footer, settings sidebar, settings header). The thin border
+     stays so each chrome element still reads as discrete chrome. */
   html.ft-bg-active:not(.ft-bg-content) [data-ft-topbar],
-  html.ft-bg-active:not(.ft-bg-content) [data-ft-footer] {
+  html.ft-bg-active:not(.ft-bg-content) [data-ft-footer],
+  html.ft-bg-active:not(.ft-bg-content) [data-ft-chrome] {
     background-color: transparent;
   }
   html.ft-bg-active:not(.ft-bg-content) [data-ft-topbar] {
@@ -361,6 +363,9 @@
   }
   html.ft-bg-active:not(.ft-bg-content) [data-ft-footer] {
     border-top-color: color-mix(in oklch, var(--foreground) 12%, transparent);
+  }
+  html.ft-bg-active:not(.ft-bg-content) [data-ft-chrome] {
+    border-color: color-mix(in oklch, var(--foreground) 12%, transparent);
   }
 
   /* Webkit scrollbars — slim, themed, no track chrome. */
