@@ -367,7 +367,12 @@
     height: 10px;
   }
   ::-webkit-scrollbar-track {
-    background: transparent;
+    /* Opaque track that picks up the active palette so the scrollbar
+       gutter blends into the surface it sits on. A transparent track
+       on Windows exposed the page background through a 10px strip,
+       which made the settings sidebar look like it stopped at the
+       scrollbar instead of at the screen edge. */
+    background-color: var(--background);
   }
   ::-webkit-scrollbar-thumb {
     background-color: color-mix(in oklch, var(--foreground) 18%, transparent);

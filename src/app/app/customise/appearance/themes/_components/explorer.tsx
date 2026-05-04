@@ -1,7 +1,6 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { BACKGROUND_REACTIVE_ID } from "@/lib/themes/background-reactive";
@@ -72,15 +71,14 @@ function pickVars(theme: Theme, mode: "light" | "dark"): PreviewVars | null {
 export function ThemeExplorer() {
   const { themes, activeId, apply, reset } = usePalette();
   const { resolvedTheme } = useTheme();
-  const router = useRouter();
   const mode: "light" | "dark" = resolvedTheme === "dark" ? "dark" : "light";
 
   function handlePick(id: string | null) {
     if (id === null) reset();
     else apply(id);
-    // Bounce back so the user immediately sees the palette in
-    // context — explorer is a chooser, not a destination.
-    router.push("/app/customise/appearance");
+    // Stay on the explorer — the entire app re-paints in the new
+    // palette around the user, so they can see the change live and
+    // continue browsing other themes without bouncing pages.
   }
 
   return (
