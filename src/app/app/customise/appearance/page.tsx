@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ColorPresetPicker } from "@/components/ui/color-preset-picker";
+import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import {
   type ThemeVar,
   useThemeOverrides,
@@ -20,7 +21,11 @@ import { SettingsRow } from "../_components/row";
 import { BackgroundRow } from "./_components/background-row";
 import { CaretRow } from "./_components/caret-row";
 import { KeyboardRow } from "./_components/keyboard-row";
+import { KeymapRows } from "./_components/keymap-rows";
+import { LiveStatsRows } from "./_components/live-stats-rows";
+import { PassageRows } from "./_components/passage-rows";
 import { RadiusRow } from "./_components/radius-row";
+import { ResultRows } from "./_components/result-rows";
 import { ThemesRow } from "./_components/themes-row";
 import { TypographyRows } from "./_components/typography-row";
 
@@ -183,13 +188,19 @@ function ColorRowCard({
 
 export default function AppearancePage() {
   const { overrides, setVar, clearVar, reset } = useThemeOverrides();
-  // Reset all only clears per-var overrides (colors, font, radius). The
-  // active theme stays put — switching theme is its own deliberate
+  const {
+    customizedCount: appearanceCustomized,
+    reset: resetAppearance,
+  } = useAppearancePrefs();
+  // Reset all clears every per-var theme override (colors, font, radius)
+  // *and* every appearance pref (live stats, passage, result, keymap).
+  // The active theme stays put — switching theme is its own deliberate
   // action via the Theme picker.
-  const customizedCount = Object.keys(overrides).length;
+  const customizedCount = Object.keys(overrides).length + appearanceCustomized;
 
   function handleResetAll() {
     reset();
+    resetAppearance();
   }
 
   return (
@@ -252,6 +263,26 @@ export default function AppearancePage() {
           onSetImage={(v) => setVar("--ft-bg-image", v)}
           onClearImage={() => clearVar("--ft-bg-image")}
         />
+      </div>
+
+      <SectionHeader label="Live stats" />
+      <div className="mb-8">
+        <LiveStatsRows />
+      </div>
+
+      <SectionHeader label="Typing area" />
+      <div className="mb-8">
+        <PassageRows />
+      </div>
+
+      <SectionHeader label="Result" />
+      <div className="mb-8">
+        <ResultRows />
+      </div>
+
+      <SectionHeader label="Keymap" />
+      <div className="mb-8">
+        <KeymapRows />
       </div>
     </section>
   );
