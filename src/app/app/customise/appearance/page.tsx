@@ -161,7 +161,7 @@ export default function AppearancePage() {
         <CaretRow />
       </div>
 
-      <SectionHeader label="Typography" />
+      <SectionHeader label="Practice text typography" />
       <div className="mb-8 flex flex-col gap-3">
         <TypographyRows />
       </div>

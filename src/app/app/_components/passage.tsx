@@ -194,8 +194,15 @@ export function Passage() {
     <div className="relative h-full w-full overflow-hidden">
       <div
         ref={innerRef}
-        className="relative select-none text-2xl leading-[2.2] font-normal text-muted-foreground tracking-[0.04em] sm:text-3xl sm:leading-[2.3] lg:text-4xl lg:leading-[2.4]"
+        // Tailwind text-* sizes are pre-multiplied by --ft-font-scale via
+        // arbitrary-value calcs so the user's Size preset scopes to the
+        // passage only — bumping it here doesn't enlarge the chrome,
+        // sidebar, or every other rem-based size in the app.
+        className="relative select-none font-normal text-muted-foreground tracking-[0.04em] text-[calc(var(--ft-font-scale,1)*1.5rem)] leading-[2.2] sm:text-[calc(var(--ft-font-scale,1)*1.875rem)] sm:leading-[2.3] lg:text-[calc(var(--ft-font-scale,1)*2.25rem)] lg:leading-[2.4]"
         style={{
+          // Same scoping principle for the family override — it lives on
+          // the passage, not body. Defaults inherit body's mono.
+          fontFamily: "var(--ft-font-family, inherit)",
           wordSpacing: "var(--ft-word-spacing, 0.25em)",
           ...maxWidthStyle,
         }}
