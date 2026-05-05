@@ -16,6 +16,7 @@ import {
   useBehaviourPrefs,
 } from "@/lib/behaviour-prefs";
 import { loadQuotes, pickQuote, type QuoteGroup } from "@/lib/quotes";
+import { useAdapt } from "@/lib/use-adapt";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { calcWpmAndRaw, countChars } from "@/lib/wpm";
@@ -35,13 +36,17 @@ export type Phase = "rest" | "running" | "done";
 
 /** One keystroke event captured for the run-summary. `t` is ms since the
  *  run started; `expected` is the char we expected ("" if past word end);
- *  `typed` is what the user pressed. Backspaces and spaces are not
- *  recorded — only printable character attempts inside a word. */
+ *  `typed` is what the user pressed; `wordIndex` is the index of the
+ *  word the cursor was on at the time of the keystroke (the adapt
+ *  pipeline uses it to detect bigrams that span a word boundary).
+ *  Backspaces and spaces are not recorded — only printable character
+ *  attempts inside a word. */
 export type KeyEvent = {
   t: number;
   expected: string;
   typed: string;
   correct: boolean;
+  wordIndex: number;
 };
 
 export type State = {
@@ -126,13 +131,33 @@ function generateWords(
     { length: count },
     () => list[Math.floor(rand() * list.length)]!,
   );
-  if (!cfg.showSecondary) return base;
-  return base.map((w) => {
+  return decorate(base, cfg, seed + 1);
+}
+
+/** Mix in numbers / trailing punctuation when `showSecondary` is on.
+ *  Pulled out so adaptive selections (where the word list is sourced
+ *  from the algorithm rather than a local RNG) get the same
+ *  decoration the user expects from their behaviour prefs. */
+export function decorate(
+  words: readonly string[],
+  cfg: WordCfg,
+  seed: number,
+): string[] {
+  if (!cfg.showSecondary) return [...words];
+  const rand = seededRandom(seed);
+  return words.map((w) => {
     const r = rand();
     if (r < 0.08) return Math.floor(rand() * 1000).toString();
     if (r < 0.22) return w + PUNCTUATION[Math.floor(rand() * PUNCTUATION.length)];
     return w;
   });
+}
+
+/** The pool the adapt route scores against. Same shape filter as the
+ *  local generator, exposed so the bridge can pass it as the candidate
+ *  set without re-reading prefs in two places. */
+export function adaptPool(cfg: WordCfg): readonly string[] {
+  return filteredList(cfg);
 }
 
 /** TIME mode generates a long buffer up front so even fast typists never
@@ -271,6 +296,7 @@ function reducer(s: State, a: Action): State {
         expected,
         typed: a.char,
         correct,
+        wordIndex: s.cursorWord,
       };
 
       if (!correct && a.stopOnError) {
@@ -467,6 +493,9 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
   const { prefs } = useBehaviourPrefs();
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;
+  const adapt = useAdapt();
+  const adaptRef = useRef(adapt);
+  adaptRef.current = adapt;
   // Adaptive drilling is desktop-only. On a mobile viewport we expose
   // adapt as `false` to every consumer regardless of the user's stored
   // preference — so a desktop user who flipped it on doesn't carry the
@@ -615,6 +644,86 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(id);
   }, [state.mode, state.phase, state.startTime, state.length]);
 
+  // Submit completed runs to the adapt route. Fires once per
+  // (startTime, endTime) tuple — guards against the effect re-running
+  // when the user restarts (which keeps phase=done briefly).
+  const lastSubmittedRef = useRef<string>("");
+  useEffect(() => {
+    if (state.phase !== "done") return;
+    if (state.events.length === 0) return;
+    const startTime = state.startTime;
+    const endTime = state.endTime;
+    if (startTime == null || endTime == null) return;
+    const key = `${startTime}|${endTime}`;
+    if (lastSubmittedRef.current === key) return;
+    lastSubmittedRef.current = key;
+
+    const { wpm } = calcWpmAndRaw(
+      state.typed,
+      state.words,
+      endTime - startTime,
+      true,
+    );
+    const counts = countChars(state.typed, state.words, true);
+    const correctChars = counts.allCorrectChars;
+    const incorrectChars = counts.incorrectChars + counts.extraChars;
+    const accuracy =
+      correctChars + incorrectChars > 0
+        ? (correctChars / (correctChars + incorrectChars)) * 100
+        : 100;
+    const wordsActuallyTyped = state.words.slice(
+      0,
+      Math.min(state.cursorWord + 1, state.words.length),
+    );
+
+    void adaptRef.current.submitTest({
+      startedAt: startTime,
+      completedAt: endTime,
+      mode: state.adapt ? "training" : "casual",
+      durationOrWordCount: state.length,
+      wpm,
+      accuracy,
+      errorCount: state.errorWords.size,
+      resetCount: 0,
+      wasCompleted: true,
+      words: wordsActuallyTyped,
+      timings: state.events,
+    });
+    // Intentionally watching only state.phase — every dependency listed
+    // would re-fire the effect on every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.phase]);
+
+  // Initial-mount adaptive fetch: when the persisted adapt slice loads
+  // back as `true` and we're sitting in a fresh rest passage, swap the
+  // seeded local words for an algorithm-selected set.
+  useEffect(() => {
+    if (!practiceSlice.adapt) return;
+    if (practiceSlice.mode !== "WORDS") return;
+    const cfg = {
+      minWordLength: prefsRef.current.minWordLength,
+      difficulty: prefsRef.current.difficulty,
+      showSecondary: prefsRef.current.showSecondary,
+    };
+    void (async () => {
+      const pool = adaptPool(cfg);
+      const words = await adaptRef.current.fetchWords(
+        practiceSlice.length,
+        pool,
+      );
+      if (!words || words.length === 0) return;
+      const cur = stateForSampleRef.current;
+      if (cur.phase !== "rest") return;
+      if (cur.cursorWord !== 0 || cur.cursorChar !== 0) return;
+      dispatch({
+        type: "RESTART",
+        words: decorate(words, cfg, Date.now()),
+        quoteSource: null,
+      });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [practiceSlice]);
+
   const value = useMemo<PracticeCtx>(() => {
     const isFinal = state.phase === "done";
     const { wpm: rawWpm, raw: rawRaw } = calcWpmAndRaw(
@@ -660,6 +769,29 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
         });
       }
     };
+    /** Fire-and-forget adaptive word fetch. Local words are dispatched
+     *  immediately so the passage shows; if the route resolves while
+     *  the user hasn't started typing yet, swap in the algorithm's
+     *  selection via a fresh RESTART. Drops the result silently
+     *  otherwise — never blocks the practice flow. */
+    const loadAndDispatchAdaptive = async (
+      count: number,
+      cfg: WordCfg,
+    ) => {
+      const pool = adaptPool(cfg);
+      const words = await adaptRef.current.fetchWords(count, pool);
+      if (!words || words.length === 0) return;
+      const cur = stateForSampleRef.current;
+      // Only swap if the user hasn't started typing yet — replacing
+      // mid-test would erase their progress and wipe their events.
+      if (cur.phase !== "rest") return;
+      if (cur.cursorWord !== 0 || cur.cursorChar !== 0) return;
+      dispatch({
+        type: "RESTART",
+        words: decorate(words, cfg, Date.now()),
+        quoteSource: null,
+      });
+    };
     // Effective state — see comment on `isMobile` declaration above.
     // Stored preference (state.adapt) is unchanged; only the value
     // exposed to consumers flips off when on a phone-sized viewport.
@@ -690,6 +822,9 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
         lastAppliedSliceRef.current = `${mode}|${length}|${state.adapt}`;
         updatePracticeSlice({ mode, length });
         if (mode === "QUOTE") void loadAndDispatchQuote(length as QuoteGroup);
+        else if (mode === "WORDS" && effectiveState.adapt) {
+          void loadAndDispatchAdaptive(length, cfg);
+        }
       },
       setLength: (length) => {
         const cfg = buildCfg();
@@ -703,6 +838,8 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
         updatePracticeSlice({ length });
         if (state.mode === "QUOTE") {
           void loadAndDispatchQuote(length as QuoteGroup);
+        } else if (state.mode === "WORDS" && effectiveState.adapt) {
+          void loadAndDispatchAdaptive(length, cfg);
         }
       },
       toggleAdapt: () => {
@@ -728,6 +865,9 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
           words: generateForMode(state.mode, state.length, cfg),
           quoteSource: null,
         });
+        if (state.mode === "WORDS" && effectiveState.adapt) {
+          void loadAndDispatchAdaptive(state.length, cfg);
+        }
       },
     };
   }, [state, elapsedMs, wpmHistory, isMobile]);
