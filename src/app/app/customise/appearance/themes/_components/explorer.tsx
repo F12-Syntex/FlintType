@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { BACKGROUND_REACTIVE_ID } from "@/lib/themes/background-reactive";
@@ -114,42 +115,25 @@ export function ThemeExplorer() {
     entries.push({ kind: "theme", theme: t, vars, active: activeId === t.id });
   }
 
-  const totalCount = entries.length;
-  const activeName =
-    activeId === null
-      ? "Default"
-      : themes.find((t) => t.id === activeId)?.name ?? "—";
-
   return (
     <section className="text-foreground">
       <header className="mb-6 border-b border-border pb-5 sm:mb-8 sm:pb-6">
         <div className="mb-2 flex items-center gap-3">
           <span aria-hidden className="inline-block h-px w-5 bg-primary" />
-          <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Appearance
           </span>
         </div>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Themes</h1>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+          Themes
+        </h1>
         <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted-foreground">
-          Each theme repaints the whole app — palette, typography, and radius. Tap one to preview live.
+          Each tile is a slice of the app under that theme — palette,
+          typography, radius. Tap to apply live.
         </p>
-        <div className="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-          <span className="flex items-baseline gap-1.5">
-            <span className="text-foreground tabular-nums text-sm font-semibold">
-              {totalCount}
-            </span>
-            <span>themes</span>
-          </span>
-          <span className="flex items-baseline gap-1.5">
-            <span>active</span>
-            <span className="text-foreground font-semibold normal-case tracking-normal">
-              {activeName}
-            </span>
-          </span>
-        </div>
       </header>
 
-      <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+      <ol className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
         {entries.map((e) => {
           if (e.kind === "default") {
             return (
@@ -189,23 +173,29 @@ export function ThemeExplorer() {
   );
 }
 
-/** Tile shell — selection state, focus ring, click. The interior is
- *  unframed: no window chrome, no bottom name ribbon. The theme name
- *  is a caption below the preview frame. */
+/** Tile shell — bordered card with the rendered preview on top and a
+ *  hairline-divided footer band below carrying the theme name and the
+ *  active-state chip. The footer keeps the name attached to the tile
+ *  (instead of floating below it) so each card reads as one unit, and
+ *  hover reveals a quiet "→" arrow on inactive tiles to telegraph the
+ *  click affordance. */
 function TileShell({
   active,
   onPick,
   ariaLabel,
   children,
-  caption,
-  captionTone,
+  name,
+  accentName = false,
 }: {
   active: boolean;
   onPick: () => void;
   ariaLabel: string;
   children: React.ReactNode;
-  caption: React.ReactNode;
-  captionTone: "default" | "ember";
+  name: string;
+  /** Paint the name in primary instead of foreground — used by the
+   *  Reactive tile so its name carries the brand spark while every
+   *  static theme keeps the neutral label. */
+  accentName?: boolean;
 }) {
   return (
     <button
@@ -214,45 +204,79 @@ function TileShell({
       aria-pressed={active}
       aria-label={ariaLabel}
       className={cn(
-        "group block w-full text-left transition-all",
-        "focus:outline-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "group relative block w-full overflow-hidden rounded-md border text-left transition-all duration-200",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        active
+          ? "border-primary ring-2 ring-primary/30"
+          : "border-border hover:border-foreground/30 hover:shadow-md",
       )}
     >
-      <div
-        className={cn(
-          "overflow-hidden rounded-md border transition-all",
-          active
-            ? "border-primary ring-2 ring-primary/40"
-            : "border-border group-hover:border-foreground/30",
-        )}
-      >
-        {children}
-      </div>
-      <div className="mt-2 flex items-center justify-between gap-2 px-0.5">
+      {children}
+      <div className="flex items-center justify-between gap-2 border-t border-border bg-card px-3 py-2.5">
         <span
           className={cn(
-            "truncate text-[11px] font-semibold uppercase tracking-[0.16em]",
-            captionTone === "ember" ? "text-primary" : "text-foreground",
+            "truncate text-[12px] font-semibold uppercase tracking-[0.16em]",
+            accentName ? "text-primary" : "text-foreground",
           )}
         >
-          {caption}
+          {name}
         </span>
         {active ? (
-          <span className="flex shrink-0 items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-primary">
-            <span aria-hidden className="block h-1 w-1 rounded-full bg-primary" />
+          <span className="flex shrink-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
+            <span aria-hidden className="size-1.5 rounded-full bg-primary" />
             Active
           </span>
-        ) : null}
+        ) : (
+          <ArrowRight
+            size={14}
+            aria-hidden
+            className="shrink-0 text-muted-foreground opacity-0 transition-opacity duration-150 group-hover:opacity-70"
+          />
+        )}
       </div>
     </button>
   );
 }
 
-/** Theme preview — a frameless slice of the app under the candidate
- *  theme. No window chrome, no footer ribbon. Inside: a display
- *  glyph, the practice passage (typed / next / untyped), a stat
- *  strip, a primary CTA, and an accent badge. Every paint comes from
- *  the theme's own tokens. */
+/** A 4-swatch palette stripe — primary / accent / muted-fg / border —
+ *  pinned to the right of the Aa display. Quick visual signal for the
+ *  full palette before the eye reaches the passage / stat strip. */
+function PaletteStripe({
+  vars,
+  radius,
+}: {
+  vars: PreviewVars;
+  radius: string;
+}) {
+  const colors = [
+    vars.primary,
+    vars.accent,
+    vars["muted-foreground"],
+    vars.border,
+  ];
+  return (
+    <div className="flex shrink-0 items-center gap-1">
+      {colors.map((c, i) => (
+        <span
+          key={i}
+          aria-hidden
+          className="block size-3.5"
+          style={{ backgroundColor: c, borderRadius: radius }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Theme preview — frameless slice of the app under the candidate
+ *  theme. Three rows:
+ *    1. Aa display + 4-swatch palette stripe
+ *    2. The practice passage (typed → primary, error → destructive,
+ *       untyped → muted-foreground)
+ *    3. WPM / ACC / STR stat strip pinned to the bottom on a card-tinted
+ *       hairline band — STR carries the primary spark
+ *  The Restart CTA + 60s chip + dot row was removed; it competed with
+ *  the rest of the tile and didn't add palette information. */
 function ThemePreview({
   name,
   vars,
@@ -268,29 +292,24 @@ function ThemePreview({
   const sans = vars["font-sans"];
   const mono = vars["font-mono"] ?? sans;
   const cardFg = vars["card-foreground"] ?? vars.foreground;
-  const accentFg = vars["accent-foreground"] ?? vars.foreground;
 
   return (
     <TileShell
       active={active}
       onPick={onPick}
       ariaLabel={`Apply ${name} theme`}
-      caption={name}
-      captionTone="default"
+      name={name}
     >
       <div
-        className="flex aspect-[5/4] flex-col gap-3 px-3 py-3"
+        className="flex aspect-[5/4] flex-col gap-3 px-4 py-4"
         style={{ backgroundColor: vars.background, color: vars.foreground }}
       >
-        {/* Display glyph — shows the theme's heading/serif weight at a
-         *  size you can read on a small tile. Tag chip floats opposite
-         *  to balance the row. */}
-        <div className="flex shrink-0 items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-3">
           <span
             className="leading-none"
             style={{
               fontFamily: sans,
-              fontSize: "30px",
+              fontSize: "36px",
               fontWeight: 800,
               letterSpacing: "-0.04em",
               color: vars.foreground,
@@ -298,26 +317,12 @@ function ThemePreview({
           >
             Aa
           </span>
-          <span
-            className="shrink-0 px-1.5 py-[2px] text-[8px] font-semibold uppercase tracking-[0.16em] leading-none"
-            style={{
-              backgroundColor: vars.accent,
-              color: accentFg,
-              borderRadius: radius,
-              fontFamily: mono,
-            }}
-          >
-            Practice
-          </span>
+          <PaletteStripe vars={vars} radius={radius} />
         </div>
 
-        {/* Reader text — mirrors passage.tsx's three roles: typed
-         *  (--ft-passage-typed → primary), error (--ft-passage-error
-         *  → destructive), and untyped (--ft-passage-untyped →
-         *  muted-foreground). */}
         <p
           className="leading-relaxed"
-          style={{ fontFamily: mono, fontSize: "11px" }}
+          style={{ fontFamily: mono, fontSize: "12px" }}
         >
           <span style={{ color: vars.primary }}>The quick&nbsp;</span>
           <span
@@ -333,10 +338,8 @@ function ThemePreview({
           </span>
         </p>
 
-        {/* Stat strip — tabular WPM/ACC, with the streak in primary so
-         *  the brand spark is in the row. */}
         <div
-          className="flex shrink-0 items-baseline gap-3 border-y px-2 py-1.5"
+          className="mt-auto flex shrink-0 items-baseline gap-3 border-y px-2 py-1.5"
           style={{ borderColor: vars.border, backgroundColor: vars.card }}
         >
           <Stat
@@ -360,49 +363,6 @@ function ThemePreview({
             muted={vars["muted-foreground"]}
             mono={mono}
           />
-        </div>
-
-        {/* Components row — primary CTA, secondary chip, swatch dots
-         *  for primary/accent/muted-foreground so the palette breadth
-         *  shows even in this compact slot. */}
-        <div className="mt-auto flex shrink-0 items-center gap-1.5">
-          <span
-            className="inline-flex items-center justify-center px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] leading-none"
-            style={{
-              backgroundColor: vars.primary,
-              color: vars["primary-foreground"],
-              borderRadius: radius,
-              fontFamily: sans,
-            }}
-          >
-            Restart
-          </span>
-          <span
-            className="inline-flex items-center justify-center px-1.5 py-[3px] text-[8px] font-semibold uppercase tracking-[0.14em] leading-none"
-            style={{
-              backgroundColor: vars.muted,
-              color: vars["muted-foreground"],
-              borderRadius: radius,
-              fontFamily: sans,
-              border: `1px solid ${vars.border}`,
-            }}
-          >
-            60s
-          </span>
-          <span className="ml-auto flex shrink-0 items-center gap-1" aria-hidden>
-            <span
-              className="block h-2 w-2 rounded-full"
-              style={{ backgroundColor: vars.primary }}
-            />
-            <span
-              className="block h-2 w-2 rounded-full"
-              style={{ backgroundColor: vars.accent }}
-            />
-            <span
-              className="block h-2 w-2 rounded-full"
-              style={{ backgroundColor: vars["muted-foreground"] }}
-            />
-          </span>
         </div>
       </div>
     </TileShell>
@@ -440,9 +400,9 @@ function Stat({
   );
 }
 
-/** Reactive — wildcard tile rendered as the same frameless preview but
- *  painted from a synthetic gradient sample. Same body components so it
- *  reads as a peer of the static themes. */
+/** Reactive — wildcard tile rendered in the same shape as a static
+ *  theme but painted from a synthetic gradient sample. Same body
+ *  components so it reads as a peer. */
 function ReactivePreview({
   active,
   onPick,
@@ -457,32 +417,35 @@ function ReactivePreview({
       active={active}
       onPick={onPick}
       ariaLabel="Apply background-reactive theme"
-      caption="Reactive"
-      captionTone="ember"
+      name="Reactive"
+      accentName
     >
       <div
-        className="flex aspect-[5/4] flex-col gap-3 px-3 py-3 text-white"
+        className="flex aspect-[5/4] flex-col gap-3 px-4 py-4 text-white"
         style={{ background: grad }}
       >
-        <div className="flex shrink-0 items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-3">
           <span
             className="leading-none"
             style={{
-              fontSize: "30px",
+              fontSize: "36px",
               fontWeight: 800,
               letterSpacing: "-0.04em",
             }}
           >
             Aa
           </span>
-          <span className="shrink-0 rounded-md border border-white/30 bg-white/15 px-1.5 py-[2px] text-[8px] font-semibold uppercase tracking-[0.16em] leading-none text-white/85 backdrop-blur-sm">
-            Auto
-          </span>
+          <div className="flex shrink-0 items-center gap-1" aria-hidden>
+            <span className="block size-3.5 rounded-sm bg-white/95" />
+            <span className="block size-3.5 rounded-sm bg-white/65" />
+            <span className="block size-3.5 rounded-sm bg-white/40" />
+            <span className="block size-3.5 rounded-sm bg-white/20" />
+          </div>
         </div>
 
         <p
           className="leading-relaxed"
-          style={{ fontSize: "11px", fontFamily: "ui-monospace, monospace" }}
+          style={{ fontSize: "12px", fontFamily: "ui-monospace, monospace" }}
         >
           <span className="text-white">The quick&nbsp;</span>
           <span className="border-b border-white/90 text-white">b</span>
@@ -491,24 +454,10 @@ function ReactivePreview({
           </span>
         </p>
 
-        <div className="flex shrink-0 items-baseline gap-3 border-y border-white/15 bg-black/20 px-2 py-1.5 backdrop-blur-sm">
+        <div className="mt-auto flex shrink-0 items-baseline gap-3 border-y border-white/15 bg-black/20 px-2 py-1.5 backdrop-blur-sm">
           <ReactiveStat label="WPM" value="92" />
           <ReactiveStat label="ACC" value="98%" />
           <ReactiveStat label="STR" value="14" emphasis />
-        </div>
-
-        <div className="mt-auto flex shrink-0 items-center gap-1.5">
-          <span className="inline-flex items-center justify-center rounded-md bg-white px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] leading-none text-black">
-            Restart
-          </span>
-          <span className="inline-flex items-center justify-center rounded-md border border-white/30 bg-white/10 px-1.5 py-[3px] text-[8px] font-semibold uppercase tracking-[0.14em] leading-none text-white/85">
-            60s
-          </span>
-          <span className="ml-auto flex shrink-0 items-center gap-1" aria-hidden>
-            <span className="block h-2 w-2 rounded-full bg-white/90" />
-            <span className="block h-2 w-2 rounded-full bg-white/55" />
-            <span className="block h-2 w-2 rounded-full bg-white/30" />
-          </span>
         </div>
       </div>
     </TileShell>
