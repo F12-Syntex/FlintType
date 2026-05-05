@@ -50,19 +50,40 @@ export function MobileSheet({
 
   useEffect(() => setMounted(true), []);
 
+  // Phase 1 — `open` ↔ `render`. Mount the portal as soon as `open`
+  // flips on; on the way out, hold the portal mounted for ANIM_MS so
+  // the exit transition has time to play before unmount.
   useEffect(() => {
     if (open) {
       setRender(true);
-      // Flip `entered` on the next frame so the browser commits the
-      // initial (translate-y-full / opacity-0) classes first; without
-      // this the transition has nothing to interpolate from.
-      const raf = requestAnimationFrame(() => setEntered(true));
-      return () => cancelAnimationFrame(raf);
+      return;
     }
     setEntered(false);
     const t = setTimeout(() => setRender(false), ANIM_MS);
     return () => clearTimeout(t);
   }, [open]);
+
+  // Phase 2 — once the portal is rendered with `entered=false` (the
+  // off-screen / transparent initial state), wait for the browser to
+  // *paint* that state, then flip `entered` on so the transition
+  // interpolates from off-screen → on-screen. Doing this in the same
+  // effect as `setRender(true)` lets React batch the two updates into
+  // one commit, which means the browser never sees the initial state
+  // at all and the enter animation appears to skip.
+  useEffect(() => {
+    if (!render || !open) return;
+    // Double-rAF: first rAF lands inside the frame that commits
+    // `entered=false`; second rAF lands after that frame's paint, so
+    // the next state change actually has something to animate from.
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => setEntered(true));
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      if (inner) cancelAnimationFrame(inner);
+    };
+  }, [render, open]);
 
   // Body scroll lock + Escape close while the sheet is rendered.
   useEffect(() => {
