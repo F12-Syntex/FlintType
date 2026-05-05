@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/popover";
 import { QUOTE_GROUPS } from "@/lib/quotes";
 import { cn } from "@/lib/utils";
-import { Keyboard } from "./keyboard";
+import { HandLayoutEditor } from "./keyboard/hands";
 import { type Mode, usePractice } from "./practice-state";
 
 const MODES: readonly Mode[] = ["WORDS", "TIME", "QUOTE"];
@@ -296,7 +296,7 @@ function AdaptControl() {
             />
           </div>
           <div className="rounded-md border border-border bg-background p-3">
-            <Keyboard mode="static" />
+            <HandLayoutEditor mode="static" />
           </div>
         </PopoverContent>
       </Popover>

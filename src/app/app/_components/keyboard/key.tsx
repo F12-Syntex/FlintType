@@ -55,6 +55,7 @@ export function Key({
     <div
       aria-hidden
       data-pressed={hot ? "true" : "false"}
+      data-key-code={def.code}
       style={{ flex: `${units} 1 0`, minWidth: 0 }}
       className={cn(
         "relative flex h-7 items-center justify-center border font-mono text-xs sm:h-10 sm:text-sm",
