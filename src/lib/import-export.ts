@@ -5,7 +5,7 @@ import { DEFAULT_BACKGROUND, type BackgroundPrefs } from "./background-prefs";
 import { DEFAULT_BEHAVIOUR, type BehaviourPrefs } from "./behaviour-prefs";
 import { DEFAULT_CARET, type CaretSettings } from "./caret-settings";
 import { DEFAULT_KEYBOARD, type KeyboardSettings } from "./keyboard-settings";
-import { findTheme, THEMES } from "./themes/registry";
+import { CUSTOM_THEME_ID, findTheme, THEMES } from "./themes/registry";
 import { getCache, loadPrefs, writeSlice } from "./prefs-store";
 import type { ThemeOverrides } from "./theme-customization";
 
@@ -146,12 +146,17 @@ export function importMonkeytype(payload: unknown): number {
     writeSlice("background", { ...DEFAULT_BACKGROUND, ...background });
     n += 1;
   }
-  if (palette) {
-    writeSlice("palette", palette);
-    n += 1;
-  }
   if (themeOverrides) {
     writeSlice("theme", themeOverrides);
+    // Any inline overrides → palette state is "Custom". This applies
+    // even when the user only imported font-family / font-size (no
+    // colours) — typography overrides also fork the user off the named
+    // palette, so the picker should reflect that.
+    writeSlice("palette", { activeId: CUSTOM_THEME_ID });
+    n += 1;
+  } else if (palette) {
+    // No overrides: respect the imported palette name as-is.
+    writeSlice("palette", palette);
     n += 1;
   }
   if (practice) {
@@ -271,6 +276,30 @@ function mapAppearance(
   if (typeof mt.startGraphsAtZero === "boolean") {
     out.startGraphsAtZero = mt.startGraphsAtZero;
   }
+  // Live-stats container styling — opacity is a 0..1 multiplier that
+  // multiplies the rendered colour; colour is a named MT token that we
+  // resolve to a hex below.
+  if (typeof mt.liveStatsOpacity === "number") {
+    out.liveStatsOpacity = clamp(mt.liveStatsOpacity, 0, 1);
+  }
+  const statsColor = resolveStatsColor(mt);
+  if (statsColor != null) out.liveStatsColor = statsColor;
+  // pageWidth: MT ships "100" | "125" | "150" | "200" | "max" as a
+  // page-content width hint. Translate the numeric variants to a
+  // character-width budget on the practice passage; "max" means
+  // unconstrained which we encode as 0 (the same sentinel the appearance
+  // page uses for "stretch to container").
+  if (typeof mt.pageWidth === "string") {
+    const map: Record<string, number> = {
+      "100": 80,
+      "125": 100,
+      "150": 120,
+      "200": 160,
+      max: 0,
+    };
+    const w = map[mt.pageWidth];
+    if (w != null) out.maxLineWidth = w;
+  }
   if (KEYMAP_MODES.has(asString(mt.keymapMode))) {
     out.keymap = mt.keymapMode as AppearancePrefs["keymap"];
   }
@@ -309,6 +338,28 @@ const KEYMAP_TOP_ROWS = new Set(["always", "layout", "never"]);
 
 function asString(v: unknown): string {
   return typeof v === "string" ? v : "";
+}
+
+/** MT's `liveStatsColor` is one of "black" | "sub" | "text" | "main" —
+ *  references into its own colour vocabulary. Resolve to a literal hex
+ *  by looking up the corresponding slot in `customThemeColors` when the
+ *  user is on a custom theme. Returns null if the field is absent or
+ *  the user is on a named MT theme (we'd need that theme's full palette
+ *  to translate, which we don't ship). */
+function resolveStatsColor(mt: MonkeytypeSettings): string | null {
+  const v = mt.liveStatsColor;
+  if (typeof v !== "string") return null;
+  if (v === "black") return "#000000";
+  if (mt.customTheme !== true || !Array.isArray(mt.customThemeColors)) {
+    return null;
+  }
+  const arr = mt.customThemeColors as unknown[];
+  // 1 main, 3 sub, 4 text — same indices used by the colour mapping
+  // below so the live-stats colour visually matches the typed/untyped
+  // text the user sees in the passage.
+  const idx: Record<string, number> = { main: 1, sub: 3, text: 4 };
+  if (idx[v] === undefined) return null;
+  return pickColor(arr, idx[v]);
 }
 
 function mapBackground(
@@ -405,6 +456,16 @@ function mapThemeOverrides(
     const sub = pickColor(arr, 3);
     const text = pickColor(arr, 4);
     const error = pickColor(arr, 5);
+    // colorfulMode (default: true on MT) controls whether typed-correctly
+    // letters paint in mainColor (true) or textColor (false). Default
+    // matches MT — only turn it off if the import explicitly says false.
+    const colorful = mt.colorfulMode !== false;
+    // flipTestColors swaps which token paints typed vs. untyped letters
+    // in the passage. MT default: typed = main/text, untyped = sub.
+    // Flipped: typed = sub, untyped = main/text.
+    const flipped = mt.flipTestColors === true;
+    const typedColor = colorful ? main : text;
+    const untypedColor = sub;
     if (bg) {
       out["--background"] = bg;
       out["--card"] = bg;
@@ -417,16 +478,10 @@ function mapThemeOverrides(
       out["--primary"] = main;
       out["--accent"] = main;
       out["--ring"] = main;
-      // MT renders typed-correctly letters in mainColor — the passage
-      // consumes this var directly so chrome --foreground stays
-      // independent.
-      out["--ft-passage-typed"] = main;
     }
     if (sub) {
       out["--muted-foreground"] = sub;
       out["--border"] = sub;
-      // Untyped letters in the passage.
-      out["--ft-passage-untyped"] = sub;
     }
     if (text) {
       // MT's textColor is the *chrome* body text colour (buttons,
@@ -439,6 +494,20 @@ function mapThemeOverrides(
       // chrome --destructive (toasts, delete buttons) keeps tracking
       // the active palette.
       out["--ft-passage-error"] = error;
+    }
+    // Passage typed/untyped — driven by the colorfulMode + flipTestColors
+    // pair, separately from the chrome tokens above so the passage roles
+    // can diverge from --primary / --muted-foreground when MT's flags
+    // demand it.
+    if (typedColor) {
+      out["--ft-passage-typed"] = flipped
+        ? (untypedColor ?? typedColor)
+        : typedColor;
+    }
+    if (untypedColor) {
+      out["--ft-passage-untyped"] = flipped
+        ? (typedColor ?? untypedColor)
+        : untypedColor;
     }
   }
 

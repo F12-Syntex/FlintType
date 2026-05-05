@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import { writeSlice } from "./prefs-store";
+import { CUSTOM_THEME_ID } from "./themes/registry";
 import { useRemotePrefs } from "./use-remote-prefs";
 
 /** Every CSS variable the user can override from the appearance page.
@@ -95,6 +97,11 @@ export function useThemeOverrides() {
     (name: ThemeVar, value: string) => {
       updateRaw((prev) => ({ ...prev, [name]: value }));
       applyVar(name, value);
+      // Any per-var override forks the user off whatever named palette
+      // they were on — mark the palette slice as "custom" so the theme
+      // picker reads as Custom instead of misleadingly still saying
+      // "Cosmic Night" (etc.) once the colours diverge.
+      writeSlice("palette", { activeId: CUSTOM_THEME_ID });
     },
     [updateRaw],
   );
@@ -107,6 +114,10 @@ export function useThemeOverrides() {
         return next;
       });
       applyVar(name, undefined);
+      // Don't auto-demote palette here — the user might still have other
+      // overrides active. They demote by either resetting all overrides
+      // or by picking a real theme from the picker (which clears the
+      // override slice via PaletteProvider.apply).
     },
     [updateRaw],
   );
@@ -114,6 +125,9 @@ export function useThemeOverrides() {
   const reset = useCallback(() => {
     for (const v of THEME_VARS) applyVar(v, undefined);
     resetRaw();
+    // No more overrides — demote the palette back to Default. Picking
+    // a non-default palette afterwards is one click in the picker.
+    writeSlice("palette", { activeId: null });
   }, [resetRaw]);
 
   return { overrides, setVar, clearVar, reset };

@@ -12,8 +12,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
+import { useThemeOverrides } from "@/lib/theme-customization";
 import { cn } from "@/lib/utils";
 import { BACKGROUND_REACTIVE_ID } from "@/lib/themes/background-reactive";
+import { CUSTOM_THEME_ID } from "@/lib/themes/registry";
 import { type Theme, usePalette } from "@/lib/themes/use-palette";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { SettingsRow } from "../../_components/row";
@@ -66,12 +68,23 @@ function ThemeSwatches({ theme }: { theme: Theme }) {
 
 export function ThemesRow() {
   const { themes, activeId, apply, reset } = usePalette();
+  const { overrides } = useThemeOverrides();
   const router = useRouter();
   const isMobile = useIsMobile();
   const [sheetOpen, setSheetOpen] = useState(false);
-  const active = activeId
+  const isCustom = activeId === CUSTOM_THEME_ID;
+  const active = activeId && !isCustom
     ? themes.find((t) => t.id === activeId) ?? null
     : null;
+  const customSwatches = customSwatchesFromOverrides(overrides);
+  const triggerName = isCustom ? "Custom" : active ? active.name : "Default";
+  const triggerSwatches = isCustom ? (
+    <PaletteSwatches colors={customSwatches} />
+  ) : active ? (
+    <ThemeSwatches theme={active} />
+  ) : (
+    <PaletteSwatches colors={DEFAULT_SWATCHES} />
+  );
 
   function pickTheme(id: string) {
     apply(id);
@@ -94,12 +107,8 @@ export function ThemesRow() {
       aria-label="Pick a theme"
       onClick={isMobile ? () => setSheetOpen(true) : undefined}
     >
-      {active ? (
-        <ThemeSwatches theme={active} />
-      ) : (
-        <PaletteSwatches colors={DEFAULT_SWATCHES} />
-      )}
-      <span className="font-medium">{active ? active.name : "Default"}</span>
+      {triggerSwatches}
+      <span className="font-medium">{triggerName}</span>
       <ChevronDown size={14} />
     </Button>
   );
@@ -201,6 +210,21 @@ export function ThemesRow() {
       }
     />
   );
+}
+
+/** Build a 4-swatch preview for the "Custom" entry from whatever the
+ *  user has actually overridden. Falls back to the default swatches for
+ *  any role they haven't touched, so the picker pill always shows four
+ *  filled circles instead of a sparse / blank row. */
+function customSwatchesFromOverrides(
+  overrides: Record<string, string | undefined>,
+): readonly string[] {
+  return [
+    overrides["--primary"] ?? DEFAULT_SWATCHES[0]!,
+    overrides["--background"] ?? DEFAULT_SWATCHES[1]!,
+    overrides["--card"] ?? DEFAULT_SWATCHES[2]!,
+    overrides["--accent"] ?? DEFAULT_SWATCHES[3]!,
+  ];
 }
 
 function ThemeSheetItem({

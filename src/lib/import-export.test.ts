@@ -103,7 +103,89 @@ describe("importMonkeytype", () => {
     expect(t["--card-foreground"]).toBe("#eeeeee");
     // errorColor is the passage-only mistyped-char colour.
     expect(t["--ft-passage-error"]).toBe("#cc0000");
-    expect(w.palette).toBeUndefined();
+    // Custom colours present → palette must be promoted to "custom" so
+    // the picker reads as Custom (not as the unrelated `theme` name).
+    expect(w.palette).toEqual({ activeId: "custom" });
+  });
+
+  it("uses textColor for typed letters when colorfulMode is false", () => {
+    importMonkeytype({
+      customTheme: true,
+      colorfulMode: false,
+      customThemeColors: [
+        "#111111",
+        "#ff8800",
+        "#777777",
+        "#aaaaaa",
+        "#eeeeee",
+        "#cc0000",
+      ],
+    });
+    const t = writes().theme as Record<string, string>;
+    // colorful off → typed paints in textColor, not mainColor.
+    expect(t["--ft-passage-typed"]).toBe("#eeeeee");
+    expect(t["--ft-passage-untyped"]).toBe("#aaaaaa");
+  });
+
+  it("swaps typed and untyped colours when flipTestColors is true", () => {
+    importMonkeytype({
+      customTheme: true,
+      flipTestColors: true,
+      customThemeColors: [
+        "#111111",
+        "#ff8800",
+        "#777777",
+        "#aaaaaa",
+        "#eeeeee",
+        "#cc0000",
+      ],
+    });
+    const t = writes().theme as Record<string, string>;
+    // Flipped: typed gets sub, untyped gets the colorful main.
+    expect(t["--ft-passage-typed"]).toBe("#aaaaaa");
+    expect(t["--ft-passage-untyped"]).toBe("#ff8800");
+  });
+
+  it("promotes palette to 'custom' even when only typography overrides exist", () => {
+    importMonkeytype({
+      // No customTheme / customThemeColors — just font overrides.
+      fontFamily: "JetBrains_Mono",
+    });
+    const w = writes();
+    expect(w.theme).toBeDefined();
+    expect(w.palette).toEqual({ activeId: "custom" });
+  });
+
+  it("maps liveStatsOpacity and liveStatsColor onto appearance", () => {
+    importMonkeytype({
+      customTheme: true,
+      liveStatsOpacity: 0.4,
+      liveStatsColor: "main",
+      customThemeColors: [
+        "#111111",
+        "#ff8800",
+        "#777777",
+        "#aaaaaa",
+        "#eeeeee",
+        "#cc0000",
+      ],
+    });
+    const a = writes().appearance as Record<string, unknown>;
+    expect(a.liveStatsOpacity).toBeCloseTo(0.4);
+    // "main" resolved against customThemeColors[1] → #ff8800.
+    expect(a.liveStatsColor).toBe("#ff8800");
+  });
+
+  it("translates pageWidth to a maxLineWidth budget", () => {
+    importMonkeytype({ pageWidth: "125" });
+    const a = writes().appearance as Record<string, unknown>;
+    expect(a.maxLineWidth).toBe(100);
+  });
+
+  it("translates pageWidth='max' to maxLineWidth 0 (stretch)", () => {
+    importMonkeytype({ pageWidth: "max" });
+    const a = writes().appearance as Record<string, unknown>;
+    expect(a.maxLineWidth).toBe(0);
   });
 
   it("falls back to palette pick when customTheme is false", () => {

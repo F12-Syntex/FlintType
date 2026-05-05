@@ -9,6 +9,7 @@ import {
   useEffect,
 } from "react";
 import { useBackgroundPrefs } from "../background-prefs";
+import { writeSlice } from "../prefs-store";
 import { useRemotePrefs } from "../use-remote-prefs";
 import {
   applyReactivePalette,
@@ -19,6 +20,7 @@ import {
 import {
   applyTheme,
   clearThemeVars,
+  CUSTOM_THEME_ID,
   findTheme,
   THEMES,
   type Theme,
@@ -61,6 +63,15 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const root = document.documentElement;
 
+    // "custom" — the user has per-var overrides applied via
+    // useThemeOverrides. Don't touch the named-theme vars: the inline
+    // overrides on :root from useThemeOverrides are the source of truth
+    // and would otherwise get clobbered by clearThemeVars below.
+    if (activeId === CUSTOM_THEME_ID) {
+      clearReactivePalette(root);
+      return;
+    }
+
     if (activeId === BACKGROUND_REACTIVE_ID) {
       // Reactive is async — sampling takes a frame or two. If we
       // cleared :root upfront and *then* sampled, every re-render
@@ -99,12 +110,21 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
 
   const apply = useCallback(
     (id: string) => {
+      // Picking a real palette resets the per-var override slice — those
+      // were "Custom" mode's payload, and carrying them onto a fresh
+      // palette would mean the named theme never actually paints (the
+      // overrides win). Don't touch overrides when the caller deliberately
+      // re-picks "custom" (no-op).
+      if (id !== CUSTOM_THEME_ID) {
+        writeSlice("theme", {});
+      }
       update({ activeId: id });
     },
     [update],
   );
 
   const resetPalette = useCallback(() => {
+    writeSlice("theme", {});
     reset();
   }, [reset]);
 

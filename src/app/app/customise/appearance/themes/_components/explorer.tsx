@@ -2,8 +2,10 @@
 
 import { ArrowRight } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useThemeOverrides } from "@/lib/theme-customization";
 import { cn } from "@/lib/utils";
 import { BACKGROUND_REACTIVE_ID } from "@/lib/themes/background-reactive";
+import { CUSTOM_THEME_ID } from "@/lib/themes/registry";
 import { type Theme, usePalette } from "@/lib/themes/use-palette";
 
 /** Default-theme preview values — the default palette has no entry in
@@ -90,29 +92,84 @@ function pickVars(theme: Theme, mode: "light" | "dark"): PreviewVars | null {
 type Entry =
   | { kind: "default"; vars: PreviewVars; active: boolean }
   | { kind: "reactive"; active: boolean }
+  | { kind: "custom"; vars: PreviewVars; active: boolean }
   | { kind: "theme"; theme: Theme; vars: PreviewVars; active: boolean };
+
+/** Build a PreviewVars block from the user's per-var overrides, falling
+ *  back to the default-theme value for any role they haven't touched —
+ *  so the Custom tile always paints with all the slots filled in. */
+function customVarsFromOverrides(
+  overrides: Record<string, string | undefined>,
+  mode: "light" | "dark",
+): PreviewVars {
+  const base = DEFAULT_VARS[mode];
+  return {
+    background: overrides["--background"] ?? base.background,
+    foreground: overrides["--foreground"] ?? base.foreground,
+    card: overrides["--card"] ?? base.card,
+    "card-foreground":
+      overrides["--card-foreground"] ?? base["card-foreground"],
+    primary: overrides["--primary"] ?? base.primary,
+    "primary-foreground":
+      overrides["--primary-foreground"] ?? base["primary-foreground"],
+    muted: overrides["--muted"] ?? base.muted,
+    "muted-foreground":
+      overrides["--muted-foreground"] ?? base["muted-foreground"],
+    accent: overrides["--accent"] ?? base.accent,
+    "accent-foreground":
+      overrides["--accent-foreground"] ?? base["accent-foreground"],
+    destructive: overrides["--ft-passage-error"] ?? base.destructive,
+    border: overrides["--border"] ?? base.border,
+    "font-sans": overrides["--ft-font-family"] ?? base["font-sans"],
+    "font-mono": overrides["--ft-font-family"] ?? base["font-mono"],
+    radius: overrides["--radius"] ?? base.radius,
+  };
+}
 
 export function ThemeExplorer() {
   const { themes, activeId, apply, reset } = usePalette();
+  const { overrides } = useThemeOverrides();
   const { resolvedTheme } = useTheme();
   const mode: "light" | "dark" = resolvedTheme === "dark" ? "dark" : "light";
+  const isCustom = activeId === CUSTOM_THEME_ID;
 
   function handlePick(id: string | null) {
     if (id === null) reset();
     else apply(id);
   }
 
-  const entries: Entry[] = [
-    { kind: "default", vars: DEFAULT_VARS[mode], active: activeId === null },
-  ];
+  const entries: Entry[] = [];
+  // Custom tile only appears when active — the user can't *pick* into
+  // Custom from this surface (Custom is a state created by editing
+  // colours or importing MT), so it'd be confusing to show otherwise.
+  if (isCustom) {
+    entries.push({
+      kind: "custom",
+      vars: customVarsFromOverrides(overrides, mode),
+      active: true,
+    });
+  }
+  entries.push({
+    kind: "default",
+    vars: DEFAULT_VARS[mode],
+    active: !isCustom && activeId === null,
+  });
   for (const t of themes) {
     if (t.id === BACKGROUND_REACTIVE_ID) {
-      entries.push({ kind: "reactive", active: activeId === t.id });
+      entries.push({
+        kind: "reactive",
+        active: !isCustom && activeId === t.id,
+      });
       continue;
     }
     const vars = pickVars(t, mode);
     if (!vars) continue;
-    entries.push({ kind: "theme", theme: t, vars, active: activeId === t.id });
+    entries.push({
+      kind: "theme",
+      theme: t,
+      vars,
+      active: !isCustom && activeId === t.id,
+    });
   }
 
   return (
@@ -135,6 +192,22 @@ export function ThemeExplorer() {
 
       <ol className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
         {entries.map((e) => {
+          if (e.kind === "custom") {
+            return (
+              <li key="custom">
+                <ThemePreview
+                  name="Custom"
+                  vars={e.vars}
+                  active={e.active}
+                  onPick={() => {
+                    /* already active — no-op. Picking another tile
+                       resets the override slice and exits Custom. */
+                  }}
+                  accentName
+                />
+              </li>
+            );
+          }
           if (e.kind === "default") {
             return (
               <li key="default">
@@ -282,11 +355,13 @@ function ThemePreview({
   vars,
   active,
   onPick,
+  accentName = false,
 }: {
   name: string;
   vars: PreviewVars;
   active: boolean;
   onPick: () => void;
+  accentName?: boolean;
 }) {
   const radius = vars.radius ?? "0.5rem";
   const sans = vars["font-sans"];
@@ -299,6 +374,7 @@ function ThemePreview({
       onPick={onPick}
       ariaLabel={`Apply ${name} theme`}
       name={name}
+      accentName={accentName}
     >
       <div
         className="flex aspect-[5/4] flex-col gap-3 px-4 py-4"

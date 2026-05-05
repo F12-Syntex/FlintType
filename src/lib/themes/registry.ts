@@ -18,6 +18,16 @@ export const THEMES: readonly Theme[] = data as Theme[];
 
 export const STORAGE_KEY = "ft-theme-id";
 
+/** Synthetic palette id reserved for "the user has customised colours
+ *  outside any installed theme". Set automatically when:
+ *    - the user changes any colour via the appearance page
+ *    - a Monkeytype import writes any --background / --foreground / etc.
+ *      override
+ *  PaletteProvider treats this id as a no-op (don't apply or clear any
+ *  theme vars — the inline overrides from useThemeOverrides win on
+ *  their own); the picker UI surfaces it as a "Custom" entry. */
+export const CUSTOM_THEME_ID = "custom";
+
 const ALL_VAR_NAMES: readonly string[] = (() => {
   const set = new Set<string>();
   for (const t of THEMES) {
