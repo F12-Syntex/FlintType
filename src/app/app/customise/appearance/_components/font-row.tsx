@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, ChevronDown } from "lucide-react";
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { MobileSheet } from "@/components/ui/mobile-sheet";
 import {
   Popover,
   PopoverContent,
@@ -17,6 +18,7 @@ import {
 } from "@/components/ui/popover";
 import { FONT_CATALOG, type FontEntry } from "@/lib/fonts/catalog";
 import { loadGoogleFont } from "@/lib/fonts/loader";
+import { useIsMobile } from "@/lib/use-is-mobile";
 import { cn } from "@/lib/utils";
 
 /** Picker entry — either a built-in system stack (resolved from
@@ -134,6 +136,8 @@ function FontPicker({
   onPick: (opt: FontOption) => void;
   children: ReactNode;
 }) {
+  const isMobile = useIsMobile();
+  const [sheetOpen, setSheetOpen] = useState(false);
   const grouped = useMemo(() => {
     const out: Record<FontGroup, FontOption[]> = {
       system: [],
@@ -145,58 +149,78 @@ function FontPicker({
     return out;
   }, []);
 
+  const groups = (Object.keys(grouped) as FontGroup[]).map((g) => (
+    <section
+      key={g}
+      className="border-b border-border last:border-b-0"
+    >
+      <h3 className="sticky top-0 z-10 bg-background px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:bg-popover sm:px-3">
+        {GROUP_LABELS[g]}
+      </h3>
+      <ul>
+        {grouped[g].map((opt) => {
+          const isActive = opt.id === active.id;
+          return (
+            <li key={opt.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  onPick(opt);
+                  setSheetOpen(false);
+                }}
+                className={cn(
+                  "flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors sm:px-3 sm:py-2 sm:text-sm",
+                  "text-base sm:hover:bg-accent sm:hover:text-accent-foreground",
+                  "focus:outline-none focus-visible:bg-accent focus-visible:text-accent-foreground",
+                  isActive && "bg-accent/60",
+                )}
+              >
+                <span className="flex min-w-0 items-center gap-3">
+                  <AaSwatch stack={opt.stack} size="sm" />
+                  <span
+                    className="truncate"
+                    style={{ fontFamily: opt.stack }}
+                  >
+                    {opt.family}
+                  </span>
+                </span>
+                {isActive ? (
+                  <Check
+                    size={16}
+                    className="shrink-0 text-primary"
+                    aria-hidden
+                  />
+                ) : null}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  ));
+
+  if (isMobile) {
+    return (
+      <>
+        <span onClick={() => setSheetOpen(true)} className="contents">
+          {children}
+        </span>
+        <MobileSheet
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+          title="Font"
+        >
+          <div>{groups}</div>
+        </MobileSheet>
+      </>
+    );
+  }
+
   return (
     <Popover>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent align="end" className="w-72 p-0" sideOffset={6}>
-        <div className="max-h-80 overflow-y-auto">
-          {(Object.keys(grouped) as FontGroup[]).map((g) => (
-            <section
-              key={g}
-              className="border-b border-border last:border-b-0"
-            >
-              <h3 className="sticky top-0 z-10 bg-popover px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                {GROUP_LABELS[g]}
-              </h3>
-              <ul>
-                {grouped[g].map((opt) => {
-                  const isActive = opt.id === active.id;
-                  return (
-                    <li key={opt.id}>
-                      <button
-                        type="button"
-                        onClick={() => onPick(opt)}
-                        className={cn(
-                          "flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition-colors",
-                          "hover:bg-accent hover:text-accent-foreground",
-                          "focus:outline-none focus-visible:bg-accent focus-visible:text-accent-foreground",
-                          isActive && "bg-accent/60",
-                        )}
-                      >
-                        <span className="flex min-w-0 items-center gap-3">
-                          <AaSwatch stack={opt.stack} size="sm" />
-                          <span
-                            className="truncate"
-                            style={{ fontFamily: opt.stack }}
-                          >
-                            {opt.family}
-                          </span>
-                        </span>
-                        {isActive ? (
-                          <Check
-                            size={14}
-                            className="shrink-0 text-primary"
-                            aria-hidden
-                          />
-                        ) : null}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
-        </div>
+        <div className="max-h-80 overflow-y-auto">{groups}</div>
       </PopoverContent>
     </Popover>
   );

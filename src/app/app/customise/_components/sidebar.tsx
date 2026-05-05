@@ -1,15 +1,11 @@
 "use client";
 
-import { Check, ChevronDown } from "lucide-react";
+import { Check, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { MobileSheet } from "@/components/ui/mobile-sheet";
 import { cn } from "@/lib/utils";
 import { SECTIONS } from "./data";
 
@@ -21,57 +17,81 @@ function titleCase(name: string): string {
     .join(" ");
 }
 
-/** Compact section dropdown. Lives inside the sticky CustomiseHeader on
- *  mobile so we get one strip of chrome instead of two. */
+/** Section picker for mobile — icon-only trigger that opens a
+ *  fixed-height bottom sheet listing every section. Lives inside the
+ *  sticky CustomiseHeader so the layout has one strip of chrome
+ *  instead of two. */
 export function MobileSectionPicker() {
   const pathname = usePathname();
   const router = useRouter();
+  const [open, setOpen] = useState(false);
   const active = SECTIONS.find(
     (s) => pathname === `/app/customise/${s.id}`,
   );
   const activeName = active ? titleCase(active.name) : "Sections";
 
+  function go(id: string) {
+    setOpen(false);
+    router.push(`/app/customise/${id}`);
+  }
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex max-w-[60vw] items-center gap-2 font-medium"
-        >
-          <span className="truncate text-sm leading-none text-foreground">
-            {activeName}
-          </span>
-          <ChevronDown size={14} className="shrink-0 text-muted-foreground" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="max-h-[60vh] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto">
-        {SECTIONS.map((s) => {
-          const href = `/app/customise/${s.id}`;
-          const isActive = active?.id === s.id;
-          return (
-            <DropdownMenuItem
-              key={s.id}
-              onSelect={() => router.push(href)}
-              className="gap-3 text-foreground"
-            >
-              <span
-                className={cn(
-                  "inline-flex h-4 w-4 items-center justify-center",
-                  isActive ? "text-primary" : "text-transparent",
-                )}
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setOpen(true)}
+        aria-label={`Sections — currently ${activeName}`}
+        className="h-11 w-11 p-0 sm:h-9 sm:w-9"
+      >
+        <Menu size={18} />
+      </Button>
+      <MobileSheet open={open} onOpenChange={setOpen} title="Sections">
+        <ul className="flex flex-col">
+          {SECTIONS.map((s) => {
+            const isActive = active?.id === s.id;
+            return (
+              <li
+                key={s.id}
+                className="border-b border-border last:border-b-0"
               >
-                <Check size={14} />
-              </span>
-              <span className="flex-1">{titleCase(s.name)}</span>
-              <span className="tabular-nums text-xs text-muted-foreground">
-                {s.settings.length}
-              </span>
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+                <button
+                  type="button"
+                  onClick={() => go(s.id)}
+                  className={cn(
+                    "flex w-full items-center gap-3 px-4 py-4 text-left transition-colors",
+                    isActive
+                      ? "bg-foreground/[0.04]"
+                      : "hover:bg-foreground/5 active:bg-foreground/10",
+                  )}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  <span
+                    className={cn(
+                      "inline-flex h-5 w-5 shrink-0 items-center justify-center",
+                      isActive ? "text-primary" : "text-transparent",
+                    )}
+                  >
+                    <Check size={18} />
+                  </span>
+                  <span
+                    className={cn(
+                      "flex-1 text-base font-semibold",
+                      isActive ? "text-foreground" : "text-foreground/90",
+                    )}
+                  >
+                    {titleCase(s.name)}
+                  </span>
+                  <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+                    {s.settings.length}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </MobileSheet>
+    </>
   );
 }
 

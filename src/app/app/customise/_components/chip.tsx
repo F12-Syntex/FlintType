@@ -27,8 +27,10 @@ export function Chip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "flex flex-col items-center gap-1 rounded-md border font-semibold uppercase tracking-wider transition-colors",
-        preview ? "px-2 py-1.5 text-[10px]" : "px-2.5 py-1 text-[11px]",
+        "flex min-h-9 flex-col items-center justify-center gap-1 rounded-md border font-semibold uppercase tracking-wider transition-colors",
+        preview
+          ? "px-3 py-2 text-[11px] sm:px-2 sm:py-1.5 sm:text-[10px]"
+          : "px-3 py-2 text-xs sm:px-2.5 sm:py-1 sm:text-[11px]",
         active
           ? "border-primary bg-primary/10 text-primary"
           : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",

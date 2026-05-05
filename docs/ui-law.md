@@ -391,6 +391,47 @@ When you add a new row to the spacing or layout tables:
 - If the value might ever differ between mobile and desktop, write the pair inline: `py-10 sm:py-20`. Don't ship a single-value row "for now" and plan to revisit — future-you will forget.
 - If the value is genuinely viewport-independent (icon size, input border), a single value is fine.
 
+### 10.5 Pickers on mobile use a bottom sheet, not a popover
+
+Any popover or dropdown that hosts a list of choices (theme picker, font picker, colour picker, section picker, import-source picker, …) must render as a fixed-height bottom-anchored modal on mobile. Reach for `<MobileSheet>` from `@/components/ui/mobile-sheet` — it portals to `document.body`, slides up from the bottom edge, locks at `h-[75dvh]` every time, and provides a header bar with a close affordance. Touch the iOS home-indicator inset via the built-in `safe-pb`.
+
+Branch on `useIsMobile()` from `@/lib/use-is-mobile`:
+
+```tsx
+const isMobile = useIsMobile();
+
+if (isMobile) {
+  return (
+    <>
+      <span onClick={() => setOpen(true)} className="contents">{trigger}</span>
+      <MobileSheet open={open} onOpenChange={setOpen} title="Pick a theme">
+        {/* same items as the desktop popover */}
+      </MobileSheet>
+    </>
+  );
+}
+return <Popover>{/* desktop UI */}</Popover>;
+```
+
+The desktop side keeps its existing `<Popover>` / `<DropdownMenu>` surface — they remain the right primitive for ≥ md viewports. The fixed-height rule on mobile is load-bearing: a sheet that sometimes covers half the screen and sometimes 80% of it makes the whole app feel jittery between settings.
+
+### 10.6 Mobile header chrome — icon-only buttons, ≥ 44 px
+
+Sticky chrome rows (the customise page header, the top bar, etc.) must collapse text-bearing toolbar buttons to **icon-only** at < `sm:` so a 375 px viewport doesn't wrap into two rows. Pair every icon-only button with an `aria-label` that carries the dropped text (`aria-label="Export settings"`). Touch targets stay ≥ 44 × 44 px on mobile (`h-11 w-11`) and may shrink to the shadcn `h-9` once `sm:`+ has the room.
+
+```tsx
+<Button
+  variant="outline"
+  size="sm"
+  onClick={onExport}
+  aria-label="Export settings"
+  className="h-11 w-11 p-0 sm:h-8 sm:w-auto sm:gap-2 sm:px-3"
+>
+  <Download size={18} className="shrink-0 sm:size-3.5" />
+  <span className="hidden sm:inline">Export</span>
+</Button>
+```
+
 ---
 
 ## 11. Flinttype primitives

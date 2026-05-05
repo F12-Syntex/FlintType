@@ -25,12 +25,12 @@ export function SettingsPageHeader({
     <header className="mb-6 border-b border-border pb-4">
       <div className="mb-2 flex items-center gap-3">
         <span aria-hidden className="inline-block h-px w-5 bg-primary" />
-        <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground sm:text-xs sm:font-medium">
           Section
         </span>
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
+        <h2 className="text-2xl font-bold tracking-tight sm:text-2xl">
           {title}
         </h2>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -52,7 +52,7 @@ export function SettingsPageHeader({
         </div>
       </div>
       {description ? (
-        <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+        <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-sm">
           {description}
         </p>
       ) : null}
@@ -64,7 +64,7 @@ export function SectionHeader({ label }: { label: string }) {
   return (
     <div className="mb-3 flex items-center gap-3">
       <span aria-hidden className="inline-block h-px w-5 bg-primary" />
-      <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground sm:text-sm">
+      <h3 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground sm:text-sm">
         {label}
       </h3>
     </div>

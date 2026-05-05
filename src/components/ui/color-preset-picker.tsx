@@ -7,11 +7,13 @@ import { ArrowLeft, Pipette } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MobileSheet } from "@/components/ui/mobile-sheet";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useIsMobile } from "@/lib/use-is-mobile";
 import { cn } from "@/lib/utils";
 
 /** Curated palette — five rows of eight Tailwind-style swatches. The
@@ -69,10 +71,15 @@ function Swatch({
   hex,
   active,
   onClick,
+  mobile = false,
 }: {
   hex: string;
   active: boolean;
   onClick: () => void;
+  /** On mobile the swatch grid lives inside a fixed-height bottom sheet
+   *  with much more horizontal real estate, so each cell can grow into
+   *  a comfortable touch target. */
+  mobile?: boolean;
 }) {
   return (
     <button
@@ -81,7 +88,8 @@ function Swatch({
       aria-label={`Pick ${hex}`}
       aria-pressed={active}
       className={cn(
-        "relative h-7 w-7 rounded-md border transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "relative aspect-square w-full rounded-md border transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        mobile ? "min-h-10" : "h-7 w-7",
         active
           ? "border-primary ring-2 ring-primary/40"
           : "border-foreground/15",
@@ -98,10 +106,15 @@ function CustomWheel({
   value,
   onChange,
   onBack,
+  embedded = false,
 }: {
   value: string | undefined;
   onChange: (hex: string) => void;
   onBack: () => void;
+  /** When true, the back-arrow + "Custom" eyebrow header is suppressed
+   *  because the surrounding chrome (e.g. <MobileSheet>) already shows
+   *  it in its own header bar. */
+  embedded?: boolean;
 }) {
   const initial: HsvaColor =
     value && /^#[0-9a-f]{6}$/i.test(value)
@@ -119,20 +132,22 @@ function CustomWheel({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 w-7 p-0"
-          onClick={onBack}
-          aria-label="Back to presets"
-        >
-          <ArrowLeft size={14} />
-        </Button>
-        <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-          Custom
-        </span>
-      </div>
+      {embedded ? null : (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={onBack}
+            aria-label="Back to presets"
+          >
+            <ArrowLeft size={14} />
+          </Button>
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            Custom
+          </span>
+        </div>
+      )}
       <Saturation
         hsva={hsv}
         onChange={update}
@@ -183,6 +198,7 @@ export function ColorPresetPicker({
   /** The trigger element rendered inside `<PopoverTrigger asChild>`. */
   children: ReactNode;
 }) {
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"presets" | "custom">("presets");
 
@@ -193,52 +209,89 @@ export function ColorPresetPicker({
     setOpen(false);
   }
 
-  // Reset view back to presets each time the popover closes so the
+  // Reset view back to presets each time the picker closes so the
   // next open-fresh-from-trigger is always the swatch grid.
   function handleOpenChange(next: boolean) {
     setOpen(next);
     if (!next) setView("presets");
   }
 
+  const presetGrid = (
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-8 gap-1.5 sm:grid-cols-8">
+        {PRESET_SWATCHES.map((hex) => (
+          <Swatch
+            key={hex}
+            hex={hex}
+            active={normalised === hex.toLowerCase()}
+            onClick={() => pick(hex)}
+            mobile={isMobile}
+          />
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between border-t border-border pt-2">
+        <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
+          {value ? value.toUpperCase() : "Default"}
+        </span>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-9 gap-1.5 text-[11px] uppercase tracking-widest"
+          onClick={() => setView("custom")}
+        >
+          <Pipette size={14} />
+          Custom
+        </Button>
+      </div>
+    </div>
+  );
+
+  const wheel = (
+    <CustomWheel
+      value={value}
+      onChange={onChange}
+      onBack={() => setView("presets")}
+      embedded={isMobile}
+    />
+  );
+
+  if (isMobile) {
+    return (
+      <>
+        <span onClick={() => setOpen(true)} className="contents">
+          {children}
+        </span>
+        <MobileSheet
+          open={open}
+          onOpenChange={handleOpenChange}
+          title={view === "custom" ? "Custom colour" : "Pick a colour"}
+          leading={
+            view === "custom" ? (
+              <button
+                type="button"
+                aria-label="Back to presets"
+                onClick={() => setView("presets")}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+              >
+                <ArrowLeft size={18} />
+              </button>
+            ) : undefined
+          }
+        >
+          <div className="px-4 py-4">
+            {view === "presets" ? presetGrid : wheel}
+          </div>
+        </MobileSheet>
+      </>
+    );
+  }
+
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent align="end" className="w-auto p-3">
-        {view === "presets" ? (
-          <div className="flex flex-col gap-3">
-            <div className="grid grid-cols-8 gap-1.5">
-              {PRESET_SWATCHES.map((hex) => (
-                <Swatch
-                  key={hex}
-                  hex={hex}
-                  active={normalised === hex.toLowerCase()}
-                  onClick={() => pick(hex)}
-                />
-              ))}
-            </div>
-
-            <div className="flex items-center justify-between border-t border-border pt-2">
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                {value ? value.toUpperCase() : "Default"}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 gap-1 text-[10px] uppercase tracking-widest"
-                onClick={() => setView("custom")}
-              >
-                <Pipette size={12} />
-                Custom
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <CustomWheel
-            value={value}
-            onChange={onChange}
-            onBack={() => setView("presets")}
-          />
-        )}
+        {view === "presets" ? presetGrid : wheel}
       </PopoverContent>
     </Popover>
   );

@@ -19,11 +19,13 @@ export function SettingsRow({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-md border border-border bg-card px-3 py-3 sm:min-h-16 sm:max-h-48 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4 sm:py-0",
+        "flex flex-col gap-3 rounded-md border border-border bg-card px-4 py-4 sm:min-h-16 sm:max-h-48 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4 sm:py-0",
         className,
       )}
     >
-      <span className="text-sm font-medium text-foreground">{label}</span>
+      <span className="text-base font-semibold text-foreground sm:text-sm sm:font-medium">
+        {label}
+      </span>
       {control}
     </div>
   );
