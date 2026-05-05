@@ -345,7 +345,7 @@ function AdaptModal({
               adaptive drilling
             </span>
             <span className="text-sm text-foreground">
-              Focus future passages on your weakest keys.
+              Practice biases toward what's actually slowing you down.
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -361,6 +361,34 @@ function AdaptModal({
           </div>
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          <div className="mb-4 space-y-3 text-sm leading-relaxed text-muted-foreground">
+            <p>
+              Every keystroke timing feeds three models — <span className="text-foreground">bigrams</span>{" "}
+              and <span className="text-foreground">trigrams</span> for the
+              raw pairs and triplets you actually type, plus{" "}
+              <span className="text-foreground">motor features</span> derived
+              from the hand layout below (same-finger transitions, cross-hand
+              jumps, row-jumps, and so on).
+            </p>
+            <p>
+              For each pattern with enough samples, your running mean is
+              compared against your own baseline. Patterns where you've
+              fallen behind score as weaknesses, weighted by how confident
+              the model is in the measurement.
+            </p>
+            <p>
+              Future passages sample words from a productive{" "}
+              <span className="text-foreground">challenge band</span> just
+              above your current speed — never so far above that you stall —
+              with a recency penalty so the same words don't repeat, and a
+              fatigue dampener that softens the difficulty when recent
+              sessions show your speed declining.
+            </p>
+            <p className="text-xs">
+              Adaptive drilling runs on desktop only — phone-sized viewports
+              always behave as if it's off, regardless of this toggle.
+            </p>
+          </div>
           <div className="rounded-md border border-border bg-background p-3">
             <HandLayoutEditor mode="static" />
           </div>

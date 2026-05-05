@@ -16,6 +16,7 @@ import {
   useBehaviourPrefs,
 } from "@/lib/behaviour-prefs";
 import { loadQuotes, pickQuote, type QuoteGroup } from "@/lib/quotes";
+import { useIsMobile } from "@/lib/use-is-mobile";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { calcWpmAndRaw, countChars } from "@/lib/wpm";
 import englishWords from "@/data/english.json";
@@ -466,6 +467,12 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
   const { prefs } = useBehaviourPrefs();
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;
+  // Adaptive drilling is desktop-only. On a mobile viewport we expose
+  // adapt as `false` to every consumer regardless of the user's stored
+  // preference — so a desktop user who flipped it on doesn't carry the
+  // setting onto their phone. The stored preference is preserved
+  // unchanged; switching back to desktop restores the user's choice.
+  const isMobile = useIsMobile();
   const {
     value: practiceSlice,
     update: updatePracticeSlice,
@@ -653,8 +660,14 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
         });
       }
     };
+    // Effective state — see comment on `isMobile` declaration above.
+    // Stored preference (state.adapt) is unchanged; only the value
+    // exposed to consumers flips off when on a phone-sized viewport.
+    const effectiveState = isMobile && state.adapt
+      ? { ...state, adapt: false }
+      : state;
     return {
-      state,
+      state: effectiveState,
       dispatch,
       elapsedMs,
       wpm,
@@ -717,7 +730,7 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
         });
       },
     };
-  }, [state, elapsedMs, wpmHistory]);
+  }, [state, elapsedMs, wpmHistory, isMobile]);
 
   // Keyboard listener — only when user isn't typing into another input.
   const stateRef = useRef(state);
