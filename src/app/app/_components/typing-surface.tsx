@@ -32,8 +32,9 @@ export type TypingSurfaceProps = {
  *  surfaces all hang off this.
  *
  *  Mobile vertical budget (no scroll, see <AppChrome compact>):
- *  TopBar — collapsed ModeBar strip — compact Readouts strip — flex-1
- *  Passage (internal scroll-into-view only) — RestHint footer row.
+ *  TopBar — collapsed ModeBar strip — flex-1 Passage (internal
+ *  scroll-into-view only) — RestHint footer row (live readouts on the
+ *  left, cancel/restart on the right; both ghost-styled, no chrome).
  */
 export function TypingSurface(props: TypingSurfaceProps = {}) {
   return (
@@ -96,11 +97,6 @@ function TypingSurfaceBody({
   return (
     <>
       {showModeBar ? <ModeBar /> : null}
-      {showReadouts && !done ? (
-        <div className="md:hidden">
-          <Readouts />
-        </div>
-      ) : null}
       <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pt-4 pb-3 sm:gap-6 sm:px-12 sm:py-8 lg:px-20">
         {showReadouts && !done ? (
           <div className="hidden md:block">
@@ -112,7 +108,7 @@ function TypingSurfaceBody({
         </div>
         {showRestHint && !done ? (
           <div className="md:hidden">
-            <RestHint />
+            <RestHint showReadouts={showReadouts} />
           </div>
         ) : null}
         {!done ? belowHint : null}

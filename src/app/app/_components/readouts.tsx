@@ -53,7 +53,7 @@ function useLiveStatGate(style: LiveStatStyle): {
   return { rendered: true, cls: "" };
 }
 
-export function Readouts() {
+function useStatsProps(): StatsProps {
   const { state, elapsedMs, wpm, accuracy, wpmHistory } = usePractice();
   const { prefs: behaviour } = useBehaviourPrefs();
   const { prefs: appearance } = useAppearancePrefs();
@@ -85,7 +85,7 @@ export function Readouts() {
     color: appearance.liveStatsColor || undefined,
   };
 
-  const props: StatsProps = {
+  return {
     wpm,
     accuracy,
     burst,
@@ -104,13 +104,19 @@ export function Readouts() {
     alwaysDecimal: appearance.alwaysShowDecimal,
     style: containerStyle,
   };
+}
 
-  return (
-    <>
-      <MobileStrip {...props} />
-      <DesktopStats {...props} />
-    </>
-  );
+/** Desktop-only readouts strip. Mobile uses <MobileReadouts /> embedded
+ *  inside <RestHint />'s footer row so the stats sit alongside the
+ *  cancel control instead of taking a separate rail above the passage. */
+export function Readouts() {
+  return <DesktopStats {...useStatsProps()} />;
+}
+
+/** Inline pip row for mobile — no chrome (no border, no bg, no padding).
+ *  Consumer wraps it in whatever footer container makes sense. */
+export function MobileReadouts() {
+  return <MobileStrip {...useStatsProps()} />;
 }
 
 type StatsProps = {
@@ -160,7 +166,7 @@ function MobileStrip(props: StatsProps) {
 
   return (
     <div
-      className="flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-2 tabular-nums md:hidden"
+      className="flex flex-wrap items-center gap-x-3 gap-y-1 tabular-nums"
       style={style}
     >
       {speed.rendered ? (

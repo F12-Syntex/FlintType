@@ -3,38 +3,44 @@
 import { Kbd } from "@/components/ft";
 import { cn } from "@/lib/utils";
 import { usePractice } from "./practice-state";
+import { MobileReadouts } from "./readouts";
 
-/** A single quiet line below the passage — three states.
- *  No cards, no callouts, no "today's target" interruption.
+/** Single footer row below the passage on mobile — three states.
+ *  Stats sit on the left (via <MobileReadouts />) and the
+ *  cancel/restart affordance sits on the right, all on the page bg
+ *  with no card chrome. Desktop ignores this file entirely (the rest
+ *  hint there lives via the keycap hint inside <RestartControl>).
  *
- *  Mobile: a tappable RESTART button replaces the Tab/Esc keycap hints
- *  (those keys don't exist on virtual keyboards). On desktop the keycap
- *  hints stay visible — they're how power users restart fastest. */
-export function RestHint() {
+ *  showReadouts mirrors the typing-surface flag — when stats are off
+ *  the row falls back to the previous "0/25 words" / "complete"
+ *  summary so the footer is never empty. */
+export function RestHint({ showReadouts = true }: { showReadouts?: boolean }) {
   const { state, restart, wpm, accuracy } = usePractice();
 
   if (state.phase === "done") {
     return (
       <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-        <div className="flex flex-wrap items-center gap-2">
-          <span aria-hidden className="size-1.5 rounded-full bg-primary" />
-          <span className="font-semibold text-primary">complete</span>
-          <span aria-hidden className="text-muted-foreground/60">·</span>
-          <span className="text-foreground">{wpm} wpm</span>
-          <span aria-hidden className="text-muted-foreground/60">·</span>
-          <span className="text-foreground">{Math.round(accuracy)}% acc</span>
-        </div>
+        {showReadouts ? (
+          <MobileReadouts />
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <span aria-hidden className="size-1.5 rounded-full bg-primary" />
+            <span className="font-semibold text-primary">complete</span>
+            <span aria-hidden className="text-muted-foreground/60">·</span>
+            <span className="text-foreground">{wpm} wpm</span>
+            <span aria-hidden className="text-muted-foreground/60">·</span>
+            <span className="text-foreground">{Math.round(accuracy)}% acc</span>
+          </div>
+        )}
         <RestartControl onRestart={() => restart()} />
       </div>
     );
   }
 
   if (state.phase === "running") {
-    // Progress (0/25 words, or 0:30 left) already lives in the readouts
-    // rail above the passage — duplicating it here just crowded the
-    // footer. Render only a quiet right-aligned cancel affordance.
     return (
-      <div className="flex items-center justify-end text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+        {showReadouts ? <MobileReadouts /> : <span aria-hidden />}
         <CancelControl onCancel={() => restart()} />
       </div>
     );
@@ -42,7 +48,7 @@ export function RestHint() {
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-      <span>start typing to begin</span>
+      {showReadouts ? <MobileReadouts /> : <span>start typing to begin</span>}
       <RestartControl onRestart={() => restart()} label="new passage" />
     </div>
   );
@@ -63,16 +69,15 @@ function RestartControl({
         <Kbd>tab</Kbd>
         <span>{label}</span>
       </div>
-      {/* Mobile — a real button */}
+      {/* Mobile — ghost text button matching the cancel control so the
+          footer row reads as one borderless rail. */}
       <button
         type="button"
         onClick={onRestart}
         className={cn(
-          "inline-flex h-11 min-w-[112px] items-center justify-center md:hidden",
-          "rounded-md border border-border bg-card px-4",
-          "text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground",
-          "transition-colors hover:border-primary hover:text-primary",
-          "active:bg-accent",
+          "inline-flex h-11 items-center justify-center px-2 md:hidden",
+          "text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground",
+          "transition-colors hover:text-primary",
         )}
       >
         {label}
