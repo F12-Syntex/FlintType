@@ -27,13 +27,13 @@ export function RestHint() {
 
   if (state.phase === "done") {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em]">
-        <div className="flex flex-wrap items-center gap-3 text-primary">
-          <span className="size-1.5 bg-primary" aria-hidden />
-          <span className="font-semibold">complete</span>
-          <span className="text-muted-foreground/80">·</span>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2">
+          <span aria-hidden className="size-1.5 rounded-full bg-primary" />
+          <span className="font-semibold text-primary">complete</span>
+          <span aria-hidden className="text-muted-foreground/60">·</span>
           <span className="text-foreground">{wpm} wpm</span>
-          <span className="text-muted-foreground/80">·</span>
+          <span aria-hidden className="text-muted-foreground/60">·</span>
           <span className="text-foreground">{Math.round(accuracy)}% acc</span>
         </div>
         <RestartControl onRestart={() => restart()} />

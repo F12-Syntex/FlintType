@@ -265,7 +265,7 @@ function MobileBar() {
         ? `${state.length}s`
         : String(state.length);
   return (
-    <div className="border-b border-border bg-card md:hidden">
+    <div className="border-b border-border bg-background md:hidden">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -273,20 +273,18 @@ function MobileBar() {
         aria-controls="mode-bar-controls"
         className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-[10px] uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground"
       >
-        <span className="flex min-w-0 items-center gap-1.5 truncate">
+        <span className="flex min-w-0 items-center gap-2 truncate">
           <span className="font-semibold text-foreground">{state.mode}</span>
           <span aria-hidden className="text-muted-foreground/60">·</span>
           <span className="font-semibold text-foreground">{lengthSummary}</span>
           {state.adapt ? (
-            <>
-              <span aria-hidden className="text-muted-foreground/60">·</span>
-              <span className="font-semibold text-primary">adapt</span>
-            </>
+            <span className="ml-1 inline-flex items-center gap-1.5 font-semibold text-foreground">
+              <span aria-hidden className="size-1.5 rounded-full bg-primary" />
+              adapt
+            </span>
           ) : null}
         </span>
-        <span aria-hidden className="text-[12px] leading-none">
-          {open ? "▴" : "▾"}
-        </span>
+        <ChevronIcon open={open} />
       </button>
       {open ? (
         <div id="mode-bar-controls" className="px-4 pt-1 pb-3">
@@ -294,6 +292,24 @@ function MobileBar() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-4 shrink-0 transition-transform duration-150"
+      style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+      aria-hidden
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
   );
 }
 

@@ -160,37 +160,26 @@ function MobileStrip(props: StatsProps) {
 
   return (
     <div
-      className="flex items-center justify-between gap-2 border-b border-border bg-card/60 px-4 py-2 text-[11px] tabular-nums md:hidden"
+      className="flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-2 tabular-nums md:hidden"
       style={style}
     >
       {speed.rendered ? (
-        <div className={cn("flex items-baseline gap-1", speed.cls)}>
-          <span
-            className={cn(
-              "text-base font-bold tracking-tight",
-              running ? "text-primary" : "text-foreground",
-            )}
-          >
-            {formatSpeed(wpm, unit, alwaysDecimal)}
-          </span>
-          <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-            {SPEED_UNIT_LABEL[unit]}
-          </span>
-        </div>
+        <Pip
+          label={SPEED_UNIT_LABEL[unit]}
+          value={formatSpeed(wpm, unit, alwaysDecimal)}
+          tone={running ? "primary" : "ink"}
+          cls={speed.cls}
+        />
       ) : null}
 
       {acc.rendered ? (
         <Pip label="acc" value={`${Math.round(accuracy)}%`} cls={acc.cls} />
       ) : null}
       {/* Errors only matter while running; behaviour blind-mode hides
-          everything anyway via the upstream stat-style gates. */}
-      {running ? (
-        <Pip
-          label="err"
-          value={String(errs)}
-          tone={errs > 0 ? "ember" : "ink"}
-        />
-      ) : null}
+          everything anyway via the upstream stat-style gates. WPM
+          already carries the single primary accent — keep err in
+          foreground so the rail has one focal point. */}
+      {running ? <Pip label="err" value={String(errs)} /> : null}
       {burstGate.rendered ? (
         <Pip
           label="burst"
@@ -225,7 +214,7 @@ function Pip({
 }: {
   label: string;
   value: string;
-  tone?: "ink" | "ember";
+  tone?: "ink" | "primary";
   cls?: string;
 }) {
   return (
@@ -233,7 +222,7 @@ function Pip({
       <span
         className={cn(
           "text-sm font-semibold tracking-tight",
-          tone === "ember" ? "text-primary" : "text-foreground",
+          tone === "primary" ? "text-primary" : "text-foreground",
         )}
       >
         {value}
