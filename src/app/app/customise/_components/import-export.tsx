@@ -98,9 +98,9 @@ export function ImportExportControls() {
         size="sm"
         onClick={() => void handleExport()}
         aria-label="Export settings"
-        className="h-11 w-11 p-0 sm:h-8 sm:w-auto sm:gap-2 sm:px-3"
+        className="h-9 w-9 p-0 sm:h-8 sm:w-auto sm:gap-2 sm:px-3"
       >
-        <Download size={18} className="shrink-0 sm:size-3.5" />
+        <Download size={16} className="shrink-0 sm:size-3.5" />
         <span className="hidden sm:inline">Export</span>
       </Button>
 
@@ -112,9 +112,9 @@ export function ImportExportControls() {
           size="sm"
           onClick={() => setSheetOpen(true)}
           aria-label="Import settings"
-          className="h-11 w-11 p-0"
+          className="h-9 w-9 p-0"
         >
-          <Upload size={18} className="shrink-0" />
+          <Upload size={16} className="shrink-0" />
         </Button>
       ) : (
         <DropdownMenu>

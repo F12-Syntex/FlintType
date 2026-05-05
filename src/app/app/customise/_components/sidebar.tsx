@@ -42,9 +42,9 @@ export function MobileSectionPicker() {
         size="sm"
         onClick={() => setOpen(true)}
         aria-label={`Sections — currently ${activeName}`}
-        className="h-11 w-11 p-0 sm:h-9 sm:w-9"
+        className="h-9 w-9 p-0"
       >
-        <Menu size={18} />
+        <Menu size={16} />
       </Button>
       <MobileSheet open={open} onOpenChange={setOpen} title="Sections">
         <ul className="flex flex-col">

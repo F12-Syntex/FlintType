@@ -415,9 +415,13 @@ return <Popover>{/* desktop UI */}</Popover>;
 
 The desktop side keeps its existing `<Popover>` / `<DropdownMenu>` surface — they remain the right primitive for ≥ md viewports. The fixed-height rule on mobile is load-bearing: a sheet that sometimes covers half the screen and sometimes 80% of it makes the whole app feel jittery between settings.
 
-### 10.6 Mobile header chrome — icon-only buttons, ≥ 44 px
+### 10.6 Mobile header chrome — icon-only buttons
 
-Sticky chrome rows (the customise page header, the top bar, etc.) must collapse text-bearing toolbar buttons to **icon-only** at < `sm:` so a 375 px viewport doesn't wrap into two rows. Pair every icon-only button with an `aria-label` that carries the dropped text (`aria-label="Export settings"`). Touch targets stay ≥ 44 × 44 px on mobile (`h-11 w-11`) and may shrink to the shadcn `h-9` once `sm:`+ has the room.
+Sticky chrome rows (the customise page header, the top bar, etc.) must collapse text-bearing toolbar buttons to **icon-only** at < `sm:` so a 375 px viewport doesn't wrap into two rows. Pair every icon-only button with an `aria-label` that carries the dropped text (`aria-label="Export settings"`).
+
+Two size tracks, picked by role:
+- **Primary mobile chrome (top bar bell, hamburger, profile actions)** — 44 px (`h-11 w-11`). These are the load-bearing nav affordances and need the §7 touch-target floor.
+- **Secondary in-page toolbar chrome (settings header, filter bars, list-row utilities)** — 36 px (`h-9 w-9`). Padding around the row keeps the effective tap area generous, and a 44 px control inside an in-page chrome strip swells the strip taller than the top bar above it, which reads as visually heavy. Reserve this size for non-primary actions (section pickers, import/export, sort, filter); never for the page's primary CTA.
 
 ```tsx
 <Button
@@ -425,9 +429,9 @@ Sticky chrome rows (the customise page header, the top bar, etc.) must collapse 
   size="sm"
   onClick={onExport}
   aria-label="Export settings"
-  className="h-11 w-11 p-0 sm:h-8 sm:w-auto sm:gap-2 sm:px-3"
+  className="h-9 w-9 p-0 sm:h-8 sm:w-auto sm:gap-2 sm:px-3"
 >
-  <Download size={18} className="shrink-0 sm:size-3.5" />
+  <Download size={16} className="shrink-0 sm:size-3.5" />
   <span className="hidden sm:inline">Export</span>
 </Button>
 ```
