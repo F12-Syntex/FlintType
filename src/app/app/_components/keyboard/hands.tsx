@@ -17,19 +17,21 @@ type Rect = { x: number; y: number; w: number; h: number };
 type Pt = { x: number; y: number };
 type Pointer = { x: number; y: number };
 
-/** Stroke thickness per finger — thicker for the larger fingers, thumb
- *  is the chunkiest. Tuned by eye against the keyboard scale. */
-const FINGER_STROKE: Record<FingerId, number> = {
-  L5: 14,
-  L4: 17,
-  L3: 18,
-  L2: 18,
-  L1: 22,
-  R1: 22,
-  R2: 18,
-  R3: 18,
-  R4: 17,
-  R5: 14,
+/** Per-finger thickness pair (base, tip) — tapered so each finger reads
+ *  like an actual finger silhouette rather than a uniform stick. Tuned
+ *  against the default keyboard key size; the SVG scales naturally
+ *  with the rest of the popover so these numbers don't need to flex. */
+const FINGER_WIDTH: Record<FingerId, { base: number; tip: number }> = {
+  L5: { base: 18, tip: 13 }, // pinky
+  L4: { base: 22, tip: 16 }, // ring
+  L3: { base: 24, tip: 17 }, // middle
+  L2: { base: 23, tip: 17 }, // index
+  L1: { base: 28, tip: 21 }, // thumb
+  R1: { base: 28, tip: 21 },
+  R2: { base: 23, tip: 17 },
+  R3: { base: 24, tip: 17 },
+  R4: { base: 22, tip: 16 },
+  R5: { base: 18, tip: 13 },
 };
 
 const DRAG_THRESHOLD_PX = 5;
@@ -174,7 +176,7 @@ export function HandLayoutEditor(props: KeyboardProps) {
       {/* Keyboard wrapper. Bottom padding leaves room for the wrists.
        *  All hand visuals are anchored inside this wrapper so they
        *  share one coordinate system with the keys themselves. */}
-      <div ref={kbRef} className="relative pb-16">
+      <div ref={kbRef} className="relative pb-28">
         <Keyboard {...props} />
 
         {/* Ghost hands — purely decorative, painted in foreground at
@@ -194,7 +196,6 @@ export function HandLayoutEditor(props: KeyboardProps) {
               tipOf={tipOf}
               enabled={(fid) => layout.fingers[fid].enabled}
               draggingFid={drag?.active ? drag.finger : null}
-              kbHeight={size.h}
             />
             <GhostHand
               side="right"
@@ -202,7 +203,6 @@ export function HandLayoutEditor(props: KeyboardProps) {
               tipOf={tipOf}
               enabled={(fid) => layout.fingers[fid].enabled}
               draggingFid={drag?.active ? drag.finger : null}
-              kbHeight={size.h}
             />
           </svg>
         ) : null}
@@ -284,28 +284,26 @@ export function HandLayoutEditor(props: KeyboardProps) {
   );
 }
 
-/** One ghost hand, drawn as filled palm + wrist + 5 stroked finger
- *  paths. All shapes paint in `currentColor` at low alpha so the result
- *  reads as a soft silhouette under the keys, never obscuring them.
- *  Geometry derives from fingertip positions: the palm sits below the
- *  median fingertip, the wrist trails further down, fingers curve from
- *  the palm edge up to each tip. */
+/** One ghost hand, drawn as a unified silhouette: an elliptical palm,
+ *  a tapering wrist, and five tapered finger shapes (polygon body +
+ *  base / tip circles for rounded ends). Everything paints in
+ *  `currentColor` and is wrapped in a single `<g>` whose group opacity
+ *  flattens the layered shapes — so the palm, the wrist, the finger
+ *  bases and the fingers themselves read as one cohesive limb instead
+ *  of a stack of strokes that visibly seam together. */
 function GhostHand({
   side,
   fingers,
   tipOf,
   enabled,
   draggingFid,
-  kbHeight,
 }: {
   side: "left" | "right";
   fingers: readonly FingerId[];
   tipOf: (fid: FingerId) => Pt | null;
   enabled: (fid: FingerId) => boolean;
   draggingFid: FingerId | null;
-  kbHeight: number;
 }) {
-  // Resolve tip positions, skipping any that haven't measured yet.
   const tips = fingers
     .map((fid) => ({ fid, tip: tipOf(fid) }))
     .filter((e): e is { fid: FingerId; tip: Pt } => e.tip != null);
@@ -317,121 +315,126 @@ function GhostHand({
   const minX = Math.min(...xs);
   const maxX = Math.max(...xs);
   const tipsCY = Math.max(...ys);
-  const palmW = maxX - minX + 56;
-  const palmH = 56;
+
+  // Palm geometry. The ellipse sits ~80px below the home row and spans
+  // a touch wider than the non-thumb fingertip span, giving the four
+  // straight fingers a natural place to attach.
   const palmCX = (minX + maxX) / 2;
-  const palmCY = tipsCY + 60;
-  // Tilt: pull the palm/wrist toward the body's centre line so the
-  // hand looks anatomically correct (left hand angles right, right
-  // hand angles left).
-  const tilt = side === "left" ? 12 : -12;
+  const palmCY = tipsCY + 80;
+  const palmRX = (maxX - minX) / 2 + 26;
+  const palmRY = 34;
+
+  // Wrist trails below the palm, narrower than the palm and rotated
+  // toward the body's midline so the hand reads as anatomically tilted
+  // (left hand angles right, right hand angles left).
+  const tilt = side === "left" ? 14 : -14;
   const wristCX = palmCX + tilt;
-  const wristY = Math.max(palmCY + palmH * 0.7 + 18, kbHeight - 4);
+  const wristTopY = palmCY + palmRY * 0.85;
+  const wristBotY = palmCY + palmRY + 56;
+  const wristTopHalf = palmRX * 0.65;
+  const wristBotHalf = palmRX * 0.5;
 
   const thumbFid = side === "left" ? ("L1" as const) : ("R1" as const);
-  const thumbTip = tips.find((e) => e.fid === thumbFid)?.tip;
 
-  // Distribute non-thumb finger bases along the top edge of the palm,
-  // ordered so left's pinky→index spans left→right and right's index→
-  // pinky spans left→right. This keeps each finger's base directly
-  // below its tip, so the curves don't cross.
+  // Non-thumb finger bases sit on the top arc of the ellipse, evenly
+  // spaced and ordered so each base lands directly below its tip — no
+  // crossed fingers.
   const orderedNonThumb = [...nonThumb].sort((a, b) => a.tip.x - b.tip.x);
-  const baseTopY = palmCY - palmH * 0.45;
-  const baseSpan = palmW * 0.78;
-  const baseStart = palmCX - baseSpan / 2 + tilt * 0.6;
   const fingerBases = new Map<FingerId, Pt>();
   orderedNonThumb.forEach((e, i) => {
     const t = (i + 0.5) / orderedNonThumb.length;
-    fingerBases.set(e.fid, { x: baseStart + t * baseSpan, y: baseTopY });
+    const localX = (t - 0.5) * 2 * palmRX * 0.78;
+    // Top of the ellipse at this localX: y = -ry * sqrt(1 - x²/rx²)
+    const yOff = -palmRY * Math.sqrt(Math.max(0, 1 - (localX / palmRX) ** 2));
+    fingerBases.set(e.fid, { x: palmCX + localX, y: palmCY + yOff });
   });
 
-  // Thumb base sits on the palm's inner side, lower than the four
-  // fingers — left hand's thumb anchors right, right hand's anchors
-  // left. The control point swings outward so the thumb path curves
-  // through the natural arc to Space.
+  // Thumb base anchors on the palm's inner-lower flank — that's where
+  // the thenar muscle sits anatomically. Left hand's thumb hangs off
+  // the right side of the palm; right hand's hangs off the left.
   const thumbBase: Pt = {
-    x: palmCX + (side === "left" ? palmW * 0.32 : -palmW * 0.32) + tilt * 0.4,
-    y: palmCY + palmH * 0.05,
+    x: palmCX + (side === "left" ? palmRX * 0.55 : -palmRX * 0.55),
+    y: palmCY + palmRY * 0.15,
   };
 
-  // Palm shape: rounded trapezoid spanning finger bases at the top and
-  // the wrist at the bottom. Built from a single path with arcs at the
-  // corners so the palm and wrist read as one continuous limb.
-  const palmLeft = palmCX - palmW / 2 + tilt * 0.6;
-  const palmRight = palmCX + palmW / 2 + tilt * 0.6;
-  const palmTopL = { x: palmLeft, y: baseTopY };
-  const palmTopR = { x: palmRight, y: baseTopY };
-  const palmBotL = { x: wristCX - 26, y: wristY };
-  const palmBotR = { x: wristCX + 26, y: wristY };
-  const r = 18;
-  const palmPath = [
-    `M ${palmTopL.x + r} ${palmTopL.y}`,
-    `L ${palmTopR.x - r} ${palmTopR.y}`,
-    `Q ${palmTopR.x} ${palmTopR.y} ${palmTopR.x + 2} ${palmTopR.y + r}`,
-    `L ${palmBotR.x + 4} ${palmBotR.y - r}`,
-    `Q ${palmBotR.x + 4} ${palmBotR.y} ${palmBotR.x} ${palmBotR.y}`,
-    `L ${palmBotL.x} ${palmBotL.y}`,
-    `Q ${palmBotL.x - 4} ${palmBotL.y} ${palmBotL.x - 4} ${palmBotL.y - r}`,
-    `L ${palmTopL.x - 2} ${palmTopL.y + r}`,
-    `Q ${palmTopL.x} ${palmTopL.y} ${palmTopL.x + r} ${palmTopL.y}`,
+  // Wrist is a path that tapers from palm-ellipse bottom to a slightly
+  // narrower wrist-end, with rounded corners at the bottom.
+  const wristPath = [
+    `M ${wristCX - wristTopHalf} ${wristTopY}`,
+    `L ${wristCX - wristBotHalf} ${wristBotY - 10}`,
+    `Q ${wristCX - wristBotHalf} ${wristBotY} ${wristCX - wristBotHalf + 10} ${wristBotY}`,
+    `L ${wristCX + wristBotHalf - 10} ${wristBotY}`,
+    `Q ${wristCX + wristBotHalf} ${wristBotY} ${wristCX + wristBotHalf} ${wristBotY - 10}`,
+    `L ${wristCX + wristTopHalf} ${wristTopY}`,
     "Z",
   ].join(" ");
 
   return (
-    <g>
-      {/* Palm + wrist silhouette */}
-      <path d={palmPath} fill="currentColor" fillOpacity={0.22} />
-      <path
-        d={palmPath}
+    <g opacity={0.5}>
+      <g fill="currentColor">
+        {/* Wrist (drawn first so the palm covers the seam at the top). */}
+        <path d={wristPath} />
+        {/* Palm */}
+        <ellipse cx={palmCX} cy={palmCY} rx={palmRX} ry={palmRY} />
+        {/* Each finger: a tapered polygon flanked by rounded base /
+         *  tip circles. The base circle overlaps the palm so the join
+         *  is invisible; the tip circle gives a rounded fingertip. */}
+        {tips.map(({ fid, tip }) => {
+          const isThumb = fid === thumbFid;
+          const base = isThumb ? thumbBase : fingerBases.get(fid);
+          if (!base) return null;
+          const w = FINGER_WIDTH[fid];
+          const on = enabled(fid);
+          const isDragging = draggingFid === fid;
+          // Disabled fingers fade further and lose their fill almost
+          // entirely so the user reads "this finger is out".
+          const fingerOpacity = isDragging ? 0.4 : on ? 1 : 0.28;
+          const polygon = taperedPolygon(base, tip, w.base, w.tip);
+          return (
+            <g key={fid} opacity={fingerOpacity}>
+              <circle cx={base.x} cy={base.y} r={w.base / 2} />
+              <polygon points={polygon} />
+              <circle cx={tip.x} cy={tip.y} r={w.tip / 2} />
+            </g>
+          );
+        })}
+      </g>
+      {/* Soft outline — picks out the silhouette without competing
+       *  with the keyboard's own borders. */}
+      <ellipse
+        cx={palmCX}
+        cy={palmCY}
+        rx={palmRX}
+        ry={palmRY}
         fill="none"
         stroke="currentColor"
-        strokeOpacity={0.45}
-        strokeWidth={1.25}
+        strokeOpacity={0.25}
+        strokeWidth={1}
       />
-      {/* Fingers */}
-      {tips.map(({ fid, tip }) => {
-        const isThumb = fid === thumbFid;
-        const base = isThumb ? thumbBase : fingerBases.get(fid);
-        if (!base) return null;
-        const on = enabled(fid);
-        const dimming = draggingFid === fid ? 0.4 : 1;
-        const opacity = (on ? 0.55 : 0.18) * dimming;
-        // Quadratic control: bend slightly outward for thumbs (long
-        // arcing motion across the palm) and just-barely-inward for the
-        // straight fingers so they read as natural curves rather than
-        // ruler lines.
-        const ctrl: Pt = isThumb
-          ? {
-              x: (base.x + tip.x) / 2 + (side === "left" ? 14 : -14),
-              y: (base.y + tip.y) / 2 + 6,
-            }
-          : {
-              x: (base.x + tip.x) / 2,
-              y: Math.min(base.y, tip.y) - 4,
-            };
-        return (
-          <g key={fid}>
-            <path
-              d={`M ${base.x} ${base.y} Q ${ctrl.x} ${ctrl.y} ${tip.x} ${tip.y}`}
-              stroke="currentColor"
-              strokeOpacity={opacity}
-              strokeWidth={FINGER_STROKE[fid]}
-              strokeLinecap="round"
-              fill="none"
-            />
-            {/* Subtle highlight stroke down the centre — sells the
-             *  rounded-finger look without going full 3D. */}
-            <path
-              d={`M ${base.x} ${base.y} Q ${ctrl.x} ${ctrl.y} ${tip.x} ${tip.y}`}
-              stroke="currentColor"
-              strokeOpacity={(on ? 0.22 : 0.08) * dimming}
-              strokeWidth={Math.max(2, FINGER_STROKE[fid] * 0.35)}
-              strokeLinecap="round"
-              fill="none"
-            />
-          </g>
-        );
-      })}
     </g>
   );
+}
+
+/** Build the four-vertex polygon for a tapered finger: wider at the
+ *  base, narrower at the tip. The vertices sit on the perpendiculars
+ *  to the base→tip vector at each end, with the matching base / tip
+ *  circles supplying the rounded ends. */
+function taperedPolygon(
+  base: Pt,
+  tip: Pt,
+  baseW: number,
+  tipW: number,
+): string {
+  const dx = tip.x - base.x;
+  const dy = tip.y - base.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const px = -dy / len; // perpendicular x
+  const py = dx / len; // perpendicular y
+  const points: [number, number][] = [
+    [base.x + px * (baseW / 2), base.y + py * (baseW / 2)],
+    [tip.x + px * (tipW / 2), tip.y + py * (tipW / 2)],
+    [tip.x - px * (tipW / 2), tip.y - py * (tipW / 2)],
+    [base.x - px * (baseW / 2), base.y - py * (baseW / 2)],
+  ];
+  return points.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
 }
