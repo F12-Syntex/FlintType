@@ -740,6 +740,13 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
 
   const onKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
+    // Suppress typing while a modal owns the screen — the modal opens
+    // by clicking a button which moves focus off the hidden input, so
+    // the input's own onKeyDown stops firing and keystrokes bubble
+    // here instead.
+    if (document.querySelector('[role="dialog"][aria-modal="true"]')) {
+      return;
+    }
     const active = document.activeElement;
     if (
       active &&

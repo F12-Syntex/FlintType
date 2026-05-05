@@ -32,6 +32,13 @@ export function InputCapture({ children }: { children: ReactNode }) {
   cursorCharRef.current = state.cursorChar;
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;
+  // When a Backspace fired through onKeyDown, a paired beforeinput event
+  // (deleteContentBackward / deleteWordBackward / deleteSoftLineBackward)
+  // is also dispatched by the OS for the same physical key on most
+  // platforms — which without dedup deletes a character/word twice per
+  // press. Stamp the time at the keydown dispatch site; the beforeinput
+  // path skips if a sibling fired in the last ~80ms.
+  const lastBackspaceAtRef = useRef(0);
 
   const focus = useCallback(() => {
     inputRef.current?.focus({ preventScroll: true });
@@ -70,6 +77,12 @@ export function InputCapture({ children }: { children: ReactNode }) {
         }}
         onBeforeInput={(e) => {
           e.preventDefault();
+          // Suppress typing while a modal (the adapt editor, confirm
+          // dialogs, mobile sheets) is open — they own the screen.
+          if (
+            document.querySelector('[role="dialog"][aria-modal="true"]')
+          )
+            return;
           const ne = e.nativeEvent as InputEvent;
           const t = ne.inputType;
           if (
@@ -77,6 +90,9 @@ export function InputCapture({ children }: { children: ReactNode }) {
             t === "deleteWordBackward" ||
             t === "deleteSoftLineBackward"
           ) {
+            // If keydown already dispatched for this physical press, the
+            // OS-paired beforeinput event is a duplicate — drop it.
+            if (Date.now() - lastBackspaceAtRef.current < 80) return;
             const p = prefsRef.current;
             if (p.confidence === "all") return;
             if (p.confidence === "word" && cursorCharRef.current === 0) return;
@@ -106,6 +122,16 @@ export function InputCapture({ children }: { children: ReactNode }) {
           }
         }}
         onKeyDown={(e) => {
+          // Suppress typing while a modal is open. preventDefault stops
+          // Tab/Backspace from doing anything page-level; the modal's
+          // own window listener still receives the bubbled event for
+          // Escape close.
+          if (
+            document.querySelector('[role="dialog"][aria-modal="true"]')
+          ) {
+            e.preventDefault();
+            return;
+          }
           // Only Backspace is allowed to carry a modifier — Ctrl /
           // Alt(Win) / ⌥(Mac) / ⌘(Mac) + Backspace = "delete word".
           // Every other modified shortcut (Ctrl+R, Cmd+T, …) falls
@@ -131,6 +157,7 @@ export function InputCapture({ children }: { children: ReactNode }) {
             e.preventDefault();
             if (p.confidence === "all") return;
             if (p.confidence === "word" && cursorCharRef.current === 0) return;
+            lastBackspaceAtRef.current = Date.now();
             dispatch({ type: wordWise ? "BACKSPACE_WORD" : "BACKSPACE" });
             return;
           }
