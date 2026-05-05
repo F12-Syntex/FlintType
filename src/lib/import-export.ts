@@ -4,10 +4,8 @@ import { DEFAULT_APPEARANCE, type AppearancePrefs } from "./appearance-prefs";
 import { DEFAULT_BACKGROUND, type BackgroundPrefs } from "./background-prefs";
 import { DEFAULT_BEHAVIOUR, type BehaviourPrefs } from "./behaviour-prefs";
 import { DEFAULT_CARET, type CaretSettings } from "./caret-settings";
-import { DEFAULT_KEYBOARD, type KeyboardSettings } from "./keyboard-settings";
-import { CUSTOM_THEME_ID, findTheme, THEMES } from "./themes/registry";
+import { type KeyboardSettings } from "./keyboard-settings";
 import { getCache, loadPrefs, writeSlice } from "./prefs-store";
-import type { ThemeOverrides } from "./theme-customization";
 
 /** All known slice keys — every flinttype-managed pref slice the
  *  importer/exporter understands. Anything outside this list is left
@@ -74,14 +72,22 @@ export function downloadJson(filename: string, data: unknown): void {
 // will change *before* their settings are stomped, and a misclicked
 // import is recoverable (just hit Cancel).
 
+/** Key/value detail row inside a change card. The UI renders these as
+ *  a clean two-column grid (`Style ── line`, `Smooth ── 250ms`) instead
+ *  of a bulleted list, so the dialog reads like a spec sheet. */
+export type ImportChangeDetail = {
+  key: string;
+  value: string;
+};
+
 /** A single human-readable change row in an import plan. */
 export type ImportChange = {
   /** Slice the row will write to. */
   slice: string;
   /** Short headline describing what the slice will contain. */
   label: string;
-  /** Optional list of bullet-point details (specific keys / values). */
-  details?: string[];
+  /** Optional ordered list of key/value details. */
+  details?: ImportChangeDetail[];
 };
 
 /** What a planned import will do, plus the commit fn that performs it. */
@@ -110,10 +116,18 @@ export function planFlinttypeImport(payload: unknown): ImportPlan {
   for (const key of KNOWN_SLICES) {
     const slice = slices[key];
     if (slice == null || typeof slice !== "object") continue;
+    const keys = Object.keys(slice as object);
+    const preview = keys.slice(0, 6).join(", ");
+    const summary = keys.length > 6 ? `${preview}, …` : preview;
     changes.push({
       slice: key,
       label: SLICE_LABELS[key] ?? key,
-      details: Object.keys(slice as object).slice(0, 8),
+      details: [
+        {
+          key: `${keys.length} field${keys.length === 1 ? "" : "s"}`,
+          value: summary || "—",
+        },
+      ],
     });
   }
   return {
@@ -183,31 +197,17 @@ export function planMonkeytypeImport(payload: unknown): ImportPlan {
   const appearance = mapAppearance(mt);
   const background = mapBackground(mt);
   const practice = mapPractice(mt);
-  // Theme handling — MT's `customTheme` flag decides which side of the
-  // export is "active" for the user. We follow MT's semantics first,
-  // then add a single fallback: if the user is on a named MT theme that
-  // flinttype doesn't ship, fall back to their `customThemeColors` blob
-  // (MT's last-saved custom palette) rather than dropping the colour
-  // import entirely. Without the fallback the user sees their full
-  // settings imported but no theme change — which is what triggered the
-  // "background/text colours didn't import" bug.
-  const customThemeColorsPresent = Array.isArray(mt.customThemeColors);
-  const namedThemeRequested =
-    mt.customTheme !== true && typeof mt.theme === "string";
-  const namedPaletteCandidate = namedThemeRequested ? mapPalette(mt) : null;
-  const fellBackToCustom =
-    namedThemeRequested && !namedPaletteCandidate && customThemeColorsPresent;
-  const applyColors =
-    customThemeColorsPresent &&
-    (mt.customTheme === true || fellBackToCustom);
-  const colorOverrides = applyColors ? mapColorOverrides(mt) : null;
-  const typographyOverrides = mapTypographyOverrides(mt);
-  const themeOverrides = combineOverrides(colorOverrides, typographyOverrides);
-  // Color overrides fork the user off whatever palette they were on →
-  // palette becomes "custom". Typography-only imports keep the named
-  // palette mapping below so the user lands on the right colours and
-  // also gets the font.
-  const namedPalette = colorOverrides ? null : namedPaletteCandidate;
+  // Theme appearance (palette / colour overrides / fonts / radius) is
+  // intentionally NOT imported from MonkeyType. Reasons:
+  //   - flinttype's editorial-mechanical brand is paper-and-ink + the
+  //     coral spark; MT's named themes (catppuccin, monokai, …) clash
+  //     with the rest of the chrome and don't reproduce 1:1 anyway
+  //   - MT serialises customThemeColors even when the user is on a
+  //     named theme, so importing them was either accurate (custom
+  //     mode) or actively wrong (named mode), and the previous fallback
+  //     made the wrong path silent
+  // The user can still pick a flinttype palette or import a flinttype
+  // export afterwards if they want their visuals to follow.
 
   const changes: ImportChange[] = [];
   if (caret) {
@@ -238,56 +238,14 @@ export function planMonkeytypeImport(payload: unknown): ImportPlan {
       details: describeBackground(background),
     });
   }
-  if (themeOverrides) {
-    const detail: string[] = [];
-    if (colorOverrides) {
-      const keys = Object.keys(colorOverrides).filter((k) =>
-        k.startsWith("--"),
-      );
-      detail.push(`${keys.length} colour token${keys.length === 1 ? "" : "s"}`);
-      if (fellBackToCustom) {
-        // The user was on an MT named theme flinttype doesn't ship —
-        // surface the fallback so they understand why the picker says
-        // "Custom" instead of carrying the named theme over.
-        detail.push(
-          `theme "${asString(mt.theme)}" not in library — using your custom colours`,
-        );
-      }
-    }
-    if (typographyOverrides?.["--ft-font-family"]) {
-      const family = typographyOverrides["--ft-font-family"]
-        .split(",")[0]
-        ?.trim()
-        .replace(/^['"]|['"]$/g, "");
-      if (family) detail.push(`font: ${family}`);
-    }
-    if (typographyOverrides?.["--ft-font-scale"]) {
-      detail.push(`size: ${typographyOverrides["--ft-font-scale"]}×`);
-    }
-    changes.push({
-      slice: "theme",
-      label: colorOverrides ? "Theme (Custom)" : "Theme typography",
-      details: detail,
-    });
-  }
-  if (namedPalette) {
-    changes.push({
-      slice: "palette",
-      label: "Palette",
-      details: [namedPalette.activeId ?? "default"],
-    });
-  } else if (colorOverrides) {
-    changes.push({
-      slice: "palette",
-      label: "Palette",
-      details: ["custom (driven by imported colours)"],
-    });
-  }
   if (practice) {
     changes.push({
       slice: "practice",
       label: "Practice mode",
-      details: [`${practice.mode.toLowerCase()} · ${practice.length}`],
+      details: [
+        { key: "Mode", value: practice.mode.toLowerCase() },
+        { key: "Length", value: String(practice.length) },
+      ],
     });
   }
 
@@ -313,16 +271,6 @@ export function planMonkeytypeImport(payload: unknown): ImportPlan {
         writeSlice("background", { ...DEFAULT_BACKGROUND, ...background });
         n += 1;
       }
-      if (themeOverrides) {
-        writeSlice("theme", themeOverrides);
-        n += 1;
-      }
-      // Palette write order: color-driven custom > named palette mapping.
-      if (colorOverrides) {
-        writeSlice("palette", { activeId: CUSTOM_THEME_ID });
-      } else if (namedPalette) {
-        writeSlice("palette", namedPalette);
-      }
       if (practice) {
         writeSlice("practice", practice);
         n += 1;
@@ -340,61 +288,57 @@ export function importMonkeytype(payload: unknown): number {
 
 // ─── Plan-row detail formatters ──────────────────────────────────────
 
-function describeCaret(c: Partial<CaretSettings>): string[] {
-  const out: string[] = [];
-  if (c.style) out.push(`style: ${c.style}`);
-  if (c.smoothSpeed != null) out.push(`smooth: ${c.smoothSpeed}ms`);
+function describeCaret(c: Partial<CaretSettings>): ImportChangeDetail[] {
+  const out: ImportChangeDetail[] = [];
+  if (c.style) out.push({ key: "Style", value: c.style });
+  if (c.smoothSpeed != null)
+    out.push({ key: "Smooth", value: `${c.smoothSpeed}ms` });
   return out;
 }
 
-function describeBehaviour(b: Partial<BehaviourPrefs>): string[] {
-  const out: string[] = [];
-  if (b.confidence) out.push(`confidence: ${b.confidence}`);
-  if (b.difficulty) out.push(`difficulty: ${b.difficulty}`);
+function describeBehaviour(b: Partial<BehaviourPrefs>): ImportChangeDetail[] {
+  const out: ImportChangeDetail[] = [];
+  if (b.confidence) out.push({ key: "Confidence", value: b.confidence });
+  if (b.difficulty) out.push({ key: "Difficulty", value: b.difficulty });
   if (b.stopOnError != null)
-    out.push(`stop on error: ${b.stopOnError ? "on" : "off"}`);
+    out.push({ key: "Stop on error", value: b.stopOnError ? "On" : "Off" });
   if (b.quickRestart != null)
-    out.push(`quick restart: ${b.quickRestart ? "on" : "off"}`);
+    out.push({ key: "Quick restart", value: b.quickRestart ? "On" : "Off" });
   if (b.blindMode != null)
-    out.push(`blind mode: ${b.blindMode ? "on" : "off"}`);
+    out.push({ key: "Blind mode", value: b.blindMode ? "On" : "Off" });
   return out;
 }
 
-function describeAppearance(a: Partial<AppearancePrefs>): string[] {
-  const out: string[] = [];
-  if (a.keymap) out.push(`keymap: ${a.keymap}`);
-  if (a.keymapLayout) out.push(`layout: ${a.keymapLayout}`);
-  if (a.highlightMode) out.push(`highlight: ${a.highlightMode}`);
-  if (a.tapeMode) out.push(`tape: ${a.tapeMode}`);
-  if (a.typingSpeedUnit) out.push(`speed unit: ${a.typingSpeedUnit}`);
+function describeAppearance(a: Partial<AppearancePrefs>): ImportChangeDetail[] {
+  const out: ImportChangeDetail[] = [];
+  if (a.keymap) out.push({ key: "Keymap", value: a.keymap });
+  if (a.keymapLayout) out.push({ key: "Layout", value: a.keymapLayout });
+  if (a.highlightMode) out.push({ key: "Highlight", value: a.highlightMode });
+  if (a.tapeMode) out.push({ key: "Tape", value: a.tapeMode });
+  if (a.typingSpeedUnit)
+    out.push({ key: "Speed unit", value: a.typingSpeedUnit });
   if (a.maxLineWidth != null)
-    out.push(`max line: ${a.maxLineWidth === 0 ? "stretch" : a.maxLineWidth + "ch"}`);
+    out.push({
+      key: "Max line",
+      value: a.maxLineWidth === 0 ? "stretch" : `${a.maxLineWidth}ch`,
+    });
   if (a.liveStatsOpacity != null)
-    out.push(`stats opacity: ${a.liveStatsOpacity}`);
-  if (a.liveStatsColor) out.push(`stats colour: ${a.liveStatsColor}`);
+    out.push({ key: "Stats opacity", value: String(a.liveStatsOpacity) });
   return out;
 }
 
-function describeBackground(b: Partial<BackgroundPrefs>): string[] {
-  const out: string[] = [];
-  if (b.imageUrl) out.push(`image: ${truncateUrl(b.imageUrl)}`);
-  if (b.fit) out.push(`fit: ${b.fit}`);
-  if (b.blur != null) out.push(`blur: ${b.blur}`);
-  if (b.opacity != null) out.push(`opacity: ${b.opacity}`);
+function describeBackground(b: Partial<BackgroundPrefs>): ImportChangeDetail[] {
+  const out: ImportChangeDetail[] = [];
+  if (b.imageUrl) out.push({ key: "Image", value: truncateUrl(b.imageUrl) });
+  if (b.fit) out.push({ key: "Fit", value: b.fit });
+  if (b.blur != null) out.push({ key: "Blur", value: String(b.blur) });
+  if (b.opacity != null) out.push({ key: "Opacity", value: String(b.opacity) });
   return out;
 }
 
 function truncateUrl(url: string): string {
   if (url.length <= 40) return url;
   return url.slice(0, 37) + "…";
-}
-
-function combineOverrides(
-  a: ThemeOverrides | null,
-  b: ThemeOverrides | null,
-): ThemeOverrides | null {
-  if (!a && !b) return null;
-  return { ...(a ?? {}), ...(b ?? {}) };
 }
 
 // ─── MonkeyType field mappers ────────────────────────────────────────
@@ -507,30 +451,15 @@ function mapAppearance(
   if (typeof mt.startGraphsAtZero === "boolean") {
     out.startGraphsAtZero = mt.startGraphsAtZero;
   }
-  // Live-stats container styling — opacity is a 0..1 multiplier that
-  // multiplies the rendered colour; colour is a named MT token that we
-  // resolve to a hex below.
   if (typeof mt.liveStatsOpacity === "number") {
     out.liveStatsOpacity = clamp(mt.liveStatsOpacity, 0, 1);
   }
-  const statsColor = resolveStatsColor(mt);
-  if (statsColor != null) out.liveStatsColor = statsColor;
-  // pageWidth: MT ships "100" | "125" | "150" | "200" | "max" as a
-  // page-content width hint. Translate the numeric variants to a
-  // character-width budget on the practice passage; "max" means
-  // unconstrained which we encode as 0 (the same sentinel the appearance
-  // page uses for "stretch to container").
-  if (typeof mt.pageWidth === "string") {
-    const map: Record<string, number> = {
-      "100": 80,
-      "125": 100,
-      "150": 120,
-      "200": 160,
-      max: 0,
-    };
-    const w = map[mt.pageWidth];
-    if (w != null) out.maxLineWidth = w;
-  }
+  // liveStatsColor and pageWidth-as-maxLineWidth used to map here too,
+  // but both reference MT's theme-token vocabulary ("main" / "sub" /
+  // "text") which only resolves to a real hex after a colour import.
+  // Since the colour import path is gone, dropping these mappings keeps
+  // the appearance slice from carrying half-resolved theme references
+  // that would otherwise paint as transparent or "black" surprises.
   if (KEYMAP_MODES.has(asString(mt.keymapMode))) {
     out.keymap = mt.keymapMode as AppearancePrefs["keymap"];
   }
@@ -571,28 +500,6 @@ function asString(v: unknown): string {
   return typeof v === "string" ? v : "";
 }
 
-/** MT's `liveStatsColor` is one of "black" | "sub" | "text" | "main" —
- *  references into its own colour vocabulary. Resolve to a literal hex
- *  by looking up the corresponding slot in `customThemeColors` when the
- *  user is on a custom theme. Returns null if the field is absent or
- *  the user is on a named MT theme (we'd need that theme's full palette
- *  to translate, which we don't ship). */
-function resolveStatsColor(mt: MonkeytypeSettings): string | null {
-  const v = mt.liveStatsColor;
-  if (typeof v !== "string") return null;
-  if (v === "black") return "#000000";
-  if (mt.customTheme !== true || !Array.isArray(mt.customThemeColors)) {
-    return null;
-  }
-  const arr = mt.customThemeColors as unknown[];
-  // 1 main, 3 sub, 4 text — same indices used by the colour mapping
-  // below so the live-stats colour visually matches the typed/untyped
-  // text the user sees in the passage.
-  const idx: Record<string, number> = { main: 1, sub: 3, text: 4 };
-  if (idx[v] === undefined) return null;
-  return pickColor(arr, idx[v]);
-}
-
 function mapBackground(
   mt: MonkeytypeSettings,
 ): Partial<BackgroundPrefs> | null {
@@ -630,165 +537,6 @@ function mapBackground(
 
 function clamp(n: number, lo: number, hi: number): number {
   return Math.min(Math.max(n, lo), hi);
-}
-
-// ─── MT theme + colour mapping ───────────────────────────────────────
-
-/** Translate MonkeyType's customThemeColors hex array, fontFamily, and
- *  fontSize into the flinttype `theme` overrides slice.
- *
- *  MT's customThemeColors is a fixed-order array of CSS colours (any
- *  format MT accepts — usually `#rrggbb`):
- *    0 bgColor          → page background
- *    1 mainColor        → brand accent
- *    2 captionColor     → very dim caption text
- *    3 subColor         → muted secondary text
- *    4 textColor        → full-strength foreground
- *    5 errorColor       → incorrect-key red
- *    6 errorExtraColor  → "extra" character red
- *    7 colorfulErrorColor       (when colorfulMode is on)
- *    8 colorfulErrorExtraColor  (when colorfulMode is on)
- *
- *  flinttype's user-overridable token set is smaller (see THEME_VARS in
- *  theme-customization.ts), so we fan one MT token onto every flinttype
- *  token whose role overlaps:
- *    bg   → --background, --card, --muted, --input, --primary-foreground, --accent-foreground
- *    main → --primary, --accent, --ring, --ft-passage-typed
- *           Note: MT renders typed-correctly letters in mainColor (not
- *           textColor) — and flinttype's passage now consumes
- *           --ft-passage-typed directly so the chrome's --foreground
- *           stays whatever the active palette / textColor says.
- *    sub  → --muted-foreground, --border, --ft-passage-untyped
- *           Untyped passage chars use this role in MT.
- *    text → --foreground, --card-foreground
- *           MT's textColor is the chrome body text role (buttons,
- *           headers) — distinct from the typed-letter colour.
- *    caption → ignored (no clean fit; --muted-foreground already gets sub)
- *    error → --ft-passage-error (the passage-only error colour). MT's
- *           --destructive token isn't in flinttype's user-override list
- *           by design — the chrome destructive stays on the active
- *           palette. errorExtraColor (index 6) and the colourful-mode
- *           variants are still ignored; flinttype draws extras and
- *           wrong chars with the same role.
- *
- *  fontFamily ("JetBrains_Mono", "Fira_Code", …) becomes --ft-font-family
- *  with an underscore→space normalization and a sensible fallback.
- *  fontSize is a multiplier (1.0 default) → --ft-font-scale. */
-/** Pull just the colour overrides out of a MT settings object. Callers
- *  combine with `mapTypographyOverrides` when they want a single
- *  flinttype `theme` slice. Split into two so the import flow can ask
- *  "did the user import any *colour* changes?" — colour changes drive
- *  the palette into Custom mode; typography on its own doesn't. */
-function mapColorOverrides(mt: MonkeytypeSettings): ThemeOverrides | null {
-  if (!Array.isArray(mt.customThemeColors)) return null;
-  const out: ThemeOverrides = {};
-  {
-    const arr = mt.customThemeColors as unknown[];
-    const bg = pickColor(arr, 0);
-    const main = pickColor(arr, 1);
-    const sub = pickColor(arr, 3);
-    const text = pickColor(arr, 4);
-    const error = pickColor(arr, 5);
-    // colorfulMode (default: true on MT) controls whether typed-correctly
-    // letters paint in mainColor (true) or textColor (false). Default
-    // matches MT — only turn it off if the import explicitly says false.
-    const colorful = mt.colorfulMode !== false;
-    // flipTestColors swaps which token paints typed vs. untyped letters
-    // in the passage. MT default: typed = main/text, untyped = sub.
-    // Flipped: typed = sub, untyped = main/text.
-    const flipped = mt.flipTestColors === true;
-    const typedColor = colorful ? main : text;
-    const untypedColor = sub;
-    if (bg) {
-      out["--background"] = bg;
-      out["--card"] = bg;
-      out["--muted"] = bg;
-      out["--input"] = bg;
-      out["--primary-foreground"] = bg;
-      out["--accent-foreground"] = bg;
-    }
-    if (main) {
-      out["--primary"] = main;
-      out["--accent"] = main;
-      out["--ring"] = main;
-    }
-    if (sub) {
-      out["--muted-foreground"] = sub;
-      out["--border"] = sub;
-    }
-    if (text) {
-      // MT's textColor is the *chrome* body text colour (buttons,
-      // headers, captions) — distinct from typed-letter colour.
-      out["--foreground"] = text;
-      out["--card-foreground"] = text;
-    }
-    if (error) {
-      // Mistyped/extra chars in the passage. Scoped to the passage so
-      // chrome --destructive (toasts, delete buttons) keeps tracking
-      // the active palette.
-      out["--ft-passage-error"] = error;
-    }
-    // Passage typed/untyped — driven by the colorfulMode + flipTestColors
-    // pair, separately from the chrome tokens above so the passage roles
-    // can diverge from --primary / --muted-foreground when MT's flags
-    // demand it.
-    if (typedColor) {
-      out["--ft-passage-typed"] = flipped
-        ? (untypedColor ?? typedColor)
-        : typedColor;
-    }
-    if (untypedColor) {
-      out["--ft-passage-untyped"] = flipped
-        ? (typedColor ?? untypedColor)
-        : untypedColor;
-    }
-  }
-
-  return Object.keys(out).length ? out : null;
-}
-
-/** Pull --ft-font-family / --ft-font-scale out of a MT settings object.
- *  Always safe to apply (independent of customTheme / customThemeColors)
- *  — typography overrides ride along with whichever palette the user
- *  ends up on. */
-function mapTypographyOverrides(
-  mt: MonkeytypeSettings,
-): ThemeOverrides | null {
-  const out: ThemeOverrides = {};
-  if (typeof mt.fontFamily === "string" && mt.fontFamily) {
-    const family = mt.fontFamily.replace(/_/g, " ");
-    out["--ft-font-family"] = `"${family}", ui-monospace, monospace`;
-  }
-  if (typeof mt.fontSize === "number" && mt.fontSize > 0) {
-    out["--ft-font-scale"] = String(clamp(mt.fontSize, 0.5, 3));
-  }
-  return Object.keys(out).length ? out : null;
-}
-
-/** Read a hex/colour string from MT's customThemeColors at a given
- *  index. MT validates these on the way out, so we accept any non-empty
- *  string (`#rrggbb`, `#rgb`, `rgb(...)`, even bare names). */
-function pickColor(arr: unknown[], i: number): string | null {
-  const v = arr[i];
-  if (typeof v !== "string") return null;
-  const trimmed = v.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
-function mapPalette(mt: MonkeytypeSettings): { activeId: string | null } | null {
-  // The user picked a community palette in MT — try to match by id. If
-  // we don't have it, leave the palette alone (don't surprise-clear the
-  // existing one).
-  const id = typeof mt.theme === "string" ? mt.theme : null;
-  if (!id) return null;
-  if (findTheme(id)) return { activeId: id };
-  // Fall back to the closest fuzzy-matched theme so MT theme names that
-  // sneaked into our registry under a different slug still apply.
-  const slug = id.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  const fuzzy = THEMES.find(
-    (t) => t.id.toLowerCase().replace(/[^a-z0-9]+/g, "-") === slug,
-  );
-  return fuzzy ? { activeId: fuzzy.id } : null;
 }
 
 function mapPractice(mt: MonkeytypeSettings): {

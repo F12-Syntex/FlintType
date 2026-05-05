@@ -69,194 +69,48 @@ describe("importMonkeytype", () => {
     expect(bg.darken).toBeCloseTo(0.3, 5);
   });
 
-  it("applies customThemeColors as theme overrides when customTheme is true", () => {
+  it("does not write theme overrides when customTheme is true", () => {
+    // Theme appearance is intentionally NOT imported from MonkeyType
+    // (per user request: 3.24+) — even when customTheme is true and the
+    // user has a saved customThemeColors blob, we leave the flinttype
+    // theme + palette alone.
     importMonkeytype({
       customTheme: true,
       customThemeColors: [
-        "#111111", // 0 bg
-        "#ff8800", // 1 main
-        "#777777", // 2 caption (ignored)
-        "#aaaaaa", // 3 sub
-        "#eeeeee", // 4 text
-        "#cc0000", // 5 error → --ft-passage-error
+        "#111111",
+        "#ff8800",
+        "#777777",
+        "#aaaaaa",
+        "#eeeeee",
+        "#cc0000",
       ],
-      // Should NOT write a palette pick when custom colours are active.
       theme: "monokai",
     });
     const w = writes();
-    const t = w.theme as Record<string, string>;
-    expect(t["--background"]).toBe("#111111");
-    expect(t["--card"]).toBe("#111111");
-    expect(t["--muted"]).toBe("#111111");
-    expect(t["--primary"]).toBe("#ff8800");
-    expect(t["--accent"]).toBe("#ff8800");
-    expect(t["--ring"]).toBe("#ff8800");
-    // mainColor doubles as the typed-letter colour in MT — the passage
-    // consumes --ft-passage-typed directly.
-    expect(t["--ft-passage-typed"]).toBe("#ff8800");
-    expect(t["--muted-foreground"]).toBe("#aaaaaa");
-    expect(t["--border"]).toBe("#aaaaaa");
-    // subColor is the untyped-letter colour.
-    expect(t["--ft-passage-untyped"]).toBe("#aaaaaa");
-    // textColor is chrome body text, independent of the typed letter.
-    expect(t["--foreground"]).toBe("#eeeeee");
-    expect(t["--card-foreground"]).toBe("#eeeeee");
-    // errorColor is the passage-only mistyped-char colour.
-    expect(t["--ft-passage-error"]).toBe("#cc0000");
-    // Custom colours present → palette must be promoted to "custom" so
-    // the picker reads as Custom (not as the unrelated `theme` name).
-    expect(w.palette).toEqual({ activeId: "custom" });
-  });
-
-  it("uses textColor for typed letters when colorfulMode is false", () => {
-    importMonkeytype({
-      customTheme: true,
-      colorfulMode: false,
-      customThemeColors: [
-        "#111111",
-        "#ff8800",
-        "#777777",
-        "#aaaaaa",
-        "#eeeeee",
-        "#cc0000",
-      ],
-    });
-    const t = writes().theme as Record<string, string>;
-    // colorful off → typed paints in textColor, not mainColor.
-    expect(t["--ft-passage-typed"]).toBe("#eeeeee");
-    expect(t["--ft-passage-untyped"]).toBe("#aaaaaa");
-  });
-
-  it("swaps typed and untyped colours when flipTestColors is true", () => {
-    importMonkeytype({
-      customTheme: true,
-      flipTestColors: true,
-      customThemeColors: [
-        "#111111",
-        "#ff8800",
-        "#777777",
-        "#aaaaaa",
-        "#eeeeee",
-        "#cc0000",
-      ],
-    });
-    const t = writes().theme as Record<string, string>;
-    // Flipped: typed gets sub, untyped gets the colorful main.
-    expect(t["--ft-passage-typed"]).toBe("#aaaaaa");
-    expect(t["--ft-passage-untyped"]).toBe("#ff8800");
-  });
-
-  it("keeps palette unchanged when only typography overrides exist", () => {
-    importMonkeytype({
-      // No customTheme / customThemeColors — just font overrides.
-      fontFamily: "JetBrains_Mono",
-    });
-    const w = writes();
-    // Theme override slice gets the font, ...
-    expect(w.theme).toBeDefined();
-    // ...but palette is NOT promoted to "custom" — typography on its own
-    // doesn't fork the user off their named palette. They keep their
-    // current palette plus a custom font sitting on top.
+    expect(w.theme).toBeUndefined();
     expect(w.palette).toBeUndefined();
   });
 
-  it("still maps a named palette when only typography overrides exist", () => {
+  it("does not write palette / theme even when customTheme is false and theme matches", () => {
     importMonkeytype({
       customTheme: false,
+      // light-green is one of the registered tweakcn community themes —
+      // the old importer would have set palette.activeId here. We skip.
       theme: "light-green",
-      fontFamily: "JetBrains_Mono",
     });
     const w = writes();
-    // Both: named palette mapped, font override written.
-    expect(w.palette).toEqual({ activeId: "light-green" });
-    expect(w.theme).toBeDefined();
-  });
-
-  it("falls back to customThemeColors when the named theme is unknown", () => {
-    // customTheme=false + a theme name flinttype doesn't ship: the old
-    // behaviour silently dropped the colour import entirely. The fallback
-    // applies customThemeColors as overrides and promotes palette to
-    // "custom" so the user actually sees their MT colours land.
-    importMonkeytype({
-      customTheme: false,
-      theme: "this-theme-is-not-shipped-anywhere",
-      customThemeColors: [
-        "#111111",
-        "#ff8800",
-        "#777777",
-        "#aaaaaa",
-        "#eeeeee",
-        "#cc0000",
-      ],
-    });
-    const w = writes();
-    const t = w.theme as Record<string, string>;
-    expect(t["--background"]).toBe("#111111");
-    expect(t["--primary"]).toBe("#ff8800");
-    expect(t["--foreground"]).toBe("#eeeeee");
-    expect(w.palette).toEqual({ activeId: "custom" });
-  });
-
-  it("maps liveStatsOpacity and liveStatsColor onto appearance", () => {
-    importMonkeytype({
-      customTheme: true,
-      liveStatsOpacity: 0.4,
-      liveStatsColor: "main",
-      customThemeColors: [
-        "#111111",
-        "#ff8800",
-        "#777777",
-        "#aaaaaa",
-        "#eeeeee",
-        "#cc0000",
-      ],
-    });
-    const a = writes().appearance as Record<string, unknown>;
-    expect(a.liveStatsOpacity).toBeCloseTo(0.4);
-    // "main" resolved against customThemeColors[1] → #ff8800.
-    expect(a.liveStatsColor).toBe("#ff8800");
-  });
-
-  it("translates pageWidth to a maxLineWidth budget", () => {
-    importMonkeytype({ pageWidth: "125" });
-    const a = writes().appearance as Record<string, unknown>;
-    expect(a.maxLineWidth).toBe(100);
-  });
-
-  it("translates pageWidth='max' to maxLineWidth 0 (stretch)", () => {
-    importMonkeytype({ pageWidth: "max" });
-    const a = writes().appearance as Record<string, unknown>;
-    expect(a.maxLineWidth).toBe(0);
-  });
-
-  it("falls back to palette pick when customTheme is false", () => {
-    importMonkeytype({
-      customTheme: false,
-      // light-green is one of the registered tweakcn community themes.
-      theme: "light-green",
-      customThemeColors: ["#111111", "#222222", "#333333"],
-    });
-    const w = writes();
-    expect(w.palette).toEqual({ activeId: "light-green" });
-    // Custom colours stayed in MT as a saved blob; we should not have
-    // imported them as overrides.
+    expect(w.palette).toBeUndefined();
     expect(w.theme).toBeUndefined();
   });
 
-  it("imports fontFamily and fontSize as --ft-font-* overrides", () => {
+  it("does not import fontFamily / fontSize", () => {
+    // Typography is part of theme appearance — same skip rule.
     importMonkeytype({
       fontFamily: "JetBrains_Mono",
       fontSize: 1.25,
     });
-    const t = writes().theme as Record<string, string>;
-    expect(t["--ft-font-family"]).toBe('"JetBrains Mono", ui-monospace, monospace');
-    expect(t["--ft-font-scale"]).toBe("1.25");
-  });
-
-  it("clamps fontSize into the supported range", () => {
-    importMonkeytype({ fontSize: 99 });
-    const t = writes().theme as Record<string, string>;
-    expect(t["--ft-font-scale"]).toBe("3");
+    const w = writes();
+    expect(w.theme).toBeUndefined();
   });
 
   it("translates the example settings.json end-to-end", () => {

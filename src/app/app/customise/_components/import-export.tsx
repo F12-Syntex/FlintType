@@ -181,25 +181,31 @@ function ImportSummary({ plan }: { plan: ImportPlan }) {
         {plan.changes.length === 1 ? "" : "s"} in your current settings.
         Anything not listed stays untouched.
       </p>
-      <ul className="flex flex-col divide-y divide-border rounded-md border border-border bg-card">
+      <ul className="flex flex-col gap-2.5">
         {plan.changes.map((c) => (
-          <li key={c.slice} className="px-3 py-3">
-            <div className="flex items-baseline justify-between gap-2">
+          <li
+            key={c.slice}
+            className="overflow-hidden rounded-md border border-border bg-card"
+          >
+            <header className="flex items-baseline justify-between gap-2 border-b border-border bg-background/40 px-3 py-2">
               <span className="text-sm font-semibold text-foreground">
                 {c.label}
               </span>
               <span className="shrink-0 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                 {c.slice}
               </span>
-            </div>
+            </header>
             {c.details && c.details.length > 0 ? (
-              <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <dl className="grid grid-cols-[minmax(7rem,max-content)_1fr] gap-x-4 gap-y-1.5 px-3 py-2.5 text-xs">
                 {c.details.map((d, i) => (
-                  <li key={i} className="tabular-nums">
-                    · {d}
-                  </li>
+                  <div key={i} className="contents">
+                    <dt className="text-muted-foreground">{d.key}</dt>
+                    <dd className="truncate font-medium text-foreground tabular-nums">
+                      {d.value}
+                    </dd>
+                  </div>
                 ))}
-              </ul>
+              </dl>
             ) : null}
           </li>
         ))}
