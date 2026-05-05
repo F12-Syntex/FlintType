@@ -3,7 +3,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   type FingerId,
-  type FingerState,
   FINGER_NAME,
   LEFT_FINGERS,
   RIGHT_FINGERS,
@@ -14,32 +13,22 @@ import { Keyboard, type KeyboardProps } from "./index";
 
 /** Pixel rect of a key, relative to the container. */
 type Rect = { x: number; y: number; w: number; h: number };
+type Pt = { x: number; y: number };
+type Pointer = { x: number; y: number };
 
-/** Stable per-finger colour. Mirror-symmetric across hands so the
- *  pinkies / ring / middle / index pairs read as "the same finger" on
- *  either side. Picked from Tailwind's palette so the hues land cleanly
- *  on both light and dark themes. */
-const FINGER_COLOR: Record<FingerId, string> = {
-  L5: "#f97316",
-  L4: "#eab308",
-  L3: "#22c55e",
-  L2: "#06b6d4",
-  L1: "#a78bfa",
-  R1: "#a78bfa",
-  R2: "#06b6d4",
-  R3: "#22c55e",
-  R4: "#eab308",
-  R5: "#f97316",
-};
-
-/** Anatomical index 1..5 → pixel height ratio (% of hand row). Roughly
- *  matches finger lengths so the schematic reads as a hand at a glance. */
-const FINGER_HEIGHT_PCT: Record<1 | 2 | 3 | 4 | 5, number> = {
-  1: 50, // thumb
-  2: 90, // index
-  3: 100, // middle
-  4: 92, // ring
-  5: 70, // pinky
+/** Stroke thickness per finger — thicker for the larger fingers, thumb
+ *  is the chunkiest. Tuned by eye against the keyboard scale. */
+const FINGER_STROKE: Record<FingerId, number> = {
+  L5: 14,
+  L4: 17,
+  L3: 18,
+  L2: 18,
+  L1: 22,
+  R1: 22,
+  R2: 18,
+  R3: 18,
+  R4: 17,
+  R5: 14,
 };
 
 const DRAG_THRESHOLD_PX = 5;
@@ -67,8 +56,6 @@ function prettyKey(code: string): string {
   return map[code] ?? code;
 }
 
-type Pointer = { x: number; y: number };
-
 type DragState = {
   finger: FingerId;
   pointer: Pointer;
@@ -79,45 +66,47 @@ type DragState = {
 };
 
 /** Wraps `<Keyboard />` with an interactive hand-layout editor. Two
- *  schematic hands sit above the keyboard; each finger is clickable
- *  (toggle enabled) and draggable (drop on a key to reassign its home
- *  position). A coloured dot on the home key visualises the assignment.
- *  All edits flow through `useHandLayout()` and persist via the prefs
- *  blob. */
+ *  ghost hands are drawn directly on top of the keyboard — palm shapes
+ *  below the home row, finger paths reaching up to each home key. The
+ *  fingertip badge on each home key is the interactive handle: click to
+ *  toggle enabled (fades the finger), drag onto another key to
+ *  reassign its home position. All edits flow through `useHandLayout()`
+ *  and persist via the prefs blob. */
 export function HandLayoutEditor(props: KeyboardProps) {
   const { layout, toggleEnabled, setFinger, reset } = useHandLayout();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const kbRef = useRef<HTMLDivElement | null>(null);
   const [keyRects, setKeyRects] = useState<Record<string, Rect>>({});
+  const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const dragRef = useRef<DragState | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
 
-  // Measure every key's position relative to the container so the
-  // finger-dot overlay can be absolutely placed without DOM thrash.
-  // ResizeObserver covers viewport / scale changes.
+  // Measure every key's position relative to the keyboard wrapper so
+  // the ghost-hand paths and fingertip badges share one coordinate
+  // system that excludes the footer text. ResizeObserver covers
+  // viewport / scale changes.
   useLayoutEffect(() => {
-    const container = containerRef.current;
     const kb = kbRef.current;
-    if (!container || !kb) return;
+    if (!kb) return;
     const measure = () => {
-      const cRect = container.getBoundingClientRect();
+      const kbRect = kb.getBoundingClientRect();
       const map: Record<string, Rect> = {};
       kb.querySelectorAll<HTMLElement>("[data-key-code]").forEach((el) => {
         const code = el.dataset.keyCode;
         if (!code) return;
         const r = el.getBoundingClientRect();
         map[code] = {
-          x: r.left - cRect.left,
-          y: r.top - cRect.top,
+          x: r.left - kbRect.left,
+          y: r.top - kbRect.top,
           w: r.width,
           h: r.height,
         };
       });
       setKeyRects(map);
+      setSize({ w: kbRect.width, h: kbRect.height });
     };
     measure();
     const ro = new ResizeObserver(measure);
-    ro.observe(container);
     ro.observe(kb);
     return () => ro.disconnect();
   }, []);
@@ -146,11 +135,9 @@ export function HandLayoutEditor(props: KeyboardProps) {
       dragRef.current = null;
       setDrag(null);
       if (!cur.active) {
-        // Treat as a click — toggle enabled.
         toggleEnabled(cur.finger);
         return;
       }
-      // Drop: find a key under the pointer and reassign home.
       const el = document.elementFromPoint(e.clientX, e.clientY);
       const keyEl = el?.closest<HTMLElement>("[data-key-code]");
       const code = keyEl?.dataset.keyCode;
@@ -172,49 +159,93 @@ export function HandLayoutEditor(props: KeyboardProps) {
     setDrag(next);
   };
 
+  // Compute fingertip anchor for each finger from its home key rect.
+  // Picks a point near the top of the key so the finger path reads as
+  // "reaching up onto" the key rather than "entering through" it.
+  const tipOf = (fid: FingerId): Pt | null => {
+    const r = keyRects[layout.fingers[fid].homeKey];
+    if (!r) return null;
+    return { x: r.x + r.w / 2, y: r.y + r.h * 0.4 };
+  };
+
   return (
     <div ref={containerRef} className="relative select-none">
-      <div className="mb-3 flex items-end justify-between gap-6 px-2">
-        <HandSchematic
-          side="left"
-          fingers={LEFT_FINGERS}
-          state={layout.fingers}
-          activeDrag={drag?.finger ?? null}
-          onPointerDownFinger={startDrag}
-        />
-        <HandSchematic
-          side="right"
-          fingers={RIGHT_FINGERS}
-          state={layout.fingers}
-          activeDrag={drag?.finger ?? null}
-          onPointerDownFinger={startDrag}
-        />
-      </div>
-
-      <div ref={kbRef} className="relative">
+      {/* Keyboard wrapper. Bottom padding leaves room for the wrists.
+       *  All hand visuals are anchored inside this wrapper so they
+       *  share one coordinate system with the keys themselves. */}
+      <div ref={kbRef} className="relative pb-16">
         <Keyboard {...props} />
-        {/* Coloured dots on each home key. Two thumbs sharing Space
-         *  are offset left/right so they don't overlap. */}
+
+        {/* Ghost hands — purely decorative, painted in foreground at
+         *  low opacity so the keys remain legible. Pointer events
+         *  disabled so they don't intercept clicks meant for keys. */}
+        {size.w > 0 ? (
+          <svg
+            aria-hidden
+            className="pointer-events-none absolute inset-0 text-foreground"
+            width={size.w}
+            height={size.h}
+            viewBox={`0 0 ${size.w} ${size.h}`}
+          >
+            <GhostHand
+              side="left"
+              fingers={LEFT_FINGERS}
+              tipOf={tipOf}
+              enabled={(fid) => layout.fingers[fid].enabled}
+              draggingFid={drag?.active ? drag.finger : null}
+              kbHeight={size.h}
+            />
+            <GhostHand
+              side="right"
+              fingers={RIGHT_FINGERS}
+              tipOf={tipOf}
+              enabled={(fid) => layout.fingers[fid].enabled}
+              draggingFid={drag?.active ? drag.finger : null}
+              kbHeight={size.h}
+            />
+          </svg>
+        ) : null}
+
+        {/* Interactive fingertip handles — the click/drag targets. Sit
+         *  on top of each home key, paint over the ghost-hand
+         *  fingertip. Two thumbs sharing Space are offset left/right
+         *  so they don't overlap. */}
         {(Object.keys(layout.fingers) as FingerId[]).map((fid) => {
           const fs = layout.fingers[fid];
           const r = keyRects[fs.homeKey];
           if (!r) return null;
           const isThumb = fid === "L1" || fid === "R1";
-          const ox = isThumb ? (fid === "L1" ? -r.w * 0.18 : r.w * 0.18) : 0;
+          const ox = isThumb ? (fid === "L1" ? -r.w * 0.22 : r.w * 0.22) : 0;
+          const isDragging = drag?.active && drag.finger === fid;
           return (
-            <span
+            <button
               key={fid}
+              type="button"
+              aria-label={`${FINGER_NAME[fid]} — home ${prettyKey(fs.homeKey)}${
+                fs.enabled ? "" : " (disabled)"
+              }`}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                startDrag(fid, { x: e.clientX, y: e.clientY });
+              }}
               className={cn(
-                "pointer-events-none absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-background",
-                !fs.enabled && "opacity-25",
+                "absolute flex size-5 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full border border-foreground/30 bg-background text-[9px] font-bold text-foreground shadow-sm transition-opacity active:cursor-grabbing",
+                !fs.enabled && "opacity-30",
+                isDragging && "opacity-40",
               )}
               style={{
                 left: r.x + r.w / 2 + ox,
-                top: r.y + r.h * 0.82,
-                backgroundColor: FINGER_COLOR[fid],
+                top: r.y + r.h * 0.5,
               }}
-              aria-hidden
-            />
+            >
+              {prettyKey(fs.homeKey)}
+              {!fs.enabled ? (
+                <span
+                  aria-hidden
+                  className="absolute h-px w-4 rotate-45 bg-foreground/70"
+                />
+              ) : null}
+            </button>
           );
         })}
       </div>
@@ -237,12 +268,8 @@ export function HandLayoutEditor(props: KeyboardProps) {
       {drag?.active ? (
         <span
           aria-hidden
-          className="pointer-events-none fixed z-50 flex size-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-lg"
-          style={{
-            left: drag.pointer.x,
-            top: drag.pointer.y,
-            backgroundColor: FINGER_COLOR[drag.finger],
-          }}
+          className="pointer-events-none fixed z-50 flex size-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-foreground/40 bg-background text-[10px] font-bold text-foreground shadow-lg"
+          style={{ left: drag.pointer.x, top: drag.pointer.y }}
         >
           {prettyKey(layout.fingers[drag.finger].homeKey)}
         </span>
@@ -251,66 +278,154 @@ export function HandLayoutEditor(props: KeyboardProps) {
   );
 }
 
-function HandSchematic({
+/** One ghost hand, drawn as filled palm + wrist + 5 stroked finger
+ *  paths. All shapes paint in `currentColor` at low alpha so the result
+ *  reads as a soft silhouette under the keys, never obscuring them.
+ *  Geometry derives from fingertip positions: the palm sits below the
+ *  median fingertip, the wrist trails further down, fingers curve from
+ *  the palm edge up to each tip. */
+function GhostHand({
   side,
   fingers,
-  state,
-  activeDrag,
-  onPointerDownFinger,
+  tipOf,
+  enabled,
+  draggingFid,
+  kbHeight,
 }: {
   side: "left" | "right";
   fingers: readonly FingerId[];
-  state: Record<FingerId, FingerState>;
-  /** Finger currently being dragged — fades the source button so the
-   *  user sees the avatar as the moving thing. */
-  activeDrag: FingerId | null;
-  onPointerDownFinger: (id: FingerId, pointer: Pointer) => void;
+  tipOf: (fid: FingerId) => Pt | null;
+  enabled: (fid: FingerId) => boolean;
+  draggingFid: FingerId | null;
+  kbHeight: number;
 }) {
+  // Resolve tip positions, skipping any that haven't measured yet.
+  const tips = fingers
+    .map((fid) => ({ fid, tip: tipOf(fid) }))
+    .filter((e): e is { fid: FingerId; tip: Pt } => e.tip != null);
+  const nonThumb = tips.filter((e) => Number(e.fid[1]) !== 1);
+  if (nonThumb.length === 0) return null;
+
+  const xs = nonThumb.map((e) => e.tip.x);
+  const ys = nonThumb.map((e) => e.tip.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const tipsCY = Math.max(...ys);
+  const palmW = maxX - minX + 56;
+  const palmH = 56;
+  const palmCX = (minX + maxX) / 2;
+  const palmCY = tipsCY + 60;
+  // Tilt: pull the palm/wrist toward the body's centre line so the
+  // hand looks anatomically correct (left hand angles right, right
+  // hand angles left).
+  const tilt = side === "left" ? 12 : -12;
+  const wristCX = palmCX + tilt;
+  const wristY = Math.max(palmCY + palmH * 0.7 + 18, kbHeight - 4);
+
+  const thumbFid = side === "left" ? ("L1" as const) : ("R1" as const);
+  const thumbTip = tips.find((e) => e.fid === thumbFid)?.tip;
+
+  // Distribute non-thumb finger bases along the top edge of the palm,
+  // ordered so left's pinky→index spans left→right and right's index→
+  // pinky spans left→right. This keeps each finger's base directly
+  // below its tip, so the curves don't cross.
+  const orderedNonThumb = [...nonThumb].sort((a, b) => a.tip.x - b.tip.x);
+  const baseTopY = palmCY - palmH * 0.45;
+  const baseSpan = palmW * 0.78;
+  const baseStart = palmCX - baseSpan / 2 + tilt * 0.6;
+  const fingerBases = new Map<FingerId, Pt>();
+  orderedNonThumb.forEach((e, i) => {
+    const t = (i + 0.5) / orderedNonThumb.length;
+    fingerBases.set(e.fid, { x: baseStart + t * baseSpan, y: baseTopY });
+  });
+
+  // Thumb base sits on the palm's inner side, lower than the four
+  // fingers — left hand's thumb anchors right, right hand's anchors
+  // left. The control point swings outward so the thumb path curves
+  // through the natural arc to Space.
+  const thumbBase: Pt = {
+    x: palmCX + (side === "left" ? palmW * 0.32 : -palmW * 0.32) + tilt * 0.4,
+    y: palmCY + palmH * 0.05,
+  };
+
+  // Palm shape: rounded trapezoid spanning finger bases at the top and
+  // the wrist at the bottom. Built from a single path with arcs at the
+  // corners so the palm and wrist read as one continuous limb.
+  const palmLeft = palmCX - palmW / 2 + tilt * 0.6;
+  const palmRight = palmCX + palmW / 2 + tilt * 0.6;
+  const palmTopL = { x: palmLeft, y: baseTopY };
+  const palmTopR = { x: palmRight, y: baseTopY };
+  const palmBotL = { x: wristCX - 26, y: wristY };
+  const palmBotR = { x: wristCX + 26, y: wristY };
+  const r = 18;
+  const palmPath = [
+    `M ${palmTopL.x + r} ${palmTopL.y}`,
+    `L ${palmTopR.x - r} ${palmTopR.y}`,
+    `Q ${palmTopR.x} ${palmTopR.y} ${palmTopR.x + 2} ${palmTopR.y + r}`,
+    `L ${palmBotR.x + 4} ${palmBotR.y - r}`,
+    `Q ${palmBotR.x + 4} ${palmBotR.y} ${palmBotR.x} ${palmBotR.y}`,
+    `L ${palmBotL.x} ${palmBotL.y}`,
+    `Q ${palmBotL.x - 4} ${palmBotL.y} ${palmBotL.x - 4} ${palmBotL.y - r}`,
+    `L ${palmTopL.x - 2} ${palmTopL.y + r}`,
+    `Q ${palmTopL.x} ${palmTopL.y} ${palmTopL.x + r} ${palmTopL.y}`,
+    "Z",
+  ].join(" ");
+
   return (
-    <div className="flex w-1/2 max-w-[14rem] flex-col gap-1">
-      <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
-        {side === "left" ? "left hand" : "right hand"}
-      </span>
-      <div className="flex h-28 items-end gap-1.5">
-        {fingers.map((fid) => {
-          const f = state[fid];
-          const idx = Number(fid[1]) as 1 | 2 | 3 | 4 | 5;
-          const colour = FINGER_COLOR[fid];
-          const isDragging = activeDrag === fid;
-          return (
-            <button
-              key={fid}
-              type="button"
-              aria-label={`${FINGER_NAME[fid]} — home ${prettyKey(f.homeKey)}${
-                f.enabled ? "" : " (disabled)"
-              }`}
-              onPointerDown={(e) => {
-                e.preventDefault();
-                onPointerDownFinger(fid, { x: e.clientX, y: e.clientY });
-              }}
-              className={cn(
-                "relative flex flex-1 cursor-grab flex-col items-center justify-end rounded-t-md border-2 bg-card font-mono text-[11px] text-foreground transition-opacity active:cursor-grabbing",
-                !f.enabled && "opacity-30",
-                isDragging && "opacity-50",
-              )}
-              style={{
-                height: `${FINGER_HEIGHT_PCT[idx]}%`,
-                borderColor: colour,
-              }}
-            >
-              <span className="pb-1 tabular-nums">{prettyKey(f.homeKey)}</span>
-              {!f.enabled ? (
-                <span
-                  aria-hidden
-                  className="absolute h-px w-5 rotate-45 bg-foreground/60"
-                />
-              ) : null}
-            </button>
-          );
-        })}
-      </div>
-      {/* Tiny "palm" base so the finger pills sit on something. */}
-      <div className="h-1.5 rounded-md bg-border" />
-    </div>
+    <g>
+      {/* Palm + wrist silhouette */}
+      <path d={palmPath} fill="currentColor" fillOpacity={0.1} />
+      <path
+        d={palmPath}
+        fill="none"
+        stroke="currentColor"
+        strokeOpacity={0.22}
+        strokeWidth={1}
+      />
+      {/* Fingers */}
+      {tips.map(({ fid, tip }) => {
+        const isThumb = fid === thumbFid;
+        const base = isThumb ? thumbBase : fingerBases.get(fid);
+        if (!base) return null;
+        const on = enabled(fid);
+        const dimming = draggingFid === fid ? 0.4 : 1;
+        const opacity = (on ? 0.32 : 0.1) * dimming;
+        // Quadratic control: bend slightly outward for thumbs (long
+        // arcing motion across the palm) and just-barely-inward for the
+        // straight fingers so they read as natural curves rather than
+        // ruler lines.
+        const ctrl: Pt = isThumb
+          ? {
+              x: (base.x + tip.x) / 2 + (side === "left" ? 14 : -14),
+              y: (base.y + tip.y) / 2 + 6,
+            }
+          : {
+              x: (base.x + tip.x) / 2,
+              y: Math.min(base.y, tip.y) - 4,
+            };
+        return (
+          <g key={fid}>
+            <path
+              d={`M ${base.x} ${base.y} Q ${ctrl.x} ${ctrl.y} ${tip.x} ${tip.y}`}
+              stroke="currentColor"
+              strokeOpacity={opacity}
+              strokeWidth={FINGER_STROKE[fid]}
+              strokeLinecap="round"
+              fill="none"
+            />
+            {/* Subtle highlight stroke down the centre — sells the
+             *  rounded-finger look without going full 3D. */}
+            <path
+              d={`M ${base.x} ${base.y} Q ${ctrl.x} ${ctrl.y} ${tip.x} ${tip.y}`}
+              stroke="currentColor"
+              strokeOpacity={(on ? 0.12 : 0.04) * dimming}
+              strokeWidth={Math.max(2, FINGER_STROKE[fid] * 0.35)}
+              strokeLinecap="round"
+              fill="none"
+            />
+          </g>
+        );
+      })}
+    </g>
   );
 }
