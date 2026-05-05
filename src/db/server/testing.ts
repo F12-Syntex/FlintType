@@ -16,7 +16,61 @@ const SCHEMA_DDL = `
     data        jsonb NOT NULL DEFAULT '{}'::jsonb,
     updated_at  timestamp NOT NULL DEFAULT now()
   );
+  CREATE TABLE IF NOT EXISTS bigram_models (
+    user_id       text NOT NULL,
+    bigram        text NOT NULL,
+    mean_ms       double precision NOT NULL,
+    variance_ms   double precision NOT NULL,
+    sample_count  integer NOT NULL,
+    updated_at    timestamp NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, bigram)
+  );
+  CREATE TABLE IF NOT EXISTS trigram_models (
+    user_id       text NOT NULL,
+    trigram       text NOT NULL,
+    mean_ms       double precision NOT NULL,
+    variance_ms   double precision NOT NULL,
+    sample_count  integer NOT NULL,
+    updated_at    timestamp NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, trigram)
+  );
+  CREATE TABLE IF NOT EXISTS motor_feature_models (
+    user_id       text NOT NULL,
+    feature_key   text NOT NULL,
+    mean_ms       double precision NOT NULL,
+    variance_ms   double precision NOT NULL,
+    sample_count  integer NOT NULL,
+    updated_at    timestamp NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, feature_key)
+  );
+  CREATE TABLE IF NOT EXISTS tests (
+    id                       text PRIMARY KEY,
+    user_id                  text NOT NULL,
+    started_at               timestamp NOT NULL,
+    completed_at             timestamp,
+    mode                     text NOT NULL,
+    duration_or_word_count   integer NOT NULL,
+    wpm                      double precision NOT NULL,
+    accuracy                 double precision NOT NULL,
+    error_count              integer NOT NULL,
+    reset_count              integer NOT NULL,
+    was_completed            boolean NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS tests_user_time_idx ON tests (user_id, started_at);
 `;
+
+const TRUNCATE_ALL = `
+  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, tests;
+`;
+
+/** PGlite's parse-message path rejects multi-statement queries, so we
+ *  split on `;` and execute each statement separately. */
+function splitStatements(ddl: string): string[] {
+  return ddl
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
 
 export async function createTestDatabase(): Promise<{
   db: Database;
@@ -25,12 +79,16 @@ export async function createTestDatabase(): Promise<{
 }> {
   const client = new PGlite();
   const drizzleDb = drizzle(client, { schema });
-  await drizzleDb.execute(sql.raw(SCHEMA_DDL));
+  for (const stmt of splitStatements(SCHEMA_DDL)) {
+    await drizzleDb.execute(sql.raw(stmt));
+  }
   const db = createDatabase(drizzleDb, "pglite");
   return {
     db,
     reset: async () => {
-      await drizzleDb.execute(sql.raw("TRUNCATE user_prefs"));
+      for (const stmt of splitStatements(TRUNCATE_ALL)) {
+        await drizzleDb.execute(sql.raw(stmt));
+      }
     },
     close: async () => {
       await client.close();
