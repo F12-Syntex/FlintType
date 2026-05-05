@@ -167,17 +167,43 @@ export function Passage() {
 
   // Single, absolutely-positioned caret. Its transform animates between
   // character positions so the | slides forward instead of teleporting.
+  const outerRef = useRef<HTMLDivElement | null>(null);
   const innerRef = useRef<HTMLDivElement | null>(null);
   const targetRef = useRef<HTMLSpanElement | null>(null);
   const targetSideRef = useRef<"left" | "right">("left");
   const firstMeasureRef = useRef(true);
   const [caret, setCaret] = useState<CaretPos | null>(null);
   const [animate, setAnimate] = useState(false);
+  // Clip the passage to a whole number of lines so a partial last line
+  // never peeks through the bottom edge.
+  const [clipHeight, setClipHeight] = useState<number | null>(null);
 
   const registerTarget = (el: HTMLSpanElement | null, side: "left" | "right") => {
     targetRef.current = el;
     targetSideRef.current = side;
   };
+
+  // Measure available height vs computed line-height and clamp the
+  // passage to a whole-line multiple. ResizeObserver covers viewport
+  // changes; the appearance dependency below covers font-scale /
+  // family swaps that change line-height without resizing the box.
+  useLayoutEffect(() => {
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+    const measure = () => {
+      const lh = parseFloat(getComputedStyle(inner).lineHeight);
+      const h = outer.clientHeight;
+      if (!Number.isFinite(lh) || lh <= 0 || h <= 0) return;
+      const lines = Math.max(1, Math.floor(h / lh));
+      setClipHeight(lines * lh);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(outer);
+    ro.observe(inner);
+    return () => ro.disconnect();
+  }, [appearance]);
 
   useLayoutEffect(() => {
     const inner = innerRef.current;
@@ -207,7 +233,7 @@ export function Passage() {
   }, [cursorWord, cursorChar, words]);
 
   return (
-    <div className="relative h-full w-full overflow-hidden">
+    <div ref={outerRef} className="relative h-full w-full overflow-hidden">
       <div
         ref={innerRef}
         // Tailwind text-* sizes are pre-multiplied by --ft-font-scale via
@@ -225,6 +251,9 @@ export function Passage() {
           // the passage, not body. Defaults inherit body's mono.
           fontFamily: "var(--ft-font-family, inherit)",
           wordSpacing: "var(--ft-word-spacing, 0.25em)",
+          ...(clipHeight != null
+            ? { maxHeight: `${clipHeight}px`, overflow: "hidden" }
+            : {}),
           ...maxWidthStyle,
         }}
       >
