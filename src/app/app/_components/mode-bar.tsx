@@ -251,7 +251,7 @@ function ModeControls() {
  *   - The hand-layout editor's drag/click interactions need to coexist
  *     with the keyboard underneath without the popover treating any
  *     of them as outside-clicks and self-dismissing.
- *  Hidden on mobile per spec — adaptive drilling is a desktop-leaning
+ *  Hidden on mobile per spec — adaptive practice is a desktop-leaning
  *  feature; the small-viewport flow doesn't expose it at all. */
 function AdaptControl() {
   const { state, toggleAdapt } = usePractice();
@@ -265,7 +265,7 @@ function AdaptControl() {
           "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-muted px-3 text-xs font-medium transition-colors hover:bg-muted/70",
           state.adapt ? "text-foreground" : "text-muted-foreground",
         )}
-        aria-label={`Adaptive drilling: ${state.adapt ? "on" : "off"} — open editor`}
+        aria-label={`Adaptive practice: ${state.adapt ? "on" : "off"} — open editor`}
       >
         <span
           aria-hidden
@@ -327,7 +327,7 @@ function AdaptModal({
       className="fixed inset-0 z-[60] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
-      aria-label="Adaptive drilling"
+      aria-label="Adaptive practice"
     >
       <button
         type="button"
@@ -342,14 +342,14 @@ function AdaptModal({
         <header className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
           <div className="flex flex-col">
             <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
-              adaptive drilling
+              adaptive practice
             </span>
             <span className="text-sm text-foreground">
               Practice biases toward what's actually slowing you down.
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <Toggle on={adaptOn} onToggle={onToggleAdapt} ariaLabel="Adaptive drilling" />
+            <Toggle on={adaptOn} onToggle={onToggleAdapt} ariaLabel="Adaptive practice" />
             <button
               type="button"
               onClick={onClose}
@@ -363,30 +363,29 @@ function AdaptModal({
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           <div className="mb-4 space-y-3 text-sm leading-relaxed text-muted-foreground">
             <p>
-              Every keystroke timing feeds three models — <span className="text-foreground">bigrams</span>{" "}
-              and <span className="text-foreground">trigrams</span> for the
-              raw pairs and triplets you actually type, plus{" "}
-              <span className="text-foreground">motor features</span> derived
-              from the hand layout below (same-finger transitions, cross-hand
-              jumps, row-jumps, and so on).
+              Every keystroke timing feeds three models:{" "}
+              <span className="text-foreground">bigrams</span> and{" "}
+              <span className="text-foreground">trigrams</span> for the pairs
+              and triplets you actually type, plus{" "}
+              <span className="text-foreground">motor features</span> from the
+              hand layout below — same-finger transitions, cross-hand jumps,
+              row-jumps.
             </p>
             <p>
-              For each pattern with enough samples, your running mean is
-              compared against your own baseline. Patterns where you've
-              fallen behind score as weaknesses, weighted by how confident
-              the model is in the measurement.
+              Each pattern's running mean is compared against your own
+              baseline. Where you've fallen behind scores as weakness,
+              weighted by sample confidence.
             </p>
             <p>
-              Future passages sample words from a productive{" "}
+              Future passages sample from a{" "}
               <span className="text-foreground">challenge band</span> just
-              above your current speed — never so far above that you stall —
-              with a recency penalty so the same words don't repeat, and a
-              fatigue dampener that softens the difficulty when recent
-              sessions show your speed declining.
+              above your current speed — never so far that you stall — with a
+              recency penalty so words don't repeat, and a fatigue dampener
+              when recent sessions show you slowing.
             </p>
             <p className="text-xs">
-              Adaptive drilling runs on desktop only — phone-sized viewports
-              always behave as if it's off, regardless of this toggle.
+              Adaptive practice runs on desktop only — phones always behave
+              as if it's off.
             </p>
           </div>
           <div className="rounded-md border border-border bg-background p-3">
