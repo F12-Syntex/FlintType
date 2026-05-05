@@ -7,6 +7,7 @@ import { useState } from "react";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
 import { cn } from "@/lib/utils";
 import { SECTIONS } from "./data";
+import { ImportExportPanel } from "./import-export";
 
 function titleCase(name: string): string {
   return name
@@ -21,7 +22,11 @@ function titleCase(name: string): string {
  *  listing every section. Avoids the hamburger glyph so it doesn't
  *  duplicate the topbar's nav menu icon, and surfaces the current
  *  section name so the user can read where they are without opening
- *  the page header below. */
+ *  the page header below.
+ *
+ *  The sheet's body has two regions: the section list at the top, and
+ *  the import/export panel pinned at the bottom — the same shape as
+ *  the desktop sidebar so users learn one mental map. */
 export function MobileSectionPicker() {
   const pathname = usePathname();
   const router = useRouter();
@@ -61,110 +66,136 @@ export function MobileSectionPicker() {
         />
       </button>
       <MobileSheet open={open} onOpenChange={setOpen} title="Sections">
-        <ul className="flex flex-col">
-          {SECTIONS.map((s) => {
-            const isActive = active?.id === s.id;
-            return (
-              <li
-                key={s.id}
-                className="border-b border-border last:border-b-0"
-              >
-                <button
-                  type="button"
-                  onClick={() => go(s.id)}
-                  className={cn(
-                    "flex w-full items-center gap-3 px-4 py-4 text-left transition-colors",
-                    isActive
-                      ? "bg-foreground/[0.04]"
-                      : "hover:bg-foreground/5 active:bg-foreground/10",
-                  )}
-                  aria-current={isActive ? "page" : undefined}
+        <div className="flex h-full flex-col">
+          <ul className="flex flex-col">
+            {SECTIONS.map((s) => {
+              const isActive = active?.id === s.id;
+              return (
+                <li
+                  key={s.id}
+                  className="border-b border-border last:border-b-0"
                 >
-                  <span
+                  <button
+                    type="button"
+                    onClick={() => go(s.id)}
                     className={cn(
-                      "inline-flex h-5 w-5 shrink-0 items-center justify-center",
-                      isActive ? "text-primary" : "text-transparent",
+                      "flex w-full items-center gap-3 px-4 py-4 text-left transition-colors",
+                      isActive
+                        ? "bg-foreground/[0.04]"
+                        : "hover:bg-foreground/5 active:bg-foreground/10",
                     )}
+                    aria-current={isActive ? "page" : undefined}
                   >
-                    <Check size={18} />
-                  </span>
-                  <span
-                    className={cn(
-                      "flex-1 text-base font-semibold",
-                      isActive ? "text-foreground" : "text-foreground/90",
-                    )}
-                  >
-                    {titleCase(s.name)}
-                  </span>
-                  <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
-                    {s.settings.length}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                    <span
+                      className={cn(
+                        "inline-flex h-5 w-5 shrink-0 items-center justify-center",
+                        isActive ? "text-primary" : "text-transparent",
+                      )}
+                    >
+                      <Check size={18} />
+                    </span>
+                    <span
+                      className={cn(
+                        "flex-1 text-base font-semibold",
+                        isActive ? "text-foreground" : "text-foreground/90",
+                      )}
+                    >
+                      {titleCase(s.name)}
+                    </span>
+                    <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+                      {s.settings.length}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="mt-auto border-t border-border bg-background/60 px-3 py-3">
+            <ImportExportPanel />
+          </div>
+        </div>
       </MobileSheet>
     </>
   );
 }
 
+/** Desktop settings sidebar (lg:+). Three vertical regions:
+ *    1. Header — "Customise" eyebrow + accent rule, anchors the rail
+ *    2. Section list — scrollable, active item gets a left accent bar
+ *    3. Footer — Import / Export panel (the controls that used to crowd
+ *       the customise header now live with the section navigation,
+ *       which is the right home for them).
+ *
+ *  Mobile (<lg) renders <MobileSectionPicker> from the customise header
+ *  instead — no sidebar at that breakpoint. */
 export function SettingsSidebar() {
   const pathname = usePathname();
   const active = SECTIONS.find(
     (s) => pathname === `/app/customise/${s.id}`,
   );
 
-  // Desktop only — a flat list. Active item gets a left accent bar and
-  // a faint hover-tint surface — no shadow, no ring, no card.
-  // On mobile, the section picker is rendered inside CustomiseHeader.
   return (
     <nav
       data-ft-chrome
       aria-label="Settings sections"
-      className="hidden bg-background/85 backdrop-blur-md lg:flex lg:h-full lg:flex-col lg:overflow-y-auto lg:border-r lg:border-border"
+      className="hidden bg-background/85 backdrop-blur-md lg:flex lg:h-full lg:flex-col lg:overflow-hidden lg:border-r lg:border-border"
     >
-      <div className="px-4 pt-5 pb-3">
-        <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-          Sections
-        </span>
+      {/* Header — the rail's title bar. */}
+      <div className="shrink-0 border-b border-border px-4 py-4">
+        <div className="flex items-center gap-3">
+          <span aria-hidden className="inline-block h-px w-5 bg-primary" />
+          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Customise
+          </span>
+        </div>
       </div>
-      <ul className="flex flex-col px-2 pb-3">
-        {SECTIONS.map((s) => {
-          const href = `/app/customise/${s.id}`;
-          const isActive = active?.id === s.id;
-          return (
-            <li key={s.id}>
-              <Link
-                href={href}
-                aria-current={isActive ? "page" : undefined}
-                className={cn(
-                  "relative flex items-center justify-between gap-3 rounded-md py-2 pr-3 pl-4 text-sm transition-colors",
-                  isActive
-                    ? "bg-foreground/[0.04] text-foreground"
-                    : "text-muted-foreground hover:bg-foreground/[0.03] hover:text-foreground",
-                )}
-              >
-                {isActive ? (
-                  <span
-                    aria-hidden
-                    className="absolute top-2 bottom-2 left-1 w-0.5 rounded-full bg-primary"
-                  />
-                ) : null}
-                <span className="font-medium">{titleCase(s.name)}</span>
-                <span
+
+      {/* Section list — fills remaining height, scrolls. */}
+      <div className="min-h-0 flex-1 overflow-y-auto py-3">
+        <ul className="flex flex-col px-2 pb-3">
+          {SECTIONS.map((s) => {
+            const href = `/app/customise/${s.id}`;
+            const isActive = active?.id === s.id;
+            return (
+              <li key={s.id}>
+                <Link
+                  href={href}
+                  aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "tabular-nums text-xs",
-                    isActive ? "text-foreground/70" : "text-muted-foreground/70",
+                    "relative flex items-center justify-between gap-3 rounded-md py-2 pr-3 pl-4 text-sm transition-colors",
+                    isActive
+                      ? "bg-foreground/[0.04] text-foreground"
+                      : "text-muted-foreground hover:bg-foreground/[0.03] hover:text-foreground",
                   )}
                 >
-                  {s.settings.length}
-                </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+                  {isActive ? (
+                    <span
+                      aria-hidden
+                      className="absolute top-2 bottom-2 left-1 w-0.5 rounded-full bg-primary"
+                    />
+                  ) : null}
+                  <span className="font-medium">{titleCase(s.name)}</span>
+                  <span
+                    className={cn(
+                      "tabular-nums text-xs",
+                      isActive
+                        ? "text-foreground/70"
+                        : "text-muted-foreground/70",
+                    )}
+                  >
+                    {s.settings.length}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      {/* Footer — Import / Export panel. */}
+      <div className="shrink-0 border-t border-border bg-background/60 px-3 py-3">
+        <ImportExportPanel />
+      </div>
     </nav>
   );
 }

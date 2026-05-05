@@ -1,40 +1,39 @@
 "use client";
 
-import { ChevronDown, Download, Upload } from "lucide-react";
-import { useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Download, Upload } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MobileSheet } from "@/components/ui/mobile-sheet";
+  useRef,
+  useState,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+} from "react";
 import {
   buildFlinttypeExport,
   downloadJson,
   importFlinttype,
   importMonkeytype,
 } from "@/lib/import-export";
-import { useIsMobile } from "@/lib/use-is-mobile";
 import { cn } from "@/lib/utils";
 
 type Source = "flinttype" | "monkeytype";
 
-/** Header strip controls: Export downloads the user's prefs blob,
- *  Import opens a picker for the source format and then a file
- *  chooser. Mobile: the trigger buttons collapse to icon-only and the
- *  Import dropdown is replaced by a bottom-up <MobileSheet>. Desktop:
- *  the original outline buttons + dropdown are preserved. */
-export function ImportExportControls() {
+/** Vertical Import/Export action panel — three flat rows, one per
+ *  action. Lives in the bottom of the desktop settings sidebar and at
+ *  the bottom of the mobile section-picker bottom sheet. Replaces the
+ *  old `<ImportExportControls>` that used to sit in the customise
+ *  header (icon-only on mobile, text+chevron dropdown on desktop) —
+ *  the sidebar/footer slot is the right home for them: they're tools
+ *  for managing the section list, not chrome for browsing it. */
+export function ImportExportPanel({
+  className,
+}: {
+  className?: string;
+}) {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const sourceRef = useRef<Source>("flinttype");
   const [status, setStatus] = useState<{ ok: boolean; msg: string } | null>(
     null,
   );
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const isMobile = useIsMobile();
 
   async function handleExport() {
     setStatus(null);
@@ -54,7 +53,6 @@ export function ImportExportControls() {
   function chooseFile(source: Source) {
     sourceRef.current = source;
     setStatus(null);
-    setSheetOpen(false);
     fileRef.current?.click();
   }
 
@@ -72,7 +70,7 @@ export function ImportExportControls() {
         ok: true,
         msg:
           n === 0
-            ? "Nothing matched — file had no recognized settings."
+            ? "Nothing matched in that file."
             : `Imported ${n} section${n === 1 ? "" : "s"} from ${
                 source === "flinttype" ? "flinttype" : "MonkeyType"
               }.`,
@@ -84,98 +82,46 @@ export function ImportExportControls() {
           err instanceof SyntaxError
             ? "Could not parse JSON — is the file valid?"
             : err instanceof Error
-            ? err.message
-            : "Import failed.",
+              ? err.message
+              : "Import failed.",
       });
     }
   }
 
   return (
-    <div className="flex items-center justify-end gap-1.5 sm:gap-2">
-      {/* Export — icon-only on mobile, icon+label on desktop. */}
-      <Button
-        variant="outline"
-        size="sm"
+    <div className={cn("flex flex-col gap-0.5", className)}>
+      <PanelLabel>Manage</PanelLabel>
+      <PanelButton
         onClick={() => void handleExport()}
-        aria-label="Export settings"
-        className="h-9 w-9 p-0 sm:h-8 sm:w-auto sm:gap-2 sm:px-3"
+        icon={<Download size={14} />}
+        title="Download your current settings as a JSON file"
       >
-        <Download size={16} className="shrink-0 sm:size-3.5" />
-        <span className="hidden sm:inline">Export</span>
-      </Button>
-
-      {/* Import — desktop dropdown stays as before; mobile trigger
-          opens a fixed-height bottom sheet. */}
-      {isMobile ? (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setSheetOpen(true)}
-          aria-label="Import settings"
-          className="h-9 w-9 p-0"
-        >
-          <Upload size={16} className="shrink-0" />
-        </Button>
-      ) : (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 gap-2 px-3">
-              <Upload size={14} />
-              Import
-              <ChevronDown size={14} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[12rem]">
-            <DropdownMenuItem onSelect={() => chooseFile("flinttype")}>
-              <span className="flex flex-col">
-                <span>From flinttype</span>
-                <span className="text-xs text-muted-foreground">
-                  A JSON exported here.
-                </span>
-              </span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => chooseFile("monkeytype")}>
-              <span className="flex flex-col">
-                <span>From MonkeyType</span>
-                <span className="text-xs text-muted-foreground">
-                  Your monkeytype.com settings JSON.
-                </span>
-              </span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-
-      <MobileSheet
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        title="Import settings"
+        Export settings
+      </PanelButton>
+      <PanelButton
+        onClick={() => chooseFile("flinttype")}
+        icon={<Upload size={14} />}
+        title="Restore settings from a flinttype export"
       >
-        <ul className="flex flex-col">
-          <SheetSourceItem
-            title="From flinttype"
-            desc="A JSON file you exported here."
-            onSelect={() => chooseFile("flinttype")}
-          />
-          <SheetSourceItem
-            title="From MonkeyType"
-            desc="Your monkeytype.com settings JSON."
-            onSelect={() => chooseFile("monkeytype")}
-          />
-        </ul>
-      </MobileSheet>
-
+        Import flinttype
+      </PanelButton>
+      <PanelButton
+        onClick={() => chooseFile("monkeytype")}
+        icon={<Upload size={14} />}
+        title="Map a monkeytype.com settings JSON"
+      >
+        Import MonkeyType
+      </PanelButton>
       {status ? (
-        <span
+        <p
           className={cn(
-            "ml-1 hidden text-xs sm:inline",
+            "mt-1 px-2 text-[11px] leading-snug",
             status.ok ? "text-muted-foreground" : "text-destructive",
           )}
           role={status.ok ? undefined : "alert"}
         >
           {status.msg}
-        </span>
+        </p>
       ) : null}
       <input
         ref={fileRef}
@@ -192,27 +138,36 @@ export function ImportExportControls() {
   );
 }
 
-function SheetSourceItem({
-  title,
-  desc,
-  onSelect,
-}: {
-  title: string;
-  desc: string;
-  onSelect: () => void;
-}) {
+function PanelLabel({ children }: { children: ReactNode }) {
   return (
-    <li className="border-b border-border last:border-b-0">
-      <button
-        type="button"
-        onClick={onSelect}
-        className="flex w-full flex-col gap-1 px-4 py-4 text-left transition-colors hover:bg-foreground/5 active:bg-foreground/10"
-      >
-        <span className="text-base font-semibold text-foreground">
-          {title}
-        </span>
-        <span className="text-sm text-muted-foreground">{desc}</span>
-      </button>
-    </li>
+    <span className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/70">
+      {children}
+    </span>
+  );
+}
+
+function PanelButton({
+  icon,
+  children,
+  ...rest
+}: {
+  icon: ReactNode;
+  children: ReactNode;
+} & ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      type="button"
+      {...rest}
+      className={cn(
+        "flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm font-medium text-muted-foreground transition-colors",
+        "hover:bg-foreground/5 hover:text-foreground active:bg-foreground/10",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      )}
+    >
+      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground">
+        {icon}
+      </span>
+      <span className="flex-1 truncate">{children}</span>
+    </button>
   );
 }
