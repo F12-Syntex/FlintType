@@ -10,20 +10,8 @@ import { usePractice } from "./practice-state";
  *  Mobile: a tappable RESTART button replaces the Tab/Esc keycap hints
  *  (those keys don't exist on virtual keyboards). On desktop the keycap
  *  hints stay visible — they're how power users restart fastest. */
-function formatMs(ms: number): string {
-  const total = Math.floor(ms / 1000);
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
 export function RestHint() {
-  const { state, restart, wpm, accuracy, elapsedMs } = usePractice();
-  const wordCount = state.words.length;
-  const isTime = state.mode === "TIME";
-  const remainingMs = isTime
-    ? Math.max(0, state.length * 1000 - elapsedMs)
-    : 0;
+  const { state, restart, wpm, accuracy } = usePractice();
 
   if (state.phase === "done") {
     return (
@@ -42,11 +30,11 @@ export function RestHint() {
   }
 
   if (state.phase === "running") {
+    // Progress (0/25 words, or 0:30 left) already lives in the readouts
+    // rail above the passage — duplicating it here just crowded the
+    // footer. Render only a quiet right-aligned cancel affordance.
     return (
-      <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-        <span className="text-foreground">
-          {isTime ? formatMs(remainingMs) : `${state.cursorWord}/${wordCount}`}
-        </span>
+      <div className="flex items-center justify-end text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
         <CancelControl onCancel={() => restart()} />
       </div>
     );
@@ -94,17 +82,18 @@ function RestartControl({
 }
 
 function CancelControl({ onCancel }: { onCancel: () => void }) {
-  // Mobile-only: the running-phase row that hosts this is hidden at md+.
+  // Mobile-only: ghost button — no chip background so it sits quietly
+  // in the bottom-right corner of the reader during typing instead of
+  // reading as a second card surface. Padding keeps the touch target
+  // ≥ 44 px (UI law §7).
   return (
     <button
       type="button"
       onClick={onCancel}
       className={cn(
-        "inline-flex h-11 min-w-[112px] items-center justify-center",
-        "rounded-md border border-border bg-card px-4",
-        "text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground",
-        "transition-colors hover:border-primary hover:text-primary",
-        "active:bg-accent",
+        "inline-flex h-11 items-center justify-center px-2",
+        "text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground",
+        "transition-colors hover:text-primary",
       )}
     >
       cancel
