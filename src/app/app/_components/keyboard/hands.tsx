@@ -190,6 +190,60 @@ export function HandLayoutEditor(props: KeyboardProps) {
             height={size.h}
             viewBox={`0 0 ${size.w} ${size.h}`}
           >
+            <defs>
+              {/* Anime-style line art via filter: take the union alpha
+               *  of every shape under it, dilate, subtract original to
+               *  get a solid outline ring around the silhouette, then
+               *  re-emit a soft body fill underneath. Internal seams
+               *  (palm ↔ finger overlaps) vanish because the filter
+               *  only outlines the OUTER perimeter of the union. */}
+              <filter
+                id="ft-hand-style"
+                x="-5%"
+                y="-5%"
+                width="110%"
+                height="110%"
+              >
+                <feMorphology
+                  in="SourceAlpha"
+                  operator="dilate"
+                  radius="1.4"
+                  result="dilated"
+                />
+                <feComposite
+                  in="dilated"
+                  in2="SourceAlpha"
+                  operator="out"
+                  result="outlineMask"
+                />
+                <feFlood
+                  floodColor="currentColor"
+                  floodOpacity="0.7"
+                  result="strokeColor"
+                />
+                <feComposite
+                  in="strokeColor"
+                  in2="outlineMask"
+                  operator="in"
+                  result="outline"
+                />
+                <feFlood
+                  floodColor="currentColor"
+                  floodOpacity="0.18"
+                  result="bodyColor"
+                />
+                <feComposite
+                  in="bodyColor"
+                  in2="SourceAlpha"
+                  operator="in"
+                  result="body"
+                />
+                <feMerge>
+                  <feMergeNode in="body" />
+                  <feMergeNode in="outline" />
+                </feMerge>
+              </filter>
+            </defs>
             <GhostHand
               side="left"
               fingers={LEFT_FINGERS}
@@ -284,13 +338,14 @@ export function HandLayoutEditor(props: KeyboardProps) {
   );
 }
 
-/** One ghost hand, drawn as a unified silhouette: an elliptical palm,
- *  a tapering wrist, and five tapered finger shapes (polygon body +
- *  base / tip circles for rounded ends). Everything paints in
- *  `currentColor` and is wrapped in a single `<g>` whose group opacity
- *  flattens the layered shapes — so the palm, the wrist, the finger
- *  bases and the fingers themselves read as one cohesive limb instead
- *  of a stack of strokes that visibly seam together. */
+/** One ghost hand, drawn as a unified silhouette in anime-line-art
+ *  style. Palm + wrist + enabled fingers all live under a single
+ *  `<g filter="url(#ft-hand-style)">` so the SVG filter strokes the
+ *  outer perimeter of their union — internal seams (where a finger
+ *  overlaps the palm) disappear automatically. Each finger is built
+ *  from cubic Bézier curves that bulge subtly outward at the knuckle
+ *  and meet a rounded fingertip arc, giving the silhouette an inked,
+ *  hand-drawn feel rather than a pile of polygons. */
 function GhostHand({
   side,
   fingers,
@@ -316,49 +371,53 @@ function GhostHand({
   const maxX = Math.max(...xs);
   const tipsCY = Math.max(...ys);
 
-  // Palm geometry. The ellipse sits ~80px below the home row and spans
-  // a touch wider than the non-thumb fingertip span, giving the four
-  // straight fingers a natural place to attach.
+  // Palm geometry. Ellipse sits well below the home row, spanning a
+  // little wider than the non-thumb fingertip span so the fingers can
+  // attach naturally onto its top arc.
   const palmCX = (minX + maxX) / 2;
-  const palmCY = tipsCY + 80;
-  const palmRX = (maxX - minX) / 2 + 26;
-  const palmRY = 34;
+  const palmCY = tipsCY + 84;
+  const palmRX = (maxX - minX) / 2 + 28;
+  const palmRY = 38;
 
-  // Wrist trails below the palm, narrower than the palm and rotated
-  // toward the body's midline so the hand reads as anatomically tilted
-  // (left hand angles right, right hand angles left).
+  // Wrist trails below the palm, narrower than the palm and tilted
+  // toward the body's midline so the hand reads as anatomically
+  // angled (left hand angles right, right hand angles left).
   const tilt = side === "left" ? 14 : -14;
   const wristCX = palmCX + tilt;
-  const wristTopY = palmCY + palmRY * 0.85;
-  const wristBotY = palmCY + palmRY + 56;
-  const wristTopHalf = palmRX * 0.65;
-  const wristBotHalf = palmRX * 0.5;
+  const wristTopY = palmCY + palmRY * 0.7;
+  const wristBotY = palmCY + palmRY + 58;
+  const wristTopHalf = palmRX * 0.7;
+  const wristBotHalf = palmRX * 0.52;
 
   const thumbFid = side === "left" ? ("L1" as const) : ("R1" as const);
 
-  // Non-thumb finger bases sit on the top arc of the ellipse, evenly
-  // spaced and ordered so each base lands directly below its tip — no
-  // crossed fingers.
+  // Non-thumb finger bases — pulled slightly INSIDE the palm's top
+  // arc so the finger silhouette overlaps the palm. Without this
+  // overlap, the filter would render an outline at the join; with
+  // it, the union reads as one continuous limb.
   const orderedNonThumb = [...nonThumb].sort((a, b) => a.tip.x - b.tip.x);
   const fingerBases = new Map<FingerId, Pt>();
   orderedNonThumb.forEach((e, i) => {
     const t = (i + 0.5) / orderedNonThumb.length;
     const localX = (t - 0.5) * 2 * palmRX * 0.78;
-    // Top of the ellipse at this localX: y = -ry * sqrt(1 - x²/rx²)
     const yOff = -palmRY * Math.sqrt(Math.max(0, 1 - (localX / palmRX) ** 2));
-    fingerBases.set(e.fid, { x: palmCX + localX, y: palmCY + yOff });
+    fingerBases.set(e.fid, {
+      x: palmCX + localX,
+      y: palmCY + yOff * 0.9, // 0.9 pulls the base ~10% inside the arc
+    });
   });
 
-  // Thumb base anchors on the palm's inner-lower flank — that's where
-  // the thenar muscle sits anatomically. Left hand's thumb hangs off
-  // the right side of the palm; right hand's hangs off the left.
+  // Thumb base sits on the palm's inner-lower flank — anatomically
+  // the thenar bulge. Left hand's thumb hangs off the right side of
+  // the palm; right hand's off the left.
   const thumbBase: Pt = {
-    x: palmCX + (side === "left" ? palmRX * 0.55 : -palmRX * 0.55),
-    y: palmCY + palmRY * 0.15,
+    x: palmCX + (side === "left" ? palmRX * 0.5 : -palmRX * 0.5),
+    y: palmCY + palmRY * 0.05,
   };
 
-  // Wrist is a path that tapers from palm-ellipse bottom to a slightly
-  // narrower wrist-end, with rounded corners at the bottom.
+  // Wrist path — tapered rounded rectangle from the palm bottom down
+  // to a narrower wrist-end. Fully filled, no inner detail; the
+  // filter strokes the outer perimeter for us.
   const wristPath = [
     `M ${wristCX - wristTopHalf} ${wristTopY}`,
     `L ${wristCX - wristBotHalf} ${wristBotY - 10}`,
@@ -369,57 +428,57 @@ function GhostHand({
     "Z",
   ].join(" ");
 
+  // Compute every finger's curved-path geometry up front; we render
+  // enabled vs disabled fingers in two separate passes (only enabled
+  // fingers participate in the unified outline).
+  const fingerEntries = tips
+    .map(({ fid, tip }) => {
+      const isThumb = fid === thumbFid;
+      const base = isThumb ? thumbBase : fingerBases.get(fid);
+      if (!base) return null;
+      const w = FINGER_WIDTH[fid];
+      return {
+        fid,
+        on: enabled(fid),
+        dragging: draggingFid === fid,
+        path: fingerPath(base, tip, w.base, w.tip),
+      };
+    })
+    .filter((e): e is NonNullable<typeof e> => e != null);
+
   return (
-    <g opacity={0.5}>
-      <g fill="currentColor">
-        {/* Wrist (drawn first so the palm covers the seam at the top). */}
+    <>
+      {/* Active hand — palm + wrist + enabled fingers all under the
+       *  unified-outline filter. */}
+      <g filter="url(#ft-hand-style)" fill="currentColor">
         <path d={wristPath} />
-        {/* Palm */}
         <ellipse cx={palmCX} cy={palmCY} rx={palmRX} ry={palmRY} />
-        {/* Each finger: a tapered polygon flanked by rounded base /
-         *  tip circles. The base circle overlaps the palm so the join
-         *  is invisible; the tip circle gives a rounded fingertip. */}
-        {tips.map(({ fid, tip }) => {
-          const isThumb = fid === thumbFid;
-          const base = isThumb ? thumbBase : fingerBases.get(fid);
-          if (!base) return null;
-          const w = FINGER_WIDTH[fid];
-          const on = enabled(fid);
-          const isDragging = draggingFid === fid;
-          // Disabled fingers fade further and lose their fill almost
-          // entirely so the user reads "this finger is out".
-          const fingerOpacity = isDragging ? 0.4 : on ? 1 : 0.28;
-          const polygon = taperedPolygon(base, tip, w.base, w.tip);
-          return (
-            <g key={fid} opacity={fingerOpacity}>
-              <circle cx={base.x} cy={base.y} r={w.base / 2} />
-              <polygon points={polygon} />
-              <circle cx={tip.x} cy={tip.y} r={w.tip / 2} />
-            </g>
-          );
-        })}
+        {fingerEntries
+          .filter((e) => e.on && !e.dragging)
+          .map((e) => (
+            <path key={e.fid} d={e.path} />
+          ))}
       </g>
-      {/* Soft outline — picks out the silhouette without competing
-       *  with the keyboard's own borders. */}
-      <ellipse
-        cx={palmCX}
-        cy={palmCY}
-        rx={palmRX}
-        ry={palmRY}
-        fill="none"
-        stroke="currentColor"
-        strokeOpacity={0.25}
-        strokeWidth={1}
-      />
-    </g>
+      {/* Disabled / dragging fingers — rendered separately, faintly,
+       *  so they don't pollute the unified silhouette. The disabled
+       *  state is also conveyed by the cross-out badge on the home
+       *  key, so this rendering is just a soft hint. */}
+      <g fill="currentColor" fillOpacity={0.1}>
+        {fingerEntries
+          .filter((e) => !e.on || e.dragging)
+          .map((e) => (
+            <path key={e.fid} d={e.path} />
+          ))}
+      </g>
+    </>
   );
 }
 
-/** Build the four-vertex polygon for a tapered finger: wider at the
- *  base, narrower at the tip. The vertices sit on the perpendiculars
- *  to the base→tip vector at each end, with the matching base / tip
- *  circles supplying the rounded ends. */
-function taperedPolygon(
+/** Cubic-Bézier finger silhouette: wider at the base, narrower at the
+ *  tip, with a slight outward bulge on each side near the proximal
+ *  knuckle (~⅓ up) and a rounded fingertip arc. The result reads as
+ *  an inked anime-style finger rather than a tapered polygon stick. */
+function fingerPath(
   base: Pt,
   tip: Pt,
   baseW: number,
@@ -428,13 +487,54 @@ function taperedPolygon(
   const dx = tip.x - base.x;
   const dy = tip.y - base.y;
   const len = Math.hypot(dx, dy) || 1;
-  const px = -dy / len; // perpendicular x
-  const py = dx / len; // perpendicular y
-  const points: [number, number][] = [
-    [base.x + px * (baseW / 2), base.y + py * (baseW / 2)],
-    [tip.x + px * (tipW / 2), tip.y + py * (tipW / 2)],
-    [tip.x - px * (tipW / 2), tip.y - py * (tipW / 2)],
-    [base.x - px * (baseW / 2), base.y - py * (baseW / 2)],
-  ];
-  return points.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+  const ux = dx / len;
+  const uy = dy / len;
+  // Perpendicular vectors (left/right of the finger axis).
+  const lx = uy;
+  const ly = -ux;
+  const rx = -uy;
+  const ry = ux;
+
+  const baseL: Pt = { x: base.x + lx * (baseW / 2), y: base.y + ly * (baseW / 2) };
+  const baseR: Pt = { x: base.x + rx * (baseW / 2), y: base.y + ry * (baseW / 2) };
+  const tipL: Pt = { x: tip.x + lx * (tipW / 2), y: tip.y + ly * (tipW / 2) };
+  const tipR: Pt = { x: tip.x + rx * (tipW / 2), y: tip.y + ry * (tipW / 2) };
+
+  // Side bulges — the slight outward swell near the knuckle is what
+  // separates a hand-drawn finger from a CAD-extruded one.
+  const bulge = baseW * 0.06;
+
+  // Up the left side: cubic with control points pulled slightly
+  // outward at ⅓ and inward-toward-tip at ⅔.
+  const cL1: Pt = {
+    x: baseL.x + ux * len * 0.33 + lx * bulge,
+    y: baseL.y + uy * len * 0.33 + ly * bulge,
+  };
+  const cL2: Pt = {
+    x: tipL.x - ux * len * 0.33 + lx * (bulge * 0.3),
+    y: tipL.y - uy * len * 0.33 + ly * (bulge * 0.3),
+  };
+  // Tip arc: control points pushed past the tip in the finger
+  // direction so the apex rounds smoothly.
+  const arcExt = tipW * 0.65;
+  const cArc1: Pt = { x: tipL.x + ux * arcExt, y: tipL.y + uy * arcExt };
+  const cArc2: Pt = { x: tipR.x + ux * arcExt, y: tipR.y + uy * arcExt };
+  // Down the right side, mirror of the left.
+  const cR1: Pt = {
+    x: tipR.x - ux * len * 0.33 + rx * (bulge * 0.3),
+    y: tipR.y - uy * len * 0.33 + ry * (bulge * 0.3),
+  };
+  const cR2: Pt = {
+    x: baseR.x + ux * len * 0.33 + rx * bulge,
+    y: baseR.y + uy * len * 0.33 + ry * bulge,
+  };
+
+  const f = (n: number) => n.toFixed(1);
+  return [
+    `M ${f(baseL.x)} ${f(baseL.y)}`,
+    `C ${f(cL1.x)} ${f(cL1.y)} ${f(cL2.x)} ${f(cL2.y)} ${f(tipL.x)} ${f(tipL.y)}`,
+    `C ${f(cArc1.x)} ${f(cArc1.y)} ${f(cArc2.x)} ${f(cArc2.y)} ${f(tipR.x)} ${f(tipR.y)}`,
+    `C ${f(cR1.x)} ${f(cR1.y)} ${f(cR2.x)} ${f(cR2.y)} ${f(baseR.x)} ${f(baseR.y)}`,
+    "Z",
+  ].join(" ");
 }
