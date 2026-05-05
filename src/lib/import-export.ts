@@ -66,24 +66,89 @@ export function downloadJson(filename: string, data: unknown): void {
   URL.revokeObjectURL(url);
 }
 
+// ─── Import plans ───────────────────────────────────────────────────
+//
+// `import*` functions both return a plan rather than committing
+// directly. The UI shows the plan in a confirmation dialog, then
+// invokes `apply()` once the user accepts. This way the user sees what
+// will change *before* their settings are stomped, and a misclicked
+// import is recoverable (just hit Cancel).
+
+/** A single human-readable change row in an import plan. */
+export type ImportChange = {
+  /** Slice the row will write to. */
+  slice: string;
+  /** Short headline describing what the slice will contain. */
+  label: string;
+  /** Optional list of bullet-point details (specific keys / values). */
+  details?: string[];
+};
+
+/** What a planned import will do, plus the commit fn that performs it. */
+export type ImportPlan = {
+  source: "flinttype" | "monkeytype";
+  /** Title of the source the import was parsed from — surfaced as the
+   *  dialog header. */
+  title: string;
+  /** Each slice the import will write, in the order it'll be applied. */
+  changes: ImportChange[];
+  /** Run the import. Returns the count of slices touched. */
+  apply: () => number;
+};
+
 // ─── Flinttype import ────────────────────────────────────────────────
 
-/** Apply a previously exported flinttype JSON. Each slice is written
- *  through the prefs store (debounced backend save). Returns the count
- *  of slices imported so the caller can surface a user-visible total. */
-export function importFlinttype(payload: unknown): number {
+/** Plan a flinttype JSON import. Each slice in the export becomes one
+ *  change row; the row's details list the top-level keys that will be
+ *  written so the user can see roughly what's coming over. */
+export function planFlinttypeImport(payload: unknown): ImportPlan {
   if (!isFlinttypeExport(payload)) {
     throw new Error("Not a flinttype export — expected app: 'flinttype'.");
   }
-  let n = 0;
+  const slices = payload.slices;
+  const changes: ImportChange[] = [];
   for (const key of KNOWN_SLICES) {
-    const slice = payload.slices[key];
+    const slice = slices[key];
     if (slice == null || typeof slice !== "object") continue;
-    writeSlice(key, slice);
-    n += 1;
+    changes.push({
+      slice: key,
+      label: SLICE_LABELS[key] ?? key,
+      details: Object.keys(slice as object).slice(0, 8),
+    });
   }
-  return n;
+  return {
+    source: "flinttype",
+    title: "Import flinttype settings",
+    changes,
+    apply: () => {
+      let n = 0;
+      for (const c of changes) {
+        const slice = slices[c.slice];
+        if (slice == null || typeof slice !== "object") continue;
+        writeSlice(c.slice, slice);
+        n += 1;
+      }
+      return n;
+    },
+  };
 }
+
+/** Legacy direct-apply entrypoint — kept for tests and any caller that
+ *  doesn't want the dialog flow. */
+export function importFlinttype(payload: unknown): number {
+  return planFlinttypeImport(payload).apply();
+}
+
+const SLICE_LABELS: Record<string, string> = {
+  caret: "Caret",
+  appearance: "Appearance",
+  behaviour: "Behaviour",
+  background: "Background image",
+  keyboard: "Keyboard",
+  theme: "Theme overrides",
+  palette: "Palette",
+  practice: "Practice mode",
+};
 
 function isFlinttypeExport(v: unknown): v is FlinttypeExport {
   if (!v || typeof v !== "object") return false;
@@ -102,12 +167,12 @@ function isFlinttypeExport(v: unknown): v is FlinttypeExport {
  *  full schema is much larger; missing fields are simply ignored. */
 type MonkeytypeSettings = Record<string, unknown>;
 
-/** Apply a MonkeyType `settings.json` (the file the user gets from
- *  monkeytype.com → settings → "Export settings JSON"). We translate
- *  field-by-field; anything without a flinttype counterpart is dropped.
- *  Returns the count of slices that received any value so the caller
- *  can show a confirmation. */
-export function importMonkeytype(payload: unknown): number {
+/** Plan a MonkeyType `settings.json` import. Translates the JSON
+ *  field-by-field into a list of change rows, then returns an `apply`
+ *  fn that writes them to the prefs store. The UI shows the rows in a
+ *  confirmation dialog before calling apply — the user sees exactly
+ *  what's going to land before their settings are stomped. */
+export function planMonkeytypeImport(payload: unknown): ImportPlan {
   if (!payload || typeof payload !== "object") {
     throw new Error("Not a settings JSON object.");
   }
@@ -119,51 +184,217 @@ export function importMonkeytype(payload: unknown): number {
   const background = mapBackground(mt);
   const practice = mapPractice(mt);
   // Theme handling — MT's `customTheme` flag decides which side of the
-  // export is "active" for the user. When true, MT renders the
-  // customThemeColors array instead of the named palette, so we mirror
-  // that intent: write theme overrides and skip the palette pick.
-  // When false (or absent), translate the theme name to a flinttype
-  // palette id. Either way we also pull --ft-font-* out of fontFamily
-  // / fontSize so typography rides along with the colour import.
-  const useCustomColors = mt.customTheme === true;
-  const themeOverrides = mapThemeOverrides(mt, useCustomColors);
-  const palette = useCustomColors ? null : mapPalette(mt);
+  // export is "active" for the user. We follow MT's semantics first,
+  // then add a single fallback: if the user is on a named MT theme that
+  // flinttype doesn't ship, fall back to their `customThemeColors` blob
+  // (MT's last-saved custom palette) rather than dropping the colour
+  // import entirely. Without the fallback the user sees their full
+  // settings imported but no theme change — which is what triggered the
+  // "background/text colours didn't import" bug.
+  const customThemeColorsPresent = Array.isArray(mt.customThemeColors);
+  const namedThemeRequested =
+    mt.customTheme !== true && typeof mt.theme === "string";
+  const namedPaletteCandidate = namedThemeRequested ? mapPalette(mt) : null;
+  const fellBackToCustom =
+    namedThemeRequested && !namedPaletteCandidate && customThemeColorsPresent;
+  const applyColors =
+    customThemeColorsPresent &&
+    (mt.customTheme === true || fellBackToCustom);
+  const colorOverrides = applyColors ? mapColorOverrides(mt) : null;
+  const typographyOverrides = mapTypographyOverrides(mt);
+  const themeOverrides = combineOverrides(colorOverrides, typographyOverrides);
+  // Color overrides fork the user off whatever palette they were on →
+  // palette becomes "custom". Typography-only imports keep the named
+  // palette mapping below so the user lands on the right colours and
+  // also gets the font.
+  const namedPalette = colorOverrides ? null : namedPaletteCandidate;
 
-  let n = 0;
+  const changes: ImportChange[] = [];
   if (caret) {
-    writeSlice("caret", { ...DEFAULT_CARET, ...caret });
-    n += 1;
+    changes.push({
+      slice: "caret",
+      label: "Caret",
+      details: describeCaret(caret),
+    });
   }
   if (behaviour) {
-    writeSlice("behaviour", { ...DEFAULT_BEHAVIOUR, ...behaviour });
-    n += 1;
+    changes.push({
+      slice: "behaviour",
+      label: "Behaviour",
+      details: describeBehaviour(behaviour),
+    });
   }
   if (appearance) {
-    writeSlice("appearance", { ...DEFAULT_APPEARANCE, ...appearance });
-    n += 1;
+    changes.push({
+      slice: "appearance",
+      label: "Appearance",
+      details: describeAppearance(appearance),
+    });
   }
   if (background) {
-    writeSlice("background", { ...DEFAULT_BACKGROUND, ...background });
-    n += 1;
+    changes.push({
+      slice: "background",
+      label: "Background image",
+      details: describeBackground(background),
+    });
   }
   if (themeOverrides) {
-    writeSlice("theme", themeOverrides);
-    // Any inline overrides → palette state is "Custom". This applies
-    // even when the user only imported font-family / font-size (no
-    // colours) — typography overrides also fork the user off the named
-    // palette, so the picker should reflect that.
-    writeSlice("palette", { activeId: CUSTOM_THEME_ID });
-    n += 1;
-  } else if (palette) {
-    // No overrides: respect the imported palette name as-is.
-    writeSlice("palette", palette);
-    n += 1;
+    const detail: string[] = [];
+    if (colorOverrides) {
+      const keys = Object.keys(colorOverrides).filter((k) =>
+        k.startsWith("--"),
+      );
+      detail.push(`${keys.length} colour token${keys.length === 1 ? "" : "s"}`);
+      if (fellBackToCustom) {
+        // The user was on an MT named theme flinttype doesn't ship —
+        // surface the fallback so they understand why the picker says
+        // "Custom" instead of carrying the named theme over.
+        detail.push(
+          `theme "${asString(mt.theme)}" not in library — using your custom colours`,
+        );
+      }
+    }
+    if (typographyOverrides?.["--ft-font-family"]) {
+      const family = typographyOverrides["--ft-font-family"]
+        .split(",")[0]
+        ?.trim()
+        .replace(/^['"]|['"]$/g, "");
+      if (family) detail.push(`font: ${family}`);
+    }
+    if (typographyOverrides?.["--ft-font-scale"]) {
+      detail.push(`size: ${typographyOverrides["--ft-font-scale"]}×`);
+    }
+    changes.push({
+      slice: "theme",
+      label: colorOverrides ? "Theme (Custom)" : "Theme typography",
+      details: detail,
+    });
+  }
+  if (namedPalette) {
+    changes.push({
+      slice: "palette",
+      label: "Palette",
+      details: [namedPalette.activeId ?? "default"],
+    });
+  } else if (colorOverrides) {
+    changes.push({
+      slice: "palette",
+      label: "Palette",
+      details: ["custom (driven by imported colours)"],
+    });
   }
   if (practice) {
-    writeSlice("practice", practice);
-    n += 1;
+    changes.push({
+      slice: "practice",
+      label: "Practice mode",
+      details: [`${practice.mode.toLowerCase()} · ${practice.length}`],
+    });
   }
-  return n;
+
+  return {
+    source: "monkeytype",
+    title: "Import MonkeyType settings",
+    changes,
+    apply: () => {
+      let n = 0;
+      if (caret) {
+        writeSlice("caret", { ...DEFAULT_CARET, ...caret });
+        n += 1;
+      }
+      if (behaviour) {
+        writeSlice("behaviour", { ...DEFAULT_BEHAVIOUR, ...behaviour });
+        n += 1;
+      }
+      if (appearance) {
+        writeSlice("appearance", { ...DEFAULT_APPEARANCE, ...appearance });
+        n += 1;
+      }
+      if (background) {
+        writeSlice("background", { ...DEFAULT_BACKGROUND, ...background });
+        n += 1;
+      }
+      if (themeOverrides) {
+        writeSlice("theme", themeOverrides);
+        n += 1;
+      }
+      // Palette write order: color-driven custom > named palette mapping.
+      if (colorOverrides) {
+        writeSlice("palette", { activeId: CUSTOM_THEME_ID });
+      } else if (namedPalette) {
+        writeSlice("palette", namedPalette);
+      }
+      if (practice) {
+        writeSlice("practice", practice);
+        n += 1;
+      }
+      return n;
+    },
+  };
+}
+
+/** Legacy direct-apply entrypoint — kept for tests and any caller that
+ *  doesn't want the dialog flow. */
+export function importMonkeytype(payload: unknown): number {
+  return planMonkeytypeImport(payload).apply();
+}
+
+// ─── Plan-row detail formatters ──────────────────────────────────────
+
+function describeCaret(c: Partial<CaretSettings>): string[] {
+  const out: string[] = [];
+  if (c.style) out.push(`style: ${c.style}`);
+  if (c.smoothSpeed != null) out.push(`smooth: ${c.smoothSpeed}ms`);
+  return out;
+}
+
+function describeBehaviour(b: Partial<BehaviourPrefs>): string[] {
+  const out: string[] = [];
+  if (b.confidence) out.push(`confidence: ${b.confidence}`);
+  if (b.difficulty) out.push(`difficulty: ${b.difficulty}`);
+  if (b.stopOnError != null)
+    out.push(`stop on error: ${b.stopOnError ? "on" : "off"}`);
+  if (b.quickRestart != null)
+    out.push(`quick restart: ${b.quickRestart ? "on" : "off"}`);
+  if (b.blindMode != null)
+    out.push(`blind mode: ${b.blindMode ? "on" : "off"}`);
+  return out;
+}
+
+function describeAppearance(a: Partial<AppearancePrefs>): string[] {
+  const out: string[] = [];
+  if (a.keymap) out.push(`keymap: ${a.keymap}`);
+  if (a.keymapLayout) out.push(`layout: ${a.keymapLayout}`);
+  if (a.highlightMode) out.push(`highlight: ${a.highlightMode}`);
+  if (a.tapeMode) out.push(`tape: ${a.tapeMode}`);
+  if (a.typingSpeedUnit) out.push(`speed unit: ${a.typingSpeedUnit}`);
+  if (a.maxLineWidth != null)
+    out.push(`max line: ${a.maxLineWidth === 0 ? "stretch" : a.maxLineWidth + "ch"}`);
+  if (a.liveStatsOpacity != null)
+    out.push(`stats opacity: ${a.liveStatsOpacity}`);
+  if (a.liveStatsColor) out.push(`stats colour: ${a.liveStatsColor}`);
+  return out;
+}
+
+function describeBackground(b: Partial<BackgroundPrefs>): string[] {
+  const out: string[] = [];
+  if (b.imageUrl) out.push(`image: ${truncateUrl(b.imageUrl)}`);
+  if (b.fit) out.push(`fit: ${b.fit}`);
+  if (b.blur != null) out.push(`blur: ${b.blur}`);
+  if (b.opacity != null) out.push(`opacity: ${b.opacity}`);
+  return out;
+}
+
+function truncateUrl(url: string): string {
+  if (url.length <= 40) return url;
+  return url.slice(0, 37) + "…";
+}
+
+function combineOverrides(
+  a: ThemeOverrides | null,
+  b: ThemeOverrides | null,
+): ThemeOverrides | null {
+  if (!a && !b) return null;
+  return { ...(a ?? {}), ...(b ?? {}) };
 }
 
 // ─── MonkeyType field mappers ────────────────────────────────────────
@@ -443,13 +674,15 @@ function clamp(n: number, lo: number, hi: number): number {
  *  fontFamily ("JetBrains_Mono", "Fira_Code", …) becomes --ft-font-family
  *  with an underscore→space normalization and a sensible fallback.
  *  fontSize is a multiplier (1.0 default) → --ft-font-scale. */
-function mapThemeOverrides(
-  mt: MonkeytypeSettings,
-  applyColors: boolean,
-): ThemeOverrides | null {
+/** Pull just the colour overrides out of a MT settings object. Callers
+ *  combine with `mapTypographyOverrides` when they want a single
+ *  flinttype `theme` slice. Split into two so the import flow can ask
+ *  "did the user import any *colour* changes?" — colour changes drive
+ *  the palette into Custom mode; typography on its own doesn't. */
+function mapColorOverrides(mt: MonkeytypeSettings): ThemeOverrides | null {
+  if (!Array.isArray(mt.customThemeColors)) return null;
   const out: ThemeOverrides = {};
-
-  if (applyColors && Array.isArray(mt.customThemeColors)) {
+  {
     const arr = mt.customThemeColors as unknown[];
     const bg = pickColor(arr, 0);
     const main = pickColor(arr, 1);
@@ -511,16 +744,24 @@ function mapThemeOverrides(
     }
   }
 
+  return Object.keys(out).length ? out : null;
+}
+
+/** Pull --ft-font-family / --ft-font-scale out of a MT settings object.
+ *  Always safe to apply (independent of customTheme / customThemeColors)
+ *  — typography overrides ride along with whichever palette the user
+ *  ends up on. */
+function mapTypographyOverrides(
+  mt: MonkeytypeSettings,
+): ThemeOverrides | null {
+  const out: ThemeOverrides = {};
   if (typeof mt.fontFamily === "string" && mt.fontFamily) {
     const family = mt.fontFamily.replace(/_/g, " ");
-    // Default MT mono fallback — keeps text legible if the named family
-    // isn't installed locally.
     out["--ft-font-family"] = `"${family}", ui-monospace, monospace`;
   }
   if (typeof mt.fontSize === "number" && mt.fontSize > 0) {
     out["--ft-font-scale"] = String(clamp(mt.fontSize, 0.5, 3));
   }
-
   return Object.keys(out).length ? out : null;
 }
 

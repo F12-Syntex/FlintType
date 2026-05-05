@@ -146,13 +146,54 @@ describe("importMonkeytype", () => {
     expect(t["--ft-passage-untyped"]).toBe("#ff8800");
   });
 
-  it("promotes palette to 'custom' even when only typography overrides exist", () => {
+  it("keeps palette unchanged when only typography overrides exist", () => {
     importMonkeytype({
       // No customTheme / customThemeColors — just font overrides.
       fontFamily: "JetBrains_Mono",
     });
     const w = writes();
+    // Theme override slice gets the font, ...
     expect(w.theme).toBeDefined();
+    // ...but palette is NOT promoted to "custom" — typography on its own
+    // doesn't fork the user off their named palette. They keep their
+    // current palette plus a custom font sitting on top.
+    expect(w.palette).toBeUndefined();
+  });
+
+  it("still maps a named palette when only typography overrides exist", () => {
+    importMonkeytype({
+      customTheme: false,
+      theme: "light-green",
+      fontFamily: "JetBrains_Mono",
+    });
+    const w = writes();
+    // Both: named palette mapped, font override written.
+    expect(w.palette).toEqual({ activeId: "light-green" });
+    expect(w.theme).toBeDefined();
+  });
+
+  it("falls back to customThemeColors when the named theme is unknown", () => {
+    // customTheme=false + a theme name flinttype doesn't ship: the old
+    // behaviour silently dropped the colour import entirely. The fallback
+    // applies customThemeColors as overrides and promotes palette to
+    // "custom" so the user actually sees their MT colours land.
+    importMonkeytype({
+      customTheme: false,
+      theme: "this-theme-is-not-shipped-anywhere",
+      customThemeColors: [
+        "#111111",
+        "#ff8800",
+        "#777777",
+        "#aaaaaa",
+        "#eeeeee",
+        "#cc0000",
+      ],
+    });
+    const w = writes();
+    const t = w.theme as Record<string, string>;
+    expect(t["--background"]).toBe("#111111");
+    expect(t["--primary"]).toBe("#ff8800");
+    expect(t["--foreground"]).toBe("#eeeeee");
     expect(w.palette).toEqual({ activeId: "custom" });
   });
 

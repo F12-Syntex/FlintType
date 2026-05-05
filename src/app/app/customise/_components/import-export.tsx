@@ -7,11 +7,13 @@ import {
   type ButtonHTMLAttributes,
   type ReactNode,
 } from "react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   buildFlinttypeExport,
   downloadJson,
-  importFlinttype,
-  importMonkeytype,
+  type ImportPlan,
+  planFlinttypeImport,
+  planMonkeytypeImport,
 } from "@/lib/import-export";
 import { cn } from "@/lib/utils";
 
@@ -19,11 +21,12 @@ type Source = "flinttype" | "monkeytype";
 
 /** Vertical Import/Export action panel — three flat rows, one per
  *  action. Lives in the bottom of the desktop settings sidebar and at
- *  the bottom of the mobile section-picker bottom sheet. Replaces the
- *  old `<ImportExportControls>` that used to sit in the customise
- *  header (icon-only on mobile, text+chevron dropdown on desktop) —
- *  the sidebar/footer slot is the right home for them: they're tools
- *  for managing the section list, not chrome for browsing it. */
+ *  the bottom of the mobile section-picker bottom sheet.
+ *
+ *  Imports are two-phase: the file picker resolves to a *plan*, the
+ *  user reviews the plan in a <ConfirmDialog> showing every slice that
+ *  will change, then commits. Misclicks are recoverable — Cancel does
+ *  nothing — and the user can see exactly what they're about to swap. */
 export function ImportExportPanel({
   className,
 }: {
@@ -34,6 +37,7 @@ export function ImportExportPanel({
   const [status, setStatus] = useState<{ ok: boolean; msg: string } | null>(
     null,
   );
+  const [plan, setPlan] = useState<ImportPlan | null>(null);
 
   async function handleExport() {
     setStatus(null);
@@ -62,19 +66,18 @@ export function ImportExportPanel({
       const text = await file.text();
       const json: unknown = JSON.parse(text);
       const source = sourceRef.current;
-      const n =
+      const next =
         source === "flinttype"
-          ? importFlinttype(json)
-          : importMonkeytype(json);
-      setStatus({
-        ok: true,
-        msg:
-          n === 0
-            ? "Nothing matched in that file."
-            : `Imported ${n} section${n === 1 ? "" : "s"} from ${
-                source === "flinttype" ? "flinttype" : "MonkeyType"
-              }.`,
-      });
+          ? planFlinttypeImport(json)
+          : planMonkeytypeImport(json);
+      if (next.changes.length === 0) {
+        setStatus({
+          ok: true,
+          msg: "Nothing matched — file had no recognized settings.",
+        });
+        return;
+      }
+      setPlan(next);
     } catch (err) {
       setStatus({
         ok: false,
@@ -84,6 +87,24 @@ export function ImportExportPanel({
             : err instanceof Error
               ? err.message
               : "Import failed.",
+      });
+    }
+  }
+
+  function commitImport() {
+    if (!plan) return;
+    try {
+      const n = plan.apply();
+      setStatus({
+        ok: true,
+        msg: `Imported ${n} section${n === 1 ? "" : "s"} from ${
+          plan.source === "flinttype" ? "flinttype" : "MonkeyType"
+        }.`,
+      });
+    } catch (err) {
+      setStatus({
+        ok: false,
+        msg: err instanceof Error ? err.message : "Import failed.",
       });
     }
   }
@@ -134,6 +155,55 @@ export function ImportExportPanel({
           e.target.value = "";
         }}
       />
+
+      <ConfirmDialog
+        open={plan !== null}
+        onOpenChange={(next) => {
+          if (!next) setPlan(null);
+        }}
+        title={plan?.title ?? "Confirm import"}
+        confirmLabel="Apply import"
+        cancelLabel="Cancel"
+        confirmVariant="destructive"
+        onConfirm={commitImport}
+      >
+        {plan ? <ImportSummary plan={plan} /> : null}
+      </ConfirmDialog>
+    </div>
+  );
+}
+
+function ImportSummary({ plan }: { plan: ImportPlan }) {
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        This will overwrite the following section
+        {plan.changes.length === 1 ? "" : "s"} in your current settings.
+        Anything not listed stays untouched.
+      </p>
+      <ul className="flex flex-col divide-y divide-border rounded-md border border-border bg-card">
+        {plan.changes.map((c) => (
+          <li key={c.slice} className="px-3 py-3">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-sm font-semibold text-foreground">
+                {c.label}
+              </span>
+              <span className="shrink-0 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                {c.slice}
+              </span>
+            </div>
+            {c.details && c.details.length > 0 ? (
+              <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                {c.details.map((d, i) => (
+                  <li key={i} className="tabular-nums">
+                    · {d}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
