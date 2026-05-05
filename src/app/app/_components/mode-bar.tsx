@@ -2,8 +2,14 @@
 
 import { useState } from "react";
 import { OptionSwitch } from "@/components/ui/option-switch";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { QUOTE_GROUPS } from "@/lib/quotes";
 import { cn } from "@/lib/utils";
+import { Keyboard } from "./keyboard";
 import { type Mode, usePractice } from "./practice-state";
 
 const MODES: readonly Mode[] = ["WORDS", "TIME", "QUOTE"];
@@ -207,7 +213,7 @@ function Toggle({
 // Vertical stack on mobile, horizontal flow on md+.
 
 function ModeControls() {
-  const { state, setMode, setLength, toggleAdapt } = usePractice();
+  const { state, setMode, setLength } = usePractice();
   const presets = LENGTH_PRESETS[state.mode];
   const lengthLabel = LENGTH_FIELD_LABEL[state.mode];
   return (
@@ -233,18 +239,68 @@ function ModeControls() {
           allowCustom={CUSTOM_ALLOWED[state.mode]}
         />
       </Field>
-
-      <label className="flex cursor-pointer items-center gap-2.5 md:self-end md:pb-[7px]">
-        <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
-          adapt
-        </span>
-        <Toggle
-          on={state.adapt}
-          onToggle={toggleAdapt}
-          ariaLabel="Adaptive drilling"
-        />
-      </label>
     </div>
+  );
+}
+
+/** Desktop-only Adapt control — a chip showing the current on/off state
+ *  that pops a panel containing the live keyboard visualisation. The
+ *  toggle itself lives inside the popover so the chip stays a single
+ *  click target ("open the panel") and the on/off action is one
+ *  deliberate flip away. Hidden on mobile per spec — adaptive drilling
+ *  is a desktop-leaning feature; the small-viewport flow doesn't expose
+ *  it at all. */
+function AdaptControl() {
+  const { state, toggleAdapt } = usePractice();
+  return (
+    <Field label="adapt">
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-muted px-3 text-xs font-medium transition-colors",
+              "hover:bg-muted/70 data-[state=open]:bg-muted/70",
+              state.adapt ? "text-foreground" : "text-muted-foreground",
+            )}
+            aria-label={`Adaptive drilling: ${state.adapt ? "on" : "off"}`}
+          >
+            <span
+              aria-hidden
+              className={cn(
+                "size-1.5 rounded-full",
+                state.adapt ? "bg-primary" : "bg-muted-foreground/40",
+              )}
+            />
+            {state.adapt ? "on" : "off"}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="end"
+          sideOffset={8}
+          className="w-[min(40rem,calc(100vw-2rem))] p-4"
+        >
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                adaptive drilling
+              </span>
+              <span className="text-sm text-foreground">
+                Focus future passages on your weakest keys.
+              </span>
+            </div>
+            <Toggle
+              on={state.adapt}
+              onToggle={toggleAdapt}
+              ariaLabel="Adaptive drilling"
+            />
+          </div>
+          <div className="rounded-md border border-border bg-background p-3">
+            <Keyboard mode="static" />
+          </div>
+        </PopoverContent>
+      </Popover>
+    </Field>
   );
 }
 
@@ -277,12 +333,6 @@ function MobileBar() {
           <span className="font-semibold text-foreground">{state.mode}</span>
           <span aria-hidden className="text-muted-foreground/60">·</span>
           <span className="font-semibold text-foreground">{lengthSummary}</span>
-          {state.adapt ? (
-            <span className="ml-1 inline-flex items-center gap-1.5 font-semibold text-foreground">
-              <span aria-hidden className="size-1.5 rounded-full bg-primary" />
-              adapt
-            </span>
-          ) : null}
         </span>
         <ChevronIcon open={open} />
       </button>
@@ -317,8 +367,9 @@ function ChevronIcon({ open }: { open: boolean }) {
 
 function DesktopBar() {
   return (
-    <div className="hidden shrink-0 items-center justify-center px-7 py-4 md:flex">
+    <div className="hidden shrink-0 items-end justify-center gap-x-8 gap-y-4 px-7 py-4 md:flex md:flex-wrap">
       <ModeControls />
+      <AdaptControl />
     </div>
   );
 }
