@@ -45,6 +45,17 @@ export function SettingsPageHeader({
               size="sm"
               onClick={onResetAll}
               disabled={customizedCount === 0}
+              confirm={{
+                title: `Reset ${title.toLowerCase()}?`,
+                description: (
+                  <p className="text-sm text-muted-foreground">
+                    This clears every customization on this page and
+                    restores the default values. This cannot be undone.
+                  </p>
+                ),
+                confirmLabel: "Reset all",
+                confirmVariant: "destructive",
+              }}
             >
               Reset all
             </Button>

@@ -1,6 +1,10 @@
+"use client"
+
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
+import { useState, type ReactNode } from "react"
 
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
@@ -40,19 +44,76 @@ const buttonVariants = cva(
   }
 )
 
+/** Optional confirmation gate. When passed, clicking the button opens a
+ *  ConfirmDialog instead of firing onClick directly; onClick runs only
+ *  after the user confirms. Cancel does nothing. Use for destructive or
+ *  irreversible actions ("Reset all", "Delete account", "Sign out") so
+ *  every callsite gets a consistent are-you-sure flow without bespoke
+ *  state. */
+type ConfirmConfig = {
+  title: string
+  description?: ReactNode
+  confirmLabel?: string
+  cancelLabel?: string
+  confirmVariant?: "default" | "destructive"
+}
+
+type ButtonProps = ButtonPrimitive.Props &
+  VariantProps<typeof buttonVariants> & { confirm?: ConfirmConfig }
+
 function Button({
   className,
   variant = "default",
   size = "default",
+  confirm,
+  onClick,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonProps) {
+  const [open, setOpen] = useState(false)
+
+  if (!confirm) {
+    return (
+      <ButtonPrimitive
+        data-slot="button"
+        className={cn(buttonVariants({ variant, size, className }))}
+        onClick={onClick}
+        {...props}
+      />
+    )
+  }
+
   return (
-    <ButtonPrimitive
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
+    <>
+      <ButtonPrimitive
+        data-slot="button"
+        className={cn(buttonVariants({ variant, size, className }))}
+        onClick={(e) => {
+          // Swallow the original click; defer the real action until the
+          // user confirms in the dialog below.
+          e.preventDefault()
+          setOpen(true)
+        }}
+        {...props}
+      />
+      <ConfirmDialog
+        open={open}
+        onOpenChange={setOpen}
+        title={confirm.title}
+        confirmLabel={confirm.confirmLabel}
+        cancelLabel={confirm.cancelLabel}
+        confirmVariant={confirm.confirmVariant ?? "default"}
+        onConfirm={() => {
+          // The original click event is long gone; most action handlers
+          // don't read it. Cast to keep the public type identical to the
+          // no-confirm path.
+          ;(onClick as ((e?: unknown) => void) | undefined)?.()
+        }}
+      >
+        {confirm.description ?? null}
+      </ConfirmDialog>
+    </>
   )
 }
 
 export { Button, buttonVariants }
+export type { ConfirmConfig }
