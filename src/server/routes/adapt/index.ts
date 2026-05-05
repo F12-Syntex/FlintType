@@ -9,15 +9,33 @@ import {
 } from "@/server/adapt/apply";
 import { fingerMapHash } from "@/server/adapt/key-map";
 import { extract } from "@/server/adapt/measure";
-import { advanceRecency, selectWords } from "@/server/adapt/select";
-import { RECENCY_RECOVERY_TESTS } from "@/server/adapt/scoring";
+import { deriveFeatureKeys } from "@/server/adapt/motor-features";
+import { advanceRecency, COLD_BIGRAM_THRESHOLD, selectWords } from "@/server/adapt/select";
+import {
+  baselineMean,
+  DEFAULT_WEIGHTS,
+  fatigueDampener,
+  inChallengeBand,
+  predictedWordMs,
+  recencyMultiplier,
+  RECENCY_RECOVERY_TESTS,
+  scoreWord,
+  weakness,
+} from "@/server/adapt/scoring";
+import type { ModelState } from "@/server/adapt/welford";
 import { DEFAULT_HAND_LAYOUT, type HandLayoutPrefs } from "@/lib/hand-layout";
 import {
+  type AdaptModelRow,
+  type AdaptSnapshotOutput,
   type RequestWordsInput,
   type RequestWordsOutput,
+  type ScoreWordInput,
+  type ScoreWordOutput,
   type SubmitTestInput,
   type SubmitTestOutput,
+  type WeaknessBreakdown,
   requestWordsInputSchema,
+  scoreWordInputSchema,
   submitTestInputSchema,
 } from "@/types/adapt";
 import type { Database } from "@/db/server";
@@ -193,7 +211,198 @@ const words = defineRoute<RequestWordsInput, RequestWordsOutput>({
   },
 });
 
+// ─── adapt.snapshot ──────────────────────────────────────────────────
+//
+// Backs the /app/biogram visualisation. Reads everything the
+// algorithm reads and returns it shaped for display, with weakness
+// pre-computed against the user's own baselines so the client never
+// has to repeat the math. Bounded by the model size — a fully
+// populated user is a ~50KB payload.
+
+const snapshot = defineRoute<void, AdaptSnapshotOutput>({
+  handler: async ({ db, meta }) => {
+    const userId = meta.userId as string;
+    const prefs = await loadAdaptPrefs(db, userId);
+    const [bigramRows, trigramRows, motorRows, recentTestRows] =
+      await Promise.all([
+        db.bigramModels.listForUser(userId),
+        db.trigramModels.listForUser(userId),
+        db.motorFeatureModels.listForUser(userId),
+        db.tests.recentForUser(userId, 25),
+      ]);
+
+    const bigramStates = bigramRowsToStates(bigramRows);
+    const trigramStates = trigramRowsToStates(trigramRows);
+    const motorStates = motorFeatureRowsToStates(motorRows);
+
+    const baselines = {
+      bigram: baselineMean(bigramStates),
+      trigram: baselineMean(trigramStates),
+      motorFeature: baselineMean(motorStates),
+    };
+
+    const totalBigramSamples = sumSamples(bigramStates);
+    const recentTests = recentTestRows.map((r) => ({
+      id: r.id,
+      startedAtMs: r.startedAt.getTime(),
+      mode: r.mode,
+      wpm: r.wpm,
+      accuracy: r.accuracy,
+      errorCount: r.errorCount,
+      wasCompleted: r.wasCompleted,
+    }));
+
+    return {
+      baselines,
+      totalBigramSamples,
+      cold: totalBigramSamples < COLD_BIGRAM_THRESHOLD,
+      fatigueDampener: fatigueDampener(recentTestRows),
+      bigrams: toModelRows(bigramStates, baselines.bigram),
+      trigrams: toModelRows(trigramStates, baselines.trigram),
+      motorFeatures: toModelRows(motorStates, baselines.motorFeature),
+      recentTests,
+      recentlyShown: Array.from(prefs.adaptRecency, ([word, testsAgo]) => ({
+        word,
+        testsAgo,
+      })).sort((a, b) => a.testsAgo - b.testsAgo),
+      handLayout: prefs.handLayout,
+      fingerMapHash: fingerMapHash(prefs.handLayout),
+    };
+  },
+});
+
+// ─── adapt.scoreWord ─────────────────────────────────────────────────
+
+const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
+  input: scoreWordInputSchema,
+  handler: async ({ input, db, meta }) => {
+    const userId = meta.userId as string;
+    const prefs = await loadAdaptPrefs(db, userId);
+    const [bigramRows, trigramRows, motorRows] = await Promise.all([
+      db.bigramModels.listForUser(userId),
+      db.trigramModels.listForUser(userId),
+      db.motorFeatureModels.listForUser(userId),
+    ]);
+    const bigramStates = bigramRowsToStates(bigramRows);
+    const trigramStates = trigramRowsToStates(trigramRows);
+    const motorStates = motorFeatureRowsToStates(motorRows);
+    const baselines = {
+      bigram: baselineMean(bigramStates),
+      trigram: baselineMean(trigramStates),
+      motorFeature: baselineMean(motorStates),
+    };
+
+    const word = input.word.toLowerCase();
+    const total = scoreWord({
+      word,
+      bigramModels: bigramStates,
+      trigramModels: trigramStates,
+      motorFeatureModels: motorStates,
+      layout: prefs.handLayout,
+      baselines,
+    });
+
+    const bigrams: WeaknessBreakdown[] = [];
+    const seenFeatures = new Set<string>();
+    const motorFeatures: WeaknessBreakdown[] = [];
+    let alphaContribution = 0;
+    let gammaContribution = 0;
+    for (let i = 1; i < word.length; i++) {
+      const a = word[i - 1]!;
+      const b = word[i]!;
+      const bg = a + b;
+      const bgState = bigramStates.get(bg);
+      const bgWeak = bgState ? weakness(bgState, baselines.bigram) : 0;
+      alphaContribution += DEFAULT_WEIGHTS.alpha * bgWeak;
+      bigrams.push({
+        key: bg,
+        weakness: bgWeak,
+        meanMs: bgState?.mean ?? null,
+        sampleCount: bgState?.n ?? 0,
+      });
+      for (const fk of deriveFeatureKeys(a, b, prefs.handLayout)) {
+        if (seenFeatures.has(fk)) continue;
+        seenFeatures.add(fk);
+        const fst = motorStates.get(fk);
+        const fweak = fst ? weakness(fst, baselines.motorFeature) : 0;
+        gammaContribution += DEFAULT_WEIGHTS.gamma * fweak;
+        motorFeatures.push({
+          key: fk,
+          weakness: fweak,
+          meanMs: fst?.mean ?? null,
+          sampleCount: fst?.n ?? 0,
+        });
+      }
+    }
+
+    const trigrams: WeaknessBreakdown[] = [];
+    let betaContribution = 0;
+    for (let i = 2; i < word.length; i++) {
+      const tg = word[i - 2]! + word[i - 1]! + word[i]!;
+      const st = trigramStates.get(tg);
+      const tweak = st ? weakness(st, baselines.trigram) : 0;
+      betaContribution += DEFAULT_WEIGHTS.beta * tweak;
+      trigrams.push({
+        key: tg,
+        weakness: tweak,
+        meanMs: st?.mean ?? null,
+        sampleCount: st?.n ?? 0,
+      });
+    }
+
+    const predicted = predictedWordMs(word, bigramStates, baselines.bigram);
+    const bigramCount = Math.max(0, word.length - 1);
+    const banded =
+      baselines.bigram > 0
+        ? inChallengeBand(predicted, baselines.bigram, bigramCount)
+        : true;
+    const recency = prefs.adaptRecency.has(word)
+      ? recencyMultiplier(prefs.adaptRecency.get(word)!)
+      : 1;
+
+    return {
+      word,
+      total,
+      alphaContribution,
+      betaContribution,
+      gammaContribution,
+      predictedMs: predicted,
+      recencyMultiplier: recency,
+      inChallengeBand: banded,
+      bigrams,
+      trigrams,
+      motorFeatures,
+    };
+  },
+});
+
+// ─── helpers ─────────────────────────────────────────────────────────
+
+function toModelRows(
+  states: ReadonlyMap<string, ModelState>,
+  baseline: number,
+): AdaptModelRow[] {
+  const out: AdaptModelRow[] = [];
+  for (const [key, st] of states) {
+    out.push({
+      key,
+      meanMs: st.mean,
+      varianceMs: st.variance,
+      sampleCount: st.n,
+      weakness: weakness(st, baseline),
+    });
+  }
+  out.sort((a, b) => b.weakness - a.weakness);
+  return out;
+}
+
+function sumSamples(states: ReadonlyMap<string, ModelState>): number {
+  let total = 0;
+  for (const st of states.values()) total += st.n;
+  return total;
+}
+
 export const adapt = defineNamespace({
   middleware: [requireAuth],
-  routes: { submit, words },
+  routes: { submit, words, snapshot, scoreWord: scoreWordRoute },
 });

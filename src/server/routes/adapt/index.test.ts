@@ -10,8 +10,10 @@ import { BackendError } from "@/lib/errors";
 import { createTestDatabase } from "@/db/server/testing";
 import { callRoute } from "@/server/testing";
 import type {
+  AdaptSnapshotOutput,
   KeystrokeTiming,
   RequestWordsOutput,
+  ScoreWordOutput,
   SubmitTestInput,
   SubmitTestOutput,
 } from "@/types/adapt";
@@ -208,5 +210,80 @@ describe("adapt routes", () => {
     signedInAs("u2");
     const rows = await ctx.db.bigramModels.listForUser("u2");
     expect(rows).toEqual([]);
+  });
+
+  // ── snapshot ───────────────────────────────────────────────────────
+
+  it("snapshot returns empty buckets and cold=true on a fresh user", async () => {
+    signedInAs("u_fresh");
+    const snap = await callRoute<AdaptSnapshotOutput>(["adapt", "snapshot"], {
+      db: ctx.db,
+    });
+    expect(snap.cold).toBe(true);
+    expect(snap.totalBigramSamples).toBe(0);
+    expect(snap.bigrams).toEqual([]);
+    expect(snap.trigrams).toEqual([]);
+    expect(snap.motorFeatures).toEqual([]);
+    expect(snap.recentTests).toEqual([]);
+    expect(snap.fatigueDampener).toBe(1);
+  });
+
+  it("snapshot reflects state after a submit", async () => {
+    signedInAs("u1");
+    await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput(),
+    });
+    const snap = await callRoute<AdaptSnapshotOutput>(["adapt", "snapshot"], {
+      db: ctx.db,
+    });
+    expect(snap.bigrams.length).toBeGreaterThan(0);
+    expect(snap.recentTests.length).toBe(1);
+    expect(snap.recentlyShown.length).toBeGreaterThan(0);
+  });
+
+  it("snapshot rejects unauthenticated", async () => {
+    mockAuth.mockResolvedValue({
+      userId: null,
+      sessionClaims: null,
+    } as unknown as Awaited<ReturnType<typeof auth>>);
+    await expect(
+      callRoute(["adapt", "snapshot"], { db: ctx.db }),
+    ).rejects.toBeInstanceOf(BackendError);
+  });
+
+  // ── scoreWord ──────────────────────────────────────────────────────
+
+  it("scoreWord returns zero contributions when no models exist", async () => {
+    signedInAs("u_fresh");
+    const r = await callRoute<ScoreWordOutput>(["adapt", "scoreWord"], {
+      db: ctx.db,
+      input: { word: "the" },
+    });
+    expect(r.word).toBe("the");
+    expect(r.total).toBe(0);
+    expect(r.bigrams.length).toBe(2);
+    expect(r.bigrams.every((b) => b.weakness === 0)).toBe(true);
+    expect(r.trigrams.length).toBe(1);
+  });
+
+  it("scoreWord lists per-bigram weakness after data accumulates", async () => {
+    signedInAs("u1");
+    await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput(),
+    });
+    const r = await callRoute<ScoreWordOutput>(["adapt", "scoreWord"], {
+      db: ctx.db,
+      input: { word: "the" },
+    });
+    expect(r.bigrams.find((b) => b.key === "th")?.sampleCount).toBeGreaterThan(0);
+  });
+
+  it("scoreWord validates input", async () => {
+    signedInAs("u1");
+    await expect(
+      callRoute(["adapt", "scoreWord"], { db: ctx.db, input: { word: "" } }),
+    ).rejects.toBeInstanceOf(ZodError);
   });
 });

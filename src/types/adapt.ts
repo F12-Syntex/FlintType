@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { HandLayoutPrefs } from "@/lib/hand-layout";
 
 export type {
   BigramModelRow,
@@ -82,4 +83,70 @@ export type RequestWordsOutput = {
    *  the algorithm to bias selection — caller falls back to its own
    *  random draw. */
   cold: boolean;
+};
+
+// ─── Algorithm visualisation (the /app/biogram page) ─────────────────
+
+export type AdaptModelRow = {
+  key: string;
+  meanMs: number;
+  varianceMs: number;
+  sampleCount: number;
+  /** Computed at snapshot time — saves the client from repeating the
+   *  baseline math against every row. */
+  weakness: number;
+};
+
+export type AdaptTestSummary = {
+  id: string;
+  startedAtMs: number;
+  mode: string;
+  wpm: number;
+  accuracy: number;
+  errorCount: number;
+  wasCompleted: boolean;
+};
+
+export type AdaptSnapshotOutput = {
+  baselines: {
+    bigram: number;
+    trigram: number;
+    motorFeature: number;
+  };
+  totalBigramSamples: number;
+  cold: boolean;
+  fatigueDampener: number;
+  bigrams: AdaptModelRow[];
+  trigrams: AdaptModelRow[];
+  motorFeatures: AdaptModelRow[];
+  recentTests: AdaptTestSummary[];
+  recentlyShown: { word: string; testsAgo: number }[];
+  handLayout: HandLayoutPrefs;
+  fingerMapHash: string;
+};
+
+export const scoreWordInputSchema = z.object({
+  word: z.string().min(1).max(100),
+});
+export type ScoreWordInput = z.infer<typeof scoreWordInputSchema>;
+
+export type WeaknessBreakdown = {
+  key: string;
+  weakness: number;
+  meanMs: number | null;
+  sampleCount: number;
+};
+
+export type ScoreWordOutput = {
+  word: string;
+  total: number;
+  alphaContribution: number;
+  betaContribution: number;
+  gammaContribution: number;
+  predictedMs: number;
+  recencyMultiplier: number;
+  inChallengeBand: boolean;
+  bigrams: WeaknessBreakdown[];
+  trigrams: WeaknessBreakdown[];
+  motorFeatures: WeaknessBreakdown[];
 };
