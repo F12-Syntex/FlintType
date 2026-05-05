@@ -9,20 +9,24 @@ import { cn } from "@/lib/utils";
  *  fixed pixel-stable height every time it opens, so the user's mental
  *  map of "where the controls live" doesn't shift between settings.
  *
- *  Use anywhere a desktop popover/dropdown would feel cramped on a
- *  375 px viewport (theme picker, font picker, colour picker, section
- *  picker, import-source picker, …). Pair with `useIsMobile()` so the
- *  desktop path keeps its existing Popover/DropdownMenu surface.
+ *  Animation: backdrop fades in (opacity 0→1) and the sheet slides up
+ *  (translate-y full→0) over 220 ms with a soft ease-out curve on
+ *  enter; both reverse on exit, and the portal stays mounted until the
+ *  exit transition finishes so the user actually sees the sheet glide
+ *  down instead of vanishing.
  *
  *  Anatomy:
  *    [backdrop] click closes
  *      [sheet]
- *        [header] title + close button
+ *        [grab handle] iOS-style 32×4 pill, signals dismissibility
+ *        [header] optional leading slot + title + close X
  *        [body]   scrollable content area
  *
  *  Height is fixed at 75dvh (dynamic viewport — hugs Safari/Chrome
  *  toolbars correctly). Respect the iOS home-indicator inset via
  *  `safe-pb` on the sheet's bottom padding. */
+const ANIM_MS = 220;
+
 export function MobileSheet({
   open,
   onOpenChange,
@@ -39,11 +43,30 @@ export function MobileSheet({
   leading?: ReactNode;
 }) {
   const [mounted, setMounted] = useState(false);
+  // Two-phase visibility so the exit animation can run before unmount:
+  //   `render` controls portal mount; `entered` controls the transform/opacity.
+  const [render, setRender] = useState(false);
+  const [entered, setEntered] = useState(false);
+
   useEffect(() => setMounted(true), []);
 
-  // Body scroll lock + Escape close while the sheet is open.
   useEffect(() => {
-    if (!open) return;
+    if (open) {
+      setRender(true);
+      // Flip `entered` on the next frame so the browser commits the
+      // initial (translate-y-full / opacity-0) classes first; without
+      // this the transition has nothing to interpolate from.
+      const raf = requestAnimationFrame(() => setEntered(true));
+      return () => cancelAnimationFrame(raf);
+    }
+    setEntered(false);
+    const t = setTimeout(() => setRender(false), ANIM_MS);
+    return () => clearTimeout(t);
+  }, [open]);
+
+  // Body scroll lock + Escape close while the sheet is rendered.
+  useEffect(() => {
+    if (!render) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onOpenChange(false);
     };
@@ -54,9 +77,9 @@ export function MobileSheet({
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [open, onOpenChange]);
+  }, [render, onOpenChange]);
 
-  if (!mounted || !open) return null;
+  if (!mounted || !render) return null;
 
   const sheet = (
     <div
@@ -65,26 +88,46 @@ export function MobileSheet({
       aria-modal="true"
       aria-label={title}
     >
-      {/* Backdrop — click closes. */}
+      {/* Backdrop — fades in/out, click closes. */}
       <button
         type="button"
         aria-label="Close"
         onClick={() => onOpenChange(false)}
-        className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
+        className={cn(
+          "absolute inset-0 bg-foreground/45 backdrop-blur-sm transition-opacity ease-out",
+          entered ? "opacity-100" : "opacity-0",
+        )}
+        style={{ transitionDuration: `${ANIM_MS}ms` }}
       />
-      {/* Sheet — fixed height every time. */}
+      {/* Sheet — fixed height, slides up from bottom. */}
       <div
         className={cn(
           "absolute inset-x-0 bottom-0 flex h-[75dvh] flex-col",
-          "rounded-t-2xl border-t border-border bg-background text-foreground shadow-2xl",
-          "safe-pb",
+          "rounded-t-2xl border-t border-border bg-background text-foreground shadow-[0_-12px_48px_-12px_rgba(0,0,0,0.35)]",
+          "safe-pb transition-transform ease-out will-change-transform",
+          entered ? "translate-y-0" : "translate-y-full",
         )}
+        style={{ transitionDuration: `${ANIM_MS}ms` }}
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+        {/* Grab handle — purely cosmetic affordance that signals the
+            sheet can be dismissed; click on the handle area also
+            closes for users who tap there expecting iOS behaviour. */}
+        <button
+          type="button"
+          aria-label="Close"
+          onClick={() => onOpenChange(false)}
+          className="flex h-5 items-center justify-center pt-2"
+        >
+          <span
+            aria-hidden
+            className="h-1 w-9 rounded-full bg-foreground/20"
+          />
+        </button>
+        <header className="flex items-center justify-between gap-3 border-b border-border px-4 pt-1 pb-3">
           <div className="flex min-w-0 items-center gap-2">
             {leading}
-            <h2 className="truncate text-base font-semibold tracking-tight text-foreground">
+            <h2 className="truncate text-lg font-semibold tracking-tight text-foreground">
               {title}
             </h2>
           </div>

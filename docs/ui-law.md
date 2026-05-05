@@ -393,7 +393,9 @@ When you add a new row to the spacing or layout tables:
 
 ### 10.5 Pickers on mobile use a bottom sheet, not a popover
 
-Any popover or dropdown that hosts a list of choices (theme picker, font picker, colour picker, section picker, import-source picker, …) must render as a fixed-height bottom-anchored modal on mobile. Reach for `<MobileSheet>` from `@/components/ui/mobile-sheet` — it portals to `document.body`, slides up from the bottom edge, locks at `h-[75dvh]` every time, and provides a header bar with a close affordance. Touch the iOS home-indicator inset via the built-in `safe-pb`.
+Any popover or dropdown that hosts a list of choices (theme picker, font picker, colour picker, section picker, import-source picker, …) must render as a fixed-height bottom-anchored modal on mobile. Reach for `<MobileSheet>` from `@/components/ui/mobile-sheet` — it portals to `document.body`, slides up from the bottom edge with a 220 ms ease-out transform, locks at `h-[75dvh]` every time, paints an iOS-style grab handle, fades a dimmed backdrop, and provides a header bar with a close affordance. Touch the iOS home-indicator inset via the built-in `safe-pb`.
+
+Triggers belong in the surrounding chrome, not inside the sheet itself. Prefer a **text trigger** showing the active value over an icon trigger — `Appearance ⌄` reads instantly, a hamburger glyph just says "menu" and competes with the topbar's nav menu icon. Reserve icon-only triggers for actions that don't carry navigational identity (export, import, sort, filter).
 
 Branch on `useIsMobile()` from `@/lib/use-is-mobile`:
 

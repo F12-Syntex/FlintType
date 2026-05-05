@@ -1,10 +1,9 @@
 "use client";
 
-import { Check, Menu } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
 import { cn } from "@/lib/utils";
 import { SECTIONS } from "./data";
@@ -17,10 +16,12 @@ function titleCase(name: string): string {
     .join(" ");
 }
 
-/** Section picker for mobile — icon-only trigger that opens a
- *  fixed-height bottom sheet listing every section. Lives inside the
- *  sticky CustomiseHeader so the layout has one strip of chrome
- *  instead of two. */
+/** Section picker for mobile — a readable text trigger ("Appearance ⌄")
+ *  in the customise header that opens a fixed-height bottom sheet
+ *  listing every section. Avoids the hamburger glyph so it doesn't
+ *  duplicate the topbar's nav menu icon, and surfaces the current
+ *  section name so the user can read where they are without opening
+ *  the page header below. */
 export function MobileSectionPicker() {
   const pathname = usePathname();
   const router = useRouter();
@@ -37,15 +38,28 @@ export function MobileSectionPicker() {
 
   return (
     <>
-      <Button
-        variant="outline"
-        size="sm"
+      <button
+        type="button"
         onClick={() => setOpen(true)}
-        aria-label={`Sections — currently ${activeName}`}
-        className="h-9 w-9 p-0"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={`Section — currently ${activeName}, tap to switch`}
+        className={cn(
+          "inline-flex h-9 max-w-[60vw] items-center gap-1.5 rounded-md px-2 -ml-2",
+          "text-base font-semibold tracking-tight text-foreground",
+          "transition-colors hover:bg-foreground/5 active:bg-foreground/10",
+        )}
       >
-        <Menu size={16} />
-      </Button>
+        <span className="truncate">{activeName}</span>
+        <ChevronDown
+          size={16}
+          aria-hidden
+          className={cn(
+            "shrink-0 text-muted-foreground transition-transform duration-150",
+            open && "rotate-180",
+          )}
+        />
+      </button>
       <MobileSheet open={open} onOpenChange={setOpen} title="Sections">
         <ul className="flex flex-col">
           {SECTIONS.map((s) => {
