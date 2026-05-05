@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   type FingerId,
   FINGER_NAME,
@@ -264,16 +265,21 @@ export function HandLayoutEditor(props: KeyboardProps) {
         </button>
       </div>
 
-      {/* Floating drag avatar — only after the threshold is crossed. */}
-      {drag?.active ? (
-        <span
-          aria-hidden
-          className="pointer-events-none fixed z-50 flex size-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-foreground/40 bg-background text-[10px] font-bold text-foreground shadow-lg"
-          style={{ left: drag.pointer.x, top: drag.pointer.y }}
-        >
-          {prettyKey(layout.fingers[drag.finger].homeKey)}
-        </span>
-      ) : null}
+      {/* Floating drag avatar — portalled to <body> so its `fixed`
+       *  positioning is anchored to the viewport, not whatever parent
+       *  containing block (popover / modal) has a CSS transform. */}
+      {drag?.active && typeof document !== "undefined"
+        ? createPortal(
+            <span
+              aria-hidden
+              className="pointer-events-none fixed z-[100] flex size-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-foreground/40 bg-background text-[10px] font-bold text-foreground shadow-lg"
+              style={{ left: drag.pointer.x, top: drag.pointer.y }}
+            >
+              {prettyKey(layout.fingers[drag.finger].homeKey)}
+            </span>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
@@ -374,13 +380,13 @@ function GhostHand({
   return (
     <g>
       {/* Palm + wrist silhouette */}
-      <path d={palmPath} fill="currentColor" fillOpacity={0.1} />
+      <path d={palmPath} fill="currentColor" fillOpacity={0.22} />
       <path
         d={palmPath}
         fill="none"
         stroke="currentColor"
-        strokeOpacity={0.22}
-        strokeWidth={1}
+        strokeOpacity={0.45}
+        strokeWidth={1.25}
       />
       {/* Fingers */}
       {tips.map(({ fid, tip }) => {
@@ -389,7 +395,7 @@ function GhostHand({
         if (!base) return null;
         const on = enabled(fid);
         const dimming = draggingFid === fid ? 0.4 : 1;
-        const opacity = (on ? 0.32 : 0.1) * dimming;
+        const opacity = (on ? 0.55 : 0.18) * dimming;
         // Quadratic control: bend slightly outward for thumbs (long
         // arcing motion across the palm) and just-barely-inward for the
         // straight fingers so they read as natural curves rather than
@@ -418,7 +424,7 @@ function GhostHand({
             <path
               d={`M ${base.x} ${base.y} Q ${ctrl.x} ${ctrl.y} ${tip.x} ${tip.y}`}
               stroke="currentColor"
-              strokeOpacity={(on ? 0.12 : 0.04) * dimming}
+              strokeOpacity={(on ? 0.22 : 0.08) * dimming}
               strokeWidth={Math.max(2, FINGER_STROKE[fid] * 0.35)}
               strokeLinecap="round"
               fill="none"

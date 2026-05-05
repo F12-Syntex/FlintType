@@ -1,12 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { OptionSwitch } from "@/components/ui/option-switch";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { QUOTE_GROUPS } from "@/lib/quotes";
 import { cn } from "@/lib/utils";
 import { HandLayoutEditor } from "./keyboard/hands";
@@ -244,63 +241,133 @@ function ModeControls() {
 }
 
 /** Desktop-only Adapt control — a chip showing the current on/off state
- *  that pops a panel containing the live keyboard visualisation. The
- *  toggle itself lives inside the popover so the chip stays a single
- *  click target ("open the panel") and the on/off action is one
- *  deliberate flip away. Hidden on mobile per spec — adaptive drilling
- *  is a desktop-leaning feature; the small-viewport flow doesn't expose
- *  it at all. */
+ *  that opens a modal containing the live keyboard visualisation and
+ *  the user's hand layout editor. We deliberately use a portal-backed
+ *  modal rather than a Radix Popover here because:
+ *   - Popover positions content with a CSS transform, which becomes
+ *     the containing block for any descendant `position: fixed`
+ *     element (the drag avatar) — leading to the avatar being
+ *     placed wildly off-cursor.
+ *   - The hand-layout editor's drag/click interactions need to coexist
+ *     with the keyboard underneath without the popover treating any
+ *     of them as outside-clicks and self-dismissing.
+ *  Hidden on mobile per spec — adaptive drilling is a desktop-leaning
+ *  feature; the small-viewport flow doesn't expose it at all. */
 function AdaptControl() {
   const { state, toggleAdapt } = usePractice();
+  const [open, setOpen] = useState(false);
   return (
     <Field label="adapt">
-      <Popover>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            className={cn(
-              "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-muted px-3 text-xs font-medium transition-colors",
-              "hover:bg-muted/70 data-[state=open]:bg-muted/70",
-              state.adapt ? "text-foreground" : "text-muted-foreground",
-            )}
-            aria-label={`Adaptive drilling: ${state.adapt ? "on" : "off"}`}
-          >
-            <span
-              aria-hidden
-              className={cn(
-                "size-1.5 rounded-full",
-                state.adapt ? "bg-primary" : "bg-muted-foreground/40",
-              )}
-            />
-            {state.adapt ? "on" : "off"}
-          </button>
-        </PopoverTrigger>
-        <PopoverContent
-          align="end"
-          sideOffset={8}
-          className="w-[min(40rem,calc(100vw-2rem))] p-4"
-        >
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                adaptive drilling
-              </span>
-              <span className="text-sm text-foreground">
-                Focus future passages on your weakest keys.
-              </span>
-            </div>
-            <Toggle
-              on={state.adapt}
-              onToggle={toggleAdapt}
-              ariaLabel="Adaptive drilling"
-            />
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn(
+          "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-muted px-3 text-xs font-medium transition-colors hover:bg-muted/70",
+          state.adapt ? "text-foreground" : "text-muted-foreground",
+        )}
+        aria-label={`Adaptive drilling: ${state.adapt ? "on" : "off"} — open editor`}
+      >
+        <span
+          aria-hidden
+          className={cn(
+            "size-1.5 rounded-full",
+            state.adapt ? "bg-primary" : "bg-muted-foreground/40",
+          )}
+        />
+        {state.adapt ? "on" : "off"}
+      </button>
+      <AdaptModal
+        open={open}
+        onClose={() => setOpen(false)}
+        adaptOn={state.adapt}
+        onToggleAdapt={toggleAdapt}
+      />
+    </Field>
+  );
+}
+
+/** Centred modal hosting the hand-layout editor. Backdrop click and
+ *  ESC close; clicks inside the panel never close (which is the whole
+ *  point of dropping the popover here). Portalled to document.body
+ *  so descendant `position: fixed` elements are anchored to the
+ *  viewport, not to a transformed ancestor. */
+function AdaptModal({
+  open,
+  onClose,
+  adaptOn,
+  onToggleAdapt,
+}: {
+  open: boolean;
+  onClose: () => void;
+  adaptOn: boolean;
+  onToggleAdapt: () => void;
+}) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  // Body scroll lock + ESC dismissal while open.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [open, onClose]);
+
+  if (!mounted || !open) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Adaptive drilling"
+    >
+      <button
+        type="button"
+        aria-label="Close"
+        onClick={onClose}
+        className="absolute inset-0 bg-foreground/45 backdrop-blur-sm"
+      />
+      <div
+        className="relative flex w-[min(48rem,calc(100vw-2rem))] max-h-[90dvh] flex-col overflow-hidden rounded-2xl border border-border bg-background text-foreground shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+              adaptive drilling
+            </span>
+            <span className="text-sm text-foreground">
+              Focus future passages on your weakest keys.
+            </span>
           </div>
+          <div className="flex items-center gap-3">
+            <Toggle on={adaptOn} onToggle={onToggleAdapt} ariaLabel="Adaptive drilling" />
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </header>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           <div className="rounded-md border border-border bg-background p-3">
             <HandLayoutEditor mode="static" />
           </div>
-        </PopoverContent>
-      </Popover>
-    </Field>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
 
