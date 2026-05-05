@@ -81,6 +81,7 @@ type Action =
   | { type: "TOGGLE_ADAPT" }
   | { type: "TYPE_CHAR"; char: string; now: number; stopOnError: boolean }
   | { type: "BACKSPACE" }
+  | { type: "BACKSPACE_WORD" }
   | { type: "SPACE"; now: number }
   | { type: "RESTART"; words: string[]; quoteSource: string | null }
   | { type: "REGENERATE"; cfg: WordCfg }
@@ -334,6 +335,38 @@ function reducer(s: State, a: Action): State {
         ...s,
         cursorChar: s.cursorChar - 1,
         typed: popTyped(s.typed, s.cursorWord),
+      };
+    }
+    case "BACKSPACE_WORD": {
+      // Ctrl/Alt/⌥+Backspace — wipe the current word's typed buffer in
+      // one keystroke. Mirrors the cross-word jump behaviour of plain
+      // BACKSPACE: when the cursor sits at column 0, jumping back into
+      // the previous word is gated on `errorWords` (otherwise we'd let
+      // the user retype already-correct work, which the practice loop
+      // counts as fresh keystrokes and skews WPM).
+      if (s.phase === "done") return s;
+      if (s.cursorChar === 0) {
+        if (s.cursorWord === 0 || !s.errorWords.has(s.cursorWord - 1))
+          return s;
+        // Land at the start of the previous word and wipe its typed
+        // buffer too — "delete the previous word" rather than just
+        // "land at the end of it" (which is what a single BACKSPACE
+        // does at column 0).
+        const next = [...s.typed];
+        next[s.cursorWord - 1] = "";
+        return {
+          ...s,
+          cursorWord: s.cursorWord - 1,
+          cursorChar: 0,
+          typed: next,
+        };
+      }
+      const next = [...s.typed];
+      if (s.cursorWord < next.length) next[s.cursorWord] = "";
+      return {
+        ...s,
+        cursorChar: 0,
+        typed: next,
       };
     }
     case "SPACE": {

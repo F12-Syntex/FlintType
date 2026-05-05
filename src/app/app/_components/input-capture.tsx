@@ -80,7 +80,14 @@ export function InputCapture({ children }: { children: ReactNode }) {
             const p = prefsRef.current;
             if (p.confidence === "all") return;
             if (p.confidence === "word" && cursorCharRef.current === 0) return;
-            dispatch({ type: "BACKSPACE" });
+            // deleteWordBackward (Ctrl+Backspace on most platforms,
+            // Option+Backspace on macOS) and deleteSoftLineBackward
+            // (Cmd+Backspace on macOS) wipe a whole word; only the
+            // plain "deleteContentBackward" should fall through to a
+            // single-char BACKSPACE.
+            dispatch({
+              type: t === "deleteContentBackward" ? "BACKSPACE" : "BACKSPACE_WORD",
+            });
             return;
           }
           if (t === "insertText" || t === "insertCompositionText") {
@@ -99,7 +106,13 @@ export function InputCapture({ children }: { children: ReactNode }) {
           }
         }}
         onKeyDown={(e) => {
-          if (e.ctrlKey || e.metaKey || e.altKey) return;
+          // Only Backspace is allowed to carry a modifier — Ctrl /
+          // Alt(Win) / ⌥(Mac) / ⌘(Mac) + Backspace = "delete word".
+          // Every other modified shortcut (Ctrl+R, Cmd+T, …) falls
+          // through to the browser unchanged.
+          const wordWise =
+            e.key === "Backspace" && (e.ctrlKey || e.altKey || e.metaKey);
+          if (!wordWise && (e.ctrlKey || e.metaKey || e.altKey)) return;
           const p = prefsRef.current;
           if (e.key === "Tab") {
             if (!p.quickRestart) return;
@@ -118,7 +131,7 @@ export function InputCapture({ children }: { children: ReactNode }) {
             e.preventDefault();
             if (p.confidence === "all") return;
             if (p.confidence === "word" && cursorCharRef.current === 0) return;
-            dispatch({ type: "BACKSPACE" });
+            dispatch({ type: wordWise ? "BACKSPACE_WORD" : "BACKSPACE" });
             return;
           }
           if (e.key === " ") {
