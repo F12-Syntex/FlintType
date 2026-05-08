@@ -2,26 +2,11 @@ import { Tag } from "@/components/ft";
 
 type InsightKind = "win" | "now" | "next";
 
-const INSIGHTS: { kind: InsightKind; headline: string; detail: string }[] = [
-  {
-    kind: "win",
-    headline: "Your 'th' stall is fixed",
-    detail:
-      "From 142ms over baseline → 18ms. Showed up in every report 6 weeks ago. Hasn't appeared in your last 12 runs.",
-  },
-  {
-    kind: "now",
-    headline: "Your new ceiling is 118 WPM",
-    detail:
-      "You've held this for 3 weeks. Bursts above 120 happen, but inconsistently — 2 of 30 runs.",
-  },
-  {
-    kind: "next",
-    headline: "'ou' is your next bottleneck",
-    detail:
-      "Now your slowest pair (+82ms). Drilling it would likely add 3–5 WPM to your average.",
-  },
-];
+export type HeadlineInsight = {
+  kind: InsightKind;
+  headline: string;
+  detail: string;
+};
 
 const KIND_DOT: Record<InsightKind, string> = {
   win: "border-ft-ok text-ft-ok",
@@ -35,15 +20,7 @@ const KIND_LABEL: Record<InsightKind, string> = {
   next: "NEXT",
 };
 
-function Insight({
-  kind,
-  headline,
-  detail,
-}: {
-  kind: InsightKind;
-  headline: string;
-  detail: string;
-}) {
+function Insight({ kind, headline, detail }: HeadlineInsight) {
   return (
     <div className={`flex-1 border-l-2 pl-4.5 ${KIND_DOT[kind]}`}>
       <div className="mb-2 text-[10px] font-semibold tracking-[0.18em]">
@@ -57,7 +34,19 @@ function Insight({
   );
 }
 
-export function Headline() {
+export function Headline({
+  hero,
+  insights,
+}: {
+  /** Hero strapline rendered as the page-title h1. Two halves: the
+   *  bold left-side claim and a muted continuation below. Both can be
+   *  empty strings on cold start, in which case the right-side dash
+   *  is suppressed. */
+  hero: { highlight: string; lead: string; muted: string };
+  /** 0–3 insights. Cold users get an empty array; the panel still
+   *  renders the eyebrow + hero so the page never looks broken. */
+  insights: readonly HeadlineInsight[];
+}) {
   return (
     <section className="border-b border-ft-line-soft px-5 pt-12 pb-9 sm:px-16">
       <div className="mb-5 flex items-center gap-3.5">
@@ -65,18 +54,27 @@ export function Headline() {
         <Tag>YOUR HISTORY · LAST 90 DAYS</Tag>
       </div>
       <h1 className="m-0 max-w-5xl text-3xl leading-tight font-extrabold tracking-[-0.03em] sm:text-4xl lg:text-[56px]">
-        You&apos;re <span className="text-ft-ember">14 wpm faster</span> than 90
-        days ago.
-        <br />
-        <span className="text-ft-dim">
-          Most of the gain came from killing your &quot;th&quot; stall.
-        </span>
+        {hero.lead}
+        {hero.highlight ? (
+          <>
+            {" "}
+            <span className="text-ft-ember">{hero.highlight}</span>
+          </>
+        ) : null}
+        {hero.muted ? (
+          <>
+            {hero.lead || hero.highlight ? <br /> : null}
+            <span className="text-ft-dim">{hero.muted}</span>
+          </>
+        ) : null}
       </h1>
-      <div className="mt-9 flex flex-col gap-7 sm:flex-row sm:gap-14">
-        {INSIGHTS.map((i) => (
-          <Insight key={i.kind} {...i} />
-        ))}
-      </div>
+      {insights.length > 0 ? (
+        <div className="mt-9 flex flex-col gap-7 sm:flex-row sm:gap-14">
+          {insights.map((i) => (
+            <Insight key={i.kind} {...i} />
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }
