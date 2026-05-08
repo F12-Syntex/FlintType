@@ -484,8 +484,28 @@ const DEFAULT_PRACTICE_SLICE: PracticeSlice = {
   adapt: true,
 };
 
-export function PracticeProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
+export function PracticeProvider({
+  children,
+  lockedWords,
+}: {
+  children: React.ReactNode;
+  /** When provided, the provider runs in "drill" mode: the passage is
+   *  pinned to this word list, restart re-uses it instead of re-rolling
+   *  random words, and the live-practice flows (slice mirroring,
+   *  cfg-driven regeneration, adaptive prefetch) all short-circuit so
+   *  the drill remains a single fixed exercise. */
+  lockedWords?: readonly string[];
+}) {
+  const [state, dispatch] = useReducer(
+    reducer,
+    lockedWords,
+    (lw): State =>
+      lw && lw.length > 0
+        ? { ...initialState, words: [...lw], length: lw.length, mode: "WORDS" }
+        : initialState,
+  );
+  const lockedWordsRef = useRef(lockedWords);
+  lockedWordsRef.current = lockedWords;
   const { prefs } = useBehaviourPrefs();
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;
@@ -517,6 +537,7 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
   // fires triggered by our own writes are short-circuited because
   // state already matches the slice.
   useEffect(() => {
+    if (lockedWordsRef.current) return;
     const key = `${practiceSlice.mode}|${practiceSlice.length}|${practiceSlice.adapt}`;
     if (lastAppliedSliceRef.current === key) return;
     lastAppliedSliceRef.current = key;
@@ -549,6 +570,7 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
   // instead of after the next manual restart.
   const wordCfgKey = `${prefs.minWordLength}|${prefs.showSecondary}`;
   useEffect(() => {
+    if (lockedWordsRef.current) return;
     dispatch({
       type: "REGENERATE",
       cfg: {
@@ -707,6 +729,7 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
   // back as `true` and we're sitting in a fresh rest passage, swap the
   // seeded local words for an algorithm-selected set.
   useEffect(() => {
+    if (lockedWordsRef.current) return;
     if (!practiceSlice.adapt) return;
     if (practiceSlice.mode !== "WORDS") return;
     const cfg = {
@@ -857,6 +880,16 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
       },
       restart: () => {
         const cfg = buildCfg();
+        // Drill mode: re-use the same locked words so each restart is
+        // an honest second go at the same exercise.
+        if (lockedWordsRef.current) {
+          dispatch({
+            type: "RESTART",
+            words: [...lockedWordsRef.current],
+            quoteSource: null,
+          });
+          return;
+        }
         if (state.mode === "QUOTE") {
           // Reset the run; new quote arrives when the fetch resolves.
           dispatch({

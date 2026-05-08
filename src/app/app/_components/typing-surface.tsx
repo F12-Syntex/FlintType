@@ -24,6 +24,12 @@ export type TypingSurfaceProps = {
   showReadouts?: boolean;
   /** Render extra content below the rest hint (e.g. a run-trace sparkline). */
   belowHint?: React.ReactNode;
+  /** Drill mode — when present, the practice provider pins the
+   *  passage to this word list, restart re-uses the same words,
+   *  and the live-practice flows (mode-bar, slice mirroring,
+   *  adaptive prefetch) all short-circuit. Pair with
+   *  `showModeBar={false}` so the user can't switch modes mid-drill. */
+  lockedWords?: readonly string[];
 };
 
 /** Self-contained typing test. Wraps everything in <PracticeProvider> so
@@ -37,10 +43,11 @@ export type TypingSurfaceProps = {
  *  left, cancel/restart on the right; both ghost-styled, no chrome).
  */
 export function TypingSurface(props: TypingSurfaceProps = {}) {
+  const { lockedWords, ...body } = props;
   return (
-    <PracticeProvider>
+    <PracticeProvider lockedWords={lockedWords}>
       <InputCapture>
-        <TypingSurfaceBody {...props} />
+        <TypingSurfaceBody {...body} />
       </InputCapture>
     </PracticeProvider>
   );
