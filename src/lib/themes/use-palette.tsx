@@ -118,10 +118,14 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
       // overlay non-default values via `presets`; absent fields fall
       // back to DEFAULT_CARET / DEFAULT_APPEARANCE.
       if (id !== CUSTOM_THEME_ID) {
-        writeSlice("theme", {});
         clearSlice("caret");
         clearSlice("appearance");
         const theme = findTheme(id);
+        // Theme overrides slice is the per-CSS-var customisations
+        // layer (e.g. --ft-font-scale, --radius). Default to empty
+        // so the named theme paints unhindered; let the preset write
+        // any values it cares about on top.
+        writeSlice("theme", theme?.presets?.themeOverrides ?? {});
         if (theme?.presets?.appearance) {
           writeSlice("appearance", theme.presets.appearance);
         }

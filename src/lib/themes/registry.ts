@@ -1,5 +1,7 @@
 import type { AppearancePrefs } from "../appearance-prefs";
 import type { CaretSettings } from "../caret-settings";
+import type { ThemeVar } from "../theme-customization";
+import { THEME_PRESETS } from "./presets";
 import data from "./themes.json";
 
 /** A user-installable theme — one block of CSS variables for light, one
@@ -25,10 +27,24 @@ export type Theme = {
   presets?: {
     appearance?: Partial<AppearancePrefs>;
     caret?: Partial<CaretSettings>;
+    /** Per-CSS-var overrides written to the "theme" slice on apply.
+     *  Lets a theme drive practice-passage colour/font/radius without
+     *  mutating cssVars (which targets the chrome, not just the
+     *  passage). Curated per-theme; see `themes/presets.ts`. */
+    themeOverrides?: Partial<Record<ThemeVar, string>>;
   };
 };
 
-export const THEMES: readonly Theme[] = data as Theme[];
+/** Bind curated presets onto each theme on module load. The
+ *  themes.json file is mechanically generated from tweakcn imports
+ *  and only carries colour/font cssVars; the hand-curated character
+ *  per theme (caret style, highlight mode, line counts, …) lives
+ *  alongside in `presets.ts` so the JSON stays regenerable. */
+export const THEMES: readonly Theme[] = (data as Theme[]).map((t) => {
+  const preset = THEME_PRESETS[t.id];
+  if (!preset) return t;
+  return { ...t, presets: preset };
+});
 
 export const STORAGE_KEY = "ft-theme-id";
 

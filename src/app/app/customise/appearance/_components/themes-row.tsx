@@ -2,7 +2,7 @@
 
 import { Check, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
@@ -74,6 +74,12 @@ function ThemeSwatches({ theme }: { theme: Theme }) {
  *  passed to `apply`. */
 type PendingPick = { id: string | null; name: string };
 
+/** localStorage key for the "skip the warning dialog" preference.
+ *  Browser-persistent on purpose — the user opting out should follow
+ *  them between sessions, but never sync to the server (it's a tiny
+ *  per-device UX nudge, not part of their settings profile). */
+const SKIP_DIALOG_STORAGE_KEY = "ft-theme-skip-confirm";
+
 export function ThemesRow() {
   const { themes, activeId, apply, reset } = usePalette();
   const { overrides } = useThemeOverrides();
@@ -85,6 +91,15 @@ export function ThemesRow() {
   const [pending, setPending] = useState<PendingPick | null>(null);
   const [exportFirst, setExportFirst] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [skipDialog, setSkipDialog] = useState(false);
+  // "Don't show this again" — read on mount so we don't gate the
+  // initial render on a localStorage round-trip. Browser-persistent,
+  // never synced server-side.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setSkipDialog(window.localStorage.getItem(SKIP_DIALOG_STORAGE_KEY) === "1");
+  }, []);
+  const [skipNextTime, setSkipNextTime] = useState(false);
   const isCustom = activeId === CUSTOM_THEME_ID;
   const active = activeId && !isCustom
     ? themes.find((t) => t.id === activeId) ?? null
@@ -108,6 +123,14 @@ export function ThemesRow() {
       (p.id === null && activeId === null) ||
       (p.id !== null && activeId === p.id);
     if (sameAsActive) return;
+    if (skipDialog) {
+      // User opted out of the warning previously. Apply directly,
+      // skip the export prompt, no dialog flash.
+      if (p.id === null) reset();
+      else apply(p.id);
+      return;
+    }
+    setSkipNextTime(false);
     setPending(p);
   }
 
@@ -122,6 +145,12 @@ export function ThemesRow() {
       } finally {
         setExporting(false);
       }
+    }
+    // Persist the "don't show again" choice before applying so a
+    // re-render after apply doesn't race the localStorage write.
+    if (skipNextTime && typeof window !== "undefined") {
+      window.localStorage.setItem(SKIP_DIALOG_STORAGE_KEY, "1");
+      setSkipDialog(true);
     }
     if (pending.id === null) reset();
     else apply(pending.id);
@@ -289,6 +318,23 @@ export function ThemesRow() {
             <span className="text-xs text-muted-foreground">
               Lands in your Downloads folder. You can re-import any time
               from this same page.
+            </span>
+          </span>
+        </label>
+        <label className="flex cursor-pointer items-start gap-3 px-1">
+          <input
+            type="checkbox"
+            checked={skipNextTime}
+            onChange={(e) => setSkipNextTime(e.currentTarget.checked)}
+            className="mt-0.5 h-4 w-4 accent-primary"
+          />
+          <span className="flex flex-col gap-1">
+            <span className="font-medium text-foreground">
+              Don&apos;t show this dialog again
+            </span>
+            <span className="text-xs text-muted-foreground">
+              Saved in this browser only. Future theme picks apply
+              directly. Clear browser storage to reset.
             </span>
           </span>
         </label>
