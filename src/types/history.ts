@@ -32,10 +32,14 @@ export type HistorySummaryOutput = {
   recentTests: HistoryTest[];
   /** Top 12 weakest bigrams with enough samples to score. */
   weakestPairs: HistoryWeakness[];
+  /** Top 12 weakest trigrams with enough samples to score. */
+  weakestTrigrams: HistoryWeakness[];
   /** True until the user has typed enough for the algorithm to score
    *  bigrams. Page should fall back to "no data yet" copy. */
   cold: boolean;
   /** User's overall bigram baseline (sample-weighted mean ms). 0 on
    *  cold start. */
   bigramBaselineMs: number;
+  /** User's overall trigram baseline (same shape, separate metric). */
+  trigramBaselineMs: number;
 };

@@ -2,10 +2,12 @@ import { defineNamespace, defineRoute } from "@/server";
 import { requireAuth } from "@/server/middleware/auth";
 import {
   bigramRowsToStates,
+  trigramRowsToStates,
 } from "@/server/adapt/apply";
 import { bigramCategory } from "@/server/adapt/motor-features";
 import {
   baselineForCategory,
+  baselineMean,
   bigramBaselines,
   MIN_SAMPLES_FOR_WEAKNESS,
   weakness,
@@ -39,8 +41,9 @@ const summary = defineRoute<void, HistorySummaryOutput>({
     const layout =
       (prefsBlob.handLayout as HandLayoutPrefs | undefined) ??
       DEFAULT_HAND_LAYOUT;
-    const [bigramRows, recentRows] = await Promise.all([
+    const [bigramRows, trigramRows, recentRows] = await Promise.all([
       db.bigramModels.listForUser(userId),
+      db.trigramModels.listForUser(userId),
       db.tests.recentForUser(userId, RECENT_LIMIT),
     ]);
 
@@ -64,6 +67,27 @@ const summary = defineRoute<void, HistorySummaryOutput>({
     weakestPairs.sort((a, b) => b.weakness - a.weakness);
     weakestPairs.length = Math.min(weakestPairs.length, WEAKEST_LIMIT);
 
+    // Trigrams use a single overall baseline — they encode word-level
+    // sequences where mechanical category is less load-bearing than
+    // for bigrams. The drill-pickers and history panel both consume
+    // this list; sorting + capping is the same shape.
+    const trigramStates = trigramRowsToStates(trigramRows);
+    const trigramBaseline = baselineMean(trigramStates);
+    const weakestTrigrams: HistoryWeakness[] = [];
+    for (const [key, st] of trigramStates) {
+      if (st.n < MIN_SAMPLES_FOR_WEAKNESS) continue;
+      const weak = weakness(st, trigramBaseline);
+      if (weak <= 0) continue;
+      weakestTrigrams.push({
+        key,
+        meanMs: st.mean,
+        weakness: weak,
+        sampleCount: st.n,
+      });
+    }
+    weakestTrigrams.sort((a, b) => b.weakness - a.weakness);
+    weakestTrigrams.length = Math.min(weakestTrigrams.length, WEAKEST_LIMIT);
+
     let totalSamples = 0;
     for (const st of bigramStates.values()) totalSamples += st.n;
 
@@ -86,11 +110,13 @@ const summary = defineRoute<void, HistorySummaryOutput>({
     return {
       recentTests,
       weakestPairs,
+      weakestTrigrams,
       cold: totalSamples < COLD_BIGRAM_THRESHOLD,
       // Public output keeps a single bigram baseline (the overall
       // sample-weighted mean). Per-category baselines are an internal
       // detail; the page just needs "user's typical bigram time".
       bigramBaselineMs: baselines.overall,
+      trigramBaselineMs: trigramBaseline,
     };
   },
 });

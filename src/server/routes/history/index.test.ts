@@ -98,6 +98,8 @@ describe("history routes", () => {
     expect(out.cold).toBe(true);
     expect(out.recentTests).toEqual([]);
     expect(out.weakestPairs).toEqual([]);
+    expect(out.weakestTrigrams).toEqual([]);
+    expect(out.trigramBaselineMs).toBe(0);
     expect(out.bigramBaselineMs).toBe(0);
   });
 
