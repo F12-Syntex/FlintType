@@ -177,6 +177,13 @@ export function Passage() {
   // Clip the passage to a whole number of lines so a partial last line
   // never peeks through the bottom edge.
   const [clipHeight, setClipHeight] = useState<number | null>(null);
+  // Translate-up offset on the inner block. Stays at 0 until the cursor
+  // crosses line `floor(cap/2)`, then grows by one line-height per line
+  // completed past that point — so once you've reached the midline of
+  // the visible window, every line you complete reveals a fresh line at
+  // the bottom (and the line you just left scrolls off the top). Cursor
+  // settles at the midline and stays there for the rest of the run.
+  const [scrollOffset, setScrollOffset] = useState(0);
 
   const registerTarget = (el: HTMLSpanElement | null, side: "left" | "right") => {
     targetRef.current = el;
@@ -215,30 +222,58 @@ export function Passage() {
     const target = targetRef.current;
     if (!inner || !target) {
       setCaret(null);
+      setScrollOffset(0);
       firstMeasureRef.current = true;
       setAnimate(false);
       return;
     }
     const innerRect = inner.getBoundingClientRect();
     const r = target.getBoundingClientRect();
+    // r.top - innerRect.top stays a stable local coordinate even when
+    // inner is translated — the transform shifts both rects equally.
+    const targetTopInInner = r.top - innerRect.top;
     setCaret({
       charLeft: r.left - innerRect.left,
       charRight: r.right - innerRect.left,
-      top: r.top - innerRect.top,
+      top: targetTopInInner,
       height: r.height,
       width: r.width,
       side: targetSideRef.current,
     });
+    // Compute the scroll offset that keeps the cursor pinned to the
+    // mid-line of the visible window once the user has typed past it.
+    // `cap = round(clipHeight/lh)` is the number of visible lines, and
+    // `trigger = floor(cap/2)` is the line index after which scrolling
+    // kicks in. Scroll = max(0, currentLine - trigger) line-heights.
+    const lh = parseFloat(getComputedStyle(inner).lineHeight);
+    if (Number.isFinite(lh) && lh > 0 && clipHeight != null && clipHeight > 0) {
+      const cap = Math.max(1, Math.round(clipHeight / lh));
+      // Single-line caps (cap=1) get trigger=0: the visible line is
+      // always the cursor's line, scrolled into place every step.
+      const trigger = Math.max(0, Math.floor(cap / 2));
+      const currentLine = Math.max(0, Math.floor(targetTopInInner / lh));
+      const desired = Math.max(0, currentLine - trigger) * lh;
+      setScrollOffset(desired);
+    } else {
+      setScrollOffset(0);
+    }
     if (firstMeasureRef.current) {
       firstMeasureRef.current = false;
       // Re-enable the transition on the next frame so the very first
       // placement doesn't animate from (0, 0).
       requestAnimationFrame(() => setAnimate(true));
     }
-  }, [cursorWord, cursorChar, words]);
+  }, [cursorWord, cursorChar, words, clipHeight]);
 
   return (
     <div ref={outerRef} className="relative h-full w-full overflow-hidden">
+      {/* Viewport — fixes the visible region to a whole-line multiple of
+       *  the parent height so a partial line never peeks at the bottom.
+       *  The translated `inner` block scrolls inside this clip box. */}
+      <div
+        className="relative w-full overflow-hidden"
+        style={{ height: clipHeight != null ? `${clipHeight}px` : "100%" }}
+      >
       <div
         ref={innerRef}
         // Tailwind text-* sizes are pre-multiplied by --ft-font-scale via
@@ -256,9 +291,16 @@ export function Passage() {
           // the passage, not body. Defaults inherit body's mono.
           fontFamily: "var(--ft-font-family, inherit)",
           wordSpacing: "var(--ft-word-spacing, 0.25em)",
-          ...(clipHeight != null
-            ? { maxHeight: `${clipHeight}px`, overflow: "hidden" }
-            : {}),
+          // Translate the whole content block up by `scrollOffset` so
+          // the cursor stays pinned at the mid-line of the viewport
+          // once it's typed past it. Animates when the user opted into
+          // smooth line scroll; jumps otherwise. willChange flags the
+          // GPU layer so the slide doesn't re-paint the glyphs.
+          transform: `translate3d(0, ${-scrollOffset}px, 0)`,
+          transition: appearance.smoothLineScroll
+            ? "transform 220ms cubic-bezier(0.16, 1, 0.3, 1)"
+            : "none",
+          willChange: scrollOffset > 0 ? "transform" : undefined,
           ...maxWidthStyle,
         }}
       >
@@ -347,6 +389,7 @@ export function Passage() {
             </span>
           );
         })}
+      </div>
       </div>
       {state.mode === "QUOTE" && state.quoteSource ? (
         <p className="mt-6 text-xs uppercase tracking-[0.18em] text-muted-foreground">
