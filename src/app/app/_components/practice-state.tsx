@@ -676,19 +676,35 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
       Math.min(state.cursorWord + 1, state.words.length),
     );
 
-    void adaptRef.current.submitTest({
-      startedAt: startTime,
-      completedAt: endTime,
-      mode: state.adapt ? "training" : "casual",
-      durationOrWordCount: state.length,
-      wpm,
-      accuracy,
-      errorCount: state.errorWords.size,
-      resetCount: 0,
-      wasCompleted: true,
-      words: wordsActuallyTyped,
-      timings: state.events,
-    });
+    const adaptOn = state.adapt;
+    const wordsMode = state.mode === "WORDS";
+    const length = state.length;
+    void (async () => {
+      await adaptRef.current.submitTest({
+        startedAt: startTime,
+        completedAt: endTime,
+        mode: adaptOn ? "training" : "casual",
+        durationOrWordCount: length,
+        wpm,
+        accuracy,
+        errorCount: state.errorWords.size,
+        resetCount: 0,
+        wasCompleted: true,
+        words: wordsActuallyTyped,
+        timings: state.events,
+      });
+      // submitTest cleared the queue (model just changed). Top up
+      // immediately against the new snapshot so the user's next
+      // restart finds a ready batch waiting — no network glitch.
+      if (adaptOn && wordsMode) {
+        const cfg = {
+          minWordLength: prefsRef.current.minWordLength,
+          difficulty: prefsRef.current.difficulty,
+          showSecondary: prefsRef.current.showSecondary,
+        };
+        void adaptRef.current.refill(length, adaptPool(cfg));
+      }
+    })();
     // Intentionally watching only state.phase — every dependency listed
     // would re-fire the effect on every keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps

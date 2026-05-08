@@ -4,13 +4,13 @@ import { useCallback, useRef } from "react";
 import { BackendError, useBackend } from "@/lib/backend";
 import type { SubmitTestInput } from "@/types/adapt";
 
-/** How many extra batches the route should generate per warm fetch.
- *  3 means: the user hits restart, gets the active batch, and the
- *  next two restarts are answered from the in-memory queue without
- *  a round-trip. The whole queue is invalidated by `submitTest`
- *  because the model snapshot the batches were generated against
- *  has just been updated. */
-const PREFETCH_BATCHES = 3;
+/** Target queue depth. Every test, every reset, every dequeue kicks a
+ *  background refill that re-fills the queue back up to this many
+ *  batches against the latest model snapshot. So the user nearly
+ *  always finds a ready batch waiting on the next reset, with no
+ *  network round-trip. The route caps the per-call max at 10 (see
+ *  `requestWordsInputSchema`); 5 is a comfortable middle. */
+const PREFETCH_BATCHES = 5;
 
 /** Hash a (count, pool) request into a queue key. The pool is
  *  filtered upstream by behaviour prefs (difficulty, min length,
@@ -31,64 +31,121 @@ function queueKey(count: number, pool: readonly string[]): string {
  *  when fetchWords returns null. */
 export function useAdapt() {
   const backend = useBackend();
-  /** Per-(count, pool) queue of pre-generated batches. A successful
-   *  fetch returns the head and stashes the rest here; the next call
-   *  with the same key drains the queue without a round-trip. */
+  /** Per-(count, pool) queue of pre-generated batches. Drained by
+   *  fetchWords; restocked by `refill`. */
   const queueRef = useRef<Map<string, string[][]>>(new Map());
+  /** Active refill promises keyed by (count, pool). A second refill
+   *  call for the same key while one is in flight returns the
+   *  existing promise instead of issuing a parallel network request. */
+  const inflightRefillsRef = useRef<Map<string, Promise<void>>>(new Map());
+  /** Per-call token map. submit clears all entries; a refill that
+   *  completes after a submit detects via this map that its token
+   *  is no longer the active one and bows out without writing to
+   *  the queue. Decoupled from `inflightRefillsRef` so we don't
+   *  have to reason about the IIFE referencing its own promise
+   *  before assignment. */
+  const refillTokensRef = useRef<Map<string, object>>(new Map());
+
+  /** Fire-and-forget background refill. Requests `PREFETCH_BATCHES`
+   *  fresh batches and replaces the queue under (count, pool) with
+   *  them. Returns the in-flight promise so callers that genuinely
+   *  need to wait (the empty-queue path of fetchWords) can do so. */
+  const refill = useCallback(
+    (count: number, pool: readonly string[]): Promise<void> => {
+      if (pool.length === 0 || count <= 0) return Promise.resolve();
+      const key = queueKey(count, pool);
+      const existing = inflightRefillsRef.current.get(key);
+      if (existing) return existing;
+      // Token captured before the IIFE so the async body can compare
+      // identity in `finally` without referencing its own promise.
+      const myToken = {};
+      refillTokensRef.current.set(key, myToken);
+      const p = (async () => {
+        try {
+          const r = await backend.adapt.words({
+            count,
+            pool: [...pool],
+            batches: PREFETCH_BATCHES,
+          });
+          // Stale-write guard: a submit between request and response
+          // invalidates this batch (model snapshot changed). The
+          // submit handler clears the token map; if our token isn't
+          // the current one anymore, drop the result on the floor.
+          if (refillTokensRef.current.get(key) !== myToken) return;
+          // Cold start signals "uniform random" — equivalent to local
+          // generation, so don't queue. The caller already falls back
+          // to its own generator when fetchWords returns null. Drop
+          // any prior entries so we don't serve cold batches against
+          // a now-warm model snapshot.
+          if (r.cold) {
+            queueRef.current.delete(key);
+            return;
+          }
+          if (r.batches.length === 0) return;
+          queueRef.current.set(key, r.batches);
+        } catch {
+          // Network / 5xx / auth — silent; next fetchWords retries.
+        } finally {
+          // Only clear our markers — a submit may have already
+          // wiped them, and a newer refill may have set its own.
+          if (refillTokensRef.current.get(key) === myToken) {
+            refillTokensRef.current.delete(key);
+            inflightRefillsRef.current.delete(key);
+          }
+        }
+      })();
+      inflightRefillsRef.current.set(key, p);
+      return p;
+    },
+    [backend],
+  );
 
   const fetchWords = useCallback(
     async (count: number, pool: readonly string[]): Promise<string[] | null> => {
       if (pool.length === 0 || count <= 0) return null;
       const key = queueKey(count, pool);
       const queue = queueRef.current.get(key);
-      // Fast path: a prior call left a batch ready for this exact
-      // (count, pool). No network, no glitch on reset.
+      // Fast path: a queued batch is ready.
       if (queue && queue.length > 0) {
         const next = queue.shift()!;
         if (queue.length === 0) queueRef.current.delete(key);
+        // Top up so the next reset finds another ready batch. The
+        // refill replaces the queue with PREFETCH_BATCHES fresh
+        // batches against the current model snapshot.
+        void refill(count, pool);
         return next.length > 0 ? next : null;
       }
-
+      // Empty queue — wait for a refill, then dequeue from it.
       try {
-        const r = await backend.adapt.words({
-          count,
-          pool: [...pool],
-          batches: PREFETCH_BATCHES,
-        });
-        // The route signals cold by returning a uniform-random sample
-        // — equivalent to local generation, so let the caller fall
-        // back rather than swap a random for a random. Don't queue
-        // cold batches; they'd waste memory on something the caller
-        // is going to discard anyway.
-        if (r.cold) return null;
-        if (r.batches.length === 0) return null;
-        const [head, ...rest] = r.batches;
-        if (rest.length > 0) {
-          // Replace any prior queue under this key — the fresh fetch
-          // is more recent against the model snapshot than whatever
-          // we had stashed.
-          queueRef.current.set(key, rest);
-        }
-        return head && head.length > 0 ? head : null;
-      } catch (err) {
-        if (err instanceof BackendError && err.code === "UNAUTHORIZED") {
-          return null;
-        }
-        // Network / 5xx / unexpected — never block the practice flow.
-        return null;
+        await refill(count, pool);
+      } catch {
+        // refill already swallows errors; this catch is belt-and-braces.
       }
+      const after = queueRef.current.get(key);
+      if (after && after.length > 0) {
+        const next = after.shift()!;
+        if (after.length === 0) queueRef.current.delete(key);
+        return next.length > 0 ? next : null;
+      }
+      // Refill came back cold, errored, or returned nothing actionable.
+      // Caller falls back to local generation.
+      return null;
     },
-    [backend],
+    [refill],
   );
 
   const submitTest = useCallback(
     async (input: SubmitTestInput): Promise<void> => {
-      // Submitting a test updates the model. Any queued batches were
-      // generated against the *previous* snapshot — keeping them
-      // would mean the next reset paints stale words even though
-      // we just learned something new. Cheap to drop; the next
-      // fetchWords prefetches a fresh queue.
+      // Submitting updates the model. Queued batches were generated
+      // against the *previous* snapshot — drop them so the next reset
+      // sees only fresh-model batches. Also drop in-flight refill
+      // markers so a follow-up `refill` call can issue immediately
+      // against the new snapshot rather than waiting on the stale
+      // one (which, on completion, will detect via the marker check
+      // that a newer refill has taken its place and bow out).
       queueRef.current.clear();
+      inflightRefillsRef.current.clear();
+      refillTokensRef.current.clear();
       try {
         await backend.adapt.submit(input);
       } catch {
@@ -96,9 +153,13 @@ export function useAdapt() {
         // and the next submit will fold any timings we missed via
         // the running-mean update.
       }
+      // Caller is expected to invoke `refill(count, pool)` after this
+      // resolves to replenish against the freshly-updated model. We
+      // don't refill here because we don't know the active (count,
+      // pool); only the practice context does.
     },
     [backend],
   );
 
-  return { fetchWords, submitTest } as const;
+  return { fetchWords, submitTest, refill } as const;
 }
