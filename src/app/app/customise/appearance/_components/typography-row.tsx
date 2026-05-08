@@ -35,7 +35,7 @@ function HeroPreview() {
   return (
     <div className="rounded-md border border-border bg-card px-5 py-6">
       <p
-        className="font-normal tracking-[0.04em] text-[calc(var(--ft-font-scale,1)*1.5rem)] leading-[2.2] text-foreground sm:text-[calc(var(--ft-font-scale,1)*1.875rem)] sm:leading-[2.3] lg:text-[calc(var(--ft-font-scale,1)*2.25rem)] lg:leading-[2.4]"
+        className="font-normal tracking-[0.04em] text-[calc(var(--ft-font-scale,1)*1.75rem)] leading-[2.1] text-foreground sm:text-[calc(var(--ft-font-scale,1)*2.125rem)] sm:leading-[2.2] lg:text-[calc(var(--ft-font-scale,1)*2.5rem)] lg:leading-[2.3]"
         style={{
           fontFamily: "var(--ft-font-family, inherit)",
           wordSpacing: "var(--ft-word-spacing, 0.25em)",

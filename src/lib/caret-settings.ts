@@ -20,14 +20,17 @@ export type CaretSettings = {
 export const DEFAULT_CARET: CaretSettings = {
   style: "line",
   width: 2,
-  radius: 0,
+  // 1px corner softens the bar without rounding it into a stick;
+  // sharp 0px reads as a pixel-art tally mark.
+  radius: 1,
   // No blink by default — a still caret reads as part of the text,
   // a blinking one demands attention while the user is typing.
   blinkSpeed: 0,
-  // Default to a deliberately slow glide — the caret should feel
-  // intentional, not jumpy. Matches the `Drift` preset (300 ms) one
-  // step inside the Glide/Drift end of the smooth ramp.
-  smoothSpeed: 300,
+  // Snappy enough to feel responsive, slow enough to read as a
+  // glide rather than a teleport. 220ms lands between the `Smooth`
+  // and `Flow` presets — a conservative middle that doesn't lag
+  // behind a fast typist.
+  smoothSpeed: 220,
 };
 
 export function useCaretSettings() {

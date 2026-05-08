@@ -29,10 +29,15 @@ export type KeyboardSettings = {
 };
 
 export const DEFAULT_KEYBOARD: KeyboardSettings = {
-  design: "solid",
+  // Outline keys read as quiet chrome — solid keys compete with
+  // the passage for visual weight, especially on a fresh user's
+  // first session. Outline lets the colour palette breathe.
+  design: "outline",
   shape: "rounded",
   compact: false,
-  highlightHomeRow: false,
+  // F + J pegs lit by default — finds-your-hands cue is worth the
+  // extra mark on the board.
+  highlightHomeRow: true,
   showShiftLabels: true,
 };
 

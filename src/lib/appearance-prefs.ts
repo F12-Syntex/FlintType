@@ -63,6 +63,9 @@ export type AppearancePrefs = {
 };
 
 export const DEFAULT_APPEARANCE: AppearancePrefs = {
+  // Three live-stat columns visible by default — progress, speed,
+  // accuracy. Burst stays off; it's a power-user metric and crowds
+  // a fresh user's HUD.
   liveProgressStyle: "text",
   liveSpeedStyle: "text",
   liveAccuracyStyle: "text",
@@ -70,14 +73,22 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   liveStatsColor: "",
   liveStatsOpacity: 1,
 
+  // Letter-by-letter cursor underline and a gentle fade on past
+  // words. Reads "you've moved on from these" without striking
+  // through, which can feel punitive.
   highlightMode: "letter",
-  typedEffect: "off",
+  typedEffect: "fade",
 
+  // Tape mode opt-in. Multi-line is the friendlier default.
   tapeMode: "off",
   tapeMargin: 50,
-  smoothLineScroll: false,
+  // Line-scroll animation on by default — the snap-to-next-line
+  // feels jarring for first-time users.
+  smoothLineScroll: true,
   linesRendered: 3,
-  maxLineWidth: 0,
+  // 80 chars is the prose-readable column. Past that the eye has
+  // to track too far per line.
+  maxLineWidth: 80,
 
   alwaysShowDecimal: false,
   typingSpeedUnit: "wpm",
@@ -90,7 +101,9 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   keymapTopRow: "layout",
   keymapSize: 1.0,
 
-  borders: "default",
+  // Hairline borders rather than full-weight ones — quieter chrome,
+  // less competition for the passage.
+  borders: "soft",
 };
 
 export function useAppearancePrefs() {

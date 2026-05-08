@@ -350,7 +350,13 @@ export function Passage() {
         // passage only — bumping it here doesn't enlarge the chrome,
         // sidebar, or every other rem-based size in the app.
         className={cn(
-          "relative select-none font-normal tracking-[0.04em] text-[calc(var(--ft-font-scale,1)*1.5rem)] leading-[2.2] sm:text-[calc(var(--ft-font-scale,1)*1.875rem)] sm:leading-[2.3] lg:text-[calc(var(--ft-font-scale,1)*2.25rem)] lg:leading-[2.4]",
+          // Default passage size is generous on purpose — typing
+          // tests are easier to read and easier on the eyes when
+          // the text is bigger than ordinary copy. Mobile / sm: /
+          // lg: bumps step up roughly proportionally; the
+          // --ft-font-scale multiplier still applies so users can
+          // shrink (or further enlarge) from the customise page.
+          "relative select-none font-normal tracking-[0.04em] text-[calc(var(--ft-font-scale,1)*1.75rem)] leading-[2.1] sm:text-[calc(var(--ft-font-scale,1)*2.125rem)] sm:leading-[2.2] lg:text-[calc(var(--ft-font-scale,1)*2.5rem)] lg:leading-[2.3]",
           // Default colour for any untyped span without an explicit
           // class — the wrapper itself paints in the untyped role.
           UNTYPED_TEXT,
