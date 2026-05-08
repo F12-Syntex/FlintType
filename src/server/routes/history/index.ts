@@ -13,7 +13,7 @@ import {
   weakness,
 } from "@/server/adapt/scoring";
 import { COLD_BIGRAM_THRESHOLD } from "@/server/adapt/select";
-import { DEFAULT_HAND_LAYOUT, type HandLayoutPrefs } from "@/lib/hand-layout";
+import { ensureHandLayout } from "@/lib/hand-layout";
 import type {
   HistorySummaryOutput,
   HistoryTest,
@@ -38,9 +38,7 @@ const summary = defineRoute<void, HistorySummaryOutput>({
     // alongside the model so weakness rankings respect the layout
     // the user actually types on.
     const prefsBlob = await db.userPrefs.get(userId);
-    const layout =
-      (prefsBlob.handLayout as HandLayoutPrefs | undefined) ??
-      DEFAULT_HAND_LAYOUT;
+    const layout = ensureHandLayout(prefsBlob.handLayout);
     const [bigramRows, trigramRows, recentRows] = await Promise.all([
       db.bigramModels.listForUser(userId),
       db.trigramModels.listForUser(userId),

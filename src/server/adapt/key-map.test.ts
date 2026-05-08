@@ -86,4 +86,28 @@ describe("key-map", () => {
       fingerMapHash(DEFAULT_HAND_LAYOUT),
     );
   });
+
+  // Regression — older / hand-edited prefs blobs may store the
+  // handLayout without a `fingers` map. The whole adapt.words path
+  // chains into `disabledFingers` and used to throw `Cannot convert
+  // undefined or null to object` on `Object.entries(layout.fingers)`.
+  it("disabledFingers tolerates a layout missing fingers map", () => {
+    expect(() =>
+      // @ts-expect-error — intentionally malformed
+      disabledFingers({}),
+    ).not.toThrow();
+    // @ts-expect-error — intentionally malformed
+    expect(disabledFingers({}).size).toBe(0);
+    // @ts-expect-error — intentionally malformed
+    expect(disabledFingers({ fingers: null }).size).toBe(0);
+  });
+
+  it("fingerMapHash tolerates a malformed layout", () => {
+    expect(() =>
+      // @ts-expect-error — intentionally malformed
+      fingerMapHash({}),
+    ).not.toThrow();
+    // @ts-expect-error — intentionally malformed
+    expect(fingerMapHash({})).toBe("default");
+  });
 });

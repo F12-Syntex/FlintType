@@ -29,7 +29,10 @@ import {
 } from "@/server/adapt/scoring";
 import { bigramCategory } from "@/server/adapt/motor-features";
 import type { ModelState } from "@/server/adapt/welford";
-import { DEFAULT_HAND_LAYOUT, type HandLayoutPrefs } from "@/lib/hand-layout";
+import {
+  ensureHandLayout,
+  type HandLayoutPrefs,
+} from "@/lib/hand-layout";
 import {
   type AdaptModelRow,
   type AdaptSnapshotOutput,
@@ -66,8 +69,12 @@ async function loadAdaptPrefs(
   userId: string,
 ): Promise<AdaptPrefs> {
   const raw = await db.userPrefs.get(userId);
-  const layout =
-    (raw.handLayout as HandLayoutPrefs | undefined) ?? DEFAULT_HAND_LAYOUT;
+  // ensureHandLayout coerces malformed blobs (legacy shapes,
+  // missing fingers map, partial per-finger entries) into a valid
+  // layout against DEFAULT_HAND_LAYOUT. Without this the
+  // bigramCategory / disabledFingers callsites blow up on older
+  // user_prefs rows that pre-date the current shape.
+  const layout = ensureHandLayout(raw.handLayout);
   const recency = new Map<string, number>(
     Object.entries(
       (raw.adaptRecency as Record<string, number> | undefined) ?? {},

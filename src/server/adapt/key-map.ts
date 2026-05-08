@@ -50,25 +50,42 @@ export function rowForChar(char: string): KeyRow | null {
 /** Returns the set of disabled finger ids from the user's layout.
  *  The motor-feature pipeline skips any bigram that touches a
  *  disabled finger — drilling a finger the user has marked missing
- *  or immobile would be insulting and pointless. */
+ *  or immobile would be insulting and pointless.
+ *
+ *  Defensive on shape: a stored prefs blob may be missing the
+ *  `fingers` map entirely (older clients, hand-edited rows). Treat
+ *  those as "no fingers disabled" rather than throwing — the rest
+ *  of the algorithm still produces useful output against the
+ *  default layout. */
 export function disabledFingers(
   layout: HandLayoutPrefs,
 ): ReadonlySet<FingerId> {
   const out = new Set<FingerId>();
-  for (const [id, st] of Object.entries(layout.fingers)) {
-    if (!st.enabled) out.add(id as FingerId);
+  const fingers = layout?.fingers;
+  if (!fingers || typeof fingers !== "object") return out;
+  for (const [id, st] of Object.entries(fingers)) {
+    if (st && typeof st === "object" && (st as { enabled?: boolean }).enabled === false) {
+      out.add(id as FingerId);
+    }
   }
   return out;
 }
 
 /** Hash of the user's finger map. Used to detect changes — when this
  *  hash differs from the one stamped on the motor-feature model,
- *  callers should clearForUser before applying new measurements. */
+ *  callers should clearForUser before applying new measurements.
+ *  Defensive on shape for the same reason as `disabledFingers`. */
 export function fingerMapHash(layout: HandLayoutPrefs): string {
+  const fingers = layout?.fingers;
+  if (!fingers || typeof fingers !== "object") return "default";
   const parts: string[] = [];
-  for (const id of Object.keys(layout.fingers).sort()) {
-    const f = layout.fingers[id as FingerId];
-    parts.push(`${id}:${f.enabled ? 1 : 0}:${f.homeKey}`);
+  for (const id of Object.keys(fingers).sort()) {
+    const f = (fingers as Record<string, unknown>)[id];
+    if (!f || typeof f !== "object") continue;
+    const enabled =
+      (f as { enabled?: boolean }).enabled === false ? 0 : 1;
+    const homeKey = (f as { homeKey?: string }).homeKey ?? "";
+    parts.push(`${id}:${enabled}:${homeKey}`);
   }
-  return parts.join("|");
+  return parts.length > 0 ? parts.join("|") : "default";
 }

@@ -71,6 +71,45 @@ export const FINGER_NAME: Record<FingerId, string> = {
 export const LEFT_FINGERS: readonly FingerId[] = ["L5", "L4", "L3", "L2", "L1"];
 export const RIGHT_FINGERS: readonly FingerId[] = ["R1", "R2", "R3", "R4", "R5"];
 
+const ALL_FINGER_IDS: readonly FingerId[] = [
+  ...LEFT_FINGERS,
+  ...RIGHT_FINGERS,
+];
+
+/** Coerce an unknown shape (typically a JSON blob from the user's
+ *  prefs row) into a valid `HandLayoutPrefs`. Missing top-level,
+ *  missing `fingers`, missing per-finger entries — any of these
+ *  fall back to the default value rather than throwing.
+ *
+ *  Used at every boundary that loads a hand layout from the user's
+ *  prefs blob, so downstream code (key-map, motor features,
+ *  bigramCategory) can assume a complete shape without per-call
+ *  defensive checks. */
+export function ensureHandLayout(raw: unknown): HandLayoutPrefs {
+  if (!raw || typeof raw !== "object") return DEFAULT_HAND_LAYOUT;
+  const fingers = (raw as { fingers?: unknown }).fingers;
+  if (!fingers || typeof fingers !== "object") return DEFAULT_HAND_LAYOUT;
+  const merged: Record<FingerId, FingerState> = {
+    ...DEFAULT_HAND_LAYOUT.fingers,
+  };
+  for (const id of ALL_FINGER_IDS) {
+    const f = (fingers as Record<string, unknown>)[id];
+    if (!f || typeof f !== "object") continue;
+    const stored = f as Partial<FingerState>;
+    merged[id] = {
+      enabled:
+        typeof stored.enabled === "boolean"
+          ? stored.enabled
+          : DEFAULT_HAND_LAYOUT.fingers[id].enabled,
+      homeKey:
+        typeof stored.homeKey === "string"
+          ? stored.homeKey
+          : DEFAULT_HAND_LAYOUT.fingers[id].homeKey,
+    };
+  }
+  return { fingers: merged };
+}
+
 export function useHandLayout() {
   const { value, update, reset } = useRemotePrefs(
     "handLayout",
