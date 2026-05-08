@@ -12,9 +12,11 @@ import { extract } from "@/server/adapt/measure";
 import { deriveFeatureKeys } from "@/server/adapt/motor-features";
 import { advanceRecency, COLD_BIGRAM_THRESHOLD, selectWords } from "@/server/adapt/select";
 import {
+  baselineForCategory,
   baselineMean,
+  bigramBaselines,
+  type BigramBaselines,
   DEFAULT_WEIGHTS,
-  bigramWeakness,
   fatigueDampener,
   inChallengeBand,
   MIN_SAMPLES_FOR_WEAKNESS,
@@ -25,6 +27,7 @@ import {
   UNTESTED_BIGRAM_BONUS,
   weakness,
 } from "@/server/adapt/scoring";
+import { bigramCategory } from "@/server/adapt/motor-features";
 import type { ModelState } from "@/server/adapt/welford";
 import { DEFAULT_HAND_LAYOUT, type HandLayoutPrefs } from "@/lib/hand-layout";
 import {
@@ -254,8 +257,13 @@ const snapshot = defineRoute<void, AdaptSnapshotOutput>({
     const trigramStates = trigramRowsToStates(trigramRows);
     const motorStates = motorFeatureRowsToStates(motorRows);
 
+    const bigramBs = bigramBaselines(bigramStates, prefs.handLayout);
+    // Public snapshot output keeps `baselines.bigram` as a single
+    // number (the overall mean) for backward compatibility with the
+    // biogram visualisation page. Per-category baselines stay
+    // server-internal — we don't currently expose them.
     const baselines = {
-      bigram: baselineMean(bigramStates),
+      bigram: bigramBs.overall,
       trigram: baselineMean(trigramStates),
       motorFeature: baselineMean(motorStates),
     };
@@ -276,7 +284,7 @@ const snapshot = defineRoute<void, AdaptSnapshotOutput>({
       totalBigramSamples,
       cold: totalBigramSamples < COLD_BIGRAM_THRESHOLD,
       fatigueDampener: fatigueDampener(recentTestRows),
-      bigrams: toBigramModelRows(bigramStates, baselines.bigram),
+      bigrams: toBigramModelRows(bigramStates, bigramBs, prefs.handLayout),
       trigrams: toModelRows(trigramStates, baselines.trigram),
       motorFeatures: toModelRows(motorStates, baselines.motorFeature),
       recentTests,
@@ -305,8 +313,9 @@ const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
     const bigramStates = bigramRowsToStates(bigramRows);
     const trigramStates = trigramRowsToStates(trigramRows);
     const motorStates = motorFeatureRowsToStates(motorRows);
+    const bigramBs = bigramBaselines(bigramStates, prefs.handLayout);
     const baselines = {
-      bigram: baselineMean(bigramStates),
+      bigram: bigramBs,
       trigram: baselineMean(trigramStates),
       motorFeature: baselineMean(motorStates),
     };
@@ -331,15 +340,16 @@ const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
       const b = word[i]!;
       const bg = a + b;
       const bgState = bigramStates.get(bg);
-      const isDoubled = a === b;
       const isUnsampled = !bgState || bgState.n < MIN_SAMPLES_FOR_WEAKNESS;
       // Mirror scoreWord's bigram contribution exactly so the breakdown
       // explains what the algorithm actually does. Untested bigrams
       // surface as the exploration bonus; sampled ones as their
-      // doubled-letter-aware weakness.
+      // category-aware weakness (same-finger / same-hand / cross-hand).
+      const cat = bigramCategory(a, b, prefs.handLayout);
+      const cb = baselineForCategory(cat, bigramBs);
       const bgWeak = isUnsampled
         ? UNTESTED_BIGRAM_BONUS
-        : bigramWeakness(bgState, baselines.bigram, isDoubled);
+        : weakness(bgState, cb);
       alphaContribution += DEFAULT_WEIGHTS.alpha * bgWeak;
       bigrams.push({
         key: bg,
@@ -377,11 +387,16 @@ const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
       });
     }
 
-    const predicted = predictedWordMs(word, bigramStates, baselines.bigram);
+    const predicted = predictedWordMs(
+      word,
+      bigramStates,
+      bigramBs,
+      prefs.handLayout,
+    );
     const bigramCount = Math.max(0, word.length - 1);
     const banded =
-      baselines.bigram > 0
-        ? inChallengeBand(predicted, baselines.bigram, bigramCount)
+      bigramBs.overall > 0
+        ? inChallengeBand(predicted, bigramBs.overall, bigramCount)
         : true;
     const recency = prefs.adaptRecency.has(word)
       ? recencyMultiplier(prefs.adaptRecency.get(word)!)
@@ -423,24 +438,28 @@ function toModelRows(
   return out;
 }
 
-/** Bigram-flavoured `toModelRows`. Doubled-letter bigrams use the
- *  inflated baseline so the displayed weakness matches what the
- *  scoring algorithm sees — a doubled bigram that's only slow because
- *  doubled letters are inherently slow shouldn't surface high in the
- *  weakness ranking. */
+/** Bigram-flavoured `toModelRows`. Each pair compares against its
+ *  mechanical-category baseline (same-finger / same-hand / cross-hand)
+ *  so a same-finger pair like "lo" doesn't get flagged as weak just
+ *  because it's inherently a slower motion than a cross-hand alternation. */
 function toBigramModelRows(
   states: ReadonlyMap<string, ModelState>,
-  baseline: number,
+  baselines: BigramBaselines,
+  layout: HandLayoutPrefs,
 ): AdaptModelRow[] {
   const out: AdaptModelRow[] = [];
   for (const [key, st] of states) {
-    const isDoubled = key.length === 2 && key[0] === key[1];
+    const cat =
+      key.length === 2
+        ? bigramCategory(key[0]!, key[1]!, layout)
+        : "unknown";
+    const cb = baselineForCategory(cat, baselines);
     out.push({
       key,
       meanMs: st.mean,
       varianceMs: st.variance,
       sampleCount: st.n,
-      weakness: bigramWeakness(st, baseline, isDoubled),
+      weakness: weakness(st, cb),
     });
   }
   out.sort((a, b) => b.weakness - a.weakness);

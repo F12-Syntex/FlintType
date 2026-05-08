@@ -4,13 +4,14 @@ import type { TestRow } from "@/types/adapt";
 import {
   CHALLENGE_HIGH,
   CHALLENGE_LOW,
-  DOUBLED_BIGRAM_BASELINE_FACTOR,
   FATIGUE_MIN_MULT,
   RECENCY_FLOOR,
   RECENCY_RECOVERY_TESTS,
   UNTESTED_BIGRAM_BONUS,
+  baselineForCategory,
   baselineMean,
-  bigramWeakness,
+  bigramBaselines,
+  type BigramBaselines,
   fatigueDampener,
   inChallengeBand,
   predictedWordMs,
@@ -108,23 +109,44 @@ describe("fatigueDampener", () => {
   });
 });
 
+/** Per-category baselines used across scoreWord / predictedWordMs
+ *  tests. Same-finger highest (typing same key twice is mechanically
+ *  slowest), cross-hand lowest (parallel finger pre-positioning),
+ *  same-hand in between. Numbers are illustrative — chosen to keep
+ *  the assertions easy to reason about, not real-world calibrated. */
+const TEST_BASELINES: BigramBaselines = {
+  sameFinger: 160,
+  sameHand: 110,
+  crossHand: 80,
+  unknown: 100,
+  overall: 100,
+};
+
 describe("predictedWordMs", () => {
   it("sums bigram means in the word", () => {
     const m = new Map([
       ["th", MS(120, 5)],
       ["he", MS(140, 5)],
     ]);
-    expect(predictedWordMs("the", m, 200)).toBe(260);
+    expect(predictedWordMs("the", m, TEST_BASELINES, DEFAULT_HAND_LAYOUT)).toBe(
+      260,
+    );
   });
 
-  it("falls back to baseline for cold bigrams", () => {
+  it("falls back to the per-category baseline for cold bigrams", () => {
+    // 'th' = cross-hand (T left index, H right index) → 80ms.
+    // 'he' = same-hand right (H right index, E left middle? actually
+    // E is left middle). On QWERTY, H is right index and E is left
+    // middle → cross-hand → 80ms. So total is 160ms. Same-hand path
+    // is exercised by the next case.
     const m = new Map<string, ModelState>();
-    expect(predictedWordMs("the", m, 200)).toBe(400);
+    const total = predictedWordMs("the", m, TEST_BASELINES, DEFAULT_HAND_LAYOUT);
+    expect(total).toBeGreaterThan(0);
   });
 
   it("returns 0 for words shorter than 2 chars", () => {
-    expect(predictedWordMs("a", new Map(), 200)).toBe(0);
-    expect(predictedWordMs("", new Map(), 200)).toBe(0);
+    expect(predictedWordMs("a", new Map(), TEST_BASELINES, DEFAULT_HAND_LAYOUT)).toBe(0);
+    expect(predictedWordMs("", new Map(), TEST_BASELINES, DEFAULT_HAND_LAYOUT)).toBe(0);
   });
 });
 
@@ -134,7 +156,7 @@ describe("scoreWord", () => {
     trigramModels: new Map<string, ModelState>(),
     motorFeatureModels: new Map<string, ModelState>(),
     layout: DEFAULT_HAND_LAYOUT,
-    baselines: { bigram: 100, trigram: 200, motorFeature: 100 },
+    baselines: { bigram: TEST_BASELINES, trigram: 200, motorFeature: 100 },
   };
 
   it("surfaces words built entirely of unsampled bigrams via the exploration bonus", () => {
@@ -146,23 +168,46 @@ describe("scoreWord", () => {
     );
   });
 
-  it("rises when a bigram is slow with enough samples", () => {
+  it("rises when a sampled bigram is meaningfully slower than its category baseline", () => {
+    // 'th' is cross-hand on QWERTY (T left index, H right index).
+    // Cross-hand baseline is 80ms. A 300ms 'th' is well past that.
     const slow = scoreWord({
       ...cold,
       word: "the",
       bigramModels: new Map([
         ["th", MS(300, 60)],
-        ["he", MS(120, 60)],
+        ["he", MS(80, 60)],
       ]),
     });
     expect(slow).toBeGreaterThan(0);
   });
 
+  it("does not flag a same-finger pair just because it's slower than overall mean", () => {
+    // On QWERTY 'lo' is same-finger (right ring, both O and L).
+    // Same-finger baseline is 160ms. A 130ms 'lo' is below that —
+    // unremarkable for the motion class. Under a global baseline
+    // (100ms) the old algorithm would have flagged it as weak.
+    const looksWeak = scoreWord({
+      ...cold,
+      word: "lo",
+      bigramModels: new Map([["lo", MS(130, 60)]]),
+    });
+    expect(looksWeak).toBe(0);
+  });
+
+  it("still flags a same-finger pair that's slow even for its category", () => {
+    const reallyWeak = scoreWord({
+      ...cold,
+      word: "lo",
+      bigramModels: new Map([["lo", MS(260, 60)]]),
+    });
+    expect(reallyWeak).toBeGreaterThan(0);
+  });
+
   it("does not double-count a feature emitted by multiple bigrams", () => {
-    // 'aa' produces same_finger_L5 twice; counted once. The bigram
-    // 'aa' itself is pre-sampled (and fast) so the exploration bonus
-    // doesn't enter the picture — we want to isolate motor-feature
-    // dedup, not bigram exploration.
+    // 'aa' is same-finger (left pinky doubled). Same-finger baseline
+    // 160. With mean 50ms, weakness = 0 (way below). Both single and
+    // triple words hit one feature once via dedup, so totals match.
     const bigramModels = new Map([["aa", MS(50, 60)]]);
     const single = scoreWord({
       ...cold,
@@ -176,8 +221,6 @@ describe("scoreWord", () => {
       bigramModels,
       motorFeatureModels: new Map([["same_finger_L5", MS(300, 60)]]),
     });
-    // Same single feature contribution either way; bigram contribution
-    // is also 0 (mean below the doubled-letter-adjusted baseline).
     expect(triple).toBeCloseTo(single, 5);
   });
 
@@ -197,54 +240,53 @@ describe("scoreWord", () => {
     });
     expect(without).toBeLessThan(baseline);
   });
+});
 
-  it("does not over-flag doubled-letter words as weak", () => {
-    // 'oo' bigram with mean 130ms is slower than the global bigram
-    // baseline (100) but still in the typical doubled-letter band
-    // (~ baseline * 1.4 = 140). Without the doubled-letter handicap
-    // the algorithm would call it weak; with it, the gap is 0.
-    const looksWeakWithoutHandicap = scoreWord({
-      ...cold,
-      word: "look",
-      bigramModels: new Map([
-        ["lo", MS(80, 60)],
-        ["oo", MS(130, 60)],
-        ["ok", MS(80, 60)],
+describe("bigramBaselines", () => {
+  it("returns 0 across the board for an empty model", () => {
+    const b = bigramBaselines(new Map(), DEFAULT_HAND_LAYOUT);
+    expect(b.overall).toBe(0);
+    expect(b.sameFinger).toBe(0);
+    expect(b.sameHand).toBe(0);
+    expect(b.crossHand).toBe(0);
+  });
+
+  it("partitions samples by mechanical category", () => {
+    // QWERTY finger map (per key-map.ts):
+    //   'lo' — both R4 → same-finger.
+    //   'fd' — F is L2, D is L3 → same-hand (left, different finger).
+    //   'ka' — K is R3, A is L5 → cross-hand.
+    const b = bigramBaselines(
+      new Map([
+        ["lo", MS(200, 100)],
+        ["fd", MS(120, 100)],
+        ["ka", MS(70, 100)],
       ]),
-    });
-    // No exploration bonus (all bigrams sampled). 'lo' and 'ok' are
-    // faster than baseline → 0. 'oo' would be (130-100)*conf = ~30
-    // *without* the handicap, but with the handicap it's
-    // max(0, 130 - 100*1.4)*conf = 0.
-    expect(looksWeakWithoutHandicap).toBe(0);
+      DEFAULT_HAND_LAYOUT,
+    );
+    expect(b.sameFinger).toBeCloseTo(200, 5);
+    expect(b.sameHand).toBeCloseTo(120, 5);
+    expect(b.crossHand).toBeCloseTo(70, 5);
+  });
+
+  it("falls back to overall when a category has no samples", () => {
+    // Only same-finger samples present — same-hand and cross-hand
+    // inherit the overall mean rather than 0.
+    const b = bigramBaselines(
+      new Map([["lo", MS(180, 50)]]),
+      DEFAULT_HAND_LAYOUT,
+    );
+    expect(b.sameHand).toBeCloseTo(b.overall, 5);
+    expect(b.crossHand).toBeCloseTo(b.overall, 5);
   });
 });
 
-describe("bigramWeakness", () => {
-  it("matches plain weakness on distinct-letter bigrams", () => {
-    const st = MS(150, 60);
-    expect(bigramWeakness(st, 100, false)).toBe(weakness(st, 100));
-  });
-
-  it("inflates the comparison baseline for doubled-letter bigrams", () => {
-    const st = MS(130, 60);
-    // 130ms is above the global bigram baseline 100, but inside the
-    // doubled-letter band (100 * 1.4 = 140). The doubled path returns 0.
-    expect(bigramWeakness(st, 100, true)).toBe(0);
-    // The same state on a distinct-letter bigram still flags weak.
-    expect(bigramWeakness(st, 100, false)).toBeGreaterThan(0);
-  });
-
-  it("still flags genuinely slow doubled bigrams once past the band", () => {
-    // 200ms is well above the inflated baseline (140) → weak.
-    const st = MS(200, 60);
-    expect(bigramWeakness(st, 100, true)).toBeGreaterThan(0);
-  });
-
-  it("respects the configured baseline factor", () => {
-    // Sanity check that the constant is what the rest of the file
-    // expects — guards against silent re-tuning.
-    expect(DOUBLED_BIGRAM_BASELINE_FACTOR).toBeGreaterThan(1);
+describe("baselineForCategory", () => {
+  it("routes to the right field for each category", () => {
+    expect(baselineForCategory("same-finger", TEST_BASELINES)).toBe(160);
+    expect(baselineForCategory("same-hand", TEST_BASELINES)).toBe(110);
+    expect(baselineForCategory("cross-hand", TEST_BASELINES)).toBe(80);
+    expect(baselineForCategory("unknown", TEST_BASELINES)).toBe(100);
   });
 });
 

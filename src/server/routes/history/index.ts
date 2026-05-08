@@ -3,12 +3,15 @@ import { requireAuth } from "@/server/middleware/auth";
 import {
   bigramRowsToStates,
 } from "@/server/adapt/apply";
+import { bigramCategory } from "@/server/adapt/motor-features";
 import {
-  baselineMean,
-  bigramWeakness,
+  baselineForCategory,
+  bigramBaselines,
   MIN_SAMPLES_FOR_WEAKNESS,
+  weakness,
 } from "@/server/adapt/scoring";
 import { COLD_BIGRAM_THRESHOLD } from "@/server/adapt/select";
+import { DEFAULT_HAND_LAYOUT, type HandLayoutPrefs } from "@/lib/hand-layout";
 import type {
   HistorySummaryOutput,
   HistoryTest,
@@ -28,19 +31,28 @@ const WEAKEST_LIMIT = 12;
 const summary = defineRoute<void, HistorySummaryOutput>({
   handler: async ({ db, meta }) => {
     const userId = meta.userId as string;
+    // Categorisation reads the user's finger map (Dvorak / Colemak
+    // users have different same-finger pairs than QWERTY). Load it
+    // alongside the model so weakness rankings respect the layout
+    // the user actually types on.
+    const prefsBlob = await db.userPrefs.get(userId);
+    const layout =
+      (prefsBlob.handLayout as HandLayoutPrefs | undefined) ??
+      DEFAULT_HAND_LAYOUT;
     const [bigramRows, recentRows] = await Promise.all([
       db.bigramModels.listForUser(userId),
       db.tests.recentForUser(userId, RECENT_LIMIT),
     ]);
 
     const bigramStates = bigramRowsToStates(bigramRows);
-    const baseline = baselineMean(bigramStates);
+    const baselines = bigramBaselines(bigramStates, layout);
 
     const weakestPairs: HistoryWeakness[] = [];
     for (const [key, st] of bigramStates) {
       if (st.n < MIN_SAMPLES_FOR_WEAKNESS) continue;
-      const isDoubled = key.length === 2 && key[0] === key[1];
-      const weak = bigramWeakness(st, baseline, isDoubled);
+      if (key.length !== 2) continue;
+      const cat = bigramCategory(key[0]!, key[1]!, layout);
+      const weak = weakness(st, baselineForCategory(cat, baselines));
       if (weak <= 0) continue;
       weakestPairs.push({
         key,
@@ -75,7 +87,10 @@ const summary = defineRoute<void, HistorySummaryOutput>({
       recentTests,
       weakestPairs,
       cold: totalSamples < COLD_BIGRAM_THRESHOLD,
-      bigramBaselineMs: baseline,
+      // Public output keeps a single bigram baseline (the overall
+      // sample-weighted mean). Per-category baselines are an internal
+      // detail; the page just needs "user's typical bigram time".
+      bigramBaselineMs: baselines.overall,
     };
   },
 });

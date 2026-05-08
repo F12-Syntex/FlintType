@@ -2,6 +2,7 @@ import type { HandLayoutPrefs } from "@/lib/hand-layout";
 import type { TestRow } from "@/types/adapt";
 import {
   baselineMean,
+  bigramBaselines,
   fatigueDampener,
   inChallengeBand,
   predictedWordMs,
@@ -43,7 +44,7 @@ export function selectWords(input: SelectionInput): SelectionResult {
   const cold = totalBigramSamples < COLD_BIGRAM_THRESHOLD;
 
   const baselines = {
-    bigram: baselineMean(input.bigramModels),
+    bigram: bigramBaselines(input.bigramModels, input.layout),
     trigram: baselineMean(input.trigramModels),
     motorFeature: baselineMean(input.motorFeatureModels),
   };
@@ -61,7 +62,12 @@ export function selectWords(input: SelectionInput): SelectionResult {
       weights: input.weights,
     });
     const recency = recencyMultiplier(input.recentlyShown.get(word) ?? Infinity);
-    const predicted = predictedWordMs(word, input.bigramModels, baselines.bigram);
+    const predicted = predictedWordMs(
+      word,
+      input.bigramModels,
+      baselines.bigram,
+      input.layout,
+    );
     return {
       word,
       score: raw * fatigue * recency,
@@ -74,11 +80,13 @@ export function selectWords(input: SelectionInput): SelectionResult {
   // On cold start, we accept everything (the band would reject every
   // candidate when baseline is 0). When applying it would exclude the
   // entire pool, we fall back to "no band" so we never return [] —
-  // an empty word list breaks the practice surface.
+  // an empty word list breaks the practice surface. The band still
+  // uses the *overall* baseline because it's a coarse "is this word
+  // in the right ballpark" filter, not a per-pair weakness check.
   let filtered = candidates;
   if (!cold) {
     const banded = candidates.filter((c) =>
-      inChallengeBand(c.predictedMs, baselines.bigram, c.bigramCount),
+      inChallengeBand(c.predictedMs, baselines.bigram.overall, c.bigramCount),
     );
     if (banded.length >= input.count) filtered = banded;
   }

@@ -1,6 +1,10 @@
 import type { HandLayoutPrefs } from "@/lib/hand-layout";
 import type { TestRow } from "@/types/adapt";
-import { deriveFeatureKeys } from "./motor-features";
+import {
+  type BigramCategory,
+  bigramCategory,
+  deriveFeatureKeys,
+} from "./motor-features";
 import { confidence, type ModelState } from "./welford";
 
 /** Patterns with fewer than this many samples don't contribute to
@@ -8,19 +12,6 @@ import { confidence, type ModelState } from "./welford";
  *  collect samples in the background so the threshold is eventually
  *  crossed. */
 export const MIN_SAMPLES_FOR_WEAKNESS = 3;
-
-/** Doubled letters (`oo`, `tt`, `ll`, …) are mechanically slower than
- *  distinct-letter bigrams: same key, no transit between fingers,
- *  often a tap-down/tap-up pause that the firmware enforces. A user
- *  who is otherwise average on a doubled bigram will still score
- *  *above* the global bigram baseline, which the original algorithm
- *  reads as "weakness". This factor inflates the baseline used to
- *  judge doubled bigrams so they only flag when meaningfully slower
- *  than the typical doubled-letter time, not just slower than the
- *  global average. 40% reflects the rough mechanical premium —
- *  empirically doubled letters take ~30–50% longer than transitions
- *  between distinct keys. */
-export const DOUBLED_BIGRAM_BASELINE_FACTOR = 1.4;
 
 /** Bonus added to a word's bigram-weakness sum for every bigram in
  *  the word that has fewer than `MIN_SAMPLES_FOR_WEAKNESS` samples.
@@ -70,21 +61,80 @@ export function weakness(state: ModelState, baseline: number): number {
   return gap * confidence(state.n);
 }
 
-/** Bigram-aware weakness. Doubled-letter bigrams compare against an
- *  inflated baseline so the inherent mechanical slowness of typing
- *  the same key twice doesn't read as a per-bigram weakness. See
- *  `DOUBLED_BIGRAM_BASELINE_FACTOR`. */
-export function bigramWeakness(
-  state: ModelState,
-  baseline: number,
-  isDoubled: boolean,
+/** Per-category bigram baselines plus the legacy overall mean.
+ *  Each per-category number is the sample-weighted mean of bigram
+ *  means in that category — i.e. the user's typical time for that
+ *  *kind* of bigram. Comparing each pair against its own category
+ *  baseline rather than the global average prevents inherently slow
+ *  motions (same-finger pairs like "lo", same-hand jumps) from being
+ *  misread as personal weaknesses.
+ *
+ *  Categories with no samples fall back to `overall` so newly-warm
+ *  users still get a coherent baseline rather than 0. */
+export type BigramBaselines = {
+  sameFinger: number;
+  sameHand: number;
+  crossHand: number;
+  /** Used for digits / unmapped chars / disabled-finger pairs. */
+  unknown: number;
+  /** Sample-weighted across every category. Used by callers that
+   *  genuinely need a single number — predictedWordMs's cold-bigram
+   *  fallback for ambiguous keys, the snapshot output's `bigram`
+   *  field, the challenge-band gate. */
+  overall: number;
+};
+
+/** Partition the bigram model by mechanical category and compute a
+ *  sample-weighted mean per bucket. Layout matters because
+ *  `bigramCategory` reads the user's finger map to decide which
+ *  finger types each char. */
+export function bigramBaselines(
+  models: ModelMap,
+  layout: HandLayoutPrefs,
+): BigramBaselines {
+  const buckets: Record<BigramCategory, { sum: number; n: number }> = {
+    "same-finger": { sum: 0, n: 0 },
+    "same-hand": { sum: 0, n: 0 },
+    "cross-hand": { sum: 0, n: 0 },
+    unknown: { sum: 0, n: 0 },
+  };
+  let totalSum = 0;
+  let totalN = 0;
+  for (const [key, st] of models) {
+    if (key.length !== 2) continue;
+    const cat = bigramCategory(key[0]!, key[1]!, layout);
+    buckets[cat].sum += st.mean * st.n;
+    buckets[cat].n += st.n;
+    totalSum += st.mean * st.n;
+    totalN += st.n;
+  }
+  const overall = totalN > 0 ? totalSum / totalN : 0;
+  const meanOr = (b: { sum: number; n: number }): number =>
+    b.n > 0 ? b.sum / b.n : overall;
+  return {
+    sameFinger: meanOr(buckets["same-finger"]),
+    sameHand: meanOr(buckets["same-hand"]),
+    crossHand: meanOr(buckets["cross-hand"]),
+    unknown: meanOr(buckets.unknown),
+    overall,
+  };
+}
+
+/** Resolve the right baseline for a bigram's mechanical category. */
+export function baselineForCategory(
+  category: BigramCategory,
+  baselines: BigramBaselines,
 ): number {
-  if (state.n < MIN_SAMPLES_FOR_WEAKNESS) return 0;
-  const adjustedBaseline = isDoubled
-    ? baseline * DOUBLED_BIGRAM_BASELINE_FACTOR
-    : baseline;
-  const gap = Math.max(0, state.mean - adjustedBaseline);
-  return gap * confidence(state.n);
+  switch (category) {
+    case "same-finger":
+      return baselines.sameFinger;
+    case "same-hand":
+      return baselines.sameHand;
+    case "cross-hand":
+      return baselines.crossHand;
+    case "unknown":
+      return baselines.unknown;
+  }
 }
 
 /** Pulls a single number out of the recent test stream that says
@@ -117,18 +167,28 @@ export function fatigueDampener(recent: readonly TestRow[]): number {
 
 /** Per-word predicted typing time, used by the challenge-band
  *  sampler. Sums bigram means within the word. Cold bigrams fall
- *  back to the user's bigram baseline. */
+ *  back to the *category* baseline so an unsampled doubled letter
+ *  is predicted to take roughly as long as the user's other doubled
+ *  letters, rather than the global average (which would make
+ *  doubled-heavy words look easier than they really are). */
 export function predictedWordMs(
   word: string,
   bigramModels: ModelMap,
-  bigramBaseline: number,
+  baselines: BigramBaselines,
+  layout: HandLayoutPrefs,
 ): number {
   if (word.length < 2) return 0;
   let total = 0;
   for (let i = 1; i < word.length; i++) {
-    const key = (word[i - 1]! + word[i]!).toLowerCase();
+    const a = word[i - 1]!.toLowerCase();
+    const b = word[i]!.toLowerCase();
+    const key = a + b;
     const st = bigramModels.get(key);
-    total += st?.mean ?? bigramBaseline;
+    if (st) {
+      total += st.mean;
+    } else {
+      total += baselineForCategory(bigramCategory(a, b, layout), baselines);
+    }
   }
   return total;
 }
@@ -144,7 +204,11 @@ export function scoreWord(args: {
   trigramModels: ModelMap;
   motorFeatureModels: ModelMap;
   layout: HandLayoutPrefs;
-  baselines: { bigram: number; trigram: number; motorFeature: number };
+  baselines: {
+    bigram: BigramBaselines;
+    trigram: number;
+    motorFeature: number;
+  };
   weights?: ScoringWeights;
 }): number {
   const w = args.word.toLowerCase();
@@ -159,7 +223,6 @@ export function scoreWord(args: {
     const b = w[i]!;
     const bg = a + b;
     const bgState = args.bigramModels.get(bg);
-    const isDoubled = a === b;
     // Explore-or-exploit: bigrams without enough samples to score
     // (state missing entirely, or state below MIN_SAMPLES_FOR_WEAKNESS)
     // get an exploration bonus so the algorithm prefers seeing them.
@@ -170,7 +233,13 @@ export function scoreWord(args: {
     if (isUnsampled) {
       bigSum += UNTESTED_BIGRAM_BONUS;
     } else {
-      bigSum += bigramWeakness(bgState, args.baselines.bigram, isDoubled);
+      // Per-category baseline: same-finger pairs (e.g. "lo" on QWERTY)
+      // compare against the same-finger mean, not the global one. A
+      // 200ms "lo" is unremarkable for that motion class even though
+      // it'd be flagged as weak under a single global baseline.
+      const cat = bigramCategory(a, b, args.layout);
+      const cb = baselineForCategory(cat, args.baselines.bigram);
+      bigSum += weakness(bgState, cb);
     }
 
     for (const fk of deriveFeatureKeys(a, b, args.layout)) {

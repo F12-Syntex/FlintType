@@ -6,6 +6,45 @@ import { disabledFingers, fingerForChar, handOf, rowForChar } from "./key-map";
  *  across versions, or write a one-shot rename migration. */
 export type MotorFeatureKey = string;
 
+/** A bigram's mechanical category. Three real cases plus "unknown"
+ *  for digits, exotic punctuation, or characters touching disabled
+ *  fingers. The categories are ranked from slowest to fastest:
+ *
+ *    same-finger > same-hand > cross-hand
+ *
+ *  The ranking is mechanical, not learned: typing "lo" with the
+ *  right ring on QWERTY (same finger, two key presses) is an
+ *  inherently slower motion than "fl" (same hand, two fingers) which
+ *  is in turn slower than "po" (different hands — the fingers can
+ *  pre-position in parallel). The weakness algorithm uses this to
+ *  compare each bigram against the right peer group instead of one
+ *  global mean — a 200ms "lo" is unremarkable for a same-finger
+ *  pair but would be flagged as weak under a global baseline. */
+export type BigramCategory =
+  | "same-finger"
+  | "same-hand"
+  | "cross-hand"
+  | "unknown";
+
+/** Classify a 2-character bigram. Used by `bigramBaselines` to
+ *  partition the model and by `scoreWord` to look up the right
+ *  baseline per pair. Doubled letters ("oo", "tt") are a sub-case
+ *  of same-finger and naturally get the highest baseline. */
+export function bigramCategory(
+  a: string,
+  b: string,
+  layout: HandLayoutPrefs,
+): BigramCategory {
+  const fa = fingerForChar(a);
+  const fb = fingerForChar(b);
+  if (fa == null || fb == null) return "unknown";
+  const disabled = disabledFingers(layout);
+  if (disabled.has(fa) || disabled.has(fb)) return "unknown";
+  if (fa === fb) return "same-finger";
+  if (handOf(fa) === handOf(fb)) return "same-hand";
+  return "cross-hand";
+}
+
 /** Decompose a bigram into the motor features it embodies. A single
  *  pair like "ed" with a Welford state of 130ms contributes that
  *  130ms sample to *every* feature returned here — same-finger,
