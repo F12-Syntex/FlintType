@@ -1,8 +1,3 @@
-"use client";
-
-import { useCallback } from "react";
-import { useRemotePrefs } from "./use-remote-prefs";
-
 /** Per-finger identity. The number is the anatomical index — 1 = thumb,
  *  2 = index, 3 = middle, 4 = ring, 5 = pinky — prefixed with the hand
  *  side. Stable across the codebase: hand-layout UI, adaptive drilling,
@@ -108,42 +103,4 @@ export function ensureHandLayout(raw: unknown): HandLayoutPrefs {
     };
   }
   return { fingers: merged };
-}
-
-export function useHandLayout() {
-  const { value, update, reset } = useRemotePrefs(
-    "handLayout",
-    DEFAULT_HAND_LAYOUT,
-  );
-
-  const setFinger = useCallback(
-    (id: FingerId, patch: Partial<FingerState>) => {
-      update((prev) => ({
-        ...prev,
-        fingers: {
-          ...prev.fingers,
-          [id]: { ...prev.fingers[id], ...patch },
-        },
-      }));
-    },
-    [update],
-  );
-
-  const toggleEnabled = useCallback(
-    (id: FingerId) => {
-      update((prev) => ({
-        ...prev,
-        fingers: {
-          ...prev.fingers,
-          [id]: {
-            ...prev.fingers[id],
-            enabled: !prev.fingers[id].enabled,
-          },
-        },
-      }));
-    },
-    [update],
-  );
-
-  return { layout: value, setFinger, toggleEnabled, reset } as const;
 }

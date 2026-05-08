@@ -7,8 +7,8 @@ import {
   FINGER_NAME,
   LEFT_FINGERS,
   RIGHT_FINGERS,
-  useHandLayout,
 } from "@/lib/hand-layout";
+import { useHandLayout } from "@/lib/use-hand-layout";
 import { cn } from "@/lib/utils";
 import { Keyboard, type KeyboardProps } from "./index";
 
