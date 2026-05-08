@@ -1,5 +1,6 @@
 import type { AppearancePrefs } from "../appearance-prefs";
 import type { CaretSettings } from "../caret-settings";
+import type { KeyboardSettings } from "../keyboard-settings";
 import type { ThemeVar } from "../theme-customization";
 import { THEME_PRESETS } from "./presets";
 import data from "./themes.json";
@@ -27,6 +28,7 @@ export type Theme = {
   presets?: {
     appearance?: Partial<AppearancePrefs>;
     caret?: Partial<CaretSettings>;
+    keyboard?: Partial<KeyboardSettings>;
     /** Per-CSS-var overrides written to the "theme" slice on apply.
      *  Lets a theme drive practice-passage colour/font/radius without
      *  mutating cssVars (which targets the chrome, not just the

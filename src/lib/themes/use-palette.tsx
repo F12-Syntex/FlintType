@@ -120,6 +120,7 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
       if (id !== CUSTOM_THEME_ID) {
         clearSlice("caret");
         clearSlice("appearance");
+        clearSlice("keyboard");
         const theme = findTheme(id);
         // Theme overrides slice is the per-CSS-var customisations
         // layer (e.g. --ft-font-scale, --radius). Default to empty
@@ -131,6 +132,9 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
         }
         if (theme?.presets?.caret) {
           writeSlice("caret", theme.presets.caret);
+        }
+        if (theme?.presets?.keyboard) {
+          writeSlice("keyboard", theme.presets.keyboard);
         }
       }
       update({ activeId: id });
@@ -146,6 +150,7 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     writeSlice("theme", {});
     clearSlice("caret");
     clearSlice("appearance");
+    clearSlice("keyboard");
     reset();
   }, [reset]);
 
