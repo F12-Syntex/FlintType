@@ -4,6 +4,7 @@ import { Check, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
+import { buildFlinttypeExport, downloadJson } from "@/lib/import-export";
 import { useThemeOverrides } from "@/lib/theme-customization";
 import { cn } from "@/lib/utils";
 import { BACKGROUND_REACTIVE_ID } from "@/lib/themes/background-reactive";
@@ -66,12 +68,23 @@ function ThemeSwatches({ theme }: { theme: Theme }) {
   return <PaletteSwatches colors={colors} />;
 }
 
+/** A pending theme pick — captured when the user clicks an entry,
+ *  released when they confirm or cancel the warning dialog. `id`
+ *  is null for the synthetic Default reset; otherwise it's the id
+ *  passed to `apply`. */
+type PendingPick = { id: string | null; name: string };
+
 export function ThemesRow() {
   const { themes, activeId, apply, reset } = usePalette();
   const { overrides } = useThemeOverrides();
   const router = useRouter();
   const isMobile = useIsMobile();
   const [sheetOpen, setSheetOpen] = useState(false);
+  // Two-phase pick: setting `pending` opens the warning dialog; the
+  // dialog's confirm button reads it and runs the actual apply/reset.
+  const [pending, setPending] = useState<PendingPick | null>(null);
+  const [exportFirst, setExportFirst] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const isCustom = activeId === CUSTOM_THEME_ID;
   const active = activeId && !isCustom
     ? themes.find((t) => t.id === activeId) ?? null
@@ -86,14 +99,35 @@ export function ThemesRow() {
     <PaletteSwatches colors={DEFAULT_SWATCHES} />
   );
 
-  function pickTheme(id: string) {
-    apply(id);
+  function requestPick(p: PendingPick) {
     setSheetOpen(false);
+    // Re-picking the active theme is a no-op visually but applying
+    // would still wipe customisations — guard so accidental re-clicks
+    // don't trash the user's caret/font picks.
+    const sameAsActive =
+      (p.id === null && activeId === null) ||
+      (p.id !== null && activeId === p.id);
+    if (sameAsActive) return;
+    setPending(p);
   }
-  function pickDefault() {
-    reset();
-    setSheetOpen(false);
+
+  async function commitPending() {
+    if (!pending) return;
+    if (exportFirst) {
+      try {
+        setExporting(true);
+        const data = await buildFlinttypeExport();
+        const stamp = new Date().toISOString().slice(0, 10);
+        downloadJson(`flinttype-settings-${stamp}.json`, data);
+      } finally {
+        setExporting(false);
+      }
+    }
+    if (pending.id === null) reset();
+    else apply(pending.id);
+    setPending(null);
   }
+
   function exploreThemes() {
     setSheetOpen(false);
     router.push("/app/customise/appearance/themes");
@@ -114,6 +148,7 @@ export function ThemesRow() {
   );
 
   return (
+    <>
     <SettingsRow
       label="Theme"
       control={
@@ -132,7 +167,7 @@ export function ThemesRow() {
                     <PaletteSwatches colors={DEFAULT_SWATCHES} />
                   }
                   active={activeId === null}
-                  onSelect={pickDefault}
+                  onSelect={() => requestPick({ id: null, name: "Default" })}
                 />
                 {themes.map((t) => (
                   <ThemeSheetItem
@@ -140,7 +175,7 @@ export function ThemesRow() {
                     name={t.name}
                     swatches={<ThemeSwatches theme={t} />}
                     active={activeId === t.id}
-                    onSelect={() => pickTheme(t.id)}
+                    onSelect={() => requestPick({ id: t.id, name: t.name })}
                   />
                 ))}
                 <li>
@@ -163,7 +198,10 @@ export function ThemesRow() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[12rem]">
-              <DropdownMenuItem onSelect={reset} className="gap-3">
+              <DropdownMenuItem
+                onSelect={() => requestPick({ id: null, name: "Default" })}
+                className="gap-3"
+              >
                 <span
                   className={cn(
                     "inline-flex h-4 w-4 items-center justify-center",
@@ -179,7 +217,7 @@ export function ThemesRow() {
               {themes.map((t) => (
                 <DropdownMenuItem
                   key={t.id}
-                  onSelect={() => apply(t.id)}
+                  onSelect={() => requestPick({ id: t.id, name: t.name })}
                   className="gap-3"
                 >
                   <span
@@ -209,6 +247,54 @@ export function ThemesRow() {
         )
       }
     />
+    <ConfirmDialog
+      open={pending !== null}
+      onOpenChange={(next) => {
+        if (!next) setPending(null);
+      }}
+      title={pending ? `Switch to ${pending.name}?` : "Switch theme?"}
+      confirmLabel={
+        exporting
+          ? "Exporting…"
+          : exportFirst
+            ? "Export & switch"
+            : "Switch anyway"
+      }
+      cancelLabel="Cancel"
+      confirmVariant="destructive"
+      onConfirm={() => {
+        // ConfirmDialog calls onOpenChange(false) right after — that
+        // sets pending to null. Run the apply on the same tick so the
+        // export-then-apply chain still has the pending value cached.
+        void commitPending();
+      }}
+    >
+      <div className="flex flex-col gap-4 text-sm leading-relaxed">
+        <p>
+          Switching the theme resets <strong>every appearance setting</strong>:
+          colours, caret style, font, line counts, smooth scroll — all of it.
+          Your current customisations will be discarded.
+        </p>
+        <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border bg-muted/40 p-3 hover:bg-muted/60">
+          <input
+            type="checkbox"
+            checked={exportFirst}
+            onChange={(e) => setExportFirst(e.currentTarget.checked)}
+            className="mt-0.5 h-4 w-4 accent-primary"
+          />
+          <span className="flex flex-col gap-1">
+            <span className="font-medium text-foreground">
+              Export my settings to a JSON file first
+            </span>
+            <span className="text-xs text-muted-foreground">
+              Lands in your Downloads folder. You can re-import any time
+              from this same page.
+            </span>
+          </span>
+        </label>
+      </div>
+    </ConfirmDialog>
+    </>
   );
 }
 

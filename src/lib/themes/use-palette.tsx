@@ -9,7 +9,7 @@ import {
   useEffect,
 } from "react";
 import { useBackgroundPrefs } from "../background-prefs";
-import { writeSlice } from "../prefs-store";
+import { clearSlice, writeSlice } from "../prefs-store";
 import { useRemotePrefs } from "../use-remote-prefs";
 import {
   applyReactivePalette,
@@ -110,13 +110,24 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
 
   const apply = useCallback(
     (id: string) => {
-      // Picking a real palette resets the per-var override slice — those
-      // were "Custom" mode's payload, and carrying them onto a fresh
-      // palette would mean the named theme never actually paints (the
-      // overrides win). Don't touch overrides when the caller deliberately
-      // re-picks "custom" (no-op).
+      // Custom is the synthetic "user has per-var overrides" id —
+      // picking it from the menu is a no-op (the overrides are already
+      // active on :root). For every other pick, themes own the whole
+      // visual identity: drop per-var overrides AND the caret +
+      // appearance slices so the new theme starts clean. Themes can
+      // overlay non-default values via `presets`; absent fields fall
+      // back to DEFAULT_CARET / DEFAULT_APPEARANCE.
       if (id !== CUSTOM_THEME_ID) {
         writeSlice("theme", {});
+        clearSlice("caret");
+        clearSlice("appearance");
+        const theme = findTheme(id);
+        if (theme?.presets?.appearance) {
+          writeSlice("appearance", theme.presets.appearance);
+        }
+        if (theme?.presets?.caret) {
+          writeSlice("caret", theme.presets.caret);
+        }
       }
       update({ activeId: id });
     },
@@ -124,7 +135,13 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
   );
 
   const resetPalette = useCallback(() => {
+    // "Reset" = back to Default palette. Same scrubbing as applying
+    // a named theme — the user's caret / font / line picks are all
+    // tied to whatever theme they were under, and the Default theme
+    // expects a clean slice tree.
     writeSlice("theme", {});
+    clearSlice("caret");
+    clearSlice("appearance");
     reset();
   }, [reset]);
 

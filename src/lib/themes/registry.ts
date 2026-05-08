@@ -1,8 +1,18 @@
+import type { AppearancePrefs } from "../appearance-prefs";
+import type { CaretSettings } from "../caret-settings";
 import data from "./themes.json";
 
 /** A user-installable theme — one block of CSS variables for light, one
  *  for dark. Sourced from a shadcn / tweakcn registry URL via
- *  `yarn themes:add <url>`. */
+ *  `yarn themes:add <url>`.
+ *
+ *  Themes own the user's *whole* appearance, not just colour. When
+ *  applied, the palette provider also wipes the caret + appearance
+ *  prefs slices so the new theme starts from a clean slate. A theme
+ *  may overlay its own non-default values via `presets`; absent fields
+ *  fall back to the global DEFAULT_CARET / DEFAULT_APPEARANCE. None of
+ *  the shipped tweakcn themes carry presets — they're pure colour
+ *  palettes. Hand-curated themes can opt in. */
 export type Theme = {
   id: string;
   name: string;
@@ -11,6 +21,10 @@ export type Theme = {
     theme?: Record<string, string>;
     light: Record<string, string>;
     dark: Record<string, string>;
+  };
+  presets?: {
+    appearance?: Partial<AppearancePrefs>;
+    caret?: Partial<CaretSettings>;
   };
 };
 
