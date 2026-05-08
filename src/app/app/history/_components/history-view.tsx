@@ -8,11 +8,13 @@ import type {
   HistoryTest,
   HistoryWeakness,
 } from "@/types/history";
+import { AllTestsChart } from "./all-tests-chart";
 import { DailyChart, type DailyPoint } from "./daily-chart";
 import { Headline, type HeadlineInsight } from "./headline";
 import { PairEvolution } from "./pair-evolution";
 import { Records, type RecordRow } from "./records";
 import { RunLog } from "./runlog";
+import { TrendTiles } from "./trend-tiles";
 
 const DAILY_WINDOW_DAYS = 90;
 const RUNLOG_LIMIT = 12;
@@ -75,7 +77,14 @@ export function HistoryView() {
   }
   if (!data) return null;
 
-  const { recentTests, weakestPairs, cold, bigramBaselineMs } = data;
+  const {
+    recentTests,
+    weakestPairs,
+    weakestTrigrams,
+    cold,
+    bigramBaselineMs,
+    trigramBaselineMs,
+  } = data;
   const dailyPoints = buildDailyPoints(recentTests, now, DAILY_WINDOW_DAYS);
   const movingAvg = sevenDayMovingAvg(dailyPoints);
   const records = buildRecords(recentTests);
@@ -86,6 +95,35 @@ export function HistoryView() {
   return (
     <>
       <Headline hero={headlineHero} insights={insights} />
+
+      {/* Numeric tiles right under the hero — surfaces the
+       *  improvement-rate and projection metrics the user actually
+       *  cares about ("am I getting better?") before the charts. */}
+      <section className="border-b border-foreground/10 px-5 py-8 sm:px-16">
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+          <Tag>TRAJECTORY</Tag>
+          <span className="text-[11px] text-muted-foreground">
+            mean · slope · projection · best · sample
+          </span>
+        </div>
+        <TrendTiles tests={recentTests} now={now} />
+      </section>
+
+      {/* All-tests scatter — every run as a point, with a linear
+       *  regression trend line. Scales with sparse data better than
+       *  the daily bars below; the daily chart stays for users with
+       *  plenty of history. */}
+      <section className="border-b border-foreground/10 px-5 py-8 sm:px-16">
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+          <div className="flex flex-wrap items-baseline gap-5">
+            <Tag>EVERY TEST · WPM</Tag>
+            <span className="text-[11px] text-muted-foreground">
+              each dot = one test · dashed line = trend
+            </span>
+          </div>
+        </div>
+        <AllTestsChart tests={recentTests} />
+      </section>
 
       <section className="border-b border-foreground/10 px-5 py-8 sm:px-16">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
@@ -99,23 +137,37 @@ export function HistoryView() {
         <DailyChart days={dailyPoints} movingAvg={movingAvg} />
       </section>
 
-      <section className="grid grid-cols-1 gap-8 border-b border-foreground/10 px-5 py-8 sm:px-16 lg:grid-cols-[1.4fr_1fr]">
+      <section className="grid grid-cols-1 gap-8 border-b border-foreground/10 px-5 py-8 sm:px-16 lg:grid-cols-2">
         <div>
           <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-            <Tag>YOUR WEAKNESSES · NOW</Tag>
+            <Tag>BIGRAM WEAKNESSES</Tag>
             <span className="text-[11px] text-muted-foreground">
-              top {weakestPairs.length} bigrams · ms over baseline
+              top {weakestPairs.length} · ms over baseline
             </span>
           </div>
           <PairEvolution pairs={weakestPairs} baselineMs={bigramBaselineMs} />
         </div>
         <div>
           <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-            <Tag>PERSONAL BESTS</Tag>
-            <span className="text-[11px] text-muted-foreground">by mode</span>
+            <Tag>TRIGRAM WEAKNESSES</Tag>
+            <span className="text-[11px] text-muted-foreground">
+              top {weakestTrigrams.length} · ms over baseline
+            </span>
           </div>
-          <Records records={records} now={now} />
+          <PairEvolution
+            pairs={weakestTrigrams}
+            baselineMs={trigramBaselineMs}
+            itemLabel="TRIGRAM"
+          />
         </div>
+      </section>
+
+      <section className="border-b border-foreground/10 px-5 py-8 sm:px-16">
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+          <Tag>PERSONAL BESTS</Tag>
+          <span className="text-[11px] text-muted-foreground">by mode</span>
+        </div>
+        <Records records={records} now={now} />
       </section>
 
       <section className="px-5 py-8 pb-14 sm:px-16">

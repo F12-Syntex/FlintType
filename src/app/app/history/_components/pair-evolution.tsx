@@ -8,14 +8,18 @@ import type { HistoryWeakness } from "@/types/history";
 export function PairEvolution({
   pairs,
   baselineMs,
+  itemLabel = "PAIR",
 }: {
   pairs: readonly HistoryWeakness[];
   baselineMs: number;
+  /** Header label for the key column. Defaults to "PAIR" for the
+   *  bigram surface; pass "TRIGRAM" when reusing this for trigrams. */
+  itemLabel?: string;
 }) {
   if (pairs.length === 0) {
     return (
       <div className="py-6 text-xs text-muted-foreground">
-        Not enough samples yet — keep typing and weak pairs will surface here.
+        Not enough samples yet — keep typing and weak {itemLabel.toLowerCase()}s will surface here.
       </div>
     );
   }
@@ -23,8 +27,8 @@ export function PairEvolution({
 
   return (
     <div className="flex flex-col">
-      <div className="grid grid-cols-[50px_1fr_70px_60px] gap-3.5 border-b border-foreground/10 py-3">
-        <Tag>PAIR</Tag>
+      <div className="grid grid-cols-[60px_1fr_70px_60px] gap-3.5 border-b border-foreground/10 py-3">
+        <Tag>{itemLabel}</Tag>
         <Tag>WEAKNESS</Tag>
         <Tag className="text-right">MEAN</Tag>
         <Tag className="text-right">N</Tag>
@@ -36,7 +40,7 @@ export function PairEvolution({
         return (
           <div
             key={p.key}
-            className="grid grid-cols-[50px_1fr_70px_60px] items-center gap-3.5 border-b border-foreground/10 py-3"
+            className="grid grid-cols-[60px_1fr_70px_60px] items-center gap-3.5 border-b border-foreground/10 py-3"
           >
             <span className="font-mono text-sm font-semibold">{p.key}</span>
             <div className="relative h-5 w-full overflow-hidden bg-muted">
