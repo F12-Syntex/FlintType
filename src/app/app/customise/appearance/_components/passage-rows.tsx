@@ -1,11 +1,14 @@
 "use client";
 
+import { useRef } from "react";
+import { Input } from "@/components/ui/input";
 import {
   type HighlightMode,
   type TapeMode,
   type TypedEffect,
   useAppearancePrefs,
 } from "@/lib/appearance-prefs";
+import { Chip } from "../../_components/chip";
 import {
   LabelWithDesc,
   SelectChips,
@@ -33,6 +36,56 @@ const TAPE_OPTIONS: readonly { id: TapeMode; label: string }[] = [
   { id: "word", label: "Word" },
   { id: "letter", label: "Letter" },
 ];
+
+/** Numeric input for `linesRendered` paired with an All chip. `0` is
+ *  the wire value for unbounded. Range 1–20 — past that you almost
+ *  always want All. The most-recent numeric value is remembered so
+ *  toggling All on and off again restores it instead of forcing a
+ *  retype. */
+function LinesRenderedControl({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (next: number) => void;
+}) {
+  const isAll = value === 0;
+  // Stash the last numeric value so the All chip can act as a toggle.
+  // Seeded with 3 to match the default; updated whenever the user types
+  // something else.
+  const lastNRef = useRef<number>(value > 0 ? value : 3);
+  if (value > 0) lastNRef.current = value;
+
+  return (
+    <div className="flex items-center gap-2">
+      <Input
+        type="number"
+        inputMode="numeric"
+        min={1}
+        max={20}
+        step={1}
+        value={isAll ? "" : String(value)}
+        placeholder={String(lastNRef.current)}
+        aria-label="Lines rendered"
+        onChange={(e) => {
+          const raw = e.currentTarget.value;
+          if (raw === "") return;
+          const n = Number.parseInt(raw, 10);
+          if (!Number.isFinite(n)) return;
+          // Clamp into the supported range; All has its own affordance.
+          const clamped = Math.min(20, Math.max(1, n));
+          onChange(clamped);
+        }}
+        className="h-8 w-16 text-right tabular-nums"
+      />
+      <Chip
+        label="All"
+        active={isAll}
+        onClick={() => onChange(isAll ? lastNRef.current : 0)}
+      />
+    </div>
+  );
+}
 
 export function PassageRows() {
   const { prefs, update } = useAppearancePrefs();
@@ -124,14 +177,14 @@ export function PassageRows() {
       <SettingsRow
         label={
           <LabelWithDesc
-            title="Show all lines"
-            desc="Show every line of word/custom/quote tests instead of capping at 3."
+            title="Lines rendered"
+            desc="How many lines of the passage are visible at once. Pick a number, or All to fill the available height."
           />
         }
         control={
-          <ToggleChips
-            value={prefs.showAllLines}
-            onChange={(v) => update("showAllLines", v)}
+          <LinesRenderedControl
+            value={prefs.linesRendered}
+            onChange={(v) => update("linesRendered", v)}
           />
         }
       />

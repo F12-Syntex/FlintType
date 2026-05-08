@@ -490,6 +490,8 @@ Pick the smallest control that fits the choice space:
 | Single binary toggle                                         | a chip-group with `[Off] [On]` so the row shape stays uniform |
 | Free input (URL, hex, name)                                  | `<Input>` (right-aligned within the row) |
 | Continuous numeric                                           | a chip-group of named presets (e.g. Sharp / Soft / Round). Sliders are reserved for sections that genuinely need fine-tuning, never inside a `SettingsRow` |
+| Continuous numeric, fine-grained (font size, opacity, margin) | `<SliderRow>` with a percent/value badge — used when presets can't honestly approximate the choice space (the practice-passage Size, Tape margin, Live stats opacity, Max line width). |
+| Bounded integer with an "unbounded" escape (lines rendered)  | `<Input type="number">` + an `<Chip label="All">` toggle. `0` is the wire value for unbounded; the input remembers the last numeric pick so toggling All on and off restores it. |
 
 `SettingsCard` (a Card with title + description + body) is **only** for controls that genuinely need their own description and a body too tall for a row — color picker rows (label + desc + swatch picker) and the background image upload zone. New rich-content settings should ask "can this be a SettingsRow?" first.
 

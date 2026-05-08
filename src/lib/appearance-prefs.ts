@@ -35,7 +35,11 @@ export type AppearancePrefs = {
   /** 0–100, percent from the left edge of the typing area. */
   tapeMargin: number;
   smoothLineScroll: boolean;
-  showAllLines: boolean;
+  /** Maximum lines rendered in the passage. `0` means unbounded —
+   *  show every line that fits in the available height. Otherwise
+   *  the passage is clipped to `min(linesRendered, fits)` whole
+   *  lines. Default `3`, mirroring the original cap. */
+  linesRendered: number;
   /** Width in characters; 0 = align to content edges. */
   maxLineWidth: number;
 
@@ -72,7 +76,7 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   tapeMode: "off",
   tapeMargin: 50,
   smoothLineScroll: false,
-  showAllLines: false,
+  linesRendered: 3,
   maxLineWidth: 0,
 
   alwaysShowDecimal: false,

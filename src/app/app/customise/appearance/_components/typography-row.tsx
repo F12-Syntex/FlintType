@@ -3,15 +3,18 @@
 import { Button } from "@/components/ui/button";
 import { useThemeOverrides } from "@/lib/theme-customization";
 import { Chip, ChipGroup } from "../../_components/chip";
+import { SliderRow } from "../../_components/controls";
 import { SettingsRow } from "../../_components/row";
 import { FontRow } from "./font-row";
 
-const SIZE_PRESETS: ReadonlyArray<{ label: string; scale: number }> = [
-  { label: "S", scale: 0.875 },
-  { label: "M", scale: 1.0 },
-  { label: "L", scale: 1.125 },
-  { label: "XL", scale: 1.25 },
-];
+// Slider range for the practice-passage font size. 50%–200% is the
+// honest band: under 50% the passage stops being typing-test legible,
+// over 200% a single word eats the whole panel. 5% steps land cleanly
+// on round percentages (75, 100, 125, …) and on the legacy presets
+// (87.5, 100, 112.5, 125 — all reachable).
+const FONT_SCALE_MIN = 0.5;
+const FONT_SCALE_MAX = 2.0;
+const FONT_SCALE_STEP = 0.05;
 
 // Spacing between words on the passage. The default (0.25em) matches
 // what the passage shipped with — every other preset is relative to that.
@@ -57,8 +60,6 @@ export function TypographyRows() {
   const scale = overrides["--ft-font-scale"]
     ? Number.parseFloat(overrides["--ft-font-scale"])
     : 1;
-  const activeScale =
-    SIZE_PRESETS.find((p) => Math.abs(p.scale - scale) < 0.01)?.label ?? null;
   const wordSpacing = overrides["--ft-word-spacing"]
     ? Number.parseFloat(overrides["--ft-word-spacing"])
     : 0.25;
@@ -90,16 +91,20 @@ export function TypographyRows() {
       <SettingsRow
         label="Size"
         control={
-          <ChipGroup>
-            {SIZE_PRESETS.map((p) => (
-              <Chip
-                key={p.label}
-                label={p.label}
-                active={activeScale === p.label}
-                onClick={() => setVar("--ft-font-scale", String(p.scale))}
-              />
-            ))}
-          </ChipGroup>
+          <SliderRow
+            value={scale}
+            min={FONT_SCALE_MIN}
+            max={FONT_SCALE_MAX}
+            step={FONT_SCALE_STEP}
+            format={(v) => `${Math.round(v * 100)}%`}
+            onChange={(v) => {
+              // Snap to two decimals so the stored value doesn't carry
+              // float-arithmetic noise like `1.0500000000000003`.
+              const snapped = Math.round(v * 100) / 100;
+              if (Math.abs(snapped - 1) < 0.001) clearVar("--ft-font-scale");
+              else setVar("--ft-font-scale", String(snapped));
+            }}
+          />
         }
       />
 

@@ -439,7 +439,10 @@ function mapAppearance(
   if (typeof mt.smoothLineScroll === "boolean") {
     out.smoothLineScroll = mt.smoothLineScroll;
   }
-  if (typeof mt.showAllLines === "boolean") out.showAllLines = mt.showAllLines;
+  // MT toggle maps cleanly: `true` = unbounded, `false` = original 3-line cap.
+  if (typeof mt.showAllLines === "boolean") {
+    out.linesRendered = mt.showAllLines ? 0 : 3;
+  }
   if (typeof mt.maxLineWidth === "number") out.maxLineWidth = mt.maxLineWidth;
   if (typeof mt.alwaysShowDecimalPlaces === "boolean") {
     out.alwaysShowDecimal = mt.alwaysShowDecimalPlaces;

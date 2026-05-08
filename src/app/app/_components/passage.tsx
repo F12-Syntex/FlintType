@@ -195,8 +195,13 @@ export function Passage() {
       const lh = parseFloat(getComputedStyle(inner).lineHeight);
       const h = outer.clientHeight;
       if (!Number.isFinite(lh) || lh <= 0 || h <= 0) return;
-      const lines = Math.max(1, Math.floor(h / lh));
-      setClipHeight(lines * lh);
+      const fits = Math.max(1, Math.floor(h / lh));
+      // 0 = unbounded; otherwise cap to whichever is smaller so a tall
+      // viewport can't sneak past the user's chosen line count.
+      const cap = appearance.linesRendered > 0
+        ? Math.min(fits, appearance.linesRendered)
+        : fits;
+      setClipHeight(cap * lh);
     };
     measure();
     const ro = new ResizeObserver(measure);
