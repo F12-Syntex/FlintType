@@ -170,6 +170,7 @@ export function Passage() {
   const outerRef = useRef<HTMLDivElement | null>(null);
   const innerRef = useRef<HTMLDivElement | null>(null);
   const targetRef = useRef<HTMLSpanElement | null>(null);
+  const activeWordRef = useRef<HTMLSpanElement | null>(null);
   const targetSideRef = useRef<"left" | "right">("left");
   const firstMeasureRef = useRef(true);
   const [caret, setCaret] = useState<CaretPos | null>(null);
@@ -177,6 +178,9 @@ export function Passage() {
   // Clip the passage to a whole number of lines so a partial last line
   // never peeks through the bottom edge.
   const [clipHeight, setClipHeight] = useState<number | null>(null);
+  // One computed line-height in px. Used as the viewport height in tape
+  // mode (single-line layout) and as the unit for vertical scroll math.
+  const [lineHeight, setLineHeight] = useState<number | null>(null);
   // Translate-up offset on the inner block. Stays at 0 until the cursor
   // crosses line `floor(cap/2)`, then grows by one line-height per line
   // completed past that point — so once you've reached the midline of
@@ -184,6 +188,13 @@ export function Passage() {
   // the bottom (and the line you just left scrolls off the top). Cursor
   // settles at the midline and stays there for the rest of the run.
   const [scrollOffset, setScrollOffset] = useState(0);
+  // Horizontal translate when tape mode is on. Pinned so the cursor
+  // (letter mode) or active word (word mode) sits at `tapeMargin%` of
+  // the viewport width.
+  const [scrollX, setScrollX] = useState(0);
+
+  const tapeMode = appearance.tapeMode;
+  const tapeOn = tapeMode !== "off";
 
   const registerTarget = (el: HTMLSpanElement | null, side: "left" | "right") => {
     targetRef.current = el;
@@ -202,6 +213,7 @@ export function Passage() {
       const lh = parseFloat(getComputedStyle(inner).lineHeight);
       const h = outer.clientHeight;
       if (!Number.isFinite(lh) || lh <= 0 || h <= 0) return;
+      setLineHeight(lh);
       const fits = Math.max(1, Math.floor(h / lh));
       // 0 = unbounded; otherwise cap to whichever is smaller so a tall
       // viewport can't sneak past the user's chosen line count.
@@ -219,10 +231,12 @@ export function Passage() {
 
   useLayoutEffect(() => {
     const inner = innerRef.current;
+    const outer = outerRef.current;
     const target = targetRef.current;
-    if (!inner || !target) {
+    if (!inner || !outer || !target) {
       setCaret(null);
       setScrollOffset(0);
+      setScrollX(0);
       firstMeasureRef.current = true;
       setAnimate(false);
       return;
@@ -232,39 +246,94 @@ export function Passage() {
     // r.top - innerRect.top stays a stable local coordinate even when
     // inner is translated — the transform shifts both rects equally.
     const targetTopInInner = r.top - innerRect.top;
+    const targetLeftInInner = r.left - innerRect.left;
     setCaret({
-      charLeft: r.left - innerRect.left,
+      charLeft: targetLeftInInner,
       charRight: r.right - innerRect.left,
       top: targetTopInInner,
       height: r.height,
       width: r.width,
       side: targetSideRef.current,
     });
-    // Compute the scroll offset that keeps the cursor pinned to the
-    // mid-line of the visible window once the user has typed past it.
-    // `cap = round(clipHeight/lh)` is the number of visible lines, and
-    // `trigger = floor(cap/2)` is the line index after which scrolling
-    // kicks in. Scroll = max(0, currentLine - trigger) line-heights.
-    const lh = parseFloat(getComputedStyle(inner).lineHeight);
-    if (Number.isFinite(lh) && lh > 0 && clipHeight != null && clipHeight > 0) {
-      const cap = Math.max(1, Math.round(clipHeight / lh));
-      // Single-line caps (cap=1) get trigger=0: the visible line is
-      // always the cursor's line, scrolled into place every step.
-      const trigger = Math.max(0, Math.floor(cap / 2));
-      const currentLine = Math.max(0, Math.floor(targetTopInInner / lh));
-      const desired = Math.max(0, currentLine - trigger) * lh;
-      setScrollOffset(desired);
-    } else {
+
+    if (tapeOn) {
+      // Tape mode — single horizontal line. The cursor stays pinned at
+      // `tapeMargin%` of the viewport width; words slide left as the
+      // user advances. "letter" tracks the caret's exact x position
+      // (per keystroke); "word" tracks the active word's left edge
+      // (per word boundary), so the cursor moves freely *within* a
+      // word and only the line repositions when a new word starts.
+      const viewportWidth = outer.clientWidth;
+      const anchor =
+        viewportWidth * Math.max(0, Math.min(100, appearance.tapeMargin)) / 100;
+      let cursorX = targetLeftInInner;
+      if (tapeMode === "word") {
+        const ws = activeWordRef.current;
+        if (ws) {
+          const wsRect = ws.getBoundingClientRect();
+          cursorX = wsRect.left - innerRect.left;
+        }
+      }
+      // Don't pull the line right of its natural start — at the very
+      // first word the user expects the line to *start* at the anchor,
+      // not have empty space pushed in front of it. Math.max prevents
+      // negative scrollX on the first few words when the cursor's
+      // position is left of the anchor.
+      setScrollX(Math.max(0, cursorX - anchor));
       setScrollOffset(0);
+    } else {
+      // Multi-line — keep the cursor at the mid-line of the viewport
+      // once it's typed past it. cap = round(clipHeight/lh), trigger =
+      // floor(cap/2), scroll = max(0, currentLine - trigger) * lh.
+      setScrollX(0);
+      const lh = lineHeight ?? parseFloat(getComputedStyle(inner).lineHeight);
+      if (Number.isFinite(lh) && lh > 0 && clipHeight != null && clipHeight > 0) {
+        const cap = Math.max(1, Math.round(clipHeight / lh));
+        const trigger = Math.max(0, Math.floor(cap / 2));
+        const currentLine = Math.max(0, Math.floor(targetTopInInner / lh));
+        const desired = Math.max(0, currentLine - trigger) * lh;
+        setScrollOffset(desired);
+      } else {
+        setScrollOffset(0);
+      }
     }
+
     if (firstMeasureRef.current) {
       firstMeasureRef.current = false;
       // Re-enable the transition on the next frame so the very first
       // placement doesn't animate from (0, 0).
       requestAnimationFrame(() => setAnimate(true));
     }
-  }, [cursorWord, cursorChar, words, clipHeight]);
+  }, [
+    cursorWord,
+    cursorChar,
+    words,
+    clipHeight,
+    lineHeight,
+    tapeOn,
+    tapeMode,
+    appearance.tapeMargin,
+  ]);
 
+  // Viewport height — multi-line uses `clipHeight` (a whole-line
+  // multiple of the parent height); tape mode collapses to a single
+  // line so the surrounding chrome doesn't reserve space the user
+  // can't see content in.
+  const viewportHeight = tapeOn
+    ? lineHeight != null
+      ? `${lineHeight}px`
+      : "auto"
+    : clipHeight != null
+      ? `${clipHeight}px`
+      : "100%";
+  // In word-tape mode, jumps between words happen rarely (one per
+  // ~5 keystrokes) so an animation reads as a clear "next word"
+  // signal; in letter-tape mode, every keypress nudges the line
+  // and animating each one would smear the text. So we honour
+  // smoothLineScroll for vertical scroll and tape-word, but force
+  // jumps in tape-letter regardless.
+  const animateScroll =
+    appearance.smoothLineScroll && tapeMode !== "letter";
   return (
     <div ref={outerRef} className="relative h-full w-full overflow-hidden">
       {/* Viewport — fixes the visible region to a whole-line multiple of
@@ -272,7 +341,7 @@ export function Passage() {
        *  The translated `inner` block scrolls inside this clip box. */}
       <div
         className="relative w-full overflow-hidden"
-        style={{ height: clipHeight != null ? `${clipHeight}px` : "100%" }}
+        style={{ height: viewportHeight }}
       >
       <div
         ref={innerRef}
@@ -291,17 +360,23 @@ export function Passage() {
           // the passage, not body. Defaults inherit body's mono.
           fontFamily: "var(--ft-font-family, inherit)",
           wordSpacing: "var(--ft-word-spacing, 0.25em)",
-          // Translate the whole content block up by `scrollOffset` so
-          // the cursor stays pinned at the mid-line of the viewport
-          // once it's typed past it. Animates when the user opted into
-          // smooth line scroll; jumps otherwise. willChange flags the
-          // GPU layer so the slide doesn't re-paint the glyphs.
-          transform: `translate3d(0, ${-scrollOffset}px, 0)`,
-          transition: appearance.smoothLineScroll
+          // Tape mode collapses to a single nowrap line so words slide
+          // horizontally instead of wrapping. Off → normal block flow.
+          whiteSpace: tapeOn ? "nowrap" : undefined,
+          // translate3d carries both scroll axes. Vertical (multi-line)
+          // pins the cursor to mid-line; horizontal (tape) pins it to
+          // tapeMargin%. Each axis is 0 when not in use, so they
+          // compose without interference.
+          transform: `translate3d(${-scrollX}px, ${-scrollOffset}px, 0)`,
+          transition: animateScroll
             ? "transform 220ms cubic-bezier(0.16, 1, 0.3, 1)"
             : "none",
-          willChange: scrollOffset > 0 ? "transform" : undefined,
-          ...maxWidthStyle,
+          willChange:
+            scrollOffset > 0 || scrollX > 0 ? "transform" : undefined,
+          // maxLineWidth — only applies to wrapped (non-tape) layouts;
+          // a tape line has no wrap point so a max width would just be
+          // dead space.
+          ...(tapeOn ? {} : maxWidthStyle),
         }}
       >
         {showCaret && caret ? (
@@ -344,6 +419,7 @@ export function Passage() {
             return (
               <span
                 key={wi}
+                ref={activeWordRef}
                 className={cn(
                   highlightCurrentWord &&
                     cn(
