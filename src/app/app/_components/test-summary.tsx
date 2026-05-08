@@ -19,6 +19,7 @@ import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
 import { cn } from "@/lib/utils";
 import { type KeyEvent, usePractice } from "./practice-state";
+import { SessionAnalysis } from "./session-analysis";
 
 // ─── Stats ─────────────────────────────────────────────────────────
 
@@ -591,6 +592,11 @@ export function TestSummary() {
             </div>
             <PairFlow pairs={slowPairs} />
           </div>
+        ) : null}
+
+        {/* Session analysis — Wins / Issues / coaching takeaways. */}
+        {state.events.length > 0 ? (
+          <SessionAnalysis words={state.words} events={state.events} />
         ) : null}
 
         {/* Restart hint — quiet footer. */}
