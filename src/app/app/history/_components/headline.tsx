@@ -9,9 +9,11 @@ export type HeadlineInsight = {
 };
 
 const KIND_DOT: Record<InsightKind, string> = {
+  // ft-ok stays — ui-law §2.3 keeps it until a `--success` var lands.
+  // The other two map onto theme-aware tokens so they re-tint per palette.
   win: "border-ft-ok text-ft-ok",
-  now: "border-ft-dim text-ft-dim",
-  next: "border-ft-ember text-ft-ember",
+  now: "border-muted-foreground text-muted-foreground",
+  next: "border-primary text-primary",
 };
 
 const KIND_LABEL: Record<InsightKind, string> = {
@@ -26,10 +28,10 @@ function Insight({ kind, headline, detail }: HeadlineInsight) {
       <div className="mb-2 text-[10px] font-semibold tracking-[0.18em]">
         {KIND_LABEL[kind]}
       </div>
-      <div className="mb-1.5 text-base leading-snug font-semibold text-ft-ink sm:text-[17px]">
+      <div className="mb-1.5 text-base leading-snug font-semibold text-foreground sm:text-[17px]">
         {headline}
       </div>
-      <div className="text-xs leading-relaxed text-ft-dim-2">{detail}</div>
+      <div className="text-xs leading-relaxed text-muted-foreground">{detail}</div>
     </div>
   );
 }
@@ -48,9 +50,9 @@ export function Headline({
   insights: readonly HeadlineInsight[];
 }) {
   return (
-    <section className="border-b border-ft-line-soft px-5 pt-12 pb-9 sm:px-16">
+    <section className="border-b border-foreground/10 px-5 pt-12 pb-9 sm:px-16">
       <div className="mb-5 flex items-center gap-3.5">
-        <span className="inline-block h-px w-7 bg-ft-ember" aria-hidden />
+        <span className="inline-block h-px w-7 bg-primary" aria-hidden />
         <Tag>YOUR HISTORY · LAST 90 DAYS</Tag>
       </div>
       <h1 className="m-0 max-w-5xl text-3xl leading-tight font-extrabold tracking-[-0.03em] sm:text-4xl lg:text-[56px]">
@@ -58,13 +60,13 @@ export function Headline({
         {hero.highlight ? (
           <>
             {" "}
-            <span className="text-ft-ember">{hero.highlight}</span>
+            <span className="text-primary">{hero.highlight}</span>
           </>
         ) : null}
         {hero.muted ? (
           <>
             {hero.lead || hero.highlight ? <br /> : null}
-            <span className="text-ft-dim">{hero.muted}</span>
+            <span className="text-muted-foreground">{hero.muted}</span>
           </>
         ) : null}
       </h1>

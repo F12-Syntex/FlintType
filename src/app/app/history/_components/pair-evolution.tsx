@@ -14,7 +14,7 @@ export function PairEvolution({
 }) {
   if (pairs.length === 0) {
     return (
-      <div className="py-6 text-xs text-ft-dim">
+      <div className="py-6 text-xs text-muted-foreground">
         Not enough samples yet — keep typing and weak pairs will surface here.
       </div>
     );
@@ -23,7 +23,7 @@ export function PairEvolution({
 
   return (
     <div className="flex flex-col">
-      <div className="grid grid-cols-[50px_1fr_70px_60px] gap-3.5 border-b border-ft-line-soft py-3">
+      <div className="grid grid-cols-[50px_1fr_70px_60px] gap-3.5 border-b border-foreground/10 py-3">
         <Tag>PAIR</Tag>
         <Tag>WEAKNESS</Tag>
         <Tag className="text-right">MEAN</Tag>
@@ -36,19 +36,19 @@ export function PairEvolution({
         return (
           <div
             key={p.key}
-            className="grid grid-cols-[50px_1fr_70px_60px] items-center gap-3.5 border-b border-ft-line-soft py-3"
+            className="grid grid-cols-[50px_1fr_70px_60px] items-center gap-3.5 border-b border-foreground/10 py-3"
           >
             <span className="font-mono text-sm font-semibold">{p.key}</span>
-            <div className="relative h-5 w-full overflow-hidden bg-ft-line-soft/40">
+            <div className="relative h-5 w-full overflow-hidden bg-muted">
               <div
-                className="absolute top-0 left-0 h-full bg-ft-ember"
+                className="absolute top-0 left-0 h-full bg-primary"
                 style={{ width: `${widthPct}%` }}
               />
             </div>
-            <span className="text-right text-xs tabular-nums text-ft-dim-2">
+            <span className="text-right text-xs tabular-nums text-muted-foreground">
               +{Math.round(overBaselineMs)}ms
             </span>
-            <span className="text-right text-xs tabular-nums text-ft-dim">
+            <span className="text-right text-xs tabular-nums text-muted-foreground/70">
               {p.sampleCount}
             </span>
           </div>

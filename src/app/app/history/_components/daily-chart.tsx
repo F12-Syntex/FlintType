@@ -24,7 +24,7 @@ export function DailyChart({
 }) {
   if (days.length === 0) {
     return (
-      <div className="flex min-h-[220px] items-center justify-center text-xs text-ft-dim">
+      <div className="flex min-h-[220px] items-center justify-center text-xs text-muted-foreground">
         No runs logged yet — finish a few tests to see your daily curve.
       </div>
     );
@@ -55,14 +55,14 @@ export function DailyChart({
             x2={W}
             y1={yAt(v)}
             y2={yAt(v)}
-            stroke="var(--color-ft-line-soft)"
+            stroke="var(--border)"
             strokeDasharray="2 4"
           />
           <text
             x={W + 8}
             y={yAt(v) + 4}
             fontSize="10"
-            fill="var(--color-ft-dim)"
+            fill="var(--muted-foreground)"
           >
             {v}
           </text>
@@ -78,7 +78,14 @@ export function DailyChart({
             width={8}
             y={yAt(p.bestWpm)}
             height={H - yAt(p.bestWpm)}
-            fill={isToday ? "var(--color-ft-ember)" : "#D9D2C2"}
+            // Today is the brand spark (primary); past days use a
+            // muted theme-aware fill so the chart re-tints under any
+            // palette without a hardcoded paper-coloured bar.
+            fill={
+              isToday
+                ? "var(--primary)"
+                : "color-mix(in oklch, var(--foreground) 18%, transparent)"
+            }
           />
         );
       })}
@@ -86,18 +93,18 @@ export function DailyChart({
         <path
           d={avgPath}
           fill="none"
-          stroke="var(--color-ft-ink)"
+          stroke="var(--foreground)"
           strokeWidth="1.6"
         />
       ) : null}
-      <text x={0} y={H + 20} fontSize="10" fill="var(--color-ft-dim)">
+      <text x={0} y={H + 20} fontSize="10" fill="var(--muted-foreground)">
         {ordered.length} DAYS AGO
       </text>
       <text
         x={W / 2}
         y={H + 20}
         fontSize="10"
-        fill="var(--color-ft-dim)"
+        fill="var(--muted-foreground)"
         textAnchor="middle"
       >
         {Math.floor(ordered.length / 2)} DAYS AGO
@@ -106,7 +113,7 @@ export function DailyChart({
         x={W}
         y={H + 20}
         fontSize="10"
-        fill="var(--color-ft-dim)"
+        fill="var(--muted-foreground)"
         textAnchor="end"
       >
         TODAY

@@ -38,7 +38,9 @@ export function Records({
 }) {
   if (records.length === 0) {
     return (
-      <div className="py-6 text-xs text-ft-dim">No personal bests yet.</div>
+      <div className="py-6 text-xs text-muted-foreground">
+        No personal bests yet.
+      </div>
     );
   }
   return (
@@ -48,18 +50,18 @@ export function Records({
         return (
           <div
             key={r.mode}
-            className="grid grid-cols-[1fr_auto_auto] items-baseline gap-3.5 border-b border-ft-line-soft py-3"
+            className="grid grid-cols-[1fr_auto_auto] items-baseline gap-3.5 border-b border-foreground/10 py-3"
           >
             <span className="text-xs font-medium tracking-wide">{r.mode}</span>
             <span
               className={cn(
                 "text-lg font-bold tabular-nums tracking-[-0.02em]",
-                rel === "today" ? "text-ft-ember" : "text-ft-ink",
+                rel === "today" ? "text-primary" : "text-foreground",
               )}
             >
               {r.wpm}
             </span>
-            <span className="min-w-22 text-right text-[10px] tracking-[0.1em] text-ft-dim uppercase">
+            <span className="min-w-22 text-right text-[10px] tracking-[0.1em] text-muted-foreground uppercase">
               {rel}
             </span>
           </div>

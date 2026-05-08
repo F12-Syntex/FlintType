@@ -77,15 +77,15 @@ export function DrillsView() {
 
   return (
     <>
-      <section className="border-b border-ft-line-soft px-5 pt-12 pb-8 sm:px-16">
+      <section className="border-b border-foreground/10 px-5 pt-12 pb-8 sm:px-16">
         <div className="mb-5 flex items-center gap-3.5">
-          <span className="inline-block h-px w-7 bg-ft-ember" aria-hidden />
+          <span className="inline-block h-px w-7 bg-primary" aria-hidden />
           <Tag>FOCUSED PRACTICE · DAILY</Tag>
         </div>
         <h1 className="m-0 max-w-4xl text-3xl leading-tight font-extrabold tracking-[-0.03em] sm:text-4xl lg:text-5xl">
           Drills
         </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ft-dim-2 sm:text-base">
+        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
           Short, focused exercises tuned to your typing data. Pick a drill,
           finish the passage, and move on. Five minutes a day on the right
           drill outperforms an hour on random words.
@@ -94,9 +94,9 @@ export function DrillsView() {
 
       <section className="px-5 py-8 pb-14 sm:px-16">
         {loading ? (
-          <p className="text-sm text-ft-dim">Reading your model…</p>
+          <p className="text-sm text-muted-foreground">Reading your model…</p>
         ) : error ? (
-          <p className="text-sm text-ft-ember">{error}</p>
+          <p className="text-sm text-primary">{error}</p>
         ) : (
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             {drills.map((d) => (
@@ -126,20 +126,20 @@ function DrillCard({
   return (
     <div
       className={cn(
-        "flex flex-col gap-4 border border-ft-line-soft bg-card p-6 transition-colors",
-        ready && "hover:border-ft-ember",
+        "flex flex-col gap-4 border border-foreground/10 bg-card p-6 transition-colors",
+        ready && "hover:border-primary/60",
       )}
     >
       <div className="flex flex-col gap-1">
         <Tag>{drill.contextLabel}</Tag>
-        <h2 className="mt-2 text-xl font-bold tracking-tight text-ft-ink sm:text-2xl">
+        <h2 className="mt-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
           {drill.title}
         </h2>
       </div>
-      <p className="text-sm leading-relaxed text-ft-dim-2">
+      <p className="text-sm leading-relaxed text-muted-foreground">
         {drill.description}
       </p>
-      <p className="text-xs leading-relaxed text-ft-dim">{drill.payoff}</p>
+      <p className="text-xs leading-relaxed text-muted-foreground">{drill.payoff}</p>
       <div className="mt-auto flex items-center gap-3">
         <Button
           onClick={onStart}
@@ -165,11 +165,11 @@ function ActiveDrill({
 }) {
   return (
     <>
-      <section className="border-b border-ft-line-soft px-5 pt-8 pb-5 sm:px-16">
+      <section className="border-b border-foreground/10 px-5 pt-8 pb-5 sm:px-16">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-col gap-1">
             <Tag>{drill.contextLabel}</Tag>
-            <h1 className="text-xl font-bold tracking-tight text-ft-ink sm:text-2xl">
+            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
               {drill.title}
             </h1>
           </div>

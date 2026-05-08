@@ -33,7 +33,7 @@ export function RunLog({
 }) {
   if (tests.length === 0) {
     return (
-      <div className="py-8 text-center text-xs text-ft-dim">
+      <div className="py-8 text-center text-xs text-muted-foreground">
         No runs in the window.
       </div>
     );
@@ -42,7 +42,7 @@ export function RunLog({
     <div className="overflow-x-auto">
       <div className="min-w-[700px]">
         <div
-          className={`grid ${COLS} gap-3 border-t border-ft-ink border-b border-b-ft-line-soft py-2.5`}
+          className={`grid ${COLS} gap-3 border-t border-foreground border-b border-b-foreground/10 py-2.5`}
         >
           {["TIME", "MODE", "WPM", "ACC", "ERRORS", ""].map((h) => (
             <Tag key={h}>{h}</Tag>
@@ -51,32 +51,34 @@ export function RunLog({
         {tests.map((t) => (
           <div
             key={t.id}
-            className={`grid ${COLS} items-baseline gap-3 border-b border-ft-line-soft py-3 text-xs`}
+            className={`grid ${COLS} items-baseline gap-3 border-b border-foreground/10 py-3 text-xs`}
           >
-            <span className="text-ft-dim-2">
+            <span className="text-muted-foreground">
               {relativeTime(t.completedAtMs, now)}
             </span>
-            <span className="tracking-wide">{modeLabel(t)}</span>
+            <span className="tracking-wide text-foreground">
+              {modeLabel(t)}
+            </span>
             <span
               className={cn(
                 "font-bold tabular-nums",
-                t.wpm >= 100 ? "text-ft-ember" : "text-ft-ink",
+                t.wpm >= 100 ? "text-primary" : "text-foreground",
               )}
             >
               {Math.round(t.wpm)}
             </span>
-            <span className="tabular-nums text-ft-dim-2">
+            <span className="tabular-nums text-muted-foreground">
               {t.accuracy.toFixed(1)}%
             </span>
             <span
               className={cn(
                 "tabular-nums",
-                t.errorCount >= 6 ? "text-ft-ember" : "text-ft-dim-2",
+                t.errorCount >= 6 ? "text-primary" : "text-muted-foreground",
               )}
             >
               {t.errorCount}
             </span>
-            <span className="text-right text-[10px] tracking-[0.16em] text-ft-dim">
+            <span className="text-right text-[10px] tracking-[0.16em] text-muted-foreground">
               {t.wasCompleted ? "DONE" : "—"}
             </span>
           </div>

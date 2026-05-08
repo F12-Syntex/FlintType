@@ -61,7 +61,7 @@ export function HistoryView() {
     return (
       <section className="px-5 pt-12 pb-9 sm:px-16">
         <Tag>YOUR HISTORY · LOADING</Tag>
-        <p className="mt-4 text-sm text-ft-dim">Reading your runs…</p>
+        <p className="mt-4 text-sm text-muted-foreground">Reading your runs…</p>
       </section>
     );
   }
@@ -69,7 +69,7 @@ export function HistoryView() {
     return (
       <section className="px-5 pt-12 pb-9 sm:px-16">
         <Tag>YOUR HISTORY · UNAVAILABLE</Tag>
-        <p className="mt-4 text-sm text-ft-ember">{error}</p>
+        <p className="mt-4 text-sm text-primary">{error}</p>
       </section>
     );
   }
@@ -87,11 +87,11 @@ export function HistoryView() {
     <>
       <Headline hero={headlineHero} insights={insights} />
 
-      <section className="border-b border-ft-line-soft px-5 py-8 sm:px-16">
+      <section className="border-b border-foreground/10 px-5 py-8 sm:px-16">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
           <div className="flex flex-wrap items-baseline gap-5">
             <Tag>DAILY WPM · {DAILY_WINDOW_DAYS} DAYS</Tag>
-            <span className="text-[11px] text-ft-dim-2">
+            <span className="text-[11px] text-muted-foreground">
               each bar = best run that day · line = 7-day average
             </span>
           </div>
@@ -99,11 +99,11 @@ export function HistoryView() {
         <DailyChart days={dailyPoints} movingAvg={movingAvg} />
       </section>
 
-      <section className="grid grid-cols-1 gap-8 border-b border-ft-line-soft px-5 py-8 sm:px-16 lg:grid-cols-[1.4fr_1fr]">
+      <section className="grid grid-cols-1 gap-8 border-b border-foreground/10 px-5 py-8 sm:px-16 lg:grid-cols-[1.4fr_1fr]">
         <div>
           <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
             <Tag>YOUR WEAKNESSES · NOW</Tag>
-            <span className="text-[11px] text-ft-dim-2">
+            <span className="text-[11px] text-muted-foreground">
               top {weakestPairs.length} bigrams · ms over baseline
             </span>
           </div>
@@ -112,7 +112,7 @@ export function HistoryView() {
         <div>
           <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
             <Tag>PERSONAL BESTS</Tag>
-            <span className="text-[11px] text-ft-dim-2">by mode</span>
+            <span className="text-[11px] text-muted-foreground">by mode</span>
           </div>
           <Records records={records} now={now} />
         </div>
