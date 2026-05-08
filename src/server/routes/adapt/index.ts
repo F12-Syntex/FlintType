@@ -14,12 +14,15 @@ import { advanceRecency, COLD_BIGRAM_THRESHOLD, selectWords } from "@/server/ada
 import {
   baselineMean,
   DEFAULT_WEIGHTS,
+  bigramWeakness,
   fatigueDampener,
   inChallengeBand,
+  MIN_SAMPLES_FOR_WEAKNESS,
   predictedWordMs,
   recencyMultiplier,
   RECENCY_RECOVERY_TESTS,
   scoreWord,
+  UNTESTED_BIGRAM_BONUS,
   weakness,
 } from "@/server/adapt/scoring";
 import type { ModelState } from "@/server/adapt/welford";
@@ -196,18 +199,34 @@ const words = defineRoute<RequestWordsInput, RequestWordsOutput>({
         db.tests.recentForUser(userId, 5),
       ]);
 
-    const result = selectWords({
-      count: input.count,
-      pool: input.pool,
-      bigramModels: bigramRowsToStates(bigramRows),
-      trigramModels: trigramRowsToStates(trigramRows),
-      motorFeatureModels: motorFeatureRowsToStates(motorRows),
-      layout: prefs.handLayout,
-      recentTests,
-      recentlyShown: prefs.adaptRecency,
-    });
+    const bigramModels = bigramRowsToStates(bigramRows);
+    const trigramModels = trigramRowsToStates(trigramRows);
+    const motorFeatureModels = motorFeatureRowsToStates(motorRows);
+    const batchCount = input.batches ?? 1;
 
-    return result;
+    // Run selectWords once per requested batch against the same model
+    // snapshot. Each batch uses an independent RNG seed so batches[0]
+    // and batches[1] aren't identical word lists. The DB reads above
+    // are amortised across all batches — this is the whole point of
+    // the multi-batch parameter.
+    const batches: string[][] = [];
+    let cold = false;
+    for (let i = 0; i < batchCount; i++) {
+      const r = selectWords({
+        count: input.count,
+        pool: input.pool,
+        bigramModels,
+        trigramModels,
+        motorFeatureModels,
+        layout: prefs.handLayout,
+        recentTests,
+        recentlyShown: prefs.adaptRecency,
+      });
+      batches.push(r.words);
+      if (r.cold) cold = true;
+    }
+
+    return { batches, cold };
   },
 });
 
@@ -257,7 +276,7 @@ const snapshot = defineRoute<void, AdaptSnapshotOutput>({
       totalBigramSamples,
       cold: totalBigramSamples < COLD_BIGRAM_THRESHOLD,
       fatigueDampener: fatigueDampener(recentTestRows),
-      bigrams: toModelRows(bigramStates, baselines.bigram),
+      bigrams: toBigramModelRows(bigramStates, baselines.bigram),
       trigrams: toModelRows(trigramStates, baselines.trigram),
       motorFeatures: toModelRows(motorStates, baselines.motorFeature),
       recentTests,
@@ -312,7 +331,15 @@ const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
       const b = word[i]!;
       const bg = a + b;
       const bgState = bigramStates.get(bg);
-      const bgWeak = bgState ? weakness(bgState, baselines.bigram) : 0;
+      const isDoubled = a === b;
+      const isUnsampled = !bgState || bgState.n < MIN_SAMPLES_FOR_WEAKNESS;
+      // Mirror scoreWord's bigram contribution exactly so the breakdown
+      // explains what the algorithm actually does. Untested bigrams
+      // surface as the exploration bonus; sampled ones as their
+      // doubled-letter-aware weakness.
+      const bgWeak = isUnsampled
+        ? UNTESTED_BIGRAM_BONUS
+        : bigramWeakness(bgState, baselines.bigram, isDoubled);
       alphaContribution += DEFAULT_WEIGHTS.alpha * bgWeak;
       bigrams.push({
         key: bg,
@@ -390,6 +417,30 @@ function toModelRows(
       varianceMs: st.variance,
       sampleCount: st.n,
       weakness: weakness(st, baseline),
+    });
+  }
+  out.sort((a, b) => b.weakness - a.weakness);
+  return out;
+}
+
+/** Bigram-flavoured `toModelRows`. Doubled-letter bigrams use the
+ *  inflated baseline so the displayed weakness matches what the
+ *  scoring algorithm sees — a doubled bigram that's only slow because
+ *  doubled letters are inherently slow shouldn't surface high in the
+ *  weakness ranking. */
+function toBigramModelRows(
+  states: ReadonlyMap<string, ModelState>,
+  baseline: number,
+): AdaptModelRow[] {
+  const out: AdaptModelRow[] = [];
+  for (const [key, st] of states) {
+    const isDoubled = key.length === 2 && key[0] === key[1];
+    out.push({
+      key,
+      meanMs: st.mean,
+      varianceMs: st.variance,
+      sampleCount: st.n,
+      weakness: bigramWeakness(st, baseline, isDoubled),
     });
   }
   out.sort((a, b) => b.weakness - a.weakness);

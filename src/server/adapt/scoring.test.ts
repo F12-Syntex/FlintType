@@ -4,10 +4,13 @@ import type { TestRow } from "@/types/adapt";
 import {
   CHALLENGE_HIGH,
   CHALLENGE_LOW,
+  DOUBLED_BIGRAM_BASELINE_FACTOR,
   FATIGUE_MIN_MULT,
   RECENCY_FLOOR,
   RECENCY_RECOVERY_TESTS,
+  UNTESTED_BIGRAM_BONUS,
   baselineMean,
+  bigramWeakness,
   fatigueDampener,
   inChallengeBand,
   predictedWordMs,
@@ -134,8 +137,13 @@ describe("scoreWord", () => {
     baselines: { bigram: 100, trigram: 200, motorFeature: 100 },
   };
 
-  it("is 0 when no model has any data", () => {
-    expect(scoreWord({ word: "test", ...cold })).toBe(0);
+  it("surfaces words built entirely of unsampled bigrams via the exploration bonus", () => {
+    // 'test' has 3 bigrams (te, es, st), all unsampled. Each contributes
+    // UNTESTED_BIGRAM_BONUS to bigSum so the algorithm prefers seeing
+    // these over warm-but-confident words.
+    expect(scoreWord({ word: "test", ...cold })).toBe(
+      3 * UNTESTED_BIGRAM_BONUS,
+    );
   });
 
   it("rises when a bigram is slow with enough samples", () => {
@@ -151,19 +159,25 @@ describe("scoreWord", () => {
   });
 
   it("does not double-count a feature emitted by multiple bigrams", () => {
-    // 'aa' produces same_finger_L5 twice; counted once.
+    // 'aa' produces same_finger_L5 twice; counted once. The bigram
+    // 'aa' itself is pre-sampled (and fast) so the exploration bonus
+    // doesn't enter the picture — we want to isolate motor-feature
+    // dedup, not bigram exploration.
+    const bigramModels = new Map([["aa", MS(50, 60)]]);
     const single = scoreWord({
       ...cold,
       word: "aa",
+      bigramModels,
       motorFeatureModels: new Map([["same_finger_L5", MS(300, 60)]]),
     });
     const triple = scoreWord({
       ...cold,
       word: "aaaa",
+      bigramModels,
       motorFeatureModels: new Map([["same_finger_L5", MS(300, 60)]]),
     });
-    // The longer word only adds the feature once even though
-    // multiple aa pairs emit it.
+    // Same single feature contribution either way; bigram contribution
+    // is also 0 (mean below the doubled-letter-adjusted baseline).
     expect(triple).toBeCloseTo(single, 5);
   });
 
@@ -182,6 +196,55 @@ describe("scoreWord", () => {
       weights: { alpha: 0, beta: 1, gamma: 1 },
     });
     expect(without).toBeLessThan(baseline);
+  });
+
+  it("does not over-flag doubled-letter words as weak", () => {
+    // 'oo' bigram with mean 130ms is slower than the global bigram
+    // baseline (100) but still in the typical doubled-letter band
+    // (~ baseline * 1.4 = 140). Without the doubled-letter handicap
+    // the algorithm would call it weak; with it, the gap is 0.
+    const looksWeakWithoutHandicap = scoreWord({
+      ...cold,
+      word: "look",
+      bigramModels: new Map([
+        ["lo", MS(80, 60)],
+        ["oo", MS(130, 60)],
+        ["ok", MS(80, 60)],
+      ]),
+    });
+    // No exploration bonus (all bigrams sampled). 'lo' and 'ok' are
+    // faster than baseline → 0. 'oo' would be (130-100)*conf = ~30
+    // *without* the handicap, but with the handicap it's
+    // max(0, 130 - 100*1.4)*conf = 0.
+    expect(looksWeakWithoutHandicap).toBe(0);
+  });
+});
+
+describe("bigramWeakness", () => {
+  it("matches plain weakness on distinct-letter bigrams", () => {
+    const st = MS(150, 60);
+    expect(bigramWeakness(st, 100, false)).toBe(weakness(st, 100));
+  });
+
+  it("inflates the comparison baseline for doubled-letter bigrams", () => {
+    const st = MS(130, 60);
+    // 130ms is above the global bigram baseline 100, but inside the
+    // doubled-letter band (100 * 1.4 = 140). The doubled path returns 0.
+    expect(bigramWeakness(st, 100, true)).toBe(0);
+    // The same state on a distinct-letter bigram still flags weak.
+    expect(bigramWeakness(st, 100, false)).toBeGreaterThan(0);
+  });
+
+  it("still flags genuinely slow doubled bigrams once past the band", () => {
+    // 200ms is well above the inflated baseline (140) → weak.
+    const st = MS(200, 60);
+    expect(bigramWeakness(st, 100, true)).toBeGreaterThan(0);
+  });
+
+  it("respects the configured baseline factor", () => {
+    // Sanity check that the constant is what the rest of the file
+    // expects — guards against silent re-tuning.
+    expect(DOUBLED_BIGRAM_BASELINE_FACTOR).toBeGreaterThan(1);
   });
 });
 

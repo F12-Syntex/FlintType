@@ -175,16 +175,31 @@ describe("adapt routes", () => {
     expect(recency.bar).toBe(0);
   });
 
-  it("words returns N words from the pool", async () => {
+  it("words returns N words from the pool in a single batch by default", async () => {
     signedInAs("u1");
     const pool = ["alpha", "beta", "gamma", "delta", "epsilon"];
     const out = await callRoute<RequestWordsOutput>(["adapt", "words"], {
       db: ctx.db,
       input: { count: 3, pool },
     });
-    expect(out.words.length).toBe(3);
+    expect(out.batches.length).toBe(1);
+    expect(out.batches[0]!.length).toBe(3);
     expect(out.cold).toBe(true);
-    for (const w of out.words) expect(pool).toContain(w);
+    for (const w of out.batches[0]!) expect(pool).toContain(w);
+  });
+
+  it("words returns the requested number of batches in one call", async () => {
+    signedInAs("u1");
+    const pool = ["alpha", "beta", "gamma", "delta", "epsilon"];
+    const out = await callRoute<RequestWordsOutput>(["adapt", "words"], {
+      db: ctx.db,
+      input: { count: 2, pool, batches: 3 },
+    });
+    expect(out.batches.length).toBe(3);
+    for (const b of out.batches) {
+      expect(b.length).toBe(2);
+      for (const w of b) expect(pool).toContain(w);
+    }
   });
 
   it("two submits in a row both persist", async () => {
@@ -254,16 +269,21 @@ describe("adapt routes", () => {
 
   // ── scoreWord ──────────────────────────────────────────────────────
 
-  it("scoreWord returns zero contributions when no models exist", async () => {
+  it("scoreWord surfaces bigrams via the exploration bonus when no models exist", async () => {
     signedInAs("u_fresh");
     const r = await callRoute<ScoreWordOutput>(["adapt", "scoreWord"], {
       db: ctx.db,
       input: { word: "the" },
     });
     expect(r.word).toBe("the");
-    expect(r.total).toBe(0);
+    // Untested bigrams contribute the exploration bonus; trigram /
+    // motor-feature dimensions still score 0 because no other signal
+    // exists on a fresh user.
     expect(r.bigrams.length).toBe(2);
-    expect(r.bigrams.every((b) => b.weakness === 0)).toBe(true);
+    expect(r.bigrams.every((b) => b.sampleCount === 0)).toBe(true);
+    expect(r.bigrams.every((b) => b.weakness > 0)).toBe(true);
+    expect(r.alphaContribution).toBeGreaterThan(0);
+    expect(r.total).toBeGreaterThan(0);
     expect(r.trigrams.length).toBe(1);
   });
 

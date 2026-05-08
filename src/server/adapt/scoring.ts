@@ -9,6 +9,29 @@ import { confidence, type ModelState } from "./welford";
  *  crossed. */
 export const MIN_SAMPLES_FOR_WEAKNESS = 3;
 
+/** Doubled letters (`oo`, `tt`, `ll`, …) are mechanically slower than
+ *  distinct-letter bigrams: same key, no transit between fingers,
+ *  often a tap-down/tap-up pause that the firmware enforces. A user
+ *  who is otherwise average on a doubled bigram will still score
+ *  *above* the global bigram baseline, which the original algorithm
+ *  reads as "weakness". This factor inflates the baseline used to
+ *  judge doubled bigrams so they only flag when meaningfully slower
+ *  than the typical doubled-letter time, not just slower than the
+ *  global average. 40% reflects the rough mechanical premium —
+ *  empirically doubled letters take ~30–50% longer than transitions
+ *  between distinct keys. */
+export const DOUBLED_BIGRAM_BASELINE_FACTOR = 1.4;
+
+/** Bonus added to a word's bigram-weakness sum for every bigram in
+ *  the word that has fewer than `MIN_SAMPLES_FOR_WEAKNESS` samples.
+ *  The algorithm is otherwise blind to "untested" bigrams (their
+ *  weakness is 0 by definition) so words full of unsampled pairs are
+ *  ignored even though they're the highest-information words to
+ *  serve. 80 (ms-equivalent units) is comparable to the weakness of
+ *  a moderately weak warm bigram, so untested bigrams compete with
+ *  weak ones rather than being free-priority above them. */
+export const UNTESTED_BIGRAM_BONUS = 80;
+
 /** α / β / γ in the spec. Equal weighting at launch — tune later
  *  once we have outcome data. */
 export type ScoringWeights = {
@@ -44,6 +67,23 @@ export function baselineMean(models: ModelMap): number {
 export function weakness(state: ModelState, baseline: number): number {
   if (state.n < MIN_SAMPLES_FOR_WEAKNESS) return 0;
   const gap = Math.max(0, state.mean - baseline);
+  return gap * confidence(state.n);
+}
+
+/** Bigram-aware weakness. Doubled-letter bigrams compare against an
+ *  inflated baseline so the inherent mechanical slowness of typing
+ *  the same key twice doesn't read as a per-bigram weakness. See
+ *  `DOUBLED_BIGRAM_BASELINE_FACTOR`. */
+export function bigramWeakness(
+  state: ModelState,
+  baseline: number,
+  isDoubled: boolean,
+): number {
+  if (state.n < MIN_SAMPLES_FOR_WEAKNESS) return 0;
+  const adjustedBaseline = isDoubled
+    ? baseline * DOUBLED_BIGRAM_BASELINE_FACTOR
+    : baseline;
+  const gap = Math.max(0, state.mean - adjustedBaseline);
   return gap * confidence(state.n);
 }
 
@@ -119,7 +159,19 @@ export function scoreWord(args: {
     const b = w[i]!;
     const bg = a + b;
     const bgState = args.bigramModels.get(bg);
-    if (bgState) bigSum += weakness(bgState, args.baselines.bigram);
+    const isDoubled = a === b;
+    // Explore-or-exploit: bigrams without enough samples to score
+    // (state missing entirely, or state below MIN_SAMPLES_FOR_WEAKNESS)
+    // get an exploration bonus so the algorithm prefers seeing them.
+    // Once they cross the confidence threshold, real weakness scoring
+    // kicks in (and the bonus stops applying).
+    const isUnsampled =
+      !bgState || bgState.n < MIN_SAMPLES_FOR_WEAKNESS;
+    if (isUnsampled) {
+      bigSum += UNTESTED_BIGRAM_BONUS;
+    } else {
+      bigSum += bigramWeakness(bgState, args.baselines.bigram, isDoubled);
+    }
 
     for (const fk of deriveFeatureKeys(a, b, args.layout)) {
       if (seenFeatures.has(fk)) continue;

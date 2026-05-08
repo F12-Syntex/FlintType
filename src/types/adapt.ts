@@ -74,11 +74,21 @@ export const requestWordsInputSchema = z.object({
    *  the user's models. The shipping pool is the top ~200 monkeytype
    *  english words; passing it explicitly keeps the route stateless. */
   pool: z.array(z.string()).min(1).max(50000),
+  /** How many independent batches of `count` words to generate in one
+   *  call. The first batch is the active passage; the rest fill a
+   *  client-side prefetch queue so the next few resets don't pause
+   *  for a network round-trip. Max 10 keeps per-call work bounded;
+   *  default 1 preserves the old single-batch contract. */
+  batches: z.number().int().min(1).max(10).optional(),
 });
 export type RequestWordsInput = z.infer<typeof requestWordsInputSchema>;
 
 export type RequestWordsOutput = {
-  words: string[];
+  /** One batch of `count` words per slot. `batches[0]` is what the
+   *  caller renders now; the rest are pre-generated against the same
+   *  model snapshot for the prefetch queue. Always at least one
+   *  entry on success. */
+  batches: string[][];
   /** Truthy when the user has not yet built up enough measurements for
    *  the algorithm to bias selection — caller falls back to its own
    *  random draw. */
