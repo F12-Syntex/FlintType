@@ -13,13 +13,13 @@ import type { SubmitTestInput } from "@/types/adapt";
 const PREFETCH_BATCHES = 5;
 
 /** Hash a (count, pool) request into a queue key. The pool is
- *  filtered upstream by behaviour prefs (difficulty, min length,
+ *  filtered upstream by behaviour prefs (min word length,
  *  show-secondary) — its identity is what matters for batch
  *  reusability. Cheap because the pool is at most ~200 strings. */
 function queueKey(count: number, pool: readonly string[]): string {
   // Length + first/last word + middle word is enough entropy to
-  // distinguish the difficulty-filtered pools we ever generate, and
-  // far cheaper than hashing every word.
+  // distinguish the filtered pools we ever generate, and far cheaper
+  // than hashing every word.
   const mid = pool[Math.floor(pool.length / 2)] ?? "";
   return `${count}|${pool.length}|${pool[0] ?? ""}|${mid}|${pool[pool.length - 1] ?? ""}`;
 }

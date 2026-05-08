@@ -299,7 +299,6 @@ function describeCaret(c: Partial<CaretSettings>): ImportChangeDetail[] {
 function describeBehaviour(b: Partial<BehaviourPrefs>): ImportChangeDetail[] {
   const out: ImportChangeDetail[] = [];
   if (b.confidence) out.push({ key: "Confidence", value: b.confidence });
-  if (b.difficulty) out.push({ key: "Difficulty", value: b.difficulty });
   if (b.stopOnError != null)
     out.push({ key: "Stop on error", value: b.stopOnError ? "On" : "Off" });
   if (b.quickRestart != null)
@@ -386,17 +385,10 @@ function mapBehaviour(mt: MonkeytypeSettings): Partial<BehaviourPrefs> | null {
     else if (mt.confidenceMode === "max") out.confidence = "all";
     else if (mt.confidenceMode === "on") out.confidence = "word";
   }
-  if (typeof mt.difficulty === "string") {
-    // MT has "easy" only sometimes — we always accept.
-    if (
-      mt.difficulty === "easy" ||
-      mt.difficulty === "normal" ||
-      mt.difficulty === "expert" ||
-      mt.difficulty === "master"
-    ) {
-      out.difficulty = mt.difficulty;
-    }
-  }
+  // MT's `difficulty` (easy/normal/expert/master) is intentionally
+  // dropped: flinttype's casual mode picks uniformly and adaptive
+  // mode picks purely from the bigram model — neither honours a
+  // length-skew bias.
   if (typeof mt.blindMode === "boolean") out.blindMode = mt.blindMode;
   // Live indicators on the test screen — best-effort on/off.
   if (typeof mt.liveSpeedStyle === "string") {

@@ -4,7 +4,6 @@ import { useCallback, useMemo } from "react";
 import { useRemotePrefs } from "./use-remote-prefs";
 
 export type Confidence = "off" | "word" | "all";
-export type Difficulty = "easy" | "normal" | "expert" | "master";
 
 export type BehaviourPrefs = {
   quickRestart: boolean;
@@ -14,7 +13,6 @@ export type BehaviourPrefs = {
   stopOnError: boolean;
   confidence: Confidence;
   minWordLength: number;
-  difficulty: Difficulty;
   showSecondary: boolean;
   blindMode: boolean;
 };
@@ -27,7 +25,6 @@ export const DEFAULT_BEHAVIOUR: BehaviourPrefs = {
   stopOnError: false,
   confidence: "off",
   minWordLength: 1,
-  difficulty: "normal",
   showSecondary: false,
   blindMode: false,
 };

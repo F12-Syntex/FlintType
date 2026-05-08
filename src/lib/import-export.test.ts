@@ -164,20 +164,24 @@ describe("importFlinttype", () => {
   });
 
   it("writes every recognized slice from the export", () => {
+    // Behaviour slice now only carries fields flinttype still
+    // recognises — `difficulty` was dropped along with the length-skew
+    // word filter. The importer trusts whatever the slice contains and
+    // writes it as-is, so use a still-supported field for the test.
     const n = importFlinttype({
       app: "flinttype",
       version: 1,
       exportedAt: "2026-01-01T00:00:00Z",
       slices: {
         caret: { style: "block" },
-        behaviour: { difficulty: "expert" },
+        behaviour: { confidence: "word" },
         unknown: { ignored: true },
       },
     });
     expect(n).toBe(2);
     const w = writes();
     expect(w.caret).toEqual({ style: "block" });
-    expect(w.behaviour).toEqual({ difficulty: "expert" });
+    expect(w.behaviour).toEqual({ confidence: "word" });
     expect(w.unknown).toBeUndefined();
   });
 });

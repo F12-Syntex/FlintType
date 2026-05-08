@@ -75,10 +75,7 @@ export type State = {
   quoteSource: string | null;
 };
 
-type WordCfg = Pick<
-  BehaviourPrefs,
-  "minWordLength" | "difficulty" | "showSecondary"
->;
+type WordCfg = Pick<BehaviourPrefs, "minWordLength" | "showSecondary">;
 
 type Action =
   | { type: "SET_MODE"; mode: Mode; length: Length; words: string[]; quoteSource: string | null }
@@ -112,11 +109,10 @@ function seededRandom(seed: number) {
 const PUNCTUATION = [".", ",", ";", ":", "!", "?"] as const;
 
 function filteredList(cfg: WordCfg): readonly string[] {
-  let list: readonly string[] = WORD_POOL;
-  list = list.filter((w) => w.length >= cfg.minWordLength);
-  if (cfg.difficulty === "easy") list = list.filter((w) => w.length <= 5);
-  else if (cfg.difficulty === "expert") list = list.filter((w) => w.length >= 5);
-  else if (cfg.difficulty === "master") list = list.filter((w) => w.length >= 7);
+  // Casual mode has no length-skew preference — just respect the user's
+  // minimum-word-length floor. Adaptive mode picks purely on bigram
+  // weakness data, no length skew.
+  const list = WORD_POOL.filter((w) => w.length >= cfg.minWordLength);
   return list.length > 0 ? list : WORD_POOL;
 }
 
@@ -530,7 +526,6 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
     ) {
       const cfg = {
         minWordLength: prefsRef.current.minWordLength,
-        difficulty: prefsRef.current.difficulty,
         showSecondary: prefsRef.current.showSecondary,
       };
       dispatch({
@@ -550,15 +545,14 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
   }, [practiceSlice]);
 
   // Regenerate the passage when the word-shape prefs change so the
-  // user sees the effect of difficulty / min-word / show-secondary
-  // immediately instead of after the next manual restart.
-  const wordCfgKey = `${prefs.minWordLength}|${prefs.difficulty}|${prefs.showSecondary}`;
+  // user sees the effect of min-word / show-secondary immediately
+  // instead of after the next manual restart.
+  const wordCfgKey = `${prefs.minWordLength}|${prefs.showSecondary}`;
   useEffect(() => {
     dispatch({
       type: "REGENERATE",
       cfg: {
         minWordLength: prefs.minWordLength,
-        difficulty: prefs.difficulty,
         showSecondary: prefs.showSecondary,
       },
     });
@@ -699,7 +693,6 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
       if (adaptOn && wordsMode) {
         const cfg = {
           minWordLength: prefsRef.current.minWordLength,
-          difficulty: prefsRef.current.difficulty,
           showSecondary: prefsRef.current.showSecondary,
         };
         void adaptRef.current.refill(length, adaptPool(cfg));
@@ -718,7 +711,6 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
     if (practiceSlice.mode !== "WORDS") return;
     const cfg = {
       minWordLength: prefsRef.current.minWordLength,
-      difficulty: prefsRef.current.difficulty,
       showSecondary: prefsRef.current.showSecondary,
     };
     void (async () => {
@@ -762,7 +754,6 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
       const p = prefsRef.current;
       return {
         minWordLength: p.minWordLength,
-        difficulty: p.difficulty,
         showSecondary: p.showSecondary,
       };
     };

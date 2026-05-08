@@ -3,7 +3,6 @@
 import {
   type BehaviourPrefs,
   type Confidence,
-  type Difficulty,
   useBehaviourPrefs,
 } from "@/lib/behaviour-prefs";
 import { Chip, ChipGroup } from "../_components/chip";
@@ -52,13 +51,6 @@ const CONFIDENCE_OPTIONS: readonly { id: Confidence; label: string }[] = [
   { id: "off", label: "Off" },
   { id: "word", label: "Word" },
   { id: "all", label: "All" },
-];
-
-const DIFFICULTY_OPTIONS: readonly { id: Difficulty; label: string }[] = [
-  { id: "easy", label: "Easy" },
-  { id: "normal", label: "Normal" },
-  { id: "expert", label: "Expert" },
-  { id: "master", label: "Master" },
 ];
 
 const MIN_WORD_OPTIONS: readonly { id: number; label: string }[] = [
@@ -186,23 +178,6 @@ export default function BehaviourPage() {
 
       <SectionHeader label="Word list" />
       <div className="mb-8 flex flex-col gap-3">
-        <SettingsRow
-          label={
-            <span className="flex flex-col gap-0.5">
-              <span>Difficulty</span>
-              <span className="text-xs font-normal text-muted-foreground">
-                Skews the word list toward shorter or longer words
-              </span>
-            </span>
-          }
-          control={
-            <SelectChips
-              value={prefs.difficulty}
-              options={DIFFICULTY_OPTIONS}
-              onChange={(v) => set("difficulty", v)}
-            />
-          }
-        />
         <SettingsRow
           label={
             <span className="flex flex-col gap-0.5">

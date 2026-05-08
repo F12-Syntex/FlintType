@@ -43,7 +43,6 @@ export type PreviewKind =
   | "error-stop"
   | "caret"
   | "theme"
-  | "difficulty"
   | "min-word-length"
   | "confidence";
 
@@ -139,15 +138,6 @@ export const SECTIONS: readonly Section[] = [
         min: 1,
         max: 8,
         preview: "min-word-length",
-      },
-      {
-        type: "select",
-        id: "difficulty",
-        label: "Difficulty",
-        desc: "Word complexity and punctuation density",
-        value: "normal",
-        options: ["easy", "normal", "expert", "master"],
-        preview: "difficulty",
       },
       {
         type: "toggle",
