@@ -463,6 +463,13 @@ type PracticeCtx = {
    *  every fresh run; populated by an interval while the test is running
    *  so the chart and any history view share the same data. */
   wpmHistory: readonly WpmSample[];
+  /** True while an adaptive fetch is in flight and the user is sitting
+   *  in a fresh rest passage. The Passage component reads this to swap
+   *  the seeded local words for a skeleton — without it the user sees
+   *  the seeded list flash for a few hundred ms, then jump to whatever
+   *  the algorithm picked, which reads as lag. Always false when adapt
+   *  is off, when in a drill (locked words), or once typing has begun. */
+  adaptLoading: boolean;
 };
 
 const Ctx = createContext<PracticeCtx | null>(null);
@@ -528,6 +535,16 @@ export function PracticeProvider({
   // and don't want the effect to re-dispatch when our own write echoes
   // back.
   const lastAppliedSliceRef = useRef<string>("");
+
+  // True while an adaptive fetch is in flight. Initial value reads
+  // the cached slice synchronously so a returning user with adapt=true
+  // gets the skeleton on first paint instead of the seeded local words
+  // flashing then swapping when the fetch resolves. Locked-words drills
+  // and non-WORDS modes never load adaptively.
+  const [adaptLoading, setAdaptLoading] = useState<boolean>(() => {
+    if (lockedWords && lockedWords.length > 0) return false;
+    return practiceSlice.adapt && practiceSlice.mode === "WORDS";
+  });
 
   // Mirror the persisted slice into the reducer whenever the slice
   // identity changes. The cache returns DEFAULT_PRACTICE_SLICE before
@@ -727,31 +744,52 @@ export function PracticeProvider({
 
   // Initial-mount adaptive fetch: when the persisted adapt slice loads
   // back as `true` and we're sitting in a fresh rest passage, swap the
-  // seeded local words for an algorithm-selected set.
+  // seeded local words for an algorithm-selected set. The skeleton is
+  // shown for the duration of the fetch (adaptLoading toggles around
+  // it); on cold-start / network failure we fall back to the seeded
+  // local list and clear the loading flag so the user gets a usable
+  // passage instead of an indefinite skeleton.
   useEffect(() => {
     if (lockedWordsRef.current) return;
-    if (!practiceSlice.adapt) return;
-    if (practiceSlice.mode !== "WORDS") return;
+    if (!practiceSlice.adapt || practiceSlice.mode !== "WORDS") {
+      // Adapt off or in a non-WORDS mode — no fetch, no skeleton.
+      setAdaptLoading(false);
+      return;
+    }
+    setAdaptLoading(true);
     const cfg = {
       minWordLength: prefsRef.current.minWordLength,
       showSecondary: prefsRef.current.showSecondary,
     };
+    let cancelled = false;
     void (async () => {
-      const pool = adaptPool(cfg);
-      const words = await adaptRef.current.fetchWords(
-        practiceSlice.length,
-        pool,
-      );
-      if (!words || words.length === 0) return;
-      const cur = stateForSampleRef.current;
-      if (cur.phase !== "rest") return;
-      if (cur.cursorWord !== 0 || cur.cursorChar !== 0) return;
-      dispatch({
-        type: "RESTART",
-        words: decorate(words, cfg, Date.now()),
-        quoteSource: null,
-      });
+      try {
+        const pool = adaptPool(cfg);
+        const words = await adaptRef.current.fetchWords(
+          practiceSlice.length,
+          pool,
+        );
+        if (cancelled) return;
+        const cur = stateForSampleRef.current;
+        if (cur.phase !== "rest") return;
+        if (cur.cursorWord !== 0 || cur.cursorChar !== 0) return;
+        if (words && words.length > 0) {
+          dispatch({
+            type: "RESTART",
+            words: decorate(words, cfg, Date.now()),
+            quoteSource: null,
+          });
+        }
+        // No-op when words is null/empty — the seeded local list the
+        // reducer already holds is the fallback the user will type
+        // against. Clearing adaptLoading reveals it.
+      } finally {
+        if (!cancelled) setAdaptLoading(false);
+      }
     })();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [practiceSlice]);
 
@@ -799,28 +837,38 @@ export function PracticeProvider({
         });
       }
     };
-    /** Fire-and-forget adaptive word fetch. Local words are dispatched
-     *  immediately so the passage shows; if the route resolves while
-     *  the user hasn't started typing yet, swap in the algorithm's
-     *  selection via a fresh RESTART. Drops the result silently
-     *  otherwise — never blocks the practice flow. */
+    /** Fire-and-forget adaptive word fetch. The seeded local list the
+     *  caller dispatched moments earlier is the fallback the user will
+     *  type against if the fetch fails or returns nothing — but we
+     *  still flip `adaptLoading` so the passage shows a skeleton
+     *  instead of those local words flashing for the duration of the
+     *  network round-trip. Drops the result silently if the user
+     *  started typing before it landed. */
     const loadAndDispatchAdaptive = async (
       count: number,
       cfg: WordCfg,
     ) => {
-      const pool = adaptPool(cfg);
-      const words = await adaptRef.current.fetchWords(count, pool);
-      if (!words || words.length === 0) return;
-      const cur = stateForSampleRef.current;
-      // Only swap if the user hasn't started typing yet — replacing
-      // mid-test would erase their progress and wipe their events.
-      if (cur.phase !== "rest") return;
-      if (cur.cursorWord !== 0 || cur.cursorChar !== 0) return;
-      dispatch({
-        type: "RESTART",
-        words: decorate(words, cfg, Date.now()),
-        quoteSource: null,
-      });
+      setAdaptLoading(true);
+      try {
+        const pool = adaptPool(cfg);
+        const words = await adaptRef.current.fetchWords(count, pool);
+        const cur = stateForSampleRef.current;
+        // Only swap if the user hasn't started typing yet — replacing
+        // mid-test would erase their progress and wipe their events.
+        if (cur.phase !== "rest") return;
+        if (cur.cursorWord !== 0 || cur.cursorChar !== 0) return;
+        if (words && words.length > 0) {
+          dispatch({
+            type: "RESTART",
+            words: decorate(words, cfg, Date.now()),
+            quoteSource: null,
+          });
+        }
+        // Cold-start / failure / null — leave the local fallback in
+        // place; the finally block reveals it.
+      } finally {
+        setAdaptLoading(false);
+      }
     };
     // Effective state — see comment on `isMobile` declaration above.
     // Stored preference (state.adapt) is unchanged; only the value
@@ -836,6 +884,7 @@ export function PracticeProvider({
       raw,
       accuracy,
       wpmHistory,
+      adaptLoading: effectiveState.adapt && adaptLoading && state.phase === "rest",
       setMode: (mode) => {
         const length = defaultLengthFor(mode);
         const cfg = buildCfg();
@@ -910,7 +959,7 @@ export function PracticeProvider({
         }
       },
     };
-  }, [state, elapsedMs, wpmHistory, isMobile]);
+  }, [state, elapsedMs, wpmHistory, isMobile, adaptLoading]);
 
   // Keyboard listener — only when user isn't typing into another input.
   const stateRef = useRef(state);
