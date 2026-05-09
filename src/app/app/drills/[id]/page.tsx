@@ -65,6 +65,7 @@ export default function DrillRunnerPage() {
     const drills = buildDrills({
       weakestPairs: snapshot.weakestPairs ?? [],
       weakestTrigrams: snapshot.weakestTrigrams ?? [],
+      weakestWords: snapshot.weakestWords ?? [],
       cold: snapshot.cold ?? false,
       seed: Date.now(),
     });

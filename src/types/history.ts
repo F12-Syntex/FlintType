@@ -34,6 +34,10 @@ export type HistorySummaryOutput = {
   weakestPairs: HistoryWeakness[];
   /** Top 12 weakest trigrams with enough samples to score. */
   weakestTrigrams: HistoryWeakness[];
+  /** Top 20 slowest words against the user's own word baseline.
+   *  Drives the worst-words drill — same shape as the bigram /
+   *  trigram lists for symmetry. */
+  weakestWords: HistoryWeakness[];
   /** True until the user has typed enough for the algorithm to score
    *  bigrams. Page should fall back to "no data yet" copy. */
   cold: boolean;
@@ -42,4 +46,7 @@ export type HistorySummaryOutput = {
   bigramBaselineMs: number;
   /** User's overall trigram baseline (same shape, separate metric). */
   trigramBaselineMs: number;
+  /** User's overall whole-word baseline (sample-weighted mean ms
+   *  across every word seen). 0 on cold start. */
+  wordBaselineMs: number;
 };

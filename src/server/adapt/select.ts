@@ -24,6 +24,11 @@ export type SelectionInput = {
   bigramModels: ModelMap;
   trigramModels: ModelMap;
   motorFeatureModels: ModelMap;
+  /** Per-user, per-word running stats. Optional — when omitted the
+   *  selector behaves exactly as it did before the word model
+   *  shipped. When present, scoring reads the word-level weakness
+   *  term and weights it via `δ`. */
+  wordModels?: ModelMap;
   layout: HandLayoutPrefs;
   /** Newest-first list of recent test rows. Used for fatigue. */
   recentTests: readonly TestRow[];
@@ -47,6 +52,7 @@ export function selectWords(input: SelectionInput): SelectionResult {
     bigram: bigramBaselines(input.bigramModels, input.layout),
     trigram: baselineMean(input.trigramModels),
     motorFeature: baselineMean(input.motorFeatureModels),
+    word: input.wordModels ? baselineMean(input.wordModels) : 0,
   };
 
   const fatigue = fatigueDampener(input.recentTests);
@@ -57,6 +63,7 @@ export function selectWords(input: SelectionInput): SelectionResult {
       bigramModels: input.bigramModels,
       trigramModels: input.trigramModels,
       motorFeatureModels: input.motorFeatureModels,
+      wordModels: input.wordModels,
       layout: input.layout,
       baselines,
       weights: input.weights,

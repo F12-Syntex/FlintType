@@ -10,6 +10,11 @@ export type {
   NewMotorFeatureModelRow,
 } from "@/db/schema/server/adapt-models";
 
+export type {
+  WordModelRow,
+  NewWordModelRow,
+} from "@/db/schema/server/word-models";
+
 export type { TestRow, NewTestRow } from "@/db/schema/server/tests";
 
 /** Shape of a single Welford-state delta written back after a test.

@@ -43,6 +43,15 @@ const SCHEMA_DDL = `
     updated_at    timestamp NOT NULL DEFAULT now(),
     PRIMARY KEY (user_id, feature_key)
   );
+  CREATE TABLE IF NOT EXISTS word_models (
+    user_id       text NOT NULL,
+    word          text NOT NULL,
+    mean_ms       double precision NOT NULL,
+    variance_ms   double precision NOT NULL,
+    sample_count  integer NOT NULL,
+    updated_at    timestamp NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, word)
+  );
   CREATE TABLE IF NOT EXISTS tests (
     id                       text PRIMARY KEY,
     user_id                  text NOT NULL,
@@ -60,7 +69,7 @@ const SCHEMA_DDL = `
 `;
 
 const TRUNCATE_ALL = `
-  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, tests;
+  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, word_models, tests;
 `;
 
 /** PGlite's parse-message path rejects multi-statement queries, so we

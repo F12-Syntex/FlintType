@@ -5,6 +5,7 @@ import {
   bigramRowsToStates,
   motorFeatureRowsToStates,
   trigramRowsToStates,
+  wordRowsToStates,
   deltasFor,
 } from "@/server/adapt/apply";
 import { fingerMapHash } from "@/server/adapt/key-map";
@@ -127,16 +128,18 @@ const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
       await db.motorFeatureModels.clearForUser(userId);
     }
 
-    const [bigramRows, trigramRows, motorRows] = await Promise.all([
+    const [bigramRows, trigramRows, motorRows, wordRows] = await Promise.all([
       db.bigramModels.listForUser(userId),
       db.trigramModels.listForUser(userId),
       fingerMapChanged
         ? Promise.resolve([])
         : db.motorFeatureModels.listForUser(userId),
+      db.wordModels.listForUser(userId),
     ]);
     const bigramStates = bigramRowsToStates(bigramRows);
     const trigramStates = trigramRowsToStates(trigramRows);
     const motorStates = motorFeatureRowsToStates(motorRows);
+    const wordStates = wordRowsToStates(wordRows);
 
     const baselines = {
       bigram: new Map(
@@ -144,6 +147,9 @@ const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
       ),
       trigram: new Map(
         Array.from(trigramStates, ([k, s]) => [k, s.mean] as const),
+      ),
+      word: new Map(
+        Array.from(wordStates, ([k, s]) => [k, s.mean] as const),
       ),
     };
     const samples = extract(input.timings, prefs.handLayout, baselines);
@@ -157,6 +163,10 @@ const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
       db.motorFeatureModels.bulkUpsert(
         userId,
         deltasFor(motorStates, samples.motorFeatures),
+      ),
+      db.wordModels.bulkUpsert(
+        userId,
+        deltasFor(wordStates, samples.words),
       ),
     ]);
 
@@ -201,17 +211,19 @@ const words = defineRoute<RequestWordsInput, RequestWordsOutput>({
     const userId = meta.userId as string;
     const prefs = await loadAdaptPrefs(db, userId);
 
-    const [bigramRows, trigramRows, motorRows, recentTests] =
+    const [bigramRows, trigramRows, motorRows, wordRows, recentTests] =
       await Promise.all([
         db.bigramModels.listForUser(userId),
         db.trigramModels.listForUser(userId),
         db.motorFeatureModels.listForUser(userId),
+        db.wordModels.listForUser(userId),
         db.tests.recentForUser(userId, 5),
       ]);
 
     const bigramModels = bigramRowsToStates(bigramRows);
     const trigramModels = trigramRowsToStates(trigramRows);
     const motorFeatureModels = motorFeatureRowsToStates(motorRows);
+    const wordModels = wordRowsToStates(wordRows);
     const batchCount = input.batches ?? 1;
 
     // Run selectWords once per requested batch against the same model
@@ -228,6 +240,7 @@ const words = defineRoute<RequestWordsInput, RequestWordsOutput>({
         bigramModels,
         trigramModels,
         motorFeatureModels,
+        wordModels,
         layout: prefs.handLayout,
         recentTests,
         recentlyShown: prefs.adaptRecency,
@@ -312,19 +325,22 @@ const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
   handler: async ({ input, db, meta }) => {
     const userId = meta.userId as string;
     const prefs = await loadAdaptPrefs(db, userId);
-    const [bigramRows, trigramRows, motorRows] = await Promise.all([
+    const [bigramRows, trigramRows, motorRows, wordRows] = await Promise.all([
       db.bigramModels.listForUser(userId),
       db.trigramModels.listForUser(userId),
       db.motorFeatureModels.listForUser(userId),
+      db.wordModels.listForUser(userId),
     ]);
     const bigramStates = bigramRowsToStates(bigramRows);
     const trigramStates = trigramRowsToStates(trigramRows);
     const motorStates = motorFeatureRowsToStates(motorRows);
+    const wordStates = wordRowsToStates(wordRows);
     const bigramBs = bigramBaselines(bigramStates, prefs.handLayout);
     const baselines = {
       bigram: bigramBs,
       trigram: baselineMean(trigramStates),
       motorFeature: baselineMean(motorStates),
+      word: baselineMean(wordStates),
     };
 
     const word = input.word.toLowerCase();
@@ -333,6 +349,7 @@ const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
       bigramModels: bigramStates,
       trigramModels: trigramStates,
       motorFeatureModels: motorStates,
+      wordModels: wordStates,
       layout: prefs.handLayout,
       baselines,
     });

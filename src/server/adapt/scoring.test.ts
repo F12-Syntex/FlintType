@@ -236,7 +236,7 @@ describe("scoreWord", () => {
     const baseline = scoreWord(args);
     const without = scoreWord({
       ...args,
-      weights: { alpha: 0, beta: 1, gamma: 1 },
+      weights: { alpha: 0, beta: 1, gamma: 1, delta: 1 },
     });
     expect(without).toBeLessThan(baseline);
   });

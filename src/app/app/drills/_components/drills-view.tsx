@@ -52,6 +52,7 @@ export function DrillsView() {
     return buildDrills({
       weakestPairs: snapshot?.weakestPairs ?? [],
       weakestTrigrams: snapshot?.weakestTrigrams ?? [],
+      weakestWords: snapshot?.weakestWords ?? [],
       cold: snapshot?.cold ?? false,
       seed: Date.now(),
     });

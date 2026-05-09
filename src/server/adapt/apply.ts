@@ -3,6 +3,7 @@ import type {
   ModelDelta,
   MotorFeatureModelRow,
   TrigramModelRow,
+  WordModelRow,
 } from "@/types/adapt";
 import { type ModelState, updateMany } from "./welford";
 
@@ -49,6 +50,12 @@ export function motorFeatureRowsToStates(
   rows: readonly MotorFeatureModelRow[],
 ): Map<string, ModelState> {
   return rowsToStates(rows, (r) => r.featureKey);
+}
+
+export function wordRowsToStates(
+  rows: readonly WordModelRow[],
+): Map<string, ModelState> {
+  return rowsToStates(rows, (r) => r.word);
 }
 
 type StatRow = { meanMs: number; varianceMs: number; sampleCount: number };

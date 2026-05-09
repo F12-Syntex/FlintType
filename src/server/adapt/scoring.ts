@@ -23,18 +23,25 @@ export const MIN_SAMPLES_FOR_WEAKNESS = 3;
  *  weak ones rather than being free-priority above them. */
 export const UNTESTED_BIGRAM_BONUS = 80;
 
-/** α / β / γ in the spec. Equal weighting at launch — tune later
- *  once we have outcome data. */
+/** α / β / γ in the spec, plus δ — the per-word term. The first three
+ *  attribute weakness to mechanical units (bigrams, trigrams, motor
+ *  features); δ adds a sequence-level term that asks "is the user
+ *  consistently slow on this whole word, beyond what its bigrams
+ *  predict?". A word with average bigrams but a slow whole-word mean
+ *  has a hidden friction (memory, context-switch, even spelling
+ *  hesitation) that the per-pair signal can't see. */
 export type ScoringWeights = {
   alpha: number;
   beta: number;
   gamma: number;
+  delta: number;
 };
 
 export const DEFAULT_WEIGHTS: ScoringWeights = {
   alpha: 1,
   beta: 1,
   gamma: 1,
+  delta: 1,
 };
 
 export type ModelMap = ReadonlyMap<string, ModelState>;
@@ -194,20 +201,29 @@ export function predictedWordMs(
 }
 
 /** Word score per the spec: Σ-of-bigram-weakness + Σ-of-trigram-weakness +
- *  Σ-of-motor-feature-weakness, weighted by α / β / γ. Each unique
- *  motor-feature key contributes once even if it's emitted by
- *  several bigrams in the word — otherwise long words full of
- *  same-finger pairs would explode the score. */
+ *  Σ-of-motor-feature-weakness + word-level-weakness, weighted by α
+ *  / β / γ / δ. Each unique motor-feature key contributes once even
+ *  if it's emitted by several bigrams in the word — otherwise long
+ *  words full of same-finger pairs would explode the score. The
+ *  word-level term reads from `wordModels` when given; without it
+ *  scoreWord behaves exactly as it did before the word model
+ *  shipped. */
 export function scoreWord(args: {
   word: string;
   bigramModels: ModelMap;
   trigramModels: ModelMap;
   motorFeatureModels: ModelMap;
+  /** Optional per-word running stats. When provided, contributes a
+   *  word-level weakness term keyed on the lowercase word. */
+  wordModels?: ModelMap;
   layout: HandLayoutPrefs;
   baselines: {
     bigram: BigramBaselines;
     trigram: number;
     motorFeature: number;
+    /** Sample-weighted mean across every word in `wordModels`. Only
+     *  consulted when the δ term is active. */
+    word?: number;
   };
   weights?: ScoringWeights;
 }): number {
@@ -256,7 +272,21 @@ export function scoreWord(args: {
     if (st) triSum += weakness(st, args.baselines.trigram);
   }
 
-  return weights.alpha * bigSum + weights.beta * triSum + weights.gamma * featSum;
+  // Word-level term — only contributes when a model and baseline are
+  // available. Faster-than-baseline words score 0 (the weakness
+  // helper already enforces this).
+  let wordWeakness = 0;
+  if (args.wordModels && args.baselines.word !== undefined) {
+    const ws = args.wordModels.get(w);
+    if (ws) wordWeakness = weakness(ws, args.baselines.word);
+  }
+
+  return (
+    weights.alpha * bigSum +
+    weights.beta * triSum +
+    weights.gamma * featSum +
+    weights.delta * wordWeakness
+  );
 }
 
 /** Recency penalty multiplier. A word seen `testsAgo` tests back

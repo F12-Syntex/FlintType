@@ -236,17 +236,21 @@ function pickWeaknessTrigrams(
 export function buildDrills({
   weakestPairs,
   weakestTrigrams,
+  weakestWords,
   cold,
   seed,
 }: {
   weakestPairs: readonly HistoryWeakness[];
   weakestTrigrams?: readonly { key: string }[];
+  weakestWords?: readonly { key: string; meanMs: number }[];
   cold: boolean;
   seed: number;
 }): DrillSpec[] {
   const personalReady = !cold && weakestPairs.length > 0;
   const trigrams = pickWeaknessTrigrams(weakestTrigrams, 6);
   const trigramTailored = (weakestTrigrams ?? []).length > 0;
+  const worstWords = (weakestWords ?? []).slice(0, 20).map((w) => w.key);
+  const worstWordsReady = worstWords.length >= 5;
   const drills: DrillSpec[] = [];
 
   // ─── Tailored ─────────────────────────────────────────────────────
@@ -277,6 +281,43 @@ export function buildDrills({
           payoff: "Drilling your weakest pairs under sudden-death pressure is the highest-leverage path to a higher overall WPM.",
           ready: false,
           words: [],
+        },
+  );
+
+  drills.push(
+    worstWordsReady
+      ? {
+          id: "worst-words",
+          kind: "burst",
+          category: "tailored",
+          title: "Worst-words burst",
+          contextLabel: "Burst minigame",
+          description: `Burst your slowest ${worstWords.length} words: ${worstWords
+            .slice(0, 4)
+            .map((w) => `"${w}"`)
+            .join(", ")}${worstWords.length > 4 ? ", …" : ""}. Each one drilled at ${DEFAULT_BURST_THRESHOLD_WPM} WPM until it stops dragging your average.`,
+          payoff:
+            "These are the exact words your hands keep hesitating on — usually a different shape than the bigram-weakness drill picks up. Clear the list and your overall WPM moves with it.",
+          ready: true,
+          items: worstWords,
+          thresholdWpm: DEFAULT_BURST_THRESHOLD_WPM,
+          repsPerItem: DEFAULT_BURST_REPS,
+          repsConfigurable: true,
+        }
+      : {
+          id: "worst-words",
+          kind: "burst",
+          category: "tailored",
+          title: "Worst-words burst",
+          contextLabel: "Burst minigame",
+          description:
+            "Once we've timed enough whole-word completions to spot the words your hands keep stalling on, this drill bursts the slowest 20 of them.",
+          payoff: "Word-level slowness is a different signal than bigram weakness — it catches words whose individual pairs are fine but whose sequence still trips you.",
+          ready: false,
+          items: [],
+          thresholdWpm: DEFAULT_BURST_THRESHOLD_WPM,
+          repsPerItem: DEFAULT_BURST_REPS,
+          repsConfigurable: true,
         },
   );
 

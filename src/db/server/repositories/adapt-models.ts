@@ -4,11 +4,13 @@ import {
   motorFeatureModels,
   trigramModels,
 } from "@/db/schema/server/adapt-models";
+import { wordModels } from "@/db/schema/server/word-models";
 import type {
   BigramModelRow,
   ModelDelta,
   MotorFeatureModelRow,
   TrigramModelRow,
+  WordModelRow,
 } from "@/types/adapt";
 import type { ServerDrizzle } from "../driver";
 
@@ -186,3 +188,69 @@ export function motorFeatureModelsRepo(db: ServerDrizzle) {
   };
 }
 export type MotorFeatureModelsRepo = ReturnType<typeof motorFeatureModelsRepo>;
+
+// ─── Word model ───────────────────────────────────────────────────────
+//
+// Per-user, per-word total typing time. Same Welford trio (list / get /
+// bulkUpsert / clearForUser) — different keying column. Surfaced
+// alongside bigram and trigram weakness on the history page so the
+// "worst words" panel and the worst-words drill can read straight off
+// it.
+
+export function wordModelsRepo(db: ServerDrizzle) {
+  return {
+    async listForUser(userId: string): Promise<WordModelRow[]> {
+      return db
+        .select()
+        .from(wordModels)
+        .where(eq(wordModels.userId, userId));
+    },
+
+    async getMany(
+      userId: string,
+      keys: readonly string[],
+    ): Promise<WordModelRow[]> {
+      if (keys.length === 0) return [];
+      return db
+        .select()
+        .from(wordModels)
+        .where(
+          and(
+            eq(wordModels.userId, userId),
+            inArray(wordModels.word, keys as string[]),
+          ),
+        );
+    },
+
+    async bulkUpsert(
+      userId: string,
+      deltas: ReadonlyMap<string, ModelDelta>,
+    ): Promise<void> {
+      if (deltas.size === 0) return;
+      const rows = Array.from(deltas, ([word, d]) => ({
+        userId,
+        word,
+        meanMs: d.meanMs,
+        varianceMs: d.varianceMs,
+        sampleCount: d.sampleCount,
+      }));
+      await db
+        .insert(wordModels)
+        .values(rows)
+        .onConflictDoUpdate({
+          target: [wordModels.userId, wordModels.word],
+          set: {
+            meanMs: sql`excluded.mean_ms`,
+            varianceMs: sql`excluded.variance_ms`,
+            sampleCount: sql`excluded.sample_count`,
+            updatedAt: sql`now()`,
+          },
+        });
+    },
+
+    async clearForUser(userId: string): Promise<void> {
+      await db.delete(wordModels).where(eq(wordModels.userId, userId));
+    },
+  };
+}
+export type WordModelsRepo = ReturnType<typeof wordModelsRepo>;

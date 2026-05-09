@@ -11,6 +11,7 @@ import {
 const EMPTY_BASELINES = {
   bigram: new Map<string, number>(),
   trigram: new Map<string, number>(),
+  word: new Map<string, number>(),
 };
 
 function k(
@@ -98,6 +99,7 @@ describe("measure.extract", () => {
     const baselines = {
       bigram: new Map([["th", 120]]),
       trigram: new Map<string, number>(),
+      word: new Map<string, number>(),
     };
     const timings = [
       k(0, "t", "t", true),
@@ -145,5 +147,73 @@ describe("measure.extract", () => {
     const m = extract(timings, DEFAULT_HAND_LAYOUT, EMPTY_BASELINES);
     expect(m.accepted).toBe(2);
     expect(m.rejected).toBe(1);
+  });
+
+  describe("word samples", () => {
+    it("emits a word duration when every keystroke in a word is clean", () => {
+      const timings = [
+        k(0, "t", "t", true),
+        k(120, "h", "h", true),
+        k(240, "e", "e", true),
+      ];
+      const m = extract(timings, DEFAULT_HAND_LAYOUT, EMPTY_BASELINES);
+      expect(m.words.get("the")).toEqual([240]);
+    });
+
+    it("drops a word when any keystroke was wrong", () => {
+      const timings = [
+        k(0, "t", "t", true),
+        k(120, "h", "g", false),
+        k(240, "e", "e", true),
+      ];
+      const m = extract(timings, DEFAULT_HAND_LAYOUT, EMPTY_BASELINES);
+      expect(m.words.has("the")).toBe(false);
+    });
+
+    it("drops a word when a keystroke was a recovery key", () => {
+      const timings = [
+        k(0, "t", "t", true),
+        k(120, "h", "g", false),
+        k(700, "h", "h", true),
+        k(820, "e", "e", true),
+      ];
+      const m = extract(timings, DEFAULT_HAND_LAYOUT, EMPTY_BASELINES);
+      expect(m.words.has("the")).toBe(false);
+    });
+
+    it("skips words shorter than the min length floor", () => {
+      const timings = [k(0, "i", "i", true), k(120, "t", "t", true)];
+      const m = extract(timings, DEFAULT_HAND_LAYOUT, EMPTY_BASELINES);
+      expect(m.words.size).toBe(0);
+    });
+
+    it("emits one sample per cleanly-typed word in a multi-word run", () => {
+      const timings = [
+        k(0, "t", "t", true, 0),
+        k(100, "h", "h", true, 0),
+        k(200, "e", "e", true, 0),
+        k(400, "f", "f", true, 1),
+        k(500, "o", "o", true, 1),
+        k(600, "x", "x", true, 1),
+      ];
+      const m = extract(timings, DEFAULT_HAND_LAYOUT, EMPTY_BASELINES);
+      expect(m.words.get("the")).toEqual([200]);
+      expect(m.words.get("fox")).toEqual([200]);
+    });
+
+    it("rejects a word above MAX_INTERVAL_RATIO × the user baseline", () => {
+      const baselines = {
+        bigram: new Map<string, number>(),
+        trigram: new Map<string, number>(),
+        word: new Map([["the", 200]]),
+      };
+      const timings = [
+        k(0, "t", "t", true),
+        k(400, "h", "h", true),
+        k(200 * MAX_INTERVAL_RATIO + 50, "e", "e", true),
+      ];
+      const m = extract(timings, DEFAULT_HAND_LAYOUT, baselines);
+      expect(m.words.has("the")).toBe(false);
+    });
   });
 });

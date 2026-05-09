@@ -8,9 +8,11 @@ import {
   bigramModelsRepo,
   motorFeatureModelsRepo,
   trigramModelsRepo,
+  wordModelsRepo,
   type BigramModelsRepo,
   type MotorFeatureModelsRepo,
   type TrigramModelsRepo,
+  type WordModelsRepo,
 } from './repositories/adapt-models';
 import { testsRepo, type TestsRepo } from './repositories/tests';
 import { userPrefsRepo, type UserPrefsRepo } from './repositories/user-prefs';
@@ -20,6 +22,7 @@ export type Database = {
   bigramModels: BigramModelsRepo;
   trigramModels: TrigramModelsRepo;
   motorFeatureModels: MotorFeatureModelsRepo;
+  wordModels: WordModelsRepo;
   tests: TestsRepo;
   $drizzle: ServerDrizzle;
 };
@@ -33,6 +36,7 @@ export function createDatabase(
     bigramModels: bigramModelsRepo(drizzle),
     trigramModels: trigramModelsRepo(drizzle),
     motorFeatureModels: motorFeatureModelsRepo(drizzle),
+    wordModels: wordModelsRepo(drizzle),
     tests: testsRepo(drizzle),
     $drizzle: drizzle,
   };
