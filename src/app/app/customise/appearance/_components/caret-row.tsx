@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   type CaretSettings,
@@ -58,38 +57,27 @@ function CaretShape({
   style,
   width,
   radius,
-  blinkSpeed,
   charW,
   charH,
 }: {
   style: CaretStyle;
   width: number;
   radius: number;
-  blinkSpeed: number;
   charW: number;
   charH: number;
 }) {
   if (style === "off") return null;
 
-  // Class-based blink (.ft-caret-blink) so React re-renders don't reset
-  // the animation. Duration flows in via the --ft-blink-speed CSS var,
-  // which can change without restarting the animation either.
-  const blinkClass = blinkSpeed > 0 ? "ft-caret-blink" : "";
-  const blinkVar = {
-    ["--ft-blink-speed" as string]: `${blinkSpeed}ms`,
-  } as React.CSSProperties;
   const common: React.CSSProperties = {
     position: "absolute",
     borderRadius: radius,
     backgroundColor: "var(--primary)",
-    ...blinkVar,
   };
 
   if (style === "line") {
     return (
       <span
         aria-hidden
-        className={blinkClass}
         style={{
           ...common,
           width,
@@ -104,7 +92,6 @@ function CaretShape({
     return (
       <span
         aria-hidden
-        className={blinkClass}
         style={{
           ...common,
           width: charW,
@@ -121,7 +108,6 @@ function CaretShape({
     return (
       <span
         aria-hidden
-        className={blinkClass}
         style={{
           ...common,
           width: charW,
@@ -136,7 +122,6 @@ function CaretShape({
   return (
     <span
       aria-hidden
-      className={blinkClass}
       style={{
         ...common,
         width: charW,
@@ -151,8 +136,8 @@ function CaretShape({
 }
 
 // ─── Per-chip mini previews ────────────────────────────────────────
-// Static (no blink) so the rows are scannable; the hero preview above
-// is the place for live behaviour.
+// Static (no blink) so the rows are scannable; the section preview
+// above the rows is where live behaviour shows up.
 
 function StyleChipPreview({
   style,
@@ -181,7 +166,6 @@ function StyleChipPreview({
         style={style}
         width={width}
         radius={radius}
-        blinkSpeed={0}
         charW={charW}
         charH={charH}
       />
@@ -214,92 +198,6 @@ function RoundnessChipPreview({ radius }: { radius: number }) {
   );
 }
 
-// ─── Hero preview card ─────────────────────────────────────────────
-
-const PREVIEW_WORDS = ["the", "quick", "brown", "fox", "jumps"];
-
-function HeroPreview({ settings }: { settings: CaretSettings }) {
-  const flat = PREVIEW_WORDS.join(" ");
-  const total = flat.length + 1;
-  const [cursor, setCursor] = useState(8);
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setCursor((c) => (c + 1) % total);
-    }, 600);
-    return () => window.clearInterval(id);
-  }, [total]);
-
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [target, setTarget] = useState<{
-    left: number;
-    top: number;
-    w: number;
-    h: number;
-  } | null>(null);
-
-  useLayoutEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const wrap = el.getBoundingClientRect();
-    const idx = Math.min(cursor, flat.length - 1);
-    const charEl = el.querySelectorAll<HTMLSpanElement>("[data-char]")[idx];
-    if (!charEl) return;
-    const r = charEl.getBoundingClientRect();
-    setTarget({
-      left: r.left - wrap.left,
-      top: r.top - wrap.top,
-      w: r.width,
-      h: r.height,
-    });
-  }, [cursor, flat]);
-
-  return (
-    <div className="rounded-md border border-border bg-card px-5 py-6">
-      <div
-        ref={containerRef}
-        className="relative mx-auto w-fit font-mono text-2xl leading-[1.6] text-muted-foreground sm:text-3xl"
-      >
-        {[...flat].map((ch, i) => (
-          <span
-            key={i}
-            data-char
-            className={i < cursor ? "text-foreground" : ""}
-          >
-            {ch === " " ? " " : ch}
-          </span>
-        ))}
-        {target && settings.style !== "off" ? (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute"
-            style={{
-              left: 0,
-              top: 0,
-              width: target.w,
-              height: target.h,
-              transform: `translate3d(${target.left}px, ${target.top}px, 0)`,
-              transition:
-                settings.smoothSpeed > 0
-                  ? `transform ${settings.smoothSpeed}ms cubic-bezier(0.16, 1, 0.3, 1)`
-                  : "none",
-            }}
-          >
-            <CaretShape
-              style={settings.style}
-              width={settings.width}
-              radius={settings.radius}
-              blinkSpeed={settings.blinkSpeed}
-              charW={target.w}
-              charH={target.h}
-            />
-          </span>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
 // ─── Card ──────────────────────────────────────────────────────────
 
 export function CaretRow() {
@@ -307,8 +205,6 @@ export function CaretRow() {
 
   return (
     <div className="flex flex-col gap-3">
-      <HeroPreview settings={settings} />
-
       <SettingsRow
         label="Style"
         control={

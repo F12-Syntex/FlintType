@@ -515,7 +515,7 @@ Don't sprinkle related settings across sections; if you find yourself doing that
 | Space between rows / hero / reset            | `gap-3` on the wrapping `<div>`  |
 | Space between adjacent sections              | `mb-8` on the wrapping `<div>`   |
 
-### 12.5 Sections are routes, not anchors — and every sub-page ships with an animated preview
+### 12.5 Sections are routes, not anchors — and every sub-page ships with a live preview
 
 `/app/customise/appearance` is the canonical "section as sub-page" implementation. Each topic (Themes & mode, Colors, Geometry, Caret, Typography, Keyboard, Background, Live stats, Typing area, Result, Keymap) is a distinct route under `/app/customise/appearance/<id>` and its own `page.tsx`. The catalog of sections lives in `src/app/app/customise/appearance/_sections.ts` so the sidebar, the overview grid, and the per-page header all read from the same list.
 
@@ -523,11 +523,13 @@ Layout for every appearance sub-page (`<AppearanceSectionPage>`):
 
 1. **Back-link breadcrumb** to `/app/customise/appearance` (lg+ only — mobile uses the section picker in the customise header).
 2. **Page header** — eyebrow `Appearance · <Section name>`, h2 title, one-line blurb pulled from `_sections.ts`.
-3. **Preview card** — a bordered card with a `Preview` eyebrow rule, holding a `framer-motion`-driven animated demonstration of the setting's effect. Mandatory: every sub-page passes a `preview` prop. Previews live in `src/app/app/customise/appearance/_previews/<id>.tsx` and share `<PreviewFrame>` so they read the same height (`min-h-[180px]`), padding, and background.
-   - **Exemption — preview-as-content surfaces.** Some sub-pages *are* a preview at full size (the Themes explorer at `/app/customise/appearance/themes` shows every palette as a true-to-life mini-app card). Those skip `<AppearanceSectionPage>` entirely and render their own full-page surface. The rule of thumb: if rendering the controls inline at full size is itself the preview, don't double up with a smaller animated card on top.
+3. **Preview card** — a bordered card with a `Preview` eyebrow rule, holding a **static, live** demonstration of the setting's effect. Mandatory: every sub-page passes a `preview` prop. The preview must be built from real components (not mocked / not animated) and reflect every option the section's rows expose, so the user can see their override land before committing to it. The reusable `<MiniSample>` (in `_components/mini-sample.tsx`) covers everything that touches the practice passage — colours, typography, caret, geometry, live stats, typing-area, background. Sections that already own a real component (Keyboard, Keymap) embed that component directly. Sections with their own surface (Result) compose a small sample of that surface.
+   - **No animation, no `framer-motion`.** Animation in the preview was a regression — it broke `prefers-reduced-motion`, fought the editorial-mechanical brand, and obscured what the setting actually did. Static + real always wins.
+   - **No duplicate inner previews.** If a row component (e.g. `CaretRow`, `TypographyRows`, `KeyboardRow`) used to render its own hero preview, that hero is gone — the section preview at the top is the single source. Owning a preview inside the rows is forbidden.
+   - **Exemption — preview-as-content surfaces.** Some sub-pages *are* a preview at full size (the Themes explorer at `/app/customise/appearance/themes` shows every palette as a true-to-life mini-app card). Those skip `<AppearanceSectionPage>` entirely and render their own full-page surface.
 4. **Body** — the existing rows (`<SettingsRow>`, `<ColorRow>`, etc.) below the preview, unchanged from the pre-split layout.
 
-The Appearance landing page (`/app/customise/appearance`) is now an **overview grid** of cards (no animated previews on overview to keep CPU bounded) — name, blurb, "Open" affordance per section. Pure SettingsRow/Card content is on the sub-pages.
+The Appearance landing page (`/app/customise/appearance`) is an **overview grid** of cards — name, blurb, "Open" affordance per section. Pure SettingsRow/Card content is on the sub-pages.
 
 **Sidebar** — the desktop sidebar renders Appearance as a top-level entry with its 11 sub-pages indented under it on a left rail. Behaviour (and any future top-level section) sit as siblings. The mobile picker shows the same shape inside the bottom sheet — a flat scrollable list with sub-pages indented under their parent.
 
@@ -550,23 +552,19 @@ For shorter parents (Behaviour, with ~9 toggles), a single page with anchored he
 
 ## 13. Animation primitives
 
-`framer-motion` is the only sanctioned animation library. Reach for it when:
+Animation in flinttype is the **exception**, not a default. The product is editorial-mechanical (paper-and-ink, hairline borders, JetBrains Mono); ambient motion fights the aesthetic and trips `prefers-reduced-motion`.
 
-- A control's effect is **temporal** (caret blink, gradient drift, line-by-line passage scroll) and a static preview can't honestly convey the choice.
-- You're rendering a **single hero animation** on a settings sub-page (§12.5 previews) — at most one per visible viewport, kept bounded so the page stays cool.
+`framer-motion` is the only sanctioned animation library, but reach for it sparingly:
 
-### 13.1 Preview-card budget
+- A control's effect is genuinely **temporal** and a static preview cannot represent it (the live caret blink in the running practice surface, where blink speed is itself the setting).
+- A user-initiated transition (route change, modal entrance) where the motion provides spatial continuity.
 
-- One animated preview per sub-page, max. The overview grids and lists never animate — they are summary surfaces and the cumulative CPU is wasteful.
-- Loop duration ≥ 2 seconds. Anything tighter reads as twitchy.
-- `repeat: Infinity` is required — preview animations are ambient, not one-shot.
-- `ease: "easeInOut"` or `"linear"` are the defaults; spring physics belong on user-driven gestures, not on ambient demos.
+### 13.1 Don't
 
-### 13.2 Don't
-
-- **Don't** use motion on a settings row's control (toggle, chip, slider). Native shadcn primitives have their own focus / hover transitions; layering motion on top creates visual noise and accessibility issues.
-- **Don't** animate text content ("typewriter" effects, character-by-character) outside of the practice passage itself.
-- **Don't** rely on motion for state communication. A primary CTA must read as primary in a single static frame too.
+- **Don't** animate settings previews. Settings previews are *static + live* — built from real components reflecting real overrides. See §12.5.
+- **Don't** use motion on a settings row's control (toggle, chip, slider). Native shadcn primitives have their own focus / hover transitions.
+- **Don't** loop ambient decorations on any surface. Loaders are the only acceptable infinite animation.
+- **Don't** ship any animation without `prefers-reduced-motion: reduce` collapsing it to a single static frame.
 
 ## 14. Amending this document
 

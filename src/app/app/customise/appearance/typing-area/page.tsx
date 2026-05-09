@@ -1,12 +1,12 @@
 "use client";
 
 import { AppearanceSectionPage } from "../_components/section-page";
+import { MiniSample } from "../_components/mini-sample";
 import { PassageRows } from "../_components/passage-rows";
-import { TypingAreaPreview } from "../_previews/typing-area";
 
 export default function TypingAreaPage() {
   return (
-    <AppearanceSectionPage id="typing-area" preview={<TypingAreaPreview />}>
+    <AppearanceSectionPage id="typing-area" preview={<MiniSample />}>
       <PassageRows />
     </AppearanceSectionPage>
   );

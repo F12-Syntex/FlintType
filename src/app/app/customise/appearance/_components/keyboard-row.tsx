@@ -1,13 +1,11 @@
 "use client";
 
-import { Keyboard } from "@/app/app/_components/keyboard";
 import { Button } from "@/components/ui/button";
 import {
   designClasses,
   KEYBOARD_DESIGNS,
   KEYBOARD_SHAPES,
   type KeyboardDesign,
-  type KeyboardSettings,
   type KeyboardShape,
   shapeClass,
   useKeyboardSettings,
@@ -15,17 +13,6 @@ import {
 import { cn } from "@/lib/utils";
 import { Chip, ChipGroup } from "../../_components/chip";
 import { SettingsRow } from "../../_components/row";
-
-function HeroPreview({ settings }: { settings: KeyboardSettings }) {
-  // Pass the live settings down explicitly — useKeyboardSettings makes
-  // its own state per call, so the inner Keyboard wouldn't otherwise
-  // see this row's edits until the next mount.
-  return (
-    <div className="rounded-md border border-border bg-card p-2 sm:p-4 md:p-5">
-      <Keyboard settingsOverride={settings} />
-    </div>
-  );
-}
 
 /** Mini chip preview — same designClasses + shapeClass, two tiny key
  *  tiles (resting + hot) so the chip itself communicates the variant. */
@@ -79,8 +66,6 @@ export function KeyboardRow() {
 
   return (
     <div className="flex flex-col gap-3">
-      <HeroPreview settings={settings} />
-
       <SettingsRow
         label="Design"
         control={

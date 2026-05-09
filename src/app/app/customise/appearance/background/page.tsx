@@ -2,11 +2,11 @@
 
 import { AppearanceSectionPage } from "../_components/section-page";
 import { BackgroundRow } from "../_components/background-row";
-import { BackgroundPreview } from "../_previews/background";
+import { MiniSample } from "../_components/mini-sample";
 
 export default function BackgroundPage() {
   return (
-    <AppearanceSectionPage id="background" preview={<BackgroundPreview />}>
+    <AppearanceSectionPage id="background" preview={<MiniSample />}>
       <BackgroundRow />
     </AppearanceSectionPage>
   );

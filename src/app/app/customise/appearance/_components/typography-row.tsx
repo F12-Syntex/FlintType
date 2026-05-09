@@ -7,13 +7,15 @@ import { Chip, ChipGroup } from "../../_components/chip";
 import { SettingsRow } from "../../_components/row";
 import { FontRow } from "./font-row";
 
-// Range for the practice-passage font size, expressed as a percentage
-// of the default. 50–200% is the honest band: under 50% the passage
-// stops being typing-test legible, over 200% a single word eats the
-// whole panel. The default (100%) clears the override entirely so the
+// Practice-passage font size, expressed in pixels at the desktop
+// breakpoint (lg). 40px == scale 1 (the default the passage shipped
+// with at lg viewports). 20–80px is the honest band: under 20 the
+// passage stops being typing-test legible, over 80 a single word eats
+// the panel. The default (40) clears the override entirely so the
 // user's choice doesn't persist as a redundant write.
-const FONT_SIZE_PCT_MIN = 50;
-const FONT_SIZE_PCT_MAX = 200;
+const FONT_SIZE_PX_MIN = 20;
+const FONT_SIZE_PX_MAX = 80;
+const FONT_SIZE_PX_DEFAULT = 40;
 
 // Spacing between words on the passage. The default (0.25em) matches
 // what the passage shipped with — every other preset is relative to that.
@@ -25,32 +27,11 @@ const WORD_SPACING_PRESETS: ReadonlyArray<{ label: string; em: number }> = [
   { label: "Airy", em: 0.7 },
 ];
 
-/** Hero preview that mirrors the practice passage exactly. The text
- *  size, family, and word spacing all read from the same CSS vars
- *  the passage uses (`--ft-font-scale`, `--ft-font-family`,
- *  `--ft-word-spacing`), so what the user sees here is what they'll
- *  type against. The viewport-width breakpoints match the passage's
- *  (sm: / lg:) so a desktop preview reflects desktop sizing. */
-function HeroPreview() {
-  return (
-    <div className="rounded-md border border-border bg-card px-5 py-6">
-      <p
-        className="font-normal tracking-[0.04em] text-[calc(var(--ft-font-scale,1)*1.75rem)] leading-[2.1] text-foreground sm:text-[calc(var(--ft-font-scale,1)*2.125rem)] sm:leading-[2.2] lg:text-[calc(var(--ft-font-scale,1)*2.5rem)] lg:leading-[2.3]"
-        style={{
-          fontFamily: "var(--ft-font-family, inherit)",
-          wordSpacing: "var(--ft-word-spacing, 0.25em)",
-        }}
-      >
-        the quick brown fox jumps over the lazy dog
-      </p>
-    </div>
-  );
-}
-
-/** Number-input control for the font-size percentage. Stores the
- *  multiplier (1.0 = 100%) but takes input in human percent. Snaps
- *  the wire value to two decimals so float-arithmetic noise like
- *  `1.0500000000000003` never lands in the prefs blob. */
+/** Number-input control for the practice-passage font size in pixels.
+ *  Stores `--ft-font-scale` as `px / FONT_SIZE_PX_DEFAULT`; the passage
+ *  multiplies this against its breakpoint base sizes, so the displayed
+ *  px value is honest at the lg breakpoint and proportionally smaller
+ *  on narrower viewports — same shape every theme has shipped with. */
 function FontSizeInput({
   scale,
   onChange,
@@ -58,37 +39,38 @@ function FontSizeInput({
   scale: number;
   onChange: (multiplier: number) => void;
 }) {
-  const pct = Math.round(scale * 100);
+  const px = Math.round(scale * FONT_SIZE_PX_DEFAULT);
   return (
     <div className="relative">
       <Input
         type="number"
         inputMode="numeric"
-        min={FONT_SIZE_PCT_MIN}
-        max={FONT_SIZE_PCT_MAX}
+        min={FONT_SIZE_PX_MIN}
+        max={FONT_SIZE_PX_MAX}
         step={1}
-        value={String(pct)}
-        aria-label="Font size percentage"
+        value={String(px)}
+        aria-label="Font size (px)"
         onChange={(e) => {
           const raw = e.currentTarget.value;
           if (raw === "") return;
           const n = Number.parseInt(raw, 10);
           if (!Number.isFinite(n)) return;
           const clamped = Math.min(
-            FONT_SIZE_PCT_MAX,
-            Math.max(FONT_SIZE_PCT_MIN, n),
+            FONT_SIZE_PX_MAX,
+            Math.max(FONT_SIZE_PX_MIN, n),
           );
-          // Two-decimal multiplier — 105% becomes 1.05, never 1.0500000…
-          const snapped = Math.round((clamped / 100) * 100) / 100;
+          // Two-decimal multiplier — 32px becomes 0.80, never 0.7999…
+          const snapped =
+            Math.round((clamped / FONT_SIZE_PX_DEFAULT) * 100) / 100;
           onChange(snapped);
         }}
-        className="h-8 w-20 pr-7 text-right tabular-nums"
+        className="h-8 w-20 pr-8 text-right tabular-nums"
       />
       <span
         aria-hidden
         className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-xs text-muted-foreground"
       >
-        %
+        px
       </span>
     </div>
   );
@@ -113,8 +95,6 @@ export function TypographyRows() {
 
   return (
     <div className="flex flex-col gap-3">
-      <HeroPreview />
-
       <FontRow
         value={family}
         onChange={(opt) => {

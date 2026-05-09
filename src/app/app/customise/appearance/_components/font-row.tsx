@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, ChevronDown } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,6 +19,28 @@ import {
 import { FONT_CATALOG, type FontEntry } from "@/lib/fonts/catalog";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { cn } from "@/lib/utils";
+
+/** When the picker mounts, kick `document.fonts.load(...)` for every
+ *  catalog family so every option in the dropdown can paint in its
+ *  actual face. Without this, the @font-face rules from /fonts/fonts.css
+ *  are declared but the woff2 isn't fetched until a span actually
+ *  paints — and the dropdown often closes before the swap happens, so
+ *  most names render in the fallback monospace and the user can't tell
+ *  fonts apart. */
+function useEagerFontLoad(triggered: boolean) {
+  const loadedRef = useRef(false);
+  useEffect(() => {
+    if (!triggered || loadedRef.current) return;
+    if (typeof document === "undefined" || !document.fonts) return;
+    loadedRef.current = true;
+    for (const e of FONT_CATALOG) {
+      // 700 + 400 mirrors what googleFontHref requests; the browser
+      // dedupes if a single weight covers both.
+      void document.fonts.load(`400 16px "${e.family}"`);
+      void document.fonts.load(`700 16px "${e.family}"`);
+    }
+  }, [triggered]);
+}
 
 /** Picker entry — either a built-in system stack (resolved from
  *  globals/layout) or a Google Font shipped locally by the app. Every
@@ -137,6 +159,11 @@ function FontPicker({
 }) {
   const isMobile = useIsMobile();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  // Either the mobile sheet or the desktop popover being open means the
+  // user is about to read every font name — eagerly fetch all woff2s
+  // so each label paints in its own family.
+  useEagerFontLoad(sheetOpen || popoverOpen);
   const grouped = useMemo(() => {
     const out: Record<FontGroup, FontOption[]> = {
       system: [],
@@ -216,7 +243,7 @@ function FontPicker({
   }
 
   return (
-    <Popover>
+    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent align="end" className="w-72 p-0" sideOffset={6}>
         <div className="max-h-80 overflow-y-auto">{groups}</div>

@@ -68,7 +68,7 @@ export function AppearanceSectionPage({
             Preview
           </h3>
         </div>
-        <div className="overflow-hidden rounded-md border border-border bg-card">
+        <div className="overflow-hidden rounded-md border border-border bg-background">
           {preview}
         </div>
       </div>

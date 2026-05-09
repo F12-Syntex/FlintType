@@ -6,7 +6,7 @@ import {
 } from "@/lib/theme-customization";
 import { AppearanceSectionPage } from "../_components/section-page";
 import { ColorRow } from "../_components/color-row";
-import { ColorsPreview } from "../_previews/colors";
+import { MiniSample } from "../_components/mini-sample";
 
 type ColorRowDef = {
   var: ThemeVar;
@@ -51,7 +51,7 @@ const COLOR_ROWS: readonly ColorRowDef[] = [
 export default function ColorsPage() {
   const { overrides, setVar, clearVar } = useThemeOverrides();
   return (
-    <AppearanceSectionPage id="colors" preview={<ColorsPreview />}>
+    <AppearanceSectionPage id="colors" preview={<MiniSample />}>
       <div className="flex flex-col gap-3">
         {COLOR_ROWS.map((row) => (
           <ColorRow
