@@ -1,11 +1,10 @@
 "use client";
 
-import { ArrowLeft, Zap } from "lucide-react";
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import { Tag } from "@/components/ft";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { StreakGrid } from "./streak-grid";
 
 /** A burst minigame: type each item in `items` correctly above the
  *  WPM threshold, `repsPerItem` consecutive times. Hit the rep
@@ -34,6 +33,11 @@ type State = {
   totalAttempts: number;
   totalWins: number;
   finished: boolean;
+  /** Most recently committed attempt's WPM. Surfaced under the
+   *  central word as "Last WPM score: N" so the user can feel the
+   *  pace of their bursts without a live meter cluttering the
+   *  surface. Null until the first commit. */
+  lastWpm: number | null;
 };
 
 type Action =
@@ -52,6 +56,7 @@ const initialState: State = {
   totalAttempts: 0,
   totalWins: 0,
   finished: false,
+  lastWpm: null,
 };
 
 /** Burst WPM for a single attempt. Standard 5-chars-per-word
@@ -118,6 +123,7 @@ function reducer(state: State, action: Action): State {
       if (state.attemptStartedAt == null) return state;
 
       const wpm = burstWpm(target.length, action.now - state.attemptStartedAt);
+      const wpmRounded = Math.round(wpm);
       const fast = wpm >= action.thresholdWpm;
       if (!fast) {
         return {
@@ -127,6 +133,7 @@ function reducer(state: State, action: Action): State {
           reps: 0,
           lastOutcome: "slow",
           totalAttempts: state.totalAttempts + 1,
+          lastWpm: wpmRounded,
         };
       }
       const nextReps = state.reps + 1;
@@ -143,6 +150,7 @@ function reducer(state: State, action: Action): State {
         totalAttempts: state.totalAttempts + 1,
         totalWins: state.totalWins + 1,
         finished: finishedDrill,
+        lastWpm: wpmRounded,
       };
     }
   }
@@ -267,15 +275,39 @@ export function BurstGame({
     <>
       <DrillHeader title={title} subtitle={subtitle} onExit={onExit} />
 
-      <section className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 px-5 py-10 sm:gap-10 sm:px-16">
-        {state.finished ? (
+      {state.finished ? (
+        <section className="flex min-h-0 flex-1 flex-col items-center justify-center px-5 py-10 sm:px-16">
           <DrillComplete
             totalWins={state.totalWins}
             totalAttempts={state.totalAttempts}
             onExit={onExit}
           />
-        ) : (
-          <>
+        </section>
+      ) : (
+        <section className="flex min-h-0 flex-1 flex-col items-stretch gap-8 px-5 py-8 sm:gap-12 sm:px-12 lg:px-20">
+          {/* Top bracketed stat strip — the four most useful counters
+           *  at a glance. The bracket frame mirrors the editorial
+           *  flourish on the customise page; the strip is centred so
+           *  it visually anchors the surface above the central word. */}
+          <StatStripFrame label="Burst">
+            <StatCard top={String(thresholdWpm)} caption="Threshold" />
+            <StatCard top={String(state.reps)} caption="Streak" />
+            <StatCard
+              top={`${state.itemIdx + 1}/${items.length}`}
+              caption="Item"
+            />
+            <StatCard top={`${accuracy}%`} caption="Accuracy" />
+            <StatCard
+              top="Esc"
+              caption="Exit"
+              accent="muted"
+            />
+          </StatStripFrame>
+
+          {/* Central word + streak pips + status text. Vertically
+           *  spaced apart so the eye lands on the word first, then
+           *  drops to the status block. */}
+          <div className="flex flex-1 flex-col items-center justify-center gap-6">
             <BurstWord
               target={targetWord}
               typed={state.typed}
@@ -283,56 +315,290 @@ export function BurstGame({
               ready={ready}
             />
 
-            <BurstMeter
-              typed={state.typed}
-              targetLength={targetWord.length}
-              attemptStartedAt={state.attemptStartedAt}
-              thresholdWpm={thresholdWpm}
+            <StreakPips
+              total={repsPerItem}
+              done={state.reps}
+              failed={state.lastOutcome === "wrong"}
+            />
+
+            <StatusBlock
+              ready={ready}
               outcome={state.lastOutcome}
+              lastWpm={state.lastWpm}
+              thresholdWpm={thresholdWpm}
             />
+          </div>
 
-            {/* Reserve the row whether or not the hint is showing so
-             *  the layout below doesn't jump as the user types. */}
-            <div className="h-5 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              {ready ? (
-                <span className="text-primary motion-safe:animate-pulse">
-                  Press space to commit
-                </span>
-              ) : null}
-            </div>
-
-            <UpcomingPreview
-              items={items}
-              cursor={state.itemIdx}
-            />
-
-            <div className="flex flex-col items-center gap-3">
-              <Tag>
-                Streak · {state.reps} of {repsPerItem}
-              </Tag>
-              <StreakGrid
-                total={repsPerItem}
-                done={state.reps}
-                active={state.reps < repsPerItem ? state.reps : null}
-                cellsPerRow={repsPerItem}
-                failed={state.lastOutcome === "wrong"}
-                className="w-full max-w-xs"
-              />
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs text-muted-foreground">
-              <Stat label="Threshold">
-                <Zap size={12} className="text-primary" /> {thresholdWpm} wpm
-              </Stat>
-              <Stat label="Item">
-                {state.itemIdx + 1} / {items.length}
-              </Stat>
-              <Stat label="Accuracy">{accuracy}%</Stat>
-            </div>
-          </>
-        )}
-      </section>
+          {/* Bottom bracketed progress strip — one cell per item, lit
+           *  when that item has been cleared. Mirrors the screenshot's
+           *  "WORDS DISCOVERED (46/1000)" pattern; gives the user a
+           *  tangible sense of how much of the drill remains. */}
+          <ProgressStripFrame
+            cleared={state.itemIdx}
+            total={items.length}
+            currentReps={state.reps}
+            repsPerItem={repsPerItem}
+          />
+        </section>
+      )}
     </>
+  );
+}
+
+// ─── stat strip ────────────────────────────────────────────────────
+
+function StatStripFrame({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative mx-auto w-full max-w-3xl">
+      <div className="flex flex-wrap items-stretch justify-center gap-2 sm:gap-3">
+        {children}
+      </div>
+      {/* Bracket beneath the cards — two hairlines flanking a centred
+       *  label. The label sits in a `bg-background` chip so it eats
+       *  the line behind it for the editorial-mechanical bracket look. */}
+      <div
+        aria-hidden
+        className="relative mt-2 flex items-center justify-center"
+      >
+        <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
+        <span className="relative bg-background px-3 text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
+          {label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({
+  top,
+  caption,
+  accent = "default",
+}: {
+  /** Big glyph at the top of the card — number, hotkey letter, or
+   *  short token like "12/30". Rendered in mono. */
+  top: string;
+  /** Small uppercase caption below the glyph. */
+  caption: string;
+  /** `default` is foreground on card; `muted` is dimmer chrome for the
+   *  Esc/Exit affordance so it doesn't pull the eye like a real metric. */
+  accent?: "default" | "muted";
+}) {
+  return (
+    <div
+      className={cn(
+        "flex w-[64px] flex-col items-center justify-center gap-1 rounded-md border border-border bg-card px-2 py-2 text-center sm:w-[72px] sm:py-3",
+        accent === "muted" && "border-dashed",
+      )}
+    >
+      <span
+        className={cn(
+          "font-mono text-base font-bold leading-none tabular-nums sm:text-lg",
+          accent === "default" ? "text-foreground" : "text-muted-foreground",
+        )}
+        style={{ fontFamily: "var(--ft-font-family, inherit)" }}
+      >
+        {top}
+      </span>
+      <span className="text-[9px] font-medium uppercase tracking-[0.18em] text-muted-foreground sm:text-[10px]">
+        {caption}
+      </span>
+    </div>
+  );
+}
+
+// ─── streak pips ───────────────────────────────────────────────────
+
+function StreakPips({
+  total,
+  done,
+  failed,
+}: {
+  total: number;
+  done: number;
+  failed: boolean;
+}) {
+  return (
+    <div
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={total}
+      aria-valuenow={done}
+      className="flex gap-1.5"
+    >
+      {Array.from({ length: total }, (_, i) => {
+        const filled = i < done;
+        return (
+          <span
+            key={i}
+            aria-hidden
+            className={cn(
+              "h-1.5 w-7 rounded-sm transition-colors",
+              filled
+                ? failed
+                  ? "bg-destructive/70"
+                  : "bg-primary"
+                : "bg-foreground/15",
+            )}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── status block ──────────────────────────────────────────────────
+
+function StatusBlock({
+  ready,
+  outcome,
+  lastWpm,
+  thresholdWpm,
+}: {
+  ready: boolean;
+  outcome: AttemptOutcome | null;
+  lastWpm: number | null;
+  thresholdWpm: number;
+}) {
+  // Top line — "Ready / Slow / Miss / Type" — picks one mode per
+  // state combination. Bottom line surfaces the last burst's WPM if
+  // we have one, otherwise stays blank-but-reserved so the layout
+  // doesn't jump on first commit.
+  let label: string;
+  let labelTone: "primary" | "destructive" | "muted" | "foreground";
+  if (outcome === "win") {
+    label = "Hit";
+    labelTone = "primary";
+  } else if (outcome === "slow") {
+    label = "Slow";
+    labelTone = "muted";
+  } else if (outcome === "wrong") {
+    label = "Miss";
+    labelTone = "destructive";
+  } else if (ready) {
+    label = "Ready";
+    labelTone = "primary";
+  } else {
+    label = "Type";
+    labelTone = "foreground";
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <span
+        className={cn(
+          "font-mono text-base font-bold tracking-tight sm:text-lg",
+          labelTone === "primary" && "text-primary motion-safe:animate-pulse",
+          labelTone === "destructive" && "text-destructive",
+          labelTone === "muted" && "text-muted-foreground",
+          labelTone === "foreground" && "text-foreground",
+        )}
+        style={{ fontFamily: "var(--ft-font-family, inherit)" }}
+      >
+        {label}
+      </span>
+      <span className="h-4 text-xs text-muted-foreground tabular-nums">
+        {lastWpm != null ? (
+          <>
+            Last burst:{" "}
+            <span
+              className={cn(
+                "font-semibold",
+                lastWpm >= thresholdWpm ? "text-primary" : "text-foreground",
+              )}
+            >
+              {lastWpm} wpm
+            </span>
+          </>
+        ) : (
+          <span aria-hidden>&nbsp;</span>
+        )}
+      </span>
+    </div>
+  );
+}
+
+// ─── progress strip ────────────────────────────────────────────────
+
+function ProgressStripFrame({
+  cleared,
+  total,
+  currentReps,
+  repsPerItem,
+}: {
+  /** Items fully cleared so far. */
+  cleared: number;
+  /** Total items in the drill. */
+  total: number;
+  /** Reps clocked on the in-flight item — drives a half-lit cell so
+   *  the user sees fractional progress within the current item. */
+  currentReps: number;
+  repsPerItem: number;
+}) {
+  // Cells render with three intensities:
+  //   cleared       — fully lit primary
+  //   in-progress   — partial alpha that scales with currentReps
+  //   pending       — dim hairline
+  // The progress strip can run wide; on narrow viewports it wraps
+  // gracefully because each cell is a fixed-min-width flex child.
+  const cells = Array.from({ length: total });
+  const partialAlpha =
+    repsPerItem > 0 ? Math.min(1, currentReps / repsPerItem) : 0;
+  return (
+    <div className="relative mx-auto w-full max-w-3xl">
+      <div className="rounded-md border border-border bg-card/40 p-3 sm:p-4">
+        <div
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={total}
+          aria-valuenow={cleared}
+          className="flex flex-wrap gap-1"
+        >
+          {cells.map((_, i) => {
+            const state =
+              i < cleared
+                ? "cleared"
+                : i === cleared
+                  ? "active"
+                  : "pending";
+            return (
+              <span
+                key={i}
+                aria-hidden
+                className={cn(
+                  "h-2 min-w-[10px] flex-1 rounded-sm transition-colors",
+                  state === "cleared" && "bg-primary",
+                  state === "pending" && "bg-foreground/10",
+                )}
+                style={
+                  state === "active"
+                    ? {
+                        backgroundColor: `color-mix(in oklch, var(--primary) ${Math.round(
+                          partialAlpha * 80 + 10,
+                        )}%, transparent)`,
+                      }
+                    : undefined
+                }
+              />
+            );
+          })}
+        </div>
+      </div>
+      <div
+        aria-hidden
+        className="relative mt-2 flex items-center justify-center"
+      >
+        <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
+        <span className="relative bg-background px-3 text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground tabular-nums">
+          Items cleared · {cleared}/{total}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -396,151 +662,6 @@ function BurstWord({
         );
       })}
     </div>
-  );
-}
-
-/** Live attempt WPM meter — fills as the user types, with a marker
- *  at the threshold. Above the line = green/primary, below = muted.
- *  This is the BurstType-style feedback that lets the user feel the
- *  rhythm: you can see whether you're tracking ahead of or behind
- *  the target without waiting for the attempt to finish. */
-function BurstMeter({
-  typed,
-  targetLength,
-  attemptStartedAt,
-  thresholdWpm,
-  outcome,
-}: {
-  typed: string;
-  targetLength: number;
-  attemptStartedAt: number | null;
-  thresholdWpm: number;
-  outcome: AttemptOutcome | null;
-}) {
-  // Tick a local clock so the WPM updates between keystrokes — without
-  // it the meter would only refresh on each new char.
-  const [, force] = useState(0);
-  useEffect(() => {
-    if (attemptStartedAt == null) return;
-    const id = setInterval(() => force((n) => n + 1), 60);
-    return () => clearInterval(id);
-  }, [attemptStartedAt]);
-
-  // The meter caps at 2× threshold so the threshold marker sits dead
-  // centre — easy to read "above" vs "below". Empty attempt or
-  // immediately after a finish (outcome flash) reads as 0.
-  const max = thresholdWpm * 2;
-  let wpm = 0;
-  if (attemptStartedAt != null && typed.length > 0 && outcome == null) {
-    const elapsed = Date.now() - attemptStartedAt;
-    wpm = burstWpm(typed.length, elapsed);
-  }
-  const pct = Math.max(0, Math.min(100, (wpm / max) * 100));
-  const above = wpm >= thresholdWpm;
-  const progressPct = (typed.length / Math.max(1, targetLength)) * 100;
-
-  return (
-    <div className="flex w-full max-w-md flex-col gap-2">
-      <div className="flex items-baseline justify-between font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-        <span>This burst</span>
-        <span
-          className={cn(
-            "tabular-nums",
-            wpm > 0 && (above ? "text-primary" : "text-muted-foreground"),
-            outcome === "win" && "text-primary",
-            outcome === "slow" && "text-muted-foreground",
-            outcome === "wrong" && "text-destructive",
-          )}
-        >
-          {Math.round(wpm)} wpm
-        </span>
-      </div>
-      <div className="relative h-2 w-full overflow-hidden rounded-sm border border-border bg-muted">
-        {/* Fill bar — width tracks live wpm. Colour above/below
-            threshold mirrors the win / slow outcome colours. */}
-        <span
-          aria-hidden
-          className={cn(
-            "absolute inset-y-0 left-0 transition-[width] duration-75",
-            above ? "bg-primary" : "bg-muted-foreground/60",
-            outcome === "wrong" && "bg-destructive",
-          )}
-          style={{ width: `${pct}%` }}
-        />
-        {/* Threshold marker — vertical hairline at 50 % of the bar
-            (since max = threshold × 2). */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-1/2 w-px bg-foreground/30"
-        />
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -top-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-foreground/40"
-        />
-      </div>
-      {/* Word completion bar — tracks how far through the current
-          attempt the user is. Sits below the WPM bar so the two
-          dimensions read independently: cadence (above) and
-          progress (below). */}
-      <div className="relative h-1 w-full overflow-hidden rounded-sm bg-muted">
-        <span
-          aria-hidden
-          className="absolute inset-y-0 left-0 bg-foreground/40 transition-[width] duration-75"
-          style={{ width: `${progressPct}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-/** Up to three queued items rendered as a tight mono strip — the
- *  active item, then the next two dimmed. Lets the user see what's
- *  coming and pace their breath. Hidden on the last item. */
-function UpcomingPreview({
-  items,
-  cursor,
-}: {
-  items: readonly string[];
-  cursor: number;
-}) {
-  const next = items.slice(cursor + 1, cursor + 3);
-  if (next.length === 0) return null;
-  return (
-    <div className="flex flex-col items-center gap-1.5">
-      <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground/70">
-        Up next
-      </span>
-      <div className="flex max-w-[80vw] flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-sm text-muted-foreground/55 sm:text-base">
-        {next.map((it, i) => (
-          <span
-            key={`${cursor}-${i}-${it}`}
-            className="truncate whitespace-nowrap"
-            style={{ fontFamily: "var(--ft-font-family, inherit)" }}
-          >
-            {it}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <span className="flex flex-col items-center gap-1">
-      <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-        {label}
-      </span>
-      <span className="flex items-center gap-1 text-sm font-semibold tabular-nums text-foreground">
-        {children}
-      </span>
-    </span>
   );
 }
 
