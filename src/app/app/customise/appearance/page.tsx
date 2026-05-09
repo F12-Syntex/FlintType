@@ -1,138 +1,23 @@
 "use client";
 
+import { ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
-import {
-  type ThemeVar,
-  useThemeOverrides,
-} from "@/lib/theme-customization";
-import { ModeSwitcher } from "@/components/ui/mode-switcher";
-import { SectionHeader, SettingsPageHeader } from "../_components/page-header";
-import { SettingsRow } from "../_components/row";
-import { BackgroundRow } from "./_components/background-row";
-import { BordersRow } from "./_components/borders-row";
-import { CaretRow } from "./_components/caret-row";
-import { ColorRow } from "./_components/color-row";
-import { KeyboardRow } from "./_components/keyboard-row";
-import { KeymapRows } from "./_components/keymap-rows";
-import { LiveStatsRows } from "./_components/live-stats-rows";
-import { PassageRows } from "./_components/passage-rows";
-import { RadiusRow } from "./_components/radius-row";
-import { ResultRows } from "./_components/result-rows";
-import { ThemesRow } from "./_components/themes-row";
-import { TypographyRows } from "./_components/typography-row";
-
-// ─── Color section ─────────────────────────────────────────────────
-
-type ColorRowDef = {
-  var: ThemeVar;
-  label: string;
-  desc: string;
-  /** CSS custom-property name used as the swatch fallback when `row.var`
-   *  is not set on `:root` (e.g. `--ft-passage-typed` falls back to
-   *  `--primary` inside passage.tsx; the swatch should show the same
-   *  colour). String-typed because the fallback is sometimes a token
-   *  like `--destructive` that's owned by the active palette and
-   *  intentionally absent from the user-overridable THEME_VARS list. */
-  fallbackVar?: `--${string}`;
-};
-
-const COLOR_ROWS: readonly ColorRowDef[] = [
-  {
-    var: "--primary",
-    label: "Primary accent",
-    desc: "Active states, CTAs, the brand spark",
-  },
-  {
-    var: "--primary-foreground",
-    label: "Primary text",
-    desc: "Text rendered on top of the primary accent",
-  },
-  {
-    var: "--accent",
-    label: "Highlight tint",
-    desc: "Soft hover backgrounds and accent surfaces",
-  },
-  {
-    var: "--accent-foreground",
-    label: "Highlight text",
-    desc: "Text rendered on top of the highlight tint",
-  },
-  {
-    var: "--background",
-    label: "Page background",
-    desc: "The main canvas behind every screen",
-  },
-  {
-    var: "--foreground",
-    label: "Body text",
-    desc: "Default text color for headlines and prose",
-  },
-  {
-    var: "--card",
-    label: "Card surface",
-    desc: "Lifted panels — settings rows, popovers, mode-bar",
-  },
-  {
-    var: "--muted",
-    label: "Muted surface",
-    desc: "Sidebars and de-emphasized regions",
-  },
-  {
-    var: "--muted-foreground",
-    label: "Muted text",
-    desc: "Captions, eyebrow labels, secondary metadata",
-  },
-  {
-    var: "--border",
-    label: "Border",
-    desc: "Hairline dividers and outlines",
-  },
-  {
-    var: "--input",
-    label: "Input track",
-    desc: "Form fields and toggle off-state tracks",
-  },
-  {
-    var: "--ring",
-    label: "Focus ring",
-    desc: "The outline that wraps a focused element",
-  },
-  {
-    var: "--ft-passage-typed",
-    label: "Practice text",
-    desc: "Letters you've already typed in the practice passage. Defaults to the primary accent.",
-    fallbackVar: "--primary",
-  },
-  {
-    var: "--ft-passage-untyped",
-    label: "Practice text (pending)",
-    desc: "Letters not yet typed in the practice passage. Independent of muted text.",
-    fallbackVar: "--muted-foreground",
-  },
-  {
-    var: "--ft-passage-error",
-    label: "Practice text (error)",
-    desc: "Letters mistyped in the practice passage. Defaults to the theme's destructive colour.",
-    fallbackVar: "--destructive",
-  },
-];
-
-// ColorRow lives in ./_components/color-row.tsx so the live-stats
-// row in live-stats-rows.tsx can reuse the same affordance — ui-law
-// §12 mandates a uniform colour-picker pattern across the page.
-
-// ─── Page ──────────────────────────────────────────────────────────
+import { useThemeOverrides } from "@/lib/theme-customization";
+import { SettingsPageHeader } from "../_components/page-header";
+import { APPEARANCE_SECTIONS } from "./_sections";
 
 export default function AppearancePage() {
-  const { overrides, setVar, clearVar, reset } = useThemeOverrides();
+  const { overrides, reset } = useThemeOverrides();
   const {
     customizedCount: appearanceCustomized,
     reset: resetAppearance,
   } = useAppearancePrefs();
+
   // Reset all clears every per-var theme override (colors, font, radius)
   // *and* every appearance pref (live stats, passage, result, keymap).
   // The active theme stays put — switching theme is its own deliberate
-  // action via the Theme picker.
+  // action via the Theme picker on /appearance/themes.
   const customizedCount = Object.keys(overrides).length + appearanceCustomized;
 
   function handleResetAll() {
@@ -144,86 +29,34 @@ export default function AppearancePage() {
     <section className="text-foreground">
       <SettingsPageHeader
         title="Appearance"
-        optionsCount={COLOR_ROWS.length + 7}
         customizedCount={customizedCount}
         onResetAll={handleResetAll}
-        description="Tweak any surface, color, or shape — changes apply instantly and stay with you across reloads."
+        description="Every visual control lives under its own page so the preview at the top reflects exactly what you'll change. Pick a section to dive in."
       />
 
-      <SectionHeader label="Themes" />
-      <div className="mb-8 flex flex-col gap-3">
-        <ThemesRow />
-        <SettingsRow label="Mode" control={<ModeSwitcher />} />
-      </div>
-
-      <SectionHeader label="Colors" />
-      <div className="mb-8 flex flex-col gap-3">
-        {COLOR_ROWS.map((row) => (
-          <ColorRow
-            key={row.var}
-            label={row.label}
-            desc={row.desc}
-            swatchColor={
-              row.fallbackVar
-                ? `var(${row.var}, var(${row.fallbackVar}))`
-                : `var(${row.var})`
-            }
-            value={overrides[row.var]}
-            onChange={(hex) => setVar(row.var, hex)}
-            onClear={() => clearVar(row.var)}
-          />
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {APPEARANCE_SECTIONS.map((s) => (
+          <li key={s.id}>
+            <Link
+              href={`/app/customise/appearance/${s.id}`}
+              className="group flex h-full flex-col justify-between gap-3 rounded-md border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-card/80"
+            >
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground group-hover:text-primary">
+                  {s.name}
+                </span>
+                <p className="text-sm leading-relaxed text-foreground/85">
+                  {s.blurb}
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors group-hover:text-foreground">
+                Open
+                <ChevronRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+              </span>
+            </Link>
+          </li>
         ))}
-      </div>
-
-      <SectionHeader label="Geometry" />
-      <div className="mb-8 flex flex-col gap-3">
-        <RadiusRow
-          value={overrides["--radius"]}
-          onChange={(rem) => setVar("--radius", `${rem}rem`)}
-          onClear={() => clearVar("--radius")}
-        />
-        <BordersRow />
-      </div>
-
-      <SectionHeader label="Caret &amp; cursor" />
-      <div className="mb-8 flex flex-col gap-3">
-        <CaretRow />
-      </div>
-
-      <SectionHeader label="Practice text typography" />
-      <div className="mb-8 flex flex-col gap-3">
-        <TypographyRows />
-      </div>
-
-      <SectionHeader label="Keyboard" />
-      <div className="mb-8 flex flex-col gap-3">
-        <KeyboardRow />
-      </div>
-
-      <SectionHeader label="Background" />
-      <div className="mb-8">
-        <BackgroundRow />
-      </div>
-
-      <SectionHeader label="Live stats" />
-      <div className="mb-8">
-        <LiveStatsRows />
-      </div>
-
-      <SectionHeader label="Typing area" />
-      <div className="mb-8">
-        <PassageRows />
-      </div>
-
-      <SectionHeader label="Result" />
-      <div className="mb-8">
-        <ResultRows />
-      </div>
-
-      <SectionHeader label="Keymap" />
-      <div className="mb-8">
-        <KeymapRows />
-      </div>
+      </ul>
     </section>
   );
 }

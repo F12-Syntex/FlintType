@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { buildPageMetadata } from "@/server/seo";
-import { SECTIONS } from "./_components/data";
 
 export const metadata = buildPageMetadata({
   title: "Settings",
@@ -10,8 +9,10 @@ export const metadata = buildPageMetadata({
   noIndex: true,
 });
 
-/** Settings root — bounce to the first section so the URL always names
- *  the visible content (and the sidebar's active highlight is correct). */
+/** Settings root — bounce to the Appearance overview so the URL always
+ *  names the visible content (and the sidebar's active highlight is
+ *  correct). Appearance is the landing surface; sub-pages live under
+ *  /app/customise/appearance/<id>. */
 export default function CustomiseIndexPage() {
-  redirect(`/app/customise/${SECTIONS[0]!.id}`);
+  redirect("/app/customise/appearance");
 }

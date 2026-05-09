@@ -1,11 +1,12 @@
 "use client";
 
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
 import { cn } from "@/lib/utils";
+import { APPEARANCE_SECTIONS } from "../appearance/_sections";
 import { SECTIONS } from "./data";
 import { ImportExportPanel } from "./import-export";
 
@@ -17,28 +18,42 @@ function titleCase(name: string): string {
     .join(" ");
 }
 
-/** Section picker for mobile — a readable text trigger ("Appearance ⌄")
- *  in the customise header that opens a fixed-height bottom sheet
- *  listing every section. Avoids the hamburger glyph so it doesn't
- *  duplicate the topbar's nav menu icon, and surfaces the current
- *  section name so the user can read where they are without opening
- *  the page header below.
- *
- *  The sheet's body has two regions: the section list at the top, and
- *  the import/export panel pinned at the bottom — the same shape as
- *  the desktop sidebar so users learn one mental map. */
+/** Top-level sections shown in both sidebar and mobile picker. The
+ *  Appearance entry is special — it also enumerates 11 sub-pages. */
+const TOP_LEVEL = SECTIONS.map((s) => ({
+  id: s.id,
+  name: titleCase(s.name),
+  count: s.settings.length,
+}));
+
+function activeAppearanceSubpageId(pathname: string): string | null {
+  const m = pathname.match(/^\/app\/customise\/appearance\/([^/]+)/);
+  return m ? m[1] : null;
+}
+
+/** Mobile section picker — text trigger ("Appearance ⌄") that opens a
+ *  bottom sheet with both top-level sections and the Appearance
+ *  sub-pages nested inside. */
 export function MobileSectionPicker() {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const active = SECTIONS.find(
-    (s) => pathname === `/app/customise/${s.id}`,
-  );
-  const activeName = active ? titleCase(active.name) : "Sections";
 
-  function go(id: string) {
+  const onAppearance = pathname.startsWith("/app/customise/appearance");
+  const activeSubId = activeAppearanceSubpageId(pathname);
+  const activeAppearanceName =
+    APPEARANCE_SECTIONS.find((s) => s.id === activeSubId)?.name ?? "Appearance";
+
+  const topLevel = TOP_LEVEL.find((s) => pathname === `/app/customise/${s.id}`);
+  const triggerText = onAppearance
+    ? activeAppearanceName
+    : topLevel
+      ? topLevel.name
+      : "Sections";
+
+  function go(href: string) {
     setOpen(false);
-    router.push(`/app/customise/${id}`);
+    router.push(href);
   }
 
   return (
@@ -48,14 +63,14 @@ export function MobileSectionPicker() {
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`Section — currently ${activeName}, tap to switch`}
+        aria-label={`Section — currently ${triggerText}, tap to switch`}
         className={cn(
           "inline-flex h-9 max-w-[60vw] items-center gap-1.5 rounded-md px-2 -ml-2",
           "text-base font-semibold tracking-tight text-foreground",
           "transition-colors hover:bg-foreground/5 active:bg-foreground/10",
         )}
       >
-        <span className="truncate">{activeName}</span>
+        <span className="truncate">{triggerText}</span>
         <ChevronDown
           size={16}
           aria-hidden
@@ -65,11 +80,88 @@ export function MobileSectionPicker() {
           )}
         />
       </button>
+
       <MobileSheet open={open} onOpenChange={setOpen} title="Sections">
         <div className="flex h-full flex-col">
           <ul className="flex flex-col">
-            {SECTIONS.map((s) => {
-              const isActive = active?.id === s.id;
+            {/* Appearance — overview link */}
+            <li className="border-b border-border">
+              <button
+                type="button"
+                onClick={() => go("/app/customise/appearance")}
+                className={cn(
+                  "flex w-full items-center gap-3 px-4 py-4 text-left transition-colors",
+                  pathname === "/app/customise/appearance"
+                    ? "bg-foreground/[0.04]"
+                    : "hover:bg-foreground/5 active:bg-foreground/10",
+                )}
+                aria-current={
+                  pathname === "/app/customise/appearance" ? "page" : undefined
+                }
+              >
+                <span
+                  className={cn(
+                    "inline-flex h-5 w-5 shrink-0 items-center justify-center",
+                    pathname === "/app/customise/appearance"
+                      ? "text-primary"
+                      : "text-transparent",
+                  )}
+                >
+                  <Check size={18} />
+                </span>
+                <span className="flex-1 text-base font-semibold text-foreground">
+                  Appearance
+                </span>
+                <span className="shrink-0 text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                  Overview
+                </span>
+              </button>
+            </li>
+
+            {/* Appearance — sub-pages */}
+            {APPEARANCE_SECTIONS.map((s) => {
+              const href = `/app/customise/appearance/${s.id}`;
+              const isActive = pathname === href;
+              return (
+                <li key={s.id} className="border-b border-border">
+                  <button
+                    type="button"
+                    onClick={() => go(href)}
+                    className={cn(
+                      "flex w-full items-center gap-3 py-3 pl-10 pr-4 text-left transition-colors",
+                      isActive
+                        ? "bg-foreground/[0.04]"
+                        : "hover:bg-foreground/5 active:bg-foreground/10",
+                    )}
+                    aria-current={isActive ? "page" : undefined}
+                  >
+                    <span
+                      className={cn(
+                        "inline-flex h-4 w-4 shrink-0 items-center justify-center",
+                        isActive ? "text-primary" : "text-transparent",
+                      )}
+                    >
+                      <Check size={14} />
+                    </span>
+                    <span
+                      className={cn(
+                        "flex-1 text-sm",
+                        isActive
+                          ? "font-semibold text-foreground"
+                          : "text-foreground/85",
+                      )}
+                    >
+                      {s.name}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+
+            {/* Other top-level sections (e.g. Behaviour) */}
+            {TOP_LEVEL.filter((s) => s.id !== "appearance").map((s) => {
+              const href = `/app/customise/${s.id}`;
+              const isActive = pathname === href;
               return (
                 <li
                   key={s.id}
@@ -77,7 +169,7 @@ export function MobileSectionPicker() {
                 >
                   <button
                     type="button"
-                    onClick={() => go(s.id)}
+                    onClick={() => go(href)}
                     className={cn(
                       "flex w-full items-center gap-3 px-4 py-4 text-left transition-colors",
                       isActive
@@ -94,16 +186,11 @@ export function MobileSectionPicker() {
                     >
                       <Check size={18} />
                     </span>
-                    <span
-                      className={cn(
-                        "flex-1 text-base font-semibold",
-                        isActive ? "text-foreground" : "text-foreground/90",
-                      )}
-                    >
-                      {titleCase(s.name)}
+                    <span className="flex-1 text-base font-semibold text-foreground">
+                      {s.name}
                     </span>
                     <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
-                      {s.settings.length}
+                      {s.count}
                     </span>
                   </button>
                 </li>
@@ -119,20 +206,14 @@ export function MobileSectionPicker() {
   );
 }
 
-/** Desktop settings sidebar (lg:+). Three vertical regions:
- *    1. Header — "Customise" eyebrow + accent rule, anchors the rail
- *    2. Section list — scrollable, active item gets a left accent bar
- *    3. Footer — Import / Export panel (the controls that used to crowd
- *       the customise header now live with the section navigation,
- *       which is the right home for them).
- *
- *  Mobile (<lg) renders <MobileSectionPicker> from the customise header
- *  instead — no sidebar at that breakpoint. */
+/** Desktop sidebar — Appearance is always expanded with its 11
+ *  sub-pages indented under it. Behaviour (and any future top-level
+ *  section) renders as a sibling top-level entry. */
 export function SettingsSidebar() {
   const pathname = usePathname();
-  const active = SECTIONS.find(
-    (s) => pathname === `/app/customise/${s.id}`,
-  );
+  const onAppearanceOverview = pathname === "/app/customise/appearance";
+  const activeSubId = activeAppearanceSubpageId(pathname);
+  const otherTopLevel = TOP_LEVEL.filter((s) => s.id !== "appearance");
 
   return (
     <nav
@@ -140,7 +221,6 @@ export function SettingsSidebar() {
       aria-label="Settings sections"
       className="hidden bg-background/85 backdrop-blur-md lg:flex lg:h-full lg:flex-col lg:overflow-hidden lg:border-r lg:border-border"
     >
-      {/* Header — the rail's title bar. */}
       <div className="shrink-0 border-b border-border px-4 py-4">
         <div className="flex items-center gap-3">
           <span aria-hidden className="inline-block h-px w-5 bg-primary" />
@@ -150,22 +230,83 @@ export function SettingsSidebar() {
         </div>
       </div>
 
-      {/* Section list — fills remaining height, scrolls. */}
       <div className="min-h-0 flex-1 overflow-y-auto py-3">
-        <ul className="flex flex-col px-2 pb-3">
-          {SECTIONS.map((s) => {
+        <ul className="flex flex-col px-2">
+          {/* Appearance overview */}
+          <li>
+            <Link
+              href="/app/customise/appearance"
+              aria-current={onAppearanceOverview ? "page" : undefined}
+              className={cn(
+                "relative flex items-center gap-2 rounded-md py-2 pr-3 pl-3 text-sm transition-colors",
+                onAppearanceOverview
+                  ? "bg-foreground/[0.04] text-foreground"
+                  : "text-foreground/85 hover:bg-foreground/[0.03]",
+              )}
+            >
+              {onAppearanceOverview ? (
+                <span
+                  aria-hidden
+                  className="absolute top-2 bottom-2 left-1 w-0.5 rounded-full bg-primary"
+                />
+              ) : null}
+              <ChevronRight
+                size={12}
+                aria-hidden
+                className="rotate-90 text-muted-foreground"
+              />
+              <span className="font-semibold uppercase tracking-[0.14em] text-[11px]">
+                Appearance
+              </span>
+            </Link>
+          </li>
+
+          {/* Appearance sub-pages */}
+          <li>
+            <ul className="mb-3 ml-3 mt-1 flex flex-col gap-0.5 border-l border-border/60 pl-2">
+              {APPEARANCE_SECTIONS.map((s) => {
+                const href = `/app/customise/appearance/${s.id}`;
+                const isActive = activeSubId === s.id;
+                return (
+                  <li key={s.id}>
+                    <Link
+                      href={href}
+                      aria-current={isActive ? "page" : undefined}
+                      className={cn(
+                        "relative flex items-center gap-2 rounded-md py-1.5 pr-3 pl-2 text-sm transition-colors",
+                        isActive
+                          ? "bg-foreground/[0.04] text-foreground"
+                          : "text-muted-foreground hover:bg-foreground/[0.03] hover:text-foreground",
+                      )}
+                    >
+                      {isActive ? (
+                        <span
+                          aria-hidden
+                          className="absolute top-1.5 bottom-1.5 -left-[9px] w-0.5 rounded-full bg-primary"
+                        />
+                      ) : null}
+                      <span className="font-medium">{s.name}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </li>
+
+          {/* Other top-level sections */}
+          {otherTopLevel.map((s) => {
             const href = `/app/customise/${s.id}`;
-            const isActive = active?.id === s.id;
+            const isActive = pathname === href;
             return (
               <li key={s.id}>
                 <Link
                   href={href}
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "relative flex items-center justify-between gap-3 rounded-md py-2 pr-3 pl-4 text-sm transition-colors",
+                    "relative flex items-center justify-between gap-3 rounded-md py-2 pr-3 pl-3 text-sm transition-colors",
                     isActive
                       ? "bg-foreground/[0.04] text-foreground"
-                      : "text-muted-foreground hover:bg-foreground/[0.03] hover:text-foreground",
+                      : "text-foreground/85 hover:bg-foreground/[0.03]",
                   )}
                 >
                   {isActive ? (
@@ -174,16 +315,11 @@ export function SettingsSidebar() {
                       className="absolute top-2 bottom-2 left-1 w-0.5 rounded-full bg-primary"
                     />
                   ) : null}
-                  <span className="font-medium">{titleCase(s.name)}</span>
-                  <span
-                    className={cn(
-                      "tabular-nums text-xs",
-                      isActive
-                        ? "text-foreground/70"
-                        : "text-muted-foreground/70",
-                    )}
-                  >
-                    {s.settings.length}
+                  <span className="font-semibold uppercase tracking-[0.14em] text-[11px]">
+                    {s.name}
+                  </span>
+                  <span className="text-xs tabular-nums text-muted-foreground/70">
+                    {s.count}
                   </span>
                 </Link>
               </li>
@@ -192,10 +328,10 @@ export function SettingsSidebar() {
         </ul>
       </div>
 
-      {/* Footer — Import / Export panel. */}
       <div className="shrink-0 border-t border-border bg-background/60 px-3 py-3">
         <ImportExportPanel />
       </div>
     </nav>
   );
 }
+
