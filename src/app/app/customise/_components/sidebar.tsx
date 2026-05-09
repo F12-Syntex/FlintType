@@ -3,7 +3,7 @@
 import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
 import { cn } from "@/lib/utils";
 import { APPEARANCE_SECTIONS } from "../appearance/_sections";
@@ -18,38 +18,83 @@ function titleCase(name: string): string {
     .join(" ");
 }
 
-/** Top-level sections shown in both sidebar and mobile picker. The
- *  Appearance entry is special — it also enumerates 11 sub-pages. */
 const TOP_LEVEL = SECTIONS.map((s) => ({
   id: s.id,
   name: titleCase(s.name),
   count: s.settings.length,
 }));
 
-function activeAppearanceSubpageId(pathname: string): string | null {
-  const m = pathname.match(/^\/app\/customise\/appearance\/([^/]+)/);
-  return m ? m[1] : null;
+/** Track which `<section id>` is currently visible inside the customise
+ *  scroller so the sidebar can highlight it. The customise layout uses
+ *  a custom scroller (the inner `<div className="absolute inset-0
+ *  overflow-y-auto">`) rather than the window, so we observe with
+ *  IntersectionObserver against the document — the threshold trips when
+ *  ≥ 30 % of a section is in view, picking the topmost match. */
+function useActiveAppearanceSection(active: boolean): string | null {
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!active) {
+      setActiveId(null);
+      return;
+    }
+    const ids = APPEARANCE_SECTIONS.map((s) => s.id);
+    const targets = ids
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
+    if (targets.length === 0) return;
+
+    // Track ratios across all sections; pick the one closest to the
+    // top of the viewport with a non-trivial visibility share. Plain
+    // "first intersecting" is wrong because two sections often overlap
+    // the threshold band when one is partly scrolled past.
+    const ratios = new Map<string, number>();
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          ratios.set(e.target.id, e.intersectionRatio);
+        }
+        let bestId: string | null = null;
+        let bestRatio = 0;
+        for (const id of ids) {
+          const r = ratios.get(id) ?? 0;
+          if (r > bestRatio) {
+            bestRatio = r;
+            bestId = id;
+          }
+        }
+        if (bestId) setActiveId(bestId);
+      },
+      {
+        // Bands at 0/25/50/75/100 — finer than the default lets us
+        // distinguish "barely peeking" from "mostly visible".
+        threshold: [0, 0.25, 0.5, 0.75, 1],
+      },
+    );
+    for (const t of targets) obs.observe(t);
+    return () => obs.disconnect();
+  }, [active]);
+
+  return activeId;
 }
 
-/** Mobile section picker — text trigger ("Appearance ⌄") that opens a
- *  bottom sheet with both top-level sections and the Appearance
- *  sub-pages nested inside. */
+/** Mobile section picker — the trigger sits in the customise header
+ *  ("Themes & mode ⌄"), opening a bottom sheet that lists every section
+ *  on the appearance page (as anchor jumps) plus other top-level
+ *  sections (Behaviour, …). Picking a row jumps to that anchor. */
 export function MobileSectionPicker() {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
   const onAppearance = pathname.startsWith("/app/customise/appearance");
-  const activeSubId = activeAppearanceSubpageId(pathname);
-  const activeAppearanceName =
-    APPEARANCE_SECTIONS.find((s) => s.id === activeSubId)?.name ?? "Appearance";
+  const activeAppearanceId = useActiveAppearanceSection(onAppearance);
+  const activeName =
+    APPEARANCE_SECTIONS.find((s) => s.id === activeAppearanceId)?.name ??
+    (onAppearance ? "Appearance" : null);
 
   const topLevel = TOP_LEVEL.find((s) => pathname === `/app/customise/${s.id}`);
-  const triggerText = onAppearance
-    ? activeAppearanceName
-    : topLevel
-      ? topLevel.name
-      : "Sections";
+  const triggerText = activeName ?? topLevel?.name ?? "Sections";
 
   function go(href: string) {
     setOpen(false);
@@ -84,56 +129,25 @@ export function MobileSectionPicker() {
       <MobileSheet open={open} onOpenChange={setOpen} title="Sections">
         <div className="flex h-full flex-col">
           <ul className="flex flex-col">
-            {/* Appearance — overview link */}
-            <li className="border-b border-border">
-              <button
-                type="button"
-                onClick={() => go("/app/customise/appearance")}
-                className={cn(
-                  "flex w-full items-center gap-3 px-4 py-4 text-left transition-colors",
-                  pathname === "/app/customise/appearance"
-                    ? "bg-foreground/[0.04]"
-                    : "hover:bg-foreground/5 active:bg-foreground/10",
-                )}
-                aria-current={
-                  pathname === "/app/customise/appearance" ? "page" : undefined
-                }
-              >
-                <span
-                  className={cn(
-                    "inline-flex h-5 w-5 shrink-0 items-center justify-center",
-                    pathname === "/app/customise/appearance"
-                      ? "text-primary"
-                      : "text-transparent",
-                  )}
-                >
-                  <Check size={18} />
-                </span>
-                <span className="flex-1 text-base font-semibold text-foreground">
-                  Appearance
-                </span>
-                <span className="shrink-0 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                  Overview
-                </span>
-              </button>
+            <li className="border-b border-border bg-background/40">
+              <span className="block px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Appearance
+              </span>
             </li>
-
-            {/* Appearance — sub-pages */}
             {APPEARANCE_SECTIONS.map((s) => {
-              const href = `/app/customise/appearance/${s.id}`;
-              const isActive = pathname === href;
+              const isActive = onAppearance && activeAppearanceId === s.id;
               return (
                 <li key={s.id} className="border-b border-border">
                   <button
                     type="button"
-                    onClick={() => go(href)}
+                    onClick={() => go(`/app/customise/appearance#${s.id}`)}
                     className={cn(
-                      "flex w-full items-center gap-3 py-3 pl-10 pr-4 text-left transition-colors",
+                      "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
                       isActive
                         ? "bg-foreground/[0.04]"
                         : "hover:bg-foreground/5 active:bg-foreground/10",
                     )}
-                    aria-current={isActive ? "page" : undefined}
+                    aria-current={isActive ? "true" : undefined}
                   >
                     <span
                       className={cn(
@@ -158,7 +172,6 @@ export function MobileSectionPicker() {
               );
             })}
 
-            {/* Other top-level sections (e.g. Behaviour) */}
             {TOP_LEVEL.filter((s) => s.id !== "appearance").map((s) => {
               const href = `/app/customise/${s.id}`;
               const isActive = pathname === href;
@@ -206,13 +219,14 @@ export function MobileSectionPicker() {
   );
 }
 
-/** Desktop sidebar — Appearance is always expanded with its 11
- *  sub-pages indented under it. Behaviour (and any future top-level
- *  section) renders as a sibling top-level entry. */
+/** Desktop sidebar — Appearance is one page; its sub-section entries
+ *  are anchor links into the same page. The active rail bar tracks
+ *  whichever section is currently scrolled into view, so the user can
+ *  always tell where they are without re-reading the section header. */
 export function SettingsSidebar() {
   const pathname = usePathname();
-  const onAppearanceOverview = pathname === "/app/customise/appearance";
-  const activeSubId = activeAppearanceSubpageId(pathname);
+  const onAppearance = pathname.startsWith("/app/customise/appearance");
+  const activeAppearanceId = useActiveAppearanceSection(onAppearance);
   const otherTopLevel = TOP_LEVEL.filter((s) => s.id !== "appearance");
 
   return (
@@ -232,24 +246,17 @@ export function SettingsSidebar() {
 
       <div className="min-h-0 flex-1 overflow-y-auto py-3">
         <ul className="flex flex-col px-2">
-          {/* Appearance overview */}
           <li>
             <Link
               href="/app/customise/appearance"
-              aria-current={onAppearanceOverview ? "page" : undefined}
+              aria-current={onAppearance ? "true" : undefined}
               className={cn(
                 "relative flex items-center gap-2 rounded-md py-2 pr-3 pl-3 text-sm transition-colors",
-                onAppearanceOverview
-                  ? "bg-foreground/[0.04] text-foreground"
+                onAppearance
+                  ? "text-foreground"
                   : "text-foreground/85 hover:bg-foreground/[0.03]",
               )}
             >
-              {onAppearanceOverview ? (
-                <span
-                  aria-hidden
-                  className="absolute top-2 bottom-2 left-1 w-0.5 rounded-full bg-primary"
-                />
-              ) : null}
               <ChevronRight
                 size={12}
                 aria-hidden
@@ -261,17 +268,15 @@ export function SettingsSidebar() {
             </Link>
           </li>
 
-          {/* Appearance sub-pages */}
           <li>
             <ul className="mb-3 ml-3 mt-1 flex flex-col gap-0.5 border-l border-border/60 pl-2">
               {APPEARANCE_SECTIONS.map((s) => {
-                const href = `/app/customise/appearance/${s.id}`;
-                const isActive = activeSubId === s.id;
+                const isActive = onAppearance && activeAppearanceId === s.id;
                 return (
                   <li key={s.id}>
                     <Link
-                      href={href}
-                      aria-current={isActive ? "page" : undefined}
+                      href={`/app/customise/appearance#${s.id}`}
+                      aria-current={isActive ? "true" : undefined}
                       className={cn(
                         "relative flex items-center gap-2 rounded-md py-1.5 pr-3 pl-2 text-sm transition-colors",
                         isActive
@@ -293,7 +298,6 @@ export function SettingsSidebar() {
             </ul>
           </li>
 
-          {/* Other top-level sections */}
           {otherTopLevel.map((s) => {
             const href = `/app/customise/${s.id}`;
             const isActive = pathname === href;
@@ -334,4 +338,3 @@ export function SettingsSidebar() {
     </nav>
   );
 }
-

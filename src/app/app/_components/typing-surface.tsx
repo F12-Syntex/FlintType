@@ -128,6 +128,7 @@ function TypingSurfaceBody({
               topRow={appearance.keymapTopRow}
               scale={appearance.keymapSize}
               nextKey={nextKey}
+              settingsOverride={{ compact: appearance.keymapCompact }}
             />
           </div>
         ) : null}

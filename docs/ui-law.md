@@ -515,30 +515,23 @@ Don't sprinkle related settings across sections; if you find yourself doing that
 | Space between rows / hero / reset            | `gap-3` on the wrapping `<div>`  |
 | Space between adjacent sections              | `mb-8` on the wrapping `<div>`   |
 
-### 12.5 Sections are routes, not anchors — and every sub-page ships with a live preview
+### 12.5 Sections are anchors on one page — every section ships with a live preview
 
-`/app/customise/appearance` is the canonical "section as sub-page" implementation. Each topic (Themes & mode, Colors, Geometry, Caret, Typography, Keyboard, Background, Live stats, Typing area, Result, Keymap) is a distinct route under `/app/customise/appearance/<id>` and its own `page.tsx`. The catalog of sections lives in `src/app/app/customise/appearance/_sections.ts` so the sidebar, the overview grid, and the per-page header all read from the same list.
+`/app/customise/appearance` is one page. Every topic (Themes & mode, Colors, Geometry, Caret, Typography, Keyboard, Background, Live stats, Typing area, Result, Keymap) renders inline as `<section id="…">` with the catalogued id from `src/app/app/customise/appearance/_sections.ts`. The sidebar links to `/app/customise/appearance#<id>`; the customise scroller jumps to that anchor. There are no sub-page routes — every control lives on the single page so the user is never wondering "is the thing I want behind another click?"
 
-Layout for every appearance sub-page (`<AppearanceSectionPage>`):
+Layout for every section (`<SectionShell>` inside `appearance/page.tsx`):
 
-1. **Back-link breadcrumb** to `/app/customise/appearance` (lg+ only — mobile uses the section picker in the customise header).
-2. **Page header** — eyebrow `Appearance · <Section name>`, h2 title, one-line blurb pulled from `_sections.ts`.
-3. **Preview card** — a bordered card with a `Preview` eyebrow rule, holding a **static, live** demonstration of the setting's effect. Mandatory: every sub-page passes a `preview` prop. The preview must be built from real components (not mocked / not animated) and reflect every option the section's rows expose, so the user can see their override land before committing to it. The reusable `<MiniSample>` (in `_components/mini-sample.tsx`) covers everything that touches the practice passage — colours, typography, caret, geometry, live stats, typing-area, background. Sections that already own a real component (Keyboard, Keymap) embed that component directly. Sections with their own surface (Result) compose a small sample of that surface.
-   - **No animation, no `framer-motion`.** Animation in the preview was a regression — it broke `prefers-reduced-motion`, fought the editorial-mechanical brand, and obscured what the setting actually did. Static + real always wins.
-   - **No duplicate inner previews.** If a row component (e.g. `CaretRow`, `TypographyRows`, `KeyboardRow`) used to render its own hero preview, that hero is gone — the section preview at the top is the single source. Owning a preview inside the rows is forbidden.
-   - **Exemption — preview-as-content surfaces.** Some sub-pages *are* a preview at full size (the Themes explorer at `/app/customise/appearance/themes` shows every palette as a true-to-life mini-app card). Those skip `<AppearanceSectionPage>` entirely and render their own full-page surface.
-4. **Body** — the existing rows (`<SettingsRow>`, `<ColorRow>`, etc.) below the preview, unchanged from the pre-split layout.
+1. **Anchor + section header** — `<section id="<id>" className="scroll-mt-6">` followed by `<SectionHeader label="…">`. The id matches `_sections.ts`; the sidebar link's hash and the IntersectionObserver-driven active rail both depend on it.
+2. **Preview card** — a bordered card with a **static, live** demonstration of the setting's effect. Mandatory: every section passes a `preview` prop. Built from real components (not mocked / not animated) so the user sees their override land before committing. The reusable `<MiniSample>` (`_components/mini-sample.tsx`) covers everything that touches the practice passage — colours, typography, caret, geometry, live stats, typing-area, background. Sections that own a real component (Keyboard, Keymap) embed that component directly. Sections with their own surface (Result) compose a small sample inline.
+   - **No animation, no `framer-motion`.** Static + real always wins.
+   - **No duplicate inner previews.** If a row component (e.g. `CaretRow`, `TypographyRows`, `KeyboardRow`) ever renders its own hero preview, delete it — the section preview at the top of the section is the single source.
+3. **Body** — the existing rows (`<SettingsRow>`, `<ColorRow>`, etc.) directly below the preview.
 
-The Appearance landing page (`/app/customise/appearance`) is an **overview grid** of cards — name, blurb, "Open" affordance per section. Pure SettingsRow/Card content is on the sub-pages.
+**Themes explorer exemption.** `/app/customise/appearance/themes` is a separate full-page browser of every palette — it lives at its own route because it *is* a preview at full size. The Themes section on `/appearance` includes a "Browse all palettes" link to it.
 
-**Sidebar** — the desktop sidebar renders Appearance as a top-level entry with its 11 sub-pages indented under it on a left rail. Behaviour (and any future top-level section) sit as siblings. The mobile picker shows the same shape inside the bottom sheet — a flat scrollable list with sub-pages indented under their parent.
+**Sidebar** — the desktop sidebar renders Appearance with its 11 sub-section anchors indented under it on a left rail. The active rail bar tracks whichever section is currently scrolled into view (IntersectionObserver, threshold band 0–1). The mobile picker shows the same shape inside the bottom sheet — picking a row is a hash navigation, not a route change.
 
-**When to add this shape elsewhere**:
-- A settings parent has ≥ 5 logically distinct sub-topics, each with their own preview-worthy effect.
-- The single-page form would otherwise grow past 200 lines (per `docs/organization.md`) without an obvious in-place split.
-- The visual effect of one section is independent of the others (so per-section previews make sense).
-
-For shorter parents (Behaviour, with ~9 toggles), a single page with anchored headings is still correct — sub-pages are overkill.
+**When to keep using this shape elsewhere**: any settings parent with ≥ 5 logically distinct sub-topics that each deserve their own live preview. For shorter parents (Behaviour, ~9 toggles), a single page with no sectioning is still correct — section previews are overkill when the content is one flat list.
 
 ### 12.6 Don't
 

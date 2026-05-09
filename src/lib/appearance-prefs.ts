@@ -54,6 +54,14 @@ export type AppearancePrefs = {
   keymapTopRow: KeymapTopRow;
   /** 0.5–3.5. */
   keymapSize: number;
+  /** When true, the keymap drops modifier keys (Tab, Caps, Shift, Ctrl,
+   *  Alt, Meta, Enter, Backspace, Space) and renders only the letter /
+   *  symbol grid. Useful when the keymap sits under the passage and a
+   *  full-width row would push the typing area off-screen. Independent
+   *  from the keyboard widget's own `compact` setting (under Keyboard),
+   *  because the keymap and the practice keyboard are two separate
+   *  rendered surfaces with different sizing budgets. */
+  keymapCompact: boolean;
 
   /** Global border visibility — `soft` thins every hairline to a
    *  10%-foreground tint, `hidden` makes them transparent everywhere
@@ -100,6 +108,7 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   keymapLegend: "lowercase",
   keymapTopRow: "layout",
   keymapSize: 1.0,
+  keymapCompact: false,
 
   // Hairline borders rather than full-weight ones — quieter chrome,
   // less competition for the passage.

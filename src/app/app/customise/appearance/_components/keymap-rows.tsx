@@ -12,6 +12,7 @@ import {
   LabelWithDesc,
   SelectChips,
   SliderRow,
+  ToggleChips,
 } from "../../_components/controls";
 import { SettingsRow } from "../../_components/row";
 
@@ -138,6 +139,21 @@ export function KeymapRows() {
             step={0.1}
             format={(v) => v.toFixed(1)}
             onChange={(v) => update("keymapSize", v)}
+          />
+        }
+      />
+
+      <SettingsRow
+        label={
+          <LabelWithDesc
+            title="Compact"
+            desc="Drop modifier keys (Tab, Caps, Shift, Ctrl, Alt, Enter, Backspace, Space) and render only the letter grid. Useful when the keymap competes with the typing area for vertical space."
+          />
+        }
+        control={
+          <ToggleChips
+            value={prefs.keymapCompact}
+            onChange={(v) => update("keymapCompact", v)}
           />
         }
       />
