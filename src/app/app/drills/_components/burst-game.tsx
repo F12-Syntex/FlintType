@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowLeft, Zap } from "lucide-react";
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { Tag } from "@/components/ft";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,24 +12,14 @@ import { StreakGrid } from "./streak-grid";
  *  count → advance to the next item. A wrong character or a too-slow
  *  attempt resets the rep counter on the current item.
  *
- *  Used for the burst-1000 (items = common words) and trigram-burst
- *  (items = trigrams) drills — same engine, different data. */
+ *  Used for the burst-1000, top-100 sprint, pangram, and trigram
+ *  drills — same engine, different data. */
 type BurstGameProps = {
-  /** Display title at the top of the surface (e.g. "Burst 1000"). */
   title: string;
-  /** Single-line context strip — drill subtitle. */
   subtitle: string;
-  /** Items to drill, in order. Each item is a single string the user
-   *  must type as one attempt (a word, a trigram, …). */
   items: readonly string[];
-  /** Burst WPM the user must hit per attempt. Below this and the
-   *  attempt registers as "too slow" — the rep counter on the current
-   *  item resets, but the user moves through the same item again. */
   thresholdWpm: number;
-  /** Consecutive successful (correct + above-threshold) attempts
-   *  required to advance to the next item. */
   repsPerItem: number;
-  /** Called when the user clicks the back-to-drills affordance. */
   onExit: () => void;
 };
 
@@ -37,22 +27,12 @@ type AttemptOutcome = "win" | "slow" | "wrong";
 
 type State = {
   itemIdx: number;
-  /** Successes accumulated on the current item (resets to 0 on
-   *  miss, on slow attempt, or on advancing). */
   reps: number;
-  /** What the user has typed so far in this attempt. */
   typed: string;
-  /** ms timestamp of the first keystroke in this attempt. null
-   *  until they start. */
   attemptStartedAt: number | null;
-  /** Most recent attempt outcome — drives the brief flash that
-   *  tells the user whether they advanced, slowed, or mistyped. */
   lastOutcome: AttemptOutcome | null;
-  /** Score-keeping for the page footer. */
   totalAttempts: number;
   totalWins: number;
-  /** Set when `reps` reaches `repsPerItem` — used to drive the
-   *  "advance" flash before the reducer moves the cursor. */
   finished: boolean;
 };
 
@@ -98,9 +78,6 @@ function reducer(state: State, action: Action): State {
       const expected = target[idx];
       const startedAt = state.attemptStartedAt ?? action.now;
 
-      // Wrong char — abandon the attempt. Rep counter resets, item
-      // stays the same so the user can retry. Flash "wrong" so the
-      // UI can colour-feedback before the next render.
       if (expected === undefined || action.char !== expected) {
         return {
           ...state,
@@ -112,7 +89,6 @@ function reducer(state: State, action: Action): State {
         };
       }
 
-      // Right char but mid-word — keep going, no outcome yet.
       if (nextTyped.length < target.length) {
         return {
           ...state,
@@ -121,13 +97,9 @@ function reducer(state: State, action: Action): State {
         };
       }
 
-      // Last char correct → attempt complete. Score the burst.
       const wpm = burstWpm(target.length, action.now - startedAt);
       const fast = wpm >= action.thresholdWpm;
       if (!fast) {
-        // Above-threshold miss. Counter resets but they don't lose
-        // the drill — same item, retry. We don't punish slowness
-        // beyond "didn't count toward the streak".
         return {
           ...state,
           typed: "",
@@ -169,18 +141,20 @@ export function BurstGame({
   itemRef.current = items;
 
   const targetWord = items[state.itemIdx] ?? "";
+  // Whether the current item contains spaces — pangram items do, word
+  // and trigram items don't. The keystroke handler honours this so
+  // that hitting space on a no-space item still counts as wrong-char,
+  // while space on a pangram is a real character to type.
+  const itemHasSpace = targetWord.includes(" ");
 
-  // Brief outcome flash (200ms) so the win/slow/wrong feedback is
-  // visible without lingering. The flash colour rides on lastOutcome.
+  // Brief outcome flash so the win/slow/wrong feedback is visible
+  // without lingering. The flash colour rides on lastOutcome.
   useEffect(() => {
     if (state.lastOutcome == null) return;
     const id = setTimeout(() => dispatch({ type: "RESET_FLASH" }), 350);
     return () => clearTimeout(id);
   }, [state.lastOutcome, state.itemIdx]);
 
-  // Global keystroke listener — we don't render an <input>; the
-  // surface is keyboard-driven directly. Skip when a modal owns
-  // focus or another input is active (matches practice's pattern).
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -204,7 +178,12 @@ export function BurstGame({
         onExit();
         return;
       }
-      if (e.key.length === 1 && e.key !== " ") {
+      if (e.key.length === 1) {
+        // Filter out plain space when the target doesn't contain
+        // one — keeps the "accidental thumb-tap" tic from registering
+        // as a wrong-char on every word/trigram drill. Pangram items
+        // include spaces, so we let space through there.
+        if (e.key === " " && !itemHasSpace) return;
         e.preventDefault();
         dispatch({
           type: "TYPE_CHAR",
@@ -217,7 +196,7 @@ export function BurstGame({
         });
       }
     },
-    [onExit, thresholdWpm, repsPerItem, targetWord],
+    [onExit, thresholdWpm, repsPerItem, targetWord, itemHasSpace],
   );
 
   useEffect(() => {
@@ -234,7 +213,7 @@ export function BurstGame({
     <>
       <DrillHeader title={title} subtitle={subtitle} onExit={onExit} />
 
-      <section className="flex min-h-0 flex-1 flex-col items-center justify-center gap-10 px-5 py-10 sm:px-16">
+      <section className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 px-5 py-10 sm:gap-10 sm:px-16">
         {state.finished ? (
           <DrillComplete
             totalWins={state.totalWins}
@@ -249,8 +228,23 @@ export function BurstGame({
               outcome={state.lastOutcome}
             />
 
+            <BurstMeter
+              typed={state.typed}
+              targetLength={targetWord.length}
+              attemptStartedAt={state.attemptStartedAt}
+              thresholdWpm={thresholdWpm}
+              outcome={state.lastOutcome}
+            />
+
+            <UpcomingPreview
+              items={items}
+              cursor={state.itemIdx}
+            />
+
             <div className="flex flex-col items-center gap-3">
-              <Tag>STREAK · {state.reps} OF {repsPerItem}</Tag>
+              <Tag>
+                Streak · {state.reps} of {repsPerItem}
+              </Tag>
               <StreakGrid
                 total={repsPerItem}
                 done={state.reps}
@@ -261,7 +255,7 @@ export function BurstGame({
               />
             </div>
 
-            <div className="flex items-center gap-8 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs text-muted-foreground">
               <Stat label="Threshold">
                 <Zap size={12} className="text-primary" /> {thresholdWpm} wpm
               </Stat>
@@ -277,6 +271,10 @@ export function BurstGame({
   );
 }
 
+/** The big central word. BurstType-style — large mono, untyped chars
+ *  in muted, typed chars in foreground, mismatched typed chars in
+ *  destructive. The whole word tints with the outcome flash on a
+ *  finished attempt. */
 function BurstWord({
   target,
   typed,
@@ -289,7 +287,10 @@ function BurstWord({
   return (
     <div
       className={cn(
-        "select-none font-mono text-5xl font-extrabold tracking-tight transition-colors duration-200 sm:text-6xl lg:text-7xl",
+        "select-none text-center font-mono font-extrabold tracking-tight transition-colors duration-200",
+        // BurstType-style sizing — smaller than the headline class so
+        // long pangrams still fit on a single line at sm:.
+        "text-4xl sm:text-5xl lg:text-6xl",
         outcome === "win" && "text-primary",
         outcome === "slow" && "text-muted-foreground",
         outcome === "wrong" && "text-destructive",
@@ -298,18 +299,159 @@ function BurstWord({
     >
       {[...target].map((ch, i) => {
         const t = typed[i];
+        const isCursor = i === typed.length;
         const cls =
           t === undefined
-            ? "text-muted-foreground/70"
+            ? "text-muted-foreground/55"
             : t === ch
               ? "text-foreground"
               : "text-destructive";
+        // Render space as a bullet width so the cursor lands
+        // visibly on a space within a pangram.
+        const glyph = ch === " " ? " " : ch;
         return (
-          <span key={i} className={cls}>
-            {ch}
+          <span
+            key={i}
+            className={cn(
+              cls,
+              // Subtle underline beneath the next-char so the user
+              // tracks position without needing a real caret. Hidden
+              // on the very last char to avoid an underline tail.
+              isCursor &&
+                outcome == null &&
+                "border-b-2 border-primary",
+            )}
+          >
+            {glyph}
           </span>
         );
       })}
+    </div>
+  );
+}
+
+/** Live attempt WPM meter — fills as the user types, with a marker
+ *  at the threshold. Above the line = green/primary, below = muted.
+ *  This is the BurstType-style feedback that lets the user feel the
+ *  rhythm: you can see whether you're tracking ahead of or behind
+ *  the target without waiting for the attempt to finish. */
+function BurstMeter({
+  typed,
+  targetLength,
+  attemptStartedAt,
+  thresholdWpm,
+  outcome,
+}: {
+  typed: string;
+  targetLength: number;
+  attemptStartedAt: number | null;
+  thresholdWpm: number;
+  outcome: AttemptOutcome | null;
+}) {
+  // Tick a local clock so the WPM updates between keystrokes — without
+  // it the meter would only refresh on each new char.
+  const [, force] = useState(0);
+  useEffect(() => {
+    if (attemptStartedAt == null) return;
+    const id = setInterval(() => force((n) => n + 1), 60);
+    return () => clearInterval(id);
+  }, [attemptStartedAt]);
+
+  // The meter caps at 2× threshold so the threshold marker sits dead
+  // centre — easy to read "above" vs "below". Empty attempt or
+  // immediately after a finish (outcome flash) reads as 0.
+  const max = thresholdWpm * 2;
+  let wpm = 0;
+  if (attemptStartedAt != null && typed.length > 0 && outcome == null) {
+    const elapsed = Date.now() - attemptStartedAt;
+    wpm = burstWpm(typed.length, elapsed);
+  }
+  const pct = Math.max(0, Math.min(100, (wpm / max) * 100));
+  const above = wpm >= thresholdWpm;
+  const progressPct = (typed.length / Math.max(1, targetLength)) * 100;
+
+  return (
+    <div className="flex w-full max-w-md flex-col gap-2">
+      <div className="flex items-baseline justify-between font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+        <span>This burst</span>
+        <span
+          className={cn(
+            "tabular-nums",
+            wpm > 0 && (above ? "text-primary" : "text-muted-foreground"),
+            outcome === "win" && "text-primary",
+            outcome === "slow" && "text-muted-foreground",
+            outcome === "wrong" && "text-destructive",
+          )}
+        >
+          {Math.round(wpm)} wpm
+        </span>
+      </div>
+      <div className="relative h-2 w-full overflow-hidden rounded-sm border border-border bg-muted">
+        {/* Fill bar — width tracks live wpm. Colour above/below
+            threshold mirrors the win / slow outcome colours. */}
+        <span
+          aria-hidden
+          className={cn(
+            "absolute inset-y-0 left-0 transition-[width] duration-75",
+            above ? "bg-primary" : "bg-muted-foreground/60",
+            outcome === "wrong" && "bg-destructive",
+          )}
+          style={{ width: `${pct}%` }}
+        />
+        {/* Threshold marker — vertical hairline at 50 % of the bar
+            (since max = threshold × 2). */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-1/2 w-px bg-foreground/30"
+        />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -top-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-foreground/40"
+        />
+      </div>
+      {/* Word completion bar — tracks how far through the current
+          attempt the user is. Sits below the WPM bar so the two
+          dimensions read independently: cadence (above) and
+          progress (below). */}
+      <div className="relative h-1 w-full overflow-hidden rounded-sm bg-muted">
+        <span
+          aria-hidden
+          className="absolute inset-y-0 left-0 bg-foreground/40 transition-[width] duration-75"
+          style={{ width: `${progressPct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** Up to three queued items rendered as a tight mono strip — the
+ *  active item, then the next two dimmed. Lets the user see what's
+ *  coming and pace their breath. Hidden on the last item. */
+function UpcomingPreview({
+  items,
+  cursor,
+}: {
+  items: readonly string[];
+  cursor: number;
+}) {
+  const next = items.slice(cursor + 1, cursor + 3);
+  if (next.length === 0) return null;
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground/70">
+        Up next
+      </span>
+      <div className="flex max-w-[80vw] flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-sm text-muted-foreground/55 sm:text-base">
+        {next.map((it, i) => (
+          <span
+            key={`${cursor}-${i}-${it}`}
+            className="truncate whitespace-nowrap"
+            style={{ fontFamily: "var(--ft-font-family, inherit)" }}
+          >
+            {it}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -343,7 +485,7 @@ function DrillHeader({
   onExit: () => void;
 }) {
   return (
-    <section className="border-b border-foreground/10 px-5 pt-8 pb-5 sm:px-16">
+    <section className="border-b border-border px-5 pt-8 pb-5 sm:px-16">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-col gap-1">
           <Tag>{subtitle}</Tag>
@@ -373,7 +515,7 @@ function DrillComplete({
     totalAttempts > 0 ? Math.round((totalWins / totalAttempts) * 100) : 100;
   return (
     <div className="flex flex-col items-center gap-6 text-center">
-      <Tag>DRILL CLEAR</Tag>
+      <Tag>Drill clear</Tag>
       <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
         You cleared the run.
       </h2>
