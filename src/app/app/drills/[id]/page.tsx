@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Tag } from "@/components/ft";
+import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { BackendError, useBackend } from "@/lib/backend";
 import type { HistorySummaryOutput } from "@/types/history";
 import { AppChrome } from "../../_components/app-chrome";
+import { Burst1000Surface } from "../_components/burst-1000-surface";
 import { BurstSurface } from "../_components/burst-surface";
 import { DrillHeader } from "../_components/drill-header";
 import { buildDrills, type DrillSpec } from "../_components/drills-data";
@@ -69,6 +71,8 @@ export default function DrillRunnerPage() {
     return drills.find((d) => d.id === id) ?? null;
   }, [snapshot, id]);
 
+  const { prefs: appearance } = useAppearancePrefs();
+
   return (
     <AppChrome>
       {loading ? (
@@ -85,13 +89,24 @@ export default function DrillRunnerPage() {
           subtitle={drill.contextLabel}
           words={drill.words}
         />
+      ) : drill.tracker === "common-1000" ? (
+        <Burst1000Surface
+          title={drill.title}
+          subtitle={drill.contextLabel}
+          thresholdWpm={drill.thresholdWpm}
+          repsPerItem={
+            drill.repsConfigurable ? appearance.burstReps : drill.repsPerItem
+          }
+        />
       ) : (
         <BurstSurface
           title={drill.title}
           subtitle={drill.contextLabel}
           items={drill.items}
           thresholdWpm={drill.thresholdWpm}
-          repsPerItem={drill.repsPerItem}
+          repsPerItem={
+            drill.repsConfigurable ? appearance.burstReps : drill.repsPerItem
+          }
         />
       )}
     </AppChrome>

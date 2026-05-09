@@ -68,6 +68,12 @@ export type AppearancePrefs = {
    *  (themes pages, settings rows, popovers, buttons). Read by the
    *  global rule in globals.css that targets `html[data-ft-borders]`. */
   borders: BordersMode;
+
+  /** Consecutive successful bursts required to advance to the next
+   *  item in a burst drill. Pangrams ignore this (they're whole
+   *  sentences and 1 rep is enough); every other burst (burst-1000,
+   *  top-100 sprint, trigram burst) honours it. Range 1–10. */
+  burstReps: number;
 };
 
 export const DEFAULT_APPEARANCE: AppearancePrefs = {
@@ -113,6 +119,11 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   // Hairline borders rather than full-weight ones — quieter chrome,
   // less competition for the passage.
   borders: "soft",
+
+  // Five-in-a-row is the default the burst surface ships with — keep
+  // the streak grid feeling earned without making sessions
+  // marathon-length.
+  burstReps: 5,
 };
 
 export function useAppearancePrefs() {

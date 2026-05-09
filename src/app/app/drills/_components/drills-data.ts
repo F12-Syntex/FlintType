@@ -38,6 +38,18 @@ export type DrillSpec =
       items: readonly string[];
       thresholdWpm: number;
       repsPerItem: number;
+      /** Drill is a whole-discovery tracker rather than a fixed list:
+       *  the runner pulls items from `EN_COMMON_1000`, persists each
+       *  cleared word against the user's drill-progress slice, and
+       *  shows a 1000-cell discovery grid. Burst-1000 is the only
+       *  drill flagged today. The runtime ignores `items` for
+       *  trackers — the real list is computed at mount time from the
+       *  user's persisted state. */
+      tracker?: "common-1000";
+      /** When true, the user's `appearance.burstReps` pref overrides
+       *  `repsPerItem` at runtime. Pangrams set this false (1 rep is
+       *  the spec); every other burst sets it true. */
+      repsConfigurable: boolean;
     };
 
 /** Curated tongue-twister set — words with awkward bigram density and
@@ -127,8 +139,12 @@ const DEFAULT_BURST_THRESHOLD_WPM = 60;
 const SPRINT_BURST_THRESHOLD_WPM = 50;
 const SUDDEN_DEATH_LENGTH = 30;
 const TRICKY_DRILL_LENGTH = 35;
-const TRIGRAM_REPS = 5;
-const WORD_BURST_REPS = 3;
+// Five-in-a-row default for word and trigram bursts. The Appearance
+// "Burst reps" pref overrides this per-user; the drill spec just
+// surfaces the default in its description so the picker reads
+// honestly. Pangrams use their own constant — a whole sentence is a
+// big enough unit of work without insisting on multiple reps.
+const DEFAULT_BURST_REPS = 5;
 const WORD_BURST_LENGTH = 25;
 const SPRINT_BURST_LENGTH = 40;
 const PANGRAM_REPS = 1;
@@ -271,13 +287,14 @@ export function buildDrills({
     title: "Trigram burst",
     contextLabel: "Burst minigame",
     description: trigramTailored
-      ? `Drill 3-letter clusters from your weakest trigrams: ${trigrams.map((t) => `"${t}"`).join(", ")}. ${TRIGRAM_REPS} clean bursts above ${DEFAULT_BURST_THRESHOLD_WPM} WPM advance to the next.`
+      ? `Drill 3-letter clusters from your weakest trigrams: ${trigrams.map((t) => `"${t}"`).join(", ")}. ${DEFAULT_BURST_REPS} clean bursts above ${DEFAULT_BURST_THRESHOLD_WPM} WPM advance to the next.`
       : `Drill the highest-value English trigrams: ${trigrams.map((t) => `"${t}"`).join(", ")}. Once we've seen more of your typing this list will swap for your weakest trigrams.`,
     payoff: "Trigram cadence scales straight into word-level speed — three letters at threshold becomes a whole word at threshold once joined up.",
     ready: trigrams.length > 0,
     items: trigrams,
     thresholdWpm: DEFAULT_BURST_THRESHOLD_WPM,
-    repsPerItem: TRIGRAM_REPS,
+    repsPerItem: DEFAULT_BURST_REPS,
+    repsConfigurable: true,
   });
 
   // ─── Generic ──────────────────────────────────────────────────────
@@ -289,12 +306,18 @@ export function buildDrills({
     category: "generic",
     title: "Burst 1000",
     contextLabel: "Burst minigame",
-    description: `Type each common word ${WORD_BURST_REPS} times in a row above ${DEFAULT_BURST_THRESHOLD_WPM} WPM to advance. A miss or a slow attempt resets the streak — but you keep moving.`,
-    payoff: "Builds the rapid-fire muscle memory that lifts your peak WPM, without the punitive sudden-death gate.",
+    description: `Drill the thousand most common English words. Each word you clear at ${DEFAULT_BURST_THRESHOLD_WPM} WPM is logged against your account — over time, fill the whole 1000-cell grid. ${DEFAULT_BURST_REPS} clean bursts to discover a word.`,
+    payoff: "The longest-running burst drill — slowly turns the entire core English vocabulary into reflex. Progress saves to your account.",
     ready: true,
-    items: pickBurstWords(WORD_BURST_LENGTH, seed),
+    // Items are computed at runtime by the burst-1000 surface from the
+    // user's persisted discovery state, so the value here is just a
+    // placeholder. The `tracker` flag tells the dynamic page to mount
+    // the wrapper component instead of the plain BurstSurface.
+    items: [],
     thresholdWpm: DEFAULT_BURST_THRESHOLD_WPM,
-    repsPerItem: WORD_BURST_REPS,
+    repsPerItem: DEFAULT_BURST_REPS,
+    repsConfigurable: true,
+    tracker: "common-1000",
   });
 
   drills.push({
@@ -322,6 +345,10 @@ export function buildDrills({
     items: PANGRAM_LIST,
     thresholdWpm: SPRINT_BURST_THRESHOLD_WPM,
     repsPerItem: PANGRAM_REPS,
+    // Pangram reps stay locked at 1 — a whole sentence is a big
+    // enough commit; bumping reps would turn the drill into a
+    // marathon. The user-configurable burstReps pref is ignored here.
+    repsConfigurable: false,
   });
 
   drills.push({
@@ -343,12 +370,13 @@ export function buildDrills({
     category: "generic",
     title: "Top 100 sprint",
     contextLabel: "Burst minigame",
-    description: `Forty of the hundred most common English words at a friendlier ${SPRINT_BURST_THRESHOLD_WPM} WPM threshold, ${WORD_BURST_REPS} reps each. The warm-up before harder bursts.`,
+    description: `Forty of the hundred most common English words at a friendlier ${SPRINT_BURST_THRESHOLD_WPM} WPM threshold, ${DEFAULT_BURST_REPS} reps each. The warm-up before harder bursts.`,
     payoff: "Re-anchors the muscle memory on words you type every day. Hit threshold here and the harder drills feel achievable.",
     ready: true,
     items: pickBurstWords(SPRINT_BURST_LENGTH, seed + 3),
     thresholdWpm: SPRINT_BURST_THRESHOLD_WPM,
-    repsPerItem: WORD_BURST_REPS,
+    repsPerItem: DEFAULT_BURST_REPS,
+    repsConfigurable: true,
   });
 
   return drills;

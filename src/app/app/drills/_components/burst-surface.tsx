@@ -1,8 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useReducer,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { Tag } from "@/components/ft";
+import { useCaretSettings, type CaretStyle } from "@/lib/caret-settings";
 import { cn } from "@/lib/utils";
 import { DrillHeader } from "./drill-header";
 
@@ -21,6 +30,18 @@ type BurstSurfaceProps = {
   items: readonly string[];
   thresholdWpm: number;
   repsPerItem: number;
+  /** Optional bottom slot rendered below the streak block — used by
+   *  burst-1000 to show its 1000-cell discovery grid. Other drills
+   *  pass null and get a clean centred surface. */
+  progressSlot?: ReactNode;
+  /** Fired the moment a successful CONFIRM advances past an item.
+   *  Burst-1000 uses this to record the cleared word against the
+   *  user's persisted discovered set. */
+  onItemCleared?: (word: string) => void;
+  /** Override label for the "Item" stat card top value — the burst-
+   *  1000 wrapper passes "X/1000" while the spec-driven runs use the
+   *  default "X/Y session" form. */
+  itemStat?: { top: string; caption: string };
 };
 
 type AttemptOutcome = "win" | "slow" | "wrong";
@@ -163,10 +184,28 @@ export function BurstSurface({
   items,
   thresholdWpm,
   repsPerItem,
+  progressSlot,
+  onItemCleared,
+  itemStat,
 }: BurstSurfaceProps) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const itemRef = useRef(items);
   itemRef.current = items;
+
+  // Watch the item cursor: every time it advances we know the previous
+  // item was cleared (burst engine only steps the cursor on a win that
+  // hits repsPerItem). Fire the parent callback with the word that was
+  // just cleared so trackers can persist it.
+  const lastClearedIdxRef = useRef(-1);
+  useEffect(() => {
+    if (!onItemCleared) return;
+    if (state.itemIdx === 0) return;
+    const cleared = state.itemIdx - 1;
+    if (cleared <= lastClearedIdxRef.current) return;
+    lastClearedIdxRef.current = cleared;
+    const word = itemRef.current[cleared];
+    if (word) onItemCleared(word);
+  }, [state.itemIdx, onItemCleared]);
 
   const targetWord = items[state.itemIdx] ?? "";
   // True the moment the user has typed the whole target correctly —
@@ -289,8 +328,8 @@ export function BurstSurface({
             <StatCard top={String(thresholdWpm)} caption="Threshold" />
             <StatCard top={String(state.reps)} caption="Streak" />
             <StatCard
-              top={`${state.itemIdx + 1}/${items.length}`}
-              caption="Item"
+              top={itemStat?.top ?? `${state.itemIdx + 1}/${items.length}`}
+              caption={itemStat?.caption ?? "Item"}
             />
             <StatCard top={`${accuracy}%`} caption="Accuracy" />
           </StatStripFrame>
@@ -320,16 +359,11 @@ export function BurstSurface({
             />
           </div>
 
-          {/* Bottom bracketed progress strip — one cell per item, lit
-           *  when that item has been cleared. Mirrors the screenshot's
-           *  "WORDS DISCOVERED (46/1000)" pattern; gives the user a
-           *  tangible sense of how much of the drill remains. */}
-          <ProgressStripFrame
-            cleared={state.itemIdx}
-            total={items.length}
-            currentReps={state.reps}
-            repsPerItem={repsPerItem}
-          />
+          {/* Optional bottom slot — burst-1000 fills it with its
+           *  long-running discovery grid. Other drills leave it null
+           *  and the surface stays focused on the central word + the
+           *  streak pips above. */}
+          {progressSlot}
         </section>
       )}
     </>
@@ -514,90 +548,22 @@ function StatusBlock({
   );
 }
 
-// ─── progress strip ────────────────────────────────────────────────
 
-function ProgressStripFrame({
-  cleared,
-  total,
-  currentReps,
-  repsPerItem,
-}: {
-  /** Items fully cleared so far. */
-  cleared: number;
-  /** Total items in the drill. */
-  total: number;
-  /** Reps clocked on the in-flight item — drives a half-lit cell so
-   *  the user sees fractional progress within the current item. */
-  currentReps: number;
-  repsPerItem: number;
-}) {
-  // Cells render with three intensities:
-  //   cleared       — fully lit primary
-  //   in-progress   — partial alpha that scales with currentReps
-  //   pending       — dim hairline
-  // The progress strip can run wide; on narrow viewports it wraps
-  // gracefully because each cell is a fixed-min-width flex child.
-  const cells = Array.from({ length: total });
-  const partialAlpha =
-    repsPerItem > 0 ? Math.min(1, currentReps / repsPerItem) : 0;
-  return (
-    <div className="relative mx-auto w-full max-w-3xl">
-      <div className="rounded-md border border-border bg-card/40 p-3 sm:p-4">
-        <div
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={total}
-          aria-valuenow={cleared}
-          className="flex flex-wrap gap-1"
-        >
-          {cells.map((_, i) => {
-            const state =
-              i < cleared
-                ? "cleared"
-                : i === cleared
-                  ? "active"
-                  : "pending";
-            return (
-              <span
-                key={i}
-                aria-hidden
-                className={cn(
-                  "h-2 min-w-[10px] flex-1 rounded-sm transition-colors",
-                  state === "cleared" && "bg-primary",
-                  state === "pending" && "bg-foreground/10",
-                )}
-                style={
-                  state === "active"
-                    ? {
-                        backgroundColor: `color-mix(in oklch, var(--primary) ${Math.round(
-                          partialAlpha * 80 + 10,
-                        )}%, transparent)`,
-                      }
-                    : undefined
-                }
-              />
-            );
-          })}
-        </div>
-      </div>
-      <div
-        aria-hidden
-        className="relative mt-2 flex items-center justify-center"
-      >
-        <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
-        <span className="relative bg-background px-3 text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground tabular-nums">
-          Items cleared · {cleared}/{total}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-/** The big central word. BurstType-style — large mono, untyped chars
- *  in muted, typed chars in foreground, mismatched typed chars in
- *  destructive. The whole word tints with the outcome flash on a
- *  finished attempt. When `ready`, the trailing edge of the word
- *  pulses to telegraph the "press space" gate. */
+/** The big central word. Untyped chars paint with the practice
+ *  passage's untyped colour, typed chars with the typed colour,
+ *  mistyped with the error colour - same CSS variables the practice
+ *  surface uses so a colour pick on the customise page propagates
+ *  here. The word as a whole tints to the outcome on a finished
+ *  attempt; while `ready` (waiting for space-to-commit) the whole
+ *  block pulses primary.
+ *
+ *  Long pangrams wrap to as many lines as needed; the size scales
+ *  down on narrow viewports so even an eight-word sentence fits at
+ *  375 px without horizontal scroll.
+ *
+ *  The user's caret style / width / radius / blink speed all apply,
+ *  via an absolutely-positioned <CaretGlyph> measured against the
+ *  next-to-type char. */
 function BurstWord({
   target,
   typed,
@@ -609,50 +575,174 @@ function BurstWord({
   outcome: AttemptOutcome | null;
   ready: boolean;
 }) {
+  const { settings: caret } = useCaretSettings();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [caretRect, setCaretRect] = useState<{
+    left: number;
+    top: number;
+    w: number;
+    h: number;
+  } | null>(null);
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el || caret.style === 'off') {
+      setCaretRect(null);
+      return;
+    }
+    const cursorIdx =
+      typed.length < target.length ? typed.length : target.length - 1;
+    const charEl = el.querySelectorAll<HTMLSpanElement>('[data-char]')[cursorIdx];
+    if (!charEl) {
+      setCaretRect(null);
+      return;
+    }
+    const wrap = el.getBoundingClientRect();
+    const r = charEl.getBoundingClientRect();
+    setCaretRect({
+      left: r.left - wrap.left,
+      top: r.top - wrap.top,
+      w: r.width,
+      h: r.height,
+    });
+  }, [typed.length, target, caret.style]);
+
   return (
     <div
+      ref={containerRef}
       className={cn(
-        "select-none text-center font-mono font-extrabold tracking-tight transition-colors duration-200",
-        // BurstType-style sizing — smaller than the headline class so
-        // long pangrams still fit on a single line at sm:.
-        "text-4xl sm:text-5xl lg:text-6xl",
-        outcome === "win" && "text-primary",
-        outcome === "slow" && "text-muted-foreground",
-        outcome === "wrong" && "text-destructive",
-        ready && outcome == null && "text-primary motion-safe:animate-pulse",
+        'relative max-w-full select-none break-words text-center font-mono font-extrabold tracking-tight transition-colors duration-200',
+        'text-balance text-3xl leading-tight sm:text-4xl lg:text-5xl',
+        outcome === 'win' && 'text-primary',
+        outcome === 'slow' && 'text-muted-foreground',
+        outcome === 'wrong' && 'text-destructive',
+        ready && outcome == null && 'text-primary motion-safe:animate-pulse',
       )}
-      style={{ fontFamily: "var(--ft-font-family, inherit)" }}
+      style={{ fontFamily: 'var(--ft-font-family, inherit)' }}
     >
       {[...target].map((ch, i) => {
         const t = typed[i];
+        let color: string;
+        if (t === undefined) {
+          color = 'var(--ft-passage-untyped, var(--muted-foreground))';
+        } else if (t === ch) {
+          color = 'var(--ft-passage-typed, var(--foreground))';
+        } else {
+          color = 'var(--ft-passage-error, var(--destructive))';
+        }
         const isCursor = i === typed.length;
-        const cls =
-          t === undefined
-            ? "text-muted-foreground/55"
-            : t === ch
-              ? "text-foreground"
-              : "text-destructive";
-        // Render space as a bullet width so the cursor lands
-        // visibly on a space within a pangram.
-        const glyph = ch === " " ? " " : ch;
+        const blockOnActive =
+          caret.style === 'block' && isCursor && outcome == null;
         return (
           <span
             key={i}
-            className={cn(
-              cls,
-              // Subtle underline beneath the next-char so the user
-              // tracks position without needing a real caret. Hidden
-              // on the very last char to avoid an underline tail.
-              isCursor &&
-                outcome == null &&
-                "border-b-2 border-primary",
-            )}
+            data-char
+            style={
+              blockOnActive
+                ? {
+                    color,
+                    backgroundColor:
+                      'color-mix(in oklch, var(--primary) 35%, transparent)',
+                    borderRadius: caret.radius,
+                  }
+                : { color }
+            }
           >
-            {glyph}
+            {ch === ' ' ? ' ' : ch}
           </span>
         );
       })}
+      {caretRect && caret.style !== 'off' && outcome == null ? (
+        <CaretGlyph
+          rect={caretRect}
+          style={caret.style}
+          width={caret.width}
+          radius={caret.radius}
+          blinkSpeed={caret.blinkSpeed}
+          atEnd={typed.length >= target.length}
+        />
+      ) : null}
     </div>
+  );
+}
+
+/** Static-position caret painted absolutely over the active char.
+ *  Mirrors the practice CaretShape: line / underline / outline. The
+ *  block style is drawn inline by the parent (it tints the char's
+ *  background directly so the letter remains readable on top of the
+ *  highlight). */
+function CaretGlyph({
+  rect,
+  style,
+  width,
+  radius,
+  blinkSpeed,
+  atEnd,
+}: {
+  rect: { left: number; top: number; w: number; h: number };
+  style: CaretStyle;
+  width: number;
+  radius: number;
+  blinkSpeed: number;
+  atEnd: boolean;
+}) {
+  if (style === 'off' || style === 'block') return null;
+  const blinkClass = blinkSpeed > 0 ? 'ft-caret-blink' : '';
+  const blinkVar = {
+    ['--ft-blink-speed' as string]: `${blinkSpeed}ms`,
+  } as React.CSSProperties;
+  const base: React.CSSProperties = {
+    position: 'absolute',
+    pointerEvents: 'none',
+    backgroundColor: 'var(--primary)',
+    borderRadius: radius,
+    ...blinkVar,
+  };
+  if (style === 'line') {
+    const left = atEnd ? rect.left + rect.w : rect.left;
+    return (
+      <span
+        aria-hidden
+        className={blinkClass}
+        style={{
+          ...base,
+          left,
+          top: rect.top + (rect.h - rect.h * 0.85) / 2,
+          width,
+          height: rect.h * 0.85,
+        }}
+      />
+    );
+  }
+  if (style === 'underline') {
+    return (
+      <span
+        aria-hidden
+        className={blinkClass}
+        style={{
+          ...base,
+          left: rect.left,
+          top: rect.top + rect.h - width,
+          width: rect.w,
+          height: width,
+        }}
+      />
+    );
+  }
+  return (
+    <span
+      aria-hidden
+      className={blinkClass}
+      style={{
+        ...base,
+        left: rect.left,
+        top: rect.top,
+        width: rect.w,
+        height: rect.h,
+        backgroundColor: 'transparent',
+        border: `${width}px solid var(--primary)`,
+      }}
+    />
   );
 }
 
