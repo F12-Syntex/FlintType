@@ -1,11 +1,16 @@
 /** Curated Google Fonts available in the typography picker.
  *
- *  These are the same files google/fonts ships on github (the repo is
- *  the canonical source). Rather than bundling thousands of woff2s, we
- *  point at fonts.googleapis.com — Google's own CDN-served CSS that
- *  resolves into woff2 on the gstatic.com host. The browser caches each
- *  font on first paint, so once a user picks a face it's permanently
- *  local from their perspective, with no app-side download step.
+ *  Every face listed here is shipped locally under public/fonts/. The
+ *  binaries are downloaded ahead of time by `yarn fonts:download` (which
+ *  reads `cssHref` below, fetches Google's CSS2 endpoint, and rewrites
+ *  the @font-face urls to point at public/fonts/<id>/*.woff2). The root
+ *  layout then loads /fonts/fonts.css once, so the picker only has to
+ *  flip a CSS variable — no runtime fetch, no preconnect, no failure
+ *  mode when a network is locked down or Google is blocked.
+ *
+ *  `cssHref` therefore exists for the build script alone; nothing in the
+ *  app reads it at runtime. Keeping it here keeps the script and the
+ *  catalog single-sourced.
  *
  *  The catalog is hand-curated for typing practice: monospaces are
  *  plentiful (typing-test bread and butter), sans/serif are kept short

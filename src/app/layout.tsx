@@ -48,6 +48,13 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
+        <head>
+          {/* All catalog fonts are shipped under /public/fonts and declared
+              via @font-face here. Browser still lazy-fetches the woff2 for
+              whichever family the user picks — the @font-face rule is
+              cheap, the binary is only pulled on first paint. */}
+          <link rel="stylesheet" href="/fonts/fonts.css" />
+        </head>
         <body className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased`}>
           <Providers>{children}</Providers>
         </body>

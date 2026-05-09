@@ -17,15 +17,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { FONT_CATALOG, type FontEntry } from "@/lib/fonts/catalog";
-import { loadGoogleFont } from "@/lib/fonts/loader";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { cn } from "@/lib/utils";
 
 /** Picker entry — either a built-in system stack (resolved from
- *  globals/layout) or a Google Font that the loader fetches on first
- *  selection. The `google` field flags lazy-load: present → call
- *  `loadGoogleFont(google)` before applying so the woff2 lands before
- *  the passage re-paints. */
+ *  globals/layout) or a Google Font shipped locally by the app. Every
+ *  woff2 sits under public/fonts/ and is wired in by the global
+ *  `/fonts/fonts.css` link in the root layout, so the picker just sets
+ *  the override and the browser pulls the right binary on first paint. */
 type FontGroup = "system" | "mono" | "sans" | "serif";
 export type FontOption = {
   id: string;
@@ -244,10 +243,6 @@ export function FontRow({
   const customised = value !== undefined && value !== "";
 
   function handlePick(opt: FontOption) {
-    // First-time selection of a Google font is also the first-time
-    // fetch — inject the <link> before apply so the passage re-paints
-    // with the new face as soon as the woff2 lands.
-    if (opt.google) loadGoogleFont(opt.google);
     onChange(opt);
   }
 
@@ -287,8 +282,8 @@ export function FontRow({
         <CardHeader>
           <CardTitle className="text-sm font-semibold">Font</CardTitle>
           <CardDescription>
-            The typeface used in the practice passage. Google Fonts download
-            on first pick.
+            The typeface used in the practice passage. Every Google font ships
+            with the app, so picks apply instantly and work offline.
           </CardDescription>
           <CardAction>
             <div className="flex items-center gap-3">

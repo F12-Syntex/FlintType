@@ -15,7 +15,8 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "themes:add": "node scripts/themes-add.mjs",
-    "themes:remove": "node scripts/themes-remove.mjs"
+    "themes:remove": "node scripts/themes-remove.mjs",
+    "fonts:download": "tsx scripts/fonts-download.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
