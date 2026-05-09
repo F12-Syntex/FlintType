@@ -37,7 +37,8 @@ type State = {
 };
 
 type Action =
-  | { type: "TYPE_CHAR"; char: string; now: number; thresholdWpm: number; repsPerItem: number; itemsLength: number; targetWord: string }
+  | { type: "TYPE_CHAR"; char: string; now: number; targetWord: string }
+  | { type: "CONFIRM"; now: number; thresholdWpm: number; repsPerItem: number; itemsLength: number; targetWord: string }
   | { type: "BACKSPACE" }
   | { type: "RESET_FLASH" }
   | { type: "RESET" };
@@ -78,6 +79,11 @@ function reducer(state: State, action: Action): State {
       const expected = target[idx];
       const startedAt = state.attemptStartedAt ?? action.now;
 
+      // Past-the-end characters (typed === target already) and any
+      // mismatch reset the rep with a wrong-char outcome. The space
+      // confirm key is filtered before this dispatch — it never lands
+      // here in non-pangram items, and in pangrams a trailing space is
+      // already accounted for inside the target.
       if (expected === undefined || action.char !== expected) {
         return {
           ...state,
@@ -89,15 +95,29 @@ function reducer(state: State, action: Action): State {
         };
       }
 
-      if (nextTyped.length < target.length) {
-        return {
-          ...state,
-          typed: nextTyped,
-          attemptStartedAt: startedAt,
-        };
-      }
+      // Mid-attempt typing — accept the char and keep going. The
+      // attempt is not finalised until the user explicitly presses
+      // space (CONFIRM) so the timing reflects the natural type-then-
+      // space cadence the user already has from real typing.
+      return {
+        ...state,
+        typed: nextTyped,
+        attemptStartedAt: startedAt,
+      };
+    }
+    case "CONFIRM": {
+      if (state.finished) return state;
+      const target = action.targetWord;
+      // Confirming before the word is finished, or before any
+      // keystroke has happened — neutral no-op. The visible UI never
+      // lights the "ready" state until typed is complete and clean,
+      // so this branch only catches stray spaces from impatient
+      // fingers.
+      if (state.typed.length !== target.length) return state;
+      if (state.typed !== target) return state;
+      if (state.attemptStartedAt == null) return state;
 
-      const wpm = burstWpm(target.length, action.now - startedAt);
+      const wpm = burstWpm(target.length, action.now - state.attemptStartedAt);
       const fast = wpm >= action.thresholdWpm;
       if (!fast) {
         return {
@@ -141,11 +161,16 @@ export function BurstGame({
   itemRef.current = items;
 
   const targetWord = items[state.itemIdx] ?? "";
-  // Whether the current item contains spaces — pangram items do, word
-  // and trigram items don't. The keystroke handler honours this so
-  // that hitting space on a no-space item still counts as wrong-char,
-  // while space on a pangram is a real character to type.
-  const itemHasSpace = targetWord.includes(" ");
+  // True the moment the user has typed the whole target correctly —
+  // they then press space to commit the burst. Until they do, the
+  // attempt is "ready" but uncommitted: backspace returns to typing,
+  // a stray non-space key resets it. Mirrors the natural type-then-
+  // space cadence everyone already has from real typing.
+  const ready =
+    state.typed.length === targetWord.length &&
+    state.typed === targetWord &&
+    state.attemptStartedAt != null &&
+    state.lastOutcome == null;
 
   // Brief outcome flash so the win/slow/wrong feedback is visible
   // without lingering. The flash colour rides on lastOutcome.
@@ -179,24 +204,53 @@ export function BurstGame({
         return;
       }
       if (e.key.length === 1) {
-        // Filter out plain space when the target doesn't contain
-        // one — keeps the "accidental thumb-tap" tic from registering
-        // as a wrong-char on every word/trigram drill. Pangram items
-        // include spaces, so we let space through there.
-        if (e.key === " " && !itemHasSpace) return;
+        // Space is the burst-commit key. Once the user has typed the
+        // whole target (state.typed === targetWord), pressing space
+        // confirms the attempt — that's where the final WPM is
+        // computed, and where the win / slow branch is decided. Any
+        // earlier space is part of the target text (only legal on
+        // pangram items, where the target genuinely has spaces) or
+        // an accidental tap (filtered for word/trigram items so the
+        // streak isn't lost to a thumb tic).
+        if (e.key === " ") {
+          if (
+            state.typed.length === targetWord.length &&
+            state.typed === targetWord &&
+            state.attemptStartedAt != null
+          ) {
+            e.preventDefault();
+            dispatch({
+              type: "CONFIRM",
+              now: Date.now(),
+              thresholdWpm,
+              repsPerItem,
+              itemsLength: itemRef.current.length,
+              targetWord,
+            });
+            return;
+          }
+          // Mid-attempt: only legal as a real character in pangrams.
+          // Outside pangrams it's the accidental-thumb-tap case —
+          // swallow rather than count as a wrong-char miss.
+          if (!targetWord.slice(state.typed.length).startsWith(" ")) return;
+        }
         e.preventDefault();
         dispatch({
           type: "TYPE_CHAR",
           char: e.key,
           now: Date.now(),
-          thresholdWpm,
-          repsPerItem,
-          itemsLength: itemRef.current.length,
           targetWord,
         });
       }
     },
-    [onExit, thresholdWpm, repsPerItem, targetWord, itemHasSpace],
+    [
+      onExit,
+      thresholdWpm,
+      repsPerItem,
+      targetWord,
+      state.typed,
+      state.attemptStartedAt,
+    ],
   );
 
   useEffect(() => {
@@ -226,6 +280,7 @@ export function BurstGame({
               target={targetWord}
               typed={state.typed}
               outcome={state.lastOutcome}
+              ready={ready}
             />
 
             <BurstMeter
@@ -235,6 +290,16 @@ export function BurstGame({
               thresholdWpm={thresholdWpm}
               outcome={state.lastOutcome}
             />
+
+            {/* Reserve the row whether or not the hint is showing so
+             *  the layout below doesn't jump as the user types. */}
+            <div className="h-5 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              {ready ? (
+                <span className="text-primary motion-safe:animate-pulse">
+                  Press space to commit
+                </span>
+              ) : null}
+            </div>
 
             <UpcomingPreview
               items={items}
@@ -274,15 +339,18 @@ export function BurstGame({
 /** The big central word. BurstType-style — large mono, untyped chars
  *  in muted, typed chars in foreground, mismatched typed chars in
  *  destructive. The whole word tints with the outcome flash on a
- *  finished attempt. */
+ *  finished attempt. When `ready`, the trailing edge of the word
+ *  pulses to telegraph the "press space" gate. */
 function BurstWord({
   target,
   typed,
   outcome,
+  ready,
 }: {
   target: string;
   typed: string;
   outcome: AttemptOutcome | null;
+  ready: boolean;
 }) {
   return (
     <div
@@ -294,6 +362,7 @@ function BurstWord({
         outcome === "win" && "text-primary",
         outcome === "slow" && "text-muted-foreground",
         outcome === "wrong" && "text-destructive",
+        ready && outcome == null && "text-primary motion-safe:animate-pulse",
       )}
       style={{ fontFamily: "var(--ft-font-family, inherit)" }}
     >
