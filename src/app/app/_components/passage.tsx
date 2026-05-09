@@ -177,22 +177,28 @@ function AdaptLoadingSkeleton() {
   );
 }
 
+/** Public entry — gates on adaptLoading *before* any of the heavy
+ *  layout hooks below. The gate sits in this thin wrapper so the
+ *  conditional return doesn't change the number of hooks called by
+ *  the Passage component instance: if adaptLoading flips between
+ *  renders the body simply mounts / unmounts. (The previous shape
+ *  ran usePractice, then early-returned, then ran a dozen more hooks
+ *  on the non-loading path — which is the "Rendered more hooks than
+ *  during the previous render" violation.) */
 export function Passage() {
-  const { state, adaptLoading } = usePractice();
+  const { adaptLoading } = usePractice();
+  if (adaptLoading) return <AdaptLoadingSkeleton />;
+  return <PassageBody />;
+}
+
+function PassageBody() {
+  const { state } = usePractice();
   const { words, cursorWord, cursorChar, errorWords, phase, typed } = state;
   const { settings: caretSettings } = useCaretSettings();
   const { prefs } = useBehaviourPrefs();
   const { prefs: appearance } = useAppearancePrefs();
   const blind = prefs.blindMode;
   const showCaret = phase !== "done" && caretSettings.style !== "off";
-
-  // Adaptive fetch in flight on a fresh rest passage: render the
-  // skeleton instead of the seeded local words. The flag is already
-  // gated on `state.adapt && phase === "rest"` upstream, so we just
-  // honour it here.
-  if (adaptLoading) {
-    return <AdaptLoadingSkeleton />;
-  }
 
   // Appearance: highlightMode controls how the *current* word and the
   // *next* token are visually emphasised. typedEffect fades or strikes
