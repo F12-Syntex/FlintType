@@ -1,29 +1,28 @@
 "use client";
 
 import { ChevronRight, Lock, Skull, Sparkles, Zap } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Tag } from "@/components/ft";
 import { BackendError, useBackend } from "@/lib/backend";
 import { cn } from "@/lib/utils";
 import type { HistorySummaryOutput } from "@/types/history";
-import { BurstGame } from "./burst-game";
 import {
   buildDrills,
   type DrillCategory,
   type DrillSpec,
 } from "./drills-data";
-import { SuddenDeath } from "./sudden-death";
 
-/** Drills page — picker on entry, runs the chosen drill in-place
- *  via the kind-specific engine. Each engine renders its own header
- *  and exit affordance, so this view's job is just data fetching,
- *  list layout, and routing the active drill to the right runner. */
+/** Drills picker page — every card is a Link to `/app/drills/<id>`.
+ *  The runners themselves live as their own routes; this view's only
+ *  job is fetching the user snapshot, building the catalog, and
+ *  laying out the cards in two groups (tailored / generic). Locked
+ *  drills render as a non-link card and surface what unlocks them. */
 export function DrillsView() {
   const backend = useBackend();
   const [snapshot, setSnapshot] = useState<HistorySummaryOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [active, setActive] = useState<DrillSpec | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,9 +48,6 @@ export function DrillsView() {
     };
   }, [backend]);
 
-  // Build drills once per data load — generators bake in word
-  // selections so the same drill instance plays consistently across
-  // restarts within a single mount.
   const drills = useMemo<DrillSpec[]>(() => {
     return buildDrills({
       weakestPairs: snapshot?.weakestPairs ?? [],
@@ -60,10 +56,6 @@ export function DrillsView() {
       seed: Date.now(),
     });
   }, [snapshot]);
-
-  if (active) {
-    return <DrillRunner drill={active} onExit={() => setActive(null)} />;
-  }
 
   const tailored = drills.filter((d) => d.category === "tailored");
   const generic = drills.filter((d) => d.category === "generic");
@@ -83,14 +75,12 @@ export function DrillsView() {
               label="Tailored to you"
               blurb="Built from the bigrams and trigrams you keep stalling on. Locked until we've seen enough of your typing."
               drills={tailored}
-              onStart={setActive}
             />
             <DrillsGroup
               category="generic"
               label="Generic"
               blurb="Curated word and sentence sets that work without a model. Warm-up runs and universal drills."
               drills={generic}
-              onStart={setActive}
             />
           </div>
         )}
@@ -110,29 +100,25 @@ function Hero() {
         Drills
       </h1>
       <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-        Short, focused mini-games tuned to your typing data. Sudden-death
-        runs demand a clean sweep; burst minigames reward rhythm above a
-        threshold. Five minutes a day on the right drill outperforms an
-        hour on random words.
+        Short, focused mini-games tuned to your typing data. Each drill
+        opens at its own URL so you can bookmark or link straight to
+        one — the practice surface (font, caret, colours) carries
+        through unchanged.
       </p>
     </section>
   );
 }
-
-// ─── group ────────────────────────────────────────────────────────
 
 function DrillsGroup({
   category,
   label,
   blurb,
   drills,
-  onStart,
 }: {
   category: DrillCategory;
   label: string;
   blurb: string;
   drills: readonly DrillSpec[];
-  onStart: (d: DrillSpec) => void;
 }) {
   if (drills.length === 0) return null;
   return (
@@ -151,37 +137,18 @@ function DrillsGroup({
       </p>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {drills.map((d) => (
-          <DrillCard key={d.id} drill={d} onStart={() => onStart(d)} />
+          <DrillCard key={d.id} drill={d} />
         ))}
       </div>
     </section>
   );
 }
 
-// ─── card ─────────────────────────────────────────────────────────
-
-function DrillCard({
-  drill,
-  onStart,
-}: {
-  drill: DrillSpec;
-  onStart: () => void;
-}) {
+function DrillCard({ drill }: { drill: DrillSpec }) {
   const ready = drill.ready;
   const isSuddenDeath = drill.kind === "sudden-death";
-  return (
-    <button
-      type="button"
-      onClick={ready ? onStart : undefined}
-      disabled={!ready}
-      aria-disabled={!ready}
-      className={cn(
-        "group relative flex flex-col gap-4 overflow-hidden rounded-md border bg-card p-5 text-left transition-colors sm:p-6",
-        ready
-          ? "border-border hover:border-primary/60 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          : "cursor-not-allowed border-border opacity-65",
-      )}
-    >
+  const inner = (
+    <>
       {/* Top hairline accent on hover for the editorial-mechanical
        *  flavour. Sudden-death pulls destructive; burst pulls primary. */}
       <span
@@ -223,7 +190,31 @@ function DrillCard({
           </span>
         )}
       </div>
-    </button>
+    </>
+  );
+
+  const cardCls = cn(
+    "group relative flex flex-col gap-4 overflow-hidden rounded-md border bg-card p-5 text-left transition-colors sm:p-6",
+    ready
+      ? "border-border hover:border-primary/60 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      : "cursor-not-allowed border-border opacity-65",
+  );
+
+  if (!ready) {
+    // Locked drill — render as a static card. The drill-runner page
+    // at /app/drills/<id> handles the locked branch with its own
+    // explainer, so we don't need to navigate just to read why.
+    return (
+      <div className={cardCls} aria-disabled>
+        {inner}
+      </div>
+    );
+  }
+
+  return (
+    <Link href={`/app/drills/${drill.id}`} className={cardCls}>
+      {inner}
+    </Link>
   );
 }
 
@@ -273,38 +264,5 @@ function RuleStrip({ drill }: { drill: DrillSpec }) {
     <span className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
       {drill.items.length} items · {drill.repsPerItem}× at {drill.thresholdWpm} wpm
     </span>
-  );
-}
-
-// ─── runner ───────────────────────────────────────────────────────
-
-function DrillRunner({
-  drill,
-  onExit,
-}: {
-  drill: DrillSpec;
-  onExit: () => void;
-}) {
-  if (drill.kind === "sudden-death") {
-    return (
-      <SuddenDeath
-        key={drill.id}
-        title={drill.title}
-        subtitle={drill.contextLabel}
-        words={drill.words}
-        onExit={onExit}
-      />
-    );
-  }
-  return (
-    <BurstGame
-      key={drill.id}
-      title={drill.title}
-      subtitle={drill.contextLabel}
-      items={drill.items}
-      thresholdWpm={drill.thresholdWpm}
-      repsPerItem={drill.repsPerItem}
-      onExit={onExit}
-    />
   );
 }

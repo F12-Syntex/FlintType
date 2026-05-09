@@ -1,10 +1,10 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { Tag } from "@/components/ft";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { DrillHeader } from "./drill-header";
 
 /** A burst minigame: type each item in `items` correctly above the
  *  WPM threshold, `repsPerItem` consecutive times. Hit the rep
@@ -12,14 +12,15 @@ import { cn } from "@/lib/utils";
  *  attempt resets the rep counter on the current item.
  *
  *  Used for the burst-1000, top-100 sprint, pangram, and trigram
- *  drills — same engine, different data. */
-type BurstGameProps = {
+ *  drills — same engine, different data. The surface mounts at
+ *  `/app/drills/<id>` and exits via the breadcrumb back-link in
+ *  the shared DrillHeader, not via Esc or an in-page button. */
+type BurstSurfaceProps = {
   title: string;
   subtitle: string;
   items: readonly string[];
   thresholdWpm: number;
   repsPerItem: number;
-  onExit: () => void;
 };
 
 type AttemptOutcome = "win" | "slow" | "wrong";
@@ -156,14 +157,13 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-export function BurstGame({
+export function BurstSurface({
   title,
   subtitle,
   items,
   thresholdWpm,
   repsPerItem,
-  onExit,
-}: BurstGameProps) {
+}: BurstSurfaceProps) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const itemRef = useRef(items);
   itemRef.current = items;
@@ -206,11 +206,9 @@ export function BurstGame({
         dispatch({ type: "BACKSPACE" });
         return;
       }
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onExit();
-        return;
-      }
+      // Esc is intentionally not bound — accidental taps mid-burst
+      // shouldn't drop the user out of the drill. The breadcrumb
+      // back-link is the documented exit affordance.
       if (e.key.length === 1) {
         // Space is the burst-commit key. Once the user has typed the
         // whole target (state.typed === targetWord), pressing space
@@ -252,7 +250,6 @@ export function BurstGame({
       }
     },
     [
-      onExit,
       thresholdWpm,
       repsPerItem,
       targetWord,
@@ -273,14 +270,13 @@ export function BurstGame({
 
   return (
     <>
-      <DrillHeader title={title} subtitle={subtitle} onExit={onExit} />
+      <DrillHeader title={title} subtitle={subtitle} />
 
       {state.finished ? (
         <section className="flex min-h-0 flex-1 flex-col items-center justify-center px-5 py-10 sm:px-16">
           <DrillComplete
             totalWins={state.totalWins}
             totalAttempts={state.totalAttempts}
-            onExit={onExit}
           />
         </section>
       ) : (
@@ -297,11 +293,6 @@ export function BurstGame({
               caption="Item"
             />
             <StatCard top={`${accuracy}%`} caption="Accuracy" />
-            <StatCard
-              top="Esc"
-              caption="Exit"
-              accent="muted"
-            />
           </StatStripFrame>
 
           {/* Central word + streak pips + status text. Vertically
@@ -665,41 +656,12 @@ function BurstWord({
   );
 }
 
-function DrillHeader({
-  title,
-  subtitle,
-  onExit,
-}: {
-  title: string;
-  subtitle: string;
-  onExit: () => void;
-}) {
-  return (
-    <section className="border-b border-border px-5 pt-8 pb-5 sm:px-16">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <Tag>{subtitle}</Tag>
-          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-            {title}
-          </h1>
-        </div>
-        <Button variant="outline" size="sm" onClick={onExit} className="gap-2">
-          <ArrowLeft size={14} />
-          Back to drills
-        </Button>
-      </div>
-    </section>
-  );
-}
-
 function DrillComplete({
   totalWins,
   totalAttempts,
-  onExit,
 }: {
   totalWins: number;
   totalAttempts: number;
-  onExit: () => void;
 }) {
   const accuracy =
     totalAttempts > 0 ? Math.round((totalWins / totalAttempts) * 100) : 100;
@@ -727,9 +689,12 @@ function DrillComplete({
           </span>
         </div>
       </div>
-      <Button onClick={onExit} className="gap-2">
+      <Link
+        href="/app/drills"
+        className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+      >
         Back to drills
-      </Button>
+      </Link>
     </div>
   );
 }

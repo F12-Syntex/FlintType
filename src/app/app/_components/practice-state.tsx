@@ -470,6 +470,11 @@ type PracticeCtx = {
    *  the algorithm picked, which reads as lag. Always false when adapt
    *  is off, when in a drill (locked words), or once typing has begun. */
   adaptLoading: boolean;
+  /** Number of times the sudden-death watcher has reset the run after
+   *  a wrong keystroke. Surfaced so drill UIs can telegraph the cost
+   *  of the restart streak. Always 0 when the provider is not in
+   *  sudden-death mode. */
+  suddenDeathRestarts: number;
 };
 
 const Ctx = createContext<PracticeCtx | null>(null);
@@ -494,6 +499,7 @@ const DEFAULT_PRACTICE_SLICE: PracticeSlice = {
 export function PracticeProvider({
   children,
   lockedWords,
+  suddenDeath = false,
 }: {
   children: React.ReactNode;
   /** When provided, the provider runs in "drill" mode: the passage is
@@ -502,6 +508,14 @@ export function PracticeProvider({
    *  cfg-driven regeneration, adaptive prefetch) all short-circuit so
    *  the drill remains a single fixed exercise. */
   lockedWords?: readonly string[];
+  /** Sudden-death drill mode. Forces stopOnError on every keystroke
+   *  (so a wrong char never advances the cursor), then a watcher
+   *  notices the wrong-event in the events log and dispatches RESTART
+   *  to bounce the user back to word zero. Implies lockedWords —
+   *  without a locked passage the restart would re-roll fresh
+   *  random words on every miss, which is not the drill the
+   *  caller asked for. */
+  suddenDeath?: boolean;
 }) {
   const [state, dispatch] = useReducer(
     reducer,
@@ -545,6 +559,46 @@ export function PracticeProvider({
     if (lockedWords && lockedWords.length > 0) return false;
     return practiceSlice.adapt && practiceSlice.mode === "WORDS";
   });
+
+  // Sudden-death plumbing — see prop docs above. The ref form lets the
+  // window-level keystroke handler force stopOnError without being
+  // recreated whenever the prop flips.
+  const suddenDeathRef = useRef(suddenDeath);
+  suddenDeathRef.current = suddenDeath;
+  const [suddenDeathRestarts, setSuddenDeathRestarts] = useState(0);
+  // Reset the restart counter whenever the locked passage swaps so a
+  // freshly-mounted drill doesn't inherit a stale tally.
+  useEffect(() => {
+    setSuddenDeathRestarts(0);
+  }, [lockedWords]);
+  // Watcher: every time the events log grows, peek at the newest event.
+  // If it's a wrong-char attempt and we're in sudden-death mode,
+  // bounce the run back to word zero by re-dispatching RESTART with
+  // the locked passage. The dispatch fires synchronously inside the
+  // effect — no setTimeout — so the user only ever sees the running
+  // state, never an in-between frame with the wrong char accepted.
+  const lastHandledEventLenRef = useRef(0);
+  useEffect(() => {
+    if (!suddenDeath) return;
+    const len = state.events.length;
+    if (len === 0) {
+      lastHandledEventLenRef.current = 0;
+      return;
+    }
+    if (len <= lastHandledEventLenRef.current) return;
+    lastHandledEventLenRef.current = len;
+    const last = state.events[len - 1];
+    if (!last || last.correct) return;
+    if (!lockedWordsRef.current) return;
+    setSuddenDeathRestarts((n) => n + 1);
+    dispatch({
+      type: "RESTART",
+      words: [...lockedWordsRef.current],
+      quoteSource: null,
+    });
+    // RESTART clears events to []; the effect re-runs with len=0 and
+    // resets the ref so the next miss is handled freshly.
+  }, [state.events, suddenDeath]);
 
   // Mirror the persisted slice into the reducer whenever the slice
   // identity changes. The cache returns DEFAULT_PRACTICE_SLICE before
@@ -885,6 +939,7 @@ export function PracticeProvider({
       accuracy,
       wpmHistory,
       adaptLoading: effectiveState.adapt && adaptLoading && state.phase === "rest",
+      suddenDeathRestarts,
       setMode: (mode) => {
         const length = defaultLengthFor(mode);
         const cfg = buildCfg();
@@ -959,7 +1014,7 @@ export function PracticeProvider({
         }
       },
     };
-  }, [state, elapsedMs, wpmHistory, isMobile, adaptLoading]);
+  }, [state, elapsedMs, wpmHistory, isMobile, adaptLoading, suddenDeathRestarts]);
 
   // Keyboard listener — only when user isn't typing into another input.
   const stateRef = useRef(state);
@@ -1023,7 +1078,12 @@ export function PracticeProvider({
         type: "TYPE_CHAR",
         char: e.key,
         now: Date.now(),
-        stopOnError: p.stopOnError,
+        // In sudden-death the cursor must never advance on a wrong
+        // char — the watcher will see the wrong event and reset, but
+        // until that effect fires we don't want a half-typed letter
+        // peeking into the run. Force stopOnError on regardless of
+        // the user's behaviour pref.
+        stopOnError: p.stopOnError || suddenDeathRef.current,
       });
     }
   }, []);
