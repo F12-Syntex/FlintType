@@ -58,7 +58,10 @@ export function AppChrome({
       >
         <div
           className={cn(
-            "absolute inset-0 flex flex-col",
+            // Global horizontal page-pad so /app surfaces breathe off
+            // the chrome edge. Per-page sections may still add their
+            // own additional inset; this is the floor.
+            "absolute inset-0 flex flex-col px-2 sm:px-4 lg:px-6",
             compact ? "overflow-hidden" : "overflow-y-auto",
           )}
         >

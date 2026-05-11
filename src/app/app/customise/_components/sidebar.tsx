@@ -229,7 +229,15 @@ export function SettingsSidebar() {
     <nav
       data-ft-chrome
       aria-label="Settings sections"
-      className="hidden bg-background/85 backdrop-blur-md lg:flex lg:h-full lg:flex-col lg:overflow-hidden lg:border-r lg:border-border"
+      className={cn(
+        // Detached card at lg+: floats inside the global page-pad,
+        // bounded by a full border and rounded corners so it reads
+        // as its own surface instead of being flush against the
+        // chrome edge.
+        "hidden bg-background/85 backdrop-blur-md",
+        "lg:flex lg:h-full lg:flex-col lg:overflow-hidden",
+        "lg:rounded-md lg:border lg:border-border",
+      )}
     >
       <div className="shrink-0 border-b border-border px-4 py-4">
         <div className="flex items-center gap-3">
