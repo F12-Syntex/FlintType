@@ -5,9 +5,44 @@ import { useBackend } from "@/lib/backend";
 
 /** Singleton client-side store for the user's preferences blob. Every
  *  pref slice (caret, behaviour, appearance, keyboard, theme, palette)
- *  reads from and writes through this module so we make a single
- *  GET /api/prefs/get on app load and one debounced POST /api/prefs/set
- *  per burst of edits — no localStorage anywhere. */
+ *  reads from and writes through this module.
+ *
+ *  Two-tier persistence:
+ *    - signed-in users: /api/prefs/get is the source of truth on
+ *      load; localStorage is mirrored so first paint after a refresh
+ *      shows live values before the GET resolves
+ *    - anon users: localStorage IS the source of truth. The backend
+ *      POST still fires on every burst but silently 401s — when the
+ *      user later signs in, their cached blob is the merge baseline
+ *      so settings carry across the auth boundary
+ *
+ *  One GET on load, one debounced POST per burst, plus a synchronous
+ *  localStorage write-through. */
+const LS_KEY = "flinttype:prefs:v1";
+
+function lsRead(): PrefsBlob | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(LS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as PrefsBlob;
+    }
+  } catch {
+    /* corrupted / quota — fall through to null */
+  }
+  return null;
+}
+
+function lsWrite(blob: PrefsBlob): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(LS_KEY, JSON.stringify(blob));
+  } catch {
+    /* quota / private mode — fail silent */
+  }
+}
 
 export type PrefsBlob = Record<string, unknown>;
 export type Listener = () => void;
@@ -46,17 +81,31 @@ export function getCache(): PrefsBlob | null {
 export function loadPrefs(): Promise<PrefsBlob> {
   if (cache) return Promise.resolve(cache);
   if (loadPromise) return loadPromise;
+  // Seed the cache from localStorage *synchronously* so the first
+  // render after page load shows the user's stored choices instead
+  // of the bare defaults — even before the backend GET resolves
+  // (or even when the user is anonymous and the GET 401s).
+  const seeded = lsRead();
+  if (seeded) {
+    cache = seeded;
+    notify();
+  }
   loadPromise = (async () => {
     try {
       const backend = useBackend();
       const blob = await backend.prefs.get();
-      cache = blob ?? {};
+      // Backend wins for signed-in users — overlay onto whatever
+      // localStorage seeded so any anon-side edits made *before*
+      // the GET resolves don't get clobbered by the network result
+      // (their write will flush momentarily anyway).
+      cache = { ...(cache ?? {}), ...(blob ?? {}) };
+      lsWrite(cache);
     } catch (err) {
-      if (err instanceof BackendError && err.code === "UNAUTHORIZED") {
-        cache = {};
-      } else {
-        cache = {};
+      // Anon / 401 — keep the seeded cache (or the empty one).
+      if (!(err instanceof BackendError && err.code === "UNAUTHORIZED")) {
+        // Network blip, etc. — same fallback.
       }
+      if (!cache) cache = {};
     } finally {
       loadPromise = null;
       notify();
@@ -79,10 +128,12 @@ export function readSlice<T extends object>(key: string, defaults: T): T {
   return defaults;
 }
 
-/** Write a slice. Updates the in-memory cache, notifies subscribers,
- *  and schedules a debounced backend save. */
+/** Write a slice. Updates the in-memory cache, mirrors to
+ *  localStorage so anon users keep their edits across reloads, and
+ *  schedules a debounced backend save (silent 401 on anon). */
 export function writeSlice<T>(key: string, value: T): void {
   cache = { ...(cache ?? {}), [key]: value as unknown };
+  lsWrite(cache);
   notify();
   scheduleWrite();
 }
@@ -93,6 +144,7 @@ export function clearSlice(key: string): void {
   const next = { ...cache };
   delete next[key];
   cache = next;
+  lsWrite(cache);
   notify();
   scheduleWrite();
 }

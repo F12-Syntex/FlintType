@@ -1,5 +1,6 @@
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../_components/app-chrome";
+import { requireSession } from "../_components/require-session";
 import { DrillsView } from "./_components/drills-view";
 
 export const metadata = buildPageMetadata({
@@ -10,7 +11,8 @@ export const metadata = buildPageMetadata({
   noIndex: true,
 });
 
-export default function DrillsPage() {
+export default async function DrillsPage() {
+  await requireSession();
   return (
     <AppChrome>
       <DrillsView />

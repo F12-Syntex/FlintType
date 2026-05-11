@@ -1,5 +1,6 @@
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../_components/app-chrome";
+import { requireSession } from "../_components/require-session";
 import { BiogramView } from "./_components/biogram-view";
 
 export const metadata = buildPageMetadata({
@@ -10,7 +11,8 @@ export const metadata = buildPageMetadata({
   noIndex: true,
 });
 
-export default function BiogramPage() {
+export default async function BiogramPage() {
+  await requireSession();
   return (
     <AppChrome>
       <BiogramView />

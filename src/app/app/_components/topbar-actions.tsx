@@ -43,9 +43,31 @@ export function TopbarActions({ dark = false }: { dark?: boolean }) {
 /** Avatar + name in a single Link so the rounded hover surface covers
  *  both as one unit. Display name comes from Clerk: firstName, then
  *  username, then the local-part of the primary email — whatever's
- *  defined first. */
+ *  defined first.
+ *
+ *  Anonymous (no Clerk session): swap to a 'Sign in' pill that
+ *  routes to /sign-in. /app + /app/customise work without a session
+ *  now (settings save to localStorage), so the topbar should never
+ *  pretend the user is signed in when they aren't. */
 function ProfileLink({ dark }: { dark: boolean }) {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded, isSignedIn } = useUser();
+
+  if (isLoaded && !isSignedIn) {
+    return (
+      <Link
+        href="/sign-in"
+        aria-label="Sign in"
+        className={cn(
+          "hidden items-center gap-2 rounded-md px-3 py-1 text-[11px] font-medium tracking-[0.14em] uppercase transition-colors md:flex",
+          dark
+            ? "text-ft-paper hover:bg-white/5"
+            : "text-foreground hover:bg-foreground/5",
+        )}
+      >
+        Sign in
+      </Link>
+    );
+  }
 
   const displayName = !isLoaded
     ? "…"

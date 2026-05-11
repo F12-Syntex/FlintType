@@ -1,5 +1,6 @@
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../../_components/app-chrome";
+import { requireSession } from "../../_components/require-session";
 import { ProfileView } from "../_components/profile-view";
 
 type Params = { username: string };
@@ -23,6 +24,7 @@ export default async function ProfileByUsernamePage({
 }: {
   params: Promise<Params>;
 }) {
+  await requireSession();
   const { username } = await params;
   return (
     <AppChrome>
