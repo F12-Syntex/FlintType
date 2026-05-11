@@ -14,6 +14,10 @@ import {
   type TrigramModelsRepo,
   type WordModelsRepo,
 } from './repositories/adapt-models';
+import {
+  notificationsRepo,
+  type NotificationsRepo,
+} from './repositories/notifications';
 import { testsRepo, type TestsRepo } from './repositories/tests';
 import { userPrefsRepo, type UserPrefsRepo } from './repositories/user-prefs';
 
@@ -24,6 +28,7 @@ export type Database = {
   motorFeatureModels: MotorFeatureModelsRepo;
   wordModels: WordModelsRepo;
   tests: TestsRepo;
+  notifications: NotificationsRepo;
   $drizzle: ServerDrizzle;
 };
 
@@ -38,6 +43,7 @@ export function createDatabase(
     motorFeatureModels: motorFeatureModelsRepo(drizzle),
     wordModels: wordModelsRepo(drizzle),
     tests: testsRepo(drizzle),
+    notifications: notificationsRepo(drizzle),
     $drizzle: drizzle,
   };
 }

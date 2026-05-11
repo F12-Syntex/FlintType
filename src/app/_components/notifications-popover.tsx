@@ -1,56 +1,71 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useUser } from "@clerk/nextjs";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useBackend } from "@/lib/backend";
 import { cn } from "@/lib/utils";
+import type {
+  Notification,
+  PersonalBestData,
+  AnnouncementData,
+} from "@/types/notification";
 
-// Frontend-only mock feed. Real backend wiring lands later — keep this
-// shape so swapping in a `useBackend().notifications.list()` call is a
-// one-line change at the top of the component.
-type Notification = {
-  id: string;
-  title: string;
-  body: string;
-  // Relative time string ("12m", "3h", "yesterday") — easier than wiring
-  // a live timestamp formatter for mock data.
-  when: string;
-  unread: boolean;
-  tone: "ember" | "ink";
-};
-
-const MOCK_FEED: Notification[] = [
-  {
-    id: "n1",
-    title: "New personal best",
-    body: "92 wpm · 98% acc on EN-COMMON-50. +4 over your previous best.",
-    when: "12m",
-    unread: true,
-    tone: "ember",
-  },
-  {
-    id: "n2",
-    title: "Streak: 4 days",
-    body: "Type at least one passage today to keep it alive.",
-    when: "3h",
-    unread: true,
-    tone: "ink",
-  },
-  {
-    id: "n3",
-    title: "Drill unlocked — bigram balance",
-    body: "Your th / he / in pairs are running 18% slower than average. Try it from the drills tab.",
-    when: "yesterday",
-    unread: false,
-    tone: "ink",
-  },
-];
-
+/** Bell + popover. Reads the live feed from
+ *  `backend.notifications.list()`. Anonymous viewers don't see the
+ *  bell at all — the routes sit behind requireAuth and there's
+ *  nothing to show until the user has an account.
+ *
+ *  Theme: theme-aware semantic classes per ui-law §2.1 — the chrome
+ *  swaps cleanly under <ModeToggle> + <ThemeSwitcher>. The legacy
+ *  `dark` prop is preserved so the dark race surface can still
+ *  request a darker on-ink variant; that branch reaches for the
+ *  fixed warm-ink ramp from §2.3 because those surfaces are
+ *  intentionally dark regardless of the user's palette. */
 export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
+  const { isSignedIn, isLoaded } = useUser();
+  const backend = useBackend();
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState(MOCK_FEED);
+  const [items, setItems] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const unread = items.filter((n) => n.unread).length;
 
-  // Click outside closes the popover.
+  const refresh = useCallback(async () => {
+    if (!isSignedIn) {
+      setItems([]);
+      setUnreadCount(0);
+      return;
+    }
+    setLoading(true);
+    try {
+      const out = await backend.notifications.list();
+      setItems(out.items);
+      setUnreadCount(out.unreadCount);
+    } catch {
+      // Silent: a notifications fetch failure must never break the
+      // topbar. Stale data is fine; the next refresh recovers.
+    } finally {
+      setLoading(false);
+    }
+  }, [backend, isSignedIn]);
+
+  // Initial fetch + refetch every minute while signed in.
+  useEffect(() => {
+    if (!isLoaded) return;
+    void refresh();
+    if (!isSignedIn) return;
+    const id = window.setInterval(() => void refresh(), 60_000);
+    return () => window.clearInterval(id);
+  }, [isLoaded, isSignedIn, refresh]);
+
+  // Refetch when the popover opens — catches notifications created
+  // since the last poll without waiting for the next interval tick.
+  useEffect(() => {
+    if (open) void refresh();
+  }, [open, refresh]);
+
+  // Click outside / Escape closes.
   useEffect(() => {
     if (!open) return;
     const onPointer = (e: PointerEvent) => {
@@ -69,9 +84,23 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
     };
   }, [open]);
 
-  const markAllRead = () => {
-    setItems((prev) => prev.map((n) => ({ ...n, unread: false })));
-  };
+  async function markAllRead() {
+    // Optimistic — drop unread state instantly so the badge
+    // disappears the moment the user clicks. The route either
+    // succeeds (no visible change) or fails silently and the next
+    // refresh corrects.
+    setItems((prev) => prev.map((n) => ({ ...n, readAtMs: n.readAtMs ?? Date.now() })));
+    setUnreadCount(0);
+    try {
+      await backend.notifications.markAllRead();
+    } catch {
+      void refresh();
+    }
+  }
+
+  // Anonymous viewers: no bell at all. Avoids a permanently-empty
+  // affordance that does nothing on click.
+  if (!isLoaded || isSignedIn !== true) return null;
 
   return (
     <div ref={wrapRef} className="relative">
@@ -79,8 +108,8 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-label={
-          unread > 0
-            ? `Notifications, ${unread} unread`
+          unreadCount > 0
+            ? `Notifications, ${unreadCount} unread`
             : "Notifications"
         }
         aria-expanded={open}
@@ -93,7 +122,7 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
         )}
       >
         <BellIcon />
-        {unread > 0 ? (
+        {unreadCount > 0 ? (
           <span
             aria-hidden
             className="absolute top-2 right-2 size-1.5 rounded-full bg-primary md:top-1.5 md:right-1.5"
@@ -109,31 +138,46 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
             // Mobile: full-width sheet pinned below the topbar.
             "fixed inset-x-2 top-[60px] z-40 max-h-[70vh] overflow-y-auto",
             // Desktop: anchored to the bell, fixed width.
-            "md:absolute md:inset-x-auto md:top-full md:right-0 md:mt-2 md:w-[320px]",
-            "rounded-md border bg-white shadow-lg",
+            "md:absolute md:inset-x-auto md:top-full md:right-0 md:mt-2 md:w-[360px]",
+            "rounded-md border shadow-lg",
             dark
-              ? "border-ft-ink-line bg-ft-ink text-ft-paper"
-              : "border-ft-line-soft text-ft-ink",
+              ? "border-ft-ink-line bg-ft-ink-popover text-ft-paper"
+              : "border-border bg-popover text-popover-foreground",
           )}
         >
           <div
             className={cn(
               "flex items-center justify-between gap-3 border-b px-4 py-3",
-              dark ? "border-ft-ink-line" : "border-ft-line-soft",
+              dark ? "border-ft-ink-line" : "border-border",
             )}
           >
-            <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">
+            <span
+              className={cn(
+                "text-[11px] font-semibold uppercase tracking-[0.18em]",
+                dark ? "text-ft-paper" : "text-foreground",
+              )}
+            >
               Notifications
+              {unreadCount > 0 ? (
+                <span
+                  className={cn(
+                    "ml-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums",
+                    "bg-primary text-primary-foreground",
+                  )}
+                >
+                  {unreadCount}
+                </span>
+              ) : null}
             </span>
-            {unread > 0 ? (
+            {unreadCount > 0 ? (
               <button
                 type="button"
-                onClick={markAllRead}
+                onClick={() => void markAllRead()}
                 className={cn(
                   "text-[10px] uppercase tracking-[0.14em] transition-colors",
                   dark
                     ? "text-ft-warm-2 hover:text-ft-paper"
-                    : "text-ft-dim hover:text-ft-ink",
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 Mark all read
@@ -141,11 +185,20 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
             ) : null}
           </div>
 
-          {items.length === 0 ? (
+          {loading && items.length === 0 ? (
             <div
               className={cn(
                 "px-4 py-6 text-center text-[12px]",
-                dark ? "text-ft-warm-2" : "text-ft-dim",
+                dark ? "text-ft-warm-2" : "text-muted-foreground",
+              )}
+            >
+              Loading…
+            </div>
+          ) : items.length === 0 ? (
+            <div
+              className={cn(
+                "px-4 py-6 text-center text-[12px]",
+                dark ? "text-ft-warm-2" : "text-muted-foreground",
               )}
             >
               All caught up.
@@ -157,7 +210,7 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
                   key={n.id}
                   className={cn(
                     i > 0 && "border-t",
-                    dark ? "border-ft-ink-line" : "border-ft-line-soft",
+                    dark ? "border-ft-ink-line" : "border-border",
                   )}
                 >
                   <Row item={n} dark={dark} />
@@ -172,19 +225,24 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
 }
 
 function Row({ item, dark }: { item: Notification; dark: boolean }) {
-  return (
+  const accent = item.kind === "personal_best";
+  const unread = item.readAtMs == null;
+  const href = isAnnouncement(item) ? item.data?.href : undefined;
+  const body = (
     <div className="flex items-start gap-3 px-4 py-3">
       <span
         aria-hidden
         className={cn(
           "mt-1.5 size-1.5 shrink-0 rounded-full",
-          item.unread
-            ? item.tone === "ember"
-              ? "bg-ft-ember"
-              : "bg-ft-ink"
+          unread
+            ? accent
+              ? "bg-primary"
+              : dark
+                ? "bg-ft-paper"
+                : "bg-foreground"
             : dark
-              ? "bg-ft-ink-popover"
-              : "bg-ft-line-soft",
+              ? "bg-ft-warm-3"
+              : "bg-muted-foreground/40",
         )}
       />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -192,7 +250,7 @@ function Row({ item, dark }: { item: Notification; dark: boolean }) {
           <span
             className={cn(
               "truncate text-[12px] font-semibold",
-              item.tone === "ember" && "text-ft-ember",
+              accent ? "text-primary" : dark ? "text-ft-paper" : "text-foreground",
             )}
           >
             {item.title}
@@ -200,23 +258,98 @@ function Row({ item, dark }: { item: Notification; dark: boolean }) {
           <span
             className={cn(
               "shrink-0 text-[10px] uppercase tracking-[0.12em]",
-              dark ? "text-ft-warm-3" : "text-ft-dim-2",
+              dark ? "text-ft-warm-3" : "text-muted-foreground",
             )}
           >
-            {item.when}
+            {formatRelative(item.createdAtMs)}
           </span>
         </div>
         <p
           className={cn(
             "text-[11px] leading-snug",
-            dark ? "text-ft-warm-2" : "text-ft-dim-2",
+            dark ? "text-ft-warm-2" : "text-muted-foreground",
           )}
         >
           {item.body}
         </p>
+        {isPersonalBest(item) ? <PbDelta data={item.data} dark={dark} /> : null}
       </div>
     </div>
   );
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={cn(
+          "block transition-colors",
+          dark ? "hover:bg-white/[0.04]" : "hover:bg-foreground/[0.03]",
+        )}
+      >
+        {body}
+      </Link>
+    );
+  }
+  return body;
+}
+
+function PbDelta({
+  data,
+  dark,
+}: {
+  data: PersonalBestData;
+  dark: boolean;
+}) {
+  if (data.previousWpm == null) {
+    return (
+      <span
+        className={cn(
+          "mt-1 inline-flex w-fit items-center rounded-md border px-1.5 py-0.5 text-[10px] font-medium tabular-nums",
+          "border-primary/40 bg-primary/[0.06] text-primary",
+        )}
+      >
+        first run
+      </span>
+    );
+  }
+  const delta = Math.round(data.wpm - data.previousWpm);
+  return (
+    <span
+      className={cn(
+        "mt-1 inline-flex w-fit items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium tabular-nums",
+        delta > 0
+          ? "border-primary/40 bg-primary/[0.06] text-primary"
+          : dark
+            ? "border-white/10 bg-white/[0.03] text-ft-warm-2"
+            : "border-border bg-muted/40 text-muted-foreground",
+      )}
+    >
+      {delta > 0 ? `+${delta}` : delta} wpm vs {Math.round(data.previousWpm)}
+    </span>
+  );
+}
+
+function isAnnouncement(n: Notification): n is Notification & {
+  data: AnnouncementData;
+} {
+  return n.kind === "announcement";
+}
+
+function isPersonalBest(n: Notification): n is Notification & {
+  data: PersonalBestData;
+} {
+  if (n.kind !== "personal_best") return false;
+  if (n.data == null || typeof n.data !== "object") return false;
+  return "wpm" in (n.data as Record<string, unknown>);
+}
+
+function formatRelative(ms: number): string {
+  const diff = (Date.now() - ms) / 1000;
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  if (diff < 86_400) return `${Math.floor(diff / 3600)}h`;
+  if (diff < 7 * 86_400) return `${Math.floor(diff / 86_400)}d`;
+  const d = new Date(ms);
+  return d.toLocaleDateString();
 }
 
 function BellIcon() {
@@ -238,3 +371,4 @@ function BellIcon() {
     </svg>
   );
 }
+

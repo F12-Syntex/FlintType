@@ -4,3 +4,4 @@ export * from "./user-prefs";
 export * from "./adapt-models";
 export * from "./tests";
 export * from "./word-models";
+export * from "./notifications";

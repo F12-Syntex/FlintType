@@ -306,4 +306,72 @@ describe("adapt routes", () => {
       callRoute(["adapt", "scoreWord"], { db: ctx.db, input: { word: "" } }),
     ).rejects.toBeInstanceOf(ZodError);
   });
+
+  it("first completed run in a (mode, length) bucket fires a personal-best notification", async () => {
+    signedInAs("u1");
+    await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput(),
+    });
+    const list = await ctx.db.notifications.listForUser("u1");
+    expect(list.length).toBe(1);
+    expect(list[0]!.kind).toBe("personal_best");
+    // No prior run → previousWpm is null in the payload (signalled
+    // via the "First completed run" title path).
+    expect(list[0]!.title).toBe("First completed run");
+    const data = list[0]!.data as { previousWpm: number | null; wpm: number };
+    expect(data.previousWpm).toBeNull();
+    expect(data.wpm).toBe(100);
+  });
+
+  it("beating a prior best in the same bucket fires a fresh PB; slower run does not", async () => {
+    signedInAs("u1");
+    // First run — opens the bucket. Counts as a PB itself.
+    await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({
+        startedAt: 1_700_000_000_000,
+        completedAt: 1_700_000_010_000,
+        wpm: 80,
+      }),
+    });
+    // Second run, faster — should fire.
+    await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({
+        startedAt: 1_700_000_020_000,
+        completedAt: 1_700_000_030_000,
+        wpm: 100,
+      }),
+    });
+    // Third run, slower — should NOT fire.
+    await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({
+        startedAt: 1_700_000_040_000,
+        completedAt: 1_700_000_050_000,
+        wpm: 95,
+      }),
+    });
+    const list = await ctx.db.notifications.listForUser("u1");
+    // Two PB notifications: first-run + the faster run. The slower
+    // third run is suppressed.
+    expect(list.length).toBe(2);
+    const newest = list[0]!;
+    expect(newest.kind).toBe("personal_best");
+    expect(newest.title).toBe("New personal best");
+    const data = newest.data as { previousWpm: number; wpm: number };
+    expect(data.previousWpm).toBe(80);
+    expect(data.wpm).toBe(100);
+  });
+
+  it("incomplete runs never fire a PB notification, regardless of WPM", async () => {
+    signedInAs("u1");
+    await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({ wasCompleted: false, wpm: 200 }),
+    });
+    const list = await ctx.db.notifications.listForUser("u1");
+    expect(list).toEqual([]);
+  });
 });

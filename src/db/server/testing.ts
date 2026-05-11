@@ -66,10 +66,21 @@ const SCHEMA_DDL = `
     was_completed            boolean NOT NULL
   );
   CREATE INDEX IF NOT EXISTS tests_user_time_idx ON tests (user_id, started_at);
+  CREATE TABLE IF NOT EXISTS notifications (
+    id          text PRIMARY KEY,
+    user_id     text NOT NULL,
+    kind        text NOT NULL,
+    title       text NOT NULL,
+    body        text NOT NULL,
+    data        jsonb,
+    created_at  timestamp NOT NULL DEFAULT now(),
+    read_at     timestamp
+  );
+  CREATE INDEX IF NOT EXISTS notifications_user_time_idx ON notifications (user_id, created_at);
 `;
 
 const TRUNCATE_ALL = `
-  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, word_models, tests;
+  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, word_models, tests, notifications;
 `;
 
 /** PGlite's parse-message path rejects multi-statement queries, so we

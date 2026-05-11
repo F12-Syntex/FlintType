@@ -4,6 +4,7 @@ import { adapt } from './routes/adapt';
 import { health } from './routes/health';
 import { history } from './routes/history';
 import { monkeytype } from './routes/monkeytype';
+import { notifications } from './routes/notifications';
 import { prefs } from './routes/prefs';
 
 export const router = defineNamespace({
@@ -14,6 +15,7 @@ export const router = defineNamespace({
     adapt,
     history,
     monkeytype,
+    notifications,
   },
 });
 
