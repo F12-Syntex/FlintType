@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { GoogleButton } from "./oauth-buttons";
+import { DiscordButton } from "./oauth-buttons";
 
 type Step = "credentials" | "verify";
 
@@ -16,7 +16,7 @@ type Step = "credentials" | "verify";
  *    2. verify: 6-digit code → signUp.attemptEmailAddressVerification
  *  On complete, setActive promotes the new session and we route home.
  *
- *  OAuth (Google) is a one-step shortcut — Clerk's hosted callback
+ *  OAuth (Discord) is a one-step shortcut — Clerk's hosted callback
  *  handles verification + session creation. */
 export function SignUpForm() {
   const { signUp, isLoaded, setActive } = useSignUp();
@@ -26,7 +26,7 @@ export function SignUpForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
-  const [busy, setBusy] = useState<"create" | "verify" | "google" | null>(
+  const [busy, setBusy] = useState<"create" | "verify" | "discord" | null>(
     null,
   );
   const [error, setError] = useState<string | null>(null);
@@ -73,18 +73,18 @@ export function SignUpForm() {
     }
   }
 
-  async function handleGoogle() {
+  async function handleDiscord() {
     if (!isLoaded || busy) return;
-    setBusy("google");
+    setBusy("discord");
     setError(null);
     try {
       await signUp.authenticateWithRedirect({
-        strategy: "oauth_google",
+        strategy: "oauth_discord",
         redirectUrl: "/sign-in/sso-callback",
         redirectUrlComplete: "/",
       });
     } catch (err) {
-      setError(extractError(err) ?? "Google sign-up failed.");
+      setError(extractError(err) ?? "Discord sign-up failed.");
       setBusy(null);
     }
   }
@@ -130,7 +130,7 @@ export function SignUpForm() {
             setError(null);
           }}
         >
-          ← Use a different email
+          Use a different email
         </button>
       </form>
     );
@@ -138,7 +138,7 @@ export function SignUpForm() {
 
   return (
     <div className="flex flex-col gap-5">
-      <GoogleButton onStart={handleGoogle} disabled={busy != null} />
+      <DiscordButton onStart={handleDiscord} disabled={busy != null} />
 
       <Divider label="or sign up with email" />
 

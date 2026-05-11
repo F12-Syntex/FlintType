@@ -10,10 +10,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { GoogleButton } from "./oauth-buttons";
+import { DiscordButton } from "./oauth-buttons";
 
 /** Custom sign-in form — Clerk hooks under the hood, our design
- *  surface on top. Email + password with a 'Continue with Google'
+ *  surface on top. Email + password with a 'Continue with Discord'
  *  shortcut. Errors render inline (Clerk's API returns
  *  err.errors[].longMessage which is human-readable). */
 export function SignInForm() {
@@ -21,7 +21,7 @@ export function SignInForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState<"email" | "google" | null>(null);
+  const [busy, setBusy] = useState<"email" | "discord" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleEmailSubmit(e: React.FormEvent) {
@@ -52,25 +52,25 @@ export function SignInForm() {
     }
   }
 
-  async function handleGoogle() {
+  async function handleDiscord() {
     if (!isLoaded || busy) return;
-    setBusy("google");
+    setBusy("discord");
     setError(null);
     try {
       await signIn.authenticateWithRedirect({
-        strategy: "oauth_google",
+        strategy: "oauth_discord",
         redirectUrl: "/sign-in/sso-callback",
         redirectUrlComplete: "/",
       });
     } catch (err) {
-      setError(extractError(err) ?? "Google sign-in failed.");
+      setError(extractError(err) ?? "Discord sign-in failed.");
       setBusy(null);
     }
   }
 
   return (
     <div className="flex flex-col gap-5">
-      <GoogleButton onStart={handleGoogle} disabled={busy != null} />
+      <DiscordButton onStart={handleDiscord} disabled={busy != null} />
 
       <Divider label="or sign in with email" />
 
