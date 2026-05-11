@@ -8,18 +8,32 @@ import { cn } from "@/lib/utils";
 import type { ProfileTotals } from "./derive-stats";
 
 /** Editorial hero — avatar on the left, name + handle + member-since
- *  in the centre, level + XP bar to the right. The settings button
+ *  in the centre, level + XP bar inline beneath. The settings button
  *  links to /app/customise; this page itself is the public view, so
- *  account management lives there, not here. */
-export function ProfileHero({ totals }: { totals: ProfileTotals }) {
+ *  account management lives there, not here.
+ *
+ *  `username` comes from the URL slug — that's the canonical, shareable
+ *  handle. Display name and avatar still pull from the signed-in
+ *  Clerk session (only one history endpoint exists today, so the page
+ *  always shows the signed-in user's own data — see profile-view's
+ *  docblock). */
+export function ProfileHero({
+  totals,
+  username,
+}: {
+  totals: ProfileTotals;
+  username?: string;
+}) {
   const { user, isLoaded } = useUser();
   const displayName = !isLoaded
     ? "—"
     : (user?.firstName ??
         user?.username ??
+        username ??
         user?.emailAddresses[0]?.emailAddress.split("@")[0] ??
         "Anonymous");
-  const handle = user?.username ?? user?.id?.slice(0, 8) ?? "you";
+  const handle =
+    username ?? user?.username ?? user?.id?.slice(0, 8) ?? "you";
   const initial = (displayName.charAt(0) || "·").toUpperCase();
   const joined =
     user?.createdAt != null

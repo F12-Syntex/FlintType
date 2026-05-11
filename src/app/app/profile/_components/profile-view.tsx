@@ -17,12 +17,18 @@ import { ProfileStats } from "./profile-stats";
 import { RecentRuns } from "./recent-runs";
 import { WpmTrend } from "./wpm-trend";
 
-/** /app/profile orchestrator. One backend call (history.summary)
- *  feeds every panel — totals, streak, personal bests, activity
- *  heatmap, WPM trend, recent runs. The page is read-only and
- *  designed as a public profile view; account / sign-out controls
- *  live in /app/customise. */
-export function ProfileView() {
+/** /app/profile/<username> orchestrator. One backend call
+ *  (history.summary) feeds every panel — totals, streak, personal
+ *  bests, activity heatmap, WPM trend, recent runs. The page is
+ *  read-only and designed as a public profile view; account /
+ *  sign-out controls live in /app/customise.
+ *
+ *  `username` comes from the URL slug. The hero displays it as the
+ *  canonical handle. Today the data still comes from the signed-in
+ *  user's own history (only one history endpoint is available); when
+ *  cross-user history reads land, this is the place to swap in a
+ *  username-scoped fetch. */
+export function ProfileView({ username }: { username?: string }) {
   const backend = useBackend();
   const [snapshot, setSnapshot] = useState<HistorySummaryOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +70,7 @@ export function ProfileView() {
   if (error) {
     return (
       <>
-        <ProfileHero totals={totals} />
+        <ProfileHero totals={totals} username={username} />
         <section className="px-5 py-10 sm:px-16">
           <p className="text-sm text-primary">{error}</p>
         </section>
@@ -74,7 +80,7 @@ export function ProfileView() {
 
   return (
     <>
-      <ProfileHero totals={totals} />
+      <ProfileHero totals={totals} username={username} />
       <ProfileStats totals={totals} streak={streak} rank={null} />
       <PersonalBests bests={bests} />
       <ActivityHeatmap days={activity} />
