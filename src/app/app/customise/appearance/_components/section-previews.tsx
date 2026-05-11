@@ -1,13 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Keyboard } from "@/app/app/_components/keyboard";
 import { LAYOUTS, type LayoutId } from "@/app/app/_components/keyboard/layouts";
 import { Passage } from "@/app/app/_components/passage";
 import { MobileReadouts, Readouts } from "@/app/app/_components/readouts";
-import { BigStats } from "@/app/app/results/_components/big-stats";
-import { WpmTrace } from "@/app/app/results/_components/wpm-trace";
+import { TestSummary } from "@/app/app/_components/test-summary";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { useBackgroundPrefs } from "@/lib/background-prefs";
 import { useKeyboardSettings } from "@/lib/keyboard-settings";
@@ -204,31 +202,18 @@ export function KeyboardLivePreview() {
 /* ─── Result ───────────────────────────────────────────────────── */
 
 export function ResultLivePreview() {
-  // Real <BigStats /> + <WpmTrace /> from /app/results — same
-  // components the user sees after a real run. Hardcoded demo
-  // numbers are intentional in those components (it's a boilerplate
-  // result screen). Wrapped so the heavy section padding doesn't
-  // bleed into the preview card.
+  // Real <TestSummary preview /> — exactly the same component the
+  // user sees after a real run, fed by PreviewPracticeProvider with
+  // a seeded completed-run state. Every appearance pref that lives
+  // on the result screen (typingSpeedUnit, alwaysShowDecimal,
+  // startGraphsAtZero, --ft-passage-* tokens, font + caret) flows
+  // through unchanged because the real component is doing the work.
   return (
-    <div className="flex flex-col gap-0">
-      <PreviewWrapper>
-        <BigStats />
-      </PreviewWrapper>
-      <div className="px-5 py-5 sm:px-6 sm:py-6">
-        <WpmTrace />
+    <PreviewPracticeProvider phase="done">
+      <div className="min-h-[420px]">
+        <TestSummary preview />
       </div>
-    </div>
-  );
-}
-
-/** BigStats ships with `border-b` and `px-14 py-7` for the live
- *  results page — strip those when embedded inside a preview card so
- *  the framing doesn't double up. */
-function PreviewWrapper({ children }: { children: ReactNode }) {
-  return (
-    <div className="overflow-hidden [&>*]:border-b-0 [&>*]:px-5 [&>*]:py-5 [&>*]:sm:px-6 [&>*]:sm:py-6">
-      {children}
-    </div>
+    </PreviewPracticeProvider>
   );
 }
 

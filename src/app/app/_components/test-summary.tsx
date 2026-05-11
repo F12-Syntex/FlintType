@@ -295,9 +295,12 @@ function ReplayView({
 
 // ─── Page ──────────────────────────────────────────────────────────
 
-export function TestSummary() {
-  const { state, restart, wpm, raw, accuracy, elapsedMs, wpmHistory } =
-    usePractice();
+/** End-of-run report. The `preview` flag drops the interactive bits
+ *  (replay button, restart hint footer) so this same component can
+ *  render inside the customise → Result preview. The visual body is
+ *  identical so settings tweaks read 1:1 against the live screen. */
+export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
+  const { state, wpm, raw, accuracy, elapsedMs, wpmHistory } = usePractice();
   const { prefs: appearance } = useAppearancePrefs();
   const [replaying, setReplaying] = useState(false);
   // Convert the live wpmHistory samples into chart buckets keyed by
@@ -414,23 +417,27 @@ export function TestSummary() {
           </div>
         ) : null}
 
-        {/* Restart hint — quiet footer. */}
-        <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          <span className="rounded-sm border border-border bg-card px-2 py-1 font-mono normal-case text-foreground">
-            tab
-          </span>
-          <span>restart · peak {peak}</span>
-          {state.events.length > 0 ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setReplaying(true)}
-              className="text-[11px] uppercase tracking-[0.18em]"
-            >
-              ▶ replay
-            </Button>
-          ) : null}
-        </div>
+        {/* Restart hint — quiet footer. Hidden in preview so the
+         *  customise card doesn't show a replay button that would
+         *  enter ReplayView inside a settings page. */}
+        {preview ? null : (
+          <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="rounded-sm border border-border bg-card px-2 py-1 font-mono normal-case text-foreground">
+              tab
+            </span>
+            <span>restart · peak {peak}</span>
+            {state.events.length > 0 ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setReplaying(true)}
+                className="text-[11px] uppercase tracking-[0.18em]"
+              >
+                ▶ replay
+              </Button>
+            ) : null}
+          </div>
+        )}
       </div>
     </div>
   );
