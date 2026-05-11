@@ -38,7 +38,11 @@ export function SettingsSection({
     <section
       id={id}
       className={cn(
-        "scroll-mt-6 border-t border-border/60 pt-10 pb-12 first:border-t-0 first:pt-0 sm:pt-14 sm:pb-16",
+        // [&:first-of-type]:* not first:* — the page-header <header> is
+        // the actual first child, so :first-child would never fire on
+        // the first <section>. :first-of-type does, suppressing the
+        // duplicate separator under the page-header border-b.
+        "scroll-mt-6 border-t border-border/60 pt-10 pb-12 [&:first-of-type]:border-t-0 [&:first-of-type]:pt-0 sm:pt-14 sm:pb-16",
         className,
       )}
     >

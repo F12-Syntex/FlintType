@@ -36,7 +36,7 @@ export function SettingsPageHeader({
         </span>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:gap-10">
+      <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-10">
         <div className="flex flex-col gap-3">
           <h2 className="font-bold tracking-[-0.02em] text-foreground text-[26px] leading-[1.05] sm:text-[36px] lg:text-[44px]">
             {title}
@@ -48,7 +48,7 @@ export function SettingsPageHeader({
           ) : null}
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap sm:items-end sm:gap-4">
+        <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap sm:gap-4">
           <CustomisedStat count={customizedCount} />
           <div className="flex items-center gap-2">
             {onResetAll ? (
@@ -83,7 +83,7 @@ export function SettingsPageHeader({
 function CustomisedStat({ count }: { count: number }) {
   const customised = count > 0;
   return (
-    <div className="flex items-baseline gap-2">
+    <div className="flex items-center gap-2">
       <span
         className={
           "font-mono text-2xl font-bold tabular-nums leading-none " +
