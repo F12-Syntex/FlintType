@@ -40,24 +40,34 @@ export function ProfileHero({
       : null;
 
   return (
-    <header className="border-b border-border px-5 py-12 sm:px-12 sm:py-14 lg:px-16">
-      <div className="mb-6 flex items-center gap-3">
+    <header className="relative border-b border-border px-5 py-12 sm:px-12 sm:py-16 lg:px-16">
+      {/* Settings sits in the top-right corner so it stays accessible
+       *  without breaking the centred profile lockup. */}
+      <div className="absolute top-5 right-5 sm:top-8 sm:right-8 lg:top-10 lg:right-10">
+        <Link href="/app/customise" className="contents">
+          <Button variant="outline" size="sm">
+            Settings
+          </Button>
+        </Link>
+      </div>
+
+      <div className="mb-7 flex items-center justify-center gap-3">
         <span aria-hidden className="inline-block h-px w-5 bg-primary" />
         <Tag>Public profile</Tag>
       </div>
 
-      <div className="grid gap-8 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-8">
+      <div className="mx-auto flex max-w-md flex-col items-center gap-5 text-center">
         <Avatar
           imageUrl={user?.imageUrl ?? null}
           initial={initial}
           isLoaded={isLoaded}
         />
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col items-center gap-2">
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             {displayName}
           </h1>
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
             <span className="text-foreground">@{handle}</span>
             {joined ? (
               <>
@@ -66,16 +76,9 @@ export function ProfileHero({
               </>
             ) : null}
           </div>
-          <LevelBadge totals={totals} />
         </div>
 
-        <div className="flex items-start sm:items-end">
-          <Link href="/app/customise" className="contents">
-            <Button variant="outline" size="sm">
-              Settings
-            </Button>
-          </Link>
-        </div>
+        <LevelBadge totals={totals} />
       </div>
     </header>
   );
@@ -94,7 +97,7 @@ function Avatar({
     return (
       <span
         aria-hidden
-        className="size-20 animate-pulse rounded-md border border-border bg-foreground/[0.04] sm:size-24"
+        className="size-24 animate-pulse rounded-full border border-border bg-foreground/[0.04] sm:size-28"
       />
     );
   }
@@ -104,14 +107,14 @@ function Avatar({
       <img
         src={imageUrl}
         alt=""
-        className="size-20 shrink-0 rounded-md border border-border object-cover sm:size-24"
+        className="size-24 shrink-0 rounded-full border border-border object-cover sm:size-28"
       />
     );
   }
   return (
     <span
       aria-hidden
-      className="flex size-20 shrink-0 items-center justify-center rounded-md border border-border bg-card text-3xl font-bold tracking-tight text-primary sm:size-24 sm:text-4xl"
+      className="flex size-24 shrink-0 items-center justify-center rounded-full border border-border bg-card text-3xl font-bold tracking-tight text-primary sm:size-28 sm:text-4xl"
     >
       {initial}
     </span>
