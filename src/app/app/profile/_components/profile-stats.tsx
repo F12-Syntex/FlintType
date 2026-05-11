@@ -19,7 +19,7 @@ export function ProfileStats({
   const completionPct = Math.round(totals.completionRate * 100);
   return (
     <ProfileSection label="Lifetime totals">
-      <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-6">
         <MetricStat
           label="Tests started"
           value={totals.testsStarted.toLocaleString()}
@@ -79,25 +79,25 @@ function MetricStat({
   accent?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1">
       <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </span>
       <span
         className={cn(
-          "text-3xl font-bold tracking-[-0.02em] tabular-nums leading-none sm:text-4xl",
+          "text-xl font-semibold tracking-[-0.01em] tabular-nums leading-none sm:text-[22px]",
           accent ? "text-primary" : "text-foreground",
         )}
       >
         {value}
         {suffix ? (
-          <span className="text-base font-normal text-muted-foreground">
+          <span className="text-xs font-normal text-muted-foreground">
             {suffix}
           </span>
         ) : null}
       </span>
       {subline ? (
-        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        <span className="text-[10.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
           {subline}
         </span>
       ) : null}
