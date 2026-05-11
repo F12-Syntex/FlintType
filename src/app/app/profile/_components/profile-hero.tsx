@@ -33,8 +33,11 @@ export function ProfileHero({
         username ??
         user?.emailAddresses[0]?.emailAddress.split("@")[0] ??
         "Anonymous");
-  const handle =
-    username ?? user?.username ?? user?.id?.slice(0, 8) ?? "you";
+  // `username` from the URL is the canonical handle even though we
+  // no longer surface it inline — page metadata + the route still
+  // depend on it. Display name + member-since are the only visible
+  // chrome above the level bar.
+  void username;
   const initial = (displayName.charAt(0) || "·").toUpperCase();
   const joined =
     user?.createdAt != null
@@ -93,15 +96,11 @@ export function ProfileHero({
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             {displayName}
           </h1>
-          <div className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            <span className="text-foreground">@{handle}</span>
-            {joined ? (
-              <>
-                <span className="text-muted-foreground/40">·</span>
-                <span>Member since {joined}</span>
-              </>
-            ) : null}
-          </div>
+          {joined ? (
+            <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Member since {joined}
+            </span>
+          ) : null}
         </div>
 
         <LevelBadge totals={totals} />
@@ -149,14 +148,14 @@ function Avatar({
 
 function LevelBadge({ totals }: { totals: ProfileTotals }) {
   return (
-    <div className="mt-2 flex items-center gap-3">
-      <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+    <div className="mt-2 flex w-full max-w-xs flex-col items-center gap-1.5">
+      <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
         Level{" "}
         <span className="text-foreground tabular-nums">{totals.level}</span>
       </span>
       <span
         aria-hidden
-        className="relative inline-block h-1 w-full max-w-xs overflow-hidden rounded-full bg-foreground/[0.08]"
+        className="relative inline-block h-1 w-full overflow-hidden rounded-full bg-foreground/[0.08]"
       >
         <span
           className={cn(

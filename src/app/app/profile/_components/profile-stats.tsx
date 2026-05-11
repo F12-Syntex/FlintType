@@ -22,8 +22,8 @@ export function ProfileStats({
   const completionPct = Math.round(totals.completionRate * 100);
   return (
     <ProfileSection label="Lifetime totals">
-      <div className="mx-auto overflow-hidden rounded-md border border-border bg-card/40">
-        <div className="grid grid-cols-2 divide-x divide-y divide-border sm:grid-cols-3 sm:divide-y-0 lg:grid-cols-6">
+      <div className="mx-auto">
+        <div className="grid grid-cols-2 divide-x divide-y divide-border/60 sm:grid-cols-3 sm:divide-y-0 lg:grid-cols-6">
           <MetricCell
             label="Tests started"
             value={totals.testsStarted.toLocaleString()}

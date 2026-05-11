@@ -80,17 +80,15 @@ function SubStrip({
       <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </span>
-      <div className="overflow-hidden rounded-md border border-border">
-        <div className="grid grid-cols-2 divide-x divide-y divide-border sm:grid-cols-4 sm:divide-y-0">
-          {amounts.map((amt) => (
-            <BestCell
-              key={amt}
-              amount={amt}
-              unit={unit}
-              best={lookup.get(`${mode}|${amt}`) ?? null}
-            />
-          ))}
-        </div>
+      <div className="grid grid-cols-2 divide-x divide-y divide-border/60 sm:grid-cols-4 sm:divide-y-0">
+        {amounts.map((amt) => (
+          <BestCell
+            key={amt}
+            amount={amt}
+            unit={unit}
+            best={lookup.get(`${mode}|${amt}`) ?? null}
+          />
+        ))}
       </div>
     </div>
   );
@@ -105,14 +103,11 @@ function BestCell({
   unit: string;
   best: PersonalBest | null;
 }) {
+  // No bg fill — cells separate via divider hairlines only, matching
+  // the un-carded lifetime-totals strip.
   const empty = best == null;
   return (
-    <div
-      className={cn(
-        "flex flex-col gap-2 px-4 py-5",
-        empty ? "bg-card/40" : "bg-card",
-      )}
-    >
+    <div className="flex flex-col gap-2 px-4 py-5">
       <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
         <span
           className={cn("tabular-nums", empty ? "" : "text-foreground")}
