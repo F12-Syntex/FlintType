@@ -6,6 +6,11 @@ import type { DayCell } from "./derive-stats";
  *  each cell is a day, painted by test count against the user's own
  *  busiest day so power users still see contrast.
  *
+ *  Cells stretch to fill the available row width — the column count
+ *  is fixed (52 weeks) so the cell width is `(100 / 52)%` minus the
+ *  inter-cell gap. No horizontal scroll on standard widths; the
+ *  whole year reads at a glance.
+ *
  *  Static — no animation, no tooltips beyond `title=` so screen
  *  readers can read the count out per cell. */
 export function ActivityHeatmap({ days }: { days: DayCell[] }) {
@@ -34,18 +39,21 @@ export function ActivityHeatmap({ days }: { days: DayCell[] }) {
         </span>
       </div>
 
-      <div className="overflow-x-auto pb-2">
-        <div className="flex flex-col gap-1.5">
-          <MonthAxis columns={columns} />
-          <div className="flex items-end gap-[3px]">
-            {columns.map((week, wi) => (
-              <div key={wi} className="flex flex-col gap-[3px]">
-                {week.map((d, di) => (
-                  <Cell key={di} day={d} max={max} />
-                ))}
-              </div>
-            ))}
-          </div>
+      <div className="flex w-full flex-col gap-1.5">
+        <MonthAxis columns={columns} />
+        <div
+          className="grid w-full gap-[3px]"
+          style={{
+            gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
+          }}
+        >
+          {columns.map((week, wi) => (
+            <div key={wi} className="flex flex-col gap-[3px]">
+              {week.map((d, di) => (
+                <Cell key={di} day={d} max={max} />
+              ))}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -65,37 +73,38 @@ export function ActivityHeatmap({ days }: { days: DayCell[] }) {
   );
 }
 
-/** Top axis showing which week column each new month begins in. Each
- *  cell column is 12px (size-3) + 3px gap = 15px, so labels align by
- *  shifting their start. We render a label only on the first week of
- *  each month (the first column whose Monday falls in that month). */
+/** Top axis showing which week column each new month begins in.
+ *  Labels share the same grid as the cells so they auto-align as the
+ *  cell width flexes with the container. We render a label only on
+ *  the first week of each month. */
 function MonthAxis({ columns }: { columns: (DayCell | null)[][] }) {
-  const labels: { idx: number; label: string }[] = [];
+  const labels = new Map<number, string>();
   let lastMonth = -1;
   columns.forEach((week, idx) => {
     const firstDay = week.find((d) => d !== null);
     if (!firstDay) return;
     const m = firstDay.date.getMonth();
     if (m !== lastMonth) {
-      labels.push({
+      labels.set(
         idx,
-        label: firstDay.date.toLocaleDateString(undefined, { month: "short" }),
-      });
+        firstDay.date.toLocaleDateString(undefined, { month: "short" }),
+      );
       lastMonth = m;
     }
   });
   return (
     <div
-      className="relative h-3 font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground"
-      style={{ width: `${columns.length * 15}px` }}
+      className="grid w-full font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground"
+      style={{
+        gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
+      }}
     >
-      {labels.map((l) => (
+      {columns.map((_, idx) => (
         <span
-          key={l.idx}
-          className="absolute top-0"
-          style={{ left: `${l.idx * 15}px` }}
+          key={idx}
+          className="overflow-hidden text-left whitespace-nowrap"
         >
-          {l.label}
+          {labels.get(idx) ?? ""}
         </span>
       ))}
     </div>
@@ -104,7 +113,12 @@ function MonthAxis({ columns }: { columns: (DayCell | null)[][] }) {
 
 function Cell({ day, max }: { day: DayCell | null; max: number }) {
   if (!day) {
-    return <span aria-hidden className="block size-3 rounded-[2px]" />;
+    return (
+      <span
+        aria-hidden
+        className="block aspect-square w-full rounded-[2px]"
+      />
+    );
   }
   const ratio = max > 0 ? Math.max(0, Math.min(1, day.tests / max)) : 0;
   const label =
@@ -115,7 +129,9 @@ function Cell({ day, max }: { day: DayCell | null; max: number }) {
     <span
       title={label}
       aria-label={label}
-      className={cn("block size-3 rounded-[2px] border border-foreground/[0.04]")}
+      className={cn(
+        "block aspect-square w-full rounded-[2px] border border-foreground/[0.04]",
+      )}
       style={{ background: cellBg(ratio) }}
     />
   );

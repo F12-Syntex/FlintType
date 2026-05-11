@@ -43,7 +43,7 @@ export function ProfileHero({ totals }: { totals: ProfileTotals }) {
           isLoaded={isLoaded}
         />
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           <h1 className="font-bold tracking-[-0.02em] text-foreground text-[28px] leading-[1] sm:text-[44px] lg:text-[52px]">
             {displayName}
           </h1>
@@ -56,10 +56,10 @@ export function ProfileHero({ totals }: { totals: ProfileTotals }) {
               </>
             ) : null}
           </div>
+          <LevelBadge totals={totals} />
         </div>
 
-        <div className="flex flex-col items-start gap-3 sm:items-end">
-          <LevelBadge totals={totals} />
+        <div className="flex items-start sm:items-end">
           <Link href="/app/customise" className="contents">
             <Button variant="outline" size="sm">
               Settings
@@ -109,19 +109,23 @@ function Avatar({
 }
 
 function LevelBadge({ totals }: { totals: ProfileTotals }) {
+  const pct = Math.round(totals.levelProgress * 100);
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-baseline gap-2">
+      <div className="flex items-baseline gap-3">
         <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
           Level
         </span>
-        <span className="font-mono text-3xl font-bold tabular-nums leading-none text-primary">
+        <span className="font-mono text-2xl font-bold tabular-nums leading-none text-primary">
           {totals.level}
+        </span>
+        <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
+          <span className="text-foreground tabular-nums">{pct}%</span> to next
         </span>
       </div>
       <span
         aria-hidden
-        className="relative inline-block h-1 w-32 overflow-hidden rounded-full bg-foreground/[0.08]"
+        className="relative inline-block h-1 w-full max-w-sm overflow-hidden rounded-full bg-foreground/[0.08]"
       >
         <span
           className={cn(
