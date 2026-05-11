@@ -80,15 +80,17 @@ function SubStrip({
       <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </span>
-      <div className="grid grid-cols-2 divide-x divide-y divide-border/60 sm:grid-cols-4 sm:divide-y-0">
-        {amounts.map((amt) => (
-          <BestCell
-            key={amt}
-            amount={amt}
-            unit={unit}
-            best={lookup.get(`${mode}|${amt}`) ?? null}
-          />
-        ))}
+      <div className="overflow-hidden rounded-md border border-border bg-card/40">
+        <div className="grid grid-cols-2 divide-x divide-y divide-border sm:grid-cols-4 sm:divide-y-0">
+          {amounts.map((amt) => (
+            <BestCell
+              key={amt}
+              amount={amt}
+              unit={unit}
+              best={lookup.get(`${mode}|${amt}`) ?? null}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
