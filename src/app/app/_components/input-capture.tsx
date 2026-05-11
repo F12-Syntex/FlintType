@@ -109,14 +109,23 @@ export function InputCapture({ children }: { children: ReactNode }) {
           if (t === "insertText" || t === "insertCompositionText") {
             const data = ne.data ?? "";
             const now = Date.now();
-            const stopOnError = prefsRef.current.stopOnError;
+            const p = prefsRef.current;
+            const stopOnError = p.stopOnError;
+            const allowExtras = p.allowExtras;
+            const strictSpace = p.strictSpace;
             for (const ch of data) {
               if (ch === " " || ch === "\n") {
                 if (phaseRef.current !== "rest") {
-                  dispatch({ type: "SPACE", now });
+                  dispatch({ type: "SPACE", now, strictSpace });
                 }
               } else {
-                dispatch({ type: "TYPE_CHAR", char: ch, now, stopOnError });
+                dispatch({
+                  type: "TYPE_CHAR",
+                  char: ch,
+                  now,
+                  stopOnError,
+                  allowExtras,
+                });
               }
             }
           }
@@ -164,7 +173,11 @@ export function InputCapture({ children }: { children: ReactNode }) {
           if (e.key === " ") {
             e.preventDefault();
             if (phaseRef.current === "rest") return;
-            dispatch({ type: "SPACE", now: Date.now() });
+            dispatch({
+              type: "SPACE",
+              now: Date.now(),
+              strictSpace: p.strictSpace,
+            });
             return;
           }
           if (e.key.length === 1) {
@@ -174,6 +187,7 @@ export function InputCapture({ children }: { children: ReactNode }) {
               char: e.key,
               now: Date.now(),
               stopOnError: p.stopOnError,
+              allowExtras: p.allowExtras,
             });
           }
         }}

@@ -11,7 +11,6 @@ import { SettingsRow } from "../_components/row";
 import { SettingsSection } from "../_components/settings-section";
 import {
   InputHandlingPreview,
-  LiveSignalPreview,
   RestartPreview,
   WordListPreview,
 } from "./_components/section-previews";
@@ -114,7 +113,7 @@ export default function BehaviourPage() {
         title="Make it act the way you think"
         customizedCount={customizedCount}
         onResetAll={reset}
-        description="Tune how the test reacts while you type — restart shortcuts, live signal, error handling, and word-list shape. Every change applies on the next keystroke."
+        description="Tune how the test reacts while you type — restart shortcuts, error handling, and word-list shape. Live-signal styling moved to Appearance > Live stats; this page is purely about input behaviour."
       />
 
       <SettingsSection
@@ -133,43 +132,10 @@ export default function BehaviourPage() {
       </SettingsSection>
 
       <SettingsSection
-        id="live-signal"
-        eyebrow="Heads-up"
-        title="Live signal"
-        description="What the test surfaces while you type. The preview is the real Readouts strip — every toggle below gates its own pip in real time, exactly as on the test screen."
-        preview={<LiveSignalPreview />}
-      >
-        <ToggleRow
-          label="Live WPM"
-          desc="Show WPM ticker during run"
-          value={prefs.liveWpm}
-          onChange={(v) => set("liveWpm", v)}
-        />
-        <ToggleRow
-          label="Live accuracy"
-          desc="Show accuracy % during run"
-          value={prefs.liveAccuracy}
-          onChange={(v) => set("liveAccuracy", v)}
-        />
-        <ToggleRow
-          label="Live keyboard"
-          desc="Show the keyboard widget under the passage"
-          value={prefs.liveKeyboard}
-          onChange={(v) => set("liveKeyboard", v)}
-        />
-        <ToggleRow
-          label="Blind mode"
-          desc="Hide all live signal — type without seeing what you typed"
-          value={prefs.blindMode}
-          onChange={(v) => set("blindMode", v)}
-        />
-      </SettingsSection>
-
-      <SettingsSection
         id="input-handling"
         eyebrow="Discipline"
         title="Input handling"
-        description="What happens when a keystroke is wrong. The preview is the real practice surface with a deliberate past-error word so the error colour token paints; live keystroke behaviour (stop-on-error, confidence) shows up at the test screen itself."
+        description="How the test reacts to every keystroke — what counts as an error, when the cursor advances, and whether you can see what you typed. Live-stat styling lives in Appearance > Live stats now."
         preview={<InputHandlingPreview />}
       >
         <ToggleRow
@@ -194,6 +160,24 @@ export default function BehaviourPage() {
               onChange={(v) => set("confidence", v)}
             />
           }
+        />
+        <ToggleRow
+          label="Allow extras"
+          desc="Record characters typed past the word's length as extras (off silently ignores them)"
+          value={prefs.allowExtras}
+          onChange={(v) => set("allowExtras", v)}
+        />
+        <ToggleRow
+          label="Strict space"
+          desc="Refuse to advance to the next word until the current word is fully typed correctly"
+          value={prefs.strictSpace}
+          onChange={(v) => set("strictSpace", v)}
+        />
+        <ToggleRow
+          label="Blind mode"
+          desc="Hide all live signal — type without seeing what you typed or how fast you're going"
+          value={prefs.blindMode}
+          onChange={(v) => set("blindMode", v)}
         />
       </SettingsSection>
 

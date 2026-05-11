@@ -3,7 +3,6 @@
 import { CornerDownLeft } from "lucide-react";
 import { Kbd } from "@/components/ft";
 import { Passage } from "@/app/app/_components/passage";
-import { MobileReadouts, Readouts } from "@/app/app/_components/readouts";
 import {
   decorate,
   type State,
@@ -12,9 +11,9 @@ import { type BehaviourPrefs } from "@/lib/behaviour-prefs";
 import { cn } from "@/lib/utils";
 import { PreviewPracticeProvider } from "../../_components/preview-practice";
 
-/** Behaviour previews. Built from the real components — `<Readouts />`,
- *  `<Passage />` — wrapped in `<PreviewPracticeProvider>` so every
- *  behaviour toggle (blind mode, live wpm, stop-on-error, …) flows
+/** Behaviour previews. Built from the real components — `<Passage />`
+ *  — wrapped in `<PreviewPracticeProvider>` so every behaviour toggle
+ *  (stop-on-error, allow extras, strict space, blind mode, …) flows
  *  through to the same UI the test screen runs. */
 
 /* ─── Restart ──────────────────────────────────────────────────── */
@@ -43,26 +42,6 @@ export function RestartPreview({ prefs }: { prefs: BehaviourPrefs }) {
         {prefs.quickRestart ? "Instant restart, focus kept" : "Tab tabs out"}
       </span>
     </div>
-  );
-}
-
-/* ─── Live signal ─────────────────────────────────────────────── */
-
-export function LiveSignalPreview() {
-  // Real <Readouts /> — every behaviour live-* toggle gates its
-  // own pip, blind mode hides everything, and the appearance live-*
-  // styles still apply. 1:1 with what runs at the test screen.
-  return (
-    <PreviewPracticeProvider>
-      <div className="px-5 py-7 sm:px-7 sm:py-9">
-        <div className="md:hidden">
-          <MobileReadouts />
-        </div>
-        <div className="hidden md:block">
-          <Readouts />
-        </div>
-      </div>
-    </PreviewPracticeProvider>
   );
 }
 

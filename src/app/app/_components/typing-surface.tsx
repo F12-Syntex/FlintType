@@ -1,7 +1,6 @@
 "use client";
 
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
-import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { InputCapture } from "./input-capture";
 import { Keyboard } from "./keyboard";
 import type { LayoutId } from "./keyboard/layouts";
@@ -83,15 +82,14 @@ function TypingSurfaceBody({
   showReadouts = true,
   belowHint,
 }: TypingSurfaceProps) {
-  const { prefs } = useBehaviourPrefs();
   const { prefs: appearance } = useAppearancePrefs();
   const { state } = usePractice();
   const done = state.phase === "done";
-  // Both the behaviour toggle *and* appearance.keymap=off hide the
-  // keyboard. Anything else picks the appearance mode.
+  // appearance.keymap is the single source of truth for whether the
+  // keyboard widget renders during a test — `off` hides it. The
+  // behaviour pref that used to mirror this was redundant.
   const keymapOff = appearance.keymap === "off";
-  const renderKeyboard =
-    showKeyboard && prefs.liveKeyboard && !keymapOff && !done;
+  const renderKeyboard = showKeyboard && !keymapOff && !done;
   const layout = (appearance.keymapLayout as LayoutId) in LAYOUTS
     ? (appearance.keymapLayout as LayoutId)
     : "qwerty";

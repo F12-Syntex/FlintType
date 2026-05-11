@@ -390,13 +390,9 @@ function mapBehaviour(mt: MonkeytypeSettings): Partial<BehaviourPrefs> | null {
   // mode picks purely from the bigram model — neither honours a
   // length-skew bias.
   if (typeof mt.blindMode === "boolean") out.blindMode = mt.blindMode;
-  // Live indicators on the test screen — best-effort on/off.
-  if (typeof mt.liveSpeedStyle === "string") {
-    out.liveWpm = mt.liveSpeedStyle !== "off";
-  }
-  if (typeof mt.liveAccStyle === "string") {
-    out.liveAccuracy = mt.liveAccStyle !== "off";
-  }
+  // Live indicator on/off used to live here; the appearance live-*
+  // styles already encode it via the "off" value, so this section is
+  // intentionally just behaviour now (blind mode + future flags).
   return Object.keys(out).length ? out : null;
 }
 

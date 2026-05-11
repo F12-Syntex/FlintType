@@ -66,13 +66,12 @@ function useStatsProps(): StatsProps {
     : 0;
 
   const blind = behaviour.blindMode;
-  // The behaviour booleans still gate stats off — pref `off` overrides
-  // appearance. When behaviour says show, the appearance style decides
-  // exactly *how*.
-  const speedStyle: LiveStatStyle = blind || !behaviour.liveWpm
-    ? "off"
-    : appearance.liveSpeedStyle;
-  const accuracyStyle: LiveStatStyle = blind || !behaviour.liveAccuracy
+  // Each per-stat style is the single source of truth — `"off"` is a
+  // valid value, so behaviour no longer needs a duplicate gating
+  // boolean. Blind mode is the one master kill-switch that hides
+  // everything regardless of the styled value.
+  const speedStyle: LiveStatStyle = blind ? "off" : appearance.liveSpeedStyle;
+  const accuracyStyle: LiveStatStyle = blind
     ? "off"
     : appearance.liveAccuracyStyle;
   const progressStyle: LiveStatStyle = blind ? "off" : appearance.liveProgressStyle;

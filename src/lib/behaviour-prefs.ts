@@ -7,26 +7,30 @@ export type Confidence = "off" | "word" | "all";
 
 export type BehaviourPrefs = {
   quickRestart: boolean;
-  liveWpm: boolean;
-  liveAccuracy: boolean;
-  liveKeyboard: boolean;
   stopOnError: boolean;
   confidence: Confidence;
+  /** When false, characters typed past the target word's length are
+   *  ignored instead of being recorded as extras. Off matches the
+   *  "always-clean passage" feel some typists prefer. */
+  allowExtras: boolean;
+  /** When true, hitting space before the current word is fully typed
+   *  refuses to advance — the user must finish or backspace. Mimics
+   *  MonkeyType's strict-space mode. */
+  strictSpace: boolean;
+  blindMode: boolean;
   minWordLength: number;
   showSecondary: boolean;
-  blindMode: boolean;
 };
 
 export const DEFAULT_BEHAVIOUR: BehaviourPrefs = {
   quickRestart: true,
-  liveWpm: true,
-  liveAccuracy: true,
-  liveKeyboard: true,
   stopOnError: false,
   confidence: "off",
+  allowExtras: true,
+  strictSpace: false,
+  blindMode: false,
   minWordLength: 1,
   showSecondary: false,
-  blindMode: false,
 };
 
 export function useBehaviourPrefs() {

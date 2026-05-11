@@ -82,10 +82,16 @@ type Action =
   | { type: "SET_LENGTH"; length: Length; words: string[]; quoteSource: string | null }
   | { type: "SET_QUOTE"; words: string[]; source: string }
   | { type: "TOGGLE_ADAPT" }
-  | { type: "TYPE_CHAR"; char: string; now: number; stopOnError: boolean }
+  | {
+      type: "TYPE_CHAR";
+      char: string;
+      now: number;
+      stopOnError: boolean;
+      allowExtras: boolean;
+    }
   | { type: "BACKSPACE" }
   | { type: "BACKSPACE_WORD" }
-  | { type: "SPACE"; now: number }
+  | { type: "SPACE"; now: number; strictSpace: boolean }
   | { type: "RESTART"; words: string[]; quoteSource: string | null }
   | { type: "REGENERATE"; cfg: WordCfg }
   | { type: "FINISH_TIME"; now: number };
@@ -284,6 +290,10 @@ function reducer(s: State, a: Action): State {
       const EXTRA_CAP = 10;
       if (s.cursorChar >= word.length + EXTRA_CAP) return s;
       const isExtra = s.cursorChar >= word.length;
+      // allowExtras=false → silently drop characters typed past the
+      // word's length. The cursor stays put, no event recorded — the
+      // user has to press space to advance or backspace to retry.
+      if (isExtra && !a.allowExtras) return s;
       const expected = isExtra ? "" : word[s.cursorChar]!;
       const correct = !isExtra && a.char === expected;
       const startTime = s.startTime ?? a.now;
@@ -396,6 +406,10 @@ function reducer(s: State, a: Action): State {
       if (s.phase === "done" || s.phase === "rest") return s;
       const target = s.words[s.cursorWord] ?? "";
       const typedHere = s.typed[s.cursorWord] ?? "";
+      // strictSpace=true → refuse to advance unless the word is fully
+      // typed correctly. The user must finish or backspace; no event,
+      // no errorWord mark, the keystroke is a no-op.
+      if (a.strictSpace && typedHere !== target) return s;
       // Space always advances the cursor — the user explicitly asked
       // to skip past mistakes. If the typed word doesn't match the
       // target, mark it as an error word so the summary still
@@ -1067,7 +1081,7 @@ export function PracticeProvider({
     if (e.key === " ") {
       e.preventDefault();
       if (s.phase === "rest") return;
-      dispatch({ type: "SPACE", now: Date.now() });
+      dispatch({ type: "SPACE", now: Date.now(), strictSpace: p.strictSpace });
       return;
     }
     if (e.key === "Backspace") {
@@ -1091,6 +1105,7 @@ export function PracticeProvider({
         // peeking into the run. Force stopOnError on regardless of
         // the user's behaviour pref.
         stopOnError: p.stopOnError || suddenDeathRef.current,
+        allowExtras: p.allowExtras,
       });
     }
   }, []);

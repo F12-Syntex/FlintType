@@ -27,9 +27,9 @@ describe("userPrefsRepo", () => {
       caret: { style: "block" },
     });
 
-    await ctx.db.userPrefs.set("u1", { behaviour: { liveWpm: false } });
+    await ctx.db.userPrefs.set("u1", { behaviour: { strictSpace: true } });
     expect(await ctx.db.userPrefs.get("u1")).toEqual({
-      behaviour: { liveWpm: false },
+      behaviour: { strictSpace: true },
     });
   });
 
