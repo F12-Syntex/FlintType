@@ -6,8 +6,15 @@ import {
   useBehaviourPrefs,
 } from "@/lib/behaviour-prefs";
 import { Chip, ChipGroup } from "../_components/chip";
-import { SectionHeader, SettingsPageHeader } from "../_components/page-header";
+import { SettingsPageHeader } from "../_components/page-header";
 import { SettingsRow } from "../_components/row";
+import { SettingsSection } from "../_components/settings-section";
+import {
+  InputHandlingPreview,
+  LiveSignalPreview,
+  RestartPreview,
+  WordListPreview,
+} from "./_components/section-previews";
 
 function ToggleChips({
   value,
@@ -95,7 +102,6 @@ function ToggleRow({
 export default function BehaviourPage() {
   const { prefs, update, reset, customizedCount } = useBehaviourPrefs();
 
-  // Tiny typed wrapper so the row callbacks stay terse below.
   const set = <K extends keyof BehaviourPrefs>(
     key: K,
     value: BehaviourPrefs[K],
@@ -104,25 +110,35 @@ export default function BehaviourPage() {
   return (
     <section className="text-foreground">
       <SettingsPageHeader
-        title="Behaviour"
-        optionsCount={10}
+        eyebrow="Customise · Behaviour"
+        title="Make it act the way you think"
         customizedCount={customizedCount}
         onResetAll={reset}
         description="Tune how the test reacts while you type — restart shortcuts, live signal, error handling, and word-list shape. Every change applies on the next keystroke."
       />
 
-      <SectionHeader label="Restart" />
-      <div className="mb-8 flex flex-col gap-3">
+      <SettingsSection
+        id="restart"
+        eyebrow="Flow"
+        title="Restart"
+        description="The shortcut that takes you back to a fresh passage without a mouse trip."
+        preview={<RestartPreview prefs={prefs} />}
+      >
         <ToggleRow
           label="Quick restart"
           desc="Press Tab to restart instantly without losing focus"
           value={prefs.quickRestart}
           onChange={(v) => set("quickRestart", v)}
         />
-      </div>
+      </SettingsSection>
 
-      <SectionHeader label="Live signal" />
-      <div className="mb-8 flex flex-col gap-3">
+      <SettingsSection
+        id="live-signal"
+        eyebrow="Heads-up"
+        title="Live signal"
+        description="What the test surfaces while you type. Off-by-default toggles paint dimmed in the preview so you can tell at a glance which signals you've enabled."
+        preview={<LiveSignalPreview prefs={prefs} />}
+      >
         <ToggleRow
           label="Live WPM"
           desc="Show WPM ticker during run"
@@ -147,10 +163,15 @@ export default function BehaviourPage() {
           value={prefs.blindMode}
           onChange={(v) => set("blindMode", v)}
         />
-      </div>
+      </SettingsSection>
 
-      <SectionHeader label="Input handling" />
-      <div className="mb-8 flex flex-col gap-3">
+      <SettingsSection
+        id="input-handling"
+        eyebrow="Discipline"
+        title="Input handling"
+        description="What happens when a keystroke is wrong. The preview shows a deliberate mistype on character 3 — the cursor's behaviour follows your settings."
+        preview={<InputHandlingPreview prefs={prefs} />}
+      >
         <ToggleRow
           label="Stop on error"
           desc="Won't advance until the typo is corrected"
@@ -174,10 +195,15 @@ export default function BehaviourPage() {
             />
           }
         />
-      </div>
+      </SettingsSection>
 
-      <SectionHeader label="Word list" />
-      <div className="mb-8 flex flex-col gap-3">
+      <SettingsSection
+        id="word-list"
+        eyebrow="Source"
+        title="Word list"
+        description="Which words land in the passage. Filter short noise out, or sprinkle numbers and punctuation in to practice the symbols you actually use."
+        preview={<WordListPreview prefs={prefs} />}
+      >
         <SettingsRow
           label={
             <span className="flex flex-col gap-0.5">
@@ -201,7 +227,7 @@ export default function BehaviourPage() {
           value={prefs.showSecondary}
           onChange={(v) => set("showSecondary", v)}
         />
-      </div>
+      </SettingsSection>
     </section>
   );
 }

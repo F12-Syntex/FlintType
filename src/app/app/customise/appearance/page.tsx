@@ -2,7 +2,6 @@
 
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { ModeSwitcher } from "@/components/ui/mode-switcher";
 import { Keyboard } from "@/app/app/_components/keyboard";
 import { LAYOUTS, type LayoutId } from "@/app/app/_components/keyboard/layouts";
@@ -12,8 +11,9 @@ import {
   type ThemeVar,
   useThemeOverrides,
 } from "@/lib/theme-customization";
-import { SectionHeader, SettingsPageHeader } from "../_components/page-header";
+import { SettingsPageHeader } from "../_components/page-header";
 import { SettingsRow } from "../_components/row";
+import { SettingsSection } from "../_components/settings-section";
 import { BackgroundRow } from "./_components/background-row";
 import { BordersRow } from "./_components/borders-row";
 import { CaretRow } from "./_components/caret-row";
@@ -21,13 +21,21 @@ import { ColorRow } from "./_components/color-row";
 import { KeyboardRow } from "./_components/keyboard-row";
 import { KeymapRows } from "./_components/keymap-rows";
 import { LiveStatsRows } from "./_components/live-stats-rows";
-import { MiniSample } from "./_components/mini-sample";
 import { PassageRows } from "./_components/passage-rows";
 import { RadiusRow } from "./_components/radius-row";
 import { ResultRows } from "./_components/result-rows";
+import {
+  BackgroundPreview,
+  CaretPreview,
+  ColorPreview,
+  GeometryPreview,
+  LiveStatsPreview,
+  ThemePreview,
+  TypingAreaPreview,
+  TypographyPreview,
+} from "./_components/section-previews";
 import { ThemesRow } from "./_components/themes-row";
 import { TypographyRows } from "./_components/typography-row";
-import { APPEARANCE_SECTIONS } from "./_sections";
 
 type ColorRowDef = {
   var: ThemeVar;
@@ -69,34 +77,6 @@ const COLOR_ROWS: readonly ColorRowDef[] = [
   },
 ];
 
-/** Each section is rendered inside `<SectionShell>` with its anchor id
- *  matching `_sections.ts`. The sidebar links to `/appearance#<id>`;
- *  the browser scrolls the catch-all customise scroller to this anchor.
- *  `scroll-mt-6` accounts for the small page top padding so the
- *  SectionHeader isn't flush against the previous section's bottom
- *  hairline when an anchor lands here. */
-function SectionShell({
-  id,
-  label,
-  preview,
-  children,
-}: {
-  id: string;
-  label: string;
-  preview: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section id={id} className="mb-12 scroll-mt-6">
-      <SectionHeader label={label} />
-      <div className="mb-6 overflow-hidden rounded-md border border-border bg-background">
-        {preview}
-      </div>
-      <div className="flex flex-col gap-3">{children}</div>
-    </section>
-  );
-}
-
 function KeyboardLivePreview() {
   const { settings } = useKeyboardSettings();
   return (
@@ -120,8 +100,6 @@ function KeymapLivePreview() {
       </div>
     );
   }
-  // Narrow the user-editable keymapLayout (typed string) back to LayoutId,
-  // falling back to qwerty when an unknown value lands.
   const layoutId: LayoutId =
     prefs.keymapLayout in LAYOUTS ? (prefs.keymapLayout as LayoutId) : "qwerty";
   return (
@@ -147,7 +125,6 @@ function ResultLivePreview() {
     : Math.round(speed).toString();
   const acc = prefs.alwaysShowDecimal ? "96.40" : "96";
 
-  // Sample run with realistic dips so the chart shows actual variance.
   const points = [42, 58, 64, 71, 75, 78, 84, 88, 92, 95, 89, 96, 102, 100, 98];
   const minY = prefs.startGraphsAtZero ? 0 : Math.min(...points) - 5;
   const maxY = Math.max(...points) + 5;
@@ -237,10 +214,6 @@ function sampleSpeed(unit: string): number {
   }
 }
 
-function sectionLabel(id: string): string {
-  return APPEARANCE_SECTIONS.find((s) => s.id === id)?.name ?? id;
-}
-
 export default function AppearancePage() {
   const { overrides, setVar, clearVar, reset } = useThemeOverrides();
   const { customizedCount: appearanceCustomized, reset: resetAppearance } =
@@ -256,17 +229,19 @@ export default function AppearancePage() {
   return (
     <section className="text-foreground">
       <SettingsPageHeader
-        title="Appearance"
+        eyebrow="Customise · Appearance"
+        title="Make it look the way you think"
         customizedCount={customizedCount}
         onResetAll={handleResetAll}
         description="Every visual control with its own live preview. The sidebar jumps you to the section; nothing here is hidden behind a sub-page."
       />
 
-      {/* ─── Themes & mode ─── */}
-      <SectionShell
+      <SettingsSection
         id="themes"
-        label={sectionLabel("themes")}
-        preview={<MiniSample />}
+        eyebrow="Surface"
+        title="Themes & mode"
+        description="Pick a community palette and flip light / dark. Switching wipes per-token colour overrides — the dialog gives you an export first."
+        preview={<ThemePreview />}
       >
         <ThemesRow />
         <SettingsRow label="Mode" control={<ModeSwitcher />} />
@@ -279,13 +254,14 @@ export default function AppearancePage() {
             <ExternalLink size={12} aria-hidden />
           </Link>
         </div>
-      </SectionShell>
+      </SettingsSection>
 
-      {/* ─── Colors ─── */}
-      <SectionShell
+      <SettingsSection
         id="colors"
-        label={sectionLabel("colors")}
-        preview={<MiniSample />}
+        eyebrow="Tokens"
+        title="Colors"
+        description="Override the active palette one CSS variable at a time. Each row picks its own swatch and shows the swap on the practice text live."
+        preview={<ColorPreview />}
       >
         {COLOR_ROWS.map((row) => (
           <ColorRow
@@ -302,13 +278,14 @@ export default function AppearancePage() {
             onClear={() => clearVar(row.var)}
           />
         ))}
-      </SectionShell>
+      </SettingsSection>
 
-      {/* ─── Geometry ─── */}
-      <SectionShell
+      <SettingsSection
         id="geometry"
-        label={sectionLabel("geometry")}
-        preview={<MiniSample />}
+        eyebrow="Shape"
+        title="Geometry"
+        description="Corner radius and the borders rule across the app. Every component honours these — buttons, cards, popovers, the keyboard widget."
+        preview={<GeometryPreview />}
       >
         <RadiusRow
           value={overrides["--radius"]}
@@ -316,79 +293,87 @@ export default function AppearancePage() {
           onClear={() => clearVar("--radius")}
         />
         <BordersRow />
-      </SectionShell>
+      </SettingsSection>
 
-      {/* ─── Caret & cursor ─── */}
-      <SectionShell
+      <SettingsSection
         id="caret"
-        label={sectionLabel("caret")}
-        preview={<MiniSample />}
+        eyebrow="Cursor"
+        title="Caret & cursor"
+        description="Style, thickness, roundness — the marker that follows your typing. Blink and smooth-motion are temporal; their effect lives at the test screen, not in this preview."
+        preview={<CaretPreview />}
       >
         <CaretRow />
-      </SectionShell>
+      </SettingsSection>
 
-      {/* ─── Typography ─── */}
-      <SectionShell
+      <SettingsSection
         id="typography"
-        label={sectionLabel("typography")}
-        preview={<MiniSample />}
+        eyebrow="Type"
+        title="Typography"
+        description="Font family, size, and word spacing of the practice passage. Body text and chrome stay on JetBrains Mono — only the passage changes."
+        preview={<TypographyPreview />}
       >
         <TypographyRows />
-      </SectionShell>
+      </SettingsSection>
 
-      {/* ─── Keyboard ─── */}
-      <SectionShell
+      <SettingsSection
         id="keyboard"
-        label={sectionLabel("keyboard")}
+        eyebrow="Visual"
+        title="Keyboard widget"
+        description="The live keyboard rendered under the passage. Every option here repaints the preview above instantly."
         preview={<KeyboardLivePreview />}
       >
         <KeyboardRow />
-      </SectionShell>
+      </SettingsSection>
 
-      {/* ─── Background ─── */}
-      <SectionShell
+      <SettingsSection
         id="background"
-        label={sectionLabel("background")}
-        preview={<MiniSample />}
+        eyebrow="Canvas"
+        title="Background"
+        description="Drop in an image, pick how it fits, and tune opacity. Local to your browser — nothing uploads."
+        preview={<BackgroundPreview />}
       >
         <BackgroundRow />
-      </SectionShell>
+      </SettingsSection>
 
-      {/* ─── Live stats ─── */}
-      <SectionShell
+      <SettingsSection
         id="live-stats"
-        label={sectionLabel("live-stats")}
-        preview={<MiniSample />}
+        eyebrow="Heads-up"
+        title="Live stats"
+        description="WPM and accuracy ticker rendered alongside the passage. Colour and opacity match how loud you want them while typing."
+        preview={<LiveStatsPreview />}
       >
         <LiveStatsRows />
-      </SectionShell>
+      </SettingsSection>
 
-      {/* ─── Typing area ─── */}
-      <SectionShell
+      <SettingsSection
         id="typing-area"
-        label={sectionLabel("typing-area")}
-        preview={<MiniSample />}
+        eyebrow="Surface"
+        title="Typing area"
+        description="Line count, max width, tape vs free-flow. The dotted region is the canvas; the inner card is where text actually lands."
+        preview={<TypingAreaPreview />}
       >
         <PassageRows />
-      </SectionShell>
+      </SettingsSection>
 
-      {/* ─── Result ─── */}
-      <SectionShell
+      <SettingsSection
         id="result"
-        label={sectionLabel("result")}
+        eyebrow="Outcome"
+        title="Result screen"
+        description="What the post-test screen shows — the headline numbers, the chart axis, the unit your speed reads in."
         preview={<ResultLivePreview />}
       >
         <ResultRows />
-      </SectionShell>
+      </SettingsSection>
 
-      {/* ─── Keymap ─── */}
-      <SectionShell
+      <SettingsSection
         id="keymap"
-        label={sectionLabel("keymap")}
+        eyebrow="Layout"
+        title="Keymap"
+        description="Hand-layout that powers the heatmap and ergonomic stats. The preview reacts to every keymap setting; switching layout swaps the legend live."
         preview={<KeymapLivePreview />}
       >
         <KeymapRows />
-      </SectionShell>
+      </SettingsSection>
     </section>
   );
 }

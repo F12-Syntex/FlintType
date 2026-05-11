@@ -472,12 +472,13 @@ Every settings surface (`/app/customise/<section>` and friends) follows the same
 
 ### 12.1 Anatomy of a section
 
-A *section* is a labelled group of related settings. Top-down order:
+A *section* is a labelled group of related settings, rendered through the single `<SettingsSection>` primitive (`src/app/app/customise/_components/settings-section.tsx`). The primitive owns the editorial header so every section reads identically — never hand-roll the eyebrow + heading stack inline. Top-down order:
 
-1. **Section header** — `<SectionHeader label="…">` from `src/app/app/customise/_components/...`. Uppercase eyebrow with a primary accent bar. One per section.
-2. **Hero preview (optional)** — a single bordered card on `bg-card` showing what the section's settings produce *live*. Use whenever a setting's effect is visual (Caret, Typography, Geometry/Radius, Background, Themes-not-yet). Use the user's current values; animate or cycle when that helps the user understand.
-3. **Setting rows** — one per option. Use `<SettingsRow label="…" control={…} />` from `customise/_components/row.tsx`. Each row has the label on the left and a right-aligned control. `min-h-16` baseline, `max-h-48` (3×) cap.
-4. **Reset** — when the section can be customised away from defaults, a single ghost-button row at the bottom: `Reset to default`.
+1. **Eyebrow line** — `<SettingsSection eyebrow="…">` paints a 1px primary tick + a section-specific eyebrow (e.g. "Surface", "Cursor", "Type") above the heading. Eyebrows are short categorical labels, not the section's own name.
+2. **Two-line lockup** — bigger title + optional one-line description on the left; the right slot (`actions`) is reserved for per-section utilities (rare).
+3. **Bespoke preview** — `<SettingsSection preview={…}>` mounts a section-specific card that foregrounds *that* section's setting (see §12.5). Required for any section whose setting has a visible effect; omitted only for purely-functional sections.
+4. **Setting rows** — one per option, rendered via `<SettingsRow label="…" control={…} />` from `customise/_components/row.tsx`. Each row has the label on the left and a right-aligned control. `min-h-16` baseline, `max-h-48` (3×) cap.
+5. **Reset** — when the section can be customised away from defaults, a single ghost-button row at the bottom: `Reset to default`. Per-row reset on color/font pickers stays where it lives (inline ⌫ chevron); per-section reset stays at the bottom of the section body.
 
 ### 12.2 What lives in `control={…}`
 
@@ -509,29 +510,49 @@ Don't sprinkle related settings across sections; if you find yourself doing that
 
 ### 12.4 Spacing inside a section
 
-| What                                         | Class                            |
-|----------------------------------------------|----------------------------------|
-| Space between section header and first row   | `mb-3` on the header             |
-| Space between rows / hero / reset            | `gap-3` on the wrapping `<div>`  |
-| Space between adjacent sections              | `mb-8` on the wrapping `<div>`   |
+The `<SettingsSection>` primitive owns the section spacing — these values are *baked in* and should not be overridden inline. Documented here so future tweaks land in one place.
 
-### 12.5 Sections are anchors on one page — every section ships with a live preview
+| What                                         | Class                                                     |
+|----------------------------------------------|-----------------------------------------------------------|
+| Eyebrow → heading lockup                     | `gap-4` on the header column                              |
+| Heading → preview                            | `mb-6` on the header / `mb-6` on the preview card         |
+| Preview → first row                          | `mb-6` on the preview card (or none, when no preview)     |
+| Between rows                                 | `gap-3` on the wrapping body                              |
+| Between adjacent sections                    | `border-t border-border/60 pt-10 pb-12 sm:pt-14 sm:pb-16` (bigger pad sm+; first-of-type opts out of the top border) |
+
+### 12.5 Sections are anchors on one page — every section ships with a *bespoke* live preview
 
 `/app/customise/appearance` is one page. Every topic (Themes & mode, Colors, Geometry, Caret, Typography, Keyboard, Background, Live stats, Typing area, Result, Keymap) renders inline as `<section id="…">` with the catalogued id from `src/app/app/customise/appearance/_sections.ts`. The sidebar links to `/app/customise/appearance#<id>`; the customise scroller jumps to that anchor. There are no sub-page routes — every control lives on the single page so the user is never wondering "is the thing I want behind another click?"
 
-Layout for every section (`<SectionShell>` inside `appearance/page.tsx`):
+Every section is rendered through `<SettingsSection>` (§12.1), which owns the eyebrow + heading + preview frame.
 
-1. **Anchor + section header** — `<section id="<id>" className="scroll-mt-6">` followed by `<SectionHeader label="…">`. The id matches `_sections.ts`; the sidebar link's hash and the IntersectionObserver-driven active rail both depend on it.
-2. **Preview card** — a bordered card with a **static, live** demonstration of the setting's effect. Mandatory: every section passes a `preview` prop. Built from real components (not mocked / not animated) so the user sees their override land before committing. The reusable `<MiniSample>` (`_components/mini-sample.tsx`) covers everything that touches the practice passage — colours, typography, caret, geometry, live stats, typing-area, background. Sections that own a real component (Keyboard, Keymap) embed that component directly. Sections with their own surface (Result) compose a small sample inline.
-   - **No animation, no `framer-motion`.** Static + real always wins.
-   - **No duplicate inner previews.** If a row component (e.g. `CaretRow`, `TypographyRows`, `KeyboardRow`) ever renders its own hero preview, delete it — the section preview at the top of the section is the single source.
-3. **Body** — the existing rows (`<SettingsRow>`, `<ColorRow>`, etc.) directly below the preview.
+**Bespoke preview rule.** Each section's `preview` foregrounds *that section's own* setting — not a generic everything-card. Repeating one shared preview across nine sections (the previous `<MiniSample>` pattern) buries the override the user is making and turns the page into a wall of identical cards. Live previews live in `appearance/_components/section-previews.tsx` (one export per section); behaviour mirrors with its own `behaviour/_components/section-previews.tsx`. Every preview is **static + live** — built from real CSS variables / hooks so the override is visible immediately, no animation. If you change a setting and the preview doesn't react, the preview is broken; fix the preview, never make the override "more visible" by editing the row chrome.
+
+Examples of bespoke preview shape:
+- **Themes & mode** — a 3-tile swatch row showing the active palette's background / card / primary surfaces
+- **Colors** — a labelled swatch ribbon plus one line of practice passage in the typed/untyped/error tokens
+- **Geometry** — a card + button + chip rendered at the user's current radius
+- **Caret & cursor** — a single short word with the live caret rendered at the user's chosen style/thickness/radius
+- **Typography** — a hero word in the chosen family + scale, plus a sample line below
+- **Background** — a small framed window with the chosen image / fit / position
+- **Live stats** — the stats strip alone, painted in the user's chosen colour + opacity
+- **Typing area** — the line-width band visualised against margins
+- **Keyboard / Keymap / Result** — embed the real component (Keyboard widget) or a faithful inline composition (Result chart)
 
 **Themes explorer exemption.** `/app/customise/appearance/themes` is a separate full-page browser of every palette — it lives at its own route because it *is* a preview at full size. The Themes section on `/appearance` includes a "Browse all palettes" link to it.
 
 **Sidebar** — the desktop sidebar renders Appearance with its 11 sub-section anchors indented under it on a left rail. The active rail bar tracks whichever section is currently scrolled into view (IntersectionObserver, threshold band 0–1). The mobile picker shows the same shape inside the bottom sheet — picking a row is a hash navigation, not a route change.
 
-**When to keep using this shape elsewhere**: any settings parent with ≥ 5 logically distinct sub-topics that each deserve their own live preview. For shorter parents (Behaviour, ~9 toggles), a single page with no sectioning is still correct — section previews are overkill when the content is one flat list.
+**When to bring this shape to other settings parents.** Any settings parent with ≥ 3 logically distinct sub-topics that each deserve their own live preview. The behaviour page now follows the same architecture (Restart, Live signal, Input handling, Word list — each with its own bespoke preview); previously it was a flat row stack and read as a bare admin form next to Appearance. The threshold isn't section count — it's whether any setting on the page benefits from seeing its effect before committing.
+
+### 12.7 Page header
+
+Every customise page opens with `<SettingsPageHeader>` (`_components/page-header.tsx`). The header is **editorial** — drop the placeholder "Section" eyebrow string, name what's actually being customised:
+
+- **Eyebrow** — `Customise · Appearance` / `Customise · Behaviour` (categorical, not the literal word "Section")
+- **Title** — descriptive ("Make it look the way you think"), not just the page name. The page name is in the eyebrow and the breadcrumb; the title sells the page.
+- **Description** — one sentence under the title naming the scope of what changes here.
+- **Right rail** — a customised stat (count + "customised"/"untouched" label) and the Reset all button. The stat reads as foreground/40 dim when count is 0 and turns primary when there are real overrides; the user knows at a glance how dirty the page is.
 
 ### 12.6 Don't
 
