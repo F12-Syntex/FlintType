@@ -2,15 +2,20 @@
 
 import { ChevronRight, Lock, Skull, Zap } from "lucide-react";
 import Link from "next/link";
-import { Tag } from "@/components/ft";
 import { cn } from "@/lib/utils";
 import type { DrillSpec } from "./drills-data";
 
 /** Card variants used by the drills grid. `featured` is the bigger
- *  spotlight card surfaced for the first ready tailored drill;
- *  `compact` is the regular grid card; `lockedRow` is a quiet single-
- *  row affordance for drills that aren't ready yet so they don't
- *  occupy a full card while they wait for data. */
+ *  spotlight surfaced for the first ready tailored drill; `compact`
+ *  is the regular grid card; `lockedRow` is a quiet single-row
+ *  affordance for drills that aren't ready yet so they don't occupy
+ *  a full card while they wait for data.
+ *
+ *  The footer "rule strip" — count, reps, threshold WPM — is laid
+ *  out as small bordered stat chips instead of inline text so that
+ *  big values (e.g. 100 items, 70 wpm) wrap cleanly under the title
+ *  without colliding with the CTA. Mobile keeps every chip on one
+ *  row via flex-wrap; lg+ everything sits inline. */
 
 export function FeaturedDrillCard({ drill }: { drill: DrillSpec }) {
   const isSuddenDeath = drill.kind === "sudden-death";
@@ -25,8 +30,6 @@ export function FeaturedDrillCard({ drill }: { drill: DrillSpec }) {
           : "border-primary/30 hover:border-primary/60",
       )}
     >
-      {/* Top accent bar — always visible on the featured card so it
-       *  reads as the hero pick instead of a normal card. */}
       <span
         aria-hidden
         className={cn(
@@ -34,24 +37,21 @@ export function FeaturedDrillCard({ drill }: { drill: DrillSpec }) {
           isSuddenDeath ? "bg-destructive" : "bg-primary",
         )}
       />
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <KindGlyph kind={drill.kind} size="lg" />
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-              Recommended for you
-            </span>
-            <span
-              className={cn(
-                "text-[11px] font-medium uppercase tracking-[0.16em]",
-                isSuddenDeath ? "text-destructive" : "text-primary",
-              )}
-            >
-              {drill.contextLabel}
-            </span>
-          </div>
+      <div className="flex items-start gap-3">
+        <KindGlyph kind={drill.kind} size="lg" />
+        <div className="flex flex-col gap-1">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            Recommended for you
+          </span>
+          <span
+            className={cn(
+              "text-[11px] font-medium uppercase tracking-[0.16em]",
+              isSuddenDeath ? "text-destructive" : "text-primary",
+            )}
+          >
+            {drill.contextLabel}
+          </span>
         </div>
-        <RuleStrip drill={drill} large />
       </div>
 
       <h2 className="text-2xl font-bold tracking-[-0.02em] text-foreground sm:text-3xl">
@@ -64,6 +64,8 @@ export function FeaturedDrillCard({ drill }: { drill: DrillSpec }) {
       <p className="max-w-3xl text-[12.5px] leading-relaxed text-muted-foreground">
         {drill.payoff}
       </p>
+
+      <RuleChips drill={drill} large />
 
       <div className="mt-2 flex items-center justify-end">
         <span
@@ -96,8 +98,6 @@ export function DrillCard({ drill }: { drill: DrillSpec }) {
           : "border-border hover:border-primary/60",
       )}
     >
-      {/* Hairline accent on hover so the kind reads even before the
-       *  user hovers the card. Subtler than the featured card. */}
       <span
         aria-hidden
         className={cn(
@@ -106,7 +106,7 @@ export function DrillCard({ drill }: { drill: DrillSpec }) {
         )}
       />
       <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-col gap-2">
+        <div className="flex min-w-0 flex-col gap-2">
           <span
             className={cn(
               "text-[10px] font-semibold uppercase tracking-[0.18em]",
@@ -127,8 +127,10 @@ export function DrillCard({ drill }: { drill: DrillSpec }) {
       <p className="text-[12px] leading-relaxed text-muted-foreground/75">
         {drill.payoff}
       </p>
-      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-3">
-        <RuleStrip drill={drill} />
+
+      <RuleChips drill={drill} />
+
+      <div className="mt-auto flex items-center justify-end pt-1">
         <span
           className={cn(
             "inline-flex items-center gap-1 text-sm font-semibold transition-transform group-hover:translate-x-0.5",
@@ -148,15 +150,15 @@ export function LockedDrillRow({ drill }: { drill: DrillSpec }) {
       aria-disabled
       className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-dashed border-border bg-card/40 px-4 py-3 sm:px-5"
     >
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         <span
           aria-hidden
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground"
         >
           <Lock size={13} />
         </span>
-        <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-semibold text-foreground">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="truncate text-sm font-semibold text-foreground">
             {drill.title}
           </span>
           <span className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
@@ -208,44 +210,73 @@ function KindGlyph({
   );
 }
 
-function RuleStrip({
+/** Compact stat chips that summarise the drill's rules. Each chip
+ *  is `eyebrow over value`, same shape across burst + sudden-death
+ *  so the row reads consistently. flex-wraps cleanly at narrow
+ *  viewports so big numbers can't push into the CTA. */
+function RuleChips({
   drill,
   large = false,
 }: {
   drill: DrillSpec;
   large?: boolean;
 }) {
-  if (drill.kind === "sudden-death") {
-    return (
-      <span
-        className={cn(
-          "font-mono uppercase tracking-[0.14em] text-muted-foreground",
-          large ? "text-xs" : "text-[11px]",
-        )}
-      >
-        <span className="text-foreground tabular-nums">
-          {drill.words.length}
-        </span>{" "}
-        words ·{" "}
-        <span className="text-destructive">1 mistake = restart</span>
-      </span>
-    );
+  const isSuddenDeath = drill.kind === "sudden-death";
+  const chips: { label: string; value: string; accent?: boolean }[] = [];
+  if (isSuddenDeath) {
+    chips.push({ label: "Words", value: String(drill.words.length) });
+    chips.push({
+      label: "Rule",
+      value: "1 miss = restart",
+      accent: true,
+    });
+  } else {
+    chips.push({ label: "Items", value: String(drill.items.length) });
+    chips.push({ label: "Reps", value: `${drill.repsPerItem}×` });
+    chips.push({
+      label: "Threshold",
+      value: `${drill.thresholdWpm} wpm`,
+      accent: true,
+    });
   }
   return (
-    <span
+    <ul
       className={cn(
-        "font-mono uppercase tracking-[0.14em] text-muted-foreground",
-        large ? "text-xs" : "text-[11px]",
+        "flex flex-wrap gap-2",
+        large ? "gap-2.5" : "gap-2",
       )}
     >
-      <span className="text-foreground tabular-nums">
-        {drill.items.length}
-      </span>{" "}
-      items ·{" "}
-      <span className="text-foreground tabular-nums">{drill.repsPerItem}×</span>{" "}
-      at{" "}
-      <span className="text-foreground tabular-nums">{drill.thresholdWpm}</span>{" "}
-      wpm
-    </span>
+      {chips.map((c) => (
+        <li
+          key={c.label}
+          className={cn(
+            "inline-flex items-baseline gap-1.5 rounded-md border bg-background/60 px-2.5 py-1",
+            large ? "py-1.5" : "py-1",
+            c.accent
+              ? isSuddenDeath
+                ? "border-destructive/30"
+                : "border-primary/30"
+              : "border-border",
+          )}
+        >
+          <span className="text-[9.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            {c.label}
+          </span>
+          <span
+            className={cn(
+              "font-mono tabular-nums",
+              large ? "text-[12.5px]" : "text-[11.5px]",
+              c.accent
+                ? isSuddenDeath
+                  ? "text-destructive"
+                  : "text-primary"
+                : "text-foreground",
+            )}
+          >
+            {c.value}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }

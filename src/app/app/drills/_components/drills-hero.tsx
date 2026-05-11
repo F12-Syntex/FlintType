@@ -19,7 +19,7 @@ export function DrillsHero({
   cold: boolean;
 }) {
   return (
-    <header className="border-b border-border px-5 pt-12 pb-10 sm:px-16 sm:pt-14 sm:pb-12">
+    <header className="border-b border-border px-5 pt-12 pb-10 sm:px-12 sm:pt-14 sm:pb-12 lg:px-16">
       <div className="mb-5 flex items-center gap-3">
         <span aria-hidden className="inline-block h-px w-7 bg-primary" />
         <Tag>Focused practice · minigames</Tag>

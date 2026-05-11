@@ -78,7 +78,7 @@ export function DrillsView() {
         loading={loading}
         cold={snapshot?.cold ?? false}
       />
-      <section className="px-5 pt-10 pb-16 sm:px-16">
+      <section className="px-5 pt-10 pb-16 sm:px-12 lg:px-16">
         {loading ? (
           <p className="text-sm text-muted-foreground">
             Reading your model…
