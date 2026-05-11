@@ -32,6 +32,17 @@ export function ConfirmDialog({
   /** Variant of the confirm button; "destructive" tints it red so a
    *  cancel-by-default reset flow visibly warns. */
   confirmVariant = "default",
+  /** When true, the confirm button fires `onConfirm` but does NOT
+   *  auto-close the dialog. Used by multi-phase flows (e.g. the
+   *  MonkeyType import) where success / error feedback needs to stay
+   *  visible after submit and the consumer closes via `onOpenChange`
+   *  on its own schedule. Default false preserves the legacy
+   *  click-to-confirm-and-close behaviour every other caller relies
+   *  on. */
+  keepOpen = false,
+  /** Disable the confirm button entirely — useful while an in-flight
+   *  request is pending so the user can't double-submit. */
+  confirmDisabled = false,
 }: {
   open: boolean;
   onOpenChange: (next: boolean) => void;
@@ -41,6 +52,8 @@ export function ConfirmDialog({
   cancelLabel?: string;
   onConfirm: () => void;
   confirmVariant?: "default" | "destructive";
+  keepOpen?: boolean;
+  confirmDisabled?: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
   const [render, setRender] = useState(false);
@@ -88,7 +101,7 @@ export function ConfirmDialog({
 
   function handleConfirm() {
     onConfirm();
-    onOpenChange(false);
+    if (!keepOpen) onOpenChange(false);
   }
 
   const dialog = (
@@ -162,6 +175,7 @@ export function ConfirmDialog({
             variant={confirmVariant === "destructive" ? "destructive" : "default"}
             size="sm"
             onClick={handleConfirm}
+            disabled={confirmDisabled}
             className="h-9"
           >
             {confirmLabel}

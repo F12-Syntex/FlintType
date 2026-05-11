@@ -63,6 +63,9 @@ export function MonkeyTypeImportDialog({
     }
   }
 
+  const isLoading = status.kind === "loading";
+  const isDone = status.kind === "ok";
+
   return (
     <ConfirmDialog
       open={open}
@@ -74,8 +77,18 @@ export function MonkeyTypeImportDialog({
         onOpenChange(next);
       }}
       title="Import from MonkeyType"
-      confirmLabel={status.kind === "loading" ? "Importing…" : "Import"}
-      cancelLabel="Close"
+      // keepOpen so the user sees the loading → ok / err transition
+      // inside the dialog. They close manually via the cancel button.
+      keepOpen
+      confirmDisabled={isLoading}
+      confirmLabel={
+        isLoading
+          ? "Importing…"
+          : isDone
+            ? "Import again"
+            : "Import"
+      }
+      cancelLabel={isDone ? "Done" : "Close"}
       onConfirm={() => void handleImport()}
     >
       <div className="flex flex-col gap-6">
