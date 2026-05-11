@@ -49,7 +49,7 @@ export function PersonalBests({ bests }: { bests: PersonalBest[] }) {
         <Tag>Personal bests</Tag>
       </div>
 
-      <div className="flex flex-col gap-7">
+      <div className="grid gap-7 lg:grid-cols-2 lg:gap-6">
         {rows.map(([mode, modeBests]) => (
           <ModeStrip key={mode} mode={mode} bests={modeBests} />
         ))}
@@ -71,8 +71,8 @@ function ModeStrip({
         {prettyMode(mode)}
       </span>
       <div className="overflow-hidden rounded-md border border-border">
-        <div className="grid grid-cols-2 divide-y divide-x divide-border sm:grid-cols-4 sm:divide-y-0">
-          {bests.slice(0, 8).map((b, i) => (
+        <div className="grid grid-cols-2 divide-x divide-y divide-border sm:grid-cols-4 sm:divide-y-0">
+          {bests.slice(0, 4).map((b, i) => (
             <BestCell key={`${b.mode}-${b.amount}-${i}`} best={b} />
           ))}
         </div>
@@ -83,21 +83,13 @@ function ModeStrip({
 
 function BestCell({ best }: { best: PersonalBest }) {
   return (
-    <div
-      className={cn(
-        "flex flex-col gap-1.5 bg-card px-4 py-4 sm:px-5 sm:py-5",
-      )}
-    >
+    <div className={cn("flex flex-col gap-2 bg-card px-4 py-5 sm:px-5 sm:py-6")}>
       <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-        Length{" "}
         <span className="text-foreground tabular-nums">{best.amount}</span>
       </span>
       <div className="flex items-baseline gap-1.5">
-        <span className="font-mono text-3xl font-bold tabular-nums leading-none text-primary sm:text-[34px]">
+        <span className="font-mono text-[44px] font-bold tabular-nums leading-[0.95] text-primary sm:text-[56px]">
           {Math.round(best.bestWpm)}
-        </span>
-        <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          wpm
         </span>
       </div>
       <span className="font-mono text-[11px] tabular-nums text-muted-foreground">

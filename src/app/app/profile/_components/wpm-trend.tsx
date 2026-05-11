@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Area,
   CartesianGrid,
@@ -17,141 +17,185 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/line-chart";
+import { cn } from "@/lib/utils";
 import type { TrendPoint } from "./derive-stats";
 
 const chartConfig = {
   wpm: { label: "wpm", color: "var(--primary)" },
 } satisfies ChartConfig;
 
-/** WPM trend across the user's last N completed tests. Average is
- *  drawn as a dashed horizontal reference; a soft area fills under
- *  the line for presence. Tooltip surfaces the test ordinal + the
- *  date the test ran on. */
-export function WpmTrend({ points }: { points: TrendPoint[] }) {
-  const avg = useMemo(() => {
-    if (points.length === 0) return 0;
-    return points.reduce((s, p) => s + p.wpm, 0) / points.length;
-  }, [points]);
+const RANGES: { id: Range; label: string; ms: number | null }[] = [
+  { id: "day", label: "Last day", ms: 86_400_000 },
+  { id: "week", label: "Last week", ms: 7 * 86_400_000 },
+  { id: "month", label: "Last month", ms: 30 * 86_400_000 },
+  { id: "3months", label: "Last 3 months", ms: 90 * 86_400_000 },
+  { id: "all", label: "All time", ms: null },
+];
 
-  if (points.length < 2) {
-    return (
-      <section className="border-b border-border px-5 py-10 sm:px-16 sm:py-12">
-        <div className="mb-3 flex items-center gap-3">
-          <span aria-hidden className="inline-block h-px w-5 bg-primary" />
-          <Tag>WPM trend</Tag>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Take a few more runs and the trend will fill in.
-        </p>
-      </section>
-    );
-  }
+type Range = "day" | "week" | "month" | "3months" | "all";
+
+/** WPM trend across the user's completed tests. MonkeyType-style time
+ *  filter chips run above the chart so the user can zoom into a recent
+ *  slice or step out to all-time. The avg dashed line + soft area
+ *  fill stay; the chart breathes taller (h-60 sm:h-72) for presence. */
+export function WpmTrend({ points }: { points: TrendPoint[] }) {
+  const [range, setRange] = useState<Range>("all");
+
+  const filtered = useMemo(() => {
+    const cfg = RANGES.find((r) => r.id === range)!;
+    if (cfg.ms == null) return points;
+    const cutoff = Date.now() - cfg.ms;
+    return points.filter((p) => p.ts >= cutoff);
+  }, [points, range]);
+
+  const avg = useMemo(() => {
+    if (filtered.length === 0) return 0;
+    return filtered.reduce((s, p) => s + p.wpm, 0) / filtered.length;
+  }, [filtered]);
 
   return (
     <section className="border-b border-border px-5 py-10 sm:px-16 sm:py-12">
-      <div className="mb-7 flex items-center justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div className="flex items-center gap-3">
           <span aria-hidden className="inline-block h-px w-5 bg-primary" />
-          <Tag>WPM trend · last {points.length} tests</Tag>
+          <Tag>WPM trend</Tag>
         </div>
-        <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
-          Avg{" "}
-          <span className="text-foreground tabular-nums">
-            {Math.round(avg)}
-          </span>
-        </span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {RANGES.map((r) => {
+            const active = range === r.id;
+            return (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => setRange(r.id)}
+                aria-pressed={active}
+                className={cn(
+                  "inline-flex items-center rounded-md border px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.14em] transition-colors",
+                  active
+                    ? "border-primary/40 bg-primary/[0.06] text-primary"
+                    : "border-border text-muted-foreground hover:border-foreground/25 hover:text-foreground",
+                )}
+              >
+                {r.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <ChartContainer
-        config={chartConfig}
-        className="aspect-auto h-40 w-full sm:h-52 lg:h-60"
-      >
-        <ComposedChart
-          accessibilityLayer
-          data={points}
-          margin={{ left: 8, right: 16, top: 18, bottom: 0 }}
-        >
-          <defs>
-            <linearGradient id="wpmTrendArea" x1="0" y1="0" x2="0" y2="1">
-              <stop
-                offset="0%"
-                stopColor="var(--color-wpm)"
-                stopOpacity={0.18}
+      {filtered.length < 2 ? (
+        <p className="text-sm text-muted-foreground">
+          Not enough data in this range. Try a wider window.
+        </p>
+      ) : (
+        <>
+          <div className="mb-3 flex items-baseline justify-between gap-3 font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
+            <span>
+              <span className="text-foreground tabular-nums">
+                {filtered.length}
+              </span>{" "}
+              tests
+            </span>
+            <span>
+              Avg{" "}
+              <span className="text-foreground tabular-nums">
+                {Math.round(avg)}
+              </span>{" "}
+              wpm
+            </span>
+          </div>
+          <ChartContainer
+            config={chartConfig}
+            className="aspect-auto h-52 w-full sm:h-64 lg:h-72"
+          >
+            <ComposedChart
+              accessibilityLayer
+              data={filtered}
+              margin={{ left: 8, right: 16, top: 18, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="wpmTrendArea" x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="0%"
+                    stopColor="var(--color-wpm)"
+                    stopOpacity={0.18}
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor="var(--color-wpm)"
+                    stopOpacity={0}
+                  />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                vertical={false}
+                stroke="currentColor"
+                strokeOpacity={0.08}
               />
-              <stop
-                offset="100%"
-                stopColor="var(--color-wpm)"
-                stopOpacity={0}
+              <XAxis
+                dataKey="idx"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={6}
+                tickFormatter={(v: number) => `#${v}`}
+                interval="preserveStartEnd"
               />
-            </linearGradient>
-          </defs>
-          <CartesianGrid
-            vertical={false}
-            stroke="currentColor"
-            strokeOpacity={0.08}
-          />
-          <XAxis
-            dataKey="idx"
-            tickLine={false}
-            axisLine={false}
-            tickMargin={6}
-            tickFormatter={(v: number) => `#${v}`}
-            interval="preserveStartEnd"
-          />
-          <YAxis
-            tickLine={false}
-            axisLine={false}
-            tickMargin={6}
-            width={32}
-            domain={["auto", "auto"]}
-          />
-          <ChartTooltip
-            cursor={{ stroke: "currentColor", strokeOpacity: 0.2 }}
-            content={
-              <ChartTooltipContent
-                indicator="dot"
-                labelFormatter={(_, items) => {
-                  const first = (
-                    items as Array<{ payload?: TrendPoint }>
-                  )[0];
-                  const p = first?.payload;
-                  if (!p) return "";
-                  const d = new Date(p.ts);
-                  return `Test #${p.idx} · ${d.toLocaleDateString()}`;
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={6}
+                width={32}
+                domain={["auto", "auto"]}
+              />
+              <ChartTooltip
+                cursor={{ stroke: "currentColor", strokeOpacity: 0.2 }}
+                content={
+                  <ChartTooltipContent
+                    indicator="dot"
+                    labelFormatter={(_, items) => {
+                      const first = (
+                        items as Array<{ payload?: TrendPoint }>
+                      )[0];
+                      const p = first?.payload;
+                      if (!p) return "";
+                      const d = new Date(p.ts);
+                      return `Test #${p.idx} · ${d.toLocaleDateString()}`;
+                    }}
+                  />
+                }
+              />
+              {avg > 0 ? (
+                <ReferenceLine
+                  y={avg}
+                  stroke="currentColor"
+                  strokeOpacity={0.32}
+                  strokeDasharray="3 4"
+                />
+              ) : null}
+              <Area
+                dataKey="wpm"
+                type="monotone"
+                stroke="none"
+                fill="url(#wpmTrendArea)"
+                isAnimationActive={false}
+              />
+              <Line
+                dataKey="wpm"
+                type="monotone"
+                stroke="var(--color-wpm)"
+                strokeWidth={2.25}
+                dot={false}
+                activeDot={{
+                  r: 3,
+                  stroke: "var(--color-wpm)",
+                  fill: "var(--background)",
                 }}
+                isAnimationActive={false}
               />
-            }
-          />
-          {avg > 0 ? (
-            <ReferenceLine
-              y={avg}
-              stroke="currentColor"
-              strokeOpacity={0.32}
-              strokeDasharray="3 4"
-            />
-          ) : null}
-          <Area
-            dataKey="wpm"
-            type="monotone"
-            stroke="none"
-            fill="url(#wpmTrendArea)"
-            isAnimationActive={false}
-          />
-          <Line
-            dataKey="wpm"
-            type="monotone"
-            stroke="var(--color-wpm)"
-            strokeWidth={2.25}
-            dot={false}
-            activeDot={{
-              r: 3,
-              stroke: "var(--color-wpm)",
-              fill: "var(--background)",
-            }}
-            isAnimationActive={false}
-          />
-        </ComposedChart>
-      </ChartContainer>
+            </ComposedChart>
+          </ChartContainer>
+        </>
+      )}
     </section>
   );
 }

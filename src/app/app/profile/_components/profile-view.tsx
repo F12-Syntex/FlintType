@@ -58,7 +58,7 @@ export function ProfileView() {
   const totals = useMemo(() => deriveTotals(tests), [tests]);
   const streak = useMemo(() => deriveStreak(tests), [tests]);
   const bests = useMemo(() => derivePersonalBests(tests), [tests]);
-  const activity = useMemo(() => deriveActivity(tests, 26), [tests]);
+  const activity = useMemo(() => deriveActivity(tests, 52), [tests]);
   const trend = useMemo(() => deriveTrend(tests, 60), [tests]);
 
   if (error) {

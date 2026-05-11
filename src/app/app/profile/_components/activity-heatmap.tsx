@@ -24,7 +24,7 @@ export function ActivityHeatmap({ days }: { days: DayCell[] }) {
       <div className="mb-7 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <span aria-hidden className="inline-block h-px w-5 bg-primary" />
-          <Tag>Activity · last {columns.length} weeks</Tag>
+          <Tag>Activity · last 12 months</Tag>
         </div>
         <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
           <span className="text-foreground tabular-nums">{total}</span>{" "}
@@ -35,14 +35,17 @@ export function ActivityHeatmap({ days }: { days: DayCell[] }) {
       </div>
 
       <div className="overflow-x-auto pb-2">
-        <div className="flex items-end gap-[3px]">
-          {columns.map((week, wi) => (
-            <div key={wi} className="flex flex-col gap-[3px]">
-              {week.map((d, di) => (
-                <Cell key={di} day={d} max={max} />
-              ))}
-            </div>
-          ))}
+        <div className="flex flex-col gap-1.5">
+          <MonthAxis columns={columns} />
+          <div className="flex items-end gap-[3px]">
+            {columns.map((week, wi) => (
+              <div key={wi} className="flex flex-col gap-[3px]">
+                {week.map((d, di) => (
+                  <Cell key={di} day={d} max={max} />
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -59,6 +62,43 @@ export function ActivityHeatmap({ days }: { days: DayCell[] }) {
         <span>More</span>
       </div>
     </section>
+  );
+}
+
+/** Top axis showing which week column each new month begins in. Each
+ *  cell column is 12px (size-3) + 3px gap = 15px, so labels align by
+ *  shifting their start. We render a label only on the first week of
+ *  each month (the first column whose Monday falls in that month). */
+function MonthAxis({ columns }: { columns: (DayCell | null)[][] }) {
+  const labels: { idx: number; label: string }[] = [];
+  let lastMonth = -1;
+  columns.forEach((week, idx) => {
+    const firstDay = week.find((d) => d !== null);
+    if (!firstDay) return;
+    const m = firstDay.date.getMonth();
+    if (m !== lastMonth) {
+      labels.push({
+        idx,
+        label: firstDay.date.toLocaleDateString(undefined, { month: "short" }),
+      });
+      lastMonth = m;
+    }
+  });
+  return (
+    <div
+      className="relative h-3 font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground"
+      style={{ width: `${columns.length * 15}px` }}
+    >
+      {labels.map((l) => (
+        <span
+          key={l.idx}
+          className="absolute top-0"
+          style={{ left: `${l.idx * 15}px` }}
+        >
+          {l.label}
+        </span>
+      ))}
+    </div>
   );
 }
 
