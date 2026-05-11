@@ -46,6 +46,15 @@ export type AppearancePrefs = {
   alwaysShowDecimal: boolean;
   typingSpeedUnit: TypingSpeedUnit;
   startGraphsAtZero: boolean;
+  /** Result-screen sections — each is a small visualisation derived
+   *  from the run's keystroke stream + per-second wpm samples. Off
+   *  collapses the section, leaving the chart + stats strip + heatmap
+   *  intact so the screen stays useful even at minimum density. */
+  resultShowHeatmap: boolean;
+  resultShowExtras: boolean;
+  resultShowPerLetter: boolean;
+  resultShowHandBalance: boolean;
+  resultShowBursts: boolean;
 
   keymap: Keymap;
   keymapLayout: string;
@@ -107,6 +116,11 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   alwaysShowDecimal: false,
   typingSpeedUnit: "wpm",
   startGraphsAtZero: true,
+  resultShowHeatmap: true,
+  resultShowExtras: true,
+  resultShowPerLetter: true,
+  resultShowHandBalance: true,
+  resultShowBursts: true,
 
   keymap: "react",
   keymapLayout: "qwerty",

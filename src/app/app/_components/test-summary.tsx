@@ -7,6 +7,12 @@ import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
 import { cn } from "@/lib/utils";
 import { type KeyEvent, usePractice } from "./practice-state";
 import { type Bucket, ResultChart } from "./result-chart";
+import {
+  BurstHistogram,
+  ExtraStats,
+  HandBalance,
+  PerLetterSlowness,
+} from "./result-insights";
 
 // ─── Stats ─────────────────────────────────────────────────────────
 
@@ -404,8 +410,37 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
           <BigStat label="time" value={`${elapsedSec}s`} />
         </div>
 
+        {/* Run shape — extra stats: streak, words, pauses. */}
+        {appearance.resultShowExtras ? (
+          <ExtraStats
+            events={state.events}
+            totalWords={state.words.length}
+          />
+        ) : null}
+
+        {/* Two-column insight grid at lg+: per-letter slowness on
+         *  the left, burst distribution + hand balance stacked on
+         *  the right. Stacks as one column on smaller viewports. */}
+        {appearance.resultShowPerLetter ||
+        appearance.resultShowBursts ||
+        appearance.resultShowHandBalance ? (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {appearance.resultShowPerLetter ? (
+              <PerLetterSlowness events={state.events} />
+            ) : null}
+            <div className="flex flex-col gap-6">
+              {appearance.resultShowBursts ? (
+                <BurstHistogram wpmHistory={wpmHistory} />
+              ) : null}
+              {appearance.resultShowHandBalance ? (
+                <HandBalance events={state.events} />
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
         {/* Heatmap strip — speed-coloured passage. */}
-        {state.words.length > 0 ? (
+        {appearance.resultShowHeatmap && state.words.length > 0 ? (
           <div className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
               <span>passage heatmap</span>

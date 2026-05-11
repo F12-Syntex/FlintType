@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type AppearancePrefs,
   type TypingSpeedUnit,
   useAppearancePrefs,
 } from "@/lib/appearance-prefs";
@@ -17,6 +18,38 @@ const SPEED_UNITS: readonly { id: TypingSpeedUnit; label: string }[] = [
   { id: "wps", label: "WPS" },
   { id: "cps", label: "CPS" },
   { id: "wph", label: "WPH" },
+];
+
+const SECTION_TOGGLES: readonly {
+  key: keyof AppearancePrefs;
+  title: string;
+  desc: string;
+}[] = [
+  {
+    key: "resultShowExtras",
+    title: "Run shape stats",
+    desc: "Longest streak, words finished, pause count, longest pause.",
+  },
+  {
+    key: "resultShowPerLetter",
+    title: "Slowest letters",
+    desc: "Top eight unique characters by average keystroke latency.",
+  },
+  {
+    key: "resultShowBursts",
+    title: "WPM distribution",
+    desc: "Histogram of how many seconds you spent in each WPM band.",
+  },
+  {
+    key: "resultShowHandBalance",
+    title: "Hand balance",
+    desc: "Left vs right hand load split across the run's keystrokes.",
+  },
+  {
+    key: "resultShowHeatmap",
+    title: "Passage heatmap",
+    desc: "The run's passage tinted per-letter by keystroke latency.",
+  },
 ];
 
 export function ResultRows() {
@@ -69,6 +102,19 @@ export function ResultRows() {
           />
         }
       />
+
+      {SECTION_TOGGLES.map((s) => (
+        <SettingsRow
+          key={s.key}
+          label={<LabelWithDesc title={s.title} desc={s.desc} />}
+          control={
+            <ToggleChips
+              value={prefs[s.key] as boolean}
+              onChange={(v) => update(s.key, v as never)}
+            />
+          }
+        />
+      ))}
     </div>
   );
 }
