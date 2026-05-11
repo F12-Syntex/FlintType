@@ -208,6 +208,54 @@ describe("monkeytype.import route", () => {
     ).rejects.toMatchObject({ code: "VALIDATION" });
   });
 
+  it("disconnect wipes the slice but preserves unrelated prefs and tests", async () => {
+    signedInAs("user_1");
+    // Seed unrelated pref + an MT-imported test row.
+    await ctx.db.userPrefs.set("user_1", { caret: { style: "block" } });
+    await ctx.db.tests.insert({
+      id: "mt_seed",
+      userId: "user_1",
+      startedAt: new Date(1_700_000_000_000),
+      completedAt: new Date(1_700_000_000_000 + 60_000),
+      mode: "casual",
+      durationOrWordCount: 60,
+      wpm: 80,
+      accuracy: 95,
+      errorCount: 1,
+      resetCount: 0,
+      wasCompleted: true,
+    });
+    // Stash an MT slice via an import.
+    mockMt({
+      results: [],
+      pbsTime: { "30": [{ wpm: 100, acc: 96 }] },
+      pbsWords: {},
+      stats: { completedTests: 50 },
+    });
+    await callRoute(["monkeytype", "import"], {
+      input: { apiKey: "key_abc_xxx" },
+      db: ctx.db,
+    });
+    expect(
+      (await ctx.db.userPrefs.get("user_1")).monkeytypeStats,
+    ).toBeTruthy();
+
+    // Disconnect.
+    const out = await callRoute<{ ok: true }>(
+      ["monkeytype", "disconnect"],
+      { db: ctx.db },
+    );
+    expect(out.ok).toBe(true);
+
+    const prefs = await ctx.db.userPrefs.get("user_1");
+    expect(prefs.monkeytypeStats).toBeUndefined();
+    expect(prefs.caret).toEqual({ style: "block" });
+
+    // Tests stay — disconnect only clears the prefs slice.
+    const stored = await ctx.db.tests.recentForUser("user_1", 100);
+    expect(stored).toHaveLength(1);
+  });
+
   it("preserves unrelated user_prefs slices on import", async () => {
     signedInAs("user_1");
     await ctx.db.userPrefs.set("user_1", { caret: { style: "block" } });

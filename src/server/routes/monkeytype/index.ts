@@ -187,6 +187,23 @@ const importRoute = defineRoute<MonkeytypeImportInput, MonkeytypeImportOutput>({
   },
 });
 
+/** Disconnect: wipe the user's monkeytypeStats slice entirely —
+ *  encrypted key, PBs, lifetime stats, all of it. Local tests
+ *  imported from MT in the past stay (they're real history rows)
+ *  but auto-sync stops firing because the key record is gone. */
+const disconnectRoute = defineRoute<void, { ok: true }>({
+  middleware: [requireAuth],
+  handler: async ({ db, meta, log }) => {
+    const userId = meta.userId as string;
+    const existing = await db.userPrefs.get(userId);
+    const next = { ...existing };
+    delete (next as Record<string, unknown>).monkeytypeStats;
+    await db.userPrefs.set(userId, next);
+    log.info("monkeytype.disconnect cleared slice", { userId });
+    return { ok: true };
+  },
+});
+
 export const monkeytype = defineNamespace({
-  routes: { import: importRoute },
+  routes: { import: importRoute, disconnect: disconnectRoute },
 });

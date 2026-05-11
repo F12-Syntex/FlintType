@@ -1,14 +1,22 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { Download, Pencil } from "lucide-react";
+import { Download, Link2, Pencil } from "lucide-react";
 import { useState } from "react";
 import { Tag } from "@/components/ft";
 import { Button } from "@/components/ui/button";
+import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { cn } from "@/lib/utils";
+import type { MonkeytypeStatsSlice } from "@/types/monkeytype";
 import type { ProfileTotals } from "./derive-stats";
 import { EditProfileDialog } from "./edit-profile-dialog";
 import { MonkeyTypeImportDialog } from "./monkeytype-import-dialog";
+import { MonkeyTypeManageDialog } from "./monkeytype-manage-dialog";
+
+const EMPTY_MT_SLICE: MonkeytypeStatsSlice = {
+  importedAt: 0,
+  pbs: { time: {}, words: {} },
+};
 
 /** Profile hero. Avatar + name lockup on the left, settings on the
  *  right. Sizes follow ui-law §4 page-title scale (text-3xl /
@@ -26,6 +34,15 @@ export function ProfileHero({
   const { user, isLoaded } = useUser();
   const [editOpen, setEditOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
+
+  // Track the connection state inline so the import button label +
+  // dialog flips between paste-key and manage based on whether we
+  // have a stored Ape Key.
+  const { value: mtSliceRaw, update: updateMtSlice } =
+    useRemotePrefs<MonkeytypeStatsSlice>("monkeytypeStats", EMPTY_MT_SLICE);
+  const isConnected =
+    mtSliceRaw.importedAt > 0 && mtSliceRaw.encryptedApiKey != null;
   const displayName = !isLoaded
     ? "—"
     : (user?.firstName ??
@@ -49,19 +66,32 @@ export function ProfileHero({
 
   return (
     <header className="relative border-b border-border px-5 py-12 sm:px-12 sm:py-16 lg:px-16">
-      {/* Edit + Import sit in the top-right corner so they stay
-       *  accessible without breaking the centred profile lockup.
+      {/* Edit + Import|MonkeyType sit in the top-right corner so
+       *  they stay accessible without breaking the centred profile
+       *  lockup. The MT button label flips once a key is stored:
+       *  'Import' → opens the paste-key dialog; 'MonkeyType' →
+       *  opens the manage dialog (resync / re-paste / disconnect).
        *  Settings moved off this page; account chrome lives at
        *  /app/customise (still reachable via the topbar). */}
       <div className="absolute top-5 right-5 flex items-center gap-2 sm:top-8 sm:right-8 lg:top-10 lg:right-10">
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setImportOpen(true)}
-          aria-label="Import from MonkeyType"
+          onClick={() =>
+            isConnected ? setManageOpen(true) : setImportOpen(true)
+          }
+          aria-label={
+            isConnected ? "Manage MonkeyType connection" : "Import from MonkeyType"
+          }
         >
-          <Download size={14} aria-hidden />
-          <span className="hidden sm:inline">Import</span>
+          {isConnected ? (
+            <Link2 size={14} aria-hidden />
+          ) : (
+            <Download size={14} aria-hidden />
+          )}
+          <span className="hidden sm:inline">
+            {isConnected ? "MonkeyType" : "Import"}
+          </span>
         </Button>
         <Button
           variant="outline"
@@ -79,6 +109,19 @@ export function ProfileHero({
         open={importOpen}
         onOpenChange={setImportOpen}
       />
+      {isConnected ? (
+        <MonkeyTypeManageDialog
+          open={manageOpen}
+          onOpenChange={setManageOpen}
+          slice={mtSliceRaw}
+          onSliceUpdate={(next) => updateMtSlice(next)}
+          onSliceCleared={() => updateMtSlice(EMPTY_MT_SLICE)}
+          onRepaste={() => {
+            setManageOpen(false);
+            setImportOpen(true);
+          }}
+        />
+      ) : null}
 
       <div className="mb-7 flex items-center justify-center gap-3">
         <span aria-hidden className="inline-block h-px w-5 bg-primary" />
