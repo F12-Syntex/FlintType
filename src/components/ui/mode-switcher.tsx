@@ -33,7 +33,7 @@ export function ModeSwitcher({ className }: { className?: string }) {
       role="radiogroup"
       aria-label="Theme mode"
       className={cn(
-        "inline-flex items-center overflow-hidden rounded-full border border-border bg-card",
+        "inline-flex items-center overflow-hidden rounded-md border border-border bg-card",
         className,
       )}
     >
@@ -49,7 +49,7 @@ export function ModeSwitcher({ className }: { className?: string }) {
             aria-label={`Switch to ${opt.label} mode`}
             onClick={() => setTheme(opt.value)}
             className={cn(
-              "relative flex size-8 cursor-pointer items-center justify-center rounded-full transition-colors",
+              "relative flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors",
               active
                 ? "text-foreground"
                 : "text-muted-foreground hover:text-foreground",
@@ -59,7 +59,7 @@ export function ModeSwitcher({ className }: { className?: string }) {
               <motion.span
                 layoutId="active-mode-pill"
                 transition={{ type: "spring", bounce: 0.25, duration: 0.5 }}
-                className="absolute inset-0 rounded-full border border-border bg-background"
+                className="absolute inset-0 rounded-md border border-border bg-background"
               />
             ) : null}
             <Icon size={15} className="relative" />
