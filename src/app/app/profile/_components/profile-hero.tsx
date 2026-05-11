@@ -85,54 +85,21 @@ export function ProfileHero({
   const avatarImageUrl = isOwner ? (user?.imageUrl ?? null) : null;
 
   return (
-    <header className="relative border-b border-border px-5 py-12 sm:px-12 sm:py-16 lg:px-16">
-      {/* Owner-only chrome — Edit, MonkeyType (import / manage),
-       *  Sign out. Visitors don't see any of these so they get a
-       *  read-only profile view. The MonkeyType button label flips
-       *  once a key is stored: 'Import' opens the paste-key dialog,
-       *  'MonkeyType' opens the manage dialog (resync / re-paste /
-       *  disconnect). */}
+    <header className="relative border-b border-border px-4 py-10 sm:px-12 sm:py-16 lg:px-16">
+      {/* Owner action cluster. On mobile it sits as a centred row
+       *  *under* the lockup so it doesn't fight the centred title in
+       *  a 375px column. From sm+ it floats back into the absolute
+       *  top-right corner the way it used to. */}
+
       {isOwner ? (
-        <div className="absolute top-5 right-5 flex items-center gap-2 sm:top-8 sm:right-8 lg:top-10 lg:right-10">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              isConnected ? setManageOpen(true) : setImportOpen(true)
-            }
-            aria-label={
-              isConnected
-                ? "Manage MonkeyType connection"
-                : "Import from MonkeyType"
-            }
-          >
-            {isConnected ? (
-              <Link2 size={14} aria-hidden />
-            ) : (
-              <Download size={14} aria-hidden />
-            )}
-            <span className="hidden sm:inline">
-              {isConnected ? "MonkeyType" : "Import"}
-            </span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setEditOpen(true)}
-            aria-label="Edit profile"
-          >
-            <Pencil size={14} aria-hidden />
-            <span className="hidden sm:inline">Edit</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void signOut({ redirectUrl: "/" })}
-            aria-label="Sign out"
-          >
-            <LogOut size={14} aria-hidden />
-            <span className="hidden sm:inline">Sign out</span>
-          </Button>
+        <div className="absolute top-4 right-4 hidden items-center gap-2 sm:top-8 sm:right-8 sm:flex lg:top-10 lg:right-10">
+          <ActionButtons
+            isConnected={isConnected}
+            onImport={() => setImportOpen(true)}
+            onManage={() => setManageOpen(true)}
+            onEdit={() => setEditOpen(true)}
+            onSignOut={() => void signOut({ redirectUrl: "/" })}
+          />
         </div>
       ) : null}
 
@@ -159,12 +126,12 @@ export function ProfileHero({
         </>
       ) : null}
 
-      <div className="mb-7 flex items-center justify-center gap-3">
+      <div className="mb-5 flex items-center justify-center gap-3 sm:mb-7">
         <span aria-hidden className="inline-block h-px w-5 bg-primary" />
         <Tag>Public profile</Tag>
       </div>
 
-      <div className="mx-auto flex max-w-md flex-col items-center gap-5 text-center">
+      <div className="mx-auto flex max-w-md flex-col items-center gap-4 text-center sm:gap-5">
         <Avatar
           imageUrl={avatarImageUrl}
           initial={initial}
@@ -172,19 +139,92 @@ export function ProfileHero({
         />
 
         <div className="flex flex-col items-center gap-2">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             {displayName}
           </h1>
           {joined ? (
-            <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground sm:text-[11px] sm:tracking-[0.18em]">
               Member since {joined}
             </span>
           ) : null}
         </div>
 
         <LevelBadge totals={totals} />
+
+        {/* Mobile-only action row sits below the level bar so the
+         *  centred lockup stays clean. Hidden at sm+ — the absolute
+         *  top-right cluster takes over. */}
+        {isOwner ? (
+          <div className="flex w-full flex-wrap items-center justify-center gap-2 pt-1 sm:hidden">
+            <ActionButtons
+              isConnected={isConnected}
+              onImport={() => setImportOpen(true)}
+              onManage={() => setManageOpen(true)}
+              onEdit={() => setEditOpen(true)}
+              onSignOut={() => void signOut({ redirectUrl: "/" })}
+            />
+          </div>
+        ) : null}
       </div>
     </header>
+  );
+}
+
+/** The owner-action trio (MonkeyType / Edit / Sign out). Rendered
+ *  twice in the hero — once in the absolute top-right corner at sm+,
+ *  once as a centred row beneath the lockup on mobile. Same buttons,
+ *  same labels; the parent decides positioning. */
+function ActionButtons({
+  isConnected,
+  onImport,
+  onManage,
+  onEdit,
+  onSignOut,
+}: {
+  isConnected: boolean;
+  onImport: () => void;
+  onManage: () => void;
+  onEdit: () => void;
+  onSignOut: () => void;
+}) {
+  return (
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={isConnected ? onManage : onImport}
+        aria-label={
+          isConnected
+            ? "Manage MonkeyType connection"
+            : "Import from MonkeyType"
+        }
+      >
+        {isConnected ? (
+          <Link2 size={14} aria-hidden />
+        ) : (
+          <Download size={14} aria-hidden />
+        )}
+        <span>{isConnected ? "MonkeyType" : "Import"}</span>
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onEdit}
+        aria-label="Edit profile"
+      >
+        <Pencil size={14} aria-hidden />
+        <span>Edit</span>
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onSignOut}
+        aria-label="Sign out"
+      >
+        <LogOut size={14} aria-hidden />
+        <span>Sign out</span>
+      </Button>
+    </>
   );
 }
 

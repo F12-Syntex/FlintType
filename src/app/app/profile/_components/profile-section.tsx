@@ -24,12 +24,12 @@ export function ProfileSection({
   return (
     <section
       className={cn(
-        "px-5 py-12 sm:px-12 sm:py-14 lg:px-16",
+        "px-4 py-10 sm:px-12 sm:py-14 lg:px-16",
         noBorder ? "" : "border-b border-border",
         className,
       )}
     >
-      <header className="mb-7 flex flex-wrap items-end justify-between gap-3 sm:mb-8">
+      <header className="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-8">
         <div className="flex items-center gap-3">
           <span aria-hidden className="inline-block h-px w-5 bg-primary" />
           <Tag>{label}</Tag>

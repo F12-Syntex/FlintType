@@ -54,21 +54,28 @@ export function ActivityHeatmap({
         </div>
       }
     >
-      <div className="flex w-full flex-col gap-1.5">
-        <MonthAxis columns={columns} />
-        <div
-          className="grid w-full gap-[3px]"
-          style={{
-            gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
-          }}
-        >
-          {columns.map((week, wi) => (
-            <div key={wi} className="flex flex-col gap-[3px]">
-              {week.map((d, di) => (
-                <Cell key={di} day={d} max={max} />
-              ))}
-            </div>
-          ))}
+      {/* Horizontal scroll on mobile keeps every cell at a minimum
+       *  legible size (8px) — at 375px viewport, 52 fr cells would
+       *  collapse to ~4px squares. The grid uses minmax(8px, 1fr) so
+       *  cells fill available width on desktop and overflow into a
+       *  swipeable strip below sm. */}
+      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+        <div className="flex min-w-[440px] flex-col gap-1.5 sm:min-w-0 sm:w-full">
+          <MonthAxis columns={columns} />
+          <div
+            className="grid w-full gap-[3px]"
+            style={{
+              gridTemplateColumns: `repeat(${columns.length}, minmax(8px, 1fr))`,
+            }}
+          >
+            {columns.map((week, wi) => (
+              <div key={wi} className="flex flex-col gap-[3px]">
+                {week.map((d, di) => (
+                  <Cell key={di} day={d} max={max} />
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

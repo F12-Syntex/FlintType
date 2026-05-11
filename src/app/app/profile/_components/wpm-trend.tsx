@@ -67,7 +67,7 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
                 onClick={() => setRange(r.id)}
                 aria-pressed={active}
                 className={cn(
-                  "inline-flex items-center rounded-md border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors",
+                  "inline-flex shrink-0 items-center rounded-md border px-2 py-1 text-[10px] font-medium uppercase tracking-[0.12em] transition-colors sm:px-2.5 sm:text-[11px] sm:tracking-[0.14em]",
                   active
                     ? "border-primary/40 bg-primary/[0.06] text-primary"
                     : "border-border text-muted-foreground hover:border-foreground/25 hover:text-foreground",

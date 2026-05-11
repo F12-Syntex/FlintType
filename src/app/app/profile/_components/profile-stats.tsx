@@ -22,7 +22,10 @@ export function ProfileStats({
   return (
     <ProfileSection label="Lifetime totals">
       <div className="mx-auto overflow-hidden rounded-md border border-border bg-card/40">
-        <div className="grid grid-cols-2 divide-x divide-y divide-border sm:grid-cols-5 sm:divide-y-0">
+        {/* Mobile: 3 + 2 grid (Tests | Time | Best WPM on row 1,
+         *  Streak | Leaderboard on row 2) reads tighter than the old
+         *  2 + 2 + 1 layout where Leaderboard was orphaned. */}
+        <div className="grid grid-cols-3 divide-x divide-y divide-border sm:grid-cols-5 sm:divide-y-0">
           <MetricCell
             label="Tests started"
             value={totals.testsStarted.toLocaleString()}
@@ -73,25 +76,25 @@ function MetricCell({
   accent?: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-1.5 px-3 py-5 text-center sm:px-4 sm:py-6">
-      <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+    <div className="flex flex-col items-center justify-center gap-1 px-2 py-4 text-center sm:gap-1.5 sm:px-4 sm:py-6">
+      <span className="text-[9px] font-medium uppercase tracking-[0.16em] text-muted-foreground sm:text-[10px] sm:tracking-[0.18em]">
         {label}
       </span>
       <span
         className={cn(
-          "text-xl font-semibold tracking-[-0.01em] tabular-nums leading-none sm:text-2xl",
+          "text-base font-semibold tracking-[-0.01em] tabular-nums leading-none sm:text-2xl",
           accent ? "text-primary" : "text-foreground",
         )}
       >
         {value}
         {suffix ? (
-          <span className="ml-0.5 text-[11px] font-medium text-muted-foreground">
+          <span className="ml-0.5 text-[10px] font-medium text-muted-foreground sm:text-[11px]">
             {suffix}
           </span>
         ) : null}
       </span>
       {subline ? (
-        <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        <span className="text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[10px] sm:tracking-[0.14em]">
           {subline}
         </span>
       ) : null}

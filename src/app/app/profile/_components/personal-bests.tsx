@@ -16,7 +16,7 @@ export function PersonalBests({ bests }: { bests: PersonalBest[] }) {
 
   return (
     <ProfileSection label="Personal bests">
-      <div className="flex flex-col gap-10 sm:gap-12">
+      <div className="flex flex-col gap-8 sm:gap-12">
         {MODE_ORDER.map((mode) => (
           <ModeBlock key={mode} mode={mode} lookup={lookup} />
         ))}
@@ -76,8 +76,8 @@ function SubStrip({
   lookup: Map<string, PersonalBest>;
 }) {
   return (
-    <div className="flex flex-col gap-2.5">
-      <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+    <div className="flex flex-col gap-2 sm:gap-2.5">
+      <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground sm:tracking-[0.18em]">
         {label}
       </span>
       <div className="overflow-hidden rounded-md border border-border bg-card/40">
@@ -109,8 +109,8 @@ function BestCell({
   // the un-carded lifetime-totals strip.
   const empty = best == null;
   return (
-    <div className="flex flex-col gap-2 px-4 py-5">
-      <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+    <div className="flex flex-col gap-1.5 px-3 py-4 sm:gap-2 sm:px-4 sm:py-5">
+      <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground sm:tracking-[0.18em]">
         <span
           className={cn("tabular-nums", empty ? "" : "text-foreground")}
         >
@@ -121,14 +121,14 @@ function BestCell({
       <div className="flex items-baseline gap-1.5">
         <span
           className={cn(
-            "font-bold tracking-[-0.04em] tabular-nums leading-none text-4xl sm:text-[44px]",
+            "font-bold tracking-[-0.04em] tabular-nums leading-none text-3xl sm:text-[44px]",
             empty ? "text-foreground/25" : "text-primary",
           )}
         >
           {empty ? "—" : Math.round(best.bestWpm)}
         </span>
       </div>
-      <span className="text-[11px] font-medium tabular-nums text-muted-foreground">
+      <span className="text-[10px] font-medium tabular-nums text-muted-foreground sm:text-[11px]">
         {empty ? (
           <span className="text-muted-foreground/60">no run yet</span>
         ) : (
