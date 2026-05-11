@@ -1,5 +1,6 @@
 import { defineNamespace, defineRoute } from "@/server";
 import { BackendError } from "@/lib/errors";
+import { encryptApiKey } from "@/server/api-key-crypto";
 import { requireAuth } from "@/server/middleware/auth";
 import { rateLimit } from "@/server/middleware/rate-limit";
 import {
@@ -113,6 +114,10 @@ const importRoute = defineRoute<MonkeytypeImportInput, MonkeytypeImportOutput>({
       startedTests: stats.startedTests,
       timeTyping: stats.timeTyping,
       pbs: { time: pbsTime, words: pbsWords },
+      // Encrypt the Ape Key with the server-side AES-256-GCM key so
+      // the user can re-import without re-pasting. The DB stores
+      // ciphertext + IV + auth tag only.
+      encryptedApiKey: encryptApiKey(apiKey),
     };
     const existing = await db.userPrefs.get(userId);
     await db.userPrefs.set(userId, {

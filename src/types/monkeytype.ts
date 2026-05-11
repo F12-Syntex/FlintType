@@ -48,4 +48,14 @@ export type MonkeytypeStatsSlice = {
     /** Keyed by length (e.g. "10", "25"). */
     words: Record<string, { wpm: number; acc: number }>;
   };
+  /** AES-256-GCM encrypted Ape Key — server-encrypted at write
+   *  with `API_KEY_ENC_SECRET`, decrypted only when re-importing.
+   *  The DB never sees plaintext. Format defined in
+   *  `src/server/api-key-crypto.ts`. */
+  encryptedApiKey?: {
+    v: 1;
+    iv: string;
+    tag: string;
+    ct: string;
+  };
 };

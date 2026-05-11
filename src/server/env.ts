@@ -9,6 +9,13 @@ const schema = z.object({
   DATABASE_MODE: z.enum(['auto', 'neon', 'pglite']).default('auto'),
   PGLITE_DATA_DIR: z.string().default('./.data/pglite'),
   OPENROUTER_API_KEY: z.string().optional(),
+  /** AES-256-GCM key (base64, 32 raw bytes) used to encrypt user
+   *  third-party API keys at rest (e.g. the MonkeyType Ape Key
+   *  stored against a user's profile). Falls back to a deterministic
+   *  dev key when unset so the dev workflow doesn't gate on a
+   *  generated secret — production must set this explicitly via
+   *  `.env.local`. See `src/server/api-key-crypto.ts`. */
+  API_KEY_ENC_SECRET: z.string().optional(),
 });
 
 const parsed = schema.safeParse({
@@ -22,6 +29,7 @@ const parsed = schema.safeParse({
   DATABASE_MODE: process.env.DATABASE_MODE,
   PGLITE_DATA_DIR: process.env.PGLITE_DATA_DIR,
   OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+  API_KEY_ENC_SECRET: process.env.API_KEY_ENC_SECRET,
 });
 
 if (!parsed.success) {
