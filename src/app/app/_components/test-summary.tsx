@@ -377,10 +377,10 @@ export function TestSummary() {
           </div>
         </div>
 
-        {/* Inline stats row — left-aligned grid carrying every
-         *  number the chart no longer overlays. Wraps from 2-col on
-         *  mobile up to 4-col on sm+ so the labels stay readable. */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
+        {/* Inline stats row — all seven on a single line at sm+,
+         *  same shape as the original 4-up strip just wider; mobile
+         *  still wraps in a 2-column grid. */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-7 sm:gap-x-5">
           <BigStat
             label="raw"
             value={formatSpeed(
