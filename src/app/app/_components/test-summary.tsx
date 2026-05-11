@@ -377,10 +377,10 @@ export function TestSummary() {
           </div>
         </div>
 
-        {/* Centred stats strip — peak / avg / stall surface here now
-         *  that the chart no longer carries overlay text. Wraps
-         *  gracefully on narrow viewports. */}
-        <div className="flex flex-wrap items-baseline justify-center gap-x-8 gap-y-4 sm:gap-x-12">
+        {/* Inline stats row — left-aligned grid carrying every
+         *  number the chart no longer overlays. Wraps from 2-col on
+         *  mobile up to 4-col on sm+ so the labels stay readable. */}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
           <BigStat
             label="raw"
             value={formatSpeed(
@@ -392,7 +392,7 @@ export function TestSummary() {
           />
           <BigStat label="peak" value={peak} accent />
           <BigStat label="avg" value={avg} />
-          {stall !== peak ? <BigStat label="stall" value={stall} /> : null}
+          <BigStat label="stall" value={stall} />
           <BigStat label="consistency" value={`${cons}%`} />
           <BigStat label="errors" value={wrongTotal} />
           <BigStat label="time" value={`${elapsedSec}s`} />

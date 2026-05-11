@@ -6,7 +6,6 @@ import {
   CartesianGrid,
   ComposedChart,
   Line,
-  ReferenceDot,
   ReferenceLine,
   XAxis,
   YAxis,
@@ -56,47 +55,30 @@ export function ResultChart({
   startAtZero: boolean;
   height?: string;
 }) {
-  const { merged, avgWpm, peak, stall, errorBuckets, maxErrors } =
-    useMemo(() => {
-      if (buckets.length < 2) {
-        return {
-          merged: [] as MergedBucket[],
-          avgWpm: 0,
-          peak: null as Bucket | null,
-          stall: null as Bucket | null,
-          errorBuckets: new Map<number, number>(),
-          maxErrors: 0,
-        };
-      }
-      const errs = bucketErrors(events);
-      const merged: MergedBucket[] = buckets.map((b) => ({
-        ...b,
-        errors: errs.get(b.sec) ?? 0,
-        gap: Math.max(0, b.raw - b.wpm),
-      }));
-      const avg =
-        merged.reduce((s, b) => s + b.wpm, 0) / merged.length;
-      const peak = merged.reduce(
-        (m, b) => (m == null || b.wpm > m.wpm ? b : m),
-        null as Bucket | null,
-      );
-      const stall = merged.reduce(
-        (m, b) => (m == null || b.wpm < m.wpm ? b : m),
-        null as Bucket | null,
-      );
-      const maxErr = [...errs.values()].reduce(
-        (m, v) => (v > m ? v : m),
-        0,
-      );
+  const { merged, avgWpm, errorBuckets, maxErrors } = useMemo(() => {
+    if (buckets.length < 2) {
       return {
-        merged,
-        avgWpm: avg,
-        peak,
-        stall,
-        errorBuckets: errs,
-        maxErrors: maxErr,
+        merged: [] as MergedBucket[],
+        avgWpm: 0,
+        errorBuckets: new Map<number, number>(),
+        maxErrors: 0,
       };
-    }, [buckets, events]);
+    }
+    const errs = bucketErrors(events);
+    const merged: MergedBucket[] = buckets.map((b) => ({
+      ...b,
+      errors: errs.get(b.sec) ?? 0,
+      gap: Math.max(0, b.raw - b.wpm),
+    }));
+    const avg = merged.reduce((s, b) => s + b.wpm, 0) / merged.length;
+    const maxErr = [...errs.values()].reduce((m, v) => (v > m ? v : m), 0);
+    return {
+      merged,
+      avgWpm: avg,
+      errorBuckets: errs,
+      maxErrors: maxErr,
+    };
+  }, [buckets, events]);
 
   if (buckets.length < 2) {
     return (
@@ -215,32 +197,9 @@ export function ResultChart({
             isAnimationActive={false}
           />
 
-          {/* Peak / stall reference dots — unlabelled markers only.
-           *  Numbers land in the stat strip under the chart (cleaner
-           *  than overlaying text that overflows the plot bounds). */}
-          {peak ? (
-            <ReferenceDot
-              x={peak.sec}
-              y={peak.wpm}
-              r={4}
-              fill="var(--color-wpm)"
-              stroke="var(--background)"
-              strokeWidth={1.5}
-              ifOverflow="extendDomain"
-            />
-          ) : null}
-          {stall && peak && stall.sec !== peak.sec ? (
-            <ReferenceDot
-              x={stall.sec}
-              y={stall.wpm}
-              r={3.5}
-              fill="var(--background)"
-              stroke="var(--foreground)"
-              strokeOpacity={0.85}
-              strokeWidth={1.75}
-              ifOverflow="extendDomain"
-            />
-          ) : null}
+          {/* Peak / stall numbers live in the stat strip under the
+           *  chart — no on-chart markers; the wpm trace already shows
+           *  where the line tops out and bottoms out. */}
         </ComposedChart>
       </ChartContainer>
 
