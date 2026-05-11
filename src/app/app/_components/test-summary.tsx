@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import { type KeyEvent, usePractice } from "./practice-state";
 import { type Bucket, ResultChart } from "./result-chart";
 import {
-  BurstHistogram,
   ExtraStats,
   HandBalance,
   PerLetterSlowness,
@@ -419,23 +418,16 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
         ) : null}
 
         {/* Two-column insight grid at lg+: per-letter slowness on
-         *  the left, burst distribution + hand balance stacked on
-         *  the right. Stacks as one column on smaller viewports. */}
-        {appearance.resultShowPerLetter ||
-        appearance.resultShowBursts ||
-        appearance.resultShowHandBalance ? (
+         *  the left, hand balance on the right. Stacks as one column
+         *  on smaller viewports. */}
+        {appearance.resultShowPerLetter || appearance.resultShowHandBalance ? (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {appearance.resultShowPerLetter ? (
               <PerLetterSlowness events={state.events} />
             ) : null}
-            <div className="flex flex-col gap-6">
-              {appearance.resultShowBursts ? (
-                <BurstHistogram wpmHistory={wpmHistory} />
-              ) : null}
-              {appearance.resultShowHandBalance ? (
-                <HandBalance events={state.events} />
-              ) : null}
-            </div>
+            {appearance.resultShowHandBalance ? (
+              <HandBalance events={state.events} />
+            ) : null}
           </div>
         ) : null}
 

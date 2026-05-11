@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
-import type { KeyEvent, WpmSample } from "./practice-state";
+import type { KeyEvent } from "./practice-state";
 
 /** Extra result-screen visualisations — opt-in via appearance prefs.
  *  Every component derives its data from the run's keystroke stream
@@ -184,70 +184,6 @@ function Legend({
         {pct}% · {count}
       </span>
     </span>
-  );
-}
-
-/* ─── Burst histogram ──────────────────────────────────────────── */
-
-type Bin = { lo: number; hi: number; n: number };
-
-function bins(samples: readonly WpmSample[], count = 6): Bin[] {
-  if (samples.length === 0) return [];
-  const wpms = samples.map((s) => s.wpm);
-  const min = Math.floor(Math.min(...wpms) / 5) * 5;
-  const max = Math.ceil(Math.max(...wpms) / 5) * 5;
-  if (max - min < count) return [];
-  const step = (max - min) / count;
-  const out: Bin[] = Array.from({ length: count }, (_, i) => ({
-    lo: Math.round(min + step * i),
-    hi: Math.round(min + step * (i + 1)),
-    n: 0,
-  }));
-  for (const w of wpms) {
-    const idx = Math.min(count - 1, Math.floor((w - min) / step));
-    const bin = out[idx];
-    if (bin) bin.n += 1;
-  }
-  return out;
-}
-
-export function BurstHistogram({
-  wpmHistory,
-}: {
-  wpmHistory: readonly WpmSample[];
-}) {
-  const data = useMemo(() => bins(wpmHistory), [wpmHistory]);
-  if (data.length === 0) return null;
-  const max = Math.max(...data.map((b) => b.n));
-  if (max === 0) return null;
-  return (
-    <Section
-      label="wpm distribution"
-      meta="seconds spent in each band"
-    >
-      <div className="flex h-20 items-end gap-1.5 sm:h-24">
-        {data.map((b) => {
-          const ratio = b.n / max;
-          return (
-            <div
-              key={`${b.lo}-${b.hi}`}
-              className="flex flex-1 flex-col items-center gap-1.5"
-            >
-              <div className="relative flex h-full w-full items-end">
-                <div
-                  className="w-full rounded-sm bg-primary/85 transition-[height]"
-                  style={{ height: `${Math.max(6, ratio * 100)}%` }}
-                  title={`${b.lo}–${b.hi} wpm · ${b.n} second${b.n === 1 ? "" : "s"}`}
-                />
-              </div>
-              <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
-                {b.lo}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </Section>
   );
 }
 

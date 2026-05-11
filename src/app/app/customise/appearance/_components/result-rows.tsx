@@ -36,11 +36,6 @@ const SECTION_TOGGLES: readonly {
     desc: "Top eight unique characters by average keystroke latency.",
   },
   {
-    key: "resultShowBursts",
-    title: "WPM distribution",
-    desc: "Histogram of how many seconds you spent in each WPM band.",
-  },
-  {
     key: "resultShowHandBalance",
     title: "Hand balance",
     desc: "Left vs right hand load split across the run's keystrokes.",

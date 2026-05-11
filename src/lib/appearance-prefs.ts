@@ -54,7 +54,6 @@ export type AppearancePrefs = {
   resultShowExtras: boolean;
   resultShowPerLetter: boolean;
   resultShowHandBalance: boolean;
-  resultShowBursts: boolean;
 
   keymap: Keymap;
   keymapLayout: string;
@@ -115,12 +114,14 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
 
   alwaysShowDecimal: false,
   typingSpeedUnit: "wpm",
-  startGraphsAtZero: true,
-  resultShowHeatmap: true,
-  resultShowExtras: true,
-  resultShowPerLetter: true,
-  resultShowHandBalance: true,
-  resultShowBursts: true,
+  // Result-screen sections default off — the chart + stat strip
+  // already carry the headline read; users opt every extra
+  // visualisation back in via customise > Result.
+  startGraphsAtZero: false,
+  resultShowHeatmap: false,
+  resultShowExtras: false,
+  resultShowPerLetter: false,
+  resultShowHandBalance: false,
 
   keymap: "react",
   keymapLayout: "qwerty",
