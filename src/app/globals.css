@@ -261,7 +261,7 @@
        NOT applied here. Both are practice-text settings — the user
        expects "size" and "family" to scope to the passage they type,
        not to every chrome surface. The passage element consumes them
-       directly (see `src/app/app/_components/passage.tsx`). */
+       directly (see `src/app/_components/passage.tsx`). */
     scrollbar-color: color-mix(in oklch, var(--foreground) 25%, transparent)
       var(--background);
     scrollbar-width: thin;
@@ -367,7 +367,7 @@
     border-color: color-mix(in oklch, var(--foreground) 12%, transparent);
   }
 
-  /* ── Global border visibility (set from /app/customise/appearance) ─
+  /* ── Global border visibility (set from /customise/appearance) ─
      `data-ft-borders="soft"`   — every hairline drops to a 10% tint
                                   of the current foreground. Borders
                                   still divide regions but recede.

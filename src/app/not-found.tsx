@@ -36,7 +36,7 @@ export default function NotFound() {
             </p>
 
             <div className="flex flex-wrap gap-3">
-              <Link href="/app">
+              <Link href="/">
                 <FtButton variant="ember" size="lg">
                   BACK TO PRACTICE →
                 </FtButton>

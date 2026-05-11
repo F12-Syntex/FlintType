@@ -255,7 +255,7 @@ const words = defineRoute<RequestWordsInput, RequestWordsOutput>({
 
 // ─── adapt.snapshot ──────────────────────────────────────────────────
 //
-// Backs the /app/biogram visualisation. Reads everything the
+// Backs the /biogram visualisation. Reads everything the
 // algorithm reads and returns it shaped for display, with weakness
 // pre-computed against the user's own baselines so the client never
 // has to repeat the math. Bounded by the model size — a fully

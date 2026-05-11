@@ -14,7 +14,7 @@ export function Logo({
   size?: "sm" | "md";
   className?: string;
 }) {
-  const targetHref = href ?? (dark ? "/app" : "/");
+  const targetHref = href ?? "/";
   const flameClass = size === "sm" ? "h-4 w-auto" : "h-5 w-auto sm:h-6";
   const wordClass =
     size === "sm" ? "text-xs tracking-[0.04em]" : "text-sm tracking-[0.04em]";

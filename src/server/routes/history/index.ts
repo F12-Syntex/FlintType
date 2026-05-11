@@ -37,7 +37,7 @@ const RECENT_LIMIT = 500;
 const WEAKEST_LIMIT = 12;
 
 /** Top N worst words. Larger than the bigram cap because the
- *  worst-words drill (`/app/drills/worst-words`) leans on this list
+ *  worst-words drill (`/drills/worst-words`) leans on this list
  *  directly and asks the user to burst 20 of them. */
 const WORST_WORDS_LIMIT = 20;
 

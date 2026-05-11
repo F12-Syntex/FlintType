@@ -1,5 +1,6 @@
-import { redirect } from "next/navigation";
 import { buildPageMetadata } from "@/server/seo";
+import { AppChrome } from "./_components/app-chrome";
+import { TypingSurface } from "./_components/typing-surface";
 
 export const metadata = buildPageMetadata({
   title: "flinttype",
@@ -8,11 +9,10 @@ export const metadata = buildPageMetadata({
   path: "/",
 });
 
-/** No more landing page — friction-zero entry. The practice surface
- *  at /app works without auth (settings save to localStorage); only
- *  data-backed surfaces (profile, insights, drills, biogram) gate
- *  on a Clerk session. Sign in / sign up live at /sign-in & /sign-up
- *  and are surfaced from the topbar / profile button. */
-export default function HomePage() {
-  redirect("/app");
+export default function PracticePage() {
+  return (
+    <AppChrome compact>
+      <TypingSurface />
+    </AppChrome>
+  );
 }

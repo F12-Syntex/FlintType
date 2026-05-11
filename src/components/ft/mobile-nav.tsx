@@ -97,7 +97,7 @@ export function MobileNav({
 
   const isActive = (href: string) =>
     href === pathname ||
-    (href !== "/" && href !== "/app" && pathname?.startsWith(href));
+    (href !== "/" && pathname?.startsWith(href));
 
   // Drawer sits below the 56 px topbar so the existing header stays visible.
   // No enter/exit animation per request — instant show/hide.

@@ -100,7 +100,7 @@ export type RequestWordsOutput = {
   cold: boolean;
 };
 
-// ─── Algorithm visualisation (the /app/biogram page) ─────────────────
+// ─── Algorithm visualisation (the /biogram page) ─────────────────
 
 export type AdaptModelRow = {
   key: string;

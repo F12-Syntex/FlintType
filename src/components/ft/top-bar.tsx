@@ -40,7 +40,7 @@ export function TopBar({
   const resolvedVersion = version ?? ctxVersion;
   const isActive = (href: string) =>
     href === pathname ||
-    (href !== "/" && href !== "/app" && pathname?.startsWith(href));
+    (href !== "/" && pathname?.startsWith(href));
 
   return (
     <header

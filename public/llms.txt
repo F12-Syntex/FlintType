@@ -4,7 +4,7 @@
 
 ## Pages
 
-- [Home](/): landing page — links to sign-in / sign-up. Authenticated users are redirected to `/app`.
+- [Home](/): the typing practice surface. Anonymous users can practice; profile / insights / drills / customise require sign-in for some surfaces.
 
 ## Conventions
 

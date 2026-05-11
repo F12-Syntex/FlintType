@@ -3,6 +3,8 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Lora, IBM_Plex_Mono } from "next/font/google";
+import { VersionProvider } from "@/lib/version-context";
+import { getAppVersion } from "@/server/version";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -45,6 +47,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const version = getAppVersion();
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
@@ -56,7 +59,9 @@ export default function RootLayout({
           <link rel="stylesheet" href="/fonts/fonts.css" />
         </head>
         <body className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased`}>
-          <Providers>{children}</Providers>
+          <VersionProvider value={version}>
+            <Providers>{children}</Providers>
+          </VersionProvider>
         </body>
       </html>
     </ClerkProvider>
