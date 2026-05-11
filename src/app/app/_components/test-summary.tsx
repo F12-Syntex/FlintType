@@ -340,7 +340,10 @@ export function TestSummary() {
 
   return (
     <div className="flex h-full min-h-0 flex-col items-center overflow-y-auto px-2 py-3 sm:px-4 sm:py-6">
-      <div className="flex w-full max-w-5xl flex-col gap-4 sm:gap-6">
+      {/* my-auto keeps the content vertically centred when it fits in
+       *  the viewport; once it overflows, the auto margin collapses
+       *  and the natural overflow-y-auto scroll takes over. */}
+      <div className="my-auto flex w-full max-w-5xl flex-col gap-4 sm:gap-6">
         {/* Top row: stat column on the left, smaller centered chart. */}
         <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[140px_1fr] sm:gap-6 lg:grid-cols-[160px_1fr]">
           <div className="flex flex-row items-baseline gap-6 sm:flex-col sm:items-start sm:gap-4">
