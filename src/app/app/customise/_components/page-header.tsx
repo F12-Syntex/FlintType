@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ImportExportMenu } from "./import-export";
 
 /** Editorial page header for the customise pages. Replaces the prior
  *  "Section: Title" eyebrow stack with a real two-axis layout: the
@@ -49,28 +50,30 @@ export function SettingsPageHeader({
 
         <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap sm:items-end sm:gap-4">
           <CustomisedStat count={customizedCount} />
-          {onResetAll ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onResetAll}
-              disabled={customizedCount === 0}
-              confirm={{
-                title: `Reset ${title.toLowerCase()}?`,
-                description: (
-                  <p className="text-sm text-muted-foreground">
-                    This clears every customisation on this page and
-                    restores the default values. This cannot be undone.
-                  </p>
-                ),
-                confirmLabel: "Reset all",
-                confirmVariant: "destructive",
-              }}
-              className="font-mono text-[10.5px] uppercase tracking-[0.16em]"
-            >
-              Reset all
-            </Button>
-          ) : null}
+          <div className="flex items-center gap-2">
+            {onResetAll ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onResetAll}
+                disabled={customizedCount === 0}
+                confirm={{
+                  title: `Reset ${title.toLowerCase()}?`,
+                  description: (
+                    <p className="text-sm text-muted-foreground">
+                      This clears every customisation on this page and
+                      restores the default values. This cannot be undone.
+                    </p>
+                  ),
+                  confirmLabel: "Reset all",
+                  confirmVariant: "destructive",
+                }}
+              >
+                Reset all
+              </Button>
+            ) : null}
+            <ImportExportMenu />
+          </div>
         </div>
       </div>
     </header>

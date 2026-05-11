@@ -1,13 +1,17 @@
 "use client";
 
-import { Download, Upload } from "lucide-react";
-import {
-  useRef,
-  useState,
-  type ButtonHTMLAttributes,
-  type ReactNode,
-} from "react";
+import { Download, MoreHorizontal, Upload } from "lucide-react";
+import { useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   buildFlinttypeExport,
   downloadJson,
@@ -19,15 +23,12 @@ import { cn } from "@/lib/utils";
 
 type Source = "flinttype" | "monkeytype";
 
-/** Vertical Import/Export action panel — three flat rows, one per
- *  action. Lives in the bottom of the desktop settings sidebar and at
- *  the bottom of the mobile section-picker bottom sheet.
- *
- *  Imports are two-phase: the file picker resolves to a *plan*, the
- *  user reviews the plan in a <ConfirmDialog> showing every slice that
- *  will change, then commits. Misclicks are recoverable — Cancel does
- *  nothing — and the user can see exactly what they're about to swap. */
-export function ImportExportPanel({
+/** Single Import / Export trigger — sits next to "Reset all" in the
+ *  customise page header. Opens a small dropdown with the three
+ *  actions; no more vertical 3-button panel cluttering the sidebar
+ *  footer. Imports are still two-phase: file picker → ConfirmDialog
+ *  showing every slice that will change → commit. */
+export function ImportExportMenu({
   className,
 }: {
   className?: string;
@@ -73,7 +74,7 @@ export function ImportExportPanel({
       if (next.changes.length === 0) {
         setStatus({
           ok: true,
-          msg: "Nothing matched — file had no recognized settings.",
+          msg: "Nothing matched — file had no recognised settings.",
         });
         return;
       }
@@ -110,33 +111,55 @@ export function ImportExportPanel({
   }
 
   return (
-    <div className={cn("flex flex-col gap-0.5", className)}>
-      <PanelLabel>Manage</PanelLabel>
-      <PanelButton
-        onClick={() => void handleExport()}
-        icon={<Download size={14} />}
-        title="Download your current settings as a JSON file"
-      >
-        Export settings
-      </PanelButton>
-      <PanelButton
-        onClick={() => chooseFile("flinttype")}
-        icon={<Upload size={14} />}
-        title="Restore settings from a flinttype export"
-      >
-        Import flinttype
-      </PanelButton>
-      <PanelButton
-        onClick={() => chooseFile("monkeytype")}
-        icon={<Upload size={14} />}
-        title="Map a monkeytype.com settings JSON"
-      >
-        Import MonkeyType
-      </PanelButton>
+    <div className={cn("relative", className)}>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            aria-label="Import or export settings"
+            className="gap-1.5"
+          >
+            <MoreHorizontal size={14} aria-hidden />
+            <span className="hidden sm:inline">Manage</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-[12rem]">
+          <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Settings file
+          </DropdownMenuLabel>
+          <DropdownMenuItem
+            onSelect={() => void handleExport()}
+            className="gap-2"
+          >
+            <Download size={14} aria-hidden className="text-muted-foreground" />
+            Export settings
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Restore from
+          </DropdownMenuLabel>
+          <DropdownMenuItem
+            onSelect={() => chooseFile("flinttype")}
+            className="gap-2"
+          >
+            <Upload size={14} aria-hidden className="text-muted-foreground" />
+            flinttype JSON
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() => chooseFile("monkeytype")}
+            className="gap-2"
+          >
+            <Upload size={14} aria-hidden className="text-muted-foreground" />
+            MonkeyType JSON
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
       {status ? (
         <p
           className={cn(
-            "mt-1 px-2 text-[11px] leading-snug",
+            "absolute right-0 top-full mt-2 max-w-xs text-right text-[11px] leading-snug",
             status.ok ? "text-muted-foreground" : "text-destructive",
           )}
           role={status.ok ? undefined : "alert"}
@@ -144,6 +167,7 @@ export function ImportExportPanel({
           {status.msg}
         </p>
       ) : null}
+
       <input
         ref={fileRef}
         type="file"
@@ -211,39 +235,5 @@ function ImportSummary({ plan }: { plan: ImportPlan }) {
         ))}
       </ul>
     </div>
-  );
-}
-
-function PanelLabel({ children }: { children: ReactNode }) {
-  return (
-    <span className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/70">
-      {children}
-    </span>
-  );
-}
-
-function PanelButton({
-  icon,
-  children,
-  ...rest
-}: {
-  icon: ReactNode;
-  children: ReactNode;
-} & ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      type="button"
-      {...rest}
-      className={cn(
-        "flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm font-medium text-muted-foreground transition-colors",
-        "hover:bg-foreground/5 hover:text-foreground active:bg-foreground/10",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-      )}
-    >
-      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground">
-        {icon}
-      </span>
-      <span className="flex-1 truncate">{children}</span>
-    </button>
   );
 }

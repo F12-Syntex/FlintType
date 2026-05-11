@@ -136,8 +136,8 @@ export default function BehaviourPage() {
         id="live-signal"
         eyebrow="Heads-up"
         title="Live signal"
-        description="What the test surfaces while you type. Off-by-default toggles paint dimmed in the preview so you can tell at a glance which signals you've enabled."
-        preview={<LiveSignalPreview prefs={prefs} />}
+        description="What the test surfaces while you type. The preview is the real Readouts strip — every toggle below gates its own pip in real time, exactly as on the test screen."
+        preview={<LiveSignalPreview />}
       >
         <ToggleRow
           label="Live WPM"
@@ -169,8 +169,8 @@ export default function BehaviourPage() {
         id="input-handling"
         eyebrow="Discipline"
         title="Input handling"
-        description="What happens when a keystroke is wrong. The preview shows a deliberate mistype on character 3 — the cursor's behaviour follows your settings."
-        preview={<InputHandlingPreview prefs={prefs} />}
+        description="What happens when a keystroke is wrong. The preview is the real practice surface with a deliberate past-error word so the error colour token paints; live keystroke behaviour (stop-on-error, confidence) shows up at the test screen itself."
+        preview={<InputHandlingPreview />}
       >
         <ToggleRow
           label="Stop on error"

@@ -477,7 +477,14 @@ type PracticeCtx = {
   suddenDeathRestarts: number;
 };
 
-const Ctx = createContext<PracticeCtx | null>(null);
+/** Exported so previews and other read-only consumers can mount their
+ *  own provider that supplies a frozen state — see
+ *  `_components/preview-practice.tsx`. The real provider is the only
+ *  source of *live* practice state; previews just need to satisfy the
+ *  context shape so real components (Passage, Readouts, …) mount
+ *  unmodified. */
+export const PracticeContext = createContext<PracticeCtx | null>(null);
+const Ctx = PracticeContext;
 
 export function usePractice(): PracticeCtx {
   const ctx = useContext(Ctx);

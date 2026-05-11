@@ -8,7 +8,6 @@ import { MobileSheet } from "@/components/ui/mobile-sheet";
 import { cn } from "@/lib/utils";
 import { APPEARANCE_SECTIONS } from "../appearance/_sections";
 import { SECTIONS } from "./data";
-import { ImportExportPanel } from "./import-export";
 
 function titleCase(name: string): string {
   return name
@@ -210,9 +209,6 @@ export function MobileSectionPicker() {
               );
             })}
           </ul>
-          <div className="mt-auto border-t border-border bg-background/60 px-3 py-3">
-            <ImportExportPanel />
-          </div>
         </div>
       </MobileSheet>
     </>
@@ -330,10 +326,6 @@ export function SettingsSidebar() {
             );
           })}
         </ul>
-      </div>
-
-      <div className="shrink-0 border-t border-border bg-background/60 px-3 py-3">
-        <ImportExportPanel />
       </div>
     </nav>
   );

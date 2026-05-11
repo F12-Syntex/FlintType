@@ -3,10 +3,7 @@
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { ModeSwitcher } from "@/components/ui/mode-switcher";
-import { Keyboard } from "@/app/app/_components/keyboard";
-import { LAYOUTS, type LayoutId } from "@/app/app/_components/keyboard/layouts";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
-import { useKeyboardSettings } from "@/lib/keyboard-settings";
 import {
   type ThemeVar,
   useThemeOverrides,
@@ -29,7 +26,10 @@ import {
   CaretPreview,
   ColorPreview,
   GeometryPreview,
+  KeyboardLivePreview,
+  KeymapLivePreview,
   LiveStatsPreview,
+  ResultLivePreview,
   ThemePreview,
   TypingAreaPreview,
   TypographyPreview,
@@ -77,143 +77,6 @@ const COLOR_ROWS: readonly ColorRowDef[] = [
   },
 ];
 
-function KeyboardLivePreview() {
-  const { settings } = useKeyboardSettings();
-  return (
-    <div className="px-4 py-5 sm:px-6 sm:py-6">
-      <Keyboard
-        settingsOverride={settings}
-        forcedPressed={new Set(["KeyF", "KeyJ", "KeyK"])}
-        mode="static"
-        scale={0.85}
-      />
-    </div>
-  );
-}
-
-function KeymapLivePreview() {
-  const { prefs } = useAppearancePrefs();
-  if (prefs.keymap === "off") {
-    return (
-      <div className="flex min-h-[180px] items-center justify-center px-4 py-8 text-sm text-muted-foreground">
-        Keymap is off — pick another mode below to see it appear.
-      </div>
-    );
-  }
-  const layoutId: LayoutId =
-    prefs.keymapLayout in LAYOUTS ? (prefs.keymapLayout as LayoutId) : "qwerty";
-  return (
-    <div className="px-4 py-5 sm:px-6 sm:py-6">
-      <Keyboard
-        layout={layoutId}
-        mode={prefs.keymap === "static" ? "static" : "react"}
-        legend={prefs.keymapLegend}
-        topRow={prefs.keymapTopRow}
-        scale={Math.min(prefs.keymapSize, 1)}
-        forcedPressed={new Set(["KeyF", "KeyJ", "KeyD", "KeyK"])}
-        settingsOverride={{ compact: prefs.keymapCompact }}
-      />
-    </div>
-  );
-}
-
-function ResultLivePreview() {
-  const { prefs } = useAppearancePrefs();
-  const speed = sampleSpeed(prefs.typingSpeedUnit);
-  const formatted = prefs.alwaysShowDecimal
-    ? speed.toFixed(2)
-    : Math.round(speed).toString();
-  const acc = prefs.alwaysShowDecimal ? "96.40" : "96";
-
-  const points = [42, 58, 64, 71, 75, 78, 84, 88, 92, 95, 89, 96, 102, 100, 98];
-  const minY = prefs.startGraphsAtZero ? 0 : Math.min(...points) - 5;
-  const maxY = Math.max(...points) + 5;
-  const W = 320;
-  const H = 96;
-  const stepX = W / (points.length - 1);
-  const path = points
-    .map((p, i) => {
-      const x = (i * stepX).toFixed(1);
-      const y = (H - ((p - minY) / (maxY - minY)) * H).toFixed(1);
-      return `${i === 0 ? "M" : "L"}${x},${y}`;
-    })
-    .join(" ");
-
-  return (
-    <div className="flex flex-col gap-4 px-5 py-5 sm:px-6 sm:py-6">
-      <div className="flex flex-wrap items-baseline gap-6 font-mono">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            {prefs.typingSpeedUnit.toUpperCase()}
-          </span>
-          <span className="text-3xl font-bold tabular-nums tracking-[-0.03em] text-primary">
-            {formatted}
-          </span>
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Accuracy
-          </span>
-          <span className="text-3xl font-bold tabular-nums tracking-[-0.03em] text-foreground">
-            {acc}%
-          </span>
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Time
-          </span>
-          <span className="text-3xl font-bold tabular-nums tracking-[-0.03em] text-foreground">
-            30s
-          </span>
-        </div>
-      </div>
-      <svg
-        width="100%"
-        viewBox={`0 0 ${W} ${H}`}
-        className="overflow-visible"
-        preserveAspectRatio="none"
-      >
-        <line
-          x1="0"
-          y1={H - 0.5}
-          x2={W}
-          y2={H - 0.5}
-          stroke="var(--border)"
-          strokeWidth={1}
-        />
-        <path
-          d={path}
-          fill="none"
-          stroke="var(--primary)"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-      <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-        {prefs.startGraphsAtZero
-          ? "Y-axis floored at 0"
-          : "Y-axis auto-fits the data"}
-      </span>
-    </div>
-  );
-}
-
-function sampleSpeed(unit: string): number {
-  switch (unit) {
-    case "cpm":
-      return 98 * 5;
-    case "wps":
-      return 98 / 60;
-    case "cps":
-      return (98 * 5) / 60;
-    case "wph":
-      return 98 * 60;
-    default:
-      return 98;
-  }
-}
-
 export default function AppearancePage() {
   const { overrides, setVar, clearVar, reset } = useThemeOverrides();
   const { customizedCount: appearanceCustomized, reset: resetAppearance } =
@@ -233,14 +96,14 @@ export default function AppearancePage() {
         title="Make it look the way you think"
         customizedCount={customizedCount}
         onResetAll={handleResetAll}
-        description="Every visual control with its own live preview. The sidebar jumps you to the section; nothing here is hidden behind a sub-page."
+        description="Every visual control with its own live preview built from the real test surface — every override you make appears here exactly as it will on /app."
       />
 
       <SettingsSection
         id="themes"
         eyebrow="Surface"
         title="Themes & mode"
-        description="Pick a community palette and flip light / dark. Switching wipes per-token colour overrides — the dialog gives you an export first."
+        description="Pick a community palette and flip light / dark. The preview is the real practice passage — every palette swap repaints it."
         preview={<ThemePreview />}
       >
         <ThemesRow />
@@ -260,7 +123,7 @@ export default function AppearancePage() {
         id="colors"
         eyebrow="Tokens"
         title="Colors"
-        description="Override the active palette one CSS variable at a time. Each row picks its own swatch and shows the swap on the practice text live."
+        description="Override the active palette one CSS variable at a time. The preview pairs the live stats strip with the practice passage so every token has a visible target."
         preview={<ColorPreview />}
       >
         {COLOR_ROWS.map((row) => (
@@ -284,7 +147,7 @@ export default function AppearancePage() {
         id="geometry"
         eyebrow="Shape"
         title="Geometry"
-        description="Corner radius and the borders rule across the app. Every component honours these — buttons, cards, popovers, the keyboard widget."
+        description="Corner radius and the borders rule across the app. Every component honours these — the passage card, buttons, chips, popovers."
         preview={<GeometryPreview />}
       >
         <RadiusRow
@@ -299,7 +162,7 @@ export default function AppearancePage() {
         id="caret"
         eyebrow="Cursor"
         title="Caret & cursor"
-        description="Style, thickness, roundness — the marker that follows your typing. Blink and smooth-motion are temporal; their effect lives at the test screen, not in this preview."
+        description="Style, thickness, roundness, blink, smooth-motion — the marker that follows your typing. The preview runs the real caret on a frozen passage so every option (including blink and smooth) plays here."
         preview={<CaretPreview />}
       >
         <CaretRow />
@@ -339,7 +202,7 @@ export default function AppearancePage() {
         id="live-stats"
         eyebrow="Heads-up"
         title="Live stats"
-        description="WPM and accuracy ticker rendered alongside the passage. Colour and opacity match how loud you want them while typing."
+        description="WPM and accuracy ticker rendered alongside the passage. Colour, opacity, style (off / text / mini / flash), unit and decimal toggle all reflect in the real Readouts strip."
         preview={<LiveStatsPreview />}
       >
         <LiveStatsRows />
@@ -349,7 +212,7 @@ export default function AppearancePage() {
         id="typing-area"
         eyebrow="Surface"
         title="Typing area"
-        description="Line count, max width, tape vs free-flow. The dotted region is the canvas; the inner card is where text actually lands."
+        description="Line count, max width, tape vs free-flow, smooth scroll. The passage above is the same component the test screen runs — every toggle moves it live."
         preview={<TypingAreaPreview />}
       >
         <PassageRows />
@@ -359,7 +222,7 @@ export default function AppearancePage() {
         id="result"
         eyebrow="Outcome"
         title="Result screen"
-        description="What the post-test screen shows — the headline numbers, the chart axis, the unit your speed reads in."
+        description="What the post-test screen shows. The preview embeds the real result components (BigStats and WpmTrace) so the layout, type ramp, and chart shape are exactly what the user sees after a run."
         preview={<ResultLivePreview />}
       >
         <ResultRows />

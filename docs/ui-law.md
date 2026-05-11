@@ -528,6 +528,8 @@ Every section is rendered through `<SettingsSection>` (§12.1), which owns the e
 
 **Bespoke preview rule.** Each section's `preview` foregrounds *that section's own* setting — not a generic everything-card. Repeating one shared preview across nine sections (the previous `<MiniSample>` pattern) buries the override the user is making and turns the page into a wall of identical cards. Live previews live in `appearance/_components/section-previews.tsx` (one export per section); behaviour mirrors with its own `behaviour/_components/section-previews.tsx`. Every preview is **static + live** — built from real CSS variables / hooks so the override is visible immediately, no animation. If you change a setting and the preview doesn't react, the preview is broken; fix the preview, never make the override "more visible" by editing the row chrome.
 
+**Reuse the real on-page components — never re-render them.** Previews mount the same components the test screen uses (`<Passage />`, `<Readouts />` / `<MobileReadouts />`, `<Keyboard />`, results-page components like `<BigStats />` / `<WpmTrace />`). Practice-state-coupled components (Passage, Readouts) are wrapped in `<PreviewPracticeProvider>` from `_components/preview-practice.tsx`, which mounts a frozen mock state into the real `PracticeContext` and exposes noop dispatch/restart so the surfaces render read-only. Never duplicate `<Passage>`-style rendering inline — every fork drifts and the preview stops being a 1:1 reflection. If a preview needs a setting that the real component doesn't yet honour (e.g. results-page hardcoded demo numbers), fix the real component, don't fork the preview.
+
 Examples of bespoke preview shape:
 - **Themes & mode** — a 3-tile swatch row showing the active palette's background / card / primary surfaces
 - **Colors** — a labelled swatch ribbon plus one line of practice passage in the typed/untyped/error tokens
@@ -552,7 +554,7 @@ Every customise page opens with `<SettingsPageHeader>` (`_components/page-header
 - **Eyebrow** — `Customise · Appearance` / `Customise · Behaviour` (categorical, not the literal word "Section")
 - **Title** — descriptive ("Make it look the way you think"), not just the page name. The page name is in the eyebrow and the breadcrumb; the title sells the page.
 - **Description** — one sentence under the title naming the scope of what changes here.
-- **Right rail** — a customised stat (count + "customised"/"untouched" label) and the Reset all button. The stat reads as foreground/40 dim when count is 0 and turns primary when there are real overrides; the user knows at a glance how dirty the page is.
+- **Right rail** — a customised stat (count + "customised"/"untouched" label), the Reset all button, and a single Manage menu (`<ImportExportMenu>`) that opens a dropdown with Export / Import flinttype / Import MonkeyType. The stat reads as foreground/40 dim when count is 0 and turns primary when there are real overrides; the user knows at a glance how dirty the page is. The Manage menu replaces the previous 3-stacked sidebar-footer panel — settings management lives where the rest of the page-level chrome does, not as a separate rail.
 
 ### 12.6 Don't
 

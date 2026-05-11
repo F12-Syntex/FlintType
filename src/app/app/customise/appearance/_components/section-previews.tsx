@@ -1,128 +1,99 @@
 "use client";
 
-import { useBackgroundPrefs } from "@/lib/background-prefs";
+import type { ReactNode } from "react";
+import { Button } from "@/components/ui/button";
+import { Keyboard } from "@/app/app/_components/keyboard";
+import { LAYOUTS, type LayoutId } from "@/app/app/_components/keyboard/layouts";
+import { Passage } from "@/app/app/_components/passage";
+import { MobileReadouts, Readouts } from "@/app/app/_components/readouts";
+import { BigStats } from "@/app/app/results/_components/big-stats";
+import { WpmTrace } from "@/app/app/results/_components/wpm-trace";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
-import { useCaretSettings } from "@/lib/caret-settings";
-import { cn } from "@/lib/utils";
+import { useBackgroundPrefs } from "@/lib/background-prefs";
+import { useKeyboardSettings } from "@/lib/keyboard-settings";
+import { PreviewPracticeProvider } from "../../_components/preview-practice";
 
-/** Bespoke per-section previews. The contract (ui-law §12.5): each
- *  preview foregrounds *its own* setting — no shared MiniSample
- *  repeating across nine sections. Static + live: built from real CSS
- *  variables so the override is visible immediately, no animation. */
+/** Section previews that mount the *real* on-page components inside a
+ *  read-only practice context (`<PreviewPracticeProvider>`). Every
+ *  override the user makes propagates 1:1 because the components are
+ *  the same ones running on /app — no parallel rendering, no mocked
+ *  visuals. */
 
-const SAMPLE = "the quick brown fox";
-const SAMPLE_TYPED = 8;
-const SAMPLE_ERROR = 4;
+/* ─── Shared height-bounded surface ─────────────────────────────── */
+
+/** Wrap the real <Passage /> in a height-bounded card so it sits
+ *  inside the preview pane. Internal clipping does the right thing —
+ *  font-scale grows the text and fewer lines fit; smaller scale shows
+ *  more. That *is* the 1:1 reflection. */
+function PreviewSurface({
+  height = "h-[180px]",
+  withReadouts = false,
+}: {
+  height?: string;
+  withReadouts?: boolean;
+}) {
+  return (
+    <PreviewPracticeProvider>
+      <div className="flex flex-col gap-4 px-5 py-5 sm:px-6 sm:py-6">
+        {withReadouts ? (
+          <>
+            <div className="md:hidden">
+              <MobileReadouts />
+            </div>
+            <div className="hidden md:block">
+              <Readouts />
+            </div>
+          </>
+        ) : null}
+        <div className={`relative w-full ${height}`}>
+          <Passage />
+        </div>
+      </div>
+    </PreviewPracticeProvider>
+  );
+}
 
 /* ─── Themes & mode ────────────────────────────────────────────── */
 
 export function ThemePreview() {
-  return (
-    <div className="grid grid-cols-3 divide-x divide-border">
-      <SwatchTile var="--background" name="Background" textVar="--foreground" />
-      <SwatchTile var="--card" name="Card" textVar="--foreground" />
-      <SwatchTile var="--primary" name="Accent" textVar="--primary-foreground" />
-    </div>
-  );
-}
-
-function SwatchTile({
-  var: cssVar,
-  name,
-  textVar,
-}: {
-  var: string;
-  name: string;
-  textVar: string;
-}) {
-  return (
-    <div
-      style={{ background: `var(${cssVar})`, color: `var(${textVar})` }}
-      className="flex flex-col justify-between gap-6 px-4 py-5 sm:px-5 sm:py-7"
-    >
-      <span className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-70">
-        {name}
-      </span>
-      <span className="font-mono text-[11px] tabular-nums opacity-60">
-        {cssVar}
-      </span>
-    </div>
-  );
+  // The whole passage paints in the active palette — typed/untyped/
+  // error tokens, the chrome, the caret. One real surface gives the
+  // best read on a theme swap.
+  return <PreviewSurface />;
 }
 
 /* ─── Colors ───────────────────────────────────────────────────── */
 
-const COLOR_TOKENS: ReadonlyArray<{ name: string; var: string }> = [
-  { name: "Primary", var: "--primary" },
-  { name: "Accent", var: "--accent" },
-  { name: "Background", var: "--background" },
-  { name: "Card", var: "--card" },
-  { name: "Border", var: "--border" },
-  { name: "Muted", var: "--muted-foreground" },
-];
-
 export function ColorPreview() {
-  return (
-    <div className="flex flex-col gap-0">
-      <div className="grid grid-cols-3 sm:grid-cols-6">
-        {COLOR_TOKENS.map((t) => (
-          <div
-            key={t.var}
-            className="flex flex-col gap-2 border-r border-b border-border px-3 py-3 last:border-r-0 sm:border-b-0"
-          >
-            <span
-              aria-hidden
-              style={{ background: `var(${t.var})` }}
-              className="h-7 w-full rounded-sm border border-foreground/10"
-            />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              {t.name}
-            </span>
-          </div>
-        ))}
-      </div>
-      <div className="border-t border-border px-5 py-4 font-mono text-[15px] leading-relaxed">
-        {[...SAMPLE].map((ch, i) => {
-          let color = "var(--ft-passage-untyped, var(--muted-foreground))";
-          if (i < SAMPLE_TYPED) {
-            color =
-              i === SAMPLE_ERROR
-                ? "var(--ft-passage-error, var(--destructive))"
-                : "var(--ft-passage-typed, var(--primary))";
-          }
-          return (
-            <span
-              key={i}
-              style={{
-                color,
-                textDecoration: i === SAMPLE_ERROR ? "underline" : undefined,
-                textDecorationColor:
-                  i === SAMPLE_ERROR
-                    ? "var(--ft-passage-error, var(--destructive))"
-                    : undefined,
-                textUnderlineOffset: i === SAMPLE_ERROR ? "4px" : undefined,
-              }}
-            >
-              {ch}
-            </span>
-          );
-        })}
-      </div>
-    </div>
-  );
+  // Readouts on top + passage below — covers every colour token the
+  // user can override (typed, untyped, error, primary, foreground,
+  // muted-foreground, border, card, accent, ring).
+  return <PreviewSurface withReadouts />;
 }
 
 /* ─── Geometry ─────────────────────────────────────────────────── */
 
 export function GeometryPreview() {
+  // Radius shows up everywhere — the passage card, buttons, chips,
+  // popovers. A passage + a button row covers both surfaces.
   return (
-    <div className="flex items-center justify-center gap-5 px-5 py-7 sm:gap-7 sm:py-9">
-      <div className="size-16 rounded-md border border-border bg-card sm:size-20" />
-      <div className="flex h-9 items-center rounded-md bg-primary px-4 text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground">
-        Action
-      </div>
-      <div className="flex h-7 items-center rounded-md border border-border bg-muted px-3 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-        Chip
+    <div className="flex flex-col gap-4 px-5 py-5 sm:px-6 sm:py-6">
+      <PreviewPracticeProvider>
+        <div className="relative h-[140px] w-full">
+          <Passage />
+        </div>
+      </PreviewPracticeProvider>
+      <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+        <Button size="sm">Action</Button>
+        <Button size="sm" variant="outline">
+          Outline
+        </Button>
+        <Button size="sm" variant="ghost">
+          Ghost
+        </Button>
+        <span className="inline-flex h-7 items-center rounded-md border border-border bg-muted px-3 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+          Chip
+        </span>
       </div>
     </div>
   );
@@ -131,137 +102,16 @@ export function GeometryPreview() {
 /* ─── Caret & cursor ───────────────────────────────────────────── */
 
 export function CaretPreview() {
-  const { settings } = useCaretSettings();
-  // Use a single short word so the caret is unmistakably the focal
-  // point — not buried inside a long passage.
-  const word = "type";
-  const caretAt = word.length;
-
-  return (
-    <div className="flex items-center justify-center px-5 py-9 sm:py-11">
-      <div className="relative flex items-baseline font-mono text-[42px] font-semibold tracking-[-0.02em] sm:text-[56px]">
-        <span className="text-foreground">{word}</span>
-        <CaretGlyph
-          settings={settings}
-          // Approximate the caret target relative to a single character
-          // — width/height scale off the displayed font size.
-          targetH={settings.style === "line" ? 56 : 56}
-          targetW={28}
-          offsetLeft={caretAt * 28}
-        />
-        <span className="ml-1 text-muted-foreground/40 select-none">.</span>
-      </div>
-    </div>
-  );
-}
-
-function CaretGlyph({
-  settings,
-  targetH,
-  targetW,
-  offsetLeft,
-}: {
-  settings: { style: string; width: number; radius: number };
-  targetH: number;
-  targetW: number;
-  offsetLeft: number;
-}) {
-  if (settings.style === "off") return null;
-  const base: React.CSSProperties = {
-    position: "absolute",
-    backgroundColor: "var(--primary)",
-    borderRadius: settings.radius,
-  };
-  if (settings.style === "line") {
-    return (
-      <span
-        aria-hidden
-        style={{
-          ...base,
-          left: offsetLeft,
-          bottom: 4,
-          width: settings.width,
-          height: targetH * 0.85,
-        }}
-      />
-    );
-  }
-  if (settings.style === "block") {
-    return (
-      <span
-        aria-hidden
-        style={{
-          ...base,
-          left: offsetLeft,
-          bottom: 4,
-          width: targetW,
-          height: targetH * 0.85,
-          backgroundColor:
-            "color-mix(in oklch, var(--primary) 35%, transparent)",
-        }}
-      />
-    );
-  }
-  if (settings.style === "underline") {
-    return (
-      <span
-        aria-hidden
-        style={{
-          ...base,
-          left: offsetLeft,
-          bottom: 4,
-          width: targetW,
-          height: settings.width,
-        }}
-      />
-    );
-  }
-  return (
-    <span
-      aria-hidden
-      style={{
-        ...base,
-        left: offsetLeft,
-        bottom: 4,
-        width: targetW,
-        height: targetH * 0.85,
-        backgroundColor: "transparent",
-        border: `${settings.width}px solid var(--primary)`,
-      }}
-    />
-  );
+  // Real Passage with phase=running shows the live caret — every
+  // setting (style, thickness, roundness, blink, smooth) flows
+  // through to the real CaretGlyph the test uses.
+  return <PreviewSurface />;
 }
 
 /* ─── Typography ───────────────────────────────────────────────── */
 
 export function TypographyPreview() {
-  return (
-    <div
-      className="flex flex-col gap-3 px-5 py-7 sm:py-9"
-      style={{
-        fontFamily: "var(--ft-font-family, inherit)",
-      }}
-    >
-      <span
-        className="font-mono font-bold tracking-[-0.04em] text-foreground"
-        style={{
-          fontSize: "calc(var(--ft-font-scale, 1) * 3.5rem)",
-          lineHeight: 0.95,
-        }}
-      >
-        Type.
-      </span>
-      <span
-        className="font-mono leading-relaxed text-muted-foreground"
-        style={{
-          fontSize: "calc(var(--ft-font-scale, 1) * 1rem)",
-          wordSpacing: "var(--ft-word-spacing, 0.25em)",
-        }}
-      >
-        the quick brown fox jumps over the lazy dog
-      </span>
-    </div>
-  );
+  return <PreviewSurface />;
 }
 
 /* ─── Background ───────────────────────────────────────────────── */
@@ -270,10 +120,13 @@ export function BackgroundPreview() {
   const { prefs } = useBackgroundPrefs();
   const hasImage = prefs.imageUrl.length > 0;
 
+  // Frame the real passage inside a background-painted shell so the
+  // user sees the image (or fallback) actually behind their typing
+  // surface — same composition as /app.
   return (
-    <div className="px-5 py-6 sm:px-7 sm:py-8">
+    <div className="px-5 py-5 sm:px-6 sm:py-6">
       <div
-        className="relative mx-auto h-32 w-full max-w-md overflow-hidden rounded-md border border-foreground/15 sm:h-36"
+        className="relative overflow-hidden rounded-md border border-foreground/15"
         style={
           hasImage
             ? {
@@ -288,23 +141,17 @@ export function BackgroundPreview() {
                   prefs.fit === "tile" ? "repeat" : "no-repeat",
                 backgroundPosition: "center",
               }
-            : { background: "var(--background)" }
+            : undefined
         }
       >
-        <div className="absolute inset-x-4 inset-y-4 flex flex-col justify-center gap-1.5 rounded-md bg-card/85 px-4 py-3 backdrop-blur-sm">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Practice surface
-          </span>
-          <span className="font-mono text-sm text-foreground">
-            the quick brown fox
-          </span>
-        </div>
+        <PreviewPracticeProvider>
+          <div className="bg-background/80 px-4 py-4 backdrop-blur-sm">
+            <div className="relative h-[140px] w-full">
+              <Passage />
+            </div>
+          </div>
+        </PreviewPracticeProvider>
       </div>
-      {!hasImage ? (
-        <p className="mt-3 text-center text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-          No image — solid background
-        </p>
-      ) : null}
     </div>
   );
 }
@@ -312,90 +159,103 @@ export function BackgroundPreview() {
 /* ─── Live stats ───────────────────────────────────────────────── */
 
 export function LiveStatsPreview() {
-  const { prefs } = useAppearancePrefs();
-  const color = prefs.liveStatsColor || "var(--primary)";
-  const opacity = prefs.liveStatsOpacity ?? 1;
-
+  // The real Readouts strip — colour, opacity, style (off / text /
+  // mini / flash), unit, decimal-toggle and progress mode all flow
+  // through unchanged.
   return (
-    <div className="flex items-center justify-center px-5 py-9 sm:py-12">
-      <div
-        className="flex items-baseline gap-7 font-mono text-2xl uppercase tracking-[0.08em] sm:text-3xl"
-        style={{ color, opacity }}
-      >
-        <span className="tabular-nums">30s</span>
-        <span className="tabular-nums">60 wpm</span>
-        <span className="tabular-nums">96 acc</span>
+    <PreviewPracticeProvider>
+      <div className="px-5 py-7 sm:px-7 sm:py-9">
+        <div className="md:hidden">
+          <MobileReadouts />
+        </div>
+        <div className="hidden md:block">
+          <Readouts />
+        </div>
       </div>
-    </div>
+    </PreviewPracticeProvider>
   );
 }
 
 /* ─── Typing area ──────────────────────────────────────────────── */
 
 export function TypingAreaPreview() {
-  const { prefs } = useAppearancePrefs();
-  // Visualise the maxLineWidth as a horizontal band: the active band
-  // is brighter, the margins are hatched. 80ch ≈ standard column.
-  const widthCh = prefs.maxLineWidth || 80;
-  const widthPct = Math.min(95, (widthCh / 100) * 100);
+  // maxLineWidth, linesRendered, tape mode, smoothLineScroll,
+  // typedEffect, highlightMode all live in Passage and reflect
+  // immediately when toggled.
+  return <PreviewSurface height="h-[200px]" />;
+}
 
+/* ─── Keyboard ─────────────────────────────────────────────────── */
+
+export function KeyboardLivePreview() {
+  const { settings } = useKeyboardSettings();
   return (
-    <div className="px-5 py-7 sm:px-7">
-      <div className="relative">
-        <div className="flex h-24 w-full items-center justify-center rounded-md border border-dashed border-foreground/15 bg-muted/30 sm:h-28">
-          <div
-            className="flex h-full items-center justify-center rounded-md border border-foreground/15 bg-card px-4"
-            style={{ width: `${widthPct}%` }}
-          >
-            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-              <span className="text-foreground tabular-nums">
-                {widthCh > 0 ? widthCh : "auto"}
-              </span>{" "}
-              ch · {prefs.linesRendered || "auto"} lines
-            </span>
-          </div>
-        </div>
-        <div className="mt-3 flex justify-between text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          <span>margin</span>
-          <span>{prefs.tapeMode === "off" ? "free flow" : "tape"}</span>
-          <span>margin</span>
-        </div>
+    <div className="px-4 py-5 sm:px-6 sm:py-6">
+      <Keyboard
+        settingsOverride={settings}
+        forcedPressed={new Set(["KeyF", "KeyJ", "KeyK"])}
+        mode="static"
+        scale={0.85}
+      />
+    </div>
+  );
+}
+
+/* ─── Result ───────────────────────────────────────────────────── */
+
+export function ResultLivePreview() {
+  // Real <BigStats /> + <WpmTrace /> from /app/results — same
+  // components the user sees after a real run. Hardcoded demo
+  // numbers are intentional in those components (it's a boilerplate
+  // result screen). Wrapped so the heavy section padding doesn't
+  // bleed into the preview card.
+  return (
+    <div className="flex flex-col gap-0">
+      <PreviewWrapper>
+        <BigStats />
+      </PreviewWrapper>
+      <div className="px-5 py-5 sm:px-6 sm:py-6">
+        <WpmTrace />
       </div>
     </div>
   );
 }
 
-/* ─── Reusable mini stats strip used on Result preview ─────────── */
-
-export function MiniStatsStrip({ children }: { children: React.ReactNode }) {
+/** BigStats ships with `border-b` and `px-14 py-7` for the live
+ *  results page — strip those when embedded inside a preview card so
+ *  the framing doesn't double up. */
+function PreviewWrapper({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-baseline gap-6 font-mono">{children}</div>
+    <div className="overflow-hidden [&>*]:border-b-0 [&>*]:px-5 [&>*]:py-5 [&>*]:sm:px-6 [&>*]:sm:py-6">
+      {children}
+    </div>
   );
 }
 
-/** Helper: small value/label stat. */
-export function MiniStat({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-}) {
+/* ─── Keymap ───────────────────────────────────────────────────── */
+
+export function KeymapLivePreview() {
+  const { prefs } = useAppearancePrefs();
+  if (prefs.keymap === "off") {
+    return (
+      <div className="flex min-h-[180px] items-center justify-center px-4 py-8 text-sm text-muted-foreground">
+        Keymap is off — pick another mode below to see it appear.
+      </div>
+    );
+  }
+  const layoutId: LayoutId =
+    prefs.keymapLayout in LAYOUTS ? (prefs.keymapLayout as LayoutId) : "qwerty";
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-        {label}
-      </span>
-      <span
-        className={cn(
-          "text-3xl font-bold tabular-nums tracking-[-0.03em]",
-          accent ? "text-primary" : "text-foreground",
-        )}
-      >
-        {value}
-      </span>
+    <div className="px-4 py-5 sm:px-6 sm:py-6">
+      <Keyboard
+        layout={layoutId}
+        mode={prefs.keymap === "static" ? "static" : "react"}
+        legend={prefs.keymapLegend}
+        topRow={prefs.keymapTopRow}
+        scale={Math.min(prefs.keymapSize, 1)}
+        forcedPressed={new Set(["KeyF", "KeyJ", "KeyD", "KeyK"])}
+        settingsOverride={{ compact: prefs.keymapCompact }}
+      />
     </div>
   );
 }

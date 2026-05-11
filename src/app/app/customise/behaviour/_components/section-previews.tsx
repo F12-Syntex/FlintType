@@ -2,16 +2,27 @@
 
 import { CornerDownLeft } from "lucide-react";
 import { Kbd } from "@/components/ft";
-import type { BehaviourPrefs } from "@/lib/behaviour-prefs";
+import { Passage } from "@/app/app/_components/passage";
+import { MobileReadouts, Readouts } from "@/app/app/_components/readouts";
+import {
+  decorate,
+  type State,
+} from "@/app/app/_components/practice-state";
+import { type BehaviourPrefs } from "@/lib/behaviour-prefs";
 import { cn } from "@/lib/utils";
+import { PreviewPracticeProvider } from "../../_components/preview-practice";
 
-/** Bespoke per-section previews for the behaviour page. Same contract
- *  as appearance/section-previews.tsx — static, real, and foregrounding
- *  the section's own setting (not a generic everything-card). */
+/** Behaviour previews. Built from the real components — `<Readouts />`,
+ *  `<Passage />` — wrapped in `<PreviewPracticeProvider>` so every
+ *  behaviour toggle (blind mode, live wpm, stop-on-error, …) flows
+ *  through to the same UI the test screen runs. */
 
 /* ─── Restart ──────────────────────────────────────────────────── */
 
 export function RestartPreview({ prefs }: { prefs: BehaviourPrefs }) {
+  // No real component to embed — this is a keystroke shortcut, not a
+  // visible piece of UI. The chip + arrow conveys the affordance and
+  // updates its label when the toggle flips.
   return (
     <div className="flex items-center justify-center gap-4 px-5 py-9 sm:gap-6 sm:py-11">
       <Kbd className="px-3 py-1 text-sm">Tab</Kbd>
@@ -37,152 +48,62 @@ export function RestartPreview({ prefs }: { prefs: BehaviourPrefs }) {
 
 /* ─── Live signal ─────────────────────────────────────────────── */
 
-export function LiveSignalPreview({ prefs }: { prefs: BehaviourPrefs }) {
-  const blind = prefs.blindMode;
+export function LiveSignalPreview() {
+  // Real <Readouts /> — every behaviour live-* toggle gates its
+  // own pip, blind mode hides everything, and the appearance live-*
+  // styles still apply. 1:1 with what runs at the test screen.
   return (
-    <div className="flex flex-col gap-4 px-5 py-7 sm:px-7 sm:py-9">
-      <div
-        className={cn(
-          "flex items-baseline gap-6 font-mono text-2xl sm:text-3xl",
-          blind && "opacity-30",
-        )}
-      >
-        <Stat
-          label="WPM"
-          value="68"
-          on={prefs.liveWpm && !blind}
-          accent
-        />
-        <Stat label="ACC" value="96" on={prefs.liveAccuracy && !blind} />
-        <Stat
-          label="KEYS"
-          value="•••"
-          on={prefs.liveKeyboard && !blind}
-        />
+    <PreviewPracticeProvider>
+      <div className="px-5 py-7 sm:px-7 sm:py-9">
+        <div className="md:hidden">
+          <MobileReadouts />
+        </div>
+        <div className="hidden md:block">
+          <Readouts />
+        </div>
       </div>
-      {blind ? (
-        <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-primary">
-          Blind mode · live signal hidden
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  on,
-  accent,
-}: {
-  label: string;
-  value: string;
-  on: boolean;
-  accent?: boolean;
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-        {label}
-      </span>
-      <span
-        className={cn(
-          "tabular-nums font-bold tracking-[-0.03em] transition-colors",
-          on
-            ? accent
-              ? "text-primary"
-              : "text-foreground"
-            : "text-foreground/15",
-        )}
-      >
-        {value}
-      </span>
-    </div>
+    </PreviewPracticeProvider>
   );
 }
 
 /* ─── Input handling ──────────────────────────────────────────── */
 
-export function InputHandlingPreview({ prefs }: { prefs: BehaviourPrefs }) {
-  const stop = prefs.stopOnError;
-  const confidence = prefs.confidence;
-
-  // The sample mirrors a typo: user typed "thq" instead of "the".
-  // Stop-on-error keeps the cursor on the wrong letter (red caret on q);
-  // Confidence accepts and moves on (faded q, caret advances).
-  const text = "the quick";
-  const typed = 3; // user has typed "thq"
-  const errorIdx = 2;
-
+export function InputHandlingPreview() {
+  // Real Passage with a deliberate error word so the error colour
+  // token + decoration actually paints. stop-on-error and confidence
+  // need live keystrokes to *fully* reveal — the description below
+  // names that explicitly.
   return (
-    <div className="flex flex-col gap-3 px-5 py-7 sm:py-9">
-      <div className="font-mono text-[26px] leading-[1.4]">
-        {[...text].map((ch, i) => {
-          const isError = i === errorIdx;
-          if (i < typed) {
-            return (
-              <span
-                key={i}
-                className={cn(
-                  isError
-                    ? "text-primary underline decoration-primary decoration-1 underline-offset-[6px]"
-                    : "text-foreground",
-                )}
-              >
-                {/* show the actually-typed wrong char */}
-                {isError ? "q" : ch}
-              </span>
-            );
-          }
-          if (i === typed) {
-            return (
-              <span key={i} className="relative text-muted-foreground/60">
-                {stop ? (
-                  <span
-                    aria-hidden
-                    className="absolute -left-[1px] top-0 h-[1.2em] w-[2px] bg-primary"
-                  />
-                ) : null}
-                {ch}
-              </span>
-            );
-          }
-          return (
-            <span key={i} className="text-muted-foreground/40">
-              {ch}
-            </span>
-          );
-        })}
+    <PreviewPracticeProvider
+      words={["the", "quick", "brown", "fox", "jumps"]}
+      finishedWords={2}
+      cursorChar={3}
+      errorWord={1}
+    >
+      <div className="px-5 py-5 sm:px-6 sm:py-6">
+        <div className="relative h-[140px] w-full">
+          <Passage />
+        </div>
       </div>
-      <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
-        {stop ? "Cursor stuck · " : "Cursor advances · "}
-        {confidence === "off"
-          ? "backspace allowed"
-          : confidence === "word"
-            ? "backspace blocked at word boundary"
-            : "backspace blocked"}
-      </span>
-    </div>
+    </PreviewPracticeProvider>
   );
 }
 
 /* ─── Word list ───────────────────────────────────────────────── */
 
-const WORD_POOL = [
+const SAMPLE_WORDS = [
   "a",
   "an",
   "be",
   "do",
   "go",
   "is",
-  "it",
   "to",
-  "we",
   "and",
-  "are",
+  "the",
   "for",
-  "has",
   "you",
+  "with",
   "their",
   "would",
   "should",
@@ -191,23 +112,22 @@ const WORD_POOL = [
   "together",
 ];
 
-const SECONDARY_POOL = ["123", "+", ".", "?", "!"];
-
 export function WordListPreview({ prefs }: { prefs: BehaviourPrefs }) {
-  const filtered = WORD_POOL.filter((w) => w.length >= prefs.minWordLength);
-  const visible = filtered.slice(0, 9);
-  const tokens = prefs.showSecondary
-    ? [...visible, ...SECONDARY_POOL]
-    : visible;
+  // Run the *real* `decorate` (used by the practice surface) over a
+  // filtered sample so the chip cloud reflects exactly what the user
+  // would see in a fresh passage at these settings.
+  const filtered = SAMPLE_WORDS.filter((w) => w.length >= prefs.minWordLength);
+  const decorated = decorate(filtered, prefs, 42);
+  const visible = decorated.slice(0, 12);
 
   return (
-    <div className="flex flex-col gap-4 px-5 py-7 sm:py-8">
+    <div className="flex flex-col gap-3 px-5 py-7 sm:py-8">
       <ul className="flex flex-wrap gap-1.5">
-        {tokens.map((t) => {
-          const isSecondary = SECONDARY_POOL.includes(t);
+        {visible.map((t, i) => {
+          const isSecondary = /\d|[.,;:!?]/.test(t);
           return (
             <li
-              key={t}
+              key={`${t}-${i}`}
               className={cn(
                 "inline-flex items-center rounded-md border px-2 py-1 font-mono text-xs tabular-nums",
                 isSecondary
@@ -221,7 +141,8 @@ export function WordListPreview({ prefs }: { prefs: BehaviourPrefs }) {
         })}
       </ul>
       <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
-        Words ≥ <span className="text-foreground tabular-nums">{prefs.minWordLength}</span> chars
+        Words ≥ <span className="text-foreground tabular-nums">{prefs.minWordLength}</span>{" "}
+        chars
         {prefs.showSecondary ? " · numbers + punctuation sprinkled in" : ""}
       </span>
     </div>
