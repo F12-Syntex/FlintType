@@ -1,6 +1,10 @@
 import { defineNamespace, defineRoute } from "@/server";
 import { BackendError } from "@/lib/errors";
-import { encryptApiKey } from "@/server/api-key-crypto";
+import {
+  decryptApiKey,
+  encryptApiKey,
+  isEncryptedApiKey,
+} from "@/server/api-key-crypto";
 import { requireAuth } from "@/server/middleware/auth";
 import { rateLimit } from "@/server/middleware/rate-limit";
 import {
@@ -30,7 +34,36 @@ const importRoute = defineRoute<MonkeytypeImportInput, MonkeytypeImportOutput>({
   middleware: [requireAuth, rateLimit({ limit: 3, windowMs: 60 * 60 * 1000 })],
   handler: async ({ input, db, meta, log }) => {
     const userId = meta.userId as string;
-    const apiKey = input.apiKey;
+
+    // Resolve the Ape Key. Manual import (dialog) → input.apiKey.
+    // Auto-sync (profile mount) → empty input → decrypt the stored
+    // key from the user's prefs slice. Refusing both with VALIDATION
+    // is the right behaviour: there's nothing to fetch with.
+    const existingPrefs = await db.userPrefs.get(userId);
+    const existingSlice = existingPrefs.monkeytypeStats as
+      | MonkeytypeStatsSlice
+      | undefined;
+    let apiKey: string;
+    if (input.apiKey) {
+      apiKey = input.apiKey;
+    } else if (existingSlice && isEncryptedApiKey(existingSlice.encryptedApiKey)) {
+      try {
+        apiKey = decryptApiKey(existingSlice.encryptedApiKey);
+      } catch (err) {
+        log.error("monkeytype.import key decrypt failed", err);
+        throw new BackendError(
+          500,
+          "INTERNAL",
+          "Stored Ape Key could not be decrypted — re-paste the key to fix.",
+        );
+      }
+    } else {
+      throw new BackendError(
+        400,
+        "VALIDATION",
+        "No Ape Key on file — paste one in the import dialog first.",
+      );
+    }
 
     // Four parallel MT round-trips — Ape Key authorises all of them
     // identically. Promise.all so the dialog spinner has minimum
@@ -125,13 +158,16 @@ const importRoute = defineRoute<MonkeytypeImportInput, MonkeytypeImportOutput>({
       timeTyping: stats.timeTyping,
       pbs: { time: pbsTime, words: pbsWords },
       // Encrypt the Ape Key with the server-side AES-256-GCM key so
-      // the user can re-import without re-pasting. The DB stores
-      // ciphertext + IV + auth tag only.
+      // future loads can auto-sync without the user re-pasting.
+      // The DB stores ciphertext + IV + auth tag only — never the
+      // raw key.
       encryptedApiKey: encryptApiKey(apiKey),
     };
-    const existing = await db.userPrefs.get(userId);
+    // Read-merge-write so unrelated prefs slices survive. We
+    // already pulled `existingPrefs` above for the key-resolution
+    // branch — reuse it.
     await db.userPrefs.set(userId, {
-      ...existing,
+      ...existingPrefs,
       monkeytypeStats: slice,
     });
 
@@ -146,6 +182,7 @@ const importRoute = defineRoute<MonkeytypeImportInput, MonkeytypeImportOutput>({
         startedTests: stats.startedTests,
         timeTyping: stats.timeTyping,
       },
+      slice,
     };
   },
 });

@@ -286,12 +286,19 @@ export function mergeTotalsWithMt(
   };
 }
 
-/** Overlay MT personal bests onto the local-derived list. For each
- *  (mode, length) cell, the higher WPM wins. Local mode names are
- *  algorithmic (training/casual); MT only knows player-mode time/
- *  words distinction. We surface MT PBs under the casual mode (it's
- *  flinttype's default-shown row) and only when local has no entry
- *  at that length, so a stronger local PB never gets overwritten. */
+/** Overlay MT personal bests onto the local-derived list. The
+ *  contract: flinttype data is *additive* — a stronger local PB
+ *  is never overridden. For each (mode, length) cell, the higher
+ *  WPM wins. Local mode names are algorithmic (training/casual);
+ *  MT only knows the player-mode time/words distinction, so MT PBs
+ *  surface under the casual row (flinttype's default-shown mode).
+ *
+ *    local.wpm ≥ mt.wpm  → keep local (no change)
+ *    local.wpm <  mt.wpm  → bump local cell to mt.wpm + mt.acc
+ *    no local cell at this length → push the MT cell
+ *
+ *  Re-imports replace the MT snapshot but never the local rows, so
+ *  flinttype-side bests accumulate independently of MT. */
 export function mergePersonalBestsWithMt(
   local: PersonalBest[],
   mt: MonkeytypeStatsSlice | null,
@@ -305,7 +312,7 @@ export function mergePersonalBestsWithMt(
       if (!Number.isFinite(amount)) continue;
       const composite = `casual|${amount}`;
       if (seen.has(composite)) {
-        // Local has this length — bump WPM if MT is higher.
+        // Take the MAX — local stays winner when local.wpm >= mt.wpm.
         const existing = out.find(
           (b) => b.mode === "casual" && b.amount === amount,
         );

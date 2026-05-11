@@ -154,6 +154,9 @@ describe("monkeytype.import route", () => {
     expect(out.fetched).toBe(2);
     expect(out.pbsImported).toBe(3); // 2 time + 1 words
     expect(out.stats.completedTests).toBe(1284);
+    // Output now ships the full slice for client-side cache update.
+    expect(out.slice.pbs.time["15"]).toEqual({ wpm: 110, acc: 95.5 });
+    expect(out.slice.encryptedApiKey).toBeTruthy();
 
     const stored = await ctx.db.tests.recentForUser("user_1", 100);
     expect(stored).toHaveLength(2);
@@ -165,6 +168,44 @@ describe("monkeytype.import route", () => {
     expect(slice).toBeTruthy();
     expect(slice?.pbs.time["15"]).toEqual({ wpm: 110, acc: 95.5 });
     expect(slice?.completedTests).toBe(1284);
+  });
+
+  it("auto-syncs using the stored encrypted key when input.apiKey is omitted", async () => {
+    signedInAs("user_1");
+    // Seed: first import stores the encrypted key.
+    mockMt({
+      results: [],
+      pbsTime: { "30": [{ wpm: 100, acc: 96 }] },
+      pbsWords: {},
+      stats: { completedTests: 50 },
+    });
+    await callRoute(["monkeytype", "import"], {
+      input: { apiKey: "first_pasted_xxx" },
+      db: ctx.db,
+    });
+
+    // Now flip the mock to a fresh dataset and call import with NO
+    // apiKey — the route should decrypt the stored one and pull
+    // again, surfacing the new numbers.
+    mockMt({
+      results: [],
+      pbsTime: { "30": [{ wpm: 130, acc: 97 }] },
+      pbsWords: {},
+      stats: { completedTests: 99 },
+    });
+    const out = await callRoute<MonkeytypeImportOutput>(
+      ["monkeytype", "import"],
+      { input: {}, db: ctx.db },
+    );
+    expect(out.slice.pbs.time["30"]).toEqual({ wpm: 130, acc: 97 });
+    expect(out.stats.completedTests).toBe(99);
+  });
+
+  it("rejects an empty-input call when no key has ever been stored", async () => {
+    signedInAs("user_1");
+    await expect(
+      callRoute(["monkeytype", "import"], { input: {}, db: ctx.db }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
   });
 
   it("preserves unrelated user_prefs slices on import", async () => {

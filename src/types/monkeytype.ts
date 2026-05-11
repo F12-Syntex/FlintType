@@ -1,11 +1,16 @@
 import { z } from "zod";
 
 /** /api/monkeytype/import input — the user's Ape Key (server-side
- *  read-only token they generate at monkeytype.com → Account Settings
- *  → Ape Keys). The key is used in-flight to fetch their results /
- *  PBs / stats and is never persisted. */
+ *  read-only token they generate at monkeytype.com → Account
+ *  Settings → Ape Keys).
+ *
+ *  Optional. When omitted, the route looks up the user's previously-
+ *  stored encrypted key and decrypts it server-side. That's the
+ *  auto-sync path: every profile load hits import({}) once if a
+ *  stored key exists so the dashboard reflects the latest MT state
+ *  without the user re-pasting. */
 export const monkeytypeImportInputSchema = z.object({
-  apiKey: z.string().min(8).max(256),
+  apiKey: z.string().min(8).max(256).optional(),
 });
 export type MonkeytypeImportInput = z.infer<
   typeof monkeytypeImportInputSchema
@@ -30,6 +35,11 @@ export type MonkeytypeImportOutput = {
     startedTests?: number;
     timeTyping?: number;
   };
+  /** The full slice that just landed in user_prefs. Returned so the
+   *  client can update its in-memory prefs cache without a follow-up
+   *  GET — auto-sync flows pipe this straight into useRemotePrefs's
+   *  update(). */
+  slice: MonkeytypeStatsSlice;
 };
 
 /** Snapshot stored in user_prefs.data.monkeytypeStats after a

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BackendError, useBackend } from "@/lib/backend";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import type { HistorySummaryOutput } from "@/types/history";
@@ -73,11 +73,36 @@ export function ProfileView({ username }: { username?: string }) {
   }, [backend]);
 
   const tests = snapshot?.recentTests ?? [];
-  const { value: mtSliceRaw } = useRemotePrefs<MonkeytypeStatsSlice>(
-    "monkeytypeStats",
-    EMPTY_MT_SLICE,
-  );
+  const { value: mtSliceRaw, update: updateMtSlice } =
+    useRemotePrefs<MonkeytypeStatsSlice>("monkeytypeStats", EMPTY_MT_SLICE);
   const mtSlice = mtSliceRaw.importedAt > 0 ? mtSliceRaw : null;
+  const hasStoredKey = mtSlice?.encryptedApiKey != null;
+
+  // Auto-sync once per page load when a stored Ape Key exists. The
+  // empty-input form of the import route decrypts the stored key
+  // server-side and refreshes the slice. Failures stay silent —
+  // last-known data continues to render.
+  const syncedRef = useRef(false);
+  useEffect(() => {
+    if (!hasStoredKey || syncedRef.current) return;
+    syncedRef.current = true;
+    let cancelled = false;
+    backend.monkeytype
+      .import({})
+      .then((out) => {
+        if (cancelled) return;
+        // Pipe the fresh slice back into the local prefs cache so
+        // PBs / lifetime totals re-merge without a manual refresh.
+        updateMtSlice(out.slice);
+      })
+      .catch(() => {
+        // Stored key may be inactive / revoked. Don't spam errors;
+        // the next manual import will surface the cause.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hasStoredKey, backend, updateMtSlice]);
 
   const localTotals = useMemo(() => deriveTotals(tests), [tests]);
   const totals = useMemo(
