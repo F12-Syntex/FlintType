@@ -4,10 +4,16 @@ import type { HistoryTest } from "@/types/history";
  *  page is read-only — every panel is a function over `recentTests`. */
 
 export type ProfileTotals = {
+  testsStarted: number;
   testsCompleted: number;
+  /** Completion ratio, 0..1. NaN-safe — 0 when no tests started. */
+  completionRate: number;
   totalSeconds: number;
   meanWpm: number;
   bestWpm: number;
+  /** Highest single-test accuracy across completed tests. MT shows
+   *  this alongside best WPM as the second marquee number. */
+  bestAccuracy: number;
   meanAccuracy: number;
   level: number;
   /** XP toward the next level, 0..1. */
@@ -36,8 +42,11 @@ function levelFromCount(testsCompleted: number): {
 }
 
 export function deriveTotals(tests: readonly HistoryTest[]): ProfileTotals {
+  const testsStarted = tests.length;
   const completed = tests.filter((t) => t.wasCompleted);
   const testsCompleted = completed.length;
+  const completionRate =
+    testsStarted > 0 ? testsCompleted / testsStarted : 0;
   const totalSeconds = completed.reduce((s, t) => {
     const dur = Math.max(0, t.completedAtMs - t.startedAtMs);
     return s + dur / 1000;
@@ -47,16 +56,23 @@ export function deriveTotals(tests: readonly HistoryTest[]): ProfileTotals {
       ? completed.reduce((s, t) => s + t.wpm, 0) / completed.length
       : 0;
   const bestWpm = completed.reduce((m, t) => (t.wpm > m ? t.wpm : m), 0);
+  const bestAccuracy = completed.reduce(
+    (m, t) => (t.accuracy > m ? t.accuracy : m),
+    0,
+  );
   const meanAccuracy =
     completed.length > 0
       ? completed.reduce((s, t) => s + t.accuracy, 0) / completed.length
       : 0;
   const { level, progress } = levelFromCount(testsCompleted);
   return {
+    testsStarted,
     testsCompleted,
+    completionRate,
     totalSeconds,
     meanWpm,
     bestWpm,
+    bestAccuracy,
     meanAccuracy,
     level,
     levelProgress: progress,

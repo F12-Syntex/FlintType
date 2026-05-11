@@ -15,13 +15,19 @@ export function ProfileStats({
   streak: StreakStats;
   rank: number | null;
 }) {
+  const completionPct = Math.round(totals.completionRate * 100);
   return (
     <section className="border-b border-border px-5 py-8 sm:px-16 sm:py-10">
-      <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-5 sm:gap-x-6">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-6">
+        <Stat
+          label="Tests started"
+          value={totals.testsStarted.toLocaleString()}
+        />
         <Stat
           label="Tests completed"
           value={totals.testsCompleted.toLocaleString()}
           accent
+          subline={`${completionPct}% completion`}
         />
         <Stat
           label="Time typing"
@@ -31,6 +37,11 @@ export function ProfileStats({
           label="Best WPM"
           value={Math.round(totals.bestWpm).toString()}
           accent
+          subline={
+            totals.bestAccuracy > 0
+              ? `${totals.bestAccuracy.toFixed(1)}% best acc`
+              : undefined
+          }
         />
         <Stat
           label="Streak"

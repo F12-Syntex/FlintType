@@ -2,107 +2,114 @@ import { Tag } from "@/components/ft";
 import { cn } from "@/lib/utils";
 import type { PersonalBest } from "./derive-stats";
 
-/** Personal-best WPM grouped by mode + amount. Each cell shows the
- *  best WPM and the matching accuracy + sample count. Empty cells
- *  render as a dim "—" so the user sees which modes they haven't
- *  attempted yet — incentive to fill the matrix. */
+/** MonkeyType-style personal-bests grid. Two mode rows (training,
+ *  casual). Each row is a horizontal strip of cells — one per length
+ *  the user has actually attempted, sorted ascending. Each cell shows
+ *  the best WPM (big, primary) and the matching accuracy (small,
+ *  muted). No run count, no padding — dense, scannable.
+ *
+ *  Data note: the test schema records the *algorithmic* mode
+ *  (training / casual / reverse_adaptive). The player intent
+ *  (TIME / WORDS / QUOTE) isn't stored, so cells are labelled by
+ *  raw length with a generic unit. */
 export function PersonalBests({ bests }: { bests: PersonalBest[] }) {
-  // Static expected matrix so empty modes still show a placeholder
-  // cell — invites the user to attempt the missing combinations.
-  const ROWS: { mode: string; amounts: number[] }[] = [
-    { mode: "training", amounts: [25, 50, 100, 200] },
-    { mode: "casual", amounts: [25, 50, 100, 200] },
-  ];
+  const grouped = new Map<string, PersonalBest[]>();
+  for (const b of bests) {
+    const list = grouped.get(b.mode) ?? [];
+    list.push(b);
+    grouped.set(b.mode, list);
+  }
+  // Stable display order: training first, then casual, then anything
+  // else alphabetical.
+  const order = (m: string) =>
+    m === "training" ? 0 : m === "casual" ? 1 : 2;
+  const rows = [...grouped.entries()].sort(
+    ([a], [b]) => order(a) - order(b) || a.localeCompare(b),
+  );
 
-  const lookup = new Map<string, PersonalBest>();
-  for (const b of bests) lookup.set(`${b.mode}|${b.amount}`, b);
+  if (bests.length === 0) {
+    return (
+      <section className="border-b border-border px-5 py-10 sm:px-16 sm:py-12">
+        <div className="mb-3 flex items-center gap-3">
+          <span aria-hidden className="inline-block h-px w-5 bg-primary" />
+          <Tag>Personal bests</Tag>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Finish a few tests and your bests will land here, organised
+          by mode and length.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className="border-b border-border px-5 py-10 sm:px-16 sm:py-12">
       <div className="mb-7 flex items-center gap-3">
         <span aria-hidden className="inline-block h-px w-5 bg-primary" />
-        <Tag>Personal bests · WPM</Tag>
+        <Tag>Personal bests</Tag>
       </div>
 
-      <div className="flex flex-col gap-8">
-        {ROWS.map((row) => (
-          <ModeRow
-            key={row.mode}
-            mode={row.mode}
-            amounts={row.amounts}
-            lookup={lookup}
-          />
+      <div className="flex flex-col gap-7">
+        {rows.map(([mode, modeBests]) => (
+          <ModeStrip key={mode} mode={mode} bests={modeBests} />
         ))}
       </div>
     </section>
   );
 }
 
-function ModeRow({
+function ModeStrip({
   mode,
-  amounts,
-  lookup,
+  bests,
 }: {
   mode: string;
-  amounts: number[];
-  lookup: Map<string, PersonalBest>;
+  bests: PersonalBest[];
 }) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-[12px] font-semibold uppercase tracking-[0.18em] text-foreground">
-          {mode === "training" ? "Training" : "Casual"}
-        </span>
-        <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
-          words mode
-        </span>
-      </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {amounts.map((amt) => {
-          const b = lookup.get(`${mode}|${amt}`);
-          return <BestCell key={amt} amount={amt} best={b ?? null} />;
-        })}
+      <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground">
+        {prettyMode(mode)}
+      </span>
+      <div className="overflow-hidden rounded-md border border-border">
+        <div className="grid grid-cols-2 divide-y divide-x divide-border sm:grid-cols-4 sm:divide-y-0">
+          {bests.slice(0, 8).map((b, i) => (
+            <BestCell key={`${b.mode}-${b.amount}-${i}`} best={b} />
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-function BestCell({
-  amount,
-  best,
-}: {
-  amount: number;
-  best: PersonalBest | null;
-}) {
-  const empty = best == null;
+function BestCell({ best }: { best: PersonalBest }) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-md border bg-card px-4 py-4",
-        empty ? "border-dashed border-border" : "border-border",
+        "flex flex-col gap-1.5 bg-card px-4 py-4 sm:px-5 sm:py-5",
       )}
     >
       <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-        {amount} words
+        Length{" "}
+        <span className="text-foreground tabular-nums">{best.amount}</span>
       </span>
       <div className="flex items-baseline gap-1.5">
-        <span
-          className={cn(
-            "font-mono text-3xl font-bold tabular-nums leading-none",
-            empty ? "text-foreground/30" : "text-primary",
-          )}
-        >
-          {empty ? "—" : Math.round(best.bestWpm)}
+        <span className="font-mono text-3xl font-bold tabular-nums leading-none text-primary sm:text-[34px]">
+          {Math.round(best.bestWpm)}
         </span>
-        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
           wpm
         </span>
       </div>
-      <span className="font-mono text-[10.5px] tabular-nums text-muted-foreground">
-        {empty
-          ? "no runs yet"
-          : `${best.bestAccuracy.toFixed(1)}% acc · ${best.testsCount} run${best.testsCount === 1 ? "" : "s"}`}
+      <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+        {best.bestAccuracy.toFixed(1)}%{" "}
+        <span className="text-muted-foreground/60">acc</span>
       </span>
     </div>
   );
+}
+
+function prettyMode(mode: string): string {
+  if (mode === "training") return "Training";
+  if (mode === "casual") return "Casual";
+  return mode;
 }
