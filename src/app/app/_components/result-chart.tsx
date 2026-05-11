@@ -179,21 +179,15 @@ export function ResultChart({
             isAnimationActive={false}
           />
 
-          {/* Average WPM reference */}
+          {/* Average WPM reference — line only, no overlay text.
+           *  The labelled value lives in the stat strip under the
+           *  chart so it never collides with the plot area. */}
           {avgWpm > 0 ? (
             <ReferenceLine
               y={avgWpm}
               stroke="currentColor"
               strokeOpacity={0.32}
               strokeDasharray="3 4"
-              label={{
-                value: `avg ${Math.round(avgWpm)}`,
-                position: "right",
-                fill: "currentColor",
-                fillOpacity: 0.55,
-                fontSize: 10,
-                offset: 4,
-              }}
             />
           ) : null}
 
@@ -221,10 +215,9 @@ export function ResultChart({
             isAnimationActive={false}
           />
 
-          {/* Peak / stall reference dots — labelled so the user can
-           *  read the headline numbers off the chart, not just the
-           *  stat strip. Both labels paint at full opacity so the
-           *  stall isn't lost against the grid. */}
+          {/* Peak / stall reference dots — unlabelled markers only.
+           *  Numbers land in the stat strip under the chart (cleaner
+           *  than overlaying text that overflows the plot bounds). */}
           {peak ? (
             <ReferenceDot
               x={peak.sec}
@@ -234,14 +227,6 @@ export function ResultChart({
               stroke="var(--background)"
               strokeWidth={1.5}
               ifOverflow="extendDomain"
-              label={{
-                value: `▲ peak ${Math.round(peak.wpm)}`,
-                position: "top",
-                fill: "var(--color-wpm)",
-                fontSize: 11,
-                fontWeight: 600,
-                offset: 10,
-              }}
             />
           ) : null}
           {stall && peak && stall.sec !== peak.sec ? (
@@ -254,14 +239,6 @@ export function ResultChart({
               strokeOpacity={0.85}
               strokeWidth={1.75}
               ifOverflow="extendDomain"
-              label={{
-                value: `▼ stall ${Math.round(stall.wpm)}`,
-                position: "bottom",
-                fill: "var(--foreground)",
-                fontSize: 11,
-                fontWeight: 600,
-                offset: 10,
-              }}
             />
           ) : null}
         </ComposedChart>

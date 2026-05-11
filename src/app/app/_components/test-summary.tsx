@@ -14,43 +14,25 @@ function peakWpm(buckets: readonly Bucket[]): number {
   return buckets.reduce((m, b) => (b.wpm > m ? b.wpm : m), 0);
 }
 
+function avgWpm(buckets: readonly Bucket[]): number {
+  if (buckets.length === 0) return 0;
+  return buckets.reduce((s, b) => s + b.wpm, 0) / buckets.length;
+}
+
+function stallWpm(buckets: readonly Bucket[]): number {
+  if (buckets.length === 0) return 0;
+  return buckets.reduce((m, b) => (b.wpm < m ? b.wpm : m), buckets[0]!.wpm);
+}
+
 function consistencyScore(buckets: readonly Bucket[]): number {
   if (buckets.length < 2) return 100;
-  const avg = buckets.reduce((s, b) => s + b.wpm, 0) / buckets.length;
+  const avg = avgWpm(buckets);
   if (avg === 0) return 0;
   const variance =
     buckets.reduce((s, b) => s + (b.wpm - avg) ** 2, 0) / buckets.length;
   const stdDev = Math.sqrt(variance);
   const cv = stdDev / avg;
   return Math.max(0, Math.min(100, Math.round(100 * (1 - cv))));
-}
-
-type PairStat = { pair: string; samples: number; avgMs: number };
-
-function analysePairs(events: readonly KeyEvent[]): PairStat[] {
-  const buckets = new Map<string, { samples: number; total: number }>();
-  for (let i = 1; i < events.length; i += 1) {
-    const prev = events[i - 1]!;
-    const cur = events[i]!;
-    if (!prev.correct || !cur.correct) continue;
-    if (!prev.expected || !cur.expected) continue;
-    const dt = cur.t - prev.t;
-    if (dt <= 0 || dt > 2000) continue;
-    const key = `${prev.expected.toLowerCase()}${cur.expected.toLowerCase()}`;
-    const b = buckets.get(key) ?? { samples: 0, total: 0 };
-    b.samples += 1;
-    b.total += dt;
-    buckets.set(key, b);
-  }
-  return [...buckets.entries()]
-    .filter(([, b]) => b.samples >= 2)
-    .map(([pair, b]) => ({
-      pair,
-      samples: b.samples,
-      avgMs: b.total / b.samples,
-    }))
-    .sort((a, b) => b.avgMs - a.avgMs)
-    .slice(0, 6);
 }
 
 // ─── Pieces ────────────────────────────────────────────────────────
@@ -167,61 +149,6 @@ function PassageHeatmap({
   );
 }
 
-function PairFlow({ pairs }: { pairs: readonly PairStat[] }) {
-  if (pairs.length === 0) return null;
-  const maxMs = Math.max(0, ...pairs.map((p) => p.avgMs));
-  return (
-    <ul className="flex flex-wrap items-center gap-x-4 gap-y-2">
-      {pairs.map((p) => {
-        const intensity = maxMs > 0 ? p.avgMs / maxMs : 0;
-        const a = p.pair[0] ?? "";
-        const b = p.pair[1] ?? "";
-        return (
-          <li
-            key={p.pair}
-            className="flex items-center gap-1.5 text-sm tabular-nums"
-          >
-            <Glyph char={a} intensity={intensity} />
-            <svg
-              width={22}
-              height={10}
-              aria-hidden
-              className="text-muted-foreground"
-              style={{ opacity: 0.5 + intensity * 0.5 }}
-            >
-              <line
-                x1={1}
-                y1={5}
-                x2={15}
-                y2={5}
-                stroke="currentColor"
-                strokeWidth={1 + intensity * 1.5}
-              />
-              <polygon points="15,1 22,5 15,9" fill="currentColor" />
-            </svg>
-            <Glyph char={b} intensity={intensity} />
-            <span className="ml-1 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-              {Math.round(p.avgMs)}ms
-            </span>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function Glyph({ char, intensity }: { char: string; intensity: number }) {
-  return (
-    <span
-      className="font-mono text-base font-semibold leading-none"
-      style={{
-        color: `color-mix(in oklch, var(--primary) ${Math.round(intensity * 100)}%, var(--foreground))`,
-      }}
-    >
-      {char === " " ? "␣" : char}
-    </span>
-  );
-}
 
 // ─── Replay ────────────────────────────────────────────────────────
 
@@ -386,8 +313,9 @@ export function TestSummary() {
     [wpmHistory],
   );
   const peak = Math.round(peakWpm(buckets));
+  const avg = Math.round(avgWpm(buckets));
+  const stall = Math.round(stallWpm(buckets));
   const cons = consistencyScore(buckets);
-  const slowPairs = useMemo(() => analysePairs(state.events), [state.events]);
   const wrongTotal = state.events.filter((e) => !e.correct).length;
   const elapsedSec = Math.max(1, Math.round(elapsedMs / 1000));
   // Raw comes straight from the practice state now — same monkeytype
@@ -449,8 +377,10 @@ export function TestSummary() {
           </div>
         </div>
 
-        {/* Inline stats row, monkeytype-style. */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
+        {/* Centred stats strip — peak / avg / stall surface here now
+         *  that the chart no longer carries overlay text. Wraps
+         *  gracefully on narrow viewports. */}
+        <div className="flex flex-wrap items-baseline justify-center gap-x-8 gap-y-4 sm:gap-x-12">
           <BigStat
             label="raw"
             value={formatSpeed(
@@ -460,13 +390,12 @@ export function TestSummary() {
             )}
             accent
           />
-          <BigStat
-            label="characters"
-            value={`${state.correctChars}/${wrongTotal}/0/0`}
-            accent
-          />
-          <BigStat label="consistency" value={`${cons}%`} accent />
-          <BigStat label="time" value={`${elapsedSec}s`} accent />
+          <BigStat label="peak" value={peak} accent />
+          <BigStat label="avg" value={avg} />
+          {stall !== peak ? <BigStat label="stall" value={stall} /> : null}
+          <BigStat label="consistency" value={`${cons}%`} />
+          <BigStat label="errors" value={wrongTotal} />
+          <BigStat label="time" value={`${elapsedSec}s`} />
         </div>
 
         {/* Heatmap strip — speed-coloured passage. */}
@@ -479,19 +408,6 @@ export function TestSummary() {
               </span>
             </div>
             <PassageHeatmap words={state.words} events={state.events} />
-          </div>
-        ) : null}
-
-        {/* Slow pairs — only render if we have any. */}
-        {slowPairs.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-baseline justify-between gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              <span>slow pairs</span>
-              <span className="text-muted-foreground/70">
-                top {slowPairs.length} · arrow weight = delay
-              </span>
-            </div>
-            <PairFlow pairs={slowPairs} />
           </div>
         ) : null}
 
