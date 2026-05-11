@@ -1,23 +1,26 @@
-import { SignUp } from '@clerk/nextjs';
-import { buildPageMetadata } from '@/server/seo';
+import { AuthShell } from "@/components/auth/auth-shell";
+import { SignUpForm } from "@/components/auth/sign-up-form";
+import { buildPageMetadata } from "@/server/seo";
 
 export const metadata = buildPageMetadata({
-  title: 'Sign up',
+  title: "Sign up",
   description:
-    'Create an account. Email verification and every social provider configured in the Clerk dashboard work automatically.',
-  path: '/sign-up',
+    "Create a flinttype account. Email + password or one-tap Google. Email verification is automatic.",
+  path: "/sign-up",
   noIndex: true,
 });
 
 export default function SignUpPage() {
   return (
-    <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-10 sm:py-20">
-      <h1 className="sr-only">Sign up</h1>
-      <SignUp
-        signInUrl="/sign-in"
-        fallbackRedirectUrl="/"
-        forceRedirectUrl="/"
-      />
-    </main>
+    <AuthShell
+      eyebrow="Get started"
+      title="Create your account"
+      description="Track your typing model across sessions, unlock the adaptive drills, and import your MonkeyType history if you want to."
+      altLabel="Already have an account?"
+      altHref="/sign-in"
+      altLinkText="Sign in →"
+    >
+      <SignUpForm />
+    </AuthShell>
   );
 }
