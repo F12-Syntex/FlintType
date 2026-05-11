@@ -94,9 +94,14 @@ function ScorerHint() {
       </p>
       <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
         The score is{" "}
-        <span className="text-foreground">α·bigrams + β·trigrams + γ·motor</span>
-        , optionally damped by recency. Lower predicted ms means the model
-        already trusts your hands on this word.
+        <span className="text-foreground">
+          α·bigrams + β·trigrams + γ·motor + δ·word
+        </span>
+        , optionally damped by recency. δ carries the highest weight
+        because the whole-word measurement is the most authoritative
+        signal we have once the user has typed it a few times. Lower
+        predicted ms means the model already trusts your hands on
+        this word.
       </p>
     </div>
   );
@@ -148,6 +153,13 @@ function ResultPanel({ result }: { result: ScoreWordOutput }) {
       </div>
 
       <div className="flex flex-col divide-y divide-foreground/10">
+        <BreakdownGroup
+          heading="WORD"
+          symbol="δ"
+          contribution={result.deltaContribution}
+          rows={result.wordModel ? [result.wordModel] : []}
+          emptyLabel="no whole-word measurements yet — drill this word a few times to wake δ"
+        />
         <BreakdownGroup
           heading="BIGRAMS"
           symbol="α"

@@ -411,6 +411,23 @@ const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
       });
     }
 
+    // δ — word-level term. Mirrors scoreWord's word branch so the
+    // breakdown explains the same number the algorithm acts on.
+    let deltaContribution = 0;
+    let wordBreakdown: WeaknessBreakdown | null = null;
+    const wordState = wordStates.get(word);
+    if (wordState) {
+      const wweak =
+        baselines.word > 0 ? weakness(wordState, baselines.word) : 0;
+      deltaContribution = DEFAULT_WEIGHTS.delta * wweak;
+      wordBreakdown = {
+        key: word,
+        weakness: wweak,
+        meanMs: wordState.mean,
+        sampleCount: wordState.n,
+      };
+    }
+
     const predicted = predictedWordMs(
       word,
       bigramStates,
@@ -432,12 +449,14 @@ const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
       alphaContribution,
       betaContribution,
       gammaContribution,
+      deltaContribution,
       predictedMs: predicted,
       recencyMultiplier: recency,
       inChallengeBand: banded,
       bigrams,
       trigrams,
       motorFeatures,
+      wordModel: wordBreakdown,
     };
   },
 });

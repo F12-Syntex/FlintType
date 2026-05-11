@@ -158,10 +158,20 @@ export type ScoreWordOutput = {
   alphaContribution: number;
   betaContribution: number;
   gammaContribution: number;
+  /** Word-level (δ) contribution — the algorithm's whole-word
+   *  weakness term. Heavier than α/β/γ at default weighting because
+   *  word data is the most authoritative signal we have for a word
+   *  the user has actually typed enough times to score. Zero when
+   *  the word has no measurements yet. */
+  deltaContribution: number;
   predictedMs: number;
   recencyMultiplier: number;
   inChallengeBand: boolean;
   bigrams: WeaknessBreakdown[];
   trigrams: WeaknessBreakdown[];
   motorFeatures: WeaknessBreakdown[];
+  /** The whole-word measurement that fed `deltaContribution`. Null
+   *  when the user has never completed this word. Named `wordModel`
+   *  so it doesn't collide with the top-level `word: string`. */
+  wordModel: WeaknessBreakdown | null;
 };

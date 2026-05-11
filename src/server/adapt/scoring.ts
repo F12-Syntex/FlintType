@@ -37,11 +37,20 @@ export type ScoringWeights = {
   delta: number;
 };
 
+/** Default weighting. The mechanical terms (α/β/γ) stay at 1 so their
+ *  relative contributions match the original spec. δ — the per-word
+ *  term — is pulled up to 2.0 because words are the unit users actually
+ *  type: a confident measurement against the whole word captures the
+ *  cognitive friction (memory, context-switch, spelling hesitation)
+ *  that no per-pair signal can see. The `weakness()` helper still
+ *  scales δ by `confidence(n)` per word, so untrained words don't
+ *  overpower the bigram aggregate — the bump only applies once we
+ *  actually have data on the word. */
 export const DEFAULT_WEIGHTS: ScoringWeights = {
   alpha: 1,
   beta: 1,
   gamma: 1,
-  delta: 1,
+  delta: 2,
 };
 
 export type ModelMap = ReadonlyMap<string, ModelState>;
