@@ -49,3 +49,9 @@ next-env.d.ts
 /.data/
 specificaiton.md
 setttings.json
+
+
+.agents/
+.claude/
+skills-lock.json
+todo
