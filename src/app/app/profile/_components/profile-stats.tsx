@@ -2,11 +2,14 @@ import { cn } from "@/lib/utils";
 import type { ProfileTotals, StreakStats } from "./derive-stats";
 import { ProfileSection } from "./profile-section";
 
-/** Headline-numbers strip. Tight 6-up at lg+, 3-up at sm, 2-up on
- *  mobile. Each stat: eyebrow tag · big tabular value (sm:text-4xl,
- *  matching ui-law §4 stat-lg) · optional muted subline. The ft
- *  <Stat/> delta paints primary/ok-tinted which read too loud for
- *  contextual sublines, so this page uses a local MetricStat. */
+/** Lifetime-totals strip — tight horizontal row of stats with vertical
+ *  hairline dividers between cells (no gap), each cell content
+ *  centered. The strip itself centers within the section so it reads
+ *  as a single composed band rather than a left-aligned 6-cell grid.
+ *
+ *  Wraps responsively: 2-up on mobile, 3-up at sm, all 6 inline at
+ *  lg+. The dividers + bordered card frame replace the wide gaps that
+ *  used to scatter the cells across the row. */
 export function ProfileStats({
   totals,
   streak,
@@ -19,48 +22,50 @@ export function ProfileStats({
   const completionPct = Math.round(totals.completionRate * 100);
   return (
     <ProfileSection label="Lifetime totals">
-      <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-6">
-        <MetricStat
-          label="Tests started"
-          value={totals.testsStarted.toLocaleString()}
-        />
-        <MetricStat
-          label="Tests completed"
-          value={totals.testsCompleted.toLocaleString()}
-          accent
-          subline={`${completionPct}% completion`}
-        />
-        <MetricStat
-          label="Time typing"
-          value={formatDuration(totals.totalSeconds)}
-        />
-        <MetricStat
-          label="Best WPM"
-          value={Math.round(totals.bestWpm).toString()}
-          accent
-          subline={
-            totals.bestWpm > 0
-              ? `${totals.bestWpmAccuracy.toFixed(1)}%`
-              : undefined
-          }
-        />
-        <MetricStat
-          label="Streak"
-          value={streak.current.toString()}
-          suffix={streak.current === 1 ? " day" : " days"}
-          accent={streak.current > 0}
-        />
-        <MetricStat
-          label="Leaderboard"
-          value={rank != null ? `#${rank}` : "—"}
-          subline={rank != null ? "Global" : "Coming soon"}
-        />
+      <div className="mx-auto overflow-hidden rounded-md border border-border bg-card/40">
+        <div className="grid grid-cols-2 divide-x divide-y divide-border sm:grid-cols-3 sm:divide-y-0 lg:grid-cols-6">
+          <MetricCell
+            label="Tests started"
+            value={totals.testsStarted.toLocaleString()}
+          />
+          <MetricCell
+            label="Tests completed"
+            value={totals.testsCompleted.toLocaleString()}
+            accent
+            subline={`${completionPct}% completion`}
+          />
+          <MetricCell
+            label="Time typing"
+            value={formatDuration(totals.totalSeconds)}
+          />
+          <MetricCell
+            label="Best WPM"
+            value={Math.round(totals.bestWpm).toString()}
+            accent
+            subline={
+              totals.bestWpm > 0
+                ? `${totals.bestWpmAccuracy.toFixed(1)}%`
+                : undefined
+            }
+          />
+          <MetricCell
+            label="Streak"
+            value={streak.current.toString()}
+            suffix={streak.current === 1 ? "d" : "d"}
+            accent={streak.current > 0}
+          />
+          <MetricCell
+            label="Leaderboard"
+            value={rank != null ? `#${rank}` : "—"}
+            subline={rank != null ? "Global" : "Coming soon"}
+          />
+        </div>
       </div>
     </ProfileSection>
   );
 }
 
-function MetricStat({
+function MetricCell({
   label,
   value,
   suffix,
@@ -74,25 +79,25 @@ function MetricStat({
   accent?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col items-center justify-center gap-1.5 px-3 py-5 text-center sm:px-4 sm:py-6">
       <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </span>
       <span
         className={cn(
-          "text-xl font-semibold tracking-[-0.01em] tabular-nums leading-none sm:text-[22px]",
+          "text-xl font-semibold tracking-[-0.01em] tabular-nums leading-none sm:text-2xl",
           accent ? "text-primary" : "text-foreground",
         )}
       >
         {value}
         {suffix ? (
-          <span className="text-xs font-normal text-muted-foreground">
+          <span className="ml-0.5 text-[11px] font-medium text-muted-foreground">
             {suffix}
           </span>
         ) : null}
       </span>
       {subline ? (
-        <span className="text-[10.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
           {subline}
         </span>
       ) : null}
