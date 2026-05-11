@@ -83,7 +83,7 @@ export function ProfileView({ username }: { username?: string }) {
       <ProfileHero totals={totals} username={username} />
       <ProfileStats totals={totals} streak={streak} rank={null} />
       <PersonalBests bests={bests} />
-      <ActivityHeatmap days={activity} />
+      <ActivityHeatmap days={activity} streak={streak} />
       <WpmTrend points={trend} />
       <RecentRuns tests={tests} />
       {loading ? (

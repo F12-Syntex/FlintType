@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { DayCell } from "./derive-stats";
+import type { DayCell, StreakStats } from "./derive-stats";
 import { ProfileSection } from "./profile-section";
 
 /** GitHub-style activity heatmap. Each column is a week (Mon → Sun);
@@ -13,7 +13,13 @@ import { ProfileSection } from "./profile-section";
  *
  *  Static — no animation, no tooltips beyond `title=` so screen
  *  readers can read the count out per cell. */
-export function ActivityHeatmap({ days }: { days: DayCell[] }) {
+export function ActivityHeatmap({
+  days,
+  streak,
+}: {
+  days: DayCell[];
+  streak: StreakStats;
+}) {
   if (days.length === 0) return null;
   const max = days.reduce((m, d) => (d.tests > m ? d.tests : m), 0);
   const total = days.reduce((s, d) => s + d.tests, 0);
@@ -28,12 +34,24 @@ export function ActivityHeatmap({ days }: { days: DayCell[] }) {
     <ProfileSection
       label="Activity · last 12 months"
       actions={
-        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          <span className="text-foreground tabular-nums">{total}</span>{" "}
-          tests ·{" "}
-          <span className="text-foreground tabular-nums">{activeDays}</span>{" "}
-          active days
-        </span>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+          <span>
+            <span className="text-foreground tabular-nums">{total}</span>{" "}
+            tests
+          </span>
+          <span>
+            <span className="text-foreground tabular-nums">{activeDays}</span>{" "}
+            active days
+          </span>
+          {streak.longest > 0 ? (
+            <span>
+              <span className="text-foreground tabular-nums">
+                {streak.longest}
+              </span>
+              -day record
+            </span>
+          ) : null}
+        </div>
       }
     >
       <div className="flex w-full flex-col gap-1.5">

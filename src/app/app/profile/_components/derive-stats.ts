@@ -11,9 +11,11 @@ export type ProfileTotals = {
   totalSeconds: number;
   meanWpm: number;
   bestWpm: number;
-  /** Highest single-test accuracy across completed tests. MT shows
-   *  this alongside best WPM as the second marquee number. */
-  bestAccuracy: number;
+  /** Accuracy on the *best-WPM* test specifically — not the highest
+   *  accuracy across all tests. MT pairs the personal-best speed with
+   *  the accuracy that was achieved on the same run, since a clean
+   *  high-WPM test reads differently than a messy one. */
+  bestWpmAccuracy: number;
   meanAccuracy: number;
   level: number;
   /** XP toward the next level, 0..1. */
@@ -55,11 +57,15 @@ export function deriveTotals(tests: readonly HistoryTest[]): ProfileTotals {
     completed.length > 0
       ? completed.reduce((s, t) => s + t.wpm, 0) / completed.length
       : 0;
-  const bestWpm = completed.reduce((m, t) => (t.wpm > m ? t.wpm : m), 0);
-  const bestAccuracy = completed.reduce(
-    (m, t) => (t.accuracy > m ? t.accuracy : m),
-    0,
+  // Track the best-WPM test so we can pair its accuracy with the
+  // personal-best number — accuracy of the highest-WPM run, not the
+  // overall accuracy max.
+  const bestRun = completed.reduce<HistoryTest | null>(
+    (m, t) => (m == null || t.wpm > m.wpm ? t : m),
+    null,
   );
+  const bestWpm = bestRun?.wpm ?? 0;
+  const bestWpmAccuracy = bestRun?.accuracy ?? 0;
   const meanAccuracy =
     completed.length > 0
       ? completed.reduce((s, t) => s + t.accuracy, 0) / completed.length
@@ -72,7 +78,7 @@ export function deriveTotals(tests: readonly HistoryTest[]): ProfileTotals {
     totalSeconds,
     meanWpm,
     bestWpm,
-    bestAccuracy,
+    bestWpmAccuracy,
     meanAccuracy,
     level,
     levelProgress: progress,

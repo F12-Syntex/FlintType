@@ -119,20 +119,12 @@ function Avatar({
 }
 
 function LevelBadge({ totals }: { totals: ProfileTotals }) {
-  const pct = Math.round(totals.levelProgress * 100);
   return (
-    <div className="mt-2 flex flex-col gap-2">
-      <div className="flex items-baseline gap-2.5">
-        <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          Level
-        </span>
-        <span className="text-[22px] font-semibold tabular-nums leading-none text-primary">
-          {totals.level}
-        </span>
-        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          <span className="text-foreground tabular-nums">{pct}%</span> to next
-        </span>
-      </div>
+    <div className="mt-2 flex items-center gap-3">
+      <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+        Level{" "}
+        <span className="text-foreground tabular-nums">{totals.level}</span>
+      </span>
       <span
         aria-hidden
         className="relative inline-block h-1 w-full max-w-xs overflow-hidden rounded-full bg-foreground/[0.08]"

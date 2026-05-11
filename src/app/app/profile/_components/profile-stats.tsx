@@ -39,8 +39,8 @@ export function ProfileStats({
           value={Math.round(totals.bestWpm).toString()}
           accent
           subline={
-            totals.bestAccuracy > 0
-              ? `${totals.bestAccuracy.toFixed(1)}% best acc`
+            totals.bestWpm > 0
+              ? `${totals.bestWpmAccuracy.toFixed(1)}%`
               : undefined
           }
         />
@@ -49,11 +49,6 @@ export function ProfileStats({
           value={streak.current.toString()}
           suffix={streak.current === 1 ? " day" : " days"}
           accent={streak.current > 0}
-          subline={
-            streak.longest > 0
-              ? `Longest · ${streak.longest}`
-              : "No streak yet"
-          }
         />
         <MetricStat
           label="Leaderboard"
