@@ -23,8 +23,10 @@ import {
   type HistorySummaryOutput,
   type HistoryTest,
   type HistoryWeakness,
+  type PublicMonkeytypeStats,
   type PublicProfileInput,
 } from "@/types/history";
+import type { MonkeytypeStatsSlice } from "@/types/monkeytype";
 
 /** How many recent tests we serve to the client. 500 is comfortably
  *  more than 90 days of regular use (a daily user racks up ~10/day on
@@ -131,6 +133,26 @@ async function loadHistorySummary(
     wasCompleted: r.wasCompleted,
   }));
 
+  // MonkeyType lifetime overlay — read the subject's stored slice so
+  // visitors merge against the *subject's* MT data, not their own.
+  // The encrypted Ape Key is stripped before serialisation so a public
+  // profile fetch can never leak credential material, even in
+  // encrypted form. Owners get the same shape since the key never
+  // travels back to the client either way (the import route already
+  // returns the slice on write).
+  const mtRaw = prefsBlob.monkeytypeStats as
+    | MonkeytypeStatsSlice
+    | undefined;
+  let monkeytype: PublicMonkeytypeStats | null = null;
+  if (mtRaw && Number(mtRaw.importedAt ?? 0) > 0) {
+    // Object rest strips encryptedApiKey at the type and runtime
+    // level. Any future credential-shaped fields added to the slice
+    // must be opted *in* here, not out.
+    const { encryptedApiKey: _omit, ...publicSlice } = mtRaw;
+    void _omit;
+    monkeytype = publicSlice;
+  }
+
   return {
     recentTests,
     weakestPairs,
@@ -140,6 +162,7 @@ async function loadHistorySummary(
     bigramBaselineMs: baselines.overall,
     trigramBaselineMs: trigramBaseline,
     wordBaselineMs: wordBaseline,
+    monkeytype,
   };
 }
 

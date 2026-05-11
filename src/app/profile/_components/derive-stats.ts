@@ -1,5 +1,10 @@
-import type { HistoryTest } from "@/types/history";
-import type { MonkeytypeStatsSlice } from "@/types/monkeytype";
+import type { HistoryTest, PublicMonkeytypeStats } from "@/types/history";
+
+/** Either flavour of MT slice the merge layer accepts — the private
+ *  owner slice carrying the encrypted Ape Key, or the public subset
+ *  the history route returns to visitors. The merges never touch
+ *  the credential field, so structurally they're interchangeable. */
+type MtMergeInput = PublicMonkeytypeStats;
 
 /** Pure derivations from the user's HistoryTest stream. The /profile
  *  page is read-only — every panel is a function over `recentTests`. */
@@ -245,7 +250,7 @@ export type TrendPoint = { idx: number; wpm: number; ts: number };
  *  re-importing replaces the snapshot, so counts don't compound. */
 export function mergeTotalsWithMt(
   local: ProfileTotals,
-  mt: MonkeytypeStatsSlice | null,
+  mt: MtMergeInput | null,
 ): ProfileTotals {
   if (!mt) return local;
   const mtCompleted = Number(mt.completedTests ?? 0);
@@ -257,20 +262,12 @@ export function mergeTotalsWithMt(
     ...Object.values(mt.pbs.words).map((p) => p.wpm),
   );
   // Recompute the combined level from the merged completed-test
-  // count so a fresh MT import nudges the level bar forward.
+  // count so a fresh MT import nudges the level bar forward. Routed
+  // through the same `levelFromCount` helper as the local-only path
+  // so the two never drift — bug bait when one curve is tweaked and
+  // the other is forgotten.
   const combinedCompleted = local.testsCompleted + mtCompleted;
-  let level = 1;
-  let needed = 5;
-  let used = 0;
-  while (used + needed <= combinedCompleted) {
-    used += needed;
-    level += 1;
-    needed = Math.round(needed * 1.5);
-  }
-  const progress = Math.max(
-    0,
-    Math.min(1, (combinedCompleted - used) / needed),
-  );
+  const { level, progress } = levelFromCount(combinedCompleted);
   return {
     ...local,
     testsStarted: local.testsStarted + mtStarted,
@@ -301,7 +298,7 @@ export function mergeTotalsWithMt(
  *  flinttype-side bests accumulate independently of MT. */
 export function mergePersonalBestsWithMt(
   local: PersonalBest[],
-  mt: MonkeytypeStatsSlice | null,
+  mt: MtMergeInput | null,
 ): PersonalBest[] {
   if (!mt) return local;
   const out = [...local];

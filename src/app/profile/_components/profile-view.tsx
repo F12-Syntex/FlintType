@@ -85,17 +85,23 @@ export function ProfileView({ username }: { username?: string }) {
   }, [backend, isOwner, username]);
 
   const tests = snapshot?.recentTests ?? [];
-  // The MT slice is the *viewer's* slice (their stored key, their
-  // stats). When viewing someone else's profile we still read the
-  // viewer's slice into the merge layer — but it'll be empty unless
-  // the viewer is the owner, since it's keyed to the signed-in user.
+  // Two MT slices participate here:
+  //   1. `subjectMtSlice` — comes from the snapshot. This is the
+  //      *subject's* MT overlay (the user the URL points at). The
+  //      server strips the encrypted Ape Key before returning it so
+  //      the visitor only ever sees public counters + PBs. This is
+  //      what drives the rendered level / PBs / lifetime totals so
+  //      visitors see the same numbers as the owner.
+  //   2. `mtSliceRaw` — the *viewer's* own stored slice from
+  //      user_prefs (via useRemotePrefs). Only used for the manage
+  //      dialog and auto-sync, never as merge input. Visitors looking
+  //      at someone else's profile must never see *their* MT PBs leak
+  //      into the visited profile, so this is gated on `isOwner` for
+  //      every UI surface that consumes it.
+  const subjectMtSlice = snapshot?.monkeytype ?? null;
   const { value: mtSliceRaw, update: updateMtSlice } =
     useRemotePrefs<MonkeytypeStatsSlice>("monkeytypeStats", EMPTY_MT_SLICE);
   const ownMtSlice = mtSliceRaw.importedAt > 0 ? mtSliceRaw : null;
-  // Only the owner sees their own MT data overlaid; visitors see the
-  // raw subject's data. Visitors looking at someone else's profile
-  // should never see *their* MT PBs leak into the visited profile.
-  const mtSlice = isOwner ? ownMtSlice : null;
   const hasStoredKey = isOwner === true && ownMtSlice?.encryptedApiKey != null;
 
   // Auto-sync once per page load when a stored Ape Key exists AND the
@@ -121,14 +127,14 @@ export function ProfileView({ username }: { username?: string }) {
 
   const localTotals = useMemo(() => deriveTotals(tests), [tests]);
   const totals = useMemo(
-    () => mergeTotalsWithMt(localTotals, mtSlice),
-    [localTotals, mtSlice],
+    () => mergeTotalsWithMt(localTotals, subjectMtSlice),
+    [localTotals, subjectMtSlice],
   );
   const streak = useMemo(() => deriveStreak(tests), [tests]);
   const localBests = useMemo(() => derivePersonalBests(tests), [tests]);
   const bests = useMemo(
-    () => mergePersonalBestsWithMt(localBests, mtSlice),
-    [localBests, mtSlice],
+    () => mergePersonalBestsWithMt(localBests, subjectMtSlice),
+    [localBests, subjectMtSlice],
   );
   const activity = useMemo(() => deriveActivity(tests, 52), [tests]);
   const trend = useMemo(() => deriveTrend(tests, 60), [tests]);

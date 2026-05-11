@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { MonkeytypeStatsSlice } from "./monkeytype";
 
 /** Public-profile lookup input. The slug here is a Clerk username,
  *  not an email-local-part or Clerk userId — visitors can only view
@@ -59,4 +60,20 @@ export type HistorySummaryOutput = {
   /** User's overall whole-word baseline (sample-weighted mean ms
    *  across every word seen). 0 on cold start. */
   wordBaselineMs: number;
+  /** Public MonkeyType overlay belonging to the *subject* of this
+   *  profile (not the viewer). Returned by both `summary` (own
+   *  profile) and `publicProfile` (someone else's) so visitors see
+   *  the same level / PB merge as the owner. Encrypted Ape Key is
+   *  stripped server-side — visitors only see the lifetime counters
+   *  and PB cells that drive the rendered level + bests. */
+  monkeytype: PublicMonkeytypeStats | null;
 };
+
+/** Subset of MonkeytypeStatsSlice safe to expose over the public
+ *  profile route: counts, PBs, and the import timestamp. Strips the
+ *  encrypted Ape Key, which the visitor has no business seeing even
+ *  in encrypted form. */
+export type PublicMonkeytypeStats = Omit<
+  MonkeytypeStatsSlice,
+  "encryptedApiKey"
+>;

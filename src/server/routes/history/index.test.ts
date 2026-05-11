@@ -132,6 +132,37 @@ describe("history routes", () => {
     expect(out.recentTests).toEqual([]);
   });
 
+  it("returns the subject's MT slice on summary, stripped of the encrypted Ape Key", async () => {
+    signedInAs("u_mt");
+    // Simulate a previous import: write the slice straight into the
+    // user_prefs blob. The summary route reads from there.
+    await ctx.db.userPrefs.set("u_mt", {
+      monkeytypeStats: {
+        importedAt: 1_700_000_000_000,
+        completedTests: 1_284,
+        startedTests: 1_500,
+        timeTyping: 89_400,
+        pbs: {
+          time: { "60": { wpm: 142, acc: 97.4 } },
+          words: { "50": { wpm: 138, acc: 96.1 } },
+        },
+        encryptedApiKey: { v: 1, iv: "iv", tag: "tag", ct: "ct" },
+      },
+    });
+    const out = await callRoute<HistorySummaryOutput>(
+      ["history", "summary"],
+      { db: ctx.db },
+    );
+    expect(out.monkeytype).not.toBeNull();
+    expect(out.monkeytype?.completedTests).toBe(1_284);
+    expect(out.monkeytype?.pbs.time["60"]?.wpm).toBe(142);
+    // The encrypted Ape Key must NEVER cross the wire — even on the
+    // owner's own summary call, the credential stays server-side.
+    expect(
+      (out.monkeytype as Record<string, unknown> | null)?.encryptedApiKey,
+    ).toBeUndefined();
+  });
+
   it("returns weakestPairs sorted by weakness, capped at 12", async () => {
     signedInAs("u1");
     // 30 deliberate runs of 4-letter words — generates enough bigram
