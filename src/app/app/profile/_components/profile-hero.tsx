@@ -7,16 +7,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ProfileTotals } from "./derive-stats";
 
-/** Editorial hero — avatar on the left, name + handle + member-since
- *  in the centre, level + XP bar inline beneath. The settings button
- *  links to /app/customise; this page itself is the public view, so
- *  account management lives there, not here.
+/** Profile hero. Avatar + name lockup on the left, settings on the
+ *  right. Sizes follow ui-law §4 page-title scale (text-3xl /
+ *  text-5xl / text-6xl) so it reads as the page anchor.
  *
- *  `username` comes from the URL slug — that's the canonical, shareable
- *  handle. Display name and avatar still pull from the signed-in
- *  Clerk session (only one history endpoint exists today, so the page
- *  always shows the signed-in user's own data — see profile-view's
- *  docblock). */
+ *  `username` is the canonical handle from the URL; display name and
+ *  avatar still come from the signed-in Clerk session. */
 export function ProfileHero({
   totals,
   username,
@@ -44,13 +40,13 @@ export function ProfileHero({
       : null;
 
   return (
-    <header className="border-b border-border px-5 pt-12 pb-10 sm:px-16 sm:pt-14 sm:pb-12">
-      <div className="mb-5 flex items-center gap-3">
-        <span aria-hidden className="inline-block h-px w-7 bg-primary" />
+    <header className="border-b border-border px-5 py-12 sm:px-12 sm:py-14 lg:px-16">
+      <div className="mb-6 flex items-center gap-3">
+        <span aria-hidden className="inline-block h-px w-5 bg-primary" />
         <Tag>Public profile</Tag>
       </div>
 
-      <div className="grid gap-8 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-10">
+      <div className="grid gap-8 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-8">
         <Avatar
           imageUrl={user?.imageUrl ?? null}
           initial={initial}
@@ -58,10 +54,10 @@ export function ProfileHero({
         />
 
         <div className="flex flex-col gap-3">
-          <h1 className="font-bold tracking-[-0.02em] text-foreground text-[28px] leading-[1] sm:text-[44px] lg:text-[52px]">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             {displayName}
           </h1>
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-[12px] uppercase tracking-[0.16em] text-muted-foreground">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
             <span className="text-foreground">@{handle}</span>
             {joined ? (
               <>
@@ -125,21 +121,21 @@ function Avatar({
 function LevelBadge({ totals }: { totals: ProfileTotals }) {
   const pct = Math.round(totals.levelProgress * 100);
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-baseline gap-3">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+    <div className="mt-2 flex flex-col gap-2">
+      <div className="flex items-baseline gap-2.5">
+        <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
           Level
         </span>
-        <span className="font-mono text-2xl font-bold tabular-nums leading-none text-primary">
+        <span className="text-[22px] font-semibold tabular-nums leading-none text-primary">
           {totals.level}
         </span>
-        <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
+        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
           <span className="text-foreground tabular-nums">{pct}%</span> to next
         </span>
       </div>
       <span
         aria-hidden
-        className="relative inline-block h-1 w-full max-w-sm overflow-hidden rounded-full bg-foreground/[0.08]"
+        className="relative inline-block h-1 w-full max-w-xs overflow-hidden rounded-full bg-foreground/[0.08]"
       >
         <span
           className={cn(

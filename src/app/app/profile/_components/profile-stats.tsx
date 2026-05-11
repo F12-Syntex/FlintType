@@ -1,11 +1,12 @@
 import { cn } from "@/lib/utils";
 import type { ProfileTotals, StreakStats } from "./derive-stats";
+import { ProfileSection } from "./profile-section";
 
-/** Headline numbers strip — one row at sm+, 2-col grid on mobile.
- *  Mirrors the on-page stat strip pattern from /app/biogram so the
- *  product feels consistent. Leaderboard rank is mocked at "—" until
- *  the rankings backend ships; the slot stays so the layout doesn't
- *  jump when it lands. */
+/** Headline-numbers strip. Tight 6-up at lg+, 3-up at sm, 2-up on
+ *  mobile. Each stat: eyebrow tag · big tabular value (sm:text-4xl,
+ *  matching ui-law §4 stat-lg) · optional muted subline. The ft
+ *  <Stat/> delta paints primary/ok-tinted which read too loud for
+ *  contextual sublines, so this page uses a local MetricStat. */
 export function ProfileStats({
   totals,
   streak,
@@ -17,23 +18,23 @@ export function ProfileStats({
 }) {
   const completionPct = Math.round(totals.completionRate * 100);
   return (
-    <section className="border-b border-border px-5 py-8 sm:px-16 sm:py-10">
-      <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-6">
-        <Stat
+    <ProfileSection label="Lifetime totals">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-6">
+        <MetricStat
           label="Tests started"
           value={totals.testsStarted.toLocaleString()}
         />
-        <Stat
+        <MetricStat
           label="Tests completed"
           value={totals.testsCompleted.toLocaleString()}
           accent
           subline={`${completionPct}% completion`}
         />
-        <Stat
+        <MetricStat
           label="Time typing"
           value={formatDuration(totals.totalSeconds)}
         />
-        <Stat
+        <MetricStat
           label="Best WPM"
           value={Math.round(totals.bestWpm).toString()}
           accent
@@ -43,7 +44,7 @@ export function ProfileStats({
               : undefined
           }
         />
-        <Stat
+        <MetricStat
           label="Streak"
           value={streak.current.toString()}
           suffix={streak.current === 1 ? " day" : " days"}
@@ -54,37 +55,37 @@ export function ProfileStats({
               : "No streak yet"
           }
         />
-        <Stat
+        <MetricStat
           label="Leaderboard"
           value={rank != null ? `#${rank}` : "—"}
           subline={rank != null ? "Global" : "Coming soon"}
         />
       </div>
-    </section>
+    </ProfileSection>
   );
 }
 
-function Stat({
+function MetricStat({
   label,
   value,
   suffix,
-  accent,
   subline,
+  accent,
 }: {
   label: string;
   value: string;
   suffix?: string;
-  accent?: boolean;
   subline?: string;
+  accent?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+      <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </span>
       <span
         className={cn(
-          "font-mono text-2xl font-bold tabular-nums leading-none sm:text-3xl",
+          "text-3xl font-bold tracking-[-0.02em] tabular-nums leading-none sm:text-4xl",
           accent ? "text-primary" : "text-foreground",
         )}
       >
@@ -96,7 +97,7 @@ function Stat({
         ) : null}
       </span>
       {subline ? (
-        <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
           {subline}
         </span>
       ) : null}

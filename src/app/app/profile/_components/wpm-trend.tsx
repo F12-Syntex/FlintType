@@ -10,7 +10,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Tag } from "@/components/ft";
 import {
   type ChartConfig,
   ChartContainer,
@@ -19,6 +18,7 @@ import {
 } from "@/components/ui/line-chart";
 import { cn } from "@/lib/utils";
 import type { TrendPoint } from "./derive-stats";
+import { ProfileSection } from "./profile-section";
 
 const chartConfig = {
   wpm: { label: "wpm", color: "var(--primary)" },
@@ -54,12 +54,9 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
   }, [filtered]);
 
   return (
-    <section className="border-b border-border px-5 py-10 sm:px-16 sm:py-12">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span aria-hidden className="inline-block h-px w-5 bg-primary" />
-          <Tag>WPM trend</Tag>
-        </div>
+    <ProfileSection
+      label="WPM trend"
+      actions={
         <div className="flex flex-wrap items-center gap-1.5">
           {RANGES.map((r) => {
             const active = range === r.id;
@@ -70,7 +67,7 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
                 onClick={() => setRange(r.id)}
                 aria-pressed={active}
                 className={cn(
-                  "inline-flex items-center rounded-md border px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.14em] transition-colors",
+                  "inline-flex items-center rounded-md border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors",
                   active
                     ? "border-primary/40 bg-primary/[0.06] text-primary"
                     : "border-border text-muted-foreground hover:border-foreground/25 hover:text-foreground",
@@ -81,15 +78,15 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
             );
           })}
         </div>
-      </div>
-
+      }
+    >
       {filtered.length < 2 ? (
         <p className="text-sm text-muted-foreground">
           Not enough data in this range. Try a wider window.
         </p>
       ) : (
         <>
-          <div className="mb-3 flex items-baseline justify-between gap-3 font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
+          <div className="mb-3 flex items-baseline justify-between gap-3 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
             <span>
               <span className="text-foreground tabular-nums">
                 {filtered.length}
@@ -196,6 +193,6 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
           </ChartContainer>
         </>
       )}
-    </section>
+    </ProfileSection>
   );
 }

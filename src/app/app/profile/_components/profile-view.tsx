@@ -71,7 +71,7 @@ export function ProfileView({ username }: { username?: string }) {
     return (
       <>
         <ProfileHero totals={totals} username={username} />
-        <section className="px-5 py-10 sm:px-16">
+        <section className="px-5 py-12 sm:px-12 sm:py-14 lg:px-16">
           <p className="text-sm text-primary">{error}</p>
         </section>
       </>
@@ -87,7 +87,7 @@ export function ProfileView({ username }: { username?: string }) {
       <WpmTrend points={trend} />
       <RecentRuns tests={tests} />
       {loading ? (
-        <p className="px-5 pb-10 text-[11px] uppercase tracking-[0.16em] text-muted-foreground sm:px-16">
+        <p className="px-5 pb-10 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground sm:px-12 lg:px-16">
           Loading the rest of your history…
         </p>
       ) : null}

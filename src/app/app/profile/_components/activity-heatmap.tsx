@@ -1,6 +1,6 @@
-import { Tag } from "@/components/ft";
 import { cn } from "@/lib/utils";
 import type { DayCell } from "./derive-stats";
+import { ProfileSection } from "./profile-section";
 
 /** GitHub-style activity heatmap. Each column is a week (Mon → Sun);
  *  each cell is a day, painted by test count against the user's own
@@ -25,20 +25,17 @@ export function ActivityHeatmap({ days }: { days: DayCell[] }) {
   const columns = chunkIntoWeeks(days);
 
   return (
-    <section className="border-b border-border px-5 py-10 sm:px-16 sm:py-12">
-      <div className="mb-7 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span aria-hidden className="inline-block h-px w-5 bg-primary" />
-          <Tag>Activity · last 12 months</Tag>
-        </div>
-        <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
+    <ProfileSection
+      label="Activity · last 12 months"
+      actions={
+        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
           <span className="text-foreground tabular-nums">{total}</span>{" "}
           tests ·{" "}
           <span className="text-foreground tabular-nums">{activeDays}</span>{" "}
           active days
         </span>
-      </div>
-
+      }
+    >
       <div className="flex w-full flex-col gap-1.5">
         <MonthAxis columns={columns} />
         <div
@@ -57,7 +54,7 @@ export function ActivityHeatmap({ days }: { days: DayCell[] }) {
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-end gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+      <div className="mt-4 flex items-center justify-end gap-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
         <span>Less</span>
         {[0, 0.25, 0.5, 0.75, 1].map((v, i) => (
           <span
@@ -69,7 +66,7 @@ export function ActivityHeatmap({ days }: { days: DayCell[] }) {
         ))}
         <span>More</span>
       </div>
-    </section>
+    </ProfileSection>
   );
 }
 
@@ -94,7 +91,7 @@ function MonthAxis({ columns }: { columns: (DayCell | null)[][] }) {
   });
   return (
     <div
-      className="grid w-full font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground"
+      className="grid w-full text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground"
       style={{
         gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
       }}

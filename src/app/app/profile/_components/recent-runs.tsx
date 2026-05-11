@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Tag } from "@/components/ft";
 import type { HistoryTest } from "@/types/history";
+import { ProfileSection } from "./profile-section";
 
 /** Compact recent-runs table — last N completed tests, newest first.
  *  Mirrors the on-page table conventions from /app/biogram for visual
@@ -9,20 +9,18 @@ export function RecentRuns({ tests }: { tests: readonly HistoryTest[] }) {
   const completed = tests.filter((t) => t.wasCompleted).slice(0, 8);
 
   return (
-    <section className="px-5 py-10 sm:px-16 sm:py-12">
-      <div className="mb-7 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span aria-hidden className="inline-block h-px w-5 bg-primary" />
-          <Tag>Recent runs</Tag>
-        </div>
+    <ProfileSection
+      label="Recent runs"
+      noBorder
+      actions={
         <Link
           href="/app/history"
-          className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-primary"
+          className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-primary"
         >
           View all →
         </Link>
-      </div>
-
+      }
+    >
       {completed.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No completed runs yet — kick one off at{" "}
@@ -70,7 +68,7 @@ export function RecentRuns({ tests }: { tests: readonly HistoryTest[] }) {
           </table>
         </div>
       )}
-    </section>
+    </ProfileSection>
   );
 }
 
