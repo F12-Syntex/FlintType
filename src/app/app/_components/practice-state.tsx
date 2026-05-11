@@ -1,5 +1,6 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import {
   createContext,
   useCallback,
@@ -560,6 +561,15 @@ export function PracticeProvider({
   // setting onto their phone. The stored preference is preserved
   // unchanged; switching back to desktop restores the user's choice.
   const isMobile = useIsMobile();
+  // Adaptive practice requires an account: the bigram / trigram /
+  // word models are persisted server-side per Clerk userId, and the
+  // /api/adapt routes sit behind requireAuth. Anonymous visitors get
+  // the feature locked to off — the toggle in <AdaptControl> opens a
+  // modal that prompts them to sign in. While Clerk loads we treat
+  // the viewer as signed-out so first paint never hands them the
+  // adaptive batch fetch (which would 401).
+  const { isSignedIn, isLoaded: userLoaded } = useUser();
+  const adaptAuthAllowed = userLoaded && isSignedIn === true;
   const {
     value: practiceSlice,
     update: updatePracticeSlice,
@@ -578,6 +588,11 @@ export function PracticeProvider({
   // and non-WORDS modes never load adaptively.
   const [adaptLoading, setAdaptLoading] = useState<boolean>(() => {
     if (lockedWords && lockedWords.length > 0) return false;
+    // Initial paint: don't show the adaptive skeleton when Clerk hasn't
+    // confirmed a signed-in user yet — keeps the local fallback visible
+    // for anonymous viewers instead of blanking the passage waiting on a
+    // fetch that will never fire.
+    if (!adaptAuthAllowed) return false;
     return practiceSlice.adapt && practiceSlice.mode === "WORDS";
   });
 
@@ -831,6 +846,13 @@ export function PracticeProvider({
       setAdaptLoading(false);
       return;
     }
+    if (!adaptAuthAllowed) {
+      // Stored slice says adapt=true but no signed-in user — feature is
+      // gated. Skip the fetch entirely (it would 401), keep the seeded
+      // local words on screen, and clear any leftover skeleton.
+      setAdaptLoading(false);
+      return;
+    }
     setAdaptLoading(true);
     const cfg = {
       minWordLength: prefsRef.current.minWordLength,
@@ -866,7 +888,7 @@ export function PracticeProvider({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [practiceSlice]);
+  }, [practiceSlice, adaptAuthAllowed]);
 
   const value = useMemo<PracticeCtx>(() => {
     const isFinal = state.phase === "done";
@@ -945,10 +967,14 @@ export function PracticeProvider({
         setAdaptLoading(false);
       }
     };
-    // Effective state — see comment on `isMobile` declaration above.
-    // Stored preference (state.adapt) is unchanged; only the value
-    // exposed to consumers flips off when on a phone-sized viewport.
-    const effectiveState = isMobile && state.adapt
+    // Effective state — see comments on `isMobile` and
+    // `adaptAuthAllowed` declarations above. Stored preference
+    // (state.adapt) is unchanged; only the value exposed to consumers
+    // flips off when on a phone-sized viewport OR when Clerk reports
+    // no signed-in user. Both gates are independent — either one
+    // forces adapt=false; both must clear for the feature to engage.
+    const adaptDisabled = isMobile || !adaptAuthAllowed;
+    const effectiveState = adaptDisabled && state.adapt
       ? { ...state, adapt: false }
       : state;
     return {
@@ -998,6 +1024,12 @@ export function PracticeProvider({
         }
       },
       toggleAdapt: () => {
+        // Anonymous viewers can't enable adapt — the route stack is
+        // gated by requireAuth and there's no userId to key the model
+        // against. The <AdaptControl> button still opens the modal so
+        // the user can read the explainer + sign-in CTA, but the
+        // toggle itself is a no-op until they're authed.
+        if (!adaptAuthAllowed) return;
         dispatch({ type: "TOGGLE_ADAPT" });
         const next = !state.adapt;
         lastAppliedSliceRef.current = `${state.mode}|${state.length}|${next}`;
@@ -1035,7 +1067,7 @@ export function PracticeProvider({
         }
       },
     };
-  }, [state, elapsedMs, wpmHistory, isMobile, adaptLoading, suddenDeathRestarts]);
+  }, [state, elapsedMs, wpmHistory, isMobile, adaptAuthAllowed, adaptLoading, suddenDeathRestarts]);
 
   // Keyboard listener — only when user isn't typing into another input.
   const stateRef = useRef(state);

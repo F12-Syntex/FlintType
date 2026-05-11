@@ -1,6 +1,8 @@
 "use client";
 
-import { X } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
+import Link from "next/link";
+import { Lock, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { OptionSwitch } from "@/components/ui/option-switch";
@@ -255,6 +257,12 @@ function ModeControls() {
  *  feature; the small-viewport flow doesn't expose it at all. */
 function AdaptControl() {
   const { state, toggleAdapt } = usePractice();
+  // Adaptive practice is account-gated — see practice-state.tsx for the
+  // matching effective-state guard. Treat the viewer as anonymous while
+  // Clerk is still loading so the chip never momentarily flips between
+  // "locked" and "off" on first paint.
+  const { isSignedIn, isLoaded: userLoaded } = useUser();
+  const requiresSignIn = !userLoaded || isSignedIn !== true;
   const [open, setOpen] = useState(false);
   return (
     <Field label="adapt">
@@ -263,24 +271,35 @@ function AdaptControl() {
         onClick={() => setOpen(true)}
         className={cn(
           "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-muted px-3 text-xs font-medium transition-colors hover:bg-muted/70",
-          state.adapt ? "text-foreground" : "text-muted-foreground",
+          state.adapt && !requiresSignIn
+            ? "text-foreground"
+            : "text-muted-foreground",
         )}
-        aria-label={`Adaptive practice: ${state.adapt ? "on" : "off"} — open editor`}
+        aria-label={
+          requiresSignIn
+            ? "Adaptive practice: locked — sign in to enable"
+            : `Adaptive practice: ${state.adapt ? "on" : "off"} — open editor`
+        }
       >
-        <span
-          aria-hidden
-          className={cn(
-            "size-1.5 rounded-full",
-            state.adapt ? "bg-primary" : "bg-muted-foreground/40",
-          )}
-        />
-        {state.adapt ? "on" : "off"}
+        {requiresSignIn ? (
+          <Lock size={11} aria-hidden className="text-muted-foreground/70" />
+        ) : (
+          <span
+            aria-hidden
+            className={cn(
+              "size-1.5 rounded-full",
+              state.adapt ? "bg-primary" : "bg-muted-foreground/40",
+            )}
+          />
+        )}
+        {requiresSignIn ? "off" : state.adapt ? "on" : "off"}
       </button>
       <AdaptModal
         open={open}
         onClose={() => setOpen(false)}
-        adaptOn={state.adapt}
+        adaptOn={state.adapt && !requiresSignIn}
         onToggleAdapt={toggleAdapt}
+        requiresSignIn={requiresSignIn}
       />
     </Field>
   );
@@ -296,11 +315,16 @@ function AdaptModal({
   onClose,
   adaptOn,
   onToggleAdapt,
+  requiresSignIn,
 }: {
   open: boolean;
   onClose: () => void;
   adaptOn: boolean;
   onToggleAdapt: () => void;
+  /** When true the viewer is anonymous and adaptive practice is locked.
+   *  The toggle in the header is replaced by a sign-in CTA and the body
+   *  shows a single explainer line above the algorithm copy. */
+  requiresSignIn: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -349,7 +373,16 @@ function AdaptModal({
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <Toggle on={adaptOn} onToggle={onToggleAdapt} ariaLabel="Adaptive practice" />
+            {requiresSignIn ? (
+              <Link
+                href="/sign-in"
+                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-primary/40 bg-primary/[0.06] px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/[0.12]"
+              >
+                <Lock size={12} aria-hidden /> Sign in to enable
+              </Link>
+            ) : (
+              <Toggle on={adaptOn} onToggle={onToggleAdapt} ariaLabel="Adaptive practice" />
+            )}
             <button
               type="button"
               onClick={onClose}
@@ -361,6 +394,29 @@ function AdaptModal({
           </div>
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          {requiresSignIn ? (
+            <div className="mb-4 flex items-start gap-2 rounded-md border border-primary/30 bg-primary/[0.04] px-3 py-2.5 text-xs leading-relaxed text-foreground">
+              <Lock size={14} aria-hidden className="mt-0.5 shrink-0 text-primary" />
+              <span>
+                Adaptive practice keeps a private model of your timings on
+                our server, so it needs an account.{" "}
+                <Link
+                  href="/sign-in"
+                  className="text-primary underline underline-offset-2 hover:no-underline"
+                >
+                  Sign in
+                </Link>{" "}
+                or{" "}
+                <Link
+                  href="/sign-up"
+                  className="text-primary underline underline-offset-2 hover:no-underline"
+                >
+                  create an account
+                </Link>{" "}
+                to enable it.
+              </span>
+            </div>
+          ) : null}
           <div className="mb-4 space-y-3 text-sm leading-relaxed text-muted-foreground">
             <p>
               Every keystroke timing feeds three models:{" "}
