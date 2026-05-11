@@ -17,7 +17,7 @@ export function RecentRuns({ tests }: { tests: readonly HistoryTest[] }) {
       noBorder
       actions={
         <Link
-          href="/app/history"
+          href="/app/insights"
           className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-primary"
         >
           View all →
