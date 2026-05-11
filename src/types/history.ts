@@ -1,3 +1,13 @@
+import { z } from "zod";
+
+/** Public-profile lookup input. The slug here is a Clerk username,
+ *  not an email-local-part or Clerk userId — visitors can only view
+ *  profiles of users who have set a real username. */
+export const publicProfileInputSchema = z.object({
+  username: z.string().min(1).max(64),
+});
+export type PublicProfileInput = z.infer<typeof publicProfileInputSchema>;
+
 /** History page payload — one round-trip serves every panel:
  *  Headline insights, Daily chart, Pair evolution, Records, Run log.
  *  All client-side aggregation (binning by date, computing PRs,

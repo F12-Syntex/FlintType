@@ -109,10 +109,11 @@ export function MonkeyTypeManageDialog({
         onOpenChange(next);
       }}
       title="MonkeyType connection"
-      keepOpen
-      confirmDisabled={busy != null}
-      confirmLabel={busy === "resync" ? "Resyncing…" : "Resync now"}
-      cancelLabel="Close"
+      // hideFooter — the dialog renders its own action row (Resync /
+      // Re-paste / Disconnect / Close) inline so all four primary
+      // actions sit on the same baseline instead of being split
+      // between body + footer.
+      hideFooter
       onConfirm={() => void handleResync()}
     >
       <div className="flex flex-col gap-5">
@@ -174,8 +175,20 @@ export function MonkeyTypeManageDialog({
           </p>
         ) : null}
 
-        {/* Secondary actions */}
+        {/* Action row — all four affordances on the same baseline.
+         *  Resync is the primary; Re-paste + Disconnect are
+         *  outline; Close is ghost. Disconnect uses an inline
+         *  two-step confirm via the same row (Confirm disconnect
+         *  appears in place of Disconnect once the user clicks). */}
         <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
+          <Button
+            variant="default"
+            size="sm"
+            disabled={busy != null}
+            onClick={() => void handleResync()}
+          >
+            {busy === "resync" ? "Resyncing…" : "Resync now"}
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -184,27 +197,47 @@ export function MonkeyTypeManageDialog({
           >
             Re-paste key
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={busy != null}
-            onClick={() => setConfirmDisconnect((v) => !v)}
-            className={cn(
-              confirmDisconnect && "border-destructive/40 text-destructive",
-            )}
-          >
-            {confirmDisconnect ? "Cancel" : "Disconnect"}
-          </Button>
           {confirmDisconnect ? (
+            <>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={busy != null}
+                onClick={() => void handleDisconnect()}
+              >
+                {busy === "disconnect"
+                  ? "Disconnecting…"
+                  : "Confirm disconnect"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={busy != null}
+                onClick={() => setConfirmDisconnect(false)}
+              >
+                Cancel
+              </Button>
+            </>
+          ) : (
             <Button
-              variant="destructive"
+              variant="outline"
               size="sm"
               disabled={busy != null}
-              onClick={() => void handleDisconnect()}
+              onClick={() => setConfirmDisconnect(true)}
+              className={cn("border-destructive/40 text-destructive")}
             >
-              {busy === "disconnect" ? "Disconnecting…" : "Confirm disconnect"}
+              Disconnect
             </Button>
-          ) : null}
+          )}
+          <span className="ml-auto" />
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={busy != null}
+            onClick={() => onOpenChange(false)}
+          >
+            Close
+          </Button>
         </div>
         {confirmDisconnect ? (
           <p className="text-[12px] leading-relaxed text-muted-foreground">

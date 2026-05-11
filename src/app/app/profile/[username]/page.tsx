@@ -1,6 +1,5 @@
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../../_components/app-chrome";
-import { requireSession } from "../../_components/require-session";
 import { ProfileView } from "../_components/profile-view";
 
 type Params = { username: string };
@@ -19,12 +18,17 @@ export async function generateMetadata({
   });
 }
 
+/** Public profile view — anyone (signed in or not) can read it.
+ *  ProfileView decides whether the viewer is the owner via Clerk
+ *  useUser() and shows / hides the owner-only chrome (Edit, MT
+ *  manage, Sign out) accordingly. The data comes from
+ *  history.publicProfile when the URL doesn't match the signed-in
+ *  user, and history.summary when it does. */
 export default async function ProfileByUsernamePage({
   params,
 }: {
   params: Promise<Params>;
 }) {
-  await requireSession();
   const { username } = await params;
   return (
     <AppChrome>

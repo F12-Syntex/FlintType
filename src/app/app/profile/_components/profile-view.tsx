@@ -1,5 +1,6 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BackendError, useBackend } from "@/lib/backend";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
@@ -29,27 +30,36 @@ const EMPTY_MT_SLICE: MonkeytypeStatsSlice = {
   pbs: { time: {}, words: {} },
 };
 
-/** /app/profile/<username> orchestrator. One backend call
- *  (history.summary) feeds every panel — totals, streak, personal
- *  bests, activity heatmap, WPM trend, recent runs. The page is
- *  read-only and designed as a public profile view; account /
- *  sign-out controls live in /app/customise.
+/** /app/profile/<username> orchestrator. Fans one history fetch out
+ *  to every panel — totals, streak, PBs, activity, trend, recent
+ *  runs. Public-friendly: viewers can read another user's profile
+ *  without an account; the owner-only chrome (Edit, MonkeyType
+ *  manage, Sign out) is gated client-side via `isOwner`.
  *
- *  `username` comes from the URL slug. The hero displays it as the
- *  canonical handle. Today the data still comes from the signed-in
- *  user's own history (only one history endpoint is available); when
- *  cross-user history reads land, this is the place to swap in a
- *  username-scoped fetch. */
+ *  Two fetch paths:
+ *    - own profile: history.summary (auth-required, signed-in user
+ *      is the subject). MT auto-sync runs here too.
+ *    - someone else's: history.publicProfile({ username }) — public,
+ *      looks up the user via Clerk username. MT auto-sync skipped. */
 export function ProfileView({ username }: { username?: string }) {
   const backend = useBackend();
+  const { user, isLoaded: userLoaded } = useUser();
+  const isOwner = userLoaded ? matchesViewer(username, user) : null;
+
   const [snapshot, setSnapshot] = useState<HistorySummaryOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Wait for Clerk to load so the owner / visitor branch is stable.
+    if (isOwner == null) return;
     let cancelled = false;
-    backend.history
-      .summary()
+    setLoading(true);
+    setError(null);
+    const fetcher = isOwner
+      ? backend.history.summary()
+      : backend.history.publicProfile({ username: username! });
+    fetcher
       .then((r) => {
         if (cancelled) return;
         setSnapshot(r);
@@ -58,6 +68,8 @@ export function ProfileView({ username }: { username?: string }) {
         if (cancelled) return;
         if (err instanceof BackendError && err.code === "UNAUTHORIZED") {
           setError("Sign in to view your profile.");
+        } else if (err instanceof BackendError && err.code === "NOT_FOUND") {
+          setError(`No flinttype profile for @${username}.`);
         } else {
           setError(
             err instanceof Error ? err.message : "Failed to load profile.",
@@ -70,18 +82,24 @@ export function ProfileView({ username }: { username?: string }) {
     return () => {
       cancelled = true;
     };
-  }, [backend]);
+  }, [backend, isOwner, username]);
 
   const tests = snapshot?.recentTests ?? [];
+  // The MT slice is the *viewer's* slice (their stored key, their
+  // stats). When viewing someone else's profile we still read the
+  // viewer's slice into the merge layer — but it'll be empty unless
+  // the viewer is the owner, since it's keyed to the signed-in user.
   const { value: mtSliceRaw, update: updateMtSlice } =
     useRemotePrefs<MonkeytypeStatsSlice>("monkeytypeStats", EMPTY_MT_SLICE);
-  const mtSlice = mtSliceRaw.importedAt > 0 ? mtSliceRaw : null;
-  const hasStoredKey = mtSlice?.encryptedApiKey != null;
+  const ownMtSlice = mtSliceRaw.importedAt > 0 ? mtSliceRaw : null;
+  // Only the owner sees their own MT data overlaid; visitors see the
+  // raw subject's data. Visitors looking at someone else's profile
+  // should never see *their* MT PBs leak into the visited profile.
+  const mtSlice = isOwner ? ownMtSlice : null;
+  const hasStoredKey = isOwner === true && ownMtSlice?.encryptedApiKey != null;
 
-  // Auto-sync once per page load when a stored Ape Key exists. The
-  // empty-input form of the import route decrypts the stored key
-  // server-side and refreshes the slice. Failures stay silent —
-  // last-known data continues to render.
+  // Auto-sync once per page load when a stored Ape Key exists AND the
+  // viewer is the owner. Visitors never trigger MT sync.
   const syncedRef = useRef(false);
   useEffect(() => {
     if (!hasStoredKey || syncedRef.current) return;
@@ -91,13 +109,10 @@ export function ProfileView({ username }: { username?: string }) {
       .import({})
       .then((out) => {
         if (cancelled) return;
-        // Pipe the fresh slice back into the local prefs cache so
-        // PBs / lifetime totals re-merge without a manual refresh.
         updateMtSlice(out.slice);
       })
       .catch(() => {
-        // Stored key may be inactive / revoked. Don't spam errors;
-        // the next manual import will surface the cause.
+        /* stored key may be inactive — silent */
       });
     return () => {
       cancelled = true;
@@ -118,10 +133,16 @@ export function ProfileView({ username }: { username?: string }) {
   const activity = useMemo(() => deriveActivity(tests, 52), [tests]);
   const trend = useMemo(() => deriveTrend(tests, 60), [tests]);
 
+  const heroIsOwner = isOwner === true;
+
   if (error) {
     return (
       <>
-        <ProfileHero totals={totals} username={username} />
+        <ProfileHero
+          totals={totals}
+          username={username}
+          isOwner={heroIsOwner}
+        />
         <section className="px-5 py-12 sm:px-12 sm:py-14 lg:px-16">
           <p className="text-sm text-primary">{error}</p>
         </section>
@@ -131,7 +152,11 @@ export function ProfileView({ username }: { username?: string }) {
 
   return (
     <>
-      <ProfileHero totals={totals} username={username} />
+      <ProfileHero
+        totals={totals}
+        username={username}
+        isOwner={heroIsOwner}
+      />
       <ProfileStats totals={totals} streak={streak} rank={null} />
       <PersonalBests bests={bests} />
       <ActivityHeatmap days={activity} streak={streak} />
@@ -139,9 +164,31 @@ export function ProfileView({ username }: { username?: string }) {
       <RecentRuns tests={tests} />
       {loading ? (
         <p className="px-5 pb-10 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground sm:px-12 lg:px-16">
-          Loading the rest of your history…
+          Loading the rest of {heroIsOwner ? "your" : "their"} history…
         </p>
       ) : null}
     </>
   );
+}
+
+/** True when the URL's username slug matches the signed-in user.
+ *  Checks the trio of fall-back identities the redirect can produce
+ *  (`user.username`, email-local-part, `user.id`) so the canonical
+ *  /app/profile/<slug> URL marks the user as owner regardless of
+ *  which fall-back the redirect picked. */
+function matchesViewer(
+  urlUsername: string | undefined,
+  user: ReturnType<typeof useUser>["user"],
+): boolean {
+  if (!user) return false;
+  // No username in the URL means /app/profile bare → always owner
+  // (the page should have redirected, but treat it as own as a
+  // safety net).
+  if (!urlUsername) return true;
+  const candidates = new Set<string>();
+  if (user.username) candidates.add(user.username);
+  const email = user.emailAddresses?.[0]?.emailAddress.split("@")[0];
+  if (email) candidates.add(email);
+  if (user.id) candidates.add(user.id);
+  return candidates.has(urlUsername);
 }

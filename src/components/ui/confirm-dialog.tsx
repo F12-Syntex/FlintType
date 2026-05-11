@@ -43,6 +43,11 @@ export function ConfirmDialog({
   /** Disable the confirm button entirely — useful while an in-flight
    *  request is pending so the user can't double-submit. */
   confirmDisabled = false,
+  /** Hide the dialog footer entirely (no confirm / cancel buttons).
+   *  Used by surfaces that want to render their own action row
+   *  inline in the body. The header's close ✕, click-outside, and
+   *  Escape still close the dialog. */
+  hideFooter = false,
 }: {
   open: boolean;
   onOpenChange: (next: boolean) => void;
@@ -50,10 +55,11 @@ export function ConfirmDialog({
   children: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
-  onConfirm: () => void;
+  onConfirm?: () => void;
   confirmVariant?: "default" | "destructive";
   keepOpen?: boolean;
   confirmDisabled?: boolean;
+  hideFooter?: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
   const [render, setRender] = useState(false);
@@ -100,7 +106,7 @@ export function ConfirmDialog({
   if (!mounted || !render) return null;
 
   function handleConfirm() {
-    onConfirm();
+    onConfirm?.();
     if (!keepOpen) onOpenChange(false);
   }
 
@@ -162,25 +168,27 @@ export function ConfirmDialog({
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5">
           {children}
         </div>
-        <footer className="flex shrink-0 items-center justify-end gap-2 border-t border-border bg-background/60 px-4 py-3 md:px-5">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-            className="h-9"
-          >
-            {cancelLabel}
-          </Button>
-          <Button
-            variant={confirmVariant === "destructive" ? "destructive" : "default"}
-            size="sm"
-            onClick={handleConfirm}
-            disabled={confirmDisabled}
-            className="h-9"
-          >
-            {confirmLabel}
-          </Button>
-        </footer>
+        {hideFooter ? null : (
+          <footer className="flex shrink-0 items-center justify-end gap-2 border-t border-border bg-background/60 px-4 py-3 md:px-5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              className="h-9"
+            >
+              {cancelLabel}
+            </Button>
+            <Button
+              variant={confirmVariant === "destructive" ? "destructive" : "default"}
+              size="sm"
+              onClick={handleConfirm}
+              disabled={confirmDisabled}
+              className="h-9"
+            >
+              {confirmLabel}
+            </Button>
+          </footer>
+        )}
       </div>
     </div>
   );

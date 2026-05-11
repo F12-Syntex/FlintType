@@ -1,7 +1,7 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
-import { Download, Link2, Pencil } from "lucide-react";
+import { useClerk, useUser } from "@clerk/nextjs";
+import { Download, Link2, LogOut, Pencil } from "lucide-react";
 import { useState } from "react";
 import { Tag } from "@/components/ft";
 import { Button } from "@/components/ui/button";
@@ -27,100 +27,136 @@ const EMPTY_MT_SLICE: MonkeytypeStatsSlice = {
 export function ProfileHero({
   totals,
   username,
+  isOwner,
 }: {
   totals: ProfileTotals;
   username?: string;
+  /** True when the viewer owns this profile. Owner-only chrome (Edit,
+   *  MonkeyType, Sign out) is hidden when false so visitors see a
+   *  pure-data view of someone else's profile. */
+  isOwner: boolean;
 }) {
   const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
   const [editOpen, setEditOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
 
-  // Track the connection state inline so the import button label +
-  // dialog flips between paste-key and manage based on whether we
-  // have a stored Ape Key.
+  // The hero ALWAYS reflects the subject of the URL, not the viewer.
+  // For owners that's the signed-in Clerk user; for visitors we have
+  // no Clerk record on the client, so the URL slug is the only handle
+  // we can show. Display name in the visitor case is just `@slug` with
+  // an initial-fallback avatar — when the public profile data fetch
+  // returns we don't get an avatar URL back (no public users API
+  // surface yet), so an initial is the best we have.
+
+  // Owner-only: track the connection state inline so the import
+  // button label + dialog flips between paste-key and manage based on
+  // whether we have a stored Ape Key. Visitors never see these
+  // controls so we read the slice anyway (cheap) but gate the UI on
+  // isOwner.
   const { value: mtSliceRaw, update: updateMtSlice } =
     useRemotePrefs<MonkeytypeStatsSlice>("monkeytypeStats", EMPTY_MT_SLICE);
   const isConnected =
-    mtSliceRaw.importedAt > 0 && mtSliceRaw.encryptedApiKey != null;
-  const displayName = !isLoaded
-    ? "—"
-    : (user?.firstName ??
-        user?.username ??
-        username ??
-        user?.emailAddresses[0]?.emailAddress.split("@")[0] ??
-        "Anonymous");
-  // `username` from the URL is the canonical handle even though we
-  // no longer surface it inline — page metadata + the route still
-  // depend on it. Display name + member-since are the only visible
-  // chrome above the level bar.
-  void username;
+    isOwner &&
+    mtSliceRaw.importedAt > 0 &&
+    mtSliceRaw.encryptedApiKey != null;
+  // Owner: prefer Clerk's profile fields. Visitor: the URL slug is
+  // the only identity we have on the client.
+  const displayName = isOwner
+    ? !isLoaded
+      ? "—"
+      : (user?.firstName ??
+          user?.username ??
+          username ??
+          user?.emailAddresses[0]?.emailAddress.split("@")[0] ??
+          "Anonymous")
+    : (username ?? "Anonymous");
   const initial = (displayName.charAt(0) || "·").toUpperCase();
   const joined =
-    user?.createdAt != null
+    isOwner && user?.createdAt != null
       ? new Date(user.createdAt).toLocaleDateString(undefined, {
           year: "numeric",
           month: "short",
         })
       : null;
+  // Visitors get the initial-fallback avatar; we don't have a public
+  // users-API surface that returns a foreign user's imageUrl yet.
+  const avatarImageUrl = isOwner ? (user?.imageUrl ?? null) : null;
 
   return (
     <header className="relative border-b border-border px-5 py-12 sm:px-12 sm:py-16 lg:px-16">
-      {/* Edit + Import|MonkeyType sit in the top-right corner so
-       *  they stay accessible without breaking the centred profile
-       *  lockup. The MT button label flips once a key is stored:
-       *  'Import' → opens the paste-key dialog; 'MonkeyType' →
-       *  opens the manage dialog (resync / re-paste / disconnect).
-       *  Settings moved off this page; account chrome lives at
-       *  /app/customise (still reachable via the topbar). */}
-      <div className="absolute top-5 right-5 flex items-center gap-2 sm:top-8 sm:right-8 lg:top-10 lg:right-10">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            isConnected ? setManageOpen(true) : setImportOpen(true)
-          }
-          aria-label={
-            isConnected ? "Manage MonkeyType connection" : "Import from MonkeyType"
-          }
-        >
-          {isConnected ? (
-            <Link2 size={14} aria-hidden />
-          ) : (
-            <Download size={14} aria-hidden />
-          )}
-          <span className="hidden sm:inline">
-            {isConnected ? "MonkeyType" : "Import"}
-          </span>
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setEditOpen(true)}
-          aria-label="Edit profile"
-        >
-          <Pencil size={14} aria-hidden />
-          <span className="hidden sm:inline">Edit</span>
-        </Button>
-      </div>
+      {/* Owner-only chrome — Edit, MonkeyType (import / manage),
+       *  Sign out. Visitors don't see any of these so they get a
+       *  read-only profile view. The MonkeyType button label flips
+       *  once a key is stored: 'Import' opens the paste-key dialog,
+       *  'MonkeyType' opens the manage dialog (resync / re-paste /
+       *  disconnect). */}
+      {isOwner ? (
+        <div className="absolute top-5 right-5 flex items-center gap-2 sm:top-8 sm:right-8 lg:top-10 lg:right-10">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              isConnected ? setManageOpen(true) : setImportOpen(true)
+            }
+            aria-label={
+              isConnected
+                ? "Manage MonkeyType connection"
+                : "Import from MonkeyType"
+            }
+          >
+            {isConnected ? (
+              <Link2 size={14} aria-hidden />
+            ) : (
+              <Download size={14} aria-hidden />
+            )}
+            <span className="hidden sm:inline">
+              {isConnected ? "MonkeyType" : "Import"}
+            </span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setEditOpen(true)}
+            aria-label="Edit profile"
+          >
+            <Pencil size={14} aria-hidden />
+            <span className="hidden sm:inline">Edit</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void signOut({ redirectUrl: "/" })}
+            aria-label="Sign out"
+          >
+            <LogOut size={14} aria-hidden />
+            <span className="hidden sm:inline">Sign out</span>
+          </Button>
+        </div>
+      ) : null}
 
-      <EditProfileDialog open={editOpen} onOpenChange={setEditOpen} />
-      <MonkeyTypeImportDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-      />
-      {isConnected ? (
-        <MonkeyTypeManageDialog
-          open={manageOpen}
-          onOpenChange={setManageOpen}
-          slice={mtSliceRaw}
-          onSliceUpdate={(next) => updateMtSlice(next)}
-          onSliceCleared={() => updateMtSlice(EMPTY_MT_SLICE)}
-          onRepaste={() => {
-            setManageOpen(false);
-            setImportOpen(true);
-          }}
-        />
+      {isOwner ? (
+        <>
+          <EditProfileDialog open={editOpen} onOpenChange={setEditOpen} />
+          <MonkeyTypeImportDialog
+            open={importOpen}
+            onOpenChange={setImportOpen}
+          />
+          {isConnected ? (
+            <MonkeyTypeManageDialog
+              open={manageOpen}
+              onOpenChange={setManageOpen}
+              slice={mtSliceRaw}
+              onSliceUpdate={(next) => updateMtSlice(next)}
+              onSliceCleared={() => updateMtSlice(EMPTY_MT_SLICE)}
+              onRepaste={() => {
+                setManageOpen(false);
+                setImportOpen(true);
+              }}
+            />
+          ) : null}
+        </>
       ) : null}
 
       <div className="mb-7 flex items-center justify-center gap-3">
@@ -130,9 +166,9 @@ export function ProfileHero({
 
       <div className="mx-auto flex max-w-md flex-col items-center gap-5 text-center">
         <Avatar
-          imageUrl={user?.imageUrl ?? null}
+          imageUrl={avatarImageUrl}
           initial={initial}
-          isLoaded={isLoaded}
+          isLoaded={isOwner ? isLoaded : true}
         />
 
         <div className="flex flex-col items-center gap-2">
