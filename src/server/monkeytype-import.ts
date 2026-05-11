@@ -95,14 +95,27 @@ async function callMt<T>(
       /* ignore body-read failure — surface status only */
     }
     const detailSuffix = detail ? ` — ${detail.slice(0, 200)}` : "";
-    if (res.status === 401 || res.status === 403) {
+    // MT uses non-standard 47x codes for Ape Key states:
+    //   470 = ApeKey not found
+    //   471 = ApeKey inactive (toggle it on in MT account settings)
+    //   472 = ApeKey malformed
+    //   473 = ApeKey rate limit exceeded
+    // All except 473 are auth-side problems the user can fix; 473
+    // is a rate-limit. Anything else is a real upstream error.
+    if (
+      res.status === 401 ||
+      res.status === 403 ||
+      res.status === 470 ||
+      res.status === 471 ||
+      res.status === 472
+    ) {
       throw new MtAuthError(
-        `MonkeyType rejected the Ape Key (${res.status})${detailSuffix}`,
+        `MonkeyType refused the Ape Key (${res.status})${detailSuffix}`,
       );
     }
-    if (res.status === 429) {
+    if (res.status === 429 || res.status === 473) {
       throw new MtRateLimitError(
-        `MonkeyType rate-limited (429). Try again later${detailSuffix}`,
+        `MonkeyType rate-limited (${res.status}). Try again later${detailSuffix}`,
       );
     }
     throw new MtUpstreamError(
