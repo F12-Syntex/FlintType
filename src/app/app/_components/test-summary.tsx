@@ -411,7 +411,7 @@ export function TestSummary() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col items-center overflow-y-auto px-2 py-3 sm:justify-center sm:overflow-hidden sm:px-4 sm:py-0">
+    <div className="flex h-full min-h-0 flex-col items-center overflow-y-auto px-2 py-3 sm:px-4 sm:py-6">
       <div className="flex w-full max-w-5xl flex-col gap-4 sm:gap-6">
         {/* Top row: stat column on the left, smaller centered chart. */}
         <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[140px_1fr] sm:gap-6 lg:grid-cols-[160px_1fr]">

@@ -223,7 +223,8 @@ export function ResultChart({
 
           {/* Peak / stall reference dots — labelled so the user can
            *  read the headline numbers off the chart, not just the
-           *  stat strip. */}
+           *  stat strip. Both labels paint at full opacity so the
+           *  stall isn't lost against the grid. */}
           {peak ? (
             <ReferenceDot
               x={peak.sec}
@@ -234,11 +235,12 @@ export function ResultChart({
               strokeWidth={1.5}
               ifOverflow="extendDomain"
               label={{
-                value: `peak ${Math.round(peak.wpm)}`,
+                value: `▲ peak ${Math.round(peak.wpm)}`,
                 position: "top",
                 fill: "var(--color-wpm)",
-                fontSize: 10,
-                offset: 8,
+                fontSize: 11,
+                fontWeight: 600,
+                offset: 10,
               }}
             />
           ) : null}
@@ -246,19 +248,19 @@ export function ResultChart({
             <ReferenceDot
               x={stall.sec}
               y={stall.wpm}
-              r={3}
+              r={3.5}
               fill="var(--background)"
-              stroke="currentColor"
-              strokeOpacity={0.45}
-              strokeWidth={1.5}
+              stroke="var(--foreground)"
+              strokeOpacity={0.85}
+              strokeWidth={1.75}
               ifOverflow="extendDomain"
               label={{
-                value: `stall ${Math.round(stall.wpm)}`,
+                value: `▼ stall ${Math.round(stall.wpm)}`,
                 position: "bottom",
-                fill: "currentColor",
-                fillOpacity: 0.55,
-                fontSize: 10,
-                offset: 8,
+                fill: "var(--foreground)",
+                fontSize: 11,
+                fontWeight: 600,
+                offset: 10,
               }}
             />
           ) : null}
