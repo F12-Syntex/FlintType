@@ -4,28 +4,47 @@ import { requireAuth } from "@/server/middleware/auth";
 import { rateLimit } from "@/server/middleware/rate-limit";
 import {
   fetchMonkeytypeResults,
+  fetchMonkeytypeStats,
+  fetchPersonalBests,
   MtAuthError,
   MtRateLimitError,
   mtResultToRow,
   type MtResult,
+  type MtStats,
 } from "@/server/monkeytype-import";
 import {
   monkeytypeImportInputSchema,
   type MonkeytypeImportInput,
   type MonkeytypeImportOutput,
+  type MonkeytypeStatsSlice,
 } from "@/types/monkeytype";
+
+const RESULTS_LIMIT = 10;
 
 const importRoute = defineRoute<MonkeytypeImportInput, MonkeytypeImportOutput>({
   input: monkeytypeImportInputSchema,
   // Tight per-user budget: MT itself rate-limits to ~30/hour and
-  // the import is a heavy multi-row insert — three pulls per hour
-  // is plenty for the dialog UX.
+  // the import is a heavy multi-row insert + four MT round-trips.
+  // Three pulls per hour is plenty for the dialog UX.
   middleware: [requireAuth, rateLimit({ limit: 3, windowMs: 60 * 60 * 1000 })],
   handler: async ({ input, db, meta, log }) => {
     const userId = meta.userId as string;
+    const apiKey = input.apiKey;
+
+    // Four parallel MT round-trips — Ape Key authorises all of them
+    // identically. Promise.all so the dialog spinner has minimum
+    // wall time. Errors propagate from any branch.
     let results: MtResult[];
+    let pbsTime: Record<string, { wpm: number; acc: number }>;
+    let pbsWords: Record<string, { wpm: number; acc: number }>;
+    let stats: MtStats;
     try {
-      results = await fetchMonkeytypeResults(input.apiKey);
+      [results, pbsTime, pbsWords, stats] = await Promise.all([
+        fetchMonkeytypeResults(apiKey, RESULTS_LIMIT),
+        fetchPersonalBests(apiKey, "time"),
+        fetchPersonalBests(apiKey, "words"),
+        fetchMonkeytypeStats(apiKey),
+      ]);
     } catch (err) {
       if (err instanceof MtAuthError) {
         throw new BackendError(401, "UNAUTHORIZED", err.message);
@@ -40,11 +59,14 @@ const importRoute = defineRoute<MonkeytypeImportInput, MonkeytypeImportOutput>({
       );
     }
 
-    log.info("monkeytype.import fetched", { count: results.length });
+    log.info("monkeytype.import fetched", {
+      results: results.length,
+      pbsTime: Object.keys(pbsTime).length,
+      pbsWords: Object.keys(pbsWords).length,
+      stats,
+    });
 
-    // Dedup against the user's existing tests by startedAt timestamp
-    // — MT's own _id isn't stored locally, so timestamp is the
-    // closest stable key for a given run.
+    // ─── Last 10 tests → tests table (with dedup) ────────────────
     const recent = await db.tests.recentForUser(userId, 5000);
     const seenStartedAt = new Set(
       recent.map((t) => t.startedAt.getTime()),
@@ -80,7 +102,36 @@ const importRoute = defineRoute<MonkeytypeImportInput, MonkeytypeImportOutput>({
       }
     }
 
-    return { imported, skipped, fetched: results.length };
+    // ─── PBs + lifetime stats → user_prefs slice ─────────────────
+    // Read-merge-write the user's prefs blob so we don't clobber
+    // unrelated slices (caret, theme, behaviour, …). Race-only
+    // risk: a concurrent client write at the exact moment of
+    // import could lose; acceptable for a manual user action.
+    const slice: MonkeytypeStatsSlice = {
+      importedAt: Date.now(),
+      completedTests: stats.completedTests,
+      startedTests: stats.startedTests,
+      timeTyping: stats.timeTyping,
+      pbs: { time: pbsTime, words: pbsWords },
+    };
+    const existing = await db.userPrefs.get(userId);
+    await db.userPrefs.set(userId, {
+      ...existing,
+      monkeytypeStats: slice,
+    });
+
+    return {
+      imported,
+      skipped,
+      fetched: results.length,
+      pbsImported:
+        Object.keys(pbsTime).length + Object.keys(pbsWords).length,
+      stats: {
+        completedTests: stats.completedTests,
+        startedTests: stats.startedTests,
+        timeTyping: stats.timeTyping,
+      },
+    };
   },
 });
 

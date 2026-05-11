@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { BackendError, useBackend } from "@/lib/backend";
+import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import type { HistorySummaryOutput } from "@/types/history";
+import type { MonkeytypeStatsSlice } from "@/types/monkeytype";
 import { ActivityHeatmap } from "./activity-heatmap";
 import {
   deriveActivity,
@@ -10,12 +12,22 @@ import {
   deriveStreak,
   deriveTotals,
   deriveTrend,
+  mergePersonalBestsWithMt,
+  mergeTotalsWithMt,
 } from "./derive-stats";
 import { PersonalBests } from "./personal-bests";
 import { ProfileHero } from "./profile-hero";
 import { ProfileStats } from "./profile-stats";
 import { RecentRuns } from "./recent-runs";
 import { WpmTrend } from "./wpm-trend";
+
+/** useRemotePrefs needs a non-null object default; an empty slice
+ *  with importedAt=0 acts as the "never imported" sentinel that the
+ *  merge helpers detect to short-circuit. */
+const EMPTY_MT_SLICE: MonkeytypeStatsSlice = {
+  importedAt: 0,
+  pbs: { time: {}, words: {} },
+};
 
 /** /app/profile/<username> orchestrator. One backend call
  *  (history.summary) feeds every panel — totals, streak, personal
@@ -61,9 +73,23 @@ export function ProfileView({ username }: { username?: string }) {
   }, [backend]);
 
   const tests = snapshot?.recentTests ?? [];
-  const totals = useMemo(() => deriveTotals(tests), [tests]);
+  const { value: mtSliceRaw } = useRemotePrefs<MonkeytypeStatsSlice>(
+    "monkeytypeStats",
+    EMPTY_MT_SLICE,
+  );
+  const mtSlice = mtSliceRaw.importedAt > 0 ? mtSliceRaw : null;
+
+  const localTotals = useMemo(() => deriveTotals(tests), [tests]);
+  const totals = useMemo(
+    () => mergeTotalsWithMt(localTotals, mtSlice),
+    [localTotals, mtSlice],
+  );
   const streak = useMemo(() => deriveStreak(tests), [tests]);
-  const bests = useMemo(() => derivePersonalBests(tests), [tests]);
+  const localBests = useMemo(() => derivePersonalBests(tests), [tests]);
+  const bests = useMemo(
+    () => mergePersonalBestsWithMt(localBests, mtSlice),
+    [localBests, mtSlice],
+  );
   const activity = useMemo(() => deriveActivity(tests, 52), [tests]);
   const trend = useMemo(() => deriveTrend(tests, 60), [tests]);
 

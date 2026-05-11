@@ -19,23 +19,48 @@ export type MtResult = {
   incorrectChars: number;
 };
 
+export type MtPbEntry = {
+  wpm: number;
+  acc: number;
+  raw?: number;
+  consistency?: number;
+  language?: string;
+  punctuation?: boolean;
+  numbers?: boolean;
+  timestamp?: number;
+};
+
+/** /users/personalBests?mode={time|words} payload. Each top-level
+ *  key is the length (seconds for time, count for words); the value
+ *  is an array of PB entries (one per language/punctuation/numbers
+ *  combo). We pick the highest-WPM entry per length. */
+export type MtPbResponse = {
+  data?: Record<string, MtPbEntry[]>;
+};
+
+export type MtStats = {
+  completedTests?: number;
+  startedTests?: number;
+  /** Lifetime time spent typing, in seconds. */
+  timeTyping?: number;
+};
+
 const API_BASE = "https://api.monkeytype.com";
 
-/** Pull the caller's MonkeyType results via their Ape Key. Returns
- *  the raw `data` array exactly as MT serves it; the route layer
- *  filters, dedupes, and maps to local rows.
- *
- *  MT auth: `Authorization: ApeKey <key>`. Network failures throw
- *  through; the route layer maps them to UPSTREAM errors. */
-export async function fetchMonkeytypeResults(
+function authHeaders(apiKey: string): HeadersInit {
+  return {
+    Authorization: `ApeKey ${apiKey}`,
+    Accept: "application/json",
+  };
+}
+
+async function callMt<T>(
   apiKey: string,
+  path: string,
   fetchImpl: typeof fetch = fetch,
-): Promise<MtResult[]> {
-  const res = await fetchImpl(`${API_BASE}/results`, {
-    headers: {
-      Authorization: `ApeKey ${apiKey}`,
-      Accept: "application/json",
-    },
+): Promise<T> {
+  const res = await fetchImpl(`${API_BASE}${path}`, {
+    headers: authHeaders(apiKey),
   });
   if (!res.ok) {
     if (res.status === 401 || res.status === 403) {
@@ -46,12 +71,68 @@ export async function fetchMonkeytypeResults(
         "MonkeyType rate-limited the request. Try again later.",
       );
     }
-    throw new MtUpstreamError(
-      `MonkeyType returned ${res.status}.`,
-    );
+    throw new MtUpstreamError(`MonkeyType returned ${res.status}.`);
   }
-  const json = (await res.json()) as { data?: MtResult[] };
+  return (await res.json()) as T;
+}
+
+/** Last N MT results (default 10). Used to seed the local tests table. */
+export async function fetchMonkeytypeResults(
+  apiKey: string,
+  limit = 10,
+  fetchImpl: typeof fetch = fetch,
+): Promise<MtResult[]> {
+  const json = await callMt<{ data?: MtResult[] }>(
+    apiKey,
+    `/results?limit=${encodeURIComponent(String(limit))}`,
+    fetchImpl,
+  );
   return Array.isArray(json.data) ? json.data : [];
+}
+
+/** Personal bests grouped by length. For each length we keep the
+ *  single highest-WPM entry and drop the language / punctuation /
+ *  numbers axis — flinttype's PB grid is mode × length, not mode ×
+ *  length × language. */
+export async function fetchPersonalBests(
+  apiKey: string,
+  mode: "time" | "words",
+  fetchImpl: typeof fetch = fetch,
+): Promise<Record<string, { wpm: number; acc: number }>> {
+  const json = await callMt<MtPbResponse>(
+    apiKey,
+    `/users/personalBests?mode=${mode}`,
+    fetchImpl,
+  );
+  const out: Record<string, { wpm: number; acc: number }> = {};
+  if (!json.data) return out;
+  for (const [length, entries] of Object.entries(json.data)) {
+    if (!Array.isArray(entries) || entries.length === 0) continue;
+    const top = entries.reduce<MtPbEntry | null>(
+      (m, e) => (m == null || (e.wpm ?? 0) > (m.wpm ?? 0) ? e : m),
+      null,
+    );
+    if (!top) continue;
+    out[length] = {
+      wpm: Number(top.wpm) || 0,
+      acc: Number(top.acc) || 0,
+    };
+  }
+  return out;
+}
+
+/** Lifetime stats for the user: started + completed tests, total
+ *  time typing in seconds. */
+export async function fetchMonkeytypeStats(
+  apiKey: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<MtStats> {
+  const json = await callMt<{ data?: MtStats }>(
+    apiKey,
+    `/users/stats`,
+    fetchImpl,
+  );
+  return json.data ?? {};
 }
 
 /** Best-effort mapping from a MonkeyType result to a flinttype

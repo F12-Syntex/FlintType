@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   fetchMonkeytypeResults,
+  fetchMonkeytypeStats,
+  fetchPersonalBests,
   MtAuthError,
   MtRateLimitError,
   MtUpstreamError,
@@ -30,43 +32,91 @@ const sample: MtResult = {
 describe("fetchMonkeytypeResults", () => {
   it("returns the data array on 200", async () => {
     const f = mockFetch({ data: [sample] });
-    const out = await fetchMonkeytypeResults("k", f);
+    const out = await fetchMonkeytypeResults("k", 10, f);
     expect(out).toHaveLength(1);
     expect(out[0]?._id).toBe("abc");
   });
 
   it("returns [] when the response has no data field", async () => {
     const f = mockFetch({});
-    const out = await fetchMonkeytypeResults("k", f);
+    const out = await fetchMonkeytypeResults("k", 10, f);
     expect(out).toEqual([]);
   });
 
   it("throws MtAuthError on 401", async () => {
     const f = mockFetch({}, 401);
-    await expect(fetchMonkeytypeResults("k", f)).rejects.toBeInstanceOf(
+    await expect(fetchMonkeytypeResults("k", 10, f)).rejects.toBeInstanceOf(
       MtAuthError,
     );
   });
 
   it("throws MtAuthError on 403", async () => {
     const f = mockFetch({}, 403);
-    await expect(fetchMonkeytypeResults("k", f)).rejects.toBeInstanceOf(
+    await expect(fetchMonkeytypeResults("k", 10, f)).rejects.toBeInstanceOf(
       MtAuthError,
     );
   });
 
   it("throws MtRateLimitError on 429", async () => {
     const f = mockFetch({}, 429);
-    await expect(fetchMonkeytypeResults("k", f)).rejects.toBeInstanceOf(
+    await expect(fetchMonkeytypeResults("k", 10, f)).rejects.toBeInstanceOf(
       MtRateLimitError,
     );
   });
 
   it("throws MtUpstreamError on other 5xx", async () => {
     const f = mockFetch({}, 503);
-    await expect(fetchMonkeytypeResults("k", f)).rejects.toBeInstanceOf(
+    await expect(fetchMonkeytypeResults("k", 10, f)).rejects.toBeInstanceOf(
       MtUpstreamError,
     );
+  });
+});
+
+describe("fetchPersonalBests", () => {
+  it("collapses each length array down to the highest-WPM entry", async () => {
+    const f = mockFetch({
+      data: {
+        "15": [
+          { wpm: 90, acc: 95.0 },
+          { wpm: 110, acc: 92.0 },
+          { wpm: 100, acc: 96.0 },
+        ],
+        "60": [{ wpm: 95, acc: 96.4 }],
+      },
+    });
+    const out = await fetchPersonalBests("k", "time", f);
+    expect(out["15"]).toEqual({ wpm: 110, acc: 92.0 });
+    expect(out["60"]).toEqual({ wpm: 95, acc: 96.4 });
+  });
+
+  it("returns an empty object when MT has no PB data", async () => {
+    const f = mockFetch({});
+    const out = await fetchPersonalBests("k", "words", f);
+    expect(out).toEqual({});
+  });
+
+  it("propagates MtAuthError on 401", async () => {
+    const f = mockFetch({}, 401);
+    await expect(fetchPersonalBests("k", "time", f)).rejects.toBeInstanceOf(
+      MtAuthError,
+    );
+  });
+});
+
+describe("fetchMonkeytypeStats", () => {
+  it("returns the data payload", async () => {
+    const f = mockFetch({
+      data: { completedTests: 1284, startedTests: 1500, timeTyping: 65000 },
+    });
+    const out = await fetchMonkeytypeStats("k", f);
+    expect(out.completedTests).toBe(1284);
+    expect(out.timeTyping).toBe(65000);
+  });
+
+  it("returns {} on missing data", async () => {
+    const f = mockFetch({});
+    const out = await fetchMonkeytypeStats("k", f);
+    expect(out).toEqual({});
   });
 });
 

@@ -1,4 +1,5 @@
 import type { HistoryTest } from "@/types/history";
+import type { MonkeytypeStatsSlice } from "@/types/monkeytype";
 
 /** Pure derivations from the user's HistoryTest stream. The /profile
  *  page is read-only — every panel is a function over `recentTests`. */
@@ -235,6 +236,99 @@ export function deriveActivity(
  *  newest, capped at the last `limit` tests so the chart breathes
  *  rather than compressing 500 dots into noise. */
 export type TrendPoint = { idx: number; wpm: number; ts: number };
+
+/* ─── MonkeyType overlay merges ───────────────────────────────── */
+
+/** Combine local lifetime totals with the latest MT import snapshot.
+ *  Counters add (local + mt); best-WPM takes the max; level reflects
+ *  the combined completed-test count. Treats `mt` as a snapshot —
+ *  re-importing replaces the snapshot, so counts don't compound. */
+export function mergeTotalsWithMt(
+  local: ProfileTotals,
+  mt: MonkeytypeStatsSlice | null,
+): ProfileTotals {
+  if (!mt) return local;
+  const mtCompleted = Number(mt.completedTests ?? 0);
+  const mtStarted = Number(mt.startedTests ?? 0);
+  const mtTime = Number(mt.timeTyping ?? 0);
+  const mtBestWpm = Math.max(
+    0,
+    ...Object.values(mt.pbs.time).map((p) => p.wpm),
+    ...Object.values(mt.pbs.words).map((p) => p.wpm),
+  );
+  // Recompute the combined level from the merged completed-test
+  // count so a fresh MT import nudges the level bar forward.
+  const combinedCompleted = local.testsCompleted + mtCompleted;
+  let level = 1;
+  let needed = 5;
+  let used = 0;
+  while (used + needed <= combinedCompleted) {
+    used += needed;
+    level += 1;
+    needed = Math.round(needed * 1.5);
+  }
+  const progress = Math.max(
+    0,
+    Math.min(1, (combinedCompleted - used) / needed),
+  );
+  return {
+    ...local,
+    testsStarted: local.testsStarted + mtStarted,
+    testsCompleted: combinedCompleted,
+    completionRate:
+      local.testsStarted + mtStarted > 0
+        ? combinedCompleted / (local.testsStarted + mtStarted)
+        : 0,
+    totalSeconds: local.totalSeconds + mtTime,
+    bestWpm: Math.max(local.bestWpm, mtBestWpm),
+    level,
+    levelProgress: progress,
+  };
+}
+
+/** Overlay MT personal bests onto the local-derived list. For each
+ *  (mode, length) cell, the higher WPM wins. Local mode names are
+ *  algorithmic (training/casual); MT only knows player-mode time/
+ *  words distinction. We surface MT PBs under the casual mode (it's
+ *  flinttype's default-shown row) and only when local has no entry
+ *  at that length, so a stronger local PB never gets overwritten. */
+export function mergePersonalBestsWithMt(
+  local: PersonalBest[],
+  mt: MonkeytypeStatsSlice | null,
+): PersonalBest[] {
+  if (!mt) return local;
+  const out = [...local];
+  const seen = new Set(out.map((b) => `${b.mode}|${b.amount}`));
+  function maybeAdd(entries: Record<string, { wpm: number; acc: number }>) {
+    for (const [key, pb] of Object.entries(entries)) {
+      const amount = Number(key);
+      if (!Number.isFinite(amount)) continue;
+      const composite = `casual|${amount}`;
+      if (seen.has(composite)) {
+        // Local has this length — bump WPM if MT is higher.
+        const existing = out.find(
+          (b) => b.mode === "casual" && b.amount === amount,
+        );
+        if (existing && pb.wpm > existing.bestWpm) {
+          existing.bestWpm = pb.wpm;
+          existing.bestAccuracy = pb.acc;
+        }
+      } else {
+        out.push({
+          mode: "casual",
+          amount,
+          bestWpm: pb.wpm,
+          bestAccuracy: pb.acc,
+          testsCount: 0, // MT PBs aren't backed by individual local rows
+        });
+        seen.add(composite);
+      }
+    }
+  }
+  maybeAdd(mt.pbs.time);
+  maybeAdd(mt.pbs.words);
+  return out;
+}
 
 export function deriveTrend(
   tests: readonly HistoryTest[],

@@ -25,7 +25,13 @@ export function MonkeyTypeImportDialog({
   const [status, setStatus] = useState<
     | { kind: "idle" }
     | { kind: "loading" }
-    | { kind: "ok"; imported: number; skipped: number }
+    | {
+        kind: "ok";
+        imported: number;
+        skipped: number;
+        pbsImported: number;
+        completedTests?: number;
+      }
     | { kind: "err"; message: string }
   >({ kind: "idle" });
 
@@ -42,6 +48,8 @@ export function MonkeyTypeImportDialog({
         kind: "ok",
         imported: out.imported,
         skipped: out.skipped,
+        pbsImported: out.pbsImported,
+        completedTests: out.stats.completedTests,
       });
       setApiKey("");
     } catch (err) {
@@ -141,36 +149,62 @@ function StatusLine({
   status:
     | { kind: "idle" }
     | { kind: "loading" }
-    | { kind: "ok"; imported: number; skipped: number }
+    | {
+        kind: "ok";
+        imported: number;
+        skipped: number;
+        pbsImported: number;
+        completedTests?: number;
+      }
     | { kind: "err"; message: string };
 }) {
   if (status.kind === "idle") return null;
   if (status.kind === "loading") {
     return (
       <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-        Fetching your results from MonkeyType…
+        Fetching your results, personal bests, and stats…
       </p>
     );
   }
   if (status.kind === "ok") {
     return (
-      <p className="text-sm text-foreground" role="status">
-        Imported{" "}
-        <span className="font-mono tabular-nums text-primary">
-          {status.imported}
-        </span>{" "}
-        test{status.imported === 1 ? "" : "s"}
-        {status.skipped > 0 ? (
-          <>
-            {" "}· skipped{" "}
-            <span className="font-mono tabular-nums">
-              {status.skipped}
-            </span>{" "}
-            (already in your history)
-          </>
-        ) : null}
-        . Refresh the profile to see them.
-      </p>
+      <div className="flex flex-col gap-2 text-sm text-foreground" role="status">
+        <p>
+          <span className="font-mono tabular-nums text-primary">
+            {status.imported}
+          </span>{" "}
+          recent test{status.imported === 1 ? "" : "s"} imported
+          {status.skipped > 0 ? (
+            <>
+              {" "}· skipped{" "}
+              <span className="font-mono tabular-nums">
+                {status.skipped}
+              </span>{" "}
+              (already in your history)
+            </>
+          ) : null}
+          .
+        </p>
+        <p>
+          <span className="font-mono tabular-nums text-primary">
+            {status.pbsImported}
+          </span>{" "}
+          personal-best cell{status.pbsImported === 1 ? "" : "s"} stored
+          {status.completedTests != null ? (
+            <>
+              {" "}· lifetime{" "}
+              <span className="font-mono tabular-nums">
+                {status.completedTests.toLocaleString()}
+              </span>{" "}
+              tests
+            </>
+          ) : null}
+          .
+        </p>
+        <p className="text-[12px] text-muted-foreground">
+          Refresh the profile to see the merged view.
+        </p>
+      </div>
     );
   }
   return (
