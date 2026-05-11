@@ -115,15 +115,16 @@ export function MonkeyTypeImportDialog({
           <Step n={2}>
             Click <span className="text-foreground">Generate new key</span>,
             give it any name (e.g. <span className="text-foreground">flinttype</span>),
-            and confirm. Make sure its toggle stays{" "}
-            <span className="text-foreground">enabled</span> — a
-            disabled key fails the import with status 471.
+            and confirm.
           </Step>
           <Step n={3}>
-            Copy the key (shown once) and paste it below. We store
-            it encrypted (AES-256-GCM, key in the server env) so the
-            DB never sees plaintext and you don&apos;t have to
-            re-paste next time.
+            Enable the key by ticking its{" "}
+            <span className="text-foreground">checkbox</span> in the
+            list — keys ship disabled and the import will fail until
+            you turn it on.
+          </Step>
+          <Step n={4}>
+            Copy the key (shown once) and paste it below.
           </Step>
         </ol>
 
