@@ -1,29 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { Button } from "@/components/ui/button";
-import {
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/line-chart";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
 import { cn } from "@/lib/utils";
 import { type KeyEvent, usePractice } from "./practice-state";
-import { SessionAnalysis } from "./session-analysis";
+import { type Bucket, ResultChart } from "./result-chart";
 
 // ─── Stats ─────────────────────────────────────────────────────────
-
-type Bucket = { sec: number; wpm: number; raw: number };
 
 function peakWpm(buckets: readonly Bucket[]): number {
   return buckets.reduce((m, b) => (b.wpm > m ? b.wpm : m), 0);
@@ -100,91 +85,6 @@ function BigStat({
         ) : null}
       </span>
     </div>
-  );
-}
-
-const chartConfig = {
-  wpm: { label: "wpm", color: "var(--primary)" },
-  raw: { label: "raw", color: "var(--muted-foreground)" },
-} satisfies ChartConfig;
-
-function WpmChart({
-  buckets,
-  startAtZero,
-}: {
-  buckets: readonly Bucket[];
-  startAtZero: boolean;
-}) {
-  if (buckets.length < 2) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        run too short for a chart.
-      </p>
-    );
-  }
-  return (
-    <ChartContainer
-      config={chartConfig}
-      className="aspect-auto h-32 w-full sm:h-44 lg:h-52"
-    >
-      <LineChart
-        accessibilityLayer
-        data={buckets as Bucket[]}
-        margin={{ left: 8, right: 16, top: 12, bottom: 0 }}
-      >
-        <CartesianGrid
-          vertical={false}
-          stroke="currentColor"
-          strokeOpacity={0.08}
-        />
-        <XAxis
-          dataKey="sec"
-          tickLine={false}
-          axisLine={false}
-          tickMargin={6}
-          tickFormatter={(v: number) => `${v}`}
-        />
-        <YAxis
-          tickLine={false}
-          axisLine={false}
-          tickMargin={6}
-          width={28}
-          domain={startAtZero ? [0, "auto"] : ["auto", "auto"]}
-        />
-        <ChartTooltip
-          cursor={{ stroke: "currentColor", strokeOpacity: 0.2 }}
-          content={
-            <ChartTooltipContent
-              indicator="dot"
-              labelFormatter={(_, items) => {
-                const first = (items as Array<{ payload?: Bucket }>)[0];
-                return `${first?.payload?.sec ?? 0}s`;
-              }}
-            />
-          }
-        />
-        <Line
-          dataKey="raw"
-          type="monotone"
-          stroke="var(--color-raw)"
-          strokeWidth={1.5}
-          strokeOpacity={0.6}
-          dot={false}
-        />
-        <Line
-          dataKey="wpm"
-          type="monotone"
-          stroke="var(--color-wpm)"
-          strokeWidth={2.25}
-          dot={false}
-          activeDot={{
-            r: 3,
-            stroke: "var(--color-wpm)",
-            fill: "var(--background)",
-          }}
-        />
-      </LineChart>
-    </ChartContainer>
   );
 }
 
@@ -541,8 +441,9 @@ export function TestSummary() {
             </div>
           </div>
           <div className="w-full">
-            <WpmChart
+            <ResultChart
               buckets={buckets}
+              events={state.events}
               startAtZero={appearance.startGraphsAtZero}
             />
           </div>
@@ -592,11 +493,6 @@ export function TestSummary() {
             </div>
             <PairFlow pairs={slowPairs} />
           </div>
-        ) : null}
-
-        {/* Session analysis — Wins / Issues / coaching takeaways. */}
-        {state.events.length > 0 ? (
-          <SessionAnalysis words={state.words} events={state.events} />
         ) : null}
 
         {/* Restart hint — quiet footer. */}
