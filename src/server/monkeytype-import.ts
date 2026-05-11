@@ -51,6 +51,10 @@ function authHeaders(apiKey: string): HeadersInit {
   return {
     Authorization: `ApeKey ${apiKey}`,
     Accept: "application/json",
+    // Some upstreams (CDNs, WAFs) block the default Node fetch UA;
+    // identify ourselves explicitly so MT's gateway routes the
+    // request normally.
+    "User-Agent": "flinttype-import/1.0 (+https://flinttype.local)",
   };
 }
 
@@ -59,19 +63,51 @@ async function callMt<T>(
   path: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<T> {
-  const res = await fetchImpl(`${API_BASE}${path}`, {
-    headers: authHeaders(apiKey),
-  });
+  let res: Response;
+  try {
+    res = await fetchImpl(`${API_BASE}${path}`, {
+      headers: authHeaders(apiKey),
+    });
+  } catch (networkErr) {
+    // fetch() itself rejected (DNS, TLS, sockets, etc). Wrap so the
+    // route layer can map cleanly; without this the raw TypeError
+    // leaks through.
+    throw new MtUpstreamError(
+      `MonkeyType network error on ${path}: ${
+        networkErr instanceof Error ? networkErr.message : String(networkErr)
+      }`,
+    );
+  }
   if (!res.ok) {
+    // Best-effort: pull the upstream message so the operator sees
+    // *why* MT refused (bad path, expired key, missing scope, etc).
+    // MT errors come back as either plain text or JSON {message}.
+    let detail = "";
+    try {
+      const body = await res.text();
+      try {
+        const json = JSON.parse(body) as { message?: string };
+        detail = json.message ?? body;
+      } catch {
+        detail = body;
+      }
+    } catch {
+      /* ignore body-read failure — surface status only */
+    }
+    const detailSuffix = detail ? ` — ${detail.slice(0, 200)}` : "";
     if (res.status === 401 || res.status === 403) {
-      throw new MtAuthError("MonkeyType rejected the Ape Key.");
+      throw new MtAuthError(
+        `MonkeyType rejected the Ape Key (${res.status})${detailSuffix}`,
+      );
     }
     if (res.status === 429) {
       throw new MtRateLimitError(
-        "MonkeyType rate-limited the request. Try again later.",
+        `MonkeyType rate-limited (429). Try again later${detailSuffix}`,
       );
     }
-    throw new MtUpstreamError(`MonkeyType returned ${res.status}.`);
+    throw new MtUpstreamError(
+      `MonkeyType ${path} returned ${res.status}${detailSuffix}`,
+    );
   }
   return (await res.json()) as T;
 }

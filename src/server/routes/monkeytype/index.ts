@@ -47,6 +47,14 @@ const importRoute = defineRoute<MonkeytypeImportInput, MonkeytypeImportOutput>({
         fetchMonkeytypeStats(apiKey),
       ]);
     } catch (err) {
+      // Log the full error before mapping so the dev console shows
+      // exactly which MT endpoint refused and why. Without this the
+      // 502 catch-all swallowed the actual cause (path / status /
+      // body), making field bugs un-debuggable.
+      log.error("monkeytype.import upstream failed", err, {
+        name: err instanceof Error ? err.name : typeof err,
+        message: err instanceof Error ? err.message : String(err),
+      });
       if (err instanceof MtAuthError) {
         throw new BackendError(401, "UNAUTHORIZED", err.message);
       }
@@ -56,7 +64,9 @@ const importRoute = defineRoute<MonkeytypeImportInput, MonkeytypeImportOutput>({
       throw new BackendError(
         502,
         "INTERNAL",
-        err instanceof Error ? err.message : "MonkeyType request failed.",
+        err instanceof Error
+          ? `MonkeyType import failed — ${err.message}`
+          : "MonkeyType request failed.",
       );
     }
 
