@@ -8,8 +8,7 @@ import { wordIdxFromChars } from "./race-reducer";
  *    RACE FEED   — milestones, leader changes, finishes (state.feed)
  *    YOUR RUN    — your current placement, wpm, accuracy, completion
  *    RACE MODES  — visual chip stack; 1V3 is the only wired mode for
- *                  now, the rest sit dim with "soon" so the user sees
- *                  the roadmap but can't break anything by clicking. */
+ *                  now, the rest sit dim with "soon". */
 export function RaceSidebar() {
   const { state, yourWpm, yourAccuracy, elapsedSeconds } = useRace();
   const racers = [...state.racers].sort(
@@ -20,14 +19,16 @@ export function RaceSidebar() {
     you.place ?? racers.findIndex((r) => r.id === "you") + 1;
   const wordsTotal = state.words.length;
   const pct =
-    state.totalChars === 0 ? 0 : Math.round((you.correctChars / state.totalChars) * 100);
+    state.totalChars === 0
+      ? 0
+      : Math.round((you.correctChars / state.totalChars) * 100);
 
   return (
-    <aside className="flex flex-col border-t border-ft-ink-line lg:border-t-0 lg:border-l">
+    <aside className="flex flex-col border-t border-border lg:border-t-0 lg:border-l">
       <Section title="RACE FEED" rightHint={state.phase === "racing" ? "LIVE" : ""}>
         <div className="flex flex-col gap-2.5">
           {state.feed.length === 0 ? (
-            <span className="text-[10px] text-ft-warm-3">
+            <span className="text-[10px] text-muted-foreground">
               Race events appear here once GO fires.
             </span>
           ) : null}
@@ -36,19 +37,19 @@ export function RaceSidebar() {
               key={i}
               className="grid grid-cols-[40px_1fr] items-baseline gap-2"
             >
-              <span className="text-[10px] tabular-nums text-ft-warm-3">
+              <span className="text-[10px] tabular-nums text-muted-foreground">
                 {formatT(e.t)}
               </span>
               <div className="text-[11px] leading-snug">
                 <span
                   className={cn(
                     "font-semibold",
-                    e.accent ? "text-ft-ember" : "text-ft-warm-1",
+                    e.accent ? "text-primary" : "text-foreground",
                   )}
                 >
                   {e.who}
                 </span>{" "}
-                <span className="text-ft-warm-1">{e.text}</span>
+                <span className="text-muted-foreground">{e.text}</span>
               </div>
             </div>
           ))}
@@ -62,11 +63,7 @@ export function RaceSidebar() {
             value={`#${yourLivePlace} of ${state.racers.length}`}
             accent={yourLivePlace === 1}
           />
-          <Row
-            label="wpm"
-            value={String(yourWpm)}
-            accent
-          />
+          <Row label="wpm" value={String(yourWpm)} accent />
           <Row label="accuracy" value={`${yourAccuracy.toFixed(1)}%`} />
           <Row
             label="words done"
@@ -100,13 +97,13 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-b border-ft-ink-line px-6 py-5">
+    <div className="border-b border-border px-6 py-5">
       <div className="mb-3.5 flex justify-between gap-2">
-        <span className="text-[10px] uppercase tracking-[0.18em] text-ft-paper">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-foreground">
           {title}
         </span>
         {rightHint ? (
-          <span className="text-[10px] uppercase tracking-[0.16em] text-ft-warm-3">
+          <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
             {rightHint}
           </span>
         ) : null}
@@ -127,11 +124,11 @@ function Row({
 }) {
   return (
     <div className="flex justify-between">
-      <span className="text-ft-warm-2">{label}</span>
+      <span className="text-muted-foreground">{label}</span>
       <span
         className={cn(
           "tabular-nums",
-          accent ? "text-ft-ember" : "text-ft-paper",
+          accent ? "text-primary" : "text-foreground",
         )}
       >
         {value}
@@ -152,22 +149,22 @@ function ModeChip({
   return (
     <div
       className={cn(
-        "flex justify-between gap-3 border px-2 py-1.5",
+        "flex justify-between gap-3 rounded-sm border px-2 py-1.5",
         active
-          ? "border-ft-ember bg-ft-ember/[0.08]"
-          : "border-ft-ink-line opacity-70",
+          ? "border-primary/50 bg-primary/[0.06]"
+          : "border-border opacity-70",
       )}
     >
       <div>
         <div
           className={cn(
             "text-[11px] font-semibold",
-            active ? "text-ft-ember" : "text-ft-paper",
+            active ? "text-primary" : "text-foreground",
           )}
         >
           {name}
         </div>
-        <div className="mt-0.5 text-[10px] text-ft-warm-2">{detail}</div>
+        <div className="mt-0.5 text-[10px] text-muted-foreground">{detail}</div>
       </div>
     </div>
   );
@@ -179,10 +176,6 @@ function formatT(sec: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-/** Words the racer has completed. Reuses the same wordIdx mapping
- *  the reducer uses, plus handles the "finished the whole passage"
- *  edge case — the last word doesn't carry a trailing space, so a
- *  pure wordIdx lookup tops out one short of words.length. */
 function wordsDoneCount(
   correctChars: number,
   totalChars: number,

@@ -19,10 +19,7 @@ export const metadata = buildPageMetadata({
 
 export default function RacePage() {
   return (
-    <AppChrome
-      dark
-      ident={<IdentDot emberDot>RACE · 1V3 · 50 WORDS</IdentDot>}
-    >
+    <AppChrome ident={<IdentDot emberDot>RACE · 1V3 · 50 WORDS</IdentDot>}>
       <RaceProvider>
         <RaceControls />
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px]">

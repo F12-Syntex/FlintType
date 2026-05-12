@@ -7,27 +7,30 @@ const H = 110;
 
 /** Live WPM-over-time SVG for every racer. Per-racer paths grow as
  *  the trace sample interval (1Hz) appends new points to state.trace.
- *  Y axis auto-scales to the peak WPM observed + a small headroom
- *  so the curves don't flat-line against the top edge after the
- *  fastest bot reaches its target. */
+ *  Y axis auto-scales to the peak observed + a small headroom so the
+ *  curves don't flat-line against the top edge after the fastest bot
+ *  reaches its target. */
 export function RaceTrace() {
   const { state } = useRace();
   const samples = state.trace;
   const racers = state.racers;
-  const peak = Math.max(220, ...samples.flatMap((s) =>
-    Object.values(s.wpmByRacer),
-  ));
+  const peak = Math.max(
+    220,
+    ...samples.flatMap((s) => Object.values(s.wpmByRacer)),
+  );
   const MAX = Math.ceil(peak / 20) * 20 + 20;
   const youId = racers.find((r) => r.isYou)?.id ?? "you";
   const xFor = (t: number) =>
-    samples.length <= 1 ? 0 : (t / Math.max(1, samples[samples.length - 1]!.t)) * W;
+    samples.length <= 1
+      ? 0
+      : (t / Math.max(1, samples[samples.length - 1]!.t)) * W;
   return (
     <div>
       <div className="mb-1.5 flex flex-wrap justify-between gap-2">
-        <span className="text-[10px] uppercase tracking-[0.18em] text-ft-warm-3">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
           RACE TRACE · ALL RACERS · WPM/SEC
         </span>
-        <span className="text-[10px] uppercase tracking-[0.16em] text-ft-warm-2">
+        <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
           peak {peak} wpm
         </span>
       </div>
@@ -45,7 +48,7 @@ export function RaceTrace() {
             x2={W}
             y1={H - (v / MAX) * H}
             y2={H - (v / MAX) * H}
-            stroke="#221F1A"
+            stroke="var(--border)"
             strokeDasharray="2 4"
           />
         ))}
@@ -64,7 +67,7 @@ export function RaceTrace() {
                   key={r.id}
                   d={path}
                   fill="none"
-                  stroke={isYou ? "var(--color-ft-ember)" : strokeFor(r.id)}
+                  stroke={isYou ? "var(--primary)" : strokeFor(r.id)}
                   strokeWidth={isYou ? 2 : 1.2}
                   vectorEffect="non-scaling-stroke"
                 />
@@ -76,17 +79,19 @@ export function RaceTrace() {
   );
 }
 
-/** Bot colours along the warm-ink ramp so the trace never competes
- *  with the brand spark — only the human racer gets ember. */
+/** Bot stroke colours mixed off the theme foreground at decreasing
+ *  intensity so the trace stays theme-aware. Only the human racer
+ *  carries primary — bots stay neutral to preserve the single-accent
+ *  rule from ui-law §2. */
 function strokeFor(id: string): string {
   switch (id) {
     case "damiel":
-      return "var(--color-ft-paper)";
+      return "color-mix(in oklch, var(--foreground) 80%, transparent)";
     case "selan":
-      return "#9C978A";
+      return "color-mix(in oklch, var(--foreground) 55%, transparent)";
     case "kassia":
-      return "#6E695F";
+      return "color-mix(in oklch, var(--foreground) 35%, transparent)";
     default:
-      return "#5C5950";
+      return "var(--muted-foreground)";
   }
 }

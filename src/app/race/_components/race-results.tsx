@@ -17,20 +17,20 @@ export function RaceResults() {
     (a, b) => (a.place ?? 99) - (b.place ?? 99),
   );
   return (
-    <div className="flex flex-col gap-7 border border-ft-ink-line bg-ft-ink-deep px-7 py-8 sm:px-9">
+    <div className="flex flex-col gap-7 rounded-md border border-border bg-card px-7 py-8 sm:px-9">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-2">
-          <span className="text-[10px] uppercase tracking-[0.22em] text-ft-warm-3">
+          <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
             Race finished
           </span>
-          <h2 className="text-3xl font-extrabold tracking-tight text-ft-paper sm:text-[40px]">
+          <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-[40px]">
             {place === 1
               ? "Race won."
               : place === state.racers.length
                 ? "Last across."
                 : `Finished ${ordinal(place)}.`}
           </h2>
-          <p className="max-w-md text-[13px] leading-relaxed text-ft-warm-2">
+          <p className="max-w-md text-[13px] leading-relaxed text-muted-foreground">
             {summaryLine(place, state.racers.length, you.finishedAt ?? 0)}
           </p>
         </div>
@@ -42,7 +42,7 @@ export function RaceResults() {
       </div>
 
       <div className="flex flex-col">
-        <div className="grid grid-cols-[28px_minmax(0,1fr)_72px_72px_72px] items-baseline gap-3 border-b border-ft-ink-line pb-2 text-[10px] uppercase tracking-[0.18em] text-ft-warm-3">
+        <div className="grid grid-cols-[28px_minmax(0,1fr)_72px_72px_72px] items-baseline gap-3 border-b border-border pb-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
           <span>#</span>
           <span>racer</span>
           <span className="text-right">wpm</span>
@@ -56,14 +56,14 @@ export function RaceResults() {
             <div
               key={r.id}
               className={cn(
-                "grid grid-cols-[28px_minmax(0,1fr)_72px_72px_72px] items-baseline gap-3 border-b border-ft-ink-line py-2.5 text-[13px]",
-                r.isYou && "bg-ft-ember/[0.05]",
+                "grid grid-cols-[28px_minmax(0,1fr)_72px_72px_72px] items-baseline gap-3 border-b border-border py-2.5 text-[13px] last:border-b-0",
+                r.isYou && "bg-primary/[0.05]",
               )}
             >
               <span
                 className={cn(
                   "font-mono tabular-nums",
-                  placedFirst ? "text-ft-ember" : "text-ft-warm-3",
+                  placedFirst ? "text-primary" : "text-muted-foreground",
                 )}
               >
                 {r.place ?? "—"}
@@ -71,18 +71,18 @@ export function RaceResults() {
               <span
                 className={cn(
                   "truncate font-semibold",
-                  r.isYou ? "text-ft-ember" : "text-ft-paper",
+                  r.isYou ? "text-primary" : "text-foreground",
                 )}
               >
                 {r.name}
               </span>
-              <span className="text-right tabular-nums text-ft-paper">
+              <span className="text-right tabular-nums text-foreground">
                 {r.wpm}
               </span>
-              <span className="text-right tabular-nums text-ft-warm-1">
+              <span className="text-right tabular-nums text-muted-foreground">
                 {acc.toFixed(1)}%
               </span>
-              <span className="text-right tabular-nums text-ft-warm-1">
+              <span className="text-right tabular-nums text-muted-foreground">
                 {formatT(r.finishedAt ?? 0)}
               </span>
             </div>
@@ -104,13 +104,13 @@ function Stat({
 }) {
   return (
     <div className="flex flex-col items-start gap-1">
-      <span className="text-[9px] uppercase tracking-[0.22em] text-ft-warm-3">
+      <span className="text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
         {label}
       </span>
       <span
         className={cn(
           "font-mono text-2xl font-bold tabular-nums leading-none",
-          accent ? "text-ft-ember" : "text-ft-paper",
+          accent ? "text-primary" : "text-foreground",
         )}
       >
         {value}

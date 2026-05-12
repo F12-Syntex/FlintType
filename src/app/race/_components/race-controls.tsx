@@ -17,7 +17,7 @@ export function RaceControls() {
   const { state, startCountdown, restart, elapsedSeconds } = useRace();
   const you = state.racers.find((r) => r.isYou)!;
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ft-ink-line px-5 py-3.5 sm:px-14">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3.5 sm:px-14">
       <div className="flex flex-wrap items-baseline gap-3 sm:gap-8">
         <StatusLine
           phase={state.phase}
@@ -25,7 +25,7 @@ export function RaceControls() {
           place={you.place}
           totalRacers={state.racers.length}
         />
-        <span className="text-[11px] tracking-wide text-ft-warm-1">
+        <span className="text-[11px] tracking-wide text-muted-foreground">
           {state.phase === "lobby"
             ? "1v3 ranked race · 50 words"
             : state.phase === "countdown"
@@ -68,7 +68,7 @@ function StatusLine({
           ? `● FINISHED · PLACE ${place ?? "?"}/${totalRacers}`
           : `● RACE LIVE · ${formatT(elapsed)} ELAPSED`;
   return (
-    <span className="text-[10px] uppercase tracking-[0.18em] text-ft-ember">
+    <span className="text-[10px] uppercase tracking-[0.18em] text-primary">
       {label}
     </span>
   );
@@ -86,10 +86,10 @@ function PrimaryButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-2 rounded-md bg-ft-ember px-4 py-2",
-        "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-ft-ink",
-        "transition-colors hover:bg-ft-ember/85 active:translate-y-[1px]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ft-ember/50",
+        "inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2",
+        "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground",
+        "transition-colors hover:bg-primary/90 active:translate-y-[1px]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
       )}
     >
       {children}
@@ -108,7 +108,7 @@ function GhostButton({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-2 rounded-md border border-ft-ink-line px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-ft-warm-2 transition-colors hover:border-ft-warm-3 hover:text-ft-paper"
+      className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
     >
       {children}
     </button>
