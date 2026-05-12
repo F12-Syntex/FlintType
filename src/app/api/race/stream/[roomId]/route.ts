@@ -17,9 +17,16 @@ import { getRoom } from "@/server/race/store";
  *
  *  Runtime: `nodejs`. Edge would also work but `setInterval` lives
  *  cleaner on Node and the existing race-room module is Node-native
- *  (crypto.randomBytes, setTimeout). */
+ *  (crypto.randomBytes, setTimeout).
+ *
+ *  Region pinning: must match the dispatcher's `preferredRegion` so
+ *  that POST /race/queue (which creates the in-memory room via the
+ *  dispatcher) and GET /api/race/stream/<id> (which reads it here)
+ *  land on the same Vercel function pool. Cross-region requests
+ *  would 404 against an empty store. */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const preferredRegion = "iad1";
 
 export async function GET(
   _req: NextRequest,

@@ -5,12 +5,26 @@ import { generateSlug } from "./slug";
 
 /** Process-wide registry of live race rooms.
  *
- *  CAVEAT — in-memory only. On Vercel serverless this works
- *  reliably under a single-instance footprint (Hobby / single-region
- *  Pro). Multi-instance / multi-region needs a swap to Redis (Upstash
- *  via Vercel KV is the obvious destination). The room/slug APIs
- *  here are deliberately shaped to make that future swap mechanical:
- *  the store's only public surface is async-friendly already. */
+ *  CAVEAT — in-memory only. The store survives between requests on
+ *  the same Node.js function instance and dies when Vercel cold-
+ *  starts a new one. Two protections currently:
+ *
+ *    1. Region pinning. Both the dispatcher (/api/[...path]) and the
+ *       SSE stream (/api/race/stream/[roomId]) export
+ *       `preferredRegion = 'iad1'`, forcing POST /race/queue and
+ *       GET /api/race/stream/<id> onto the same function pool.
+ *       Without this, the queue lands in (say) lhr1 and the stream
+ *       in iad1 — second region has no record of the room → 404.
+ *    2. The store reads/writes through `globalThis.__flinttype_race_store__`
+ *       so HMR + multiple module-graph copies in the same process
+ *       still share state.
+ *
+ *  These cover Hobby / single-region Pro deployments. The proper fix
+ *  is Redis/KV (Vercel KV, Upstash). The store's public surface is
+ *  already async-friendly so the swap is mechanical when the time
+ *  comes — `getRoom`, `joinOrCreateMatchmaking`, `createChallengeRoom`
+ *  become async, the room itself stays in-process for the live
+ *  bot-tick loop with state replicated to KV on transitions. */
 
 type GlobalStore = {
   byId: Map<string, RaceRoom>;

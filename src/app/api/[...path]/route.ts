@@ -7,6 +7,19 @@ import { runRoute } from '@/server/pipeline';
 import { resolvePath } from '@/server/resolve';
 import { router } from '@/server/router';
 
+/** Pin the dispatcher to a single Vercel region. The race-room
+ *  registry (src/server/race/store.ts) is in-memory only — when a
+ *  POST /api/race/queue lands in one region and the follow-up
+ *  GET /api/race/stream/<id> lands in another, the second region
+ *  has never seen the room and 404s. Until we move the store to
+ *  Redis/KV, every race-related request must land on the same
+ *  function pool, which means the same region.
+ *
+ *  iad1 (US East) is the lowest-latency Vercel default for the
+ *  Neon/Clerk endpoints we rely on; users in other regions take
+ *  one extra round-trip but get a working race. */
+export const preferredRegion = 'iad1';
+
 function errorJson(
   status: number,
   code: BackendError['code'],
