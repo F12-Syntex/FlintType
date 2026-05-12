@@ -23,7 +23,7 @@ export function RacePassage() {
   const acc = liveAccuracy(practice.typed, practice.words);
   const wpm = you.wpm;
   return (
-    <div className="relative flex flex-1 flex-col rounded-md border border-border bg-card px-7 py-8 sm:px-9">
+    <div className="relative flex h-[22rem] flex-col rounded-md border border-border bg-card px-7 py-8 sm:px-9">
       <div className="mb-5 flex flex-wrap justify-between gap-2">
         <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
           YOUR TRACK · {wordsDone}/{state.words.length} WORDS
