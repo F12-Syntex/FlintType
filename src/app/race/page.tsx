@@ -1,14 +1,18 @@
 import { IdentDot } from "@/components/ft";
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../_components/app-chrome";
+import { RaceControls } from "./_components/race-controls";
 import { RaceLanes } from "./_components/lanes";
 import { RacePassage } from "./_components/passage";
+import { RaceProvider } from "./_components/race-state";
+import { RaceResults } from "./_components/race-results";
 import { RaceSidebar } from "./_components/sidebar";
 import { RaceTrace } from "./_components/trace";
 
 export const metadata = buildPageMetadata({
   title: "Race",
-  description: "flinttype live race — 1v3 typing race with run trace, race feed, and season ladder.",
+  description:
+    "flinttype 1v3 race against deterministic bots — live lane leaderboard, run trace, and live event feed.",
   path: "/race",
   noIndex: true,
 });
@@ -17,31 +21,20 @@ export default function RacePage() {
   return (
     <AppChrome
       dark
-      ident={<IdentDot emberDot>RACE #4081 · 1V3 · 50 WORDS</IdentDot>}
+      ident={<IdentDot emberDot>RACE · 1V3 · 50 WORDS</IdentDot>}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ft-ink-line px-5 py-3.5 sm:px-14">
-        <div className="flex flex-wrap items-baseline gap-3 sm:gap-8">
-          <span className="text-[10px] uppercase tracking-[0.18em] text-ft-ember">
-            ● RACE LIVE · 0:14 ELAPSED
-          </span>
-          <span className="text-[11px] tracking-wide text-ft-warm-1">
-            Round 1 of 3 · seasonal ladder · ranked
-          </span>
+      <RaceProvider>
+        <RaceControls />
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px]">
+          <div className="flex flex-col gap-7 px-5 py-9 sm:px-14">
+            <RaceLanes />
+            <RacePassage />
+            <RaceResults />
+            <RaceTrace />
+          </div>
+          <RaceSidebar />
         </div>
-        <div className="hidden gap-6 text-[10px] uppercase tracking-[0.16em] text-ft-warm-1 md:flex">
-          <span>YOUR RANK · #1,284</span>
-          <span>SEASON · 12 days left</span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px]">
-        <div className="flex flex-col gap-7 px-5 py-9 sm:px-14">
-          <RaceLanes />
-          <RacePassage />
-          <RaceTrace />
-        </div>
-        <RaceSidebar />
-      </div>
+      </RaceProvider>
     </AppChrome>
   );
 }

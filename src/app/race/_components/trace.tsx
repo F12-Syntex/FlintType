@@ -1,32 +1,34 @@
-type RacerSeries = {
-  name: string;
-  color: string;
-  pts: number[];
-  you?: boolean;
-  dash?: boolean;
-};
+"use client";
 
-const RACERS: RacerSeries[] = [
-  { name: "damiel", color: "var(--color-ft-paper)", pts: [80, 130, 175, 200, 215, 218, 220, 218, 220] },
-  { name: "selan", color: "#9C978A", pts: [70, 95, 120, 132, 138, 140, 138, 140, 138] },
-  { name: "you", color: "var(--color-ft-ember)", pts: [50, 70, 84, 92, 95, 90, 92, 96, 92], you: true },
-  { name: "ghost", color: "#5C5950", pts: [55, 78, 92, 100, 104, 102, 104, 106, 104], dash: true },
-  { name: "kassia", color: "#6E695F", pts: [45, 65, 78, 82, 86, 88, 84, 86, 86] },
-];
+import { useRace } from "./race-state";
 
 const W = 1280;
 const H = 110;
-const MAX = 240;
 
+/** Live WPM-over-time SVG for every racer. Per-racer paths grow as
+ *  the trace sample interval (1Hz) appends new points to state.trace.
+ *  Y axis auto-scales to the peak WPM observed + a small headroom
+ *  so the curves don't flat-line against the top edge after the
+ *  fastest bot reaches its target. */
 export function RaceTrace() {
+  const { state } = useRace();
+  const samples = state.trace;
+  const racers = state.racers;
+  const peak = Math.max(220, ...samples.flatMap((s) =>
+    Object.values(s.wpmByRacer),
+  ));
+  const MAX = Math.ceil(peak / 20) * 20 + 20;
+  const youId = racers.find((r) => r.isYou)?.id ?? "you";
+  const xFor = (t: number) =>
+    samples.length <= 1 ? 0 : (t / Math.max(1, samples[samples.length - 1]!.t)) * W;
   return (
     <div>
       <div className="mb-1.5 flex flex-wrap justify-between gap-2">
         <span className="text-[10px] uppercase tracking-[0.18em] text-ft-warm-3">
           RACE TRACE · ALL RACERS · WPM/SEC
         </span>
-        <span className="text-[10px] uppercase tracking-[0.16em] text-ft-ember">
-          ↑ damiel pulled away @ 0:08
+        <span className="text-[10px] uppercase tracking-[0.16em] text-ft-warm-2">
+          peak {peak} wpm
         </span>
       </div>
       <svg
@@ -47,26 +49,44 @@ export function RaceTrace() {
             strokeDasharray="2 4"
           />
         ))}
-        {RACERS.map((r) => {
-          const path = r.pts
-            .map(
-              (p, i) =>
-                `${i === 0 ? "M" : "L"} ${(i / (r.pts.length - 1)) * W} ${H - (p / MAX) * H}`,
-            )
-            .join(" ");
-          return (
-            <path
-              key={r.name}
-              d={path}
-              fill="none"
-              stroke={r.color}
-              strokeWidth={r.you ? 2 : 1.2}
-              strokeDasharray={r.dash ? "3 4" : undefined}
-              vectorEffect="non-scaling-stroke"
-            />
-          );
-        })}
+        {samples.length >= 2
+          ? racers.map((r) => {
+              const pts = samples.map((s) => ({
+                x: xFor(s.t),
+                y: H - ((s.wpmByRacer[r.id] ?? 0) / MAX) * H,
+              }));
+              const path = pts
+                .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
+                .join(" ");
+              const isYou = r.id === youId;
+              return (
+                <path
+                  key={r.id}
+                  d={path}
+                  fill="none"
+                  stroke={isYou ? "var(--color-ft-ember)" : strokeFor(r.id)}
+                  strokeWidth={isYou ? 2 : 1.2}
+                  vectorEffect="non-scaling-stroke"
+                />
+              );
+            })
+          : null}
       </svg>
     </div>
   );
+}
+
+/** Bot colours along the warm-ink ramp so the trace never competes
+ *  with the brand spark — only the human racer gets ember. */
+function strokeFor(id: string): string {
+  switch (id) {
+    case "damiel":
+      return "var(--color-ft-paper)";
+    case "selan":
+      return "#9C978A";
+    case "kassia":
+      return "#6E695F";
+    default:
+      return "#5C5950";
+  }
 }

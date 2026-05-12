@@ -1,25 +1,43 @@
+"use client";
+
 import { cn } from "@/lib/utils";
+import { useRace } from "./race-state";
+import type { Racer } from "./race-types";
 
-type Racer = {
-  name: string;
-  wpm: number;
-  prog: number;
-  you?: boolean;
-  ghost?: boolean;
-  badge?: string;
-  flag: string;
-  acc: number;
-};
+/** Leaderboard strip across the top of the race surface. One <Lane>
+ *  per racer; bars fill primary for you, paper for bots, and the
+ *  position glyph leads with the brand spark when the racer is 1st.
+ *  The bars read against the dark track background defined on the
+ *  AppChrome dark variant. */
+export function RaceLanes() {
+  const { state } = useRace();
+  // Order: leader first while racing; once finished, sort by place
+  // so the result strip reads top→bottom as 1st..last.
+  const racers = sortRacers(state.racers, state.phase);
+  const totalChars = Math.max(1, state.totalChars);
+  return (
+    <div className="flex flex-col gap-3">
+      {racers.map((r, i) => (
+        <Lane key={r.id} racer={r} pos={i + 1} totalChars={totalChars} />
+      ))}
+    </div>
+  );
+}
 
-const RACERS: Racer[] = [
-  { name: "@damiel", wpm: 218, prog: 0.92, badge: "GRANDMASTER", flag: "🇸🇪", acc: 98.2 },
-  { name: "@selan", wpm: 138, prog: 0.62, badge: "EXPERT", flag: "🇨🇦", acc: 97.1 },
-  { name: "@you", wpm: 92, prog: 0.41, you: true, badge: "ADEPT", flag: "🇬🇧", acc: 97.2 },
-  { name: "@your-ghost · best run", wpm: 104, prog: 0.48, ghost: true, flag: "◐", acc: 96.8 },
-  { name: "@kassia", wpm: 86, prog: 0.38, badge: "ADEPT", flag: "🇩🇪", acc: 95.4 },
-];
-
-function Lane({ racer, pos }: { racer: Racer; pos: number }) {
+function Lane({
+  racer,
+  pos,
+  totalChars,
+}: {
+  racer: Racer;
+  pos: number;
+  totalChars: number;
+}) {
+  const prog = Math.min(1, racer.correctChars / totalChars);
+  const status =
+    racer.place != null
+      ? `PLACE ${racer.place}`
+      : racer.badge;
   return (
     <div className="grid grid-cols-[28px_1fr_auto] items-center gap-3 sm:grid-cols-[36px_240px_1fr_90px] sm:gap-3.5">
       <span
@@ -36,33 +54,31 @@ function Lane({ racer, pos }: { racer: Racer; pos: number }) {
           <span
             className={cn(
               "text-[13px] font-semibold",
-              racer.you
-                ? "text-ft-ember"
-                : racer.ghost
-                  ? "text-ft-warm-3 italic"
-                  : "text-ft-paper",
+              racer.isYou ? "text-ft-ember" : "text-ft-paper",
             )}
           >
             {racer.name}
           </span>
-          {racer.badge ? (
-            <span className="text-[8px] tracking-[0.16em] text-ft-warm-3">
-              {racer.badge}
-            </span>
-          ) : null}
+          <span
+            className={cn(
+              "text-[8px] tracking-[0.16em]",
+              racer.place === 1
+                ? "text-ft-ember"
+                : "text-ft-warm-3",
+            )}
+          >
+            {status}
+          </span>
         </div>
       </div>
       <div className="relative col-span-2 h-5 border border-ft-ink-line bg-ft-ink-track sm:col-span-1">
         <div
           className={cn(
-            "absolute top-0 bottom-0 left-0",
-            racer.you
-              ? "bg-ft-ember"
-              : racer.ghost
-                ? "bg-[repeating-linear-gradient(45deg,var(--color-ft-ghost-stripe-a)_0_4px,var(--color-ft-ghost-stripe-b)_4px_8px)]"
-                : "bg-ft-warm-2",
+            "absolute top-0 bottom-0 left-0 transition-[width] duration-100 ease-linear",
+            racer.isYou ? "bg-ft-ember" : "bg-ft-warm-2",
+            racer.finishedAt != null && !racer.isYou && "bg-ft-warm-1",
           )}
-          style={{ width: `${racer.prog * 100}%` }}
+          style={{ width: `${prog * 100}%` }}
         />
         {[0.25, 0.5, 0.75].map((t) => (
           <div
@@ -72,31 +88,32 @@ function Lane({ racer, pos }: { racer: Racer; pos: number }) {
             aria-hidden
           />
         ))}
-        <div className="absolute top-0 right-0 bottom-0 w-1 bg-ft-ember" aria-hidden />
+        <div
+          className="absolute top-0 right-0 bottom-0 w-1 bg-ft-ember"
+          aria-hidden
+        />
       </div>
       <div className="flex flex-col items-end">
         <span
           className={cn(
             "text-base font-bold tabular-nums",
-            racer.you ? "text-ft-ember" : "text-ft-paper",
+            racer.isYou ? "text-ft-ember" : "text-ft-paper",
           )}
         >
           {racer.wpm}
         </span>
         <span className="text-[9px] tracking-wide text-ft-warm-3 tabular-nums">
-          {racer.acc}% acc
+          {Math.round(prog * 100)}% done
         </span>
       </div>
     </div>
   );
 }
 
-export function RaceLanes() {
-  return (
-    <div className="flex flex-col gap-3">
-      {RACERS.map((r, i) => (
-        <Lane key={r.name} racer={r} pos={i + 1} />
-      ))}
-    </div>
-  );
+function sortRacers(racers: readonly Racer[], phase: string): Racer[] {
+  const arr = [...racers];
+  if (phase === "finished") {
+    return arr.sort((a, b) => (a.place ?? 99) - (b.place ?? 99));
+  }
+  return arr.sort((a, b) => b.correctChars - a.correctChars);
 }
