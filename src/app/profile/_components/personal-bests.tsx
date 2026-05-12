@@ -88,11 +88,16 @@ function CategoryChips({
   value: Category;
   onChange: (next: Category) => void;
 }) {
+  // Inline editorial tab strip: shrinks to content (self-start +
+  // w-fit so flex-col's stretch alignment can't stretch it), one
+  // hairline at the bottom, the active label sits over a 2px primary
+  // marker. Replaces the previous full-width bg-muted track which
+  // visually dominated the section it labelled.
   return (
     <div
       role="tablist"
       aria-label="Personal bests category"
-      className="inline-flex flex-wrap gap-1.5 rounded-md border border-border bg-muted p-1"
+      className="flex w-fit flex-wrap items-end gap-x-5 gap-y-1 self-start border-b border-border pb-1"
     >
       {CATEGORY_ORDER.map((id) => {
         const active = id === value;
@@ -104,13 +109,20 @@ function CategoryChips({
             aria-selected={active}
             onClick={() => onChange(id)}
             className={cn(
-              "rounded-sm px-3 py-1.5 text-[10.5px] font-medium uppercase tracking-[0.18em] transition-colors",
+              "relative -mb-1 pb-2 text-[11px] font-medium uppercase tracking-[0.16em] transition-colors outline-none",
+              "focus-visible:text-foreground",
               active
-                ? "bg-primary text-primary-foreground"
+                ? "text-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
             {prettyCategory(id)}
+            {active ? (
+              <span
+                aria-hidden
+                className="absolute right-0 -bottom-px left-0 h-px bg-primary"
+              />
+            ) : null}
           </button>
         );
       })}
