@@ -38,9 +38,9 @@ export const RACE_MODES: Record<RaceModeId, RaceMode> = {
   "1v3": {
     id: "1v3",
     name: "1V3",
-    detail: "4 racers · 50 words",
+    detail: "4 racers · 25 words",
     kind: "passage",
-    wordCount: 50,
+    wordCount: 25,
     botIds: ["damiel", "selan", "kassia"],
   },
   "1v1": {
@@ -54,17 +54,17 @@ export const RACE_MODES: Record<RaceModeId, RaceMode> = {
   sprint: {
     id: "sprint",
     name: "SPRINT",
-    detail: "fast-pair · 15 words",
+    detail: "fast-pair · 25 words",
     kind: "passage",
-    wordCount: 15,
+    wordCount: 25,
     botIds: ["damiel", "selan"],
   },
   endurance: {
     id: "endurance",
     name: "ENDURANCE",
-    detail: "marathon · 100 words",
+    detail: "marathon · 25 words",
     kind: "passage",
-    wordCount: 100,
+    wordCount: 25,
     botIds: ["selan", "kassia"],
   },
   burst: {
