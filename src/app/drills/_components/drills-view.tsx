@@ -2,22 +2,22 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { BackendError, useBackend } from "@/lib/backend";
+import { cn } from "@/lib/utils";
 import type { HistorySummaryOutput } from "@/types/history";
+import { DrillCell } from "./drill-cell";
 import { buildDrills, type DrillSpec } from "./drills-data";
-import { DrillsIndex } from "./drills-index";
-import { DrillsSpotlight } from "./drills-spotlight";
+import { DrillsHero } from "./drills-hero";
+import { DrillsSection } from "./drills-section";
 
-/** Drills picker. Two acts:
- *    1) <DrillsSpotlight/> — editorial hero with the single
- *       recommended drill, big sample of its content, Start CTA.
- *    2) <DrillsIndex/> — dense scannable catalog of every drill,
- *       grouped tailored/generic, hairline-divided rows.
- *  The spotlight is the focal point; the index is the menu. No
- *  topline stats banner — the index header carries the "N drills"
- *  count inline, which is enough. */
+/** /drills orchestrator. Loads the history snapshot once, then lays
+ *  out two hairline bento sections (Tailored / Generic). Reads as a
+ *  twin of /insights — same hero shape, same section primitive, same
+ *  bento mechanics — so the user moves between the two pages without
+ *  re-orienting. The recommended drill is one cell in the Tailored
+ *  bento, tinted primary; everything else stays neutral. */
 export function DrillsView() {
   const backend = useBackend();
-  const [snapshot, setSnapshot] = useState<HistorySummaryOutput | null>(null);
+  const [snap, setSnap] = useState<HistorySummaryOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -27,14 +27,16 @@ export function DrillsView() {
       .summary()
       .then((r) => {
         if (cancelled) return;
-        setSnapshot(r);
+        setSnap(r);
       })
       .catch((err) => {
         if (cancelled) return;
         if (err instanceof BackendError && err.code === "UNAUTHORIZED") {
           setError("Sign in to load your weakness data.");
         } else {
-          setError(err instanceof Error ? err.message : "Failed to load drills.");
+          setError(
+            err instanceof Error ? err.message : "Failed to load drills.",
+          );
         }
       })
       .finally(() => {
@@ -47,38 +49,85 @@ export function DrillsView() {
 
   const drills = useMemo<DrillSpec[]>(() => {
     return buildDrills({
-      weakestPairs: snapshot?.weakestPairs ?? [],
-      weakestTrigrams: snapshot?.weakestTrigrams ?? [],
-      weakestWords: snapshot?.weakestWords ?? [],
-      cold: snapshot?.cold ?? false,
+      weakestPairs: snap?.weakestPairs ?? [],
+      weakestTrigrams: snap?.weakestTrigrams ?? [],
+      weakestWords: snap?.weakestWords ?? [],
+      cold: snap?.cold ?? false,
       seed: Date.now(),
     });
-  }, [snapshot]);
+  }, [snap]);
 
   const tailored = drills.filter((d) => d.category === "tailored");
   const generic = drills.filter((d) => d.category === "generic");
+  const ready = drills.filter((d) => d.ready).length;
+  const locked = drills.length - ready;
   const recommended = tailored.find((d) => d.ready) ?? null;
-  const cold = snapshot?.cold ?? false;
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col px-4 pt-10 pb-16 sm:px-8 sm:pt-14 lg:px-12 lg:pt-20">
-      <DrillsSpotlight
-        recommended={recommended}
-        cold={cold}
-        loading={loading}
-      />
+    <>
+      <DrillsHero ready={ready} locked={locked} loading={loading} />
+
       {error ? (
-        <p className="text-sm text-primary" role="alert">
-          {error}
-        </p>
+        <section className="px-5 py-12 sm:px-12 lg:px-16">
+          <p className="text-sm text-primary" role="alert">
+            {error}
+          </p>
+        </section>
+      ) : loading ? (
+        <section className="px-5 py-12 sm:px-12 lg:px-16">
+          <p className="text-sm text-muted-foreground">Reading your model…</p>
+        </section>
       ) : (
-        <DrillsIndex
-          tailored={tailored}
-          generic={generic}
-          recommendedId={recommended?.id ?? null}
-          loading={loading}
-        />
+        <>
+          <DrillsSection
+            label="Tailored"
+            subtitle="Built from your slowest pairs, trigrams, and words. Locked entries surface as soon as the model has enough signal."
+          >
+            <DrillBento drills={tailored} recommendedId={recommended?.id ?? null} />
+          </DrillsSection>
+
+          <DrillsSection
+            label="Generic"
+            subtitle="Curated drills that always work — pangrams, tongue-twisters, the top-100 sprint, the long-running 1000-word burst."
+            noBorder
+          >
+            <DrillBento drills={generic} recommendedId={null} />
+          </DrillsSection>
+        </>
       )}
+    </>
+  );
+}
+
+/** Hairline bento. Columns auto-fit on a 300px minmax so the last
+ *  row's cells stretch to fill the available width — avoids the
+ *  empty-slot bg-border artifact you'd see with a fixed grid-cols-3
+ *  when a row isn't full. Cells share borders via `gap-px` over a
+ *  `bg-border` wrapper; each cell paints `bg-background` so only the
+ *  1px margins between cells remain visible. */
+function DrillBento({
+  drills,
+  recommendedId,
+}: {
+  drills: readonly DrillSpec[];
+  recommendedId: string | null;
+}) {
+  return (
+    <div
+      className={cn(
+        "grid gap-px overflow-hidden rounded-md border border-border bg-border",
+      )}
+      style={{
+        gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+      }}
+    >
+      {drills.map((d) => (
+        <DrillCell
+          key={d.id}
+          drill={d}
+          recommended={recommendedId === d.id}
+        />
+      ))}
     </div>
   );
 }
