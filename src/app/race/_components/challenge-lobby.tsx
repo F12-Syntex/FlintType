@@ -25,13 +25,13 @@ export function ChallengeLobby() {
 
   return (
     <div className="flex flex-col items-center gap-3 border-t border-border/60 pt-4 text-center">
-      <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+      <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
         Challenge · {slug}
       </span>
       {isHost ? (
         <HostBar slug={slug} roomId={onlineRoomId ?? ""} sessionToken={onlineSessionToken ?? ""} />
       ) : (
-        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+        <span className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
           Waiting on the host to start the race
         </span>
       )}
@@ -85,7 +85,7 @@ function HostBar({
         onClick={copy}
         className={cn(
           "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-card px-3",
-          "font-mono text-[11px] tabular-nums text-foreground",
+          "text-[11px] tabular-nums text-foreground",
           "transition-colors hover:border-foreground/40 hover:bg-accent/40",
         )}
       >
@@ -105,7 +105,7 @@ function HostBar({
         disabled={pending}
         className={cn(
           "inline-flex h-8 items-center gap-2 rounded-md bg-primary px-3.5",
-          "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground",
+          "text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground",
           "transition-colors hover:bg-primary/90 active:translate-y-[0.5px]",
           pending && "cursor-wait opacity-60",
         )}

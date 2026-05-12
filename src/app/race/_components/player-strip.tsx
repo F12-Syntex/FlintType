@@ -13,7 +13,7 @@ import type { Racer } from "./race-types";
  *  Layout choices that anchor the editorial-mechanical feel:
  *    - Tick is a 6 × 6 sharp-corner square (project's severity-dot
  *      shape, ui-law §11), in player colour
- *    - Handles render in font-mono so the column reads as a fixed
+ *    - Handles render in so the column reads as a fixed
  *      ledger (no jitter as bot names cycle)
  *    - Progress bar is `h-1` `rounded-sm` (not a pill) so it inherits
  *      the same hairline rhythm as the rest of the page chrome
@@ -89,7 +89,7 @@ function RacerRow({
       <div className="flex min-w-0 items-baseline gap-2">
         <span
           className={cn(
-            "truncate font-mono text-[11px]",
+            "truncate text-[11px]",
             disconnected
               ? "text-muted-foreground"
               : racer.isYou
@@ -101,13 +101,13 @@ function RacerRow({
         </span>
         {disconnected ? (
           <span
-            className="shrink-0 font-mono text-[9px] font-medium uppercase tracking-[0.18em] text-muted-foreground/80"
+            className="shrink-0 text-[9px] font-medium uppercase tracking-[0.18em] text-muted-foreground/80"
             title="Racer left the room"
           >
             Disconnected
           </span>
         ) : place != null ? (
-          <span className="shrink-0 font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-primary">
+          <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.18em] text-primary">
             #{place}
           </span>
         ) : null}
@@ -143,7 +143,7 @@ function RacerRow({
           />
         ) : null}
       </div>
-      <div className="flex w-12 items-baseline justify-end gap-1 font-mono text-[10px] tabular-nums">
+      <div className="flex w-12 items-baseline justify-end gap-1 text-[10px] tabular-nums">
         {showWpm ? (
           <>
             <span

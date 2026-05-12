@@ -48,11 +48,17 @@ export function PhaseRow({
   joinedOpponents,
   totalOpponents,
   racingReadout,
+  lobbyHint,
 }: {
   phase: string;
   joinedOpponents: number;
   totalOpponents: number;
   racingReadout?: RacingReadout;
+  /** Override for the lobby-phase hint. Challenge rooms (which sit
+   *  in lobby waiting for the host's Start click) use this to say
+   *  "Waiting on the host" instead of the default
+   *  "Lobby full · countdown imminent". */
+  lobbyHint?: string;
 }) {
   const kind = phase as PhaseKind;
   if (kind === "done") return null;
@@ -73,7 +79,7 @@ export function PhaseRow({
     <div className="flex min-h-9 flex-wrap items-baseline gap-x-3 gap-y-1 sm:gap-x-4">
       <span
         className={cn(
-          "font-mono text-[10px] font-semibold uppercase tracking-[0.22em]",
+          "text-[10px] font-semibold uppercase tracking-[0.22em]",
           tickActive
             ? "text-primary motion-safe:animate-pulse"
             : "text-muted-foreground",
@@ -90,6 +96,7 @@ export function PhaseRow({
         joinedOpponents={joinedOpponents}
         totalOpponents={totalOpponents}
         racingReadout={racingReadout}
+        lobbyHint={lobbyHint}
       />
     </div>
   );
@@ -122,18 +129,20 @@ function PhaseContent({
   joinedOpponents,
   totalOpponents,
   racingReadout,
+  lobbyHint,
 }: {
   kind: PhaseKind;
   joinedOpponents: number;
   totalOpponents: number;
   racingReadout?: RacingReadout;
+  lobbyHint?: string;
 }) {
   if (kind === "queue") {
     return <Hint text="Press Find race to begin" />;
   }
   if (kind === "matching") {
     return (
-      <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+      <span className="text-[11px] tabular-nums text-muted-foreground">
         Finding racers
         <span className="ml-2 text-foreground">
           {joinedOpponents}
@@ -143,7 +152,7 @@ function PhaseContent({
     );
   }
   if (kind === "lobby") {
-    return <Hint text="Lobby full · countdown imminent" />;
+    return <Hint text={lobbyHint ?? "Lobby full · countdown imminent"} />;
   }
   if (kind === "countdown") {
     // The big countdown digit lives in the passage area (where the
@@ -154,7 +163,7 @@ function PhaseContent({
   }
   if (racingReadout && (kind === "racing" || kind === "finished")) {
     return (
-      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 font-mono text-[11px] uppercase tracking-[0.14em] tabular-nums text-muted-foreground">
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[11px] uppercase tracking-[0.14em] tabular-nums text-muted-foreground">
         <span>{racingReadout.left}</span>
         {racingReadout.metrics.map((m) => (
           <span key={m.label || m.value} className="flex items-baseline gap-1">
@@ -179,7 +188,7 @@ function PhaseContent({
 
 function Hint({ text }: { text: string }) {
   return (
-    <span className="font-mono text-[11px] text-muted-foreground">
+    <span className="text-[11px] text-muted-foreground">
       {text}
     </span>
   );

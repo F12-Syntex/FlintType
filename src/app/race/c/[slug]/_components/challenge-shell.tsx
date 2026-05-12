@@ -92,7 +92,7 @@ export function ChallengeShell({
   if (resolved.state === "loading") {
     return (
       <div className="flex flex-1 items-center justify-center px-8 py-16">
-        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-primary motion-safe:animate-pulse">
+        <span className="text-[11px] uppercase tracking-[0.22em] text-primary motion-safe:animate-pulse">
           Joining {slug}…
         </span>
       </div>
@@ -151,10 +151,10 @@ function ChallengeError({
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-6 px-6 py-16 text-center">
-      <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+      <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
         Challenge · {slug}
       </span>
-      <h1 className="font-mono text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
+      <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
         {headline}
       </h1>
       <p className="text-[13px] leading-relaxed text-muted-foreground">
@@ -165,7 +165,7 @@ function ChallengeError({
           href="/race"
           className={cn(
             "inline-flex h-8 items-center gap-2 rounded-md bg-primary px-3.5",
-            "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground",
+            "text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground",
             "transition-colors hover:bg-primary/90 active:translate-y-[0.5px]",
           )}
         >
@@ -175,7 +175,7 @@ function ChallengeError({
           href="/"
           className={cn(
             "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-transparent px-3",
-            "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground",
+            "text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground",
             "transition-colors hover:border-foreground/40 hover:text-foreground",
           )}
         >

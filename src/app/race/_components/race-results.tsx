@@ -18,8 +18,15 @@ import { useRace } from "./race-state";
 export function RaceResults() {
   const { state, restart } = useRace();
   const { state: practice } = usePractice();
-  if (state.phase !== "finished") return null;
   const you = state.racers.find((r) => r.isYou)!;
+  // Two surfaces: the room is fully finished (every racer crossed),
+  // OR the local user has finished but bots / other real players
+  // are still mid-race. In the second case we show your results
+  // immediately — no need to wait on slower racers — and the live
+  // player strip above still ticks while the room wraps up.
+  const allFinished = state.phase === "finished";
+  const youFinished = you.finishedAt != null;
+  if (!allFinished && !youFinished) return null;
   const place = you.place ?? state.racers.length;
   const ordered = [...state.racers].sort(
     (a, b) => (a.place ?? 99) - (b.place ?? 99),
@@ -62,7 +69,7 @@ export function RaceResults() {
           onClick={restart}
           className={cn(
             "inline-flex items-center gap-2 self-start rounded-md bg-primary px-4 py-2.5 sm:self-auto",
-            "font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-foreground",
+            "text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-foreground",
             "transition-colors hover:bg-primary/90 active:translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
           )}
         >
@@ -119,7 +126,7 @@ export function RaceResults() {
             >
               <span
                 className={cn(
-                  "font-mono tabular-nums",
+                  "tabular-nums",
                   placedFirst ? "text-primary" : "text-muted-foreground",
                 )}
               >
@@ -247,7 +254,7 @@ function Stat({
       </span>
       <span
         className={cn(
-          "font-mono text-2xl font-bold tabular-nums leading-none",
+          "text-2xl font-bold tabular-nums leading-none",
           accent ? "text-primary" : "text-foreground",
         )}
       >

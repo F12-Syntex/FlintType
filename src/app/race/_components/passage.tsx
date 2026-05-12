@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
+import { useBackend } from "@/lib/backend";
 import { Passage } from "../../_components/passage";
 import { usePractice } from "../../_components/practice-state";
 import { cn } from "@/lib/utils";
+import { writeHostStorage } from "../c/[slug]/_components/challenge-shell";
 import { ChallengeLobby } from "./challenge-lobby";
 import { playerColorFor, RACE_MODES } from "./race-data";
 import { RacePlayerStrip } from "./player-strip";
@@ -19,7 +22,7 @@ import type { Racer } from "./race-types";
  *  phase) and the per-racer progress strip below. No more blurred
  *  overlays; the passage is always cleanly visible. */
 export function RacePassage() {
-  const { state, countdownNumber } = useRace();
+  const { state, countdownNumber, onlineSnapshot, onlineSessionToken } = useRace();
   const { state: practice } = usePractice();
   const { prefs: appearance } = useAppearancePrefs();
   const you = state.racers.find((r) => r.isYou)!;
@@ -105,9 +108,19 @@ export function RacePassage() {
               }
             : undefined
         }
+        lobbyHint={lobbyHintFor(onlineSnapshot, onlineSessionToken)}
       />
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+        {showLineup ? (
+          <div className="rounded-md border border-border/70 bg-card/60 px-5 py-4 backdrop-blur-sm">
+            <RacePlayerStrip
+              racers={state.racers}
+              totalChars={state.totalChars}
+            />
+          </div>
+        ) : null}
+
         <div className="min-h-0 flex-1">
           {racing ? (
             <Passage wordBackground={wordTints} wordTextColor={wordTextColor} />
@@ -123,13 +136,6 @@ export function RacePassage() {
         </div>
 
         <ChallengeLobby />
-
-        {showLineup ? (
-          <RacePlayerStrip
-            racers={state.racers}
-            totalChars={state.totalChars}
-          />
-        ) : null}
       </div>
     </>
   );
@@ -153,7 +159,7 @@ function CountdownPanel({ n }: { n: number }) {
       <span
         key={label}
         className={cn(
-          "font-mono font-extrabold tracking-tight tabular-nums text-primary",
+          "font-extrabold tracking-tight tabular-nums text-primary",
           "text-[28vmin] leading-none",
           "motion-safe:animate-[ft-countdown-pop_320ms_cubic-bezier(0.16,1,0.3,1)]",
         )}
@@ -196,19 +202,62 @@ function RacePoster({
     <div className="flex h-full w-full flex-col items-center justify-center gap-4 text-center">
       <span
         className={cn(
-          "font-mono font-extrabold tracking-tight tabular-nums text-foreground",
+          "font-extrabold tracking-tight tabular-nums text-foreground",
           "text-[14vmin] leading-none sm:text-[12vmin] lg:text-[10vmin]",
         )}
       >
         {modeName}
       </span>
-      <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+      <span className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
         {subtitle}
       </span>
-      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+      <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
         {detail}
       </span>
+      {phase === "queue" ? <CreateChallengeLink /> : null}
     </div>
+  );
+}
+
+/** Secondary text affordance for creating a private challenge link.
+ *  Lives in the queue poster (not the top action strip) so the main
+ *  Find race CTA carries the visual weight, with the challenge path
+ *  as a quieter alternative the user discovers without it competing
+ *  for attention. */
+function CreateChallengeLink() {
+  const backend = useBackend();
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const onClick = async () => {
+    if (pending) return;
+    setPending(true);
+    try {
+      const res = await backend.race.challenge.create({ modeId: "1v3" });
+      writeHostStorage(res.slug, {
+        roomId: res.roomId,
+        sessionToken: res.sessionToken,
+        words: res.words,
+        totalChars: res.totalChars,
+        modeId: res.modeId as Parameters<typeof writeHostStorage>[1]["modeId"],
+      });
+      router.push(`/race/c/${res.slug}`);
+    } catch {
+      setPending(false);
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={pending}
+      className={cn(
+        "mt-2 text-[11px] text-muted-foreground transition-colors",
+        "hover:text-foreground focus-visible:outline-none focus-visible:text-foreground",
+        pending && "cursor-wait opacity-60",
+      )}
+    >
+      {pending ? "Creating link…" : "or share a private challenge link →"}
+    </button>
   );
 }
 
@@ -230,4 +279,21 @@ function liveAccuracy(
   }
   if (total === 0) return 100;
   return Math.round((correct / total) * 1000) / 10;
+}
+
+/** Lobby-phase hint for the top PhaseRow. Matchmaking rooms always
+ *  auto-start the countdown a beat after the lobby fills — the
+ *  default "Lobby full · countdown imminent" copy holds. Challenge
+ *  rooms sit in lobby until the host explicitly hits Start; the
+ *  honest copy for the host is "Press Start to begin", and for a
+ *  joining player it's "Waiting on the host". `undefined` falls
+ *  back to PhaseRow's default. */
+function lobbyHintFor(
+  snapshot: ReturnType<typeof useRace>["onlineSnapshot"],
+  sessionToken: string | null | undefined,
+): string | undefined {
+  if (!snapshot || snapshot.kind !== "challenge") return undefined;
+  const me = snapshot.racers.find((r) => r.id === sessionToken);
+  if (me?.isHost) return "Press Start to begin";
+  return "Waiting on the host to start";
 }

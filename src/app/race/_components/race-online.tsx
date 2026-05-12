@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useState,
   type ReactNode,
 } from "react";
 import { calcWpmAndRaw } from "@/lib/wpm";
@@ -121,7 +122,34 @@ export function OnlineRaceProvider({
     restartShell();
   }, [leave, restartShell]);
 
-  const derived = useMemo(() => deriveTimings(state), [state]);
+  // Local-clock tick during countdown / racing. The server snapshot
+  // only re-broadcasts on state changes; during the 3-second
+  // countdown nothing changes server-side, so `snapshot.serverNowMs`
+  // stays fixed and the derived countdownNumber would freeze at 3.
+  // A 200ms local tick keeps the digit honest (and the racing
+  // elapsed-second readouts ticking) without depending on the server
+  // pushing time updates we'd just throw away.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (snapshot?.phase !== "countdown" && snapshot?.phase !== "racing") return;
+    const id = setInterval(() => setTick((t) => (t + 1) & 0x7fffffff), 200);
+    return () => clearInterval(id);
+  }, [snapshot?.phase]);
+
+  const derived = useMemo(
+    // Recompute against the live wall clock so the countdown digit
+    // re-renders every 200ms even while the server snapshot is idle.
+    () =>
+      deriveTimings(
+        snapshot?.phase === "countdown" || snapshot?.phase === "racing"
+          ? { ...state, nowMs: Date.now() }
+          : state,
+      ),
+    // `tick` is read implicitly via Date.now() above — list it in the
+    // deps so the memo invalidates on each interval fire.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state, tick],
+  );
 
   const ctx = useMemo<RaceCtx>(
     () => ({

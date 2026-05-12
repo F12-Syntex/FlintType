@@ -37,7 +37,7 @@ export function ModePicker({
           aria-label={`Race mode — ${mode.name}, ${mode.detail}`}
           className={cn(
             "group inline-flex h-8 items-center gap-2 rounded-md border border-border bg-background px-3",
-            "font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground",
+            "text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground",
             "transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
             disabled
               ? "cursor-not-allowed opacity-40"
@@ -88,7 +88,7 @@ export function ModePicker({
               <div className="min-w-0 flex-1 leading-tight">
                 <div
                   className={cn(
-                    "font-mono text-[11px] font-semibold uppercase tracking-[0.14em]",
+                    "text-[11px] font-semibold uppercase tracking-[0.14em]",
                     active ? "text-primary" : "text-foreground",
                   )}
                 >

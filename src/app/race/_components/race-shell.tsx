@@ -12,6 +12,7 @@ import { InputCapture } from "../../_components/input-capture";
 import { PracticeProvider } from "../../_components/practice-state";
 import { RACE_MODES, type RaceModeId } from "./race-data";
 import { RaceProvider } from "./race-state";
+import { useLeaveGuard } from "./use-leave-guard";
 
 /** Pull a short, race-feed-friendly handle from the Clerk session.
  *  Mirrors the `firstName ?? username ?? email-localpart ?? "you"`
@@ -123,6 +124,11 @@ export function RaceShell({
     },
     [backend, online],
   );
+
+  // Confirm-before-leave is on whenever the user is connected to a
+  // server room (matching → lobby → countdown → racing → finished).
+  // Burst mode runs offline so the guard stays off for it.
+  useLeaveGuard(online != null);
 
   const youName = useYouHandle();
   const words = isBurst ? ([] as readonly string[]) : online?.words ?? [];

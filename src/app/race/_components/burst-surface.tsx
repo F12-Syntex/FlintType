@@ -262,6 +262,15 @@ export function BurstRaceSurface() {
       />
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+        {showLineup ? (
+          <div className="rounded-md border border-border/70 bg-card/60 px-5 py-4 backdrop-blur-sm">
+            <RacePlayerStrip
+              racers={state.racers}
+              totalChars={state.totalChars}
+            />
+          </div>
+        ) : null}
+
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8">
           {racing ? (
             <>
@@ -294,12 +303,6 @@ export function BurstRaceSurface() {
           )}
         </div>
 
-        {showLineup ? (
-          <RacePlayerStrip
-            racers={state.racers}
-            totalChars={state.totalChars}
-          />
-        ) : null}
       </div>
     </>
   );
@@ -330,16 +333,16 @@ function BurstPoster({
     <div className="flex flex-col items-center gap-3 text-center">
       <span
         className={cn(
-          "font-mono font-extrabold tracking-tight tabular-nums text-foreground",
+          "font-extrabold tracking-tight tabular-nums text-foreground",
           "text-[12vmin] leading-none sm:text-[10vmin] lg:text-[8vmin]",
         )}
       >
         {modeName}
       </span>
-      <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+      <span className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
         {subtitle}
       </span>
-      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+      <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
         {detail}
       </span>
     </div>
@@ -362,7 +365,7 @@ function BurstCountdownPanel({ n }: { n: number }) {
       <span
         key={label}
         className={cn(
-          "font-mono font-extrabold tracking-tight tabular-nums text-primary",
+          "font-extrabold tracking-tight tabular-nums text-primary",
           "text-[24vmin] leading-none",
           "motion-safe:animate-[ft-countdown-pop_320ms_cubic-bezier(0.16,1,0.3,1)]",
         )}
@@ -422,7 +425,7 @@ function BurstWord({
     <div
       ref={containerRef}
       className={cn(
-        "relative max-w-full select-none break-words text-center font-mono font-extrabold tracking-tight transition-colors duration-200",
+        "relative max-w-full select-none break-words text-center font-extrabold tracking-tight transition-colors duration-200",
         "text-balance text-4xl leading-tight sm:text-5xl lg:text-6xl",
         outcome === "win" && "text-primary",
         outcome === "slow" && "text-muted-foreground",
@@ -625,7 +628,7 @@ function StatusBlock({
     <div className="flex flex-col items-center gap-1.5">
       <span
         className={cn(
-          "font-mono text-base font-bold tracking-tight sm:text-lg",
+          "text-base font-bold tracking-tight sm:text-lg",
           labelTone === "primary" && "text-primary motion-safe:animate-pulse",
           labelTone === "destructive" && "text-destructive",
           labelTone === "muted" && "text-muted-foreground",
@@ -679,7 +682,7 @@ function MatchingOverlay() {
           aria-hidden
           className="size-2 rounded-full bg-primary motion-safe:animate-pulse"
         />
-        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-primary">
+        <span className="text-[11px] uppercase tracking-[0.22em] text-primary">
           Finding racers
         </span>
       </div>
@@ -702,7 +705,7 @@ function CountdownOverlay({ n }: { n: number }) {
       <span className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
         Starting in
       </span>
-      <span className="font-mono text-7xl font-extrabold tabular-nums text-primary sm:text-8xl">
+      <span className="text-7xl font-extrabold tabular-nums text-primary sm:text-8xl">
         {n === 0 ? "GO" : n}
       </span>
     </div>
@@ -717,7 +720,7 @@ function LobbyOverlay() {
           aria-hidden
           className="size-2 rounded-full bg-primary motion-safe:animate-pulse"
         />
-        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-primary">
+        <span className="text-[11px] uppercase tracking-[0.22em] text-primary">
           Lobby full · countdown starting
         </span>
       </div>

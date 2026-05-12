@@ -1,12 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useBackend } from "@/lib/backend";
 import { cn } from "@/lib/utils";
-import { writeHostStorage } from "../c/[slug]/_components/challenge-shell";
 import { ModePicker } from "./mode-picker";
-import type { RaceModeId } from "./race-data";
 import { useRace } from "./race-state";
 
 /** Top race strip, sibling of practice's `<ModeBar>`. Same centred
@@ -38,51 +33,7 @@ export function RaceControls() {
           onAbandon={abandon}
         />
       </Field>
-      {state.phase === "queue" ? (
-        <Field label="challenge">
-          <CreateChallengeButton modeId={modeId} />
-        </Field>
-      ) : null}
     </div>
-  );
-}
-
-function CreateChallengeButton({ modeId }: { modeId: RaceModeId }) {
-  const backend = useBackend();
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
-  const onClick = async () => {
-    if (pending) return;
-    setPending(true);
-    try {
-      const res = await backend.race.challenge.create({ modeId });
-      writeHostStorage(res.slug, {
-        roomId: res.roomId,
-        sessionToken: res.sessionToken,
-        words: res.words,
-        totalChars: res.totalChars,
-        modeId: res.modeId as RaceModeId,
-      });
-      router.push(`/race/c/${res.slug}`);
-    } catch {
-      setPending(false);
-    }
-  };
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={pending}
-      className={cn(
-        "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-transparent px-3",
-        "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground",
-        "transition-colors duration-150 hover:border-foreground/40",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-        pending && "cursor-wait opacity-60",
-      )}
-    >
-      Create link
-    </button>
   );
 }
 
@@ -107,7 +58,7 @@ function Field({
 }
 
 /** Phase-aware right-hand action. Three button shapes share the same
- *  geometry (h-8, rounded-md, font-mono uppercase tracking) so they
+ *  geometry (h-8, rounded-md, uppercase tracking) so they
  *  line up against the mode chip across phases:
  *
  *    queue / finished → filled primary CTA (the move that opens up
@@ -157,7 +108,7 @@ function PrimaryButton({
       onClick={onClick}
       className={cn(
         "inline-flex h-8 items-center gap-2 rounded-md bg-primary px-3.5",
-        "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground",
+        "text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground",
         "transition-[background-color,transform] duration-150 hover:bg-primary/90 active:translate-y-[0.5px]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
       )}
@@ -180,7 +131,7 @@ function GhostButton({
       onClick={onClick}
       className={cn(
         "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-transparent px-3",
-        "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground",
+        "text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground",
         "transition-colors duration-150 hover:border-foreground/40 hover:text-foreground",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
       )}
@@ -201,7 +152,7 @@ function DisabledButton({ children }: { children: React.ReactNode }) {
       aria-disabled
       className={cn(
         "inline-flex h-8 cursor-not-allowed items-center gap-2 rounded-md border border-dashed border-border/70 px-3",
-        "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70",
+        "text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70",
       )}
     >
       {children}
