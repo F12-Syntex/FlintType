@@ -1,18 +1,37 @@
 import { EN_COMMON_1000 } from "@/data/en-common-1000";
 
-/** Race configuration. Each mode pairs a passage length with a bot
- *  line-up — same single-player loop, different shape. */
-export type RaceModeId = "1v3" | "1v1" | "sprint" | "endurance";
+/** Race configuration. Each mode pairs a passage length (or a burst
+ *  config) with a bot line-up. Two race kinds:
+ *    - passage  → type a fixed passage; first to the line wins
+ *    - burst    → repeat the same word until N consecutive bursts
+ *                 land above a threshold WPM, then advance to the
+ *                 next item; first to clear all items wins */
+export type RaceModeId = "1v3" | "1v1" | "sprint" | "endurance" | "burst";
+
+export type BurstConfig = {
+  /** Words the racers cycle through. Each one has to be cleared
+   *  `repsPerItem` consecutive times above `thresholdWpm` before the
+   *  racer advances to the next. */
+  items: readonly string[];
+  repsPerItem: number;
+  thresholdWpm: number;
+};
 
 export type RaceMode = {
   id: RaceModeId;
   name: string;
   /** Short caption shown under the mode chip in the sidebar. */
   detail: string;
-  /** Number of words in the race passage. */
+  /** What kind of race UI mounts. Drives whether we render the
+   *  passage surface or the burst surface in the race shell. */
+  kind: "passage" | "burst";
+  /** Number of words in the race passage. Ignored for `burst`. */
   wordCount: number;
   /** Bot ids in display order. */
   botIds: readonly BotId[];
+  /** Required when `kind === "burst"`. The minigame parameters that
+   *  drive both the user's surface and the bot rep simulation. */
+  burst?: BurstConfig;
 };
 
 export const RACE_MODES: Record<RaceModeId, RaceMode> = {
@@ -20,6 +39,7 @@ export const RACE_MODES: Record<RaceModeId, RaceMode> = {
     id: "1v3",
     name: "1V3",
     detail: "4 racers · 50 words",
+    kind: "passage",
     wordCount: 50,
     botIds: ["damiel", "selan", "kassia"],
   },
@@ -27,6 +47,7 @@ export const RACE_MODES: Record<RaceModeId, RaceMode> = {
     id: "1v1",
     name: "1V1",
     detail: "head-to-head · 25 words",
+    kind: "passage",
     wordCount: 25,
     botIds: ["selan"],
   },
@@ -34,6 +55,7 @@ export const RACE_MODES: Record<RaceModeId, RaceMode> = {
     id: "sprint",
     name: "SPRINT",
     detail: "fast-pair · 15 words",
+    kind: "passage",
     wordCount: 15,
     botIds: ["damiel", "selan"],
   },
@@ -41,8 +63,25 @@ export const RACE_MODES: Record<RaceModeId, RaceMode> = {
     id: "endurance",
     name: "ENDURANCE",
     detail: "marathon · 100 words",
+    kind: "passage",
     wordCount: 100,
     botIds: ["selan", "kassia"],
+  },
+  burst: {
+    id: "burst",
+    name: "BURST",
+    detail: "5 items · 3 reps each · 60 wpm gate",
+    kind: "burst",
+    wordCount: 0,
+    botIds: ["selan", "kassia"],
+    burst: {
+      // Short, finger-friendly words drawn from the top-50 slice of
+      // the common-1000 list. Five items × three reps = fifteen total
+      // bursts to clear, finishing in roughly 30–60 s at the gate.
+      items: ["fast", "type", "burst", "rapid", "swift"],
+      repsPerItem: 3,
+      thresholdWpm: 60,
+    },
   },
 };
 
@@ -51,6 +90,7 @@ export const RACE_MODE_ORDER: readonly RaceModeId[] = [
   "1v1",
   "sprint",
   "endurance",
+  "burst",
 ];
 
 /** Bot tick interval. 50ms = 20 ticks/sec, fine-grained enough to

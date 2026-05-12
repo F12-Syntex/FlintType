@@ -46,7 +46,11 @@ export type Racer = {
   isYou: boolean;
   /** Bot profile, null for the human. */
   bot: BotProfile | null;
-  /** Number of correctly-typed chars (incl. spaces between words). */
+  /** Progress through the race. In passage mode this is the user's
+   *  cursor position in chars; in burst mode it's total reps cleared
+   *  (`burstItemIdx × repsPerItem + burstReps`). Either way it's a
+   *  monotonic 0..totalChars counter that drives lane bars, leader
+   *  detection, and finish checks. */
   correctChars: number;
   /** Instantaneous WPM — bots: jitter around target; you: cumulative
    *  since GO, mirrored from practice's calcWpmAndRaw. */
@@ -55,14 +59,22 @@ export type Racer = {
   finishedAt: number | null;
   /** Place 1..N when finished, null while still racing. */
   place: number | null;
-  /** Bot-only: fractional char accumulator so a sub-1-char advance
-   *  per tick still produces smooth motion. */
+  /** Bot-only: fractional progress accumulator so a sub-1 advance
+   *  per tick still produces smooth motion. Burst mode uses the same
+   *  accumulator for fractional reps; the bot ticks add reps/sec
+   *  instead of chars/sec. */
   charProgress: number;
   /** When this racer entered the lobby. Null for bots that haven't
    *  joined yet (during the matching phase). You are always joined
    *  at time 0. Used by lanes to filter and by the feed for
    *  "@damiel joined the lobby" entries. */
   joinedAt: number | null;
+  /** Burst-mode only: which item this racer is currently on. 0-based;
+   *  equals items.length when finished. Undefined in passage mode. */
+  burstItemIdx?: number;
+  /** Burst-mode only: reps cleared on the current item (resets on
+   *  advance). Undefined in passage mode. */
+  burstReps?: number;
 };
 
 export type RaceState = {
@@ -119,4 +131,18 @@ export type Action =
       youWpm: number;
       youFinished: boolean;
       trace?: TraceSample;
+    }
+  | {
+      /** Burst mode only — fired by the burst surface after the user
+       *  commits an attempt with space. `success` is true when the
+       *  attempt passed the threshold WPM and matched the target, in
+       *  which case reps += 1 (and on the threshold-hit, itemIdx
+       *  advances). On failure reps reset to 0 — the user has to
+       *  rebuild their streak on the current item. `wpm` is the
+       *  attempt's measured WPM, surfaced as the racer's live wpm so
+       *  the lane number reads honestly. */
+      type: "USER_BURST_COMMIT";
+      now: number;
+      success: boolean;
+      wpm: number;
     };

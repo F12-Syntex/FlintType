@@ -75,9 +75,17 @@ export function RaceShell({ children }: { children: ReactNode }) {
     setWithQueue(true);
   }, []);
 
+  const mode = RACE_MODES[modeId];
+  const isBurst = mode.kind === "burst";
   const words = useMemo(
-    () => generateRacePassage(RACE_MODES[modeId].wordCount, seed),
-    [modeId, seed],
+    () =>
+      isBurst
+        ? // Burst doesn't drive practice — feed PracticeProvider an empty
+          // word list so it doesn't try to render a phantom passage if
+          // anything reaches into it.
+          ([] as readonly string[])
+        : generateRacePassage(mode.wordCount, seed),
+    [isBurst, mode.wordCount, seed],
   );
 
   const youName = useYouHandle();
@@ -86,22 +94,27 @@ export function RaceShell({ children }: { children: ReactNode }) {
   // of leaving a stale name baked into the reducer's initial state.
   const subtreeKey = `${modeId}:${seed}:${withQueue ? "q" : "l"}:${youName}`;
 
+  // Burst mode owns its own typing via the BurstRaceSurface's window
+  // keydown listener — InputCapture would steal focus into a hidden
+  // input and swallow the keypresses before they reach the burst
+  // surface. Skip it entirely for burst; keep it for passage modes.
+  const raceProvider = (
+    <RaceProvider
+      key={subtreeKey}
+      modeId={modeId}
+      raceSeed={seed}
+      withQueue={withQueue}
+      youName={youName}
+      setModeId={switchMode}
+      restartShell={restartShell}
+      enterQueueShell={enterQueueShell}
+    >
+      {children}
+    </RaceProvider>
+  );
   return (
     <PracticeProvider key={subtreeKey} lockedWords={words}>
-      <InputCapture>
-        <RaceProvider
-          key={subtreeKey}
-          modeId={modeId}
-          raceSeed={seed}
-          withQueue={withQueue}
-          youName={youName}
-          setModeId={switchMode}
-          restartShell={restartShell}
-          enterQueueShell={enterQueueShell}
-        >
-          {children}
-        </RaceProvider>
-      </InputCapture>
+      {isBurst ? raceProvider : <InputCapture>{raceProvider}</InputCapture>}
     </PracticeProvider>
   );
 }

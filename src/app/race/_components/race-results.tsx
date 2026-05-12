@@ -3,6 +3,7 @@
 import { countChars } from "@/lib/wpm";
 import { cn } from "@/lib/utils";
 import { usePractice } from "../../_components/practice-state";
+import { RACE_MODES } from "./race-data";
 import { useRace } from "./race-state";
 
 /** Post-race summary panel. Mounts only after every racer has
@@ -23,10 +24,21 @@ export function RaceResults() {
   const ordered = [...state.racers].sort(
     (a, b) => (a.place ?? 99) - (b.place ?? 99),
   );
-  const counts = countChars(practice.typed, practice.words, true);
-  const charsTyped = counts.allCorrectChars + counts.correctSpaces;
-  const errors = counts.incorrectChars + counts.extraChars;
-  const yourAcc = accuracyFromTyped(practice.typed, practice.words);
+  const mode = RACE_MODES[state.modeId];
+  const isBurst = mode.kind === "burst";
+  // Burst mode doesn't drive PracticeProvider, so countChars(practice.*)
+  // is 0 / 0. Render burst-flavoured stats instead — items cleared
+  // out of the catalog, plus the racer's last committed burst WPM.
+  const counts = isBurst
+    ? null
+    : countChars(practice.typed, practice.words, true);
+  const charsTyped = counts ? counts.allCorrectChars + counts.correctSpaces : 0;
+  const errors = counts ? counts.incorrectChars + counts.extraChars : 0;
+  const yourAcc = isBurst
+    ? null
+    : accuracyFromTyped(practice.typed, practice.words);
+  const burstItemsCleared = isBurst ? you.burstItemIdx ?? 0 : 0;
+  const burstItemsTotal = isBurst && mode.burst ? mode.burst.items.length : 0;
   return (
     <div className="flex flex-col gap-7 rounded-md border border-border bg-card px-7 py-8 sm:px-9">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -63,9 +75,22 @@ export function RaceResults() {
 
       <div className="grid grid-cols-2 gap-x-6 gap-y-4 border-y border-border/70 py-5 sm:grid-cols-5 sm:gap-x-10">
         <Stat label="your wpm" value={String(you.wpm)} accent />
-        <Stat label="accuracy" value={`${yourAcc.toFixed(1)}%`} />
-        <Stat label="chars typed" value={String(charsTyped)} />
-        <Stat label="errors" value={String(errors)} />
+        {isBurst ? (
+          <>
+            <Stat
+              label="items cleared"
+              value={`${burstItemsCleared}/${burstItemsTotal}`}
+            />
+            <Stat label="gate wpm" value={String(mode.burst?.thresholdWpm ?? 0)} />
+            <Stat label="reps each" value={String(mode.burst?.repsPerItem ?? 0)} />
+          </>
+        ) : (
+          <>
+            <Stat label="accuracy" value={`${(yourAcc ?? 0).toFixed(1)}%`} />
+            <Stat label="chars typed" value={String(charsTyped)} />
+            <Stat label="errors" value={String(errors)} />
+          </>
+        )}
         <Stat label="time" value={formatT(you.finishedAt ?? 0)} />
       </div>
 

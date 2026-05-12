@@ -2,10 +2,10 @@ import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../_components/app-chrome";
 import { RaceControls } from "./_components/race-controls";
 import { RaceLanes } from "./_components/lanes";
-import { RacePassage } from "./_components/passage";
 import { RaceResults } from "./_components/race-results";
 import { RaceShell } from "./_components/race-shell";
 import { RaceSidebar } from "./_components/sidebar";
+import { RaceSurface } from "./_components/race-surface";
 
 export const metadata = buildPageMetadata({
   title: "Race",
@@ -33,7 +33,7 @@ export default function RacePage() {
             <RaceSidebar />
             <section className="flex flex-col gap-6 lg:min-w-0">
               <RaceLanes />
-              <RacePassage />
+              <RaceSurface />
               <RaceResults />
             </section>
           </main>

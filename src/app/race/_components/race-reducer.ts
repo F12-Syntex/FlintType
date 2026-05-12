@@ -74,19 +74,35 @@ export function freshState(
   youName: string,
 ): RaceState {
   const mode = RACE_MODES[modeId];
-  const words = generateRacePassage(mode.wordCount, seed);
+  // Burst mode reuses the `words` slot for its item list (so the
+  // existing PracticeProvider plumbing in the race shell receives
+  // something well-formed, even though burst doesn't drive practice
+  // state). Total progress in burst is measured in reps rather than
+  // chars: items × repsPerItem. Both modes converge on
+  // `correctChars >= totalChars` as the finish predicate.
+  const isBurst = mode.kind === "burst";
+  const words = isBurst
+    ? mode.burst!.items.slice()
+    : generateRacePassage(mode.wordCount, seed);
+  const totalChars = isBurst
+    ? mode.burst!.items.length * mode.burst!.repsPerItem
+    : totalCharsOf(words);
+  let racers = buildRacers(mode.botIds, withQueue, youName);
+  if (isBurst) {
+    racers = racers.map((r) => ({ ...r, burstItemIdx: 0, burstReps: 0 }));
+  }
   return {
     modeId,
     phase: withQueue ? "queue" : "lobby",
     raceSeed: seed,
     words,
-    totalChars: totalCharsOf(words),
+    totalChars,
     queueStartedAt: null,
     countdownStartedAt: null,
     raceStartedAt: null,
     raceEndedAt: null,
     nowMs: now,
-    racers: buildRacers(mode.botIds, withQueue, youName),
+    racers,
     feed: [
       {
         t: 0,
@@ -304,15 +320,21 @@ export function reducer(s: RaceState, a: Action): RaceState {
       if (s.phase !== "racing" || s.raceStartedAt == null) return next;
       const elapsedMs = a.now - s.raceStartedAt;
       const dtSec = BOT_TICK_MS / 1000;
+      const mode = RACE_MODES[s.modeId];
+      const isBurst = mode.kind === "burst";
+      const burst = mode.burst;
       const racers = next.racers.map((r) => {
         if (r.finishedAt != null) return r;
         if (r.isYou) {
+          // In burst mode the user's correctChars / wpm / finished come
+          // from the burst surface via USER_BURST_COMMIT — don't
+          // overwrite them from the practice snapshot, which has no
+          // bearing on burst progress.
+          if (isBurst) return r;
+          // Passage mode: practice snapshot drives the user's lane.
           // Mark finishedAt the moment practice flips to `done`. The
           // user doesn't need to hit 100% accuracy — they just need
-          // to reach the end of the passage (pressing space past the
-          // last word, in practice's WORDS mode). correctChars stays
-          // at whatever they actually typed correctly so the lane bar
-          // is honest about their accuracy. rankAndMaybeFinish picks
+          // to reach the end of the passage. rankAndMaybeFinish picks
           // up the pre-set finishedAt below and assigns a place.
           return {
             ...r,
@@ -328,6 +350,47 @@ export function reducer(s: RaceState, a: Action): RaceState {
         }
         const bot = r.bot!;
         const wpm = instantBotWpm(bot, elapsedMs, s.raceSeed);
+        if (isBurst && burst) {
+          // Burst-mode bot tick: convert WPM into reps/sec for the
+          // current item word and accumulate fractional reps. Bots
+          // never "fail" the threshold — their targetWpm is set above
+          // it by design — so each successful rep counts. Each
+          // attempt at WPM = (wordLen × 5 / wpm) minutes; reps/sec =
+          // wpm / (5 × wordLen) × (1/60). dtSec=0.05 makes this very
+          // small per tick, so we accumulate in charProgress and
+          // flush whole reps as they cross integer boundaries.
+          const itemIdx = r.burstItemIdx ?? 0;
+          if (itemIdx >= burst.items.length) return r;
+          const wordLen = burst.items[itemIdx]!.length;
+          const repsThisTick = (wpm * dtSec) / (12 * wordLen);
+          const totalProg = r.charProgress + repsThisTick;
+          let wholeReps = Math.floor(totalProg);
+          let nextItemIdx = itemIdx;
+          let nextBurstReps = (r.burstReps ?? 0) + wholeReps;
+          // Cascade reps into item advances while the streak overruns
+          // repsPerItem. Pure passthrough on the typical 0–1 rep/tick
+          // ratio; only matters on long stalls where the accumulator
+          // bunches a few reps together on one tick.
+          while (nextBurstReps >= burst.repsPerItem && nextItemIdx < burst.items.length) {
+            nextBurstReps -= burst.repsPerItem;
+            nextItemIdx += 1;
+          }
+          if (nextItemIdx >= burst.items.length) {
+            nextBurstReps = 0;
+          }
+          const correctChars = Math.min(
+            s.totalChars,
+            nextItemIdx * burst.repsPerItem + nextBurstReps,
+          );
+          return {
+            ...r,
+            charProgress: totalProg - wholeReps,
+            correctChars,
+            burstItemIdx: nextItemIdx,
+            burstReps: nextBurstReps,
+            wpm: Math.round(wpm),
+          };
+        }
         const charsThisTick = (wpm / 60) * 5 * dtSec;
         const totalProg = r.charProgress + charsThisTick;
         const whole = Math.floor(totalProg);
@@ -339,6 +402,50 @@ export function reducer(s: RaceState, a: Action): RaceState {
         };
       });
       return applyPipeline({ ...next, racers });
+    }
+    case "USER_BURST_COMMIT": {
+      const mode = RACE_MODES[s.modeId];
+      if (mode.kind !== "burst" || !mode.burst) return s;
+      if (s.phase !== "racing") return s;
+      const racers = s.racers.map((r) => {
+        if (!r.isYou) return r;
+        if (r.finishedAt != null) return r;
+        if (!a.success) {
+          // Failed attempt — slow or wrong. Reset reps to 0; itemIdx
+          // stays put. Correct-char progress drops back to the last
+          // cleared item boundary so the lane bar honestly reflects
+          // the user lost their streak. `wpm: 0` is the sentinel the
+          // burst surface uses for a mistype (no measured WPM) — keep
+          // the previous lane wpm in that case so the display doesn't
+          // flicker back to zero on every wrong key.
+          const itemIdx = r.burstItemIdx ?? 0;
+          return {
+            ...r,
+            burstReps: 0,
+            correctChars: itemIdx * mode.burst!.repsPerItem,
+            wpm: a.wpm > 0 ? a.wpm : r.wpm,
+          };
+        }
+        const itemIdx = r.burstItemIdx ?? 0;
+        const reps = (r.burstReps ?? 0) + 1;
+        const advance = reps >= mode.burst!.repsPerItem;
+        const nextItemIdx = advance ? itemIdx + 1 : itemIdx;
+        const nextReps = advance ? 0 : reps;
+        const correctChars = Math.min(
+          s.totalChars,
+          nextItemIdx * mode.burst!.repsPerItem + nextReps,
+        );
+        const finishedAll = nextItemIdx >= mode.burst!.items.length;
+        return {
+          ...r,
+          burstItemIdx: nextItemIdx,
+          burstReps: nextReps,
+          correctChars,
+          wpm: a.wpm,
+          finishedAt: finishedAll ? elapsedSec({ ...s, nowMs: a.now }) : r.finishedAt,
+        };
+      });
+      return applyPipeline({ ...s, racers, nowMs: a.now });
     }
   }
 }
