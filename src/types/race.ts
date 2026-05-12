@@ -48,6 +48,11 @@ export type RoomRacer = {
    *  the destructive-coloured tail on the player-strip bar. */
   errors: number;
   wpm: number;
+  /** Live accuracy percent (0–100). Bots are always 100; real
+   *  players publish from the typed-vs-target diff. Drives the
+   *  "net wpm" = `wpm × accuracy / 100` metric the results panel
+   *  and leaderboard rank by. */
+  accuracy: number;
   finishedAt: number | null;
   place: number | null;
   /** True once a real player has fired `race.leave` (or otherwise
@@ -115,6 +120,9 @@ export const keystrokeInputSchema = z.object({
   /** Accumulated mistype count (wrong + extra chars). Optional so
    *  callers from older builds keep working without an explicit 0. */
   errors: z.number().int().min(0).max(10_000).optional(),
+  /** Live accuracy percent (0–100). Defaults to 100 if omitted so
+   *  older clients don't surface a phantom "0% accuracy" stat. */
+  accuracy: z.number().min(0).max(100).optional(),
   /** True the moment the client's practice phase flips to `done`. */
   finished: z.boolean().optional(),
 });

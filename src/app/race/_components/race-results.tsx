@@ -80,16 +80,26 @@ export function RaceResults() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-x-6 gap-y-4 border-y border-border/70 py-5 sm:grid-cols-5 sm:gap-x-10">
-        <Stat label="your wpm" value={String(you.wpm)} accent />
+      <div className="grid grid-cols-2 gap-x-6 gap-y-4 border-y border-border/70 py-5 sm:grid-cols-6 sm:gap-x-10">
+        <Stat
+          label="net wpm"
+          value={String(
+            netWpm(you.wpm, isBurst ? you.accuracy : yourAcc ?? you.accuracy),
+          )}
+          accent
+        />
+        <Stat label="raw wpm" value={String(you.wpm)} />
         {isBurst ? (
           <>
+            <Stat
+              label="accuracy"
+              value={`${you.accuracy.toFixed(1)}%`}
+            />
             <Stat
               label="items cleared"
               value={`${burstItemsCleared}/${burstItemsTotal}`}
             />
             <Stat label="gate wpm" value={String(mode.burst?.thresholdWpm ?? 0)} />
-            <Stat label="reps each" value={String(mode.burst?.repsPerItem ?? 0)} />
           </>
         ) : (
           <>
@@ -104,23 +114,22 @@ export function RaceResults() {
       <FinalTrace />
 
       <div className="flex flex-col">
-        <div className="grid grid-cols-[28px_minmax(0,1fr)_72px_72px_72px] items-baseline gap-3 border-b border-border pb-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="grid grid-cols-[28px_minmax(0,1fr)_64px_64px_56px_64px] items-baseline gap-3 border-b border-border pb-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
           <span>#</span>
           <span>racer</span>
-          <span className="text-right">wpm</span>
-          <span className="text-right">progress</span>
+          <span className="text-right">net</span>
+          <span className="text-right">raw</span>
+          <span className="text-right">acc</span>
           <span className="text-right">time</span>
         </div>
         {ordered.map((r) => {
           const placedFirst = (r.place ?? 99) === 1;
-          const prog = state.totalChars === 0
-            ? 0
-            : Math.round((r.correctChars / state.totalChars) * 100);
+          const net = netWpm(r.wpm, r.accuracy);
           return (
             <div
               key={r.id}
               className={cn(
-                "grid grid-cols-[28px_minmax(0,1fr)_72px_72px_72px] items-baseline gap-3 border-b border-border py-2.5 text-[13px] last:border-b-0",
+                "grid grid-cols-[28px_minmax(0,1fr)_64px_64px_56px_64px] items-baseline gap-3 border-b border-border py-2.5 text-[13px] last:border-b-0",
                 r.isYou && "bg-primary/[0.05]",
               )}
             >
@@ -140,11 +149,19 @@ export function RaceResults() {
               >
                 {r.name}
               </span>
-              <span className="text-right tabular-nums text-foreground">
+              <span
+                className={cn(
+                  "text-right tabular-nums font-semibold",
+                  r.isYou ? "text-primary" : "text-foreground",
+                )}
+              >
+                {net}
+              </span>
+              <span className="text-right tabular-nums text-muted-foreground">
                 {r.wpm}
               </span>
               <span className="text-right tabular-nums text-muted-foreground">
-                {prog}%
+                {Math.round(r.accuracy)}%
               </span>
               <span className="text-right tabular-nums text-muted-foreground">
                 {formatT(r.finishedAt ?? 0)}
@@ -295,4 +312,14 @@ function formatT(sec: number): string {
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);
   return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+/** Accuracy-adjusted WPM — the canonical "score" metric for both
+ *  practice and race surfaces. Reads as raw_wpm × accuracy/100, so
+ *  a 100-wpm run at 90 % accuracy lands at 90 net. Bots default to
+ *  100 % accuracy so their net equals their raw. */
+export function netWpm(wpm: number, accuracy: number): number {
+  if (!Number.isFinite(wpm) || wpm <= 0) return 0;
+  const a = Math.max(0, Math.min(100, accuracy));
+  return Math.round(wpm * (a / 100));
 }

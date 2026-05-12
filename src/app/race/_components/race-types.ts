@@ -83,6 +83,8 @@ export type Racer = {
    *  Drives the destructive-coloured tail on the player-strip bar.
    *  Bots are always 0; the user's number is published per-keystroke. */
   errors: number;
+  /** Live accuracy percent (0–100). Bots are always 100. */
+  accuracy: number;
   /** True once the racer has fired `race.leave` (or otherwise dropped
    *  out mid-race). Renders a "(disconnected)" tag on the strip. */
   disconnected: boolean;

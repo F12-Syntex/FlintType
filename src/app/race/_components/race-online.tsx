@@ -85,12 +85,14 @@ export function OnlineRaceProvider({
       youSnapshot.wpm,
       youSnapshot.finished,
       youSnapshot.errors,
+      youSnapshot.accuracy,
     );
   }, [
     youSnapshot.correctChars,
     youSnapshot.wpm,
     youSnapshot.finished,
     youSnapshot.errors,
+    youSnapshot.accuracy,
     snapshot?.phase,
     sendProgress,
   ]);
@@ -192,18 +194,27 @@ function useYouLocalSnapshot(raceStartedAt: number | null) {
   return useMemo(() => {
     let progressChars = 0;
     let errors = 0;
+    let correctTyped = 0;
+    let typedTotal = 0;
     for (let i = 0; i < state.typed.length; i += 1) {
       const t = state.typed[i] ?? "";
       const w = state.words[i] ?? "";
       progressChars += Math.min(t.length, w.length);
       if (i < state.typed.length - 1) progressChars += 1;
-      // Mistype count: every position where typed[ci] disagrees with
-      // the target, plus chars typed past the word's length (extras).
       const len = Math.min(t.length, w.length);
       for (let ci = 0; ci < len; ci += 1) {
-        if (t[ci] !== w[ci]) errors += 1;
+        if (t[ci] !== w[ci]) {
+          errors += 1;
+        } else {
+          correctTyped += 1;
+        }
+        typedTotal += 1;
       }
-      if (t.length > w.length) errors += t.length - w.length;
+      if (t.length > w.length) {
+        const extras = t.length - w.length;
+        errors += extras;
+        typedTotal += extras;
+      }
     }
     const elapsedMs =
       raceStartedAt != null ? Math.max(0, Date.now() - raceStartedAt) : 0;
@@ -211,10 +222,15 @@ function useYouLocalSnapshot(raceStartedAt: number | null) {
       elapsedMs > 250
         ? calcWpmAndRaw(state.typed, state.words, elapsedMs, true).wpm
         : 0;
+    const accuracy =
+      typedTotal === 0
+        ? 100
+        : Math.round(((correctTyped / typedTotal) * 100) * 10) / 10;
     return {
       correctChars: progressChars,
       errors,
       wpm: Math.max(0, Math.round(wpm)),
+      accuracy,
       finished: state.phase === "done",
     };
   }, [state.typed, state.words, state.phase, raceStartedAt]);
@@ -240,6 +256,7 @@ function snapshotToRaceState({
     wpm: number;
     finished: boolean;
     errors: number;
+    accuracy: number;
   };
 }): RaceState {
   // No room yet → synthesise the "queue" state the UI surfaces while
@@ -271,6 +288,7 @@ function snapshotToRaceState({
           charProgress: 0,
           joinedAt: 0,
           errors: 0,
+          accuracy: 100,
           disconnected: false,
         },
       ],
@@ -319,6 +337,7 @@ function serverRacerToClient(
     wpm: number;
     finished: boolean;
     errors: number;
+    accuracy: number;
   },
 ): Racer {
   const isYou = s.id === mySessionToken;
@@ -353,6 +372,7 @@ function serverRacerToClient(
     charProgress: 0,
     joinedAt: s.joinedAt,
     errors: isYou ? Math.max(youSnapshot.errors, s.errors) : s.errors,
+    accuracy: isYou ? youSnapshot.accuracy : s.accuracy,
     disconnected: s.disconnected,
   };
 }

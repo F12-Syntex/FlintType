@@ -175,6 +175,7 @@ export class RaceRoom {
       progressChars: 0,
       errors: 0,
       wpm: 0,
+      accuracy: 100,
       finishedAt: null,
       place: null,
       botCharProgress: 0,
@@ -205,6 +206,7 @@ export class RaceRoom {
       progressChars: 0,
       errors: 0,
       wpm: 0,
+      accuracy: 100,
       finishedAt: null,
       place: null,
       botProfile: bot,
@@ -364,6 +366,7 @@ export class RaceRoom {
     wpm: number,
     finished: boolean,
     errors?: number,
+    accuracy?: number,
   ): boolean {
     const r = this.racers.get(token);
     if (!r || r.isBot) return false;
@@ -374,6 +377,10 @@ export class RaceRoom {
     if (errors != null) {
       const e = Math.max(0, Math.floor(errors));
       if (e !== r.errors) r.errors = e;
+    }
+    if (accuracy != null) {
+      const a = Math.max(0, Math.min(100, accuracy));
+      if (a !== r.accuracy) r.accuracy = a;
     }
     // A real player publishing progress is implicitly here — clear
     // any prior disconnected flag set by a stale leave / strict-mode
@@ -473,6 +480,7 @@ export class RaceRoom {
       progressChars: r.progressChars,
       errors: r.errors,
       wpm: r.wpm,
+      accuracy: r.accuracy,
       finishedAt: r.finishedAt,
       place: r.place,
       disconnected: r.disconnected,
