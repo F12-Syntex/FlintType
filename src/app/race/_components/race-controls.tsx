@@ -1,7 +1,12 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useBackend } from "@/lib/backend";
 import { cn } from "@/lib/utils";
+import { writeHostStorage } from "../c/[slug]/_components/challenge-shell";
 import { ModePicker } from "./mode-picker";
+import type { RaceModeId } from "./race-data";
 import { useRace } from "./race-state";
 
 /** Top race strip, sibling of practice's `<ModeBar>`. Same centred
@@ -33,7 +38,56 @@ export function RaceControls() {
           onAbandon={abandon}
         />
       </Field>
+      {state.phase === "queue" ? (
+        <Field label="challenge">
+          <CreateChallengeButton modeId={modeId} />
+        </Field>
+      ) : null}
     </div>
+  );
+}
+
+/** Create-a-private-lobby button. Lives in the top action strip
+ *  next to Find race so both paths sit at the same hierarchy: one
+ *  for matchmaking against bots / strangers, one for inviting a
+ *  specific friend by URL. Only shown in queue phase — once the
+ *  user is in a room, this affordance has nothing to do. */
+function CreateChallengeButton({ modeId }: { modeId: RaceModeId }) {
+  const backend = useBackend();
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const onClick = async () => {
+    if (pending) return;
+    setPending(true);
+    try {
+      const res = await backend.race.challenge.create({ modeId });
+      writeHostStorage(res.slug, {
+        roomId: res.roomId,
+        sessionToken: res.sessionToken,
+        words: res.words,
+        totalChars: res.totalChars,
+        modeId: res.modeId as Parameters<typeof writeHostStorage>[1]["modeId"],
+      });
+      router.push(`/race/c/${res.slug}`);
+    } catch {
+      setPending(false);
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={pending}
+      className={cn(
+        "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-transparent px-3",
+        "text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground",
+        "transition-colors duration-150 hover:border-foreground/40 hover:bg-accent/40",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        pending && "cursor-wait opacity-60",
+      )}
+    >
+      {pending ? "Creating…" : "Create lobby"}
+    </button>
   );
 }
 

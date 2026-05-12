@@ -1,13 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
-import { useBackend } from "@/lib/backend";
 import { Passage } from "../../_components/passage";
 import { usePractice } from "../../_components/practice-state";
 import { cn } from "@/lib/utils";
-import { writeHostStorage } from "../c/[slug]/_components/challenge-shell";
 import { ChallengeLobby } from "./challenge-lobby";
 import { playerColorFor, RACE_MODES } from "./race-data";
 import { RacePlayerStrip } from "./player-strip";
@@ -214,50 +211,7 @@ function RacePoster({
       <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
         {detail}
       </span>
-      {phase === "queue" ? <CreateChallengeLink /> : null}
     </div>
-  );
-}
-
-/** Secondary text affordance for creating a private challenge link.
- *  Lives in the queue poster (not the top action strip) so the main
- *  Find race CTA carries the visual weight, with the challenge path
- *  as a quieter alternative the user discovers without it competing
- *  for attention. */
-function CreateChallengeLink() {
-  const backend = useBackend();
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
-  const onClick = async () => {
-    if (pending) return;
-    setPending(true);
-    try {
-      const res = await backend.race.challenge.create({ modeId: "1v3" });
-      writeHostStorage(res.slug, {
-        roomId: res.roomId,
-        sessionToken: res.sessionToken,
-        words: res.words,
-        totalChars: res.totalChars,
-        modeId: res.modeId as Parameters<typeof writeHostStorage>[1]["modeId"],
-      });
-      router.push(`/race/c/${res.slug}`);
-    } catch {
-      setPending(false);
-    }
-  };
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={pending}
-      className={cn(
-        "mt-2 text-[11px] text-muted-foreground transition-colors",
-        "hover:text-foreground focus-visible:outline-none focus-visible:text-foreground",
-        pending && "cursor-wait opacity-60",
-      )}
-    >
-      {pending ? "Creating link…" : "or share a private challenge link →"}
-    </button>
   );
 }
 
