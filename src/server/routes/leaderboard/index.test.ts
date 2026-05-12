@@ -100,6 +100,36 @@ describe("leaderboard.list", () => {
     expect(res.entries.map((e) => e.testId)).toEqual(["t_race"]);
   });
 
+  it("preset=w25 filters to runs whose amount is 25", async () => {
+    await ctx.db.tests.insert(
+      row({ id: "t_25", userId: "u1", durationOrWordCount: 25 }),
+    );
+    await ctx.db.tests.insert(
+      row({ id: "t_50", userId: "u2", durationOrWordCount: 50 }),
+    );
+    const res = await callRoute<LeaderboardOutput>(["leaderboard", "list"], {
+      input: { preset: "w25" },
+      db: ctx.db,
+    });
+    expect(res.entries.map((e) => e.testId)).toEqual(["t_25"]);
+    expect(res.preset).toBe("w25");
+  });
+
+  it("preset=any (default) is unfiltered on amount", async () => {
+    await ctx.db.tests.insert(
+      row({ id: "t_25", userId: "u1", durationOrWordCount: 25 }),
+    );
+    await ctx.db.tests.insert(
+      row({ id: "t_50", userId: "u2", durationOrWordCount: 50 }),
+    );
+    const res = await callRoute<LeaderboardOutput>(["leaderboard", "list"], {
+      input: {},
+      db: ctx.db,
+    });
+    expect(res.entries.length).toBe(2);
+    expect(res.preset).toBe("any");
+  });
+
   it("window=day filters out older runs", async () => {
     await ctx.db.tests.insert(
       row({

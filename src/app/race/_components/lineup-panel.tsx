@@ -92,7 +92,7 @@ export function RaceLineupPanel({
         ) : null}
       </header>
 
-      <ol className="flex flex-col gap-2.5">
+      <ol className="flex flex-col gap-3.5 sm:gap-4">
         {ordered.map((r, idx) => (
           <RacerRow
             key={r.id}
@@ -189,14 +189,14 @@ function RacerRow({
       aria-valuemax={100}
       aria-valuenow={pct}
       className={cn(
-        "grid grid-cols-[20px_minmax(80px,168px)_minmax(0,1fr)_60px_42px] items-center gap-3",
+        "grid grid-cols-[28px_minmax(100px,200px)_minmax(0,1fr)_72px_56px] items-center gap-3 sm:gap-4",
         disconnected && "opacity-60",
       )}
     >
-      {/* Rank — small numeric, accent on #1. */}
+      {/* Rank — larger so the leader stands out across the room. */}
       <span
         className={cn(
-          "text-[11px] font-semibold tabular-nums",
+          "text-[14px] font-bold tabular-nums sm:text-[15px]",
           rank === 1 ? "text-primary" : "text-muted-foreground",
         )}
       >
@@ -207,7 +207,7 @@ function RacerRow({
       <div className="flex min-w-0 flex-col gap-0.5">
         <span
           className={cn(
-            "truncate text-[13px]",
+            "truncate text-[14px] sm:text-[15px]",
             disconnected
               ? "text-muted-foreground"
               : racer.isYou
@@ -222,20 +222,21 @@ function RacerRow({
             Disconnected
           </span>
         ) : place != null ? (
-          <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-primary">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
             Finished · #{place}
           </span>
         ) : null}
       </div>
 
-      {/* Progress bar — fatter than before so it carries the visual
-       *  weight of the row. Player colour fill from 0 → progress;
-       *  destructive overlay at the right tip = accumulated errors. */}
-      <div className="relative h-2 overflow-hidden rounded-sm bg-muted">
+      {/* Progress bar — h-3.5 (was h-2), rounded-full so the leading
+       *  cap reads as a rounded racer head. Inner shadow tint for
+       *  depth, player colour fill, destructive overlay flagging
+       *  accumulated errors at the leading edge. */}
+      <div className="relative h-3.5 overflow-hidden rounded-full bg-muted shadow-[inset_0_0_0_1px_var(--border)]">
         <div
           className={cn(
-            "absolute inset-y-0 left-0 transition-[width] duration-150 ease-out",
-            !showColors && !racer.isYou && !disconnected && "bg-foreground/55",
+            "absolute inset-y-0 left-0 rounded-full transition-[width] duration-150 ease-out",
+            !showColors && !racer.isYou && !disconnected && "bg-foreground/65",
             disconnected && "bg-muted-foreground/40",
           )}
           style={{
@@ -257,11 +258,11 @@ function RacerRow({
         ) : null}
       </div>
 
-      {/* WPM — primary on you, foreground otherwise. tabular-nums so
-       *  the number doesn't jiggle the right edge. */}
+      {/* WPM — primary on you, foreground otherwise. Bigger so the
+       *  on-the-fly speed read is easy from across the room. */}
       <span
         className={cn(
-          "text-right text-[14px] font-bold tabular-nums",
+          "text-right text-[18px] font-bold tabular-nums sm:text-[20px]",
           disconnected
             ? "text-muted-foreground"
             : racer.isYou
@@ -274,7 +275,7 @@ function RacerRow({
 
       {/* Percent — quiet right-aligned secondary read so the user
        *  can scan the table by % rather than only by bar length. */}
-      <span className="text-right text-[10px] uppercase tracking-[0.14em] tabular-nums text-muted-foreground/80">
+      <span className="text-right text-[11px] uppercase tracking-[0.14em] tabular-nums text-muted-foreground/80">
         {pct}%
       </span>
     </li>

@@ -1,4 +1,5 @@
 import type {
+  LeaderboardPreset,
   LeaderboardScope,
   LeaderboardWindow,
 } from "@/types/leaderboard";
@@ -17,6 +18,58 @@ export const WINDOWS: readonly { id: LeaderboardWindow; label: string }[] = [
   { id: "day", label: "Today" },
 ];
 
+/** Preset slices — group time presets and word presets so the
+ *  sidebar can render them under sub-headings. Word presets share
+ *  the personal-bests scale (10/25/50/100); time presets share the
+ *  same MonkeyType-style 15/30/60/120 scale. "any" is the default
+ *  — no amount filter, full table. */
+export const PRESET_GROUPS: readonly {
+  title: string;
+  options: readonly { id: LeaderboardPreset; label: string }[];
+}[] = [
+  {
+    title: "Length",
+    options: [{ id: "any", label: "All lengths" }],
+  },
+  {
+    title: "Words",
+    options: [
+      { id: "w10", label: "10 words" },
+      { id: "w25", label: "25 words" },
+      { id: "w50", label: "50 words" },
+      { id: "w100", label: "100 words" },
+    ],
+  },
+  {
+    title: "Time",
+    options: [
+      { id: "t15", label: "15 seconds" },
+      { id: "t30", label: "30 seconds" },
+      { id: "t60", label: "60 seconds" },
+      { id: "t120", label: "120 seconds" },
+    ],
+  },
+];
+
+const PRESET_IDS: readonly LeaderboardPreset[] = [
+  "any",
+  "w10",
+  "w25",
+  "w50",
+  "w100",
+  "t15",
+  "t30",
+  "t60",
+  "t120",
+];
+
+const PRESET_LABEL_BY_ID = new Map<LeaderboardPreset, string>(
+  PRESET_GROUPS.flatMap((g) => g.options.map((o) => [o.id, o.label] as const)),
+);
+export function presetLabel(id: LeaderboardPreset): string {
+  return PRESET_LABEL_BY_ID.get(id) ?? "All lengths";
+}
+
 export const MODE_LABEL: Record<string, string> = {
   race: "race",
   training: "training",
@@ -32,4 +85,10 @@ export function parseScope(s: string | null): LeaderboardScope {
 export function parseWindow(s: string | null): LeaderboardWindow {
   if (s === "month" || s === "week" || s === "day" || s === "all_time") return s;
   return "all_time";
+}
+
+export function parsePreset(s: string | null): LeaderboardPreset {
+  if (s == null) return "any";
+  const found = PRESET_IDS.find((id) => id === s);
+  return found ?? "any";
 }

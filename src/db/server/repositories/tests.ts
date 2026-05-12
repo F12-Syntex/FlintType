@@ -79,10 +79,12 @@ export function testsRepo(db: ServerDrizzle) {
     async topLeaderboard(opts: {
       mode?: string;
       sinceMs?: number;
+      amount?: number | null;
       limit?: number;
     }): Promise<LeaderboardRow[]> {
       const mode = opts.mode;
       const since = opts.sinceMs ?? 0;
+      const amount = opts.amount ?? null;
       const limit = Math.max(1, Math.min(100, opts.limit ?? 25));
       // Net WPM expressed in SQL so we can sort + cap in one query
       // rather than pulling everything and sorting in JS. Drizzle's
@@ -91,6 +93,9 @@ export function testsRepo(db: ServerDrizzle) {
       const filters = [eq(tests.wasCompleted, true)];
       if (mode && mode !== "all") filters.push(eq(tests.mode, mode));
       if (since > 0) filters.push(gte(tests.completedAt, new Date(since)));
+      if (amount != null && amount > 0) {
+        filters.push(eq(tests.durationOrWordCount, amount));
+      }
       const rows = await db
         .select({
           testId: tests.id,

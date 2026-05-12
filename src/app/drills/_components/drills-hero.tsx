@@ -15,7 +15,7 @@ export function DrillsHero({
   loading: boolean;
 }) {
   return (
-    <header className="border-b border-border px-5 pt-12 pb-9 sm:px-12 sm:pt-14 sm:pb-10 lg:px-16">
+    <header className="mx-5 mt-8 rounded-md border border-border bg-card px-6 py-7 sm:mx-12 sm:mt-10 sm:px-10 sm:py-10 lg:mx-16">
       <div className="mb-5 flex items-center gap-3">
         <span aria-hidden className="inline-block h-px w-7 bg-primary" />
         <Tag>Drills · targeted practice</Tag>

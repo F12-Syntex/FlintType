@@ -90,21 +90,6 @@ export function RacePassage() {
   ).length;
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
-      {showLineup ? (
-        <RaceLineupPanel
-          racers={state.racers}
-          totalChars={state.totalChars}
-          phase={state.phase as RacePhase}
-          modeName={RACE_MODES[state.modeId].name}
-          joinedOpponents={joinedOpponents}
-          totalOpponents={totalOpponents}
-          wordsDone={wordsDone}
-          totalWords={state.words.length}
-          wpm={wpm}
-          accuracy={acc}
-        />
-      ) : null}
-
       <div className="min-h-0 flex-1">
         {racing ? (
           <Passage wordBackground={wordTints} wordTextColor={wordTextColor} />
@@ -120,6 +105,25 @@ export function RacePassage() {
       </div>
 
       <ChallengeLobby />
+
+      {/* Lineup moved below the passage. Racers sit where the user's
+       *  eye naturally drops after typing — close to the keyboard,
+       *  fatter bars (h-3) for at-a-glance read-out, doesn't compete
+       *  with the passage for vertical real estate above. */}
+      {showLineup ? (
+        <RaceLineupPanel
+          racers={state.racers}
+          totalChars={state.totalChars}
+          phase={state.phase as RacePhase}
+          modeName={RACE_MODES[state.modeId].name}
+          joinedOpponents={joinedOpponents}
+          totalOpponents={totalOpponents}
+          wordsDone={wordsDone}
+          totalWords={state.words.length}
+          wpm={wpm}
+          accuracy={acc}
+        />
+      ) : null}
     </div>
   );
 }

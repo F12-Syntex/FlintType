@@ -3,6 +3,7 @@ import { defineNamespace, defineRoute } from "@/server";
 import { rateLimit } from "@/server/middleware/rate-limit";
 import {
   leaderboardInputSchema,
+  PRESET_AMOUNT,
   type LeaderboardEntry,
   type LeaderboardInput,
   type LeaderboardOutput,
@@ -30,16 +31,19 @@ const list = defineRoute<LeaderboardInput, LeaderboardOutput>({
   handler: async ({ input, db, log }) => {
     const scope = input.scope ?? "all";
     const window = input.window ?? "all_time";
+    const preset = input.preset ?? "any";
     const limit = input.limit ?? DEFAULT_LIMIT;
     const rows = await db.tests.topLeaderboard({
       mode: modeFor(scope),
       sinceMs: sinceFor(window),
+      amount: PRESET_AMOUNT[preset],
       limit,
     });
     if (rows.length === 0) {
       return {
         scope,
         window,
+        preset,
         entries: [],
         generatedAtMs: Date.now(),
       };
@@ -91,6 +95,7 @@ const list = defineRoute<LeaderboardInput, LeaderboardOutput>({
     return {
       scope,
       window,
+      preset,
       entries,
       generatedAtMs: Date.now(),
     };

@@ -338,21 +338,6 @@ export function BurstRaceSurface() {
   ).length;
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
-      {showLineup ? (
-        <RaceLineupPanel
-          racers={state.racers}
-          totalChars={state.totalChars}
-          phase={state.phase as RacePhase}
-          modeName={`${mode.name} · item ${Math.min(itemIdx + 1, itemsCount)}/${itemsCount}`}
-          joinedOpponents={joinedOpponents}
-          totalOpponents={totalOpponents}
-          wordsDone={Math.min(itemIdx, itemsCount)}
-          totalWords={itemsCount}
-          wpm={wpm}
-          accuracy={you.accuracy}
-        />
-      ) : null}
-
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8">
           {racing ? (
             <>
@@ -384,6 +369,23 @@ export function BurstRaceSurface() {
             />
           )}
       </div>
+
+      {/* Lineup at the bottom — same positioning as the passage
+       *  surface so race surfaces feel uniform. */}
+      {showLineup ? (
+        <RaceLineupPanel
+          racers={state.racers}
+          totalChars={state.totalChars}
+          phase={state.phase as RacePhase}
+          modeName={`${mode.name} · item ${Math.min(itemIdx + 1, itemsCount)}/${itemsCount}`}
+          joinedOpponents={joinedOpponents}
+          totalOpponents={totalOpponents}
+          wordsDone={Math.min(itemIdx, itemsCount)}
+          totalWords={itemsCount}
+          wpm={wpm}
+          accuracy={you.accuracy}
+        />
+      ) : null}
     </div>
   );
 }
