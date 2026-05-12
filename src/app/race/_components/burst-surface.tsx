@@ -232,6 +232,14 @@ export function BurstRaceSurface() {
   const wpm = you.wpm;
   const racing =
     state.phase === "racing" || state.phase === "finished";
+  // Mirror RacePassage: show the lineup from matching onward (bots
+  // joining, lobby fill, countdown) so the user gets a good look at
+  // who they're racing before GO.
+  const showLineup =
+    state.phase === "matching" ||
+    state.phase === "lobby" ||
+    state.phase === "countdown" ||
+    racing;
   return (
     <>
       <PhaseRow
@@ -248,10 +256,6 @@ export function BurstRaceSurface() {
                 metrics: [
                   { label: "WPM", value: String(wpm), accent: true },
                   { label: "GATE", value: String(burst.thresholdWpm) },
-                  {
-                    label: "",
-                    value: state.phase === "finished" ? "FINISHED" : "LIVE",
-                  },
                 ],
               }
             : undefined
@@ -260,31 +264,65 @@ export function BurstRaceSurface() {
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8">
-          <BurstWord
-            target={targetWord}
-            typed={local.typed}
-            outcome={local.lastOutcome}
-            ready={ready}
-          />
-          <StreakPips
-            total={burst.repsPerItem}
-            done={reps}
-            failed={local.lastOutcome === "wrong"}
-          />
-          <StatusBlock
-            ready={ready}
-            outcome={local.lastOutcome}
-            lastWpm={local.lastWpm}
-            thresholdWpm={burst.thresholdWpm}
-          />
+          {racing ? (
+            <>
+              <BurstWord
+                target={targetWord}
+                typed={local.typed}
+                outcome={local.lastOutcome}
+                ready={ready}
+              />
+              <StreakPips
+                total={burst.repsPerItem}
+                done={reps}
+                failed={local.lastOutcome === "wrong"}
+              />
+              <StatusBlock
+                ready={ready}
+                outcome={local.lastOutcome}
+                lastWpm={local.lastWpm}
+                thresholdWpm={burst.thresholdWpm}
+              />
+            </>
+          ) : (
+            <HiddenBurstWord repsPerItem={burst.repsPerItem} />
+          )}
         </div>
 
-        {racing || state.phase === "countdown" ? (
+        {showLineup ? (
           <RacePlayerStrip
             racers={state.racers}
             totalChars={state.totalChars}
           />
         ) : null}
+      </div>
+    </>
+  );
+}
+
+/** Pre-race placeholder for the burst surface's central word. Renders
+ *  a single muted block at burst-word height so the layout doesn't
+ *  shift when the real word swaps in at GO, plus the empty streak
+ *  pip row so the user knows the streak structure they'll be working
+ *  with. The target word itself is hidden — same fairness rule as
+ *  the passage placeholder above. */
+function HiddenBurstWord({ repsPerItem }: { repsPerItem: number }) {
+  return (
+    <>
+      <div
+        aria-hidden
+        className="h-12 w-32 rounded-sm bg-foreground/[0.06] sm:h-14 sm:w-40 lg:h-16 lg:w-48"
+      />
+      <div
+        aria-hidden
+        className="flex gap-1.5"
+      >
+        {Array.from({ length: repsPerItem }, (_, i) => (
+          <span
+            key={i}
+            className="h-1.5 w-8 rounded-sm bg-foreground/[0.06]"
+          />
+        ))}
       </div>
     </>
   );

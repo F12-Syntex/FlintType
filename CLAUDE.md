@@ -48,6 +48,24 @@ Protocol:
 - **context7** — authoritative docs for Tailwind, shadcn, Next.js, React. Use this before guessing API shapes, since this Next.js is newer than training data.
 - **clerk** — HTTP-transport MCP hosted at `https://mcp.clerk.com/mcp`. Use for Clerk-specific questions (dashboard config, session claims, organization APIs) before consulting training data.
 
+## Design taste — always invoke `impeccable`
+
+For **any** UI/UX work — designing a new surface, redesigning an existing one, polishing a component, auditing visual quality, picking colours / type / spacing, removing visual noise, making something "look better" — invoke the `impeccable` skill **before** writing or editing UI code. The user has explicitly mandated this; it is not optional.
+
+Trigger words that always route through `impeccable`:
+- design, redesign, mockup, layout, shape, look, feel
+- polish, refine, clean up, simplify, tighten
+- audit, critique, review (when scoped to visual quality)
+- "make it nicer / cleaner / more on-brand / more refined"
+- "this looks bad / dated / generic / off"
+- "match the [other page] style"
+
+When uncertain, invoke `impeccable` anyway — overhead is small, output quality is much higher than freelancing visual choices.
+
+How to invoke: `Skill` tool with `skill: "impeccable"` and `args` describing the surface, files, and constraints (existing palette, brand voice, file paths, the user's specific complaints). The skill enforces design context loading + register selection + shared design laws. Trust its routing — let it pick the sub-command (`craft`, `polish`, `redesign`, etc.).
+
+Pure bugfixes, structural refactors, copy-only tweaks, and backend work don't trigger this rule. The rule is for **visual** decisions.
+
 ## Domain rules (deep)
 
 - **Backend** — `docs/backend-rules.md` is the authoritative guide. 11 rules, core concepts, request flow, middleware patterns, errors, client usage, how-to, antipatterns, LLM checklist.

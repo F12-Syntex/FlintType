@@ -2,27 +2,20 @@
 
 import { cn } from "@/lib/utils";
 import { ModePicker } from "./mode-picker";
-import { RACE_MODES } from "./race-data";
 import { useRace } from "./race-state";
 
-/** Top race-strip — visually a sibling of practice's `<ModeBar>` so the
- *  two surfaces feel like the same product. Same centred horizontal
- *  flex (`md:flex md:flex-wrap items-end justify-center gap-x-8 gap-y-4
- *  px-7 py-4`), same `<Field>` lockup convention, no border-b.
+/** Top race strip, sibling of practice's `<ModeBar>`. Same centred
+ *  horizontal `<Field>` lockup convention, same `px-7 py-4` shell,
+ *  no border-b. Two fields:
+ *    - mode   → dropdown of every race mode
+ *    - action → phase-aware button (Find race / Race again / Abandon)
  *
- *  Phase-aware action slot on the right edge of the row:
- *    queue      — "Find race"
- *    matching   — disabled "Matching…"
- *    lobby      — disabled "Starting…"
- *    countdown  — disabled "Get ready…"
- *    racing     — ghost "Abandon"
- *    finished   — primary "Race again" */
+ *  The phase status used to live here as a `● QUEUE`-style bullet pill
+ *  but that read as a console-output cliché. It now lives in the
+ *  `<PhaseRow>` above the passage where the rest of the per-phase
+ *  signal already lives — one place to look, not two. */
 export function RaceControls() {
-  const { state, modeId, setModeId, enterQueue, restart, abandon, elapsedSeconds } =
-    useRace();
-  const mode = RACE_MODES[modeId];
-  const you = state.racers.find((r) => r.isYou)!;
-  const totalRacers = mode.botIds.length + 1;
+  const { state, modeId, setModeId, enterQueue, restart, abandon } = useRace();
   const allowSwitch =
     state.phase === "queue" ||
     state.phase === "lobby" ||
@@ -32,49 +25,21 @@ export function RaceControls() {
       <Field label="mode">
         <ModePicker modeId={modeId} onPick={setModeId} disabled={!allowSwitch} />
       </Field>
-      <Field label="detail">
-        <span className="inline-flex h-8 items-center text-[11px] tracking-wide text-muted-foreground">
-          {mode.detail}
-        </span>
-      </Field>
-      <Field label="status">
-        <span className="inline-flex h-8 items-center">
-          <StatusLine
-            phase={state.phase}
-            elapsed={elapsedSeconds}
-            place={you.place}
-            totalRacers={totalRacers}
-          />
-        </span>
-      </Field>
       <Field label="action">
-        {state.phase === "queue" ? (
-          <PrimaryButton onClick={enterQueue}>Find race</PrimaryButton>
-        ) : state.phase === "matching" ? (
-          <GhostButton onClick={() => undefined} disabled>
-            Matching…
-          </GhostButton>
-        ) : state.phase === "lobby" ? (
-          <GhostButton onClick={() => undefined} disabled>
-            Starting…
-          </GhostButton>
-        ) : state.phase === "countdown" ? (
-          <GhostButton onClick={() => undefined} disabled>
-            Get ready…
-          </GhostButton>
-        ) : state.phase === "finished" ? (
-          <PrimaryButton onClick={restart}>Race again</PrimaryButton>
-        ) : (
-          <GhostButton onClick={abandon}>Abandon</GhostButton>
-        )}
+        <ActionButton
+          phase={state.phase}
+          onEnter={enterQueue}
+          onRestart={restart}
+          onAbandon={abandon}
+        />
       </Field>
     </div>
   );
 }
 
-/** Label-on-top wrapper — same shape as practice ModeBar's `<Field>`
- *  so the two surfaces line up visually when rendered side-by-side
- *  (e.g. when comparing the two tabs in a screen-cap). */
+/** Label-on-top wrapper matching practice's ModeBar `<Field>` exactly.
+ *  Same `text-[10px] tracking-[0.2em] uppercase` eyebrow + `gap-1.5`
+ *  so the two surfaces line up when viewed side-by-side. */
 function Field({
   label,
   children,
@@ -92,34 +57,42 @@ function Field({
   );
 }
 
-function StatusLine({
+/** Phase-aware right-hand action. Three button shapes share the same
+ *  geometry (h-8, rounded-md, font-mono uppercase tracking) so they
+ *  line up against the mode chip across phases:
+ *
+ *    queue / finished → filled primary CTA (the move that opens up
+ *                       the loop: Find race, Race again)
+ *    racing           → hairline ghost (Abandon — recoverable, soft)
+ *    matching / lobby /
+ *    countdown        → disabled ghost (system is doing the work) */
+function ActionButton({
   phase,
-  elapsed,
-  place,
-  totalRacers,
+  onEnter,
+  onRestart,
+  onAbandon,
 }: {
   phase: string;
-  elapsed: number;
-  place: number | null;
-  totalRacers: number;
+  onEnter: () => void;
+  onRestart: () => void;
+  onAbandon: () => void;
 }) {
-  const label =
-    phase === "queue"
-      ? "● QUEUE"
-      : phase === "matching"
-        ? "● MATCHING"
-        : phase === "lobby"
-          ? "● LOBBY"
-          : phase === "countdown"
-            ? "● STARTING"
-            : phase === "finished"
-              ? `● FINISHED · ${place ?? "?"}/${totalRacers}`
-              : `● LIVE · ${formatT(elapsed)}`;
-  return (
-    <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-primary">
-      {label}
-    </span>
-  );
+  if (phase === "queue") {
+    return <PrimaryButton onClick={onEnter}>Find race</PrimaryButton>;
+  }
+  if (phase === "matching") {
+    return <DisabledButton>Matching</DisabledButton>;
+  }
+  if (phase === "lobby") {
+    return <DisabledButton>Starting</DisabledButton>;
+  }
+  if (phase === "countdown") {
+    return <DisabledButton>Get ready</DisabledButton>;
+  }
+  if (phase === "finished") {
+    return <PrimaryButton onClick={onRestart}>Race again</PrimaryButton>;
+  }
+  return <GhostButton onClick={onAbandon}>Abandon</GhostButton>;
 }
 
 function PrimaryButton({
@@ -136,7 +109,7 @@ function PrimaryButton({
       className={cn(
         "inline-flex h-8 items-center gap-2 rounded-md bg-primary px-3.5",
         "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground",
-        "transition-colors hover:bg-primary/90 active:translate-y-[1px]",
+        "transition-[background-color,transform] duration-150 hover:bg-primary/90 active:translate-y-[0.5px]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
       )}
     >
@@ -148,23 +121,19 @@ function PrimaryButton({
 function GhostButton({
   onClick,
   children,
-  disabled = false,
 }: {
   onClick: () => void;
   children: React.ReactNode;
-  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled}
       className={cn(
-        "inline-flex h-8 items-center gap-2 rounded-md border border-border px-3",
-        "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground transition-colors",
-        disabled
-          ? "cursor-not-allowed opacity-60"
-          : "hover:border-foreground/30 hover:text-foreground",
+        "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-transparent px-3",
+        "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground",
+        "transition-colors duration-150 hover:border-foreground/40 hover:text-foreground",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
       )}
     >
       {children}
@@ -172,8 +141,21 @@ function GhostButton({
   );
 }
 
-function formatT(sec: number): string {
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return `${m}:${String(s).padStart(2, "0")}`;
+/** Same shape as GhostButton but visually quieter — used when the
+ *  system is running and the user has no action to take (matching,
+ *  starting, get ready). A dimmed border tells the eye "this is the
+ *  same control surface, but inert right now" without forcing the
+ *  cursor to read disabled-grey as failed. */
+function DisabledButton({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      aria-disabled
+      className={cn(
+        "inline-flex h-8 cursor-not-allowed items-center gap-2 rounded-md border border-dashed border-border/70 px-3",
+        "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70",
+      )}
+    >
+      {children}
+    </span>
+  );
 }

@@ -10,13 +10,15 @@ import {
 import { cn } from "@/lib/utils";
 import { RACE_MODES, RACE_MODE_ORDER, type RaceModeId } from "./race-data";
 
-/** Mode dropdown trigger styled to match practice's `<ModeBar>` inner
- *  control shape (the SegmentedControl pills) — same border + bg-muted
- *  + rounded-md frame so the race chrome at the top of /race reads as
- *  a sibling of the practice ModeBar.
+/** Race-mode dropdown chip. Lives inside the top race strip's first
+ *  `<Field label="mode">` slot, mirroring practice's segmented-control
+ *  pill height (h-8) so the two surfaces share rhythm.
  *
- *  Designed to be wrapped in a `<Field label="mode">` matching practice
- *  conventions; the picker itself only renders the chip + dropdown. */
+ *  Chip is a single flat surface (border + bg-background) so the
+ *  trigger reads as one control, not a button-within-a-button.
+ *  Chevron tilts on open. Hover lifts the border and gently fills
+ *  with `bg-accent/40` so the click target is obvious but never
+ *  competes with the brand spark. */
 export function ModePicker({
   modeId,
   onPick,
@@ -34,23 +36,34 @@ export function ModePicker({
           type="button"
           aria-label={`Race mode — ${mode.name}, ${mode.detail}`}
           className={cn(
-            "group inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-3",
-            "font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground transition-colors",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40",
+            "group inline-flex h-8 items-center gap-2 rounded-md border border-border bg-background px-3",
+            "font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground",
+            "transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
             disabled
-              ? "cursor-not-allowed opacity-50"
-              : "hover:border-foreground/30 hover:bg-accent/40",
+              ? "cursor-not-allowed opacity-40"
+              : "hover:border-foreground/40 hover:bg-accent/40",
           )}
         >
-          {mode.name}
+          <span>{mode.name}</span>
+          <span aria-hidden className="h-3 w-px bg-border" />
+          <span className="text-[10px] font-medium normal-case tracking-normal text-muted-foreground">
+            {mode.detail.split(" · ")[0] ?? ""}
+          </span>
           <ChevronDown
-            size={12}
+            size={11}
             aria-hidden
-            className="text-muted-foreground transition-transform duration-150 group-data-[state=open]:rotate-180"
+            className={cn(
+              "ml-0.5 text-muted-foreground transition-transform duration-150",
+              "group-data-[state=open]:rotate-180",
+            )}
           />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" sideOffset={6} className="min-w-56">
+      <DropdownMenuContent
+        align="start"
+        sideOffset={6}
+        className="min-w-60 p-1"
+      >
         {RACE_MODE_ORDER.map((id) => {
           const m = RACE_MODES[id];
           const active = id === modeId;
@@ -59,7 +72,7 @@ export function ModePicker({
               key={id}
               onSelect={() => onPick(id)}
               className={cn(
-                "flex items-start gap-2.5 py-2.5",
+                "flex items-start gap-2.5 rounded-sm py-2 pl-2 pr-3",
                 active && "bg-primary/[0.06]",
               )}
             >
@@ -70,12 +83,12 @@ export function ModePicker({
                   active ? "text-primary" : "text-transparent",
                 )}
               >
-                <Check size={14} />
+                <Check size={13} strokeWidth={2.5} />
               </span>
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 leading-tight">
                 <div
                   className={cn(
-                    "text-[11px] font-semibold uppercase tracking-[0.16em]",
+                    "font-mono text-[11px] font-semibold uppercase tracking-[0.14em]",
                     active ? "text-primary" : "text-foreground",
                   )}
                 >
