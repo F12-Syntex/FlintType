@@ -88,6 +88,7 @@ export function RaceProvider({
   modeId,
   raceSeed,
   withQueue,
+  youName,
   setModeId,
   restartShell,
   enterQueueShell,
@@ -98,6 +99,11 @@ export function RaceProvider({
   /** Whether the initial phase is `queue` (fresh entry / mode change)
    *  or `lobby` (race-again — bots already at the table). */
   withQueue: boolean;
+  /** Display name to use for the human racer in lanes / feed / strip
+   *  (e.g. `@saif`). Pulled from Clerk in the parent shell so the
+   *  provider stays decoupled from the auth library. Defaults to
+   *  `@you` when unauthenticated. */
+  youName: string;
   setModeId: (next: RaceModeId) => void;
   restartShell: () => void;
   /** Called by useRace().enterQueue — forwarded to the shell so it
@@ -107,7 +113,7 @@ export function RaceProvider({
   children: ReactNode;
 }) {
   const [state, dispatch] = useReducer(reducer, undefined, () =>
-    freshState(modeId, raceSeed, Date.now(), withQueue),
+    freshState(modeId, raceSeed, Date.now(), withQueue, youName),
   );
   const { prefs: appearance } = useAppearancePrefs();
   const countdownSeconds = Math.max(

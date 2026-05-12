@@ -16,10 +16,14 @@ import type {
 
 const FEED_LIMIT = 14;
 
-function buildRacers(botIds: readonly BotId[], withQueue: boolean): Racer[] {
+function buildRacers(
+  botIds: readonly BotId[],
+  withQueue: boolean,
+  youName: string,
+): Racer[] {
   const you: Racer = {
     id: "you",
-    name: "@you",
+    name: youName,
     flag: "—",
     badge: "RACER",
     isYou: true,
@@ -67,6 +71,7 @@ export function freshState(
   seed: number,
   now: number,
   withQueue: boolean,
+  youName: string,
 ): RaceState {
   const mode = RACE_MODES[modeId];
   const words = generateRacePassage(mode.wordCount, seed);
@@ -81,7 +86,7 @@ export function freshState(
     raceStartedAt: null,
     raceEndedAt: null,
     nowMs: now,
-    racers: buildRacers(mode.botIds, withQueue),
+    racers: buildRacers(mode.botIds, withQueue, youName),
     feed: [
       {
         t: 0,
@@ -210,9 +215,21 @@ function applyPipeline(s: RaceState): RaceState {
 export function reducer(s: RaceState, a: Action): RaceState {
   switch (a.type) {
     case "SET_MODE":
-      return freshState(a.modeId, a.seed, a.now, a.withQueue);
+      return freshState(
+        a.modeId,
+        a.seed,
+        a.now,
+        a.withQueue,
+        s.racers.find((r) => r.isYou)?.name ?? "@you",
+      );
     case "RESTART":
-      return freshState(s.modeId, a.seed, a.now, a.withQueue);
+      return freshState(
+        s.modeId,
+        a.seed,
+        a.now,
+        a.withQueue,
+        s.racers.find((r) => r.isYou)?.name ?? "@you",
+      );
     case "ENTER_QUEUE": {
       if (s.phase !== "queue") return s;
       return {

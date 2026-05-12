@@ -34,7 +34,27 @@ export function RaceSidebar() {
     state.phase === "finished";
 
   return (
-    <aside className="flex w-full shrink-0 flex-col rounded-md border border-border bg-card/40 lg:w-[24rem] lg:rounded-none lg:border-0 lg:border-l lg:bg-transparent">
+    <aside
+      data-ft-chrome
+      aria-label="Race control panel"
+      className={cn(
+        // Mirror the customise sidebar's "detached card on lg+" pattern
+        // so race + settings read as one chrome family. Below lg the
+        // sidebar stacks under the racing column with the same rounded
+        // border, just inline rather than as a full-height left rail.
+        "flex w-full shrink-0 flex-col rounded-md border border-border bg-background/85 backdrop-blur-md",
+        "lg:h-full lg:overflow-hidden",
+      )}
+    >
+      <div className="shrink-0 border-b border-border px-5 py-4">
+        <div className="flex items-center gap-3">
+          <span aria-hidden className="inline-block h-px w-5 bg-primary" />
+          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Race
+          </span>
+        </div>
+      </div>
+      <div className="min-h-0 flex-1 lg:overflow-y-auto">
       <Section title="YOUR RUN">
         <div className="flex flex-col gap-2.5 text-[11px]">
           <Row
@@ -100,6 +120,7 @@ export function RaceSidebar() {
           Open multiplayer settings →
         </Link>
       </Section>
+      </div>
     </aside>
   );
 }
@@ -114,8 +135,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-b border-border px-6 py-5">
-      <div className="mb-3.5 flex justify-between gap-2">
+    <div className="border-b border-border/70 px-5 py-4 last:border-b-0">
+      <div className="mb-3 flex justify-between gap-2">
         <span className="text-[10px] uppercase tracking-[0.18em] text-foreground">
           {title}
         </span>

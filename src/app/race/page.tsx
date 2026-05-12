@@ -15,27 +15,27 @@ export const metadata = buildPageMetadata({
   noIndex: true,
 });
 
-/** Layout: a single flex column that fills the AppChrome scroll
- *  region top-to-bottom. RaceControls sits at the top, the main row
- *  takes the remaining height and splits into a flex-1 racing column
- *  plus a fixed 320px sidebar on lg+. On smaller viewports the sidebar
- *  stacks below the racing column. Lanes have a fixed min-height
- *  (set inside the component); the passage grows to fill whatever
- *  height is left so the whole viewport is used instead of leaving
- *  empty space below. */
+/** Layout: matches the customise screen so the user sees one chrome
+ *  pattern across config-style surfaces.
+ *    - RaceControls pinned to the top of the scroll region
+ *    - lg+ splits into a 280px left rail (RaceSidebar — floating
+ *      panel, rounded border, blurred background) and a 1fr column
+ *      hosting Lanes, Passage, Results
+ *    - <lg the sidebar collapses below the racing column so mobile
+ *      keeps the typing area as the visual lead */
 export default function RacePage() {
   return (
     <AppChrome>
       <RaceShell>
         <div className="flex flex-1 flex-col">
           <RaceControls />
-          <main className="flex flex-1 flex-col gap-6 px-4 py-5 sm:px-10 sm:py-7 lg:flex-row lg:gap-8 lg:px-14 lg:py-8">
-            <section className="flex flex-1 flex-col gap-6 lg:min-w-0">
+          <main className="grid flex-1 grid-cols-1 gap-6 px-4 py-5 sm:px-10 sm:py-7 lg:grid-cols-[280px_1fr] lg:gap-6 lg:px-6 lg:py-6">
+            <RaceSidebar />
+            <section className="flex flex-col gap-6 lg:min-w-0">
               <RaceLanes />
               <RacePassage />
               <RaceResults />
             </section>
-            <RaceSidebar />
           </main>
         </div>
       </RaceShell>
