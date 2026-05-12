@@ -1,10 +1,22 @@
 {
   "language": "english",
   "groups": [
-    [0, 100],
-    [101, 300],
-    [301, 600],
-    [601, 9999]
+    [
+      0,
+      100
+    ],
+    [
+      101,
+      300
+    ],
+    [
+      301,
+      600
+    ],
+    [
+      601,
+      9999
+    ]
   ],
   "quotes": [
     {
@@ -336,12 +348,6 @@
       "source": "Never Enough",
       "id": 58,
       "length": 176
-    },
-    {
-      "text": "She had waited all her life for something and it had killed her when it found her.",
-      "source": "Their Eyes Were Watching God",
-      "id": 59,
-      "length": 82
     },
     {
       "text": "This truth holds me close, rocking me like a child in a mother's arms.",
@@ -980,12 +986,6 @@
       "length": 265
     },
     {
-      "text": "We were sent here for something. And we know that all things work together for good to them that love God, to them who are called according to his purpose.",
-      "source": "A Wrinkle in Time",
-      "id": 173,
-      "length": 155
-    },
-    {
       "text": "Sometimes the briefest moments capture us, force us to take them in, and demand that we live the rest of our lives in reference to them.",
       "source": "Autobiography of a Face",
       "id": 174,
@@ -1116,12 +1116,6 @@
       "source": "Ender's Game",
       "id": 196,
       "length": 164
-    },
-    {
-      "text": "For centuries, the battle of morality was fought between those who claimed that your life belongs to God and those who claimed that it belongs to your neighbors. And no one came to say that your life belongs to you and that the good is to live it.",
-      "source": "Atlas Shrugged",
-      "id": 197,
-      "length": 247
     },
     {
       "text": "The light and the dark the big and the small. Just keep in mind you need no more at all. You've seen what you were and know what you'll be. You've seen it all, there is no more to see.",
@@ -3752,12 +3746,6 @@
       "length": 361
     },
     {
-      "text": "Benjamin was the oldest animal on the farm, and the worst tempered. He seldom talked, and when he did, it was usually to make some cynical remark - for instance, he would say that God had given him a tail to keep the flies off, but that he would sooner have had no tail and no flies.",
-      "source": "Animal Farm",
-      "id": 653,
-      "length": 283
-    },
-    {
       "text": "All around us there are powers. There are animals like the whale, the bear, the wolf, and the eagle. There are powers like the sun and moon and seasons. And there are the powers inside of us like happiness and anger. We can feel all of these and dance to them. They all have much to teach us. Today, we saw the whale, so tonight we'll dance the whale dance. Each of us will tell what we learned from watching the whale.",
       "source": "Touching Spirit Bear",
       "id": 654,
@@ -4584,12 +4572,6 @@
       "source": "Perhaps Love",
       "id": 799,
       "length": 209
-    },
-    {
-      "text": "Owners of dogs will have noticed that, if you provide them with food and water and shelter and affection, they will think you are god. Whereas owners of cats are compelled to realize that, if you provide them with food and water and shelter and affection, they draw the conclusion that they are gods.",
-      "source": "The Portable Atheist",
-      "id": 800,
-      "length": 300
     },
     {
       "text": "Perhaps the most valuable result of all education is the ability to make yourself do the thing you have to do, when it ought to be done, whether you like it or not; it is the first lesson that ought to be learned; and however early a man's training begins, it is probably the last lesson that he learns thoroughly.",
@@ -5858,12 +5840,6 @@
       "length": 227
     },
     {
-      "text": "A king may move a man, a father may claim a son, but that man can also move himself, and only then does that man truly begin his own game. Remember that howsoever you are played or by whom, your soul is in your keeping alone, even though those who presume to play you be kings or men of power. When you stand before God, you cannot say, \"But I was told by others to do thus,\" or that virtue was not convenient at the time. This will not suffice. Remember that.",
-      "source": "Kingdom of Heaven",
-      "id": 1023,
-      "length": 460
-    },
-    {
       "text": "Try to understand men, if you understand each other you will be kind to each other. Knowing a man well never leads to hate and nearly always leads to love.",
       "source": "Of Mice and Men",
       "id": 1024,
@@ -6462,12 +6438,6 @@
       "source": "Stormy Weather",
       "id": 1131,
       "length": 109
-    },
-    {
-      "text": "No, that is what I'm trying to tell you. He is still a child. He's a normal child. He's made some mistakes - God knows he's got a load to learn about life. That does not mean that I'm gonna let you send him to the type of school whose whole reason for being is to make him follow orders by instilling fear.",
-      "source": "The Sopranos",
-      "id": 1132,
-      "length": 306
     },
     {
       "text": "Have pity on me and heal me, for you see that I have become a problem to myself, and this is the ailment from which I suffer.",
@@ -7700,12 +7670,6 @@
       "length": 373
     },
     {
-      "text": "No matter what the world is, the god of that world creates the rules. In truth, you have been defeated by the rules I created. And as punishment for defying the God of the new world, you will die...",
-      "source": "Death Note",
-      "id": 1354,
-      "length": 198
-    },
-    {
       "text": "If only all the contradictory voices shouting inside my head would calm down and sing a song in unison, whatever it was I wouldn't care as long as they sang without dissonance.",
       "source": "Invisible Man",
       "id": 1355,
@@ -8186,12 +8150,6 @@
       "length": 58
     },
     {
-      "text": "I dreamed a dream in time gone by, when hope was high and life worth living. I dreamed that love would never die. I dreamed that God would be forgiving. Then I was young and unafraid when dreams were made and used and wasted. There was no ransom to be paid, no song unsung, no wine untasted.",
-      "source": "Les Misérables",
-      "id": 1440,
-      "length": 291
-    },
-    {
       "text": "The fear of death has disordered my reason and subjected me to delusions. And I became full of shame for none of my lineage ought to fear death more than the biting of a gnat.",
       "source": "The Horse and His Boy",
       "id": 1441,
@@ -8516,12 +8474,6 @@
       "length": 282
     },
     {
-      "text": "I don't believe in an interventionist God, but I know, darling, that you do. But if I did I would kneel down and ask him not to intervene when it came to you. Not to touch a hair on your head, to leave you as you are, and if he felt he had to direct you, then direct you into my arms.",
-      "source": "Into My Arms",
-      "id": 1498,
-      "length": 284
-    },
-    {
       "text": "Much of my life had been devoted to trying not to cry in front of people who loved me, so I knew what Augustus was doing. You clench your teeth. You look up. You tell yourself that if they see you cry, it will hurt them, and you will be nothing but sadness in their lives, and you must not become a mere sadness, so you will not cry, and you say all of this to yourself while looking up at the ceiling, and then you swallow even though your throat does not want to close and you look at the person who loves you and smile.",
       "source": "The Fault in Our Stars",
       "id": 1499,
@@ -8544,12 +8496,6 @@
       "source": "Wonderful World",
       "id": 1504,
       "length": 239
-    },
-    {
-      "text": "I see something of God each hour of the twenty-four, and each moment then, in the faces of men and women I see God, and in my own face in the glass; I find letters from God dropped in the street, and every one is signed by God's name, and I leave them where they are, for I know that others will punctually come forever and ever.",
-      "source": "Leaves of Grass",
-      "id": 1506,
-      "length": 329
     },
     {
       "text": "Ok doc, before you hit the road you might wanna grab some medkits, restock on ammo, maybe check the map to see where you are headed. There is an ammo supply crate on the back of the car if that is any comfort. Stay with the car, make use of the thumpers, and you will stand a fair chance against the antlions. I will radio ahead to let the next base know you are coming.",
@@ -8772,12 +8718,6 @@
       "source": "The Iliad",
       "id": 1545,
       "length": 162
-    },
-    {
-      "text": "I hope you never lose your sense of wonder. You get your fill to eat but always keep that hunger. May you never take one single breath for granted, God forbid love ever leave you empty handed.",
-      "source": "I Hope You Dance",
-      "id": 1546,
-      "length": 192
     },
     {
       "text": "Everything happens for a reason. The system will be assessing your reaction to the painful premature termination of a treasured relationship, and will adjust and improve its profile of your eventual chosen one accordingly.",
@@ -9260,12 +9200,6 @@
       "length": 112
     },
     {
-      "text": "And yeah, I believe that there's a god. I believe that there is something out there other than my thoughts. I believe it was never science against religion; it wasn't poor against wealth; it was always me against myself, and I'm so scared who's going to win.",
-      "source": "I'm so Concerned About the Ending That I Don't Even Know the Plot",
-      "id": 1635,
-      "length": 258
-    },
-    {
       "text": "When you go into the ER, one of the first things they ask you to do is rate your pain on a scale of one to ten, and from there they decide which drugs to use and how quickly to use them. I'd been asked this question hundreds of times over the years, and I remember once early on when I couldn't get my breath and it felt like my chest was on fire, flames licking the inside of my ribs fighting for a way to burn out of my body, my parents took me to the ER. Nurse asked me about the pain, and I couldn't even speak, so I held up nine fingers.",
       "source": "The Fault in Our Stars",
       "id": 1636,
@@ -9416,12 +9350,6 @@
       "length": 606
     },
     {
-      "text": "A dream is a gift from God. When you have a great yearning for something, your mind joins your heart and pushes for its fulfillment. Connecting mind to heart is essential for the creative force to be released. Reflect on those things in your life that bring you satisfaction.",
-      "source": "Soul Lessons and Soul Purpose",
-      "id": 1663,
-      "length": 275
-    },
-    {
       "text": "Purity in body and heart may please some - as for me, I make no boast. For, as you know, no master of a household has all of his utensils made of gold; some are wood, and yet they are of use.",
       "source": "The Canterbury Tales",
       "id": 1664,
@@ -9432,12 +9360,6 @@
       "source": "I'm Not A Robot",
       "id": 1665,
       "length": 200
-    },
-    {
-      "text": "If every person in this room made it a rule that wherever you are, whenever you can, you will try to act a little kinder than is necessary - the world really would be a better place. And if you do this, if you act just a little kinder than is necessary, someone else, somewhere, someday, may recognize in you, in every single one of you, the face of God.",
-      "source": "Wonder",
-      "id": 1666,
-      "length": 354
     },
     {
       "text": "All things will be produced in superior quantity and quality, and with greater ease, when each man works at a single occupation, in accordance with his natural gifts, and at the right moment, without meddling with anything else.",
@@ -9644,12 +9566,6 @@
       "length": 471
     },
     {
-      "text": "Come and hold my hand. I want to contact the living. Not sure I understand this role I've been given. I sit and talk to God and he just laughs at my plans. My head speaks a language I don't understand.",
-      "source": "Feel",
-      "id": 1702,
-      "length": 201
-    },
-    {
       "text": "Whatever you are physically, male or female, strong or weak, ill or healthy, all those things matter less than what your heart contains. If you have the soul of a warrior, you are a warrior. Whatever the color, the shape, the design of the shade that conceals it, the flame inside the lamp remains the same. You are that flame.",
       "source": "Clockwork Angel",
       "id": 1703,
@@ -9714,12 +9630,6 @@
       "source": "A Pretty Girl Is Like A Melody",
       "id": 1713,
       "length": 317
-    },
-    {
-      "text": "Money, you've got lots of friends crowding around the door. When you're gone and spending ends, they don't come no more. Rich relations give crust of bread and such. You can help yourself, but don't take too much. Mama may have, papa may have, but God bless the child that's got his own. That's got his own.",
-      "source": "God Bless the Child",
-      "id": 1714,
-      "length": 307
     },
     {
       "text": "Scars are souvenirs you never lose, the past is never far. And did you lose yourself somewhere out there? Did you get to be a star? Don't it make you sad to know that life is more than who you are? We grew up way too fast and now there's nothing to believe and reruns all become our history. A tired song keeps playing on a tired radio, and I won't tell no one your name.",
@@ -9858,12 +9768,6 @@
       "source": "True Detective",
       "id": 1737,
       "length": 449
-    },
-    {
-      "text": "Because she doesn't just give you a present, she gives you a present and she tells you where to put it, how to use it, what it costs - for insurance purposes of course - and God forbid you should have a different opinion or you don't think it works in the space or you just get tired of waking up every morning with those horrifying animals staring at you!",
-      "source": "Gilmore Girls",
-      "id": 1738,
-      "length": 356
     },
     {
       "text": "Stand tall, boy. Have some respect for yourself. Don't you know if you let people walk over you now they'll be walking over you for the rest of your life! Look at me. You think I'm gonna spend the rest of my life in this slop house?",
@@ -10020,12 +9924,6 @@
       "source": "Story of Seasons: Trio of Towns",
       "id": 1766,
       "length": 186
-    },
-    {
-      "text": "Live, then, and be happy, beloved children of my heart, and never forget that, until the day God deigns to reveal the future to man, the sum of all human wisdom will be contained in these two words: Wait and hope.",
-      "source": "The Count of Monte Cristo",
-      "id": 1767,
-      "length": 213
     },
     {
       "text": "Well, I don't really think that the end can be assessed as of itself as being the end because what does the end feel like? It's like saying when you try to extrapolate the end of the universe, you say, if the universe is indeed infinite, then how - what does that mean? How far is all the way, and then if it stops, what's stopping it, and what's behind what's stopping it? So, what's the end, you know, is my question to you.",
@@ -10662,12 +10560,6 @@
       "source": "Eastern Promises",
       "id": 1882,
       "length": 166
-    },
-    {
-      "text": "Yes, I guess we do. For instance, I think it's wrong for you to put your name in sales reports you didn't write. I think it's wrong you keep a bag of herbs in your bottom left drawer. I think it's wrong you slept with the district manager's wife. And you want to know something? You don't even have to worry about it because I think it's wrong to blab this kind of thing. You know, you should be glad that I'm the only one who knows this stuff about you. Anyone else here would sell you down the river in a second. God, I'm so much better than you.",
-      "source": "Malcolm in the Middle",
-      "id": 1883,
-      "length": 548
     },
     {
       "text": "Writing is hard work. A clear sentence is no accident. Very few sentences come out right the first time, or even the third time. Remember this in moments of despair. If you find that writing is hard, it's because it is hard.",
@@ -11522,12 +11414,6 @@
       "length": 261
     },
     {
-      "text": "On some shelf in some hexagon, it was argued, there must exist a book that is the cipher and perfect compendium of all other books, and some librarian must have examined that book; this librarian is analogous to a god.",
-      "source": "The Library of Babel",
-      "id": 2034,
-      "length": 218
-    },
-    {
       "text": "I was trying to feel some kind of good-bye. I mean I've left schools and places I didn't even know I was leaving them. I hate that. I don't care if it's a sad good-bye or a bad good-bye, but when I leave a place I like to know I'm leaving it. If you don't you feel even worse.",
       "source": "The Catcher in the Rye",
       "id": 2035,
@@ -11862,12 +11748,6 @@
       "source": "The Princess Bride",
       "id": 2093,
       "length": 413
-    },
-    {
-      "text": "Winning? Is that what you think it's about? I'm not trying to win. I'm not doing this because I want to beat someone, or because I hate someone, or because I want to blame someone. It's not because it's fun, God knows it's not because it's easy, and it's not even because it works, because it hardly ever does. I do what I do because it's right. Because it's decent. And above all, it's kind. It's just that. Just kind. If I run away today, good people will die. If I stand and fight, some of them might live. Maybe not many, maybe not for long. Hey, you know, maybe there's no point in any of this at all, but it's the best I can do, so I'm going to do it, and I will stand here doing it until it kills me, and you're going to die, too. Someday.",
-      "source": "Doctor Who",
-      "id": 2094,
-      "length": 746
     },
     {
       "text": "I can and do say that nothing human beings have ever before attempted in the entire nutty history of the race even approaches this in absolute fascination. When I first understood what this project is about I didn't sleep for two nights, and I don't mean in the usual way; I mean I literally did not sleep.",
@@ -12854,12 +12734,6 @@
       "length": 256
     },
     {
-      "text": "I think about all the people I've loved, now long gone. I think about my beautiful Jan, and how I lost her so many years ago. I think about all of us walking our own Green Mile, each in our own time. But one thought, more than any other, keeps me awake most nights. If he could make a mouse live so long, how much longer do I have? We each owe a death, there are no exceptions, but sometimes, oh God, the Green Mile seems so long.",
-      "source": "The Green Mile",
-      "id": 2269,
-      "length": 430
-    },
-    {
       "text": "There's no pretty way to put this. I grew up in the suburbs. I guess most people think of the suburb as a place with all the disadvantages of the city and none of the advantages of the country. And vice versa. But in a way those really were the wonder years for us there in the suburbs. It was kind of a golden age for kids.",
       "source": "The Wonder Years",
       "id": 2270,
@@ -13173,12 +13047,6 @@
       "length": 138
     },
     {
-      "text": "Estella, to the last hour of my life, you cannot choose but remain part of my character, part of the little good in me, part of the evil. But, in this separation I associate you only with the good, and I will faithfully hold you to that always, for you must have done me far more good than harm, let me feel now what sharp distress I may. O God bless you, God forgive you!",
-      "source": "Great Expectations",
-      "id": 2325,
-      "length": 372
-    },
-    {
       "text": "My mind is open so wide since you came inside, I feel so alive. I was blinded, your smile shining behind those green eyes. The horizon so enticing, please say you'll be mine.",
       "source": "Blue Dream",
       "id": 2326,
@@ -13417,12 +13285,6 @@
       "source": "The Born Identity",
       "id": 2372,
       "length": 79
-    },
-    {
-      "text": "The important thing, I think, is not to be bitter. You know, if it turns out that there is a God, I don't think that he's evil. I think that the worst you can say about him is basically he's an underachiever. After all, you know, there are worse things in life than death. If you've ever spent an evening with an insurance salesman, you know exactly what I mean. The key here is to not think of death as an end, but think of it more as a very effective way of cutting down on your expenses.",
-      "source": "Love and Death",
-      "id": 2373,
-      "length": 490
     },
     {
       "text": "The time I waited seemed endless, and I felt doubts and fears crowding upon me. What sort of place had I come to, and among what kind of people? What sort of grim adventure was it on which I had embarked?",
@@ -14049,12 +13911,6 @@
       "length": 144
     },
     {
-      "text": "By what right do you dare say that there's a superior few to which you belong? By what right did you dare decide that that boy in there was inferior and therefore could be killed? Did you think you were God, Brandon? Is that what you thought when you choked the life out of him? Is that what you thought when you served food from his grave? I don't know what you thought, but I know what you've done. You've murdered!",
-      "source": "Rope",
-      "id": 2487,
-      "length": 417
-    },
-    {
       "text": "No offence, but NASA spends fifteen years, hundreds of millions of dollars so that we can watch man walk on the moon and in the end it falls to you blokes! I mean, how do you feel about that?",
       "source": "The Dish",
       "id": 2488,
@@ -14071,12 +13927,6 @@
       "source": "The Chosen",
       "id": 2490,
       "length": 117
-    },
-    {
-      "text": "Everyone's creeping up to the money god, putting tongues where they didn't ought to be. On stepping stones of human hearts and souls, into the land of \"nothing for free\". Well the way that we're living is all take and no giving. There's nothing to believe in. The loudest mouth will hail the newfound way to be king for a day.",
-      "source": "King for a Day",
-      "id": 2491,
-      "length": 326
     },
     {
       "text": "Tim and the Princess lounge in the castle garden, laughing together, giving names to the colorful birds. Their mistakes are hidden from each other, tucked away between the folds of time, safe.",
@@ -14325,12 +14175,6 @@
       "length": 289
     },
     {
-      "text": "I will build a car for the great multitude. It will be large enough for the family, but small enough for the individual to run and care for. It will be constructed of the best materials, by the best men to be hired, after the simplest designs that modern engineering can devise. But it will be so low in price that no man making a good salary will be unable to own one - and enjoy with his family the blessing of hours of pleasure in God's great open spaces.",
-      "source": "My Life and Work",
-      "id": 2540,
-      "length": 458
-    },
-    {
       "text": "There are few people whom I really love, and still fewer of whom I think well. The more I see of the world, the more am I dissatisfied with it; and every day confirms my belief of the inconsistency of all human characters, and of the little dependence that can be placed on the appearance of merit or sense.",
       "source": "Pride and Prejudice",
       "id": 2541,
@@ -14565,12 +14409,6 @@
       "length": 262
     },
     {
-      "text": "Nothing, nothing mattered, and I knew why. So did he. Throughout the whole absurd life I'd lived, a dark wind had been rising toward me from somewhere deep in my future, across years that were still to come, and as it passed, this wind leveled whatever was offered to me at the time, in years no more real than the ones I was living. What did other people's deaths or a mother's love matter to me; what did his God or the lives people choose or the fate they think they elect matter to me when we're all elected by the same fate, me and billions of privileged people like him who also called themselves my brothers?",
-      "source": "The Stranger",
-      "id": 2585,
-      "length": 615
-    },
-    {
       "text": "Robbers never strike at the homes of the poor; private wealth does not benefit the entire nation. Calamity has its source in the accumulated riches of a few, people who lose their souls for ten thousand coins.",
       "source": "Cancel All Debts",
       "id": 2586,
@@ -14701,12 +14539,6 @@
       "source": "Rolling in the Deep",
       "id": 2611,
       "length": 191
-    },
-    {
-      "text": "I'd ask you about love, you'd probably quote me a sonnet. But you've never looked at a woman and been totally vulnerable. Known someone that could level you with her eyes, feeling like God put an angel on Earth just for you.",
-      "source": "Good Will Hunting",
-      "id": 2612,
-      "length": 224
     },
     {
       "text": "Look, I know you're scared about where to go to college, but cuddle up and listen to papa. Life always works out. Usually.",
@@ -15085,12 +14917,6 @@
       "source": "Cool Hand Luke",
       "id": 2679,
       "length": 254
-    },
-    {
-      "text": "What a fool you are. I'm a god, how can you kill a god? What a grand and intoxicating innocence. How could you be so naive? There is no escape. No recall or intervention can work in this place. Come, lay down your weapons, it is not too late for my mercy.",
-      "source": "The Elder Scrolls III: Morrowind",
-      "id": 2680,
-      "length": 255
     },
     {
       "text": "Just as I'm giving up, my heart is palpitating. Here comes another one, it's so intoxicating. And being where I've been, I know that in the end I'll do it all again.",
@@ -15897,12 +15723,6 @@
       "length": 170
     },
     {
-      "text": "So, the gods don't hand out all their gifts at once, not build and brains and flowing speech to all. One man may fail to impress us with his looks but a god can crown his words with beauty, charm, and men look on with delight when he speaks out. Never faltering, filled with winning self-control, he shines forth at assembly grounds and people gaze at him like a god when he walks through the streets.",
-      "source": "The Odyssey",
-      "id": 2834,
-      "length": 401
-    },
-    {
       "text": "Thus they went on living in a reality that was slipping away, momentarily captured by words, but which would escape irremediably when they forgot the values of the written letters.",
       "source": "One Hundred Years of Solitude",
       "id": 2835,
@@ -16165,12 +15985,6 @@
       "source": "Path of Exile",
       "id": 2882,
       "length": 308
-    },
-    {
-      "text": "But if in efficient causes it is possible to go on to infinity, there will be no first efficient cause, neither will there be an ultimate effect, nor any intermediate efficient causes; all of which is plainly false. Therefore it is necessary to admit a first efficient cause, to which everyone gives the name of God.",
-      "source": "Summa Theologica",
-      "id": 2883,
-      "length": 316
     },
     {
       "text": "Books permit us to voyage through time, to tap the wisdom of our ancestors. The library connects us with the insight and knowledge, painfully extracted from Nature, of the greatest minds that ever were, with the best teachers, drawn from the entire planet and from all our history, to instruct us without tiring, and to inspire us to make our own contribution to the collective knowledge of the human species. I think the health of our civilization, the depth of our awareness about the underpinnings of our culture and our concern for the future can all be tested by how well we support our libraries.",
@@ -16605,12 +16419,6 @@
       "length": 153
     },
     {
-      "text": "I was with a customer. She interrupts me, wild-eyed, begging for coffee, so I tell her to wait her turn. Then she starts following me around, talking a mile a minute, saying God knows what. So finally I turn to her, and I tell her she's being annoying - sit down, shut up, I'll get to her when I get to her.",
-      "source": "Gilmore Girls",
-      "id": 2959,
-      "length": 307
-    },
-    {
       "text": "Oh Danny boy, the pipes, the pipes are calling from glen to glen, and down the mountain side. The summer's gone, and all the roses falling. It's you, it's you must go and I must bide, but come ye back when summer's in the meadow, or when the valley's hushed and white with snow. I'll be here in sunshine or in shadow. Oh Danny boy, oh Danny boy, I love you so.",
       "source": "Danny Boy",
       "id": 2960,
@@ -16785,12 +16593,6 @@
       "length": 275
     },
     {
-      "text": "No. You're just a murderer, Light Yagami. And this notebook is the deadliest weapon of mass murder in the history of mankind. You yielded to the power of the shinigami and the notebook and you have confused yourself with a god. In the end, you're nothing more than a crazy serial killer. That's all you are. Nothing more, and nothing less.",
-      "source": "Death Note",
-      "id": 2990,
-      "length": 339
-    },
-    {
       "text": "If cows and horses or lions had hands, or could draw with their hands and make things as men can, horses would have drawn horse-like gods, cows cow-like gods, and each species would have made the gods' bodies just like their own.",
       "source": "The First Philosophers: The Presocratics and the Sophists",
       "id": 2991,
@@ -16875,12 +16677,6 @@
       "length": 282
     },
     {
-      "text": "Nothing drives people to the church faster than the thought of the Devil snapping at their heels. Maybe that was God's plan all along, why He created him, allowed him to fall from grace - to become a symbol to be feared, a warning to us all to tread the path of the righteous.",
-      "source": "Daredevil",
-      "id": 3007,
-      "length": 276
-    },
-    {
       "text": "Transformers and most electric motors operate on alternating current. In such devices the flux in the iron changes continuously both in value and direction. The magnetic domains are therefore oriented first in one direction, then the other, at a rate that depends upon the frequency.",
       "source": "Electrical Machines, Drives, and Power Systems",
       "id": 3008,
@@ -16909,12 +16705,6 @@
       "source": "Avatar: The Last Airbender",
       "id": 3012,
       "length": 134
-    },
-    {
-      "text": "Do you believe in God? That's a complicated question. It depends on what you mean by \"God\". You see, it helps no one to be reductive. I believe that we are here implies to some degree that there are forces larger than us. Now, we can get into the semanticalities... The very notion of belief itself can be rhetorically whittled to the bare nub of its meaning. I'd like to talk to you a lot more about this. Would you be interested in reading some of my literature?",
-      "source": "Xavier: Renegade Angel",
-      "id": 3013,
-      "length": 464
     },
     {
       "text": "My face, body, lifestyle. I chose every aspect of myself with my own will. I don't want to be ordered around by anyone anymore, and I have no need for a past. I've got dreams to fulfill, money to earn, love to find, and success to achieve. They may be foolishly simplistic desires for some, but to me, working towards them bit by bit is how I build my confidence.",
@@ -16981,12 +16771,6 @@
       "source": "Mark Twain, the Globetrotter: Complete Travel Books, Memoirs & Anecdotes",
       "id": 3026,
       "length": 480
-    },
-    {
-      "text": "In fact, the Americans of 1776 enjoyed a higher standard of living than any people in the world. Their material wealth was considerably less than it would become in time, still it was a great deal more than others had elsewhere. How people with so much, living on their own land, would ever choose to rebel against the ruler God had put over them and thereby bring down such devastation upon themselves was for the invaders incomprehensible.",
-      "source": "1776",
-      "id": 3027,
-      "length": 441
     },
     {
       "text": "If at first you don't succeed, destroy any evidence that you ever tried.",
@@ -17545,12 +17329,6 @@
       "source": "Dust: An Elysian Tail",
       "id": 3130,
       "length": 201
-    },
-    {
-      "text": "God help the man who ever really loves you. You'd break his heart, my darling, cruel, destructive little cat who is so careless and confident she doesn't even trouble to sheathe her claws.",
-      "source": "Gone with the Wind",
-      "id": 3131,
-      "length": 188
     },
     {
       "text": "And I know of people that've been coming up to me, and making me talk about how, you know, Benjamin, why is it so that, you know, you're young, but you already seem very dark, and you seem to be almost possessed. Quite telling, that's quite funny. 'Cause while I'm on my journey, figuring things out, I do come across, surprisingly, angels; they come to me and they sing to me so beautifully, and if I can recall very clearly, their melodies go something like this.",
@@ -18267,12 +18045,6 @@
       "length": 123
     },
     {
-      "text": "What should have been swift revenge turned into an all out war. The City of God was divided. You couldn't go from one section to the other, not even to visit a relative. The cops considered anyone living in the slum a hoodlum. People got used to living in Vietnam, and more and more volunteers signed up to die.",
-      "source": "City of God (Cidade de Deus, Brazil)",
-      "id": 3263,
-      "length": 311
-    },
-    {
       "text": "Our job is to find truth, no matter how painful it may be.",
       "source": "Phoenix Wright: Ace Attorney",
       "id": 3264,
@@ -18411,12 +18183,6 @@
       "length": 461
     },
     {
-      "text": "Hello, babies. Welcome to Earth. It's hot in the summer and cold in the winter. It's round and wet and crowded. At the outside, babies, you've got about a hundred years here.",
-      "source": "God Bless You, Mr. Rosewater",
-      "id": 3289,
-      "length": 174
-    },
-    {
       "text": "I went to a party at the local county jail; all the cons were dancing, and the band began to wail. But the guys were indiscreet; they were brawling in the street. At the local dance; at the local county jail.",
       "source": "Rubber Bullets",
       "id": 3290,
@@ -18505,12 +18271,6 @@
       "source": "Philosophiæ Naturalis Principia Mathematica",
       "id": 3305,
       "length": 238
-    },
-    {
-      "text": "When in the Course of human events it becomes necessary for one people to dissolve the political bands which have connected them with another and to assume among the powers of the earth, the separate and equal station to which the Laws of Nature and of Nature's God entitle them, a decent respect to the opinions of mankind requires that they should declare the causes which impel them to the separation.",
-      "source": "Declaration of Independence",
-      "id": 3306,
-      "length": 404
     },
     {
       "text": "Boars are only worth two experience points apiece. Do you know how many we would have to kill to get up thirty levels? - Yes. Sixty five million, three hundred and forty thousand, two hundred and eighty five. Which should take us seven weeks, five days, thirteen hours, and twenty minutes, giving ourselves three hours a night to sleep. What do you say, guys? You can just hang outside in the sun all day tossing a ball around... or you can sit at your computer and do something that matters.",
@@ -20188,12 +19948,6 @@
       "length": 300
     },
     {
-      "text": "Listen, Dad. As your son and your creator, I realize I was wrong to disrespect your religion. Now that I created life, I now believe in God, 'cause I believe in me. It'll be okay if you just surrender your heart to God. We can start over.",
-      "source": "Xavier: Renegade Angel",
-      "id": 3613,
-      "length": 238
-    },
-    {
       "text": "As he proceeded toward the Chateau's minarets, it was difficult not to marvel at the falls below. It was a magnificent sight, watching that water fall off the edge of the world and into the misty clouds below. As single-minded as Karzt was, he was glad for the chance to see one of the great wonders of Genesis. He pulled a whetstone out of his backpack and walked back to the carriage, leaning against its wheeled frame while idly running the stone over the edge of his hatchet blade. He knew that it would need sharpening for the days ahead, especially considering that he'd blunted it recently during the encounter with those creatures.",
       "source": "Chateau Cascade",
       "id": 3614,
@@ -21124,12 +20878,6 @@
       "length": 329
     },
     {
-      "text": "Show me a man or a woman alone and I'll show you a saint. Give me two and they'll fall in love. Give me three and they'll invent the charming thing we call 'society'. Give me four and they'll build a pyramid. Give me five and they'll make one an outcast. Give me six and they'll reinvent prejudice. Give me seven and in seven years they'll reinvent warfare. Man may have been made in the image of God, but human society was made in the image of His opposite number, and is always trying to get back home.",
-      "source": "The Stand",
-      "id": 3779,
-      "length": 504
-    },
-    {
       "text": "I'm having a birthday party, but you're not invited, but you can come if you want.",
       "source": "What's Eating Gilbert Grape",
       "id": 3780,
@@ -21488,12 +21236,6 @@
       "source": "The Power of Now",
       "id": 3843,
       "length": 293
-    },
-    {
-      "text": "God, we have not spoken as long or as often as we should. I've often been about other business. If I wanted forgiveness I should ask for it, but for all that I have done and for all that I am yet to do, there can be no forgiveness. And yet I think I'm not an evil man. Evil men pray louder, seek penance, and stick themselves closer to Heaven than I am. I shall not see its gates Lord. Nor hear your sweet words of salvation. I have seen eternity, I swear. But it was in dream and in the morning all was gone. I know myself for what I am. And I throw my poor soul upon your forgiveness, in the full knowledge that I deserve none at your loving hands.",
-      "source": "The Tudors - Wolsey's Last Prayer",
-      "id": 3844,
-      "length": 650
     },
     {
       "text": "Directories contain elements that describe objects in the world, such as computers, folders, objects, managed resources, and even people. These elements have names and, like the fields in a database, changing values.",
@@ -21968,12 +21710,6 @@
       "source": "The Social Network",
       "id": 3928,
       "length": 314
-    },
-    {
-      "text": "Well, Cowboy Dan's a major player in the cowboy scene. He goes to the reservation, he drinks and gets mean, and he's gonna start a war. He hops in his pickup, puts the pedal to the floor, and says \"I got mine, but I want more.\" Because Cowboy Dan's a major player in the cowboy scene. He goes to the desert, fires his rifle in the sky, and says \"God, if I have to die, you will have to die.\"",
-      "source": "Cowboy Dan",
-      "id": 3929,
-      "length": 391
     },
     {
       "text": "We love people who've died... where's the social utility in that? Maybe it means something more - something we can't yet understand. Maybe it's some evidence, some artifact of a higher dimension that we can't consciously perceive. I'm drawn across the universe to someone I haven't seen in a decade, who I know is probably dead. Love is the one thing we're capable of perceiving that transcends dimensions of time and space. Maybe we should trust that, even if we can't understand it yet.",
@@ -23012,12 +22748,6 @@
       "source": "Seinfeld",
       "id": 4121,
       "length": 478
-    },
-    {
-      "text": "Do you ever get down on your knees and thank God you know me and have access to my dementia?",
-      "source": "Seinfeld",
-      "id": 4122,
-      "length": 92
     },
     {
       "text": "A nice place to start learning Plover is with its most obvious feature - the keyboard. What is this thing? Some letters seem to be missing, others seem to be duplicated. It looks weird.",
@@ -24712,12 +24442,6 @@
       "length": 341
     },
     {
-      "text": "Giants hiding in the bathroom, lightning in the living room. It's Einstein and Darwin doing shots with the Greek god jocks, the apocalypse is kinda cool. And if you're needing something just ask, maybe Father Time can try to change your past; got Mister Sandman selling dreams by the gram, yeah they're worth it if you've got the cash.",
-      "source": "All Night",
-      "id": 4438,
-      "length": 335
-    },
-    {
       "text": "We'll use a process that I discovered called gene targeting. The strongest soldiers don't become what they are by acquiring their skills through training or experience, we now know that hereditary factors are far more crucial for creating superior soldiers.",
       "source": "Metal Gear Solid",
       "id": 4439,
@@ -24814,12 +24538,6 @@
       "length": 154
     },
     {
-      "text": "Books are not absolutely dead things, but do contain a potency of life in them to be as active as that soul was whose progeny they are; nay, they do preserve as in a vial the purest efficacy and extraction of that living intellect that bred them. I know they are as lively, and as vigorously productive, as those fabulous dragon's teeth; and being sown up and down, may chance to spring up armed men. And yet, on the other hand, unless wariness be used, as good almost kill a man as kill a good book. Who kills a man kills a reasonable creature, God's image; but he who destroys a good book, kills reason itself, kills the image of God, as it were in the eye. Many a man lives a burden to the earth; but a good book is the precious life-blood of a master spirit, embalmed and treasured up on purpose to a life beyond life.",
-      "source": "Areopagitica",
-      "id": 4456,
-      "length": 822
-    },
-    {
       "text": "See, the sad thing about a guy like you is in 50 years you're gonna start doin' some thinkin' on your own and you're going to come up with the fact that there are two certainties in life: one, don't do that, and two, you dropped 150 grand on an education you could have got for $1.50 in late charges at the public library!",
       "source": "Good Will Hunting",
       "id": 4457,
@@ -24914,12 +24632,6 @@
       "source": "The Iliad",
       "id": 4473,
       "length": 465
-    },
-    {
-      "text": "To my babies: stay strong. Daddy will be home soon. And to the rest of the world, God gave you them shoes that fit you, so put 'em on and wear 'em. Be yourself, man. Be proud of who you are. Even if it sounds corny, never let no one tell you you ain't beautiful.",
-      "source": "Beautiful",
-      "id": 4474,
-      "length": 262
     },
     {
       "text": "Subdivisions in the high school halls. In the shopping malls. Conform or be cast out. Subdivisions in the basement bars. In the backs of cars. Be cool or be cast out. Any escape might help to soothe the unattractive truth but the suburbs have no charms to soothe the restless dreams of youth.",
@@ -25810,12 +25522,6 @@
       "length": 164
     },
     {
-      "text": "Something just came out of the back of a helicopter. It's a dark object, perhaps a skydiver plummeting to the earth from only two thousand feet in the air. There's a third. No parachutes yet. Those can't be skydivers. I can't tell just yet what they are but oh my God! They're turkeys!",
-      "source": "WKRP in Cincinnati",
-      "id": 4641,
-      "length": 285
-    },
-    {
       "text": "Well, on a basic cellular level we're the sum total of all our ancestors' biological matter. But what if more than biological traits get passed down from generation to generation? What if I like sunflower seeds because I'm genetically predisposed to liking them?",
       "source": "The X-Files",
       "id": 4642,
@@ -25826,12 +25532,6 @@
       "source": "Poison",
       "id": 4643,
       "length": 103
-    },
-    {
-      "text": "Do the gods light this fire in our hearts or does each man's mad desire become his god?",
-      "source": "The Aeneid",
-      "id": 4644,
-      "length": 87
     },
     {
       "text": "Mary Elizabeth is a really nice person underneath the part of her that hates everyone.",
@@ -26012,12 +25712,6 @@
       "source": "Harry Potter and the Methods of Rationality",
       "id": 4677,
       "length": 180
-    },
-    {
-      "text": "I'm so happy because today I've found my friends. They're in my head. I'm so ugly, but that's okay, 'cause so are you. We broke our mirrors. Sunday morning is everyday for all I care and I'm not scared. Light my candles in a daze 'cause I've found God.",
-      "source": "Lithium",
-      "id": 4678,
-      "length": 252
     },
     {
       "text": "We were happy pretending to be other people. We were the happiest couple we knew. And what's the point of being together if you're not the happiest? But Nick got lazy. He became someone I did not agree to marry. He actually expected me to love him unconditionally. Then, he dragged me, penniless, to the navel of this great country, and found himself a newer, younger, bouncier \"cool girl\".",
@@ -26206,12 +25900,6 @@
       "length": 251
     },
     {
-      "text": "Today's Tom Sawyer, he gets by on you. And the space he invades, he gets by on you. No, his mind is not for rent to any god or government. Always hopeful yet discontent. He knows changes aren't permanent but change is. What you say about his company is what you say about society. Catch the witness, catch the wit. Catch the spirit, catch the spit.",
-      "source": "Tom Sawyer",
-      "id": 4716,
-      "length": 348
-    },
-    {
       "text": "And I promise you I'll never desert you again because after 'Salome' we'll make another picture and another picture. You see, this is my life! It always will be! Nothing else! Just us, and the cameras, and those wonderful people out there in the dark! All right, Mr. DeMille, I'm ready for my close-up.",
       "source": "Sunset Boulevard",
       "id": 4717,
@@ -26342,12 +26030,6 @@
       "source": "Searching for Bobby Fischer",
       "id": 4741,
       "length": 296
-    },
-    {
-      "text": "Peter Bailey was not a businessman. That's what killed him. Oh, I don't mean any disrespect to him, God rest his soul. He was a man of high ideals. So called. But ideals without common sense can ruin this town.",
-      "source": "It's a Wonderful Life",
-      "id": 4742,
-      "length": 210
     },
     {
       "text": "You've got no faith in Johnny, have you, Julia? His little dream may fall flat, you think. Well, so it may, what if it should? There'll be another. Oh, I've got all the faith in the world in Johnny. Whatever he does is alright with me. If he wants to dream for a while, he can dream for a while, and if he wants to come back and sell peanuts, oh, how I'll believe in those peanuts!",
@@ -26537,12 +26219,6 @@
       "length": 247
     },
     {
-      "text": "Dragged ya down below, down to the devil's show to be his guest forever; peace of mind is less than never. Hate to twist your mind but God ain't on your side. An old acquaintance severed, burn the world your last endeavor.",
-      "source": "Nightmare",
-      "id": 4777,
-      "length": 222
-    },
-    {
       "text": "So Michael, this is where dead men come back to life. It's been nearly ten years. But you'll keep for another day or so huh, old friend? I grieved for you! You weren't even dead. You were my best friend. Well, guess who's coming to your doorstep!",
       "source": "Grand Theft Auto V",
       "id": 4778,
@@ -26637,12 +26313,6 @@
       "source": "Insects and Diseases",
       "id": 4794,
       "length": 468
-    },
-    {
-      "text": "We generally concur that \"men\" such as a cow, a turkey, a frog, and a fish all possess some spark of consciousness, some kind of primitive \"soul\" but by God, it's a good deal smaller than ours is - and that, no more and no less, is why we \"men\" feel that we have the perfect right to extinguish the dim lights in the heads of these fractionally-souled beasts and to gobble down their once warm and wiggling, now chilled and stilled protoplasm with limitless gusto, and not feel a trace of guilt while doing so.",
-      "source": "Gödel, Escher, Bach: An Eternal Golden Braid",
-      "id": 4795,
-      "length": 510
     },
     {
       "text": "Concealing the origins of money obtained illegally by passing it through a complex sequence of banking transfers or commercial transactions is a crime.",
@@ -26979,12 +26649,6 @@
       "source": "Ready Player One",
       "id": 4856,
       "length": 222
-    },
-    {
-      "text": "Since, as is well known, God helps those who help themselves, presumably the Devil helps all those, and only those, who don't help themselves. Does the Devil help himself?",
-      "source": "Gödel, Escher, Bach: An Eternal Golden Braid",
-      "id": 4857,
-      "length": 171
     },
     {
       "text": "We don't need it to prove out. We've got less than two weeks till the election, so we just need to distract them.",
@@ -27471,12 +27135,6 @@
       "source": "Scream 2",
       "id": 4947,
       "length": 208
-    },
-    {
-      "text": "Clouds begin to tear; sky is bleeding hair. God is weeping tears; you are full of fears. Vehement lightning quake; head begins to ache. Lord has thunder snake; Balrog he will break. And thus, revenge was fruitless, for one who had been turned, and we are reminded who lords over this altered world.",
-      "source": "The Floating Fire",
-      "id": 4948,
-      "length": 298
     },
     {
       "text": "By humbly and frankly acknowledging yourself to be in the wrong, there is no knowing, my son, what good you may do. I knew once a gentleman and very worthy practitioner in Vanity Fair, who used to do little wrongs to his neighbors on purpose, and in order to apologise for them in an open and manly way afterwards - and what ensued? My friend Crocky Doyle was liked everywhere, and deemed to be rather impetuous - but the honestest fellow.",
@@ -28329,12 +27987,6 @@
       "source": "Terence McKenna",
       "length": 211,
       "id": 5101
-    },
-    {
-      "text": "There he goes. One of God's own prototypes. A high-powered mutant of some kind never even considered for mass production. Too weird to live, and too rare to die.",
-      "source": "Hunter S. Thompson, Fear and Loathing in Las Vegas",
-      "length": 161,
-      "id": 5102
     },
     {
       "text": "I'll try to be around and about. But if I'm not, then you know that I'm behind your eyelids, and I'll meet you there.",
@@ -29519,12 +29171,6 @@
       "id": 5336
     },
     {
-      "text": "Fire roared through the bifurcated city of Ankh-Morpork. Where it licked the Wizards' Quarter it burned blue and green and was even laced with strange sparks of the eighth color, octarine; where its outriders found their way into the vats and oil stores all along Merchant Street it progressed in a series of blazing fountains and explosions; in the streets of the perfume blenders it burned with a sweetness; where it touched bundles of rare and dry herbs in the storerooms of the drugmasters it made men go mad and talk to God.",
-      "source": "Terry Pratchett, The Color of Magic",
-      "length": 529,
-      "id": 5337
-    },
-    {
       "text": "If plain water were satisfying enough, then fish would not take the hook.",
       "source": "Kofi Asare Opoku, Speak to the winds: Proverbs from Africa",
       "length": 73,
@@ -29795,12 +29441,6 @@
       "id": 5389
     },
     {
-      "text": "I have a file with 900 pages of analysis and contingency plans for war with Mars, including fourteen different scenarios about what to do if they develop an unexpected new technology. My file for what to do if an advanced alien species comes calling is three pages long, and it begins with \"Step 1: Find God.\"",
-      "source": "The Expanse",
-      "length": 309,
-      "id": 5390
-    },
-    {
       "text": "A kid needs at least one person who never gives up on them, no matter what.",
       "source": "The Expanse",
       "length": 75,
@@ -29889,12 +29529,6 @@
       "source": "Mr. Robot",
       "length": 466,
       "id": 5407
-    },
-    {
-      "text": "Hello friend. Hello friend? That's lame. Maybe I should give you a name. But that's a slippery slope, you're only in my head, we have to remember that. Damn, this actually happened, I'm talking to an imaginary person. What I'm about to tell you is top secret. A conspiracy bigger than all of us. There's a powerful group of people out there that are secretly running the world. I'm talking about the guys no one knows about, the ones that are invisible. The top 1% of the top 1%, the guys that play God without permission. And now I think they're following me.",
-      "source": "Mr. Robot",
-      "length": 560,
-      "id": 5408
     },
     {
       "text": "You're the one constant in a sea of variables.",
@@ -30444,12 +30078,6 @@
       "id": 5534
     },
     {
-      "text": "It is those who possess wisdom who are the greatest fools. History has shown us this. You could say that this is the final warning from God to those who resist.",
-      "source": "Steins;Gate",
-      "length": 160,
-      "id": 5535
-    },
-    {
       "text": "Remembering something that no one else can is a painful thing. You can't talk to anyone about it. No one will understand you. You'll be alone.",
       "source": "Steins;Gate",
       "length": 142,
@@ -30780,12 +30408,6 @@
       "id": 5611
     },
     {
-      "text": "Time without purpose is a prison. I have glimpsed into the mind of eternity, perhaps the mind of God, and found nothing but silence. I think we should just be friends.",
-      "source": "Jessica, Rick and Morty Season 5 Episode 1",
-      "length": 167,
-      "id": 5612
-    },
-    {
       "text": "We knew the world would not be the same. A few people laughed, a few people cried. Most people were silent. I remembered the line from the Hindu scripture, the Bhagavad Gita; Vishnu is trying to persuade the Prince that he should do his duty and, to impress him, takes on his multi-armed form and says, \"Now I am become Death, the destroyer of worlds.\" I suppose we all thought that, one way or another.",
       "source": "J. Robert Oppenheimer",
       "length": 403,
@@ -30856,12 +30478,6 @@
       "source": "Charles M. Schulz",
       "length": 87,
       "id": 5624
-    },
-    {
-      "text": "God put me on this earth to accomplish a certain number of things. Right now I am so far behind that I will never die.",
-      "source": "Bill Watterson",
-      "length": 118,
-      "id": 5625
     },
     {
       "text": "This is a valley of ashes; a fantastic farm where ashes grow like wheat into ridges and hills and grotesque gardens; where ashes take the forms of houses and chimneys and rising smoke and, finally, with a transcendent effort, of men who move dimly and already crumbling through the powdery air.",
@@ -31074,12 +30690,6 @@
       "id": 5669
     },
     {
-      "text": "Time is just a construct, if you allow it to consume you, it will. It will wear you down until you are nothing but dust. You must learn to transcend and rise beyond such linear and limited fabrics of existence and this creature of unknown origin has done exactly that. You can scream all you want but nobody will hear you. You may call him a God but if you could perceive your own reality as he could, you would know there really are no words to describe such a being.",
-      "source": "Unknown",
-      "length": 468,
-      "id": 5670
-    },
-    {
       "text": "You either die a hero, or you live long enough to see yourself become the villain.",
       "source": "Harvey Dent - The Dark Knight",
       "length": 82,
@@ -31132,12 +30742,6 @@
       "source": "Spongebob SquarePants",
       "length": 238,
       "id": 5681
-    },
-    {
-      "text": "He will spend hundreds of years travelling the world, learning all there is to know. He will learn every language. He will read every book. He will know every land. He will spend thousands of years creating stunning works of art. He will learn to meditate to control all pain. As wars will be fought and great loves found. And lost. And found. Lost. And found. And found. And found. And memories built upon memories until life runs on an endless loop. He will father hundreds of thousands of children whose own exponential offspring he'll slowly lose track of through the years. Whose millions of beautiful lives will all eventually be swept again from the Earth. And still, Bill will continue. He will learn more about life than any being in history, but death will forever be a stranger to him. People will come and go until names lose all meaning. Until people lose all meaning and vanish entirely from the world. And still, Bill will live on. He will befriend the next inhabitants of the Earth, beings of light who revere him as a god. And Bill will outlive them all. For millions and millions of years. Exploring, learning, living. Until the Earth is swallowed beneath his feet. Until the sun is long since gone. Until time loses all meaning, and the moment comes that he knows only the position of the stars and sees them whether his eyes are closed or open. Until he forgets his name and the place where he'd once come from. He lives, and he lives until all of the lights go out.",
-      "source": "It's Such a Beautiful Day",
-      "length": 1486,
-      "id": 5682
     },
     {
       "text": "Whenever you are about to find fault with someone, ask yourself the following question: What fault of mine most nearly resembles the one I am about to criticize?",
@@ -31362,12 +30966,6 @@
       "id": 5724
     },
     {
-      "text": "Oh, you like to think you're a god. You're not a god, you're just a parasite, eaten out with jealousy and envy and longing for the lives of others. You feed on them, on the memory of love and loss and birth and death and joy and sorrow! Come on, then. Take mine. Take my memories.",
-      "source": "Doctor Who",
-      "length": 280,
-      "id": 5725
-    },
-    {
       "text": "Victorious warriors win first and then go to war, while defeated warriors go to war first and then seek to win.",
       "source": "Sun Tzu, The Art of War",
       "length": 111,
@@ -31440,22 +31038,10 @@
       "id": 5738
     },
     {
-      "text": "Only in my darkest moments can I see the light. I think I'm prone to getting blinded when it's bright. Well, this December, I'll remember, want you to see it when I do. God knows I do.",
-      "source": "This December- Ricky Montgomery",
-      "length": 184,
-      "id": 5739
-    },
-    {
       "text": "We swears to serve the master of the precious. We swears on the... on the precious.",
       "source": "Lord of the Rings",
       "length": 83,
       "id": 5740
-    },
-    {
-      "text": "You look down on me?! You pity me?! Walk away. That's right, Howard. You know why I didn't take the job? 'Cause it's too small! I don't care about it! It's nothing to me! It's a bacterium! I travel in worlds you can't even imagine! You can't conceive of what I'm capable of! I'm so far beyond you! I'm like a god in human clothing! Lightning bolts shoot from my fingertips!",
-      "source": "Better Call Saul",
-      "length": 373,
-      "id": 5741
     },
     {
       "text": "The right man in the wrong place can make all the difference in the world.",
@@ -31548,12 +31134,6 @@
       "id": 5760
     },
     {
-      "text": "My worst breakup was with Stacy. It was a Sunday morning, we were reading the paper, and I said, \"Oh my God, I think the Eagles could clinch the NFC East!\" and she said, \"We're done.\"",
-      "source": "The Office",
-      "length": 183,
-      "id": 5761
-    },
-    {
       "text": "In an ideal world I'd have all ten fingers on my left hand, so my right would just be a fist for punching.",
       "source": "The Office",
       "length": 106,
@@ -31606,12 +31186,6 @@
       "source": "The Office",
       "length": 165,
       "id": 5771
-    },
-    {
-      "text": "My mom always used to say that average people are the most special people in the world. And that's why God made so many of them.",
-      "source": "The Office",
-      "length": 128,
-      "id": 5772
     },
     {
       "text": "I don't think it would be the worst thing if they let me go. Because then I might...  It's just... I don't think it's many girls' dream to be a receptionist.",
@@ -31932,12 +31506,6 @@
       "id": 5835
     },
     {
-      "text": "God, if you really exist, then I beg you. This is more than enough. I don't need anything else. We'll manage somehow. So please. Don't throw anything more at us. But don't take anything more from us either. I'm begging you. Please, God. I want to stay like this. Together. Forever and ever.",
-      "source": "Weathering with You",
-      "length": 290,
-      "id": 5836
-    },
-    {
       "text": "Listen. Just because you have psychic powers, it doesn't make you any less human. It's the same as people who are fast, people who are book smart, and people with strong body odor. Psychic powers are just another characteristic. You must embrace that as a part of yourself and continue to live positively. The truth behind one's charm is kindness. Become a good person. That is all.",
       "source": "Mob Psycho 100",
       "length": 382,
@@ -32190,12 +31758,6 @@
       "id": 5890
     },
     {
-      "text": "Jonathan, you have touched my very being. I shall remember you. You taught all that knew you what courage meant and have shown us an example in death as you did in life. God give me strength in my life without you. And I shall thank her. I can only hope that our souls shall entwine again in the place where there is only love, no tears, no sadness, no injustice, no cruelty, no white, no black, no zombies, no hate, no war, only love. Only love, Alison.",
-      "source": "Left 4 Dead",
-      "length": 454,
-      "id": 5891
-    },
-    {
       "text": "Listen... everywhere you look in this world wherever there is light there will always be shadows to be found as well. As long as there is a concept of victors the vanquished will also exist.",
       "source": "Naruto Shippuden",
       "length": 190,
@@ -32308,12 +31870,6 @@
       "source": "Epicurus",
       "length": 117,
       "id": 5914
-    },
-    {
-      "text": "I'm hacking the FBI. Step one: identify the target and its flaws. There are always flaws. I learned that early in life. My first hack, the local library, a vulnerable FTP server in its AS400. A far cry from the Android zero days I'm using to own the FBI standard-issue smartphone. The library was a test to see if I could even get into the system. I've since set greater goals. For instance, step two: build malware and prepare an attack. At my fingertips, the zero day is wrapped in code like a Christmas present, then becomes an exploit, the programmatic expression of my will. Step three: a reverse shell, two-stage exploit. The ideal package. Load the malware into a femtocell delivery system - my personal cell tower that'll intercept all mobile data. Similar to my first time, when I found myself staring at late book fees, employee names, member addresses. Everything was revealed. The secret of the perfect hack? Make it infallible. Hidden within the kernel is a logic bomb, malicious code designed to execute under circumstances I've programmed. Should the FBI take an image of the femtocell, all memory will self-corrupt, or explode. Step four: Write the script. Why do it myself? Because that's how I learned, and I know exactly what, when, and how it's going to run. I didn't do anything harmful my first time. Just looked around. But I felt so powerful. 11 years old and in complete control of the Washington Township Public Library. Today is different. I hacked the world. Final step: launch the attack. Once I do, I'll own the Android phone of every FBI agent in that building. I'll own Evil Corp's network, applications, everything. Domain Admin. This, the thrill of owning a system, this is the greatest rush. God access. The feeling never gets old.",
-      "source": "Mr. Robot",
-      "length": 1766,
-      "id": 5915
     },
     {
       "text": "I remember when I was a kid I got into web design by ripping off sites I liked. All you had to do was view source on your browser and there it was. The code. You could copy-paste it, modify it a little, put your name on it, and like that, it was your site. View source. What if we had that for people? Would people really wanna see?",
@@ -32991,12 +32547,6 @@
       "id": 6150
     },
     {
-      "text": "Like Lot's wife, you looked back, and like Lot's wife, you were turned into a pillar of salt, but unlike Lot's wife, God gave you a second chance and turned you human again, but then you looked back again and became salt and then God took pity and gave you a third, and over and again you lurched through your many reprieves and mistakes; one moment motionless and the next gangly, your soft limbs wheeling and your body staggering into the dirt, and then stiff as a tree trunk again with an aura of dust, then windmilling down the road as fire rains down behind you; and there has never been a woman as cartoonish as you — animal to mineral and back again.",
-      "source": "In the Dream House - Carmen Maria Machado",
-      "length": 657,
-      "id": 6151
-    },
-    {
       "text": "I felt my lungs inflate with the onrush of scenery - air, mountains, trees, people. I thought, \"This is what it is to be happy.\"",
       "source": "The Bell Jar - Sylvia Plath",
       "length": 128,
@@ -33445,12 +32995,6 @@
       "source": "Porter Robinson - Something Comforting",
       "length": 167,
       "id": 6230
-    },
-    {
-      "text": "I look around, I look around, I see a lot of new faces. Which means a lot of people have been breaking the first two rules of Fight Club. Man, I see in fight club the strongest and smartest men who've ever lived. I see all this potential, and I see squandering. God damn it, an entire generation pumping gas, waiting tables; slaves with white collars. Advertising has us chasing cars and clothes, working jobs we hate so we can buy crap we don't need. We're the middle children of history, man. No purpose or place. We have no Great War. No Great Depression. Our Great War's a spiritual war. Our Great Depression is our lives. We've all been raised on television to believe that one day we'd all be millionaires, and movie gods, and rockstars. But we won't. And we're slowly learning that fact. And we're very, very pissed off.",
-      "source": "Fight Club",
-      "length": 827,
-      "id": 6231
     },
     {
       "text": "I'd give my life, not for honor, but for you! In my time, there'll be no one else. Crime, it's the way I fly to you!",
@@ -33970,13 +33514,6 @@
       "length": 88,
       "approvedBy": "Smithster",
       "id": 6323
-    },
-    {
-      "text": "When the king brands us pirates, he doesn't mean to make us adversaries. He doesn't mean to make us criminals. He means to make us monsters. For that's the only way his god-fearing, tax-paying subjects can make sense of men who keep what is theirs and fear no one. When I say there's a war coming, I don't mean with the Scarborough, I don't mean with King George or England. Civilization is coming. And it means to exterminate us.",
-      "source": "Black Sails",
-      "length": 430,
-      "approvedBy": "Smithster",
-      "id": 6324
     },
     {
       "text": "After fifty years at sea, you're the only man I've ever met who's gotten dumber with age.",
@@ -35155,13 +34692,6 @@
       "id": 6515
     },
     {
-      "text": "In this world, is the destiny of mankind controlled by some transcendental entity or law...? Is it like the hand of God hovering above? At least it is true that man has no control, even over his own will.",
-      "source": "Berserk",
-      "length": 204,
-      "approvedBy": "Smithster",
-      "id": 6516
-    },
-    {
       "text": "My dad knew I liked beans, so like he was just playing with beans and then he dropped them and then he dropped a rock and then it slid, and then hot water started falling and then, coffee.",
       "source": "Johnny Suh (NCT)",
       "length": 188,
@@ -35435,13 +34965,6 @@
       "id": 6561
     },
     {
-      "text": "Look at that subtle off-white coloring, the tasteful thickness of it. Oh my God. It even has a watermark.",
-      "source": "Patrick Bateman, American Psycho",
-      "length": 105,
-      "approvedBy": "Smithster",
-      "id": 6562
-    },
-    {
       "text": "We are the universe. We are everything you think isn't you. You are looking at us now, through your skin and your eyes. And why does the universe touch your skin, and throw light on you? To see you, player. To know you. And to be known. I shall tell you a story.",
       "source": "Minecraft",
       "length": 262,
@@ -35559,13 +35082,6 @@
       "length": 79,
       "approvedBy": "Smithster",
       "id": 6582
-    },
-    {
-      "text": "Look, I was gonna go easy on you, not to hurt your feelings. But I'm only going to get this one chance. Something's wrong, I can feel it... It's just... a feeling I've got. Like something's about to happen, but I don't know what. If that means what I think it means; we're in trouble, big trouble. And if he is as bananas as you say, I'm not taking any chances.",
-      "source": "Rap God",
-      "length": 361,
-      "approvedBy": "Smithster",
-      "id": 6583
     },
     {
       "text": "If you think reality is just living comfortably and following your own whims, can you seriously dare to call yourself a soldier?",
@@ -38309,12 +37825,6 @@
       "id": 7057
     },
     {
-      "text": "It is difficult to live in the present, pointless to live in the future and impossible to live in the past.",
-      "source": "Leto Atreides II, God Emperor of Dune",
-      "length": 107,
-      "id": 7058
-    },
-    {
       "text": "Oh. Round and round we go. Holding on to pain driven by our egos. Feelings untold. Spinning our own versions of the past that you could never know, cause I know.",
       "source": "Mili - Through Patches of Violet",
       "length": 161,
@@ -39009,12 +38519,6 @@
       "source": "All Quiet on the Western Front",
       "id": 7714,
       "length": 881
-    },
-    {
-      "text": "The sun had nearly reached the meridian, and his scorching rays fell full on the rocks, which seemed themselves sensible of the heat. Thousands of grasshoppers, hidden in the bushes, chirped with a monotonous and dull note; the leaves of the myrtle and olive trees waved and rustled in the wind. At every step that Edmond took he disturbed the lizards glittering with the hues of the emerald; afar off he saw the wild goats bounding from crag to crag. In a word, the island was inhabited, yet Edmond felt himself alone, guided by the hand of God. He felt an indescribable sensation somewhat akin to dread-that dread of the daylight which even in the desert makes us fear we are watched and observed. This feeling was so strong that at the moment when Edmond was about to begin his labor, he stopped, laid down his pickaxe, seized his gun, mounted to the summit of the highest rock, and from thence gazed round in every direction.",
-      "source": "The Count of Monte Cristo",
-      "id": 7715,
-      "length": 929
     },
     {
       "text": "And use well what brief time you have with one another, whilst you can. As mortals do.",
