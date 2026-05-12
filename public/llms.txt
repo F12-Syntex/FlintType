@@ -11,6 +11,11 @@
 - [Drills](/drills): targeted drills (burst, pangram, top-100, sudden death, worst words)
 - [Insights](/insights): per-user weakness ranking + WPM history (requires sign-in)
 - [Customise](/customise): theme, typography, caret, keyboard, layout, multiplayer
+- [Blog](/blog): notes on typing, adaptive practice, and engineering behind flinttype
+- [Changelog](/changelog): curated release notes — features, fixes, policy updates
+- [FAQ](/faq): common questions about accounts, WPM math, the adaptive engine, supported layouts
+- [Privacy](/privacy): plain-language policy — what's collected, why, and how to delete it
+- [Terms](/terms): MIT-licensed terms of use and fair-use guidelines
 
 ## Conventions
 
