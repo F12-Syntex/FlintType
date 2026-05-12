@@ -3,23 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { BackendError, useBackend } from "@/lib/backend";
 import type { HistorySummaryOutput } from "@/types/history";
-import {
-  DrillCard,
-  FeaturedDrillCard,
-  LockedDrillRow,
-} from "./drill-card";
+import { CatalogRow } from "./catalog-row";
 import { buildDrills, type DrillSpec } from "./drills-data";
-import { DrillsHero } from "./drills-hero";
+import { DrillsTopline } from "./drills-topline";
 
-/** Drills picker page. Loads the user's history snapshot, builds the
- *  catalog, then lays it out in three movements:
- *    1) Hero with a live ready/locked stat strip
- *    2) Featured spotlight — the first ready tailored drill (the most
- *       relevant pick), surfaced as a bigger card so the user lands
- *       on a clear next action
- *    3) Tailored + Generic groups, with locked drills collapsed into
- *       a quiet single-row list at the bottom of their group so they
- *       don't take up full cards while waiting on data */
+/** Drills picker. Loads the user's history snapshot, builds the
+ *  catalog, then renders it as two flat lists ("tailored" and
+ *  "generic"). The first ready tailored drill carries the
+ *  `recommended` flag — that row picks up the brand spark, and the
+ *  topline's Start-recommended CTA links straight at it. */
 export function DrillsView() {
   const backend = useBackend();
   const [snapshot, setSnapshot] = useState<HistorySummaryOutput | null>(null);
@@ -64,43 +56,39 @@ export function DrillsView() {
   const generic = drills.filter((d) => d.category === "generic");
   const tailoredReady = tailored.filter((d) => d.ready);
   const tailoredLocked = tailored.filter((d) => !d.ready);
-  const featured = tailoredReady[0] ?? null;
-  const tailoredRest = featured
-    ? tailoredReady.filter((d) => d.id !== featured.id)
-    : tailoredReady;
+  const recommended = tailoredReady[0] ?? null;
 
   return (
     <>
-      <DrillsHero
+      <DrillsTopline
         tailoredReady={tailoredReady.length}
         tailoredLocked={tailoredLocked.length}
         genericReady={generic.length}
+        recommendedHref={recommended ? `/drills/${recommended.id}` : null}
+        recommendedTitle={recommended?.title ?? null}
         loading={loading}
-        cold={snapshot?.cold ?? false}
       />
-      <section className="px-5 pt-10 pb-16 sm:px-12 lg:px-16">
+      <section className="px-5 pt-8 pb-16 sm:px-12 lg:px-16">
         {loading ? (
-          <p className="text-sm text-muted-foreground">
-            Reading your model…
-          </p>
+          <p className="text-sm text-muted-foreground">Reading your model…</p>
         ) : error ? (
           <p className="text-sm text-primary">{error}</p>
         ) : (
-          <div className="flex flex-col gap-12 sm:gap-14">
-            {featured ? <FeaturedDrillCard drill={featured} /> : null}
-
-            <DrillsGroup
-              label="Tailored to you"
-              blurb="Built from the bigrams, trigrams, and whole words you keep stalling on. Locked entries surface what unlocks them."
-              ready={tailoredRest}
-              locked={tailoredLocked}
-            />
-
-            <DrillsGroup
-              label="Generic"
-              blurb="Curated word and sentence sets that work without a model. Warm-up runs and universal drills."
-              ready={generic}
-            />
+          <div className="flex flex-col gap-10">
+            <CatalogGroup label="Tailored to you">
+              {tailored.map((d) => (
+                <CatalogRow
+                  key={d.id}
+                  drill={d}
+                  recommended={recommended?.id === d.id}
+                />
+              ))}
+            </CatalogGroup>
+            <CatalogGroup label="Generic">
+              {generic.map((d) => (
+                <CatalogRow key={d.id} drill={d} recommended={false} />
+              ))}
+            </CatalogGroup>
           </div>
         )}
       </section>
@@ -108,50 +96,24 @@ export function DrillsView() {
   );
 }
 
-function DrillsGroup({
+function CatalogGroup({
   label,
-  blurb,
-  ready,
-  locked = [],
+  children,
 }: {
   label: string;
-  blurb: string;
-  ready: readonly DrillSpec[];
-  locked?: readonly DrillSpec[];
+  children: React.ReactNode;
 }) {
-  if (ready.length === 0 && locked.length === 0) return null;
   return (
-    <section aria-label={label} className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-3">
-          <span aria-hidden className="inline-block h-px w-5 bg-primary" />
-          <h2 className="text-[12px] font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:text-[13px]">
-            {label}
-          </h2>
-        </div>
-        <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground/85">
-          {blurb}
-        </p>
+    <section aria-label={label} className="flex flex-col">
+      <div className="mb-3 flex items-center gap-3">
+        <span aria-hidden className="inline-block h-px w-5 bg-primary" />
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+          {label}
+        </h2>
       </div>
-
-      {ready.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {ready.map((d) => (
-            <DrillCard key={d.id} drill={d} />
-          ))}
-        </div>
-      ) : null}
-
-      {locked.length > 0 ? (
-        <div className="mt-2 flex flex-col gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/70">
-            Locked · waiting on more data
-          </span>
-          {locked.map((d) => (
-            <LockedDrillRow key={d.id} drill={d} />
-          ))}
-        </div>
-      ) : null}
+      <div className="flex flex-col border-y border-foreground/10">
+        {children}
+      </div>
     </section>
   );
 }
