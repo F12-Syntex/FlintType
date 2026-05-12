@@ -28,7 +28,7 @@ export function RaceSidebar() {
     state.phase === "finished";
 
   return (
-    <aside className="flex flex-col border-t border-border lg:border-t-0 lg:border-l">
+    <aside className="flex w-full shrink-0 flex-col rounded-md border border-border bg-card/40 lg:w-[20rem] lg:rounded-none lg:border-0 lg:border-l lg:bg-transparent">
       <Section title="YOUR RUN">
         <div className="flex flex-col gap-2.5 text-[11px]">
           <Row

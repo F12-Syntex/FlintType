@@ -70,6 +70,11 @@ export const APPEARANCE_SECTIONS: readonly AppearanceSection[] = [
     name: "Keymap",
     blurb: "Hand-layout that powers the heatmap and ergonomic stats.",
   },
+  {
+    id: "multiplayer",
+    name: "Multiplayer",
+    blurb: "Live opponent markers in the race passage and lane cosmetics.",
+  },
 ];
 
 export function findAppearanceSection(id: string): AppearanceSection | null {

@@ -89,6 +89,13 @@ export type AppearancePrefs = {
    *  sentences and 1 rep is enough); every other burst (burst-1000,
    *  top-100 sprint, trigram burst) honours it. Range 1–10. */
   burstReps: number;
+
+  /** Multiplayer — race surface only. When true, each non-you racer
+   *  gets a coloured underline beneath the word they're currently
+   *  typing, so the user can spot where every opponent sits in the
+   *  passage without scanning lane bars. Default off to honour the
+   *  single-accent rule (§2); flip on for live race readability. */
+  multiplayerPlayerColors: boolean;
 };
 
 export const DEFAULT_APPEARANCE: AppearancePrefs = {
@@ -150,6 +157,10 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   // the streak grid feeling earned without making sessions
   // marathon-length.
   burstReps: 5,
+
+  // Off by default — keeps the single-accent baseline on /race.
+  // Users who want to see live opponent positions flip this on.
+  multiplayerPlayerColors: false,
 };
 
 export function useAppearancePrefs() {

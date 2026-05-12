@@ -161,3 +161,24 @@ export function progressOf(correctChars: number, totalChars: number): number {
   if (totalChars <= 0) return 0;
   return Math.max(0, Math.min(1, correctChars / totalChars));
 }
+
+/** Stable per-racer colour for the multiplayer overlay. Lifts from
+ *  the project's `--chart-*` palette so the values inherit the
+ *  active theme (light / dark / community palette) instead of
+ *  burning in hex. The human stays on `--primary`; bots draw from
+ *  the chart slots so they're distinguishable from each other and
+ *  from the brand spark. */
+export function playerColorFor(id: string): string {
+  switch (id) {
+    case "you":
+      return "var(--primary)";
+    case "damiel":
+      return "var(--chart-4)";
+    case "selan":
+      return "var(--chart-3)";
+    case "kassia":
+      return "var(--chart-5)";
+    default:
+      return "var(--muted-foreground)";
+  }
+}

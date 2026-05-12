@@ -1,7 +1,8 @@
 "use client";
 
+import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { cn } from "@/lib/utils";
-import { progressOf } from "./race-data";
+import { playerColorFor, progressOf } from "./race-data";
 import { useRace } from "./race-state";
 import type { Racer } from "./race-types";
 
@@ -13,6 +14,8 @@ import type { Racer } from "./race-types";
  *  bots stay neutral so the brand spark stays your anchor. */
 export function RaceLanes() {
   const { state } = useRace();
+  const { prefs } = useAppearancePrefs();
+  const colorize = prefs.multiplayerPlayerColors;
   // Only joined racers appear in the lanes. During the matching
   // phase the user sees themselves + however many bots have already
   // hopped in, growing one row at a time as the schedule fires.
@@ -30,13 +33,21 @@ export function RaceLanes() {
   // remainder as empty space instead of pulling the passage upward.
   return (
     <div className="flex min-h-[10rem] flex-col gap-3">
-      {you ? <Lane racer={you} pos={1} totalChars={state.totalChars} /> : null}
+      {you ? (
+        <Lane
+          racer={you}
+          pos={1}
+          totalChars={state.totalChars}
+          colorize={colorize}
+        />
+      ) : null}
       {bots.map((r, i) => (
         <Lane
           key={r.id}
           racer={r}
           pos={i + 2}
           totalChars={state.totalChars}
+          colorize={colorize}
         />
       ))}
       {Array.from({ length: expectedSlots - filledSlots }).map((_, i) => (
@@ -73,13 +84,20 @@ function Lane({
   racer,
   pos,
   totalChars,
+  colorize,
 }: {
   racer: Racer;
   pos: number;
   totalChars: number;
+  /** When true, the bar paints in this racer's `playerColorFor`
+   *  colour (so each racer is visually distinct mid-race). When
+   *  false, bots all share the neutral foreground/55 fill — same
+   *  default the project had before multiplayer colours shipped. */
+  colorize: boolean;
 }) {
   const prog = progressOf(racer.correctChars, totalChars);
   const status = racer.place != null ? `PLACE ${racer.place}` : racer.badge;
+  const playerColor = playerColorFor(racer.id);
   return (
     <div className="grid grid-cols-[28px_1fr_auto] items-center gap-3 sm:grid-cols-[36px_240px_1fr_90px] sm:gap-3.5">
       <span
@@ -93,6 +111,13 @@ function Lane({
       <div className="flex items-center gap-2.5">
         <span className="text-[13px] text-muted-foreground">{racer.flag}</span>
         <div className="flex flex-wrap items-center gap-2">
+          {colorize ? (
+            <span
+              aria-hidden
+              className="size-2 shrink-0 rounded-sm"
+              style={{ backgroundColor: playerColor }}
+            />
+          ) : null}
           <span
             className={cn(
               "text-[13px] font-semibold",
@@ -115,10 +140,17 @@ function Lane({
         <div
           className={cn(
             "absolute top-0 bottom-0 left-0 transition-[width] duration-100 ease-linear",
-            racer.isYou ? "bg-primary" : "bg-foreground/55",
-            racer.finishedAt != null && !racer.isYou && "bg-foreground/40",
+            !colorize && racer.isYou && "bg-primary",
+            !colorize && !racer.isYou && "bg-foreground/55",
+            !colorize &&
+              racer.finishedAt != null &&
+              !racer.isYou &&
+              "bg-foreground/40",
           )}
-          style={{ width: `${prog * 100}%` }}
+          style={{
+            width: `${prog * 100}%`,
+            backgroundColor: colorize ? playerColor : undefined,
+          }}
         />
         {[0.25, 0.5, 0.75].map((t) => (
           <div

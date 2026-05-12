@@ -17,6 +17,7 @@ import { CaretRow } from "./_components/caret-row";
 import { ColorRow } from "./_components/color-row";
 import { KeyboardRow } from "./_components/keyboard-row";
 import { KeymapRows } from "./_components/keymap-rows";
+import { MultiplayerRows } from "./_components/multiplayer-rows";
 import { LiveStatsRows } from "./_components/live-stats-rows";
 import { PassageRows } from "./_components/passage-rows";
 import { RadiusRow } from "./_components/radius-row";
@@ -236,6 +237,15 @@ export default function AppearancePage() {
         preview={<KeymapLivePreview />}
       >
         <KeymapRows />
+      </SettingsSection>
+
+      <SettingsSection
+        id="multiplayer"
+        eyebrow="Race"
+        title="Multiplayer"
+        description="How live opponents read in /race. Today's only race surface is the 1v3 bot race, but the rule of thumb still holds — visuals here only affect surfaces with more than one racer."
+      >
+        <MultiplayerRows />
       </SettingsSection>
     </section>
   );

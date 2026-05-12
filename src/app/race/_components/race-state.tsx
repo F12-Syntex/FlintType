@@ -140,6 +140,18 @@ export function RaceProvider({
       window.removeEventListener("keydown", handler, { capture: true });
   }, [state.phase]);
 
+  // Auto-start the countdown the moment the lobby fills. The user
+  // just watched the lobby populate — they shouldn't need to commit
+  // again with a click. A brief delay (~700ms) lets the final racer
+  // land visually before the countdown overlay drops.
+  useEffect(() => {
+    if (state.phase !== "lobby") return;
+    const id = setTimeout(() => {
+      dispatch({ type: "START_COUNTDOWN", now: Date.now() });
+    }, 700);
+    return () => clearTimeout(id);
+  }, [state.phase]);
+
   // Matching phase: bots stagger in via a schedule of setTimeouts.
   // The first join lands ~600ms in (gives the user a beat to read
   // "finding racers"); each subsequent join is +700–900ms so the

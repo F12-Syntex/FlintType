@@ -1,7 +1,9 @@
 "use client";
 
+import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { Passage } from "../../_components/passage";
 import { usePractice } from "../../_components/practice-state";
+import { RacePlayerStrip } from "./player-strip";
 import { useRace } from "./race-state";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +15,7 @@ import { cn } from "@/lib/utils";
 export function RacePassage() {
   const { state, countdownNumber } = useRace();
   const { state: practice } = usePractice();
+  const { prefs: appearance } = useAppearancePrefs();
   const you = state.racers.find((r) => r.isYou)!;
   const totalChars = state.totalChars;
   const correctChars = you.correctChars;
@@ -22,8 +25,9 @@ export function RacePassage() {
       : Math.min(practice.cursorWord, state.words.length);
   const acc = liveAccuracy(practice.typed, practice.words);
   const wpm = you.wpm;
+  const showColors = appearance.multiplayerPlayerColors;
   return (
-    <div className="relative flex h-[22rem] flex-col rounded-md border border-border bg-card px-7 py-8 sm:px-9">
+    <div className="relative flex min-h-[18rem] flex-1 flex-col rounded-md border border-border bg-card px-7 py-8 sm:px-9">
       <div className="mb-5 flex flex-wrap justify-between gap-2">
         <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
           YOUR TRACK · {wordsDone}/{state.words.length} WORDS
@@ -43,7 +47,19 @@ export function RacePassage() {
         </div>
       </div>
 
-      <Passage />
+      <div className="min-h-0 flex-1">
+        <Passage />
+      </div>
+
+      {showColors &&
+      (state.phase === "racing" || state.phase === "finished") ? (
+        <div className="mt-5 border-t border-border/70 pt-4">
+          <RacePlayerStrip
+            racers={state.racers}
+            totalChars={state.totalChars}
+          />
+        </div>
+      ) : null}
 
       {state.phase === "countdown" && countdownNumber != null ? (
         <CountdownOverlay n={countdownNumber} />
@@ -110,11 +126,17 @@ function CountdownOverlay({ n }: { n: number }) {
 function LobbyOverlay() {
   return (
     <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center rounded-md bg-card/85 backdrop-blur-sm">
-      <span className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-        Lobby full · press Start race when ready
-      </span>
+      <div className="flex items-center gap-2">
+        <span
+          aria-hidden
+          className="size-2 rounded-full bg-primary motion-safe:animate-pulse"
+        />
+        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-primary">
+          Lobby full · countdown starting
+        </span>
+      </div>
       <span className="mt-2 max-w-md px-6 text-center text-[12.5px] text-muted-foreground/85">
-        Bots wait for your countdown — they don't start moving until GO fires.
+        Bots wait for the countdown — they don't start moving until GO fires.
       </span>
     </div>
   );
