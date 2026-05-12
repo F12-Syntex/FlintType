@@ -49,7 +49,41 @@ export function RacePassage() {
         <CountdownOverlay n={countdownNumber} />
       ) : null}
 
+      {state.phase === "queue" ? <QueueOverlay /> : null}
+      {state.phase === "matching" ? <MatchingOverlay /> : null}
       {state.phase === "lobby" ? <LobbyOverlay /> : null}
+    </div>
+  );
+}
+
+function QueueOverlay() {
+  return (
+    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center rounded-md bg-card/85 backdrop-blur-sm">
+      <span className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+        Press Find race to queue up
+      </span>
+      <span className="mt-2 max-w-md px-6 text-center text-[12.5px] text-muted-foreground/85">
+        Bots only enter the lobby once you queue — you race when you're ready.
+      </span>
+    </div>
+  );
+}
+
+function MatchingOverlay() {
+  return (
+    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center rounded-md bg-card/85 backdrop-blur-sm">
+      <div className="flex items-center gap-2">
+        <span
+          aria-hidden
+          className="size-2 rounded-full bg-primary motion-safe:animate-pulse"
+        />
+        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-primary">
+          Finding racers
+        </span>
+      </div>
+      <span className="mt-2 max-w-md px-6 text-center text-[12.5px] text-muted-foreground/85">
+        Pairing you with opponents at your level. Hold tight.
+      </span>
     </div>
   );
 }
@@ -77,7 +111,7 @@ function LobbyOverlay() {
   return (
     <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center rounded-md bg-card/85 backdrop-blur-sm">
       <span className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-        Press Start race when ready
+        Lobby full · press Start race when ready
       </span>
       <span className="mt-2 max-w-md px-6 text-center text-[12.5px] text-muted-foreground/85">
         Bots wait for your countdown — they don't start moving until GO fires.

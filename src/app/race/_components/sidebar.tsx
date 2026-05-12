@@ -23,7 +23,10 @@ export function RaceSidebar() {
   const yourLivePlace =
     you.place ?? racers.findIndex((r) => r.id === "you") + 1;
   const pct = Math.round(progressOf(you.correctChars, state.totalChars) * 100);
-  const allowSwitch = state.phase === "lobby" || state.phase === "finished";
+  const allowSwitch =
+    state.phase === "queue" ||
+    state.phase === "lobby" ||
+    state.phase === "finished";
 
   return (
     <aside className="flex flex-col border-t border-border lg:border-t-0 lg:border-l">

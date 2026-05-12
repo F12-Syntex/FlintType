@@ -12,32 +12,49 @@ import { PracticeProvider } from "../../_components/practice-state";
 import { generateRacePassage, RACE_MODES, type RaceModeId } from "./race-data";
 import { RaceProvider } from "./race-state";
 
-/** Race shell. Owns the mode + seed pair that pins both the practice
- *  passage (via PracticeProvider's `lockedWords`) and the race
- *  state's bot lineup. Bumping the seed re-keys the whole subtree
- *  so a "race again" / mode-switch resets practice and race state
- *  in lockstep — no partial mid-race ghosts.
+/** Race shell. Owns the mode + seed + queue-flow pair that pins
+ *  both the practice passage (via PracticeProvider's `lockedWords`)
+ *  and the race state's bot lineup.
+ *
+ *  Three reset paths bubble up from the race UI:
+ *    - `setModeId(next)` — mode chip → fresh queue with new mode
+ *    - `restart()`       — race-again → new passage, skip queue
+ *    - `rematch()`       — find new opponents → fresh queue, same mode
+ *
+ *  Each path bumps `seedKey`, which re-keys the whole practice + race
+ *  subtree so state resets in lockstep. `withQueue` tells RaceProvider
+ *  whether to drop into queue (bots not yet joined) or straight into
+ *  lobby (race-again — bots stay at the table).
  *
  *  Architecture, top-down:
- *    RaceShell        ← config: { modeId, seed }
- *      PracticeProvider lockedWords={raceWords}  (typing + caret + smooth scroll come from here)
- *        InputCapture  (the hidden input that drives mobile + desktop typing alike)
- *          RaceProvider  (reads PracticeContext for the human, runs bot tick + phase machine)
- *            children   (race UI: lanes, passage, sidebar, results) */
+ *    RaceShell        ← config: { modeId, seed, withQueue }
+ *      PracticeProvider lockedWords={raceWords}
+ *        InputCapture
+ *          RaceProvider  (drives bot tick + phase machine)
+ *            children   (race UI) */
 export function RaceShell({ children }: { children: ReactNode }) {
   const [modeId, setModeId] = useState<RaceModeId>("1v3");
   // Seed starts deterministic so SSR + client hydration agree on the
-  // passage. The mount effect below swaps it for a wall-clock seed
-  // so the first race the user sees is genuinely random.
+  // passage. The mount effect swaps it for a wall-clock seed so the
+  // first race the user sees is genuinely random.
   const [seed, setSeed] = useState<number>(1);
+  const [withQueue, setWithQueue] = useState<boolean>(true);
   useEffect(() => {
     setSeed(Date.now() | 0);
   }, []);
 
-  const restartShell = useCallback(() => setSeed(Date.now() | 0), []);
   const switchMode = useCallback((next: RaceModeId) => {
     setModeId(next);
     setSeed(Date.now() | 0);
+    setWithQueue(true);
+  }, []);
+  const restartShell = useCallback(() => {
+    setSeed(Date.now() | 0);
+    setWithQueue(false);
+  }, []);
+  const enterQueueShell = useCallback(() => {
+    setSeed(Date.now() | 0);
+    setWithQueue(true);
   }, []);
 
   const words = useMemo(
@@ -45,11 +62,7 @@ export function RaceShell({ children }: { children: ReactNode }) {
     [modeId, seed],
   );
 
-  // The shell's `key` rebuilds the entire practice + race subtree on
-  // every reset. Cheaper than threading a "reset" action through both
-  // providers because PracticeProvider's reducer init reads lockedWords
-  // once at mount and never re-syncs.
-  const subtreeKey = `${modeId}:${seed}`;
+  const subtreeKey = `${modeId}:${seed}:${withQueue ? "q" : "l"}`;
 
   return (
     <PracticeProvider key={subtreeKey} lockedWords={words}>
@@ -58,8 +71,10 @@ export function RaceShell({ children }: { children: ReactNode }) {
           key={subtreeKey}
           modeId={modeId}
           raceSeed={seed}
+          withQueue={withQueue}
           setModeId={switchMode}
           restartShell={restartShell}
+          enterQueueShell={enterQueueShell}
         >
           {children}
         </RaceProvider>

@@ -16,7 +16,7 @@ import type {
 
 const FEED_LIMIT = 14;
 
-function buildRacers(botIds: readonly BotId[]): Racer[] {
+function buildRacers(botIds: readonly BotId[], withQueue: boolean): Racer[] {
   const you: Racer = {
     id: "you",
     name: "@you",
@@ -29,6 +29,7 @@ function buildRacers(botIds: readonly BotId[]): Racer[] {
     finishedAt: null,
     place: null,
     charProgress: 0,
+    joinedAt: 0,
   };
   const bots: Racer[] = botIds.map((id) => {
     const b = BOTS[id];
@@ -44,6 +45,10 @@ function buildRacers(botIds: readonly BotId[]): Racer[] {
       finishedAt: null,
       place: null,
       charProgress: 0,
+      // queue flow → bots haven't joined yet; matching phase fills
+      // these one by one. Skipping the queue (race-again) → bots
+      // already at the table, joinedAt = 0.
+      joinedAt: withQueue ? null : 0,
     };
   });
   return [you, ...bots];
@@ -61,22 +66,31 @@ export function freshState(
   modeId: RaceModeId,
   seed: number,
   now: number,
+  withQueue: boolean,
 ): RaceState {
   const mode = RACE_MODES[modeId];
   const words = generateRacePassage(mode.wordCount, seed);
   return {
     modeId,
-    phase: "lobby",
+    phase: withQueue ? "queue" : "lobby",
     raceSeed: seed,
     words,
     totalChars: totalCharsOf(words),
+    queueStartedAt: null,
     countdownStartedAt: null,
     raceStartedAt: null,
     raceEndedAt: null,
     nowMs: now,
-    racers: buildRacers(mode.botIds),
+    racers: buildRacers(mode.botIds, withQueue),
     feed: [
-      { t: 0, who: "race", text: `${mode.name} · lobby ready`, accent: false },
+      {
+        t: 0,
+        who: "race",
+        text: withQueue
+          ? `${mode.name} · queue up to find an opponent`
+          : `${mode.name} · lobby ready`,
+        accent: false,
+      },
     ],
     trace: [],
     lastLeaderId: null,
@@ -190,9 +204,58 @@ function applyPipeline(s: RaceState): RaceState {
 export function reducer(s: RaceState, a: Action): RaceState {
   switch (a.type) {
     case "SET_MODE":
-      return freshState(a.modeId, a.seed, a.now);
+      return freshState(a.modeId, a.seed, a.now, a.withQueue);
     case "RESTART":
-      return freshState(s.modeId, a.seed, a.now);
+      return freshState(s.modeId, a.seed, a.now, a.withQueue);
+    case "ENTER_QUEUE": {
+      if (s.phase !== "queue") return s;
+      return {
+        ...s,
+        phase: "matching",
+        queueStartedAt: a.now,
+        nowMs: a.now,
+        feed: emit(s, {
+          t: 0,
+          who: "race",
+          text: "finding racers…",
+          accent: false,
+        }),
+      };
+    }
+    case "BOT_JOIN": {
+      if (s.phase !== "matching") return s;
+      const racers = s.racers.map((r, i) =>
+        i === a.botIdx && r.joinedAt == null ? { ...r, joinedAt: 0 } : r,
+      );
+      const allJoined = racers.every((r) => r.joinedAt != null);
+      let feed = s.feed;
+      const justJoined = racers[a.botIdx];
+      if (justJoined && justJoined.joinedAt != null) {
+        feed = emit(
+          { ...s, feed },
+          {
+            t: 0,
+            who: justJoined.name,
+            text: "joined the lobby",
+            accent: false,
+          },
+        );
+      }
+      let next: RaceState = { ...s, racers, feed, nowMs: a.now };
+      if (allJoined) {
+        next = {
+          ...next,
+          phase: "lobby",
+          feed: emit(next, {
+            t: 0,
+            who: "race",
+            text: "lobby full · ready to start",
+            accent: true,
+          }),
+        };
+      }
+      return next;
+    }
     case "START_COUNTDOWN": {
       if (s.phase !== "lobby") return s;
       return {

@@ -11,7 +11,12 @@ import type { Racer } from "./race-types";
  *  remains the user's anchor. */
 export function RaceLanes() {
   const { state } = useRace();
-  const racers = sortRacers(state.racers, state.phase);
+  // Only joined racers appear in the lanes. During the matching
+  // phase the user sees themselves + however many bots have already
+  // hopped in, growing one row at a time as the schedule fires.
+  const joined = state.racers.filter((r) => r.joinedAt != null);
+  const racers = sortRacers(joined, state.phase);
+  const expectedSlots = state.racers.length;
   return (
     <div className="flex flex-col gap-3">
       {racers.map((r, i) => (
@@ -22,6 +27,32 @@ export function RaceLanes() {
           totalChars={state.totalChars}
         />
       ))}
+      {Array.from({ length: expectedSlots - racers.length }).map((_, i) => (
+        <WaitingSlot key={`slot-${i}`} pos={racers.length + i + 1} />
+      ))}
+    </div>
+  );
+}
+
+function WaitingSlot({ pos }: { pos: number }) {
+  return (
+    <div className="grid grid-cols-[28px_1fr_auto] items-center gap-3 sm:grid-cols-[36px_240px_1fr_90px] sm:gap-3.5">
+      <span className="text-sm font-bold tabular-nums text-muted-foreground/40">
+        {String(pos).padStart(2, "0")}
+      </span>
+      <div className="flex items-center gap-2.5">
+        <span className="text-[13px] text-muted-foreground/40">—</span>
+        <span className="text-[12px] uppercase tracking-[0.18em] text-muted-foreground/60">
+          waiting for opponent…
+        </span>
+      </div>
+      <div
+        className="relative col-span-2 h-5 overflow-hidden rounded-sm border border-dashed border-border/70 bg-muted/30 sm:col-span-1"
+        aria-hidden
+      />
+      <div aria-hidden className="opacity-0">
+        <span className="text-base font-bold tabular-nums">0</span>
+      </div>
     </div>
   );
 }

@@ -25,8 +25,16 @@ export type RaceCtx = {
   state: RaceState;
   modeId: RaceModeId;
   setModeId: (modeId: RaceModeId) => void;
+  /** Moves out of queue → matching; bots will join over the next few
+   *  seconds and the phase auto-flips to lobby. */
+  enterQueue: () => void;
   startCountdown: () => void;
+  /** Race-again: restart the same mode with a new passage. Skips
+   *  queue/matching — bots stay at the table. */
   restart: () => void;
+  /** Force re-matching: same mode + new bot lineup intro. Useful
+   *  from finished if the user wants a "find new opponents" loop. */
+  rematch: () => void;
   dispatch: React.Dispatch<Action>;
   /** Countdown integer (3..2..1..0). Null outside countdown. */
   countdownNumber: number | null;
@@ -76,29 +84,38 @@ function useYouSnapshot(raceStartedAt: number | null, raceNowMs: number) {
 export function RaceProvider({
   modeId,
   raceSeed,
+  withQueue,
   setModeId,
   restartShell,
+  enterQueueShell,
   children,
 }: {
   modeId: RaceModeId;
   raceSeed: number;
+  /** Whether the initial phase is `queue` (fresh entry / mode change)
+   *  or `lobby` (race-again — bots already at the table). */
+  withQueue: boolean;
   setModeId: (next: RaceModeId) => void;
   restartShell: () => void;
+  /** Called by useRace().enterQueue — forwarded to the shell so it
+   *  can rebuild the subtree with `withQueue=true` if the user
+   *  re-enters from finished or wants to refresh the bot roster. */
+  enterQueueShell?: () => void;
   children: ReactNode;
 }) {
   const [state, dispatch] = useReducer(reducer, undefined, () =>
-    freshState(modeId, raceSeed, Date.now()),
+    freshState(modeId, raceSeed, Date.now(), withQueue),
   );
 
   const you = useYouSnapshot(state.raceStartedAt, state.nowMs);
   const youRef = useRef(you);
   youRef.current = you;
 
-  // Block printable typing during lobby + countdown so an over-eager
+  // Block printable typing outside the racing phase so an over-eager
   // early keystroke doesn't bleed into practice state before GO. We
   // intercept at the capture phase so the InputCapture's onKeyDown
   // never sees the event. Letting non-printable keys through keeps
-  // OS shortcuts (cmd-tab, ctrl-r, etc.) working in the lobby.
+  // OS shortcuts (cmd-tab, ctrl-r, etc.) working.
   useEffect(() => {
     if (state.phase === "racing") return;
     const handler = (e: KeyboardEvent) => {
@@ -110,6 +127,28 @@ export function RaceProvider({
     window.addEventListener("keydown", handler, { capture: true });
     return () =>
       window.removeEventListener("keydown", handler, { capture: true });
+  }, [state.phase]);
+
+  // Matching phase: bots stagger in via a schedule of setTimeouts.
+  // The first join lands ~600ms in (gives the user a beat to read
+  // "finding racers"); each subsequent join is +700–900ms so the
+  // wait reads as a few opponents queuing up rather than an instant
+  // pop. After the last bot, the BOT_JOIN reducer flips to lobby.
+  useEffect(() => {
+    if (state.phase !== "matching") return;
+    const botIdxs = state.racers
+      .map((r, i) => (r.bot != null && r.joinedAt == null ? i : -1))
+      .filter((i) => i >= 0);
+    const baseDelays = [600, 1450, 2350, 3200]; // up to 4 bots
+    const timers = botIdxs.map((idx, n) =>
+      window.setTimeout(() => {
+        dispatch({ type: "BOT_JOIN", botIdx: idx, now: Date.now() });
+      }, baseDelays[n] ?? 600 + n * 800),
+    );
+    return () => {
+      for (const t of timers) clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.phase]);
 
   // Countdown + race tick. One interval drives both phases — the
@@ -197,13 +236,15 @@ export function RaceProvider({
       state,
       modeId,
       setModeId,
+      enterQueue: () => dispatch({ type: "ENTER_QUEUE", now: Date.now() }),
       startCountdown: () =>
         dispatch({ type: "START_COUNTDOWN", now: Date.now() }),
       restart: restartShell,
+      rematch: () => enterQueueShell?.(),
       dispatch,
       ...derived,
     }),
-    [state, modeId, setModeId, restartShell, derived],
+    [state, modeId, setModeId, restartShell, enterQueueShell, derived],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
