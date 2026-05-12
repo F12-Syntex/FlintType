@@ -64,21 +64,6 @@ export function MultiplayerRows() {
       <SettingsRow
         label={
           <LabelWithDesc
-            title="Show opponent strip"
-            desc="A horizontal strip below the passage with colour-coded markers showing each opponent's current position. Independent of the player-colours toggle."
-          />
-        }
-        control={
-          <ToggleChips
-            value={prefs.multiplayerOpponentStrip}
-            onChange={(v) => update("multiplayerOpponentStrip", v)}
-          />
-        }
-      />
-
-      <SettingsRow
-        label={
-          <LabelWithDesc
             title="Show race feed"
             desc="Live chronological log of joins, leader changes, milestones, and finishes in the side panel. Off keeps the panel minimal."
           />

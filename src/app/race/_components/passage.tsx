@@ -28,7 +28,6 @@ export function RacePassage() {
       : Math.min(practice.cursorWord, state.words.length);
   const acc = liveAccuracy(practice.typed, practice.words);
   const wpm = you.wpm;
-  const showStrip = appearance.multiplayerOpponentStrip;
   const showColors = appearance.multiplayerPlayerColors;
   const marker = appearance.multiplayerOpponentMarker;
 
@@ -72,49 +71,56 @@ export function RacePassage() {
     if (!opponentByWord || marker !== "text") return undefined;
     return (wi: number): string | undefined => opponentByWord(wi);
   }, [opponentByWord, marker]);
+  // Mirrors practice's `<Readouts>` strip — slim row above the passage
+  // with the live mode-aware metrics. Practice's row hides on mobile
+  // via `hidden md:block`; we match that so the small viewport leads
+  // with the passage. Phase word kept short ("LIVE" / "READY" / …) so
+  // it doesn't fight the action button up in RaceControls.
+  const phaseWord =
+    state.phase === "lobby"
+      ? "READY"
+      : state.phase === "countdown"
+        ? "STARTING"
+        : state.phase === "finished"
+          ? "FINISHED"
+          : "LIVE";
+  const showStrip =
+    state.phase === "racing" ||
+    state.phase === "finished" ||
+    state.phase === "countdown";
   return (
-    <div className="relative flex min-h-[18rem] flex-1 flex-col rounded-md border border-border bg-card px-7 py-8 sm:px-9">
-      <div className="mb-5 flex flex-wrap justify-between gap-2">
+    <>
+      <div className="hidden flex-wrap items-baseline justify-between gap-x-8 gap-y-1 md:flex">
         <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-          YOUR TRACK · {wordsDone}/{state.words.length} WORDS
+          {wordsDone}/{state.words.length} WORDS
         </span>
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-          <span className="text-primary">WPM {wpm}</span>
-          <span>ACC {acc.toFixed(1)}%</span>
-          <span>
-            {state.phase === "lobby"
-              ? "READY"
-              : state.phase === "countdown"
-                ? "STARTING"
-                : state.phase === "finished"
-                  ? "FINISHED"
-                  : "RACING"}
-          </span>
+          <span className="text-primary tabular-nums">WPM {wpm}</span>
+          <span className="tabular-nums">ACC {acc.toFixed(1)}%</span>
+          <span>{phaseWord}</span>
         </div>
       </div>
 
-      <div className="min-h-0 flex-1">
-        <Passage wordBackground={wordTints} wordTextColor={wordTextColor} />
-      </div>
+      <div className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+        <div className="min-h-0 flex-1">
+          <Passage wordBackground={wordTints} wordTextColor={wordTextColor} />
+        </div>
 
-      {showStrip &&
-      (state.phase === "racing" || state.phase === "finished") ? (
-        <div className="mt-5 border-t border-border/70 pt-4">
+        {showStrip ? (
           <RacePlayerStrip
             racers={state.racers}
             totalChars={state.totalChars}
           />
-        </div>
-      ) : null}
+        ) : null}
 
-      {state.phase === "countdown" && countdownNumber != null ? (
-        <CountdownOverlay n={countdownNumber} />
-      ) : null}
-
-      {state.phase === "queue" ? <QueueOverlay /> : null}
-      {state.phase === "matching" ? <MatchingOverlay /> : null}
-      {state.phase === "lobby" ? <LobbyOverlay /> : null}
-    </div>
+        {state.phase === "countdown" && countdownNumber != null ? (
+          <CountdownOverlay n={countdownNumber} />
+        ) : null}
+        {state.phase === "queue" ? <QueueOverlay /> : null}
+        {state.phase === "matching" ? <MatchingOverlay /> : null}
+        {state.phase === "lobby" ? <LobbyOverlay /> : null}
+      </div>
+    </>
   );
 }
 

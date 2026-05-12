@@ -8,7 +8,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { useCaretSettings, type CaretStyle } from "@/lib/caret-settings";
 import { cn } from "@/lib/utils";
 import { RACE_MODES } from "./race-data";
@@ -102,7 +101,6 @@ function burstWpm(charCount: number, durationMs: number): number {
 
 export function BurstRaceSurface() {
   const { state, dispatch, countdownNumber } = useRace();
-  const { prefs: appearance } = useAppearancePrefs();
   const mode = RACE_MODES[state.modeId];
   const burst = mode.burst;
   const [local, localDispatch] = useReducer(localReducer, initialLocal);
@@ -112,7 +110,6 @@ export function BurstRaceSurface() {
   const reps = you.burstReps ?? 0;
   const targetWord =
     burst && itemIdx < burst.items.length ? burst.items[itemIdx]! : "";
-  const showStrip = appearance.multiplayerOpponentStrip;
 
   // Brief outcome flash so the user gets visible feedback without it
   // lingering longer than the next keystroke.
@@ -232,64 +229,67 @@ export function BurstRaceSurface() {
   if (!burst) return null;
   const itemsCount = burst.items.length;
   const wpm = you.wpm;
+  const phaseWord =
+    state.phase === "lobby"
+      ? "READY"
+      : state.phase === "countdown"
+        ? "STARTING"
+        : state.phase === "finished"
+          ? "FINISHED"
+          : "LIVE";
+  const showStripLive =
+    state.phase === "racing" ||
+    state.phase === "finished" ||
+    state.phase === "countdown";
   return (
-    <div className="relative flex min-h-[20rem] flex-1 flex-col rounded-md border border-border bg-card px-7 py-8 sm:px-9">
-      <div className="mb-5 flex flex-wrap justify-between gap-2">
+    <>
+      <div className="hidden flex-wrap items-baseline justify-between gap-x-8 gap-y-1 md:flex">
         <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-          BURST · ITEM {Math.min(itemIdx + 1, itemsCount)}/{itemsCount}
+          ITEM {Math.min(itemIdx + 1, itemsCount)}/{itemsCount}
         </span>
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-          <span className="text-primary">WPM {wpm}</span>
-          <span>GATE {burst.thresholdWpm}</span>
-          <span>
-            {state.phase === "lobby"
-              ? "READY"
-              : state.phase === "countdown"
-                ? "STARTING"
-                : state.phase === "finished"
-                  ? "FINISHED"
-                  : "RACING"}
-          </span>
+          <span className="text-primary tabular-nums">WPM {wpm}</span>
+          <span className="tabular-nums">GATE {burst.thresholdWpm}</span>
+          <span>{phaseWord}</span>
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-8">
-        <BurstWord
-          target={targetWord}
-          typed={local.typed}
-          outcome={local.lastOutcome}
-          ready={ready}
-        />
-        <StreakPips
-          total={burst.repsPerItem}
-          done={reps}
-          failed={local.lastOutcome === "wrong"}
-        />
-        <StatusBlock
-          ready={ready}
-          outcome={local.lastOutcome}
-          lastWpm={local.lastWpm}
-          thresholdWpm={burst.thresholdWpm}
-        />
-      </div>
+      <div className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8">
+          <BurstWord
+            target={targetWord}
+            typed={local.typed}
+            outcome={local.lastOutcome}
+            ready={ready}
+          />
+          <StreakPips
+            total={burst.repsPerItem}
+            done={reps}
+            failed={local.lastOutcome === "wrong"}
+          />
+          <StatusBlock
+            ready={ready}
+            outcome={local.lastOutcome}
+            lastWpm={local.lastWpm}
+            thresholdWpm={burst.thresholdWpm}
+          />
+        </div>
 
-      {showStrip &&
-      (state.phase === "racing" || state.phase === "finished") ? (
-        <div className="mt-5 border-t border-border/70 pt-4">
+        {showStripLive ? (
           <RacePlayerStrip
             racers={state.racers}
             totalChars={state.totalChars}
           />
-        </div>
-      ) : null}
+        ) : null}
 
-      {state.phase === "countdown" && countdownNumber != null ? (
-        <CountdownOverlay n={countdownNumber} />
-      ) : null}
-      {state.phase === "queue" ? <QueueOverlay /> : null}
+        {state.phase === "countdown" && countdownNumber != null ? (
+          <CountdownOverlay n={countdownNumber} />
+        ) : null}
+        {state.phase === "queue" ? <QueueOverlay /> : null}
       {state.phase === "matching" ? <MatchingOverlay /> : null}
-      {state.phase === "lobby" ? <LobbyOverlay /> : null}
-    </div>
+        {state.phase === "lobby" ? <LobbyOverlay /> : null}
+      </div>
+    </>
   );
 }
 

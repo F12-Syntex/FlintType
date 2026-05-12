@@ -1,50 +1,53 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { ModePicker } from "./mode-picker";
 import { RACE_MODES } from "./race-data";
 import { useRace } from "./race-state";
 
-/** Compact control strip at the top of the race surface. Owns the
- *  elapsed clock, the start / restart CTA, and the mode-specific
- *  tagline that swaps when the user picks a different race mode.
- *  Phase-aware:
+/** Top race-strip — visually a sibling of practice's `<ModeBar>` so the
+ *  two surfaces feel like the same product. Same centred horizontal
+ *  flex (`md:flex md:flex-wrap items-end justify-center gap-x-8 gap-y-4
+ *  px-7 py-4`), same `<Field>` lockup convention, no border-b.
+ *
+ *  Phase-aware action slot on the right edge of the row:
  *    queue      — "Find race"
- *    matching   — disabled "Matching…" + spinner-style label
- *    lobby      — "Start race"
- *    countdown  — disabled "Get ready" (the big countdown paints
- *                 over the passage)
- *    racing     — "Abandon" ghost button
- *    finished   — "Race again" primary CTA */
+ *    matching   — disabled "Matching…"
+ *    lobby      — disabled "Starting…"
+ *    countdown  — disabled "Get ready…"
+ *    racing     — ghost "Abandon"
+ *    finished   — primary "Race again" */
 export function RaceControls() {
-  const { state, modeId, enterQueue, restart, abandon, elapsedSeconds } =
+  const { state, modeId, setModeId, enterQueue, restart, abandon, elapsedSeconds } =
     useRace();
   const mode = RACE_MODES[modeId];
   const you = state.racers.find((r) => r.isYou)!;
   const totalRacers = mode.botIds.length + 1;
+  const allowSwitch =
+    state.phase === "queue" ||
+    state.phase === "lobby" ||
+    state.phase === "finished";
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3.5 sm:px-14">
-      <div className="flex flex-wrap items-baseline gap-3 sm:gap-8">
-        <StatusLine
-          phase={state.phase}
-          elapsed={elapsedSeconds}
-          place={you.place}
-          totalRacers={totalRacers}
-        />
-        <span className="text-[11px] tracking-wide text-muted-foreground">
-          {state.phase === "queue"
-            ? `${mode.name} · ${mode.detail}`
-            : state.phase === "matching"
-              ? "pairing you with opponents"
-              : state.phase === "lobby"
-                ? `${mode.name} · ${mode.detail}`
-                : state.phase === "countdown"
-                  ? "type the moment the count hits GO"
-                  : state.phase === "finished"
-                    ? "review your run or queue another"
-                    : "every keystroke logged · finish to lock the result"}
+    <div className="flex shrink-0 flex-wrap items-end justify-center gap-x-8 gap-y-4 px-7 py-4">
+      <Field label="mode">
+        <ModePicker modeId={modeId} onPick={setModeId} disabled={!allowSwitch} />
+      </Field>
+      <Field label="detail">
+        <span className="inline-flex h-8 items-center text-[11px] tracking-wide text-muted-foreground">
+          {mode.detail}
         </span>
-      </div>
-      <div className="flex items-center gap-2">
+      </Field>
+      <Field label="status">
+        <span className="inline-flex h-8 items-center">
+          <StatusLine
+            phase={state.phase}
+            elapsed={elapsedSeconds}
+            place={you.place}
+            totalRacers={totalRacers}
+          />
+        </span>
+      </Field>
+      <Field label="action">
         {state.phase === "queue" ? (
           <PrimaryButton onClick={enterQueue}>Find race</PrimaryButton>
         ) : state.phase === "matching" ? (
@@ -53,14 +56,38 @@ export function RaceControls() {
           </GhostButton>
         ) : state.phase === "lobby" ? (
           <GhostButton onClick={() => undefined} disabled>
-            Lobby full · starting…
+            Starting…
+          </GhostButton>
+        ) : state.phase === "countdown" ? (
+          <GhostButton onClick={() => undefined} disabled>
+            Get ready…
           </GhostButton>
         ) : state.phase === "finished" ? (
           <PrimaryButton onClick={restart}>Race again</PrimaryButton>
         ) : (
           <GhostButton onClick={abandon}>Abandon</GhostButton>
         )}
-      </div>
+      </Field>
+    </div>
+  );
+}
+
+/** Label-on-top wrapper — same shape as practice ModeBar's `<Field>`
+ *  so the two surfaces line up visually when rendered side-by-side
+ *  (e.g. when comparing the two tabs in a screen-cap). */
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+        {label}
+      </span>
+      {children}
     </div>
   );
 }
@@ -86,10 +113,10 @@ function StatusLine({
           : phase === "countdown"
             ? "● STARTING"
             : phase === "finished"
-              ? `● FINISHED · PLACE ${place ?? "?"}/${totalRacers}`
-              : `● RACE LIVE · ${formatT(elapsed)} ELAPSED`;
+              ? `● FINISHED · ${place ?? "?"}/${totalRacers}`
+              : `● LIVE · ${formatT(elapsed)}`;
   return (
-    <span className="text-[10px] uppercase tracking-[0.18em] text-primary">
+    <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-primary">
       {label}
     </span>
   );
@@ -107,7 +134,7 @@ function PrimaryButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2",
+        "inline-flex h-8 items-center gap-2 rounded-md bg-primary px-3.5",
         "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground",
         "transition-colors hover:bg-primary/90 active:translate-y-[1px]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
@@ -133,7 +160,8 @@ function GhostButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex items-center gap-2 rounded-md border border-border px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground transition-colors",
+        "inline-flex h-8 items-center gap-2 rounded-md border border-border px-3",
+        "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground transition-colors",
         disabled
           ? "cursor-not-allowed opacity-60"
           : "hover:border-foreground/30 hover:text-foreground",
