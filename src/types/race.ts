@@ -42,9 +42,19 @@ export type RoomRacer = {
   isHost: boolean;
   joinedAt: number;
   progressChars: number;
+  /** Accumulated mistypes the racer has produced so far — wrong char
+   *  presses and extras past the word's length, summed. Bots always
+   *  report 0 (their motion is deterministic and error-free). Drives
+   *  the destructive-coloured tail on the player-strip bar. */
+  errors: number;
   wpm: number;
   finishedAt: number | null;
   place: number | null;
+  /** True once a real player has fired `race.leave` (or otherwise
+   *  marked themselves gone). They stay in the snapshot so other
+   *  racers can see the "(disconnected)" tag rather than the slot
+   *  silently vanishing mid-race. */
+  disconnected: boolean;
 };
 
 /** Snapshot the client renders from. Server pushes this on every
@@ -102,6 +112,9 @@ export const keystrokeInputSchema = z.object({
   progressChars: z.number().int().min(0),
   /** Live WPM mirrored from the client's practice calc. */
   wpm: z.number().int().min(0).max(500),
+  /** Accumulated mistype count (wrong + extra chars). Optional so
+   *  callers from older builds keep working without an explicit 0. */
+  errors: z.number().int().min(0).max(10_000).optional(),
   /** True the moment the client's practice phase flips to `done`. */
   finished: z.boolean().optional(),
 });

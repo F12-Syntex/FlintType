@@ -25,6 +25,7 @@ export type RaceRoomBinding = {
     progressChars: number,
     wpm: number,
     finished: boolean,
+    errors: number,
   ) => void;
   leave: () => void;
 };
@@ -51,6 +52,7 @@ export function useRaceRoom({
     progressChars: number;
     wpm: number;
     finished: boolean;
+    errors: number;
   } | null>(null);
   const lastSentAtRef = useRef(0);
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -112,12 +114,13 @@ export function useRaceRoom({
       progressChars: data.progressChars,
       wpm: data.wpm,
       finished: data.finished,
+      errors: data.errors,
     });
   }, [backend]);
 
   const sendProgress = useCallback(
-    (progressChars: number, wpm: number, finished: boolean) => {
-      latestProgressRef.current = { progressChars, wpm, finished };
+    (progressChars: number, wpm: number, finished: boolean, errors: number) => {
+      latestProgressRef.current = { progressChars, wpm, finished, errors };
       const since = Date.now() - lastSentAtRef.current;
       if (since >= keystrokeFlushMs) {
         if (flushTimerRef.current) {

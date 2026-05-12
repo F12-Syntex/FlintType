@@ -67,11 +67,24 @@ function RacerRow({
   const pct = Math.round(prog * 100);
   const color = playerColorFor(racer.id);
   const place = racer.place;
-  const tickColor =
-    showColors || racer.isYou ? color : "var(--muted-foreground)";
+  const disconnected = racer.disconnected;
+  const tickColor = disconnected
+    ? "var(--muted-foreground)"
+    : showColors || racer.isYou
+      ? color
+      : "var(--muted-foreground)";
+  // Error tail width: cap at the racer's current progress so the
+  // destructive overlay can't extend past the racer's bar fill.
+  const errorWidth =
+    totalChars > 0
+      ? Math.min(prog, racer.errors / totalChars) * 100
+      : 0;
   return (
     <div
-      className="grid grid-cols-[8px_minmax(72px,96px)_minmax(0,1fr)_auto] items-center gap-3"
+      className={cn(
+        "grid grid-cols-[8px_minmax(72px,120px)_minmax(0,1fr)_auto] items-center gap-3",
+        disconnected && "opacity-60",
+      )}
       role="progressbar"
       aria-label={`${racer.name} progress`}
       aria-valuemin={0}
@@ -87,31 +100,58 @@ function RacerRow({
         <span
           className={cn(
             "truncate font-mono text-[11px]",
-            racer.isYou
-              ? "font-semibold text-foreground"
-              : "text-foreground/85",
+            disconnected
+              ? "text-muted-foreground"
+              : racer.isYou
+                ? "font-semibold text-foreground"
+                : "text-foreground/85",
           )}
         >
           {racer.name}
         </span>
-        {place != null ? (
+        {disconnected ? (
+          <span
+            className="shrink-0 font-mono text-[9px] font-medium uppercase tracking-[0.18em] text-muted-foreground/80"
+            title="Racer left the room"
+          >
+            Disconnected
+          </span>
+        ) : place != null ? (
           <span className="shrink-0 font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-primary">
             #{place}
           </span>
         ) : null}
       </div>
       <div className="relative h-1 overflow-hidden rounded-sm bg-muted">
+        {/* Player-colour fill from 0 → progress. */}
         <div
           className={cn(
             "absolute inset-y-0 left-0 transition-[width] duration-150 ease-out",
-            !showColors && !racer.isYou && "bg-foreground/55",
+            !showColors && !racer.isYou && !disconnected && "bg-foreground/55",
+            disconnected && "bg-muted-foreground/40",
           )}
           style={{
             width: `${pct}%`,
             backgroundColor:
-              showColors || racer.isYou ? color : undefined,
+              !disconnected && (showColors || racer.isYou) ? color : undefined,
           }}
         />
+        {/* Destructive tail at the right end of the progress fill,
+         *  showing accumulated errors. Only painted when racer has
+         *  errors AND has typed at least something. Sits on top of
+         *  the player-colour fill so the tip of the bar reads red as
+         *  the user mistypes. */}
+        {errorWidth > 0 && !disconnected ? (
+          <div
+            aria-hidden
+            className="absolute inset-y-0 transition-[left,width] duration-150 ease-out"
+            style={{
+              left: `${pct - errorWidth}%`,
+              width: `${errorWidth}%`,
+              backgroundColor: "var(--destructive)",
+            }}
+          />
+        ) : null}
       </div>
       <div className="flex w-12 items-baseline justify-end gap-1 font-mono text-[10px] tabular-nums">
         {showWpm ? (
@@ -119,7 +159,11 @@ function RacerRow({
             <span
               className={cn(
                 "text-[11px] font-semibold",
-                racer.isYou ? "text-primary" : "text-foreground",
+                disconnected
+                  ? "text-muted-foreground"
+                  : racer.isYou
+                    ? "text-primary"
+                    : "text-foreground",
               )}
             >
               {racer.wpm}

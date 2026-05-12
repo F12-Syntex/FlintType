@@ -34,6 +34,8 @@ function buildRacers(
     place: null,
     charProgress: 0,
     joinedAt: 0,
+    errors: 0,
+    disconnected: false,
   };
   const bots: Racer[] = botIds.map((id) => {
     const b = BOTS[id];
@@ -53,6 +55,8 @@ function buildRacers(
       // these one by one. Skipping the queue (race-again) → bots
       // already at the table, joinedAt = 0.
       joinedAt: withQueue ? null : 0,
+      errors: 0,
+      disconnected: false,
     };
   });
   return [you, ...bots];

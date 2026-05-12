@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
-import { useBackend } from "@/lib/backend";
+import { BackendError, useBackend } from "@/lib/backend";
+import { cn } from "@/lib/utils";
 import { RaceShell, type RaceShellOnline } from "../../../_components/race-shell";
 import type { RaceModeId } from "../../../_components/race-data";
 
@@ -48,9 +50,9 @@ export function ChallengeShell({
 }) {
   const backend = useBackend();
   const [resolved, setResolved] = useState<
-    { state: "loading" }
+    | { state: "loading" }
     | { state: "ready"; online: RaceShellOnline }
-    | { state: "error"; message: string }
+    | { state: "error"; kind: ChallengeErrorKind; message: string }
   >({ state: "loading" });
 
   useEffect(() => {
@@ -78,7 +80,7 @@ export function ChallengeShell({
         if (cancelled) return;
         setResolved({
           state: "error",
-          message: err instanceof Error ? err.message : "challenge not found",
+          ...classifyChallengeError(err),
         });
       }
     })();
@@ -90,21 +92,20 @@ export function ChallengeShell({
   if (resolved.state === "loading") {
     return (
       <div className="flex flex-1 items-center justify-center px-8 py-16">
-        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-          Joining challenge · {slug}…
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            aria-hidden
+            className="size-1.5 rounded-sm bg-primary motion-safe:animate-pulse"
+          />
+          <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+            Joining {slug}
+          </span>
+        </div>
       </div>
     );
   }
   if (resolved.state === "error") {
-    return (
-      <div className="mx-auto flex max-w-md flex-1 flex-col items-center justify-center gap-3 px-8 py-16 text-center">
-        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-          Challenge unavailable
-        </span>
-        <p className="text-sm text-foreground/85">{resolved.message}</p>
-      </div>
-    );
+    return <ChallengeError slug={slug} kind={resolved.kind} />;
   }
   return (
     <RaceShell
@@ -113,5 +114,86 @@ export function ChallengeShell({
     >
       {children}
     </RaceShell>
+  );
+}
+
+/* ─── Error UI ─────────────────────────────────────────────────── */
+
+type ChallengeErrorKind = "missing" | "full" | "unknown";
+
+function classifyChallengeError(err: unknown): {
+  kind: ChallengeErrorKind;
+  message: string;
+} {
+  if (err instanceof BackendError) {
+    if (err.code === "NOT_FOUND") return { kind: "missing", message: err.message };
+    if (err.code === "CONFLICT") return { kind: "full", message: err.message };
+  }
+  return {
+    kind: "unknown",
+    message: err instanceof Error ? err.message : "Unknown error",
+  };
+}
+
+function ChallengeError({
+  slug,
+  kind,
+}: {
+  slug: string;
+  kind: ChallengeErrorKind;
+}) {
+  const headline =
+    kind === "missing"
+      ? "This challenge link has expired"
+      : kind === "full"
+        ? "This race already started"
+        : "Couldn't reach the challenge";
+  const explainer =
+    kind === "missing"
+      ? "Challenges live for a few minutes after the host creates them. Ask whoever shared the link to spin up a fresh one, or start your own race against bots while you wait."
+      : kind === "full"
+        ? "The host has already kicked off the race or the lobby is full. You can hop into matchmaking against bots straight away while the host queues another."
+        : "Something went wrong on our side reaching this challenge. Try again in a moment, or start a fresh race against bots.";
+
+  return (
+    <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-6 px-6 py-16 text-center">
+      <div className="flex flex-col items-center gap-3">
+        <span
+          aria-hidden
+          className="inline-block size-1.5 rounded-[1px] bg-muted-foreground/60"
+        />
+        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          Challenge · {slug}
+        </span>
+      </div>
+      <h1 className="font-mono text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
+        {headline}
+      </h1>
+      <p className="text-[13px] leading-relaxed text-muted-foreground">
+        {explainer}
+      </p>
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+        <Link
+          href="/race"
+          className={cn(
+            "inline-flex h-8 items-center gap-2 rounded-md bg-primary px-3.5",
+            "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground",
+            "transition-colors hover:bg-primary/90 active:translate-y-[0.5px]",
+          )}
+        >
+          Start a race
+        </Link>
+        <Link
+          href="/"
+          className={cn(
+            "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-transparent px-3",
+            "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground",
+            "transition-colors hover:border-foreground/40 hover:text-foreground",
+          )}
+        >
+          Practice instead
+        </Link>
+      </div>
+    </div>
   );
 }

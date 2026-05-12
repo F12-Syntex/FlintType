@@ -79,11 +79,17 @@ export function OnlineRaceProvider({
   // effect can fire on every practice-state change without flooding.
   useEffect(() => {
     if (snapshot?.phase !== "racing") return;
-    sendProgress(youSnapshot.correctChars, youSnapshot.wpm, youSnapshot.finished);
+    sendProgress(
+      youSnapshot.correctChars,
+      youSnapshot.wpm,
+      youSnapshot.finished,
+      youSnapshot.errors,
+    );
   }, [
     youSnapshot.correctChars,
     youSnapshot.wpm,
     youSnapshot.finished,
+    youSnapshot.errors,
     snapshot?.phase,
     sendProgress,
   ]);
@@ -157,11 +163,19 @@ function useYouLocalSnapshot(raceStartedAt: number | null) {
   const { state } = usePractice();
   return useMemo(() => {
     let progressChars = 0;
+    let errors = 0;
     for (let i = 0; i < state.typed.length; i += 1) {
       const t = state.typed[i] ?? "";
       const w = state.words[i] ?? "";
       progressChars += Math.min(t.length, w.length);
       if (i < state.typed.length - 1) progressChars += 1;
+      // Mistype count: every position where typed[ci] disagrees with
+      // the target, plus chars typed past the word's length (extras).
+      const len = Math.min(t.length, w.length);
+      for (let ci = 0; ci < len; ci += 1) {
+        if (t[ci] !== w[ci]) errors += 1;
+      }
+      if (t.length > w.length) errors += t.length - w.length;
     }
     const elapsedMs =
       raceStartedAt != null ? Math.max(0, Date.now() - raceStartedAt) : 0;
@@ -171,6 +185,7 @@ function useYouLocalSnapshot(raceStartedAt: number | null) {
         : 0;
     return {
       correctChars: progressChars,
+      errors,
       wpm: Math.max(0, Math.round(wpm)),
       finished: state.phase === "done",
     };
@@ -192,7 +207,12 @@ function snapshotToRaceState({
   modeId: RaceModeId;
   raceSeed: number;
   youName: string;
-  youSnapshot: { correctChars: number; wpm: number; finished: boolean };
+  youSnapshot: {
+    correctChars: number;
+    wpm: number;
+    finished: boolean;
+    errors: number;
+  };
 }): RaceState {
   // No room yet → synthesise the "queue" state the UI surfaces while
   // the user hasn't pressed Find race.
@@ -222,6 +242,8 @@ function snapshotToRaceState({
           place: null,
           charProgress: 0,
           joinedAt: 0,
+          errors: 0,
+          disconnected: false,
         },
       ],
       feed: [],
@@ -264,7 +286,12 @@ function serverRacerToClient(
   s: RoomRacer,
   mySessionToken: string,
   youName: string,
-  youSnapshot: { correctChars: number; wpm: number; finished: boolean },
+  youSnapshot: {
+    correctChars: number;
+    wpm: number;
+    finished: boolean;
+    errors: number;
+  },
 ): Racer {
   const isYou = s.id === mySessionToken;
   // Map id to its client-meaningful form: "you" / bot id / opaque
@@ -297,6 +324,8 @@ function serverRacerToClient(
     place: s.place,
     charProgress: 0,
     joinedAt: s.joinedAt,
+    errors: isYou ? Math.max(youSnapshot.errors, s.errors) : s.errors,
+    disconnected: s.disconnected,
   };
 }
 

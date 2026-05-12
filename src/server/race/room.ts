@@ -151,6 +151,16 @@ export class RaceRoom {
     badge: string;
     isHost?: boolean;
   }): InternalRacer | null {
+    // Re-join after a transient disconnect: same sessionToken, same
+    // seat. Clear the disconnected flag so the snapshot stops showing
+    // the "(disconnected)" tag on a player who came back.
+    const existing = this.racers.get(opts.sessionToken);
+    if (existing && !existing.isBot) {
+      existing.disconnected = false;
+      this.lastTouchedAt = Date.now();
+      this.scheduleBroadcast();
+      return existing;
+    }
     if (!this.canJoinAsReal()) return null;
     const now = Date.now();
     const racer: InternalRacer = {
@@ -163,10 +173,12 @@ export class RaceRoom {
       isHost: opts.isHost ?? false,
       joinedAt: now,
       progressChars: 0,
+      errors: 0,
       wpm: 0,
       finishedAt: null,
       place: null,
       botCharProgress: 0,
+      disconnected: false,
     };
     this.racers.set(racer.id, racer);
     this.lastTouchedAt = now;
@@ -191,11 +203,13 @@ export class RaceRoom {
       isHost: false,
       joinedAt: now,
       progressChars: 0,
+      errors: 0,
       wpm: 0,
       finishedAt: null,
       place: null,
       botProfile: bot,
       botCharProgress: 0,
+      disconnected: false,
     };
     this.racers.set(racer.id, racer);
     this.lastTouchedAt = now;
@@ -349,6 +363,7 @@ export class RaceRoom {
     progressChars: number,
     wpm: number,
     finished: boolean,
+    errors?: number,
   ): boolean {
     const r = this.racers.get(token);
     if (!r || r.isBot) return false;
@@ -356,6 +371,14 @@ export class RaceRoom {
     const next = Math.min(this.totalChars, Math.max(0, Math.floor(progressChars)));
     if (next !== r.progressChars) r.progressChars = next;
     if (wpm !== r.wpm) r.wpm = wpm;
+    if (errors != null) {
+      const e = Math.max(0, Math.floor(errors));
+      if (e !== r.errors) r.errors = e;
+    }
+    // A real player publishing progress is implicitly here — clear
+    // any prior disconnected flag set by a stale leave / strict-mode
+    // unmount.
+    if (r.disconnected) r.disconnected = false;
     if (
       r.finishedAt == null &&
       (finished || r.progressChars >= this.totalChars) &&
@@ -375,15 +398,26 @@ export class RaceRoom {
   removeRacer(token: string): void {
     const r = this.racers.get(token);
     if (!r) return;
-    this.racers.delete(token);
+    if (r.isBot) {
+      // Bots are server-owned. They never `leave`; if something
+      // dispatches removeRacer with a bot id (defensive), drop them
+      // outright so the lobby count stays honest.
+      this.racers.delete(token);
+      this.scheduleBroadcast();
+      return;
+    }
+    // Pre-race we just drop the seat — no UI value in showing a
+    // "(disconnected)" tag for someone who never entered the lobby.
+    if (this.phase === "matching" || this.phase === "lobby") {
+      this.racers.delete(token);
+      this.scheduleBroadcast();
+      return;
+    }
+    // Mid- / post-race: keep the racer in the snapshot, flagged
+    // disconnected, so other racers see the slot didn't just vanish.
+    // The 5-min idle GC eventually sweeps the room itself.
+    r.disconnected = true;
     this.scheduleBroadcast();
-    // No eager dispose on last-real-leave. React strict-mode / dev
-    // fast-refresh both fire transient unmount-then-remount cycles
-    // that would otherwise dispose a room the user just joined.
-    // The natural lifecycle handles cleanup either way:
-    //   - matchmaking rooms still finish their race against the bots
-    //     and then schedule GC on phase=finished
-    //   - the global ROOM_TTL_MS sweep clears anything truly idle
   }
 
   private maybeFinishRace(now: number) {
@@ -437,9 +471,11 @@ export class RaceRoom {
       isHost: r.isHost,
       joinedAt: r.joinedAt,
       progressChars: r.progressChars,
+      errors: r.errors,
       wpm: r.wpm,
       finishedAt: r.finishedAt,
       place: r.place,
+      disconnected: r.disconnected,
     }));
     return {
       roomId: this.id,

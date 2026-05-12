@@ -82,6 +82,7 @@ const keystroke = defineRoute<KeystrokeInput, KeystrokeOutput>({
       input.progressChars,
       input.wpm,
       input.finished ?? false,
+      input.errors,
     );
     if (!ok) {
       // Could be: wrong token (caller not in room), or race not yet

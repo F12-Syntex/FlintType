@@ -79,6 +79,13 @@ export type Racer = {
   /** Burst-mode only: reps cleared on the current item (resets on
    *  advance). Undefined in passage mode. */
   burstReps?: number;
+  /** Accumulated mistype count for this racer (wrong + extra chars).
+   *  Drives the destructive-coloured tail on the player-strip bar.
+   *  Bots are always 0; the user's number is published per-keystroke. */
+  errors: number;
+  /** True once the racer has fired `race.leave` (or otherwise dropped
+   *  out mid-race). Renders a "(disconnected)" tag on the strip. */
+  disconnected: boolean;
 };
 
 export type RaceState = {

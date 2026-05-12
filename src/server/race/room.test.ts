@@ -138,6 +138,44 @@ describe("RaceRoom", () => {
     expect(alice?.wpm).toBe(65);
   });
 
+  it("setProgress accepts an errors count and surfaces it on the snapshot", () => {
+    const room = makeRoom();
+    room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
+    vi.advanceTimersByTime(5_000 + 700 + 3_000);
+    room.setProgress("s_alice", 6, 60, false, 2);
+    const alice = room.snapshot().racers.find((r) => r.id === "s_alice");
+    expect(alice?.errors).toBe(2);
+  });
+
+  it("removeRacer pre-race drops the seat outright", () => {
+    const room = makeRoom();
+    room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
+    expect(room.snapshot().racers.length).toBe(1);
+    room.removeRacer("s_alice");
+    expect(room.snapshot().racers.find((r) => r.id === "s_alice")).toBeUndefined();
+  });
+
+  it("removeRacer mid-race flags disconnected instead of deleting", () => {
+    const room = makeRoom();
+    room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
+    vi.advanceTimersByTime(5_000 + 700 + 3_000);
+    expect(room.phase).toBe("racing");
+    room.removeRacer("s_alice");
+    const alice = room.snapshot().racers.find((r) => r.id === "s_alice");
+    expect(alice).toBeDefined();
+    expect(alice?.disconnected).toBe(true);
+  });
+
+  it("re-joining with the same sessionToken clears the disconnected flag", () => {
+    const room = makeRoom();
+    room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
+    vi.advanceTimersByTime(5_000 + 700 + 3_000);
+    room.removeRacer("s_alice");
+    expect(room.snapshot().racers.find((r) => r.id === "s_alice")?.disconnected).toBe(true);
+    room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
+    expect(room.snapshot().racers.find((r) => r.id === "s_alice")?.disconnected).toBe(false);
+  });
+
   it("subscriber receives an initial snapshot synchronously", () => {
     const room = makeRoom();
     const got: number[] = [];
