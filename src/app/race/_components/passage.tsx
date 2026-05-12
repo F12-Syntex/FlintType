@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { Passage } from "../../_components/passage";
+import { usePractice } from "../../_components/practice-state";
 import { playerColorFor } from "./race-data";
 import { RacePlayerStrip } from "./player-strip";
 import { useRace } from "./race-state";
@@ -11,15 +12,23 @@ import { cn } from "@/lib/utils";
 
 /** Race passage. The actual typing surface IS practice's <Passage>
  *  component — same caret, same per-char colouring, same smooth-line
- *  scroll, same appearance prefs. The simplified layout drops the
- *  per-passage WPM/ACC/words strip (the HUD above the surface carries
- *  WPM + elapsed already, and the live accuracy was duplicating
- *  signals you can already feel from the per-char colouring). The
- *  opponent positions strip below the passage is the multi-racer
- *  leaderboard now that the side-rail lanes are gone. */
+ *  scroll, same appearance prefs. The race layer adds the editorial
+ *  strip above (mode + words done + your live wpm/acc) and the
+ *  countdown overlay during the 3..2..1 phase. */
 export function RacePassage() {
   const { state, countdownNumber } = useRace();
+  const { state: practice } = usePractice();
   const { prefs: appearance } = useAppearancePrefs();
+  const you = state.racers.find((r) => r.isYou)!;
+  const totalChars = state.totalChars;
+  const correctChars = you.correctChars;
+  const wordsDone =
+    totalChars > 0 && correctChars >= totalChars
+      ? state.words.length
+      : Math.min(practice.cursorWord, state.words.length);
+  const acc = liveAccuracy(practice.typed, practice.words);
+  const wpm = you.wpm;
+  const showStrip = appearance.multiplayerOpponentStrip;
   const showColors = appearance.multiplayerPlayerColors;
   const marker = appearance.multiplayerOpponentMarker;
 
@@ -63,17 +72,33 @@ export function RacePassage() {
     if (!opponentByWord || marker !== "text") return undefined;
     return (wi: number): string | undefined => opponentByWord(wi);
   }, [opponentByWord, marker]);
-  const showStrip =
-    state.phase === "racing" ||
-    state.phase === "finished" ||
-    state.phase === "countdown";
   return (
     <div className="relative flex min-h-[18rem] flex-1 flex-col rounded-md border border-border bg-card px-7 py-8 sm:px-9">
+      <div className="mb-5 flex flex-wrap justify-between gap-2">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          YOUR TRACK · {wordsDone}/{state.words.length} WORDS
+        </span>
+        <div className="flex flex-wrap gap-x-6 gap-y-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+          <span className="text-primary">WPM {wpm}</span>
+          <span>ACC {acc.toFixed(1)}%</span>
+          <span>
+            {state.phase === "lobby"
+              ? "READY"
+              : state.phase === "countdown"
+                ? "STARTING"
+                : state.phase === "finished"
+                  ? "FINISHED"
+                  : "RACING"}
+          </span>
+        </div>
+      </div>
+
       <div className="min-h-0 flex-1">
         <Passage wordBackground={wordTints} wordTextColor={wordTextColor} />
       </div>
 
-      {showStrip ? (
+      {showStrip &&
+      (state.phase === "racing" || state.phase === "finished") ? (
         <div className="mt-5 border-t border-border/70 pt-4">
           <RacePlayerStrip
             racers={state.racers}
@@ -163,3 +188,22 @@ function LobbyOverlay() {
   );
 }
 
+function liveAccuracy(
+  typed: readonly string[],
+  words: readonly string[],
+): number {
+  let correct = 0;
+  let total = 0;
+  for (let wi = 0; wi < typed.length; wi++) {
+    const t = typed[wi] ?? "";
+    const w = words[wi] ?? "";
+    const len = Math.max(t.length, w.length);
+    for (let ci = 0; ci < len; ci++) {
+      if (ci < t.length && ci < w.length && t[ci] === w[ci]) correct++;
+      else if (ci < t.length) total++; // wrong or extra
+      if (ci < t.length) total++;
+    }
+  }
+  if (total === 0) return 100;
+  return Math.round((correct / total) * 1000) / 10;
+}

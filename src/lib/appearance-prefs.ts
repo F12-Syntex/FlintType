@@ -105,6 +105,10 @@ export type AppearancePrefs = {
    *  --chart-* palette so opponents are visually distinct. Default
    *  off to keep the single-accent baseline (§2). */
   multiplayerPlayerColors: boolean;
+  /** Show the live opponent-positions strip below the passage.
+   *  Independent of player colours — the strip can stay off even
+   *  when colours are on, e.g. for a minimal racing surface. */
+  multiplayerOpponentStrip: boolean;
   /** How an opponent's progress is marked *inside* the practice
    *  passage. `text` (default) paints the letters of upcoming words
    *  in the slowest opponent's colour so opponents read as a
@@ -189,6 +193,7 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   // Single-accent purists can flip it off to drop back to the
   // editorial baseline.
   multiplayerPlayerColors: true,
+  multiplayerOpponentStrip: false,
   // `text` is the right default *when* player colours are on —
   // letters bleeding back toward you reads more clearly than a soft
   // background band, and the band fought the typed/untyped

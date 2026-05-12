@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { useCaretSettings, type CaretStyle } from "@/lib/caret-settings";
 import { cn } from "@/lib/utils";
 import { RACE_MODES } from "./race-data";
@@ -101,6 +102,7 @@ function burstWpm(charCount: number, durationMs: number): number {
 
 export function BurstRaceSurface() {
   const { state, dispatch, countdownNumber } = useRace();
+  const { prefs: appearance } = useAppearancePrefs();
   const mode = RACE_MODES[state.modeId];
   const burst = mode.burst;
   const [local, localDispatch] = useReducer(localReducer, initialLocal);
@@ -110,6 +112,7 @@ export function BurstRaceSurface() {
   const reps = you.burstReps ?? 0;
   const targetWord =
     burst && itemIdx < burst.items.length ? burst.items[itemIdx]! : "";
+  const showStrip = appearance.multiplayerOpponentStrip;
 
   // Brief outcome flash so the user gets visible feedback without it
   // lingering longer than the next keystroke.
@@ -228,16 +231,26 @@ export function BurstRaceSurface() {
 
   if (!burst) return null;
   const itemsCount = burst.items.length;
-  const showStripLive =
-    state.phase === "racing" ||
-    state.phase === "finished" ||
-    state.phase === "countdown";
+  const wpm = you.wpm;
   return (
     <div className="relative flex min-h-[20rem] flex-1 flex-col rounded-md border border-border bg-card px-7 py-8 sm:px-9">
-      <div className="mb-5 text-center">
+      <div className="mb-5 flex flex-wrap justify-between gap-2">
         <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-          Item {Math.min(itemIdx + 1, itemsCount)} of {itemsCount} · gate {burst.thresholdWpm} wpm
+          BURST · ITEM {Math.min(itemIdx + 1, itemsCount)}/{itemsCount}
         </span>
+        <div className="flex flex-wrap gap-x-6 gap-y-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+          <span className="text-primary">WPM {wpm}</span>
+          <span>GATE {burst.thresholdWpm}</span>
+          <span>
+            {state.phase === "lobby"
+              ? "READY"
+              : state.phase === "countdown"
+                ? "STARTING"
+                : state.phase === "finished"
+                  ? "FINISHED"
+                  : "RACING"}
+          </span>
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center gap-8">
@@ -260,7 +273,8 @@ export function BurstRaceSurface() {
         />
       </div>
 
-      {showStripLive ? (
+      {showStrip &&
+      (state.phase === "racing" || state.phase === "finished") ? (
         <div className="mt-5 border-t border-border/70 pt-4">
           <RacePlayerStrip
             racers={state.racers}
