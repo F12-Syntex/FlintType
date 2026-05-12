@@ -7,7 +7,6 @@ import {
 import {
   LabelWithDesc,
   SelectChips,
-  SliderRow,
   ToggleChips,
 } from "../../_components/controls";
 import { SettingsRow } from "../../_components/row";
@@ -91,24 +90,6 @@ export function MultiplayerRows() {
         }
       />
 
-      <SettingsRow
-        label={
-          <LabelWithDesc
-            title="Countdown length"
-            desc="Seconds between Find race and GO. Drop to 1 if you want a snap start; bump to 5 for a longer ready phase."
-          />
-        }
-        control={
-          <SliderRow
-            value={prefs.multiplayerCountdownSeconds}
-            min={1}
-            max={5}
-            step={1}
-            format={(v) => `${v}s`}
-            onChange={(v) => update("multiplayerCountdownSeconds", v)}
-          />
-        }
-      />
     </div>
   );
 }

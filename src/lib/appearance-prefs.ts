@@ -118,10 +118,6 @@ export type AppearancePrefs = {
   /** Show each opponent's live WPM number in their lane row.
    *  Off keeps the lanes minimal and shifts the focus to the bars. */
   multiplayerShowOpponentWpm: boolean;
-  /** Countdown duration in seconds before GO fires (1–5). 3 is
-   *  the standard "3, 2, 1" cadence; speedrunners can drop it to
-   *  1 to skip the wait. */
-  multiplayerCountdownSeconds: number;
 };
 
 export const DEFAULT_APPEARANCE: AppearancePrefs = {
@@ -184,11 +180,10 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   // marathon-length.
   burstReps: 5,
 
-  // On by default — a race is a multi-racer surface and the user
-  // expects opponents to be visually distinct out of the box.
-  // Single-accent purists can flip it off to drop back to the
-  // editorial baseline.
-  multiplayerPlayerColors: true,
+  // Off by default — the editorial single-accent baseline (coral
+  // primary only) reads cleaner. Users who want each racer in their
+  // own colour flip this on from customise → multiplayer.
+  multiplayerPlayerColors: false,
   // `text` is the right default *when* player colours are on —
   // letters bleeding back toward you reads more clearly than a soft
   // background band, and the band fought the typed/untyped
@@ -198,7 +193,6 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   multiplayerOpponentMarker: "text",
   multiplayerRaceFeed: true,
   multiplayerShowOpponentWpm: true,
-  multiplayerCountdownSeconds: 3,
 };
 
 export function useAppearancePrefs() {

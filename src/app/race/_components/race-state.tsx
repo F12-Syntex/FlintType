@@ -9,7 +9,6 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { calcWpmAndRaw } from "@/lib/wpm";
 import { usePractice } from "../../_components/practice-state";
 import {
@@ -129,11 +128,10 @@ export function RaceProvider({
   const [state, dispatch] = useReducer(reducer, undefined, () =>
     freshState(modeId, raceSeed, Date.now(), withQueue, youName),
   );
-  const { prefs: appearance } = useAppearancePrefs();
-  const countdownSeconds = Math.max(
-    1,
-    Math.min(5, appearance.multiplayerCountdownSeconds),
-  );
+  // Countdown is fixed at three seconds. The user wants a consistent
+  // "3 · 2 · 1 · GO" cadence across every mode — adjustable seconds
+  // made the race-start beat feel inconsistent between sessions.
+  const countdownSeconds = 3;
 
   const you = useYouSnapshot(state.raceStartedAt, state.nowMs);
   const youRef = useRef(you);

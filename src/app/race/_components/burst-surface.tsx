@@ -244,7 +244,6 @@ export function BurstRaceSurface() {
     <>
       <PhaseRow
         phase={state.phase}
-        countdownNumber={countdownNumber}
         joinedOpponents={
           state.racers.filter((r) => !r.isYou && r.joinedAt != null).length
         }
@@ -284,8 +283,14 @@ export function BurstRaceSurface() {
                 thresholdWpm={burst.thresholdWpm}
               />
             </>
+          ) : state.phase === "countdown" ? (
+            <BurstCountdownPanel n={countdownNumber ?? 3} />
           ) : (
-            <HiddenBurstWord repsPerItem={burst.repsPerItem} />
+            <BurstPoster
+              modeName={mode.name}
+              detail={mode.detail}
+              phase={state.phase}
+            />
           )}
         </div>
 
@@ -300,31 +305,71 @@ export function BurstRaceSurface() {
   );
 }
 
-/** Pre-race placeholder for the burst surface's central word. Renders
- *  a single muted block at burst-word height so the layout doesn't
- *  shift when the real word swaps in at GO, plus the empty streak
- *  pip row so the user knows the streak structure they'll be working
- *  with. The target word itself is hidden — same fairness rule as
- *  the passage placeholder above. */
-function HiddenBurstWord({ repsPerItem }: { repsPerItem: number }) {
+/** Burst version of the editorial mode poster. Same shape as the
+ *  passage surface's RacePoster, just rendered inside the burst
+ *  surface's centered flex column so it lines up with where the
+ *  target word will appear at GO. */
+function BurstPoster({
+  modeName,
+  detail,
+  phase,
+}: {
+  modeName: string;
+  detail: string;
+  phase: string;
+}) {
+  const subtitle =
+    phase === "queue"
+      ? "ready when you are"
+      : phase === "matching"
+        ? "racers are joining"
+        : phase === "lobby"
+          ? "everyone is in"
+          : detail;
   return (
-    <>
-      <div
-        aria-hidden
-        className="h-12 w-32 rounded-sm bg-foreground/[0.06] sm:h-14 sm:w-40 lg:h-16 lg:w-48"
-      />
-      <div
-        aria-hidden
-        className="flex gap-1.5"
+    <div className="flex flex-col items-center gap-3 text-center">
+      <span
+        className={cn(
+          "font-mono font-extrabold tracking-tight tabular-nums text-foreground",
+          "text-[12vmin] leading-none sm:text-[10vmin] lg:text-[8vmin]",
+        )}
       >
-        {Array.from({ length: repsPerItem }, (_, i) => (
-          <span
-            key={i}
-            className="h-1.5 w-8 rounded-sm bg-foreground/[0.06]"
-          />
-        ))}
-      </div>
-    </>
+        {modeName}
+      </span>
+      <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+        {subtitle}
+      </span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+        {detail}
+      </span>
+    </div>
+  );
+}
+
+/** Burst countdown panel — big primary number that owns the burst
+ *  surface's centred slot during the 3 · 2 · 1 · GO beat. Same shape
+ *  as the passage surface's CountdownPanel; the slot is centred-flex
+ *  rather than stretched, so the number sits against the burst word's
+ *  visual anchor. */
+function BurstCountdownPanel({ n }: { n: number }) {
+  const label = n === 0 ? "GO" : String(n);
+  return (
+    <div
+      aria-live="polite"
+      aria-label={`Starting in ${label}`}
+      className="flex items-center justify-center"
+    >
+      <span
+        key={label}
+        className={cn(
+          "font-mono font-extrabold tracking-tight tabular-nums text-primary",
+          "text-[24vmin] leading-none",
+          "motion-safe:animate-[ft-countdown-pop_320ms_cubic-bezier(0.16,1,0.3,1)]",
+        )}
+      >
+        {label}
+      </span>
+    </div>
   );
 }
 

@@ -45,13 +45,11 @@ type PhaseKind = "queue" | "matching" | "lobby" | "countdown" | "racing" | "fini
 
 export function PhaseRow({
   phase,
-  countdownNumber,
   joinedOpponents,
   totalOpponents,
   racingReadout,
 }: {
   phase: string;
-  countdownNumber: number | null;
   joinedOpponents: number;
   totalOpponents: number;
   racingReadout?: RacingReadout;
@@ -97,7 +95,6 @@ export function PhaseRow({
       />
       <PhaseContent
         kind={kind}
-        countdownNumber={countdownNumber}
         joinedOpponents={joinedOpponents}
         totalOpponents={totalOpponents}
         racingReadout={racingReadout}
@@ -130,13 +127,11 @@ function labelFor(kind: PhaseKind): string {
 
 function PhaseContent({
   kind,
-  countdownNumber,
   joinedOpponents,
   totalOpponents,
   racingReadout,
 }: {
   kind: PhaseKind;
-  countdownNumber: number | null;
   joinedOpponents: number;
   totalOpponents: number;
   racingReadout?: RacingReadout;
@@ -158,19 +153,12 @@ function PhaseContent({
   if (kind === "lobby") {
     return <Hint text="Lobby full · countdown imminent" />;
   }
-  if (kind === "countdown" && countdownNumber != null) {
-    // The "moment" of the race start lives here. Inline, tabular,
-    // primary-coloured — the number changes every second so the eye
-    // tracks it without any extra chrome. Larger than other rows so
-    // it earns its weight, but nowhere near the old text-6xl panel.
-    return (
-      <span
-        aria-live="polite"
-        className="font-mono text-2xl font-extrabold tabular-nums leading-none text-primary"
-      >
-        {countdownNumber === 0 ? "GO" : countdownNumber}
-      </span>
-    );
+  if (kind === "countdown") {
+    // The big countdown digit lives in the passage area (where the
+    // typing will happen) so it dominates visually. The PhaseRow
+    // contribution stays small — just a short context hint so the
+    // top strip doesn't go silent on a key beat.
+    return <Hint text="Get ready" />;
   }
   if (racingReadout && (kind === "racing" || kind === "finished")) {
     return (

@@ -247,6 +247,23 @@
   animation: ft-blink var(--ft-blink-speed, 1000ms) infinite;
 }
 
+/* Race-start countdown pop — each digit (3 / 2 / 1 / GO) animates in
+   as the key changes. Scale + opacity from compressed/transparent to
+   full; quart ease-out so the digit settles fast, not bouncy. */
+@keyframes ft-countdown-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* New-PB sparkle dot — fires once on mount, springs outward + fades.
    The keyframe applies to a child wrapper that's already rotated +
    translated to its outer position; we only animate distance and

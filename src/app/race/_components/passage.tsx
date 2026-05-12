@@ -4,7 +4,8 @@ import { useMemo } from "react";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { Passage } from "../../_components/passage";
 import { usePractice } from "../../_components/practice-state";
-import { playerColorFor } from "./race-data";
+import { cn } from "@/lib/utils";
+import { playerColorFor, RACE_MODES } from "./race-data";
 import { RacePlayerStrip } from "./player-strip";
 import { useRace } from "./race-state";
 import { PhaseRow } from "./phase-row";
@@ -88,7 +89,6 @@ export function RacePassage() {
     <>
       <PhaseRow
         phase={state.phase}
-        countdownNumber={countdownNumber}
         joinedOpponents={
           state.racers.filter((r) => !r.isYou && r.joinedAt != null).length
         }
@@ -110,8 +110,14 @@ export function RacePassage() {
         <div className="min-h-0 flex-1">
           {racing ? (
             <Passage wordBackground={wordTints} wordTextColor={wordTextColor} />
+          ) : state.phase === "countdown" ? (
+            <CountdownPanel n={countdownNumber ?? 3} />
           ) : (
-            <HiddenPassage />
+            <RacePoster
+              modeName={RACE_MODES[state.modeId].name}
+              detail={RACE_MODES[state.modeId].detail}
+              phase={state.phase}
+            />
           )}
         </div>
 
@@ -126,26 +132,79 @@ export function RacePassage() {
   );
 }
 
-/** Block-bar placeholder for the typing area during pre-race phases.
- *  The passage text mustn't leak before the race starts — racers
- *  who could read ahead would have an unfair edge — so we render
- *  three muted bars at the same line geometry as the real `<Passage>`
- *  (same font-scale × line-height math) and swap to the live passage
- *  the instant the countdown hits GO. Layout doesn't shift on the
- *  swap because the bars share the passage's typography rules. */
-function HiddenPassage() {
-  const widths = ["100%", "94%", "78%"];
+/** Full-bleed countdown takeover for the typing area. Sits in the
+ *  same slot the passage will occupy — big enough to read across the
+ *  room, no panel chrome, no blur. The number itself does the work:
+ *  primary coral, tabular-nums so the digit swap doesn't reshuffle
+ *  the baseline, ease-out scale animation each second to add motion
+ *  without being a distraction. GO fires last and gets the same
+ *  treatment (only difference is the glyph). */
+function CountdownPanel({ n }: { n: number }) {
+  const label = n === 0 ? "GO" : String(n);
   return (
-    <div aria-hidden className="flex h-full w-full items-start">
-      <div className="flex w-full flex-col gap-3 text-[calc(var(--ft-font-scale,1)*1.75rem)] leading-[2.1] sm:text-[calc(var(--ft-font-scale,1)*2.125rem)] sm:leading-[2.2] lg:text-[calc(var(--ft-font-scale,1)*2.5rem)] lg:leading-[2.3]">
-        {widths.map((w, i) => (
-          <span
-            key={i}
-            className="block h-[1em] rounded-sm bg-foreground/[0.06]"
-            style={{ width: w }}
-          />
-        ))}
-      </div>
+    <div
+      aria-live="polite"
+      aria-label={`Starting in ${label}`}
+      className="flex h-full w-full items-center justify-center"
+    >
+      <span
+        key={label}
+        className={cn(
+          "font-mono font-extrabold tracking-tight tabular-nums text-primary",
+          "text-[28vmin] leading-none",
+          "motion-safe:animate-[ft-countdown-pop_320ms_cubic-bezier(0.16,1,0.3,1)]",
+        )}
+        style={{ fontFeatureSettings: '"tnum"' }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+/** Editorial mode poster shown in the typing area during queue /
+ *  matching / lobby. Replaces the earlier skeleton-bar placeholder
+ *  which read as "still loading…" — this poster reads as intentional
+ *  content: the race you're about to run, sitting calmly until you
+ *  start. Big mode name, one line of detail beneath, sized to fill
+ *  the typing slot without competing with the chrome above. */
+function RacePoster({
+  modeName,
+  detail,
+  phase,
+}: {
+  modeName: string;
+  detail: string;
+  phase: string;
+}) {
+  // The headline never changes between queue/matching/lobby — same
+  // race, same poster. The subtitle nudges contextually so the user
+  // gets a beat of fresh feedback at each step without redundant
+  // copy versus the PhaseRow up top.
+  const subtitle =
+    phase === "queue"
+      ? "ready when you are"
+      : phase === "matching"
+        ? "racers are joining"
+        : phase === "lobby"
+          ? "everyone is in"
+          : detail;
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-4 text-center">
+      <span
+        className={cn(
+          "font-mono font-extrabold tracking-tight tabular-nums text-foreground",
+          "text-[14vmin] leading-none sm:text-[12vmin] lg:text-[10vmin]",
+        )}
+      >
+        {modeName}
+      </span>
+      <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+        {subtitle}
+      </span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+        {detail}
+      </span>
     </div>
   );
 }
