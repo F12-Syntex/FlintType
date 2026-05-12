@@ -7,14 +7,15 @@ import { usePractice } from "../../_components/practice-state";
 import { playerColorFor } from "./race-data";
 import { RacePlayerStrip } from "./player-strip";
 import { useRace } from "./race-state";
+import { PhaseRow } from "./phase-row";
 import type { Racer } from "./race-types";
-import { cn } from "@/lib/utils";
 
 /** Race passage. The actual typing surface IS practice's <Passage>
  *  component — same caret, same per-char colouring, same smooth-line
- *  scroll, same appearance prefs. The race layer adds the editorial
- *  strip above (mode + words done + your live wpm/acc) and the
- *  countdown overlay during the 3..2..1 phase. */
+ *  scroll, same appearance prefs. The race layer adds one slim
+ *  status row above the passage (the only chrome that swaps per
+ *  phase) and the per-racer progress strip below. No more blurred
+ *  overlays; the passage is always cleanly visible. */
 export function RacePassage() {
   const { state, countdownNumber } = useRace();
   const { state: practice } = usePractice();
@@ -71,131 +72,48 @@ export function RacePassage() {
     if (!opponentByWord || marker !== "text") return undefined;
     return (wi: number): string | undefined => opponentByWord(wi);
   }, [opponentByWord, marker]);
-  // Mirrors practice's `<Readouts>` strip — slim row above the passage
-  // with the live mode-aware metrics. Practice's row hides on mobile
-  // via `hidden md:block`; we match that so the small viewport leads
-  // with the passage. Phase word kept short ("LIVE" / "READY" / …) so
-  // it doesn't fight the action button up in RaceControls.
-  const phaseWord =
-    state.phase === "lobby"
-      ? "READY"
-      : state.phase === "countdown"
-        ? "STARTING"
-        : state.phase === "finished"
-          ? "FINISHED"
-          : "LIVE";
-  // Overlay phases (queue/matching/lobby/countdown) paint a blurred
-  // panel over the passage — keeping the live stat ribbon visible
-  // above it duplicates the overlay's status word and reads as a
-  // floating ghost over the blur. Hide it outside the active run.
-  const showReadouts =
+
+  const racing =
     state.phase === "racing" || state.phase === "finished";
-  const showStrip = showReadouts || state.phase === "countdown";
   return (
     <>
-      {showReadouts ? (
-        <div className="hidden flex-wrap items-baseline justify-between gap-x-8 gap-y-1 md:flex">
-          <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            {wordsDone}/{state.words.length} WORDS
-          </span>
-          <div className="flex flex-wrap gap-x-6 gap-y-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            <span className="text-primary tabular-nums">WPM {wpm}</span>
-            <span className="tabular-nums">ACC {acc.toFixed(1)}%</span>
-            <span>{phaseWord}</span>
-          </div>
-        </div>
-      ) : null}
+      <PhaseRow
+        phase={state.phase}
+        countdownNumber={countdownNumber}
+        joinedOpponents={
+          state.racers.filter((r) => !r.isYou && r.joinedAt != null).length
+        }
+        totalOpponents={state.racers.filter((r) => !r.isYou).length}
+        racingReadout={
+          racing
+            ? {
+                left: `${wordsDone}/${state.words.length} WORDS`,
+                metrics: [
+                  { label: "WPM", value: String(wpm), accent: true },
+                  { label: "ACC", value: `${acc.toFixed(1)}%` },
+                  {
+                    label: "",
+                    value: state.phase === "finished" ? "FINISHED" : "LIVE",
+                  },
+                ],
+              }
+            : undefined
+        }
+      />
 
-      <div className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
         <div className="min-h-0 flex-1">
           <Passage wordBackground={wordTints} wordTextColor={wordTextColor} />
         </div>
 
-        {showStrip ? (
+        {racing || state.phase === "countdown" ? (
           <RacePlayerStrip
             racers={state.racers}
             totalChars={state.totalChars}
           />
         ) : null}
-
-        {state.phase === "countdown" && countdownNumber != null ? (
-          <CountdownOverlay n={countdownNumber} />
-        ) : null}
-        {state.phase === "queue" ? <QueueOverlay /> : null}
-        {state.phase === "matching" ? <MatchingOverlay /> : null}
-        {state.phase === "lobby" ? <LobbyOverlay /> : null}
       </div>
     </>
-  );
-}
-
-function QueueOverlay() {
-  return (
-    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center rounded-md bg-card/85 backdrop-blur-sm">
-      <span className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-        Press Find race to queue up
-      </span>
-      <span className="mt-2 max-w-md px-6 text-center text-[12.5px] text-muted-foreground/85">
-        Bots only enter the lobby once you queue — you race when you're ready.
-      </span>
-    </div>
-  );
-}
-
-function MatchingOverlay() {
-  return (
-    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center rounded-md bg-card/85 backdrop-blur-sm">
-      <div className="flex items-center gap-2">
-        <span
-          aria-hidden
-          className="size-2 rounded-full bg-primary motion-safe:animate-pulse"
-        />
-        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-primary">
-          Finding racers
-        </span>
-      </div>
-      <span className="mt-2 max-w-md px-6 text-center text-[12.5px] text-muted-foreground/85">
-        Pairing you with opponents at your level. Hold tight.
-      </span>
-    </div>
-  );
-}
-
-function CountdownOverlay({ n }: { n: number }) {
-  return (
-    <div
-      aria-live="polite"
-      className={cn(
-        "pointer-events-none absolute inset-0 flex flex-col items-center justify-center rounded-md",
-        "bg-card/90 backdrop-blur-sm",
-      )}
-    >
-      <span className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-        Starting in
-      </span>
-      <span className="font-mono text-7xl font-extrabold tabular-nums text-primary sm:text-8xl">
-        {n === 0 ? "GO" : n}
-      </span>
-    </div>
-  );
-}
-
-function LobbyOverlay() {
-  return (
-    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center rounded-md bg-card/85 backdrop-blur-sm">
-      <div className="flex items-center gap-2">
-        <span
-          aria-hidden
-          className="size-2 rounded-full bg-primary motion-safe:animate-pulse"
-        />
-        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-primary">
-          Lobby full · countdown starting
-        </span>
-      </div>
-      <span className="mt-2 max-w-md px-6 text-center text-[12.5px] text-muted-foreground/85">
-        Bots wait for the countdown — they don't start moving until GO fires.
-      </span>
-    </div>
   );
 }
 

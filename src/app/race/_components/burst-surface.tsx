@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useCaretSettings, type CaretStyle } from "@/lib/caret-settings";
 import { cn } from "@/lib/utils";
+import { PhaseRow } from "./phase-row";
 import { RACE_MODES } from "./race-data";
 import { RacePlayerStrip } from "./player-strip";
 import { useRace } from "./race-state";
@@ -229,36 +230,35 @@ export function BurstRaceSurface() {
   if (!burst) return null;
   const itemsCount = burst.items.length;
   const wpm = you.wpm;
-  const phaseWord =
-    state.phase === "lobby"
-      ? "READY"
-      : state.phase === "countdown"
-        ? "STARTING"
-        : state.phase === "finished"
-          ? "FINISHED"
-          : "LIVE";
-  // Same overlay-blur rule as RacePassage — hide the readout ribbon
-  // outside the active run so it doesn't peek through the blurred
-  // queue/matching/lobby overlays.
-  const showReadouts =
+  const racing =
     state.phase === "racing" || state.phase === "finished";
-  const showStripLive = showReadouts || state.phase === "countdown";
   return (
     <>
-      {showReadouts ? (
-        <div className="hidden flex-wrap items-baseline justify-between gap-x-8 gap-y-1 md:flex">
-          <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            ITEM {Math.min(itemIdx + 1, itemsCount)}/{itemsCount}
-          </span>
-          <div className="flex flex-wrap gap-x-6 gap-y-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            <span className="text-primary tabular-nums">WPM {wpm}</span>
-            <span className="tabular-nums">GATE {burst.thresholdWpm}</span>
-            <span>{phaseWord}</span>
-          </div>
-        </div>
-      ) : null}
+      <PhaseRow
+        phase={state.phase}
+        countdownNumber={countdownNumber}
+        joinedOpponents={
+          state.racers.filter((r) => !r.isYou && r.joinedAt != null).length
+        }
+        totalOpponents={state.racers.filter((r) => !r.isYou).length}
+        racingReadout={
+          racing
+            ? {
+                left: `ITEM ${Math.min(itemIdx + 1, itemsCount)}/${itemsCount}`,
+                metrics: [
+                  { label: "WPM", value: String(wpm), accent: true },
+                  { label: "GATE", value: String(burst.thresholdWpm) },
+                  {
+                    label: "",
+                    value: state.phase === "finished" ? "FINISHED" : "LIVE",
+                  },
+                ],
+              }
+            : undefined
+        }
+      />
 
-      <div className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8">
           <BurstWord
             target={targetWord}
@@ -279,19 +279,12 @@ export function BurstRaceSurface() {
           />
         </div>
 
-        {showStripLive ? (
+        {racing || state.phase === "countdown" ? (
           <RacePlayerStrip
             racers={state.racers}
             totalChars={state.totalChars}
           />
         ) : null}
-
-        {state.phase === "countdown" && countdownNumber != null ? (
-          <CountdownOverlay n={countdownNumber} />
-        ) : null}
-        {state.phase === "queue" ? <QueueOverlay /> : null}
-      {state.phase === "matching" ? <MatchingOverlay /> : null}
-        {state.phase === "lobby" ? <LobbyOverlay /> : null}
       </div>
     </>
   );
