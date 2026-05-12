@@ -95,11 +95,11 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   liveStatsColor: "",
   liveStatsOpacity: 1,
 
-  // Letter-by-letter cursor underline and a gentle fade on past
-  // words. Reads "you've moved on from these" without striking
-  // through, which can feel punitive.
+  // Letter-by-letter cursor underline. Typed effect stays off by
+  // default — leaving past words untouched reads as the cleanest
+  // baseline; fade / strike are opt-in flavour.
   highlightMode: "letter",
-  typedEffect: "fade",
+  typedEffect: "off",
 
   // Tape mode opt-in. Multi-line is the friendlier default.
   tapeMode: "off",
