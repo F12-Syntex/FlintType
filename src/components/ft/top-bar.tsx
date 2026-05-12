@@ -80,36 +80,48 @@ export function TopBar({
       <Logo dark={dark} version={resolvedVersion} />
 
       {nav && nav.length > 0 ? (
-        <nav
-          aria-label="Main"
-          className="ml-3 hidden flex-1 items-baseline gap-1 md:flex lg:ml-4"
-        >
-          {nav.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  // Active state is carried by weight + colour — no
-                  // underline, no background pill. Reads as a calm
-                  // editorial nav rather than a highlighted toolbar.
-                  "rounded-sm px-2.5 py-1.5 text-[13px] tracking-tight outline-none transition-colors",
-                  active
-                    ? dark
-                      ? "font-semibold text-ft-paper"
-                      : "font-semibold text-foreground"
-                    : dark
-                      ? "font-normal text-ft-warm-2 hover:text-ft-paper focus-visible:text-ft-paper"
-                      : "font-normal text-muted-foreground hover:text-foreground focus-visible:text-foreground",
-                )}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="ml-3 hidden flex-1 md:flex lg:ml-4">
+          <nav
+            aria-label="Main"
+            className={cn(
+              // Wrap the nav in the same surface treatment as the
+              // ModeSwitcher: rounded card with a hairline border and
+              // tight inner padding, so the nav reads as one
+              // discrete control next to the right-cluster pill.
+              "inline-flex items-center gap-0.5 overflow-hidden rounded-md border p-0.5",
+              dark
+                ? "border-white/10 bg-white/[0.04]"
+                : "border-border bg-card",
+            )}
+          >
+            {nav.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    // Active link picks up a subtle tint so it reads
+                    // as the selected segment within the card; the
+                    // weight + colour cue is still the dominant
+                    // signal so the nav stays editorial-calm.
+                    "rounded-[5px] px-3 py-1.5 text-[13px] tracking-tight outline-none transition-colors",
+                    active
+                      ? dark
+                        ? "bg-white/[0.06] font-semibold text-ft-paper"
+                        : "bg-foreground/[0.06] font-semibold text-foreground"
+                      : dark
+                        ? "font-normal text-ft-warm-2 hover:bg-white/[0.04] hover:text-ft-paper focus-visible:text-ft-paper"
+                        : "font-normal text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground focus-visible:text-foreground",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
       ) : (
         <span className="flex-1" />
       )}
