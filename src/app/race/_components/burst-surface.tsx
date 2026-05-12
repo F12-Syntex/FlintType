@@ -12,10 +12,10 @@ import { useBackend } from "@/lib/backend";
 import { useCaretSettings, type CaretStyle } from "@/lib/caret-settings";
 import { cn } from "@/lib/utils";
 import type { KeystrokeTiming } from "@/types/adapt";
-import { PhaseRow } from "./phase-row";
+import { RaceLineupPanel } from "./lineup-panel";
 import { RACE_MODES } from "./race-data";
-import { RacePlayerStrip } from "./player-strip";
 import { useRace } from "./race-state";
+import type { RacePhase } from "./race-types";
 
 /** Burst-race surface. Multiplayer version of the burst minigame:
  *  each racer cycles through `items` words, having to land
@@ -327,46 +327,33 @@ export function BurstRaceSurface() {
   const wpm = you.wpm;
   const racing =
     state.phase === "racing" || state.phase === "finished";
-  // Mirror RacePassage: show the lineup from matching onward (bots
-  // joining, lobby fill, countdown) so the user gets a good look at
-  // who they're racing before GO.
   const showLineup =
     state.phase === "matching" ||
     state.phase === "lobby" ||
     state.phase === "countdown" ||
     racing;
+  const totalOpponents = state.racers.filter((r) => !r.isYou).length;
+  const joinedOpponents = state.racers.filter(
+    (r) => !r.isYou && r.joinedAt != null,
+  ).length;
   return (
-    <>
-      <PhaseRow
-        phase={state.phase}
-        joinedOpponents={
-          state.racers.filter((r) => !r.isYou && r.joinedAt != null).length
-        }
-        totalOpponents={state.racers.filter((r) => !r.isYou).length}
-        racingReadout={
-          racing
-            ? {
-                left: `ITEM ${Math.min(itemIdx + 1, itemsCount)}/${itemsCount}`,
-                metrics: [
-                  { label: "WPM", value: String(wpm), accent: true },
-                  { label: "GATE", value: String(burst.thresholdWpm) },
-                ],
-              }
-            : undefined
-        }
-      />
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+      {showLineup ? (
+        <RaceLineupPanel
+          racers={state.racers}
+          totalChars={state.totalChars}
+          phase={state.phase as RacePhase}
+          modeName={`${mode.name} · item ${Math.min(itemIdx + 1, itemsCount)}/${itemsCount}`}
+          joinedOpponents={joinedOpponents}
+          totalOpponents={totalOpponents}
+          wordsDone={Math.min(itemIdx, itemsCount)}
+          totalWords={itemsCount}
+          wpm={wpm}
+          accuracy={you.accuracy}
+        />
+      ) : null}
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
-        {showLineup ? (
-          <div className="rounded-md border border-border/70 bg-card/60 px-5 py-4 backdrop-blur-sm">
-            <RacePlayerStrip
-              racers={state.racers}
-              totalChars={state.totalChars}
-            />
-          </div>
-        ) : null}
-
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8">
           {racing ? (
             <>
               <BurstWord
@@ -396,10 +383,8 @@ export function BurstRaceSurface() {
               phase={state.phase}
             />
           )}
-        </div>
-
       </div>
-    </>
+    </div>
   );
 }
 

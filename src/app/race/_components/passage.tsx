@@ -7,10 +7,9 @@ import { usePractice } from "../../_components/practice-state";
 import { cn } from "@/lib/utils";
 import { ChallengeLobby } from "./challenge-lobby";
 import { playerColorFor, RACE_MODES } from "./race-data";
-import { RacePlayerStrip } from "./player-strip";
+import { RaceLineupPanel } from "./lineup-panel";
 import { useRace } from "./race-state";
-import { PhaseRow } from "./phase-row";
-import type { Racer } from "./race-types";
+import type { Racer, RacePhase } from "./race-types";
 
 /** Race passage. The actual typing surface IS practice's <Passage>
  *  component — same caret, same per-char colouring, same smooth-line
@@ -19,7 +18,7 @@ import type { Racer } from "./race-types";
  *  phase) and the per-racer progress strip below. No more blurred
  *  overlays; the passage is always cleanly visible. */
 export function RacePassage() {
-  const { state, countdownNumber, onlineSnapshot, onlineSessionToken } = useRace();
+  const { state, countdownNumber } = useRace();
   const { state: practice } = usePractice();
   const { prefs: appearance } = useAppearancePrefs();
   const you = state.racers.find((r) => r.isYou)!;
@@ -77,64 +76,51 @@ export function RacePassage() {
 
   const racing =
     state.phase === "racing" || state.phase === "finished";
-  // Show opponents from matching onward — by the time bots are
-  // entering the lobby the user wants to see who they'll race. Only
-  // hidden during the empty queue phase where there's nothing to look
-  // at except your own row.
+  // Player roster shows from matching onwards. Hidden in queue
+  // (empty room — only the user) and in finished if everyone's
+  // already wrapped (RaceResults takes over visually).
   const showLineup =
     state.phase === "matching" ||
     state.phase === "lobby" ||
     state.phase === "countdown" ||
     racing;
+  const totalOpponents = state.racers.filter((r) => !r.isYou).length;
+  const joinedOpponents = state.racers.filter(
+    (r) => !r.isYou && r.joinedAt != null,
+  ).length;
   return (
-    <>
-      <PhaseRow
-        phase={state.phase}
-        joinedOpponents={
-          state.racers.filter((r) => !r.isYou && r.joinedAt != null).length
-        }
-        totalOpponents={state.racers.filter((r) => !r.isYou).length}
-        racingReadout={
-          racing
-            ? {
-                left: `${wordsDone}/${state.words.length} WORDS`,
-                metrics: [
-                  { label: "WPM", value: String(wpm), accent: true },
-                  { label: "ACC", value: `${acc.toFixed(1)}%` },
-                ],
-              }
-            : undefined
-        }
-        lobbyHint={lobbyHintFor(onlineSnapshot, onlineSessionToken)}
-      />
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+      {showLineup ? (
+        <RaceLineupPanel
+          racers={state.racers}
+          totalChars={state.totalChars}
+          phase={state.phase as RacePhase}
+          modeName={RACE_MODES[state.modeId].name}
+          joinedOpponents={joinedOpponents}
+          totalOpponents={totalOpponents}
+          wordsDone={wordsDone}
+          totalWords={state.words.length}
+          wpm={wpm}
+          accuracy={acc}
+        />
+      ) : null}
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
-        {showLineup ? (
-          <div className="rounded-md border border-border/70 bg-card/60 px-5 py-4 backdrop-blur-sm">
-            <RacePlayerStrip
-              racers={state.racers}
-              totalChars={state.totalChars}
-            />
-          </div>
-        ) : null}
-
-        <div className="min-h-0 flex-1">
-          {racing ? (
-            <Passage wordBackground={wordTints} wordTextColor={wordTextColor} />
-          ) : state.phase === "countdown" ? (
-            <CountdownPanel n={countdownNumber ?? 3} />
-          ) : (
-            <RacePoster
-              modeName={RACE_MODES[state.modeId].name}
-              detail={RACE_MODES[state.modeId].detail}
-              phase={state.phase}
-            />
-          )}
-        </div>
-
-        <ChallengeLobby />
+      <div className="min-h-0 flex-1">
+        {racing ? (
+          <Passage wordBackground={wordTints} wordTextColor={wordTextColor} />
+        ) : state.phase === "countdown" ? (
+          <CountdownPanel n={countdownNumber ?? 3} />
+        ) : (
+          <RacePoster
+            modeName={RACE_MODES[state.modeId].name}
+            detail={RACE_MODES[state.modeId].detail}
+            phase={state.phase}
+          />
+        )}
       </div>
-    </>
+
+      <ChallengeLobby />
+    </div>
   );
 }
 
@@ -235,19 +221,3 @@ function liveAccuracy(
   return Math.round((correct / total) * 1000) / 10;
 }
 
-/** Lobby-phase hint for the top PhaseRow. Matchmaking rooms always
- *  auto-start the countdown a beat after the lobby fills — the
- *  default "Lobby full · countdown imminent" copy holds. Challenge
- *  rooms sit in lobby until the host explicitly hits Start; the
- *  honest copy for the host is "Press Start to begin", and for a
- *  joining player it's "Waiting on the host". `undefined` falls
- *  back to PhaseRow's default. */
-function lobbyHintFor(
-  snapshot: ReturnType<typeof useRace>["onlineSnapshot"],
-  sessionToken: string | null | undefined,
-): string | undefined {
-  if (!snapshot || snapshot.kind !== "challenge") return undefined;
-  const me = snapshot.racers.find((r) => r.id === sessionToken);
-  if (me?.isHost) return "Press Start to begin";
-  return "Waiting on the host to start";
-}

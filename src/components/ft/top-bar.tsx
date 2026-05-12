@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { GITHUB_URL } from "@/lib/version";
 import { useAppVersionLabel } from "@/lib/version-context";
 import { Logo } from "./logo";
 import { MobileNav } from "./mobile-nav";
@@ -83,10 +82,7 @@ export function TopBar({
       {nav && nav.length > 0 ? (
         <nav
           aria-label="Main"
-          className={cn(
-            "ml-2 hidden flex-1 items-baseline gap-5 text-[11px] font-medium uppercase tracking-[0.16em] md:flex lg:gap-7",
-            dark ? "text-ft-warm-2" : "text-muted-foreground",
-          )}
+          className="ml-3 hidden flex-1 items-baseline gap-1 md:flex lg:ml-4"
         >
           {nav.map((item) => {
             const active = isActive(item.href);
@@ -96,20 +92,17 @@ export function TopBar({
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  // Underline is the active marker — sit it tight to
-                  // the text baseline, primary in light, ember in dark.
-                  "relative py-1 outline-none transition-colors",
+                  // Active state is carried by weight + colour — no
+                  // underline, no background pill. Reads as a calm
+                  // editorial nav rather than a highlighted toolbar.
+                  "rounded-sm px-2.5 py-1.5 text-[13px] tracking-tight outline-none transition-colors",
                   active
-                    ? cn(
-                        dark ? "text-ft-paper" : "text-foreground",
-                        "before:absolute before:right-0 before:bottom-0 before:left-0 before:h-[2px]",
-                        dark ? "before:bg-ft-ember" : "before:bg-primary",
-                      )
-                    : cn(
-                        dark
-                          ? "hover:text-ft-paper focus-visible:text-ft-paper"
-                          : "hover:text-foreground focus-visible:text-foreground",
-                      ),
+                    ? dark
+                      ? "font-semibold text-ft-paper"
+                      : "font-semibold text-foreground"
+                    : dark
+                      ? "font-normal text-ft-warm-2 hover:text-ft-paper focus-visible:text-ft-paper"
+                      : "font-normal text-muted-foreground hover:text-foreground focus-visible:text-foreground",
                 )}
               >
                 {item.label}
@@ -121,30 +114,14 @@ export function TopBar({
         <span className="flex-1" />
       )}
 
-      {/* Right cluster — caller actions + open-source badge.
-       *  ml-auto isn't needed because <nav> is flex-1; the
-       *  unconditional gap puts spacing between actions and hamburger. */}
+      {/* Right cluster — caller-supplied actions + the mobile
+       *  hamburger. The OSS link was redundant chrome (the GitHub
+       *  link lives in the footer + about page); dropped to keep
+       *  the bar quieter. */}
       <div className="flex items-center gap-3 lg:gap-4">
         {right ? (
           <div className="hidden items-center gap-2 md:flex">{right}</div>
         ) : null}
-        <a
-          href={GITHUB_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="flinttype on GitHub (opens in new tab)"
-          className={cn(
-            "hidden items-baseline gap-1 text-[10px] uppercase tracking-[0.18em] outline-none transition-colors md:inline-flex",
-            dark
-              ? "text-ft-warm-3 hover:text-ft-paper focus-visible:text-ft-paper"
-              : "text-muted-foreground/80 hover:text-foreground focus-visible:text-foreground",
-          )}
-        >
-          <span>OSS</span>
-          <span aria-hidden className="text-[9px]">
-            ↗
-          </span>
-        </a>
         <MobileNav nav={nav} drawerExtras={drawerExtras} dark={dark} />
       </div>
     </header>

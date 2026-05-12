@@ -130,6 +130,24 @@ export function RaceShell({
   // Burst mode runs offline so the guard stays off for it.
   useLeaveGuard(online != null);
 
+  // Tab is hard-blocked while the race shell is mounted. Practice's
+  // own keydown handler binds Tab to RESTART the test; on the race
+  // surface that would wipe the user's typed progress mid-race or
+  // bounce them back to word zero on the queue surface. Capture-phase
+  // listener so we win the race against InputCapture's bubble-phase
+  // handler.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Tab") {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    window.addEventListener("keydown", handler, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", handler, { capture: true });
+  }, []);
+
   const youName = useYouHandle();
   const words = isBurst ? ([] as readonly string[]) : online?.words ?? [];
   // Subtree key — bumps when the room handle changes (or on mode
