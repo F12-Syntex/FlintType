@@ -2,7 +2,7 @@
 
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { Lock, X } from "lucide-react";
+import { Info, Lock, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { OptionSwitch } from "@/components/ui/option-switch";
@@ -166,48 +166,6 @@ function LengthPicker({
   );
 }
 
-// ─── Toggle ────────────────────────────────────────────────────────
-
-function Toggle({
-  on,
-  onToggle,
-  ariaLabel,
-}: {
-  on: boolean;
-  onToggle: () => void;
-  ariaLabel: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={ariaLabel}
-      onClick={(e) => {
-        onToggle();
-        e.currentTarget.blur();
-      }}
-      className={cn(
-        "inline-flex h-6 w-11 cursor-pointer items-center rounded-full border p-0.5 transition-colors outline-none",
-        "focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
-        on
-          ? "border-primary bg-primary"
-          : "border-muted-foreground/40 bg-muted hover:border-muted-foreground",
-      )}
-    >
-      <span
-        aria-hidden
-        className={cn(
-          "size-4 rounded-full shadow-sm transition-transform",
-          on
-            ? "translate-x-5 bg-primary-foreground"
-            : "translate-x-0 bg-muted-foreground",
-        )}
-      />
-    </button>
-  );
-}
-
 // ─── Full pill UI shared by mobile (expanded) and desktop ───────────
 // Vertical stack on mobile, horizontal flow on md+.
 
@@ -242,10 +200,15 @@ function ModeControls() {
   );
 }
 
-/** Desktop-only Adapt control — a chip showing the current on/off state
- *  that opens a modal containing the live keyboard visualisation and
- *  the user's hand layout editor. We deliberately use a portal-backed
- *  modal rather than a Radix Popover here because:
+/** Desktop-only Adapt control. Two-way pill toggles between
+ *  `practice` (vanilla word list) and `adapt` (algorithm-biased
+ *  word list). The Info icon next to the pill opens the same
+ *  portal-backed modal as before, hosting the explainer copy and
+ *  the live hand-layout editor — that's the "change the layout"
+ *  affordance, decoupled from the on/off decision.
+ *
+ *  We deliberately use a portal-backed modal rather than a Radix
+ *  Popover for the editor because:
  *   - Popover positions content with a CSS transform, which becomes
  *     the containing block for any descendant `position: fixed`
  *     element (the drag avatar) — leading to the avatar being
@@ -259,46 +222,58 @@ function AdaptControl() {
   const { state, toggleAdapt } = usePractice();
   // Adaptive practice is account-gated — see practice-state.tsx for the
   // matching effective-state guard. Treat the viewer as anonymous while
-  // Clerk is still loading so the chip never momentarily flips between
+  // Clerk is still loading so the pill never momentarily flips between
   // "locked" and "off" on first paint.
   const { isSignedIn, isLoaded: userLoaded } = useUser();
   const requiresSignIn = !userLoaded || isSignedIn !== true;
   const [open, setOpen] = useState(false);
+  const adaptOn = state.adapt && !requiresSignIn;
+  const value: "practice" | "adapt" = adaptOn ? "adapt" : "practice";
   return (
     <Field label="adapt">
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={cn(
-          "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-muted px-3 text-xs font-medium transition-colors hover:bg-muted/70",
-          state.adapt && !requiresSignIn
-            ? "text-foreground"
-            : "text-muted-foreground",
-        )}
-        aria-label={
-          requiresSignIn
-            ? "Adaptive practice: locked — sign in to enable"
-            : `Adaptive practice: ${state.adapt ? "on" : "off"} — open editor`
-        }
-      >
-        {requiresSignIn ? (
-          <Lock size={11} aria-hidden className="text-muted-foreground/70" />
-        ) : (
-          <span
-            aria-hidden
-            className={cn(
-              "size-1.5 rounded-full",
-              state.adapt ? "bg-primary" : "bg-muted-foreground/40",
-            )}
+      <div className="flex items-center gap-1.5">
+        <OptionSwitch
+          name="adapt"
+          size="small"
+          value={value}
+          onValueChange={(v) => {
+            // Locked viewers can flip the chip *into* adapt — we
+            // pop the modal so they see the sign-in CTA, but the
+            // store stays off until they actually authenticate.
+            if (v === "adapt" && requiresSignIn) {
+              setOpen(true);
+              return;
+            }
+            if (v === "adapt" && !state.adapt) toggleAdapt();
+            if (v === "practice" && state.adapt) toggleAdapt();
+          }}
+        >
+          <OptionSwitch.Control label="practice" value="practice" />
+          <OptionSwitch.Control
+            value="adapt"
+            label={
+              <span className="inline-flex items-center gap-1">
+                adapt
+                {requiresSignIn ? (
+                  <Lock size={10} aria-hidden className="opacity-70" />
+                ) : null}
+              </span>
+            }
           />
-        )}
-        {requiresSignIn ? "off" : state.adapt ? "on" : "off"}
-      </button>
+        </OptionSwitch>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Adaptive practice details and hand layout"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          <Info size={13} aria-hidden />
+        </button>
+      </div>
       <AdaptModal
         open={open}
         onClose={() => setOpen(false)}
-        adaptOn={state.adapt && !requiresSignIn}
-        onToggleAdapt={toggleAdapt}
+        adaptOn={adaptOn}
         requiresSignIn={requiresSignIn}
       />
     </Field>
@@ -314,16 +289,18 @@ function AdaptModal({
   open,
   onClose,
   adaptOn,
-  onToggleAdapt,
   requiresSignIn,
 }: {
   open: boolean;
   onClose: () => void;
+  /** Whether the user currently has adapt selected. Surfaces a calm
+   *  status line in the header so the modal communicates state
+   *  alongside the explainer — the actual flip happens via the
+   *  pill toggle in the mode-bar, not in here. */
   adaptOn: boolean;
-  onToggleAdapt: () => void;
   /** When true the viewer is anonymous and adaptive practice is locked.
-   *  The toggle in the header is replaced by a sign-in CTA and the body
-   *  shows a single explainer line above the algorithm copy. */
+   *  The header replaces the status line with a sign-in CTA and the
+   *  body shows a single explainer line above the algorithm copy. */
   requiresSignIn: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
@@ -381,7 +358,23 @@ function AdaptModal({
                 <Lock size={12} aria-hidden /> Sign in to enable
               </Link>
             ) : (
-              <Toggle on={adaptOn} onToggle={onToggleAdapt} ariaLabel="Adaptive practice" />
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em]",
+                  adaptOn
+                    ? "border-primary/40 text-primary"
+                    : "border-border text-muted-foreground",
+                )}
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    "size-1.5 rounded-full",
+                    adaptOn ? "bg-primary" : "bg-muted-foreground/40",
+                  )}
+                />
+                {adaptOn ? "adapt on" : "practice mode"}
+              </span>
             )}
             <button
               type="button"
