@@ -1,42 +1,84 @@
 import { EN_COMMON_1000 } from "@/data/en-common-1000";
 
-/** Race configuration. Today only 1V3 ships fully wired; other modes
- *  show as visual chips in the sidebar but aren't selectable. The
- *  shape is in place so adding 1V1 / sprint later is a data change. */
-export type RaceMode = "1v3";
+/** Race configuration. Each mode pairs a passage length with a bot
+ *  line-up — same single-player loop, different shape. */
+export type RaceModeId = "1v3" | "1v1" | "sprint" | "endurance";
 
-export const RACE_WORDS_1V3 = 50;
-export const COUNTDOWN_SECONDS = 3;
+export type RaceMode = {
+  id: RaceModeId;
+  name: string;
+  /** Short caption shown under the mode chip in the sidebar. */
+  detail: string;
+  /** Number of words in the race passage. */
+  wordCount: number;
+  /** Bot ids in display order. */
+  botIds: readonly BotId[];
+};
+
+export const RACE_MODES: Record<RaceModeId, RaceMode> = {
+  "1v3": {
+    id: "1v3",
+    name: "1V3",
+    detail: "4 racers · 50 words",
+    wordCount: 50,
+    botIds: ["damiel", "selan", "kassia"],
+  },
+  "1v1": {
+    id: "1v1",
+    name: "1V1",
+    detail: "head-to-head · 25 words",
+    wordCount: 25,
+    botIds: ["selan"],
+  },
+  sprint: {
+    id: "sprint",
+    name: "SPRINT",
+    detail: "fast-pair · 15 words",
+    wordCount: 15,
+    botIds: ["damiel", "selan"],
+  },
+  endurance: {
+    id: "endurance",
+    name: "ENDURANCE",
+    detail: "marathon · 100 words",
+    wordCount: 100,
+    botIds: ["selan", "kassia"],
+  },
+};
+
+export const RACE_MODE_ORDER: readonly RaceModeId[] = [
+  "1v3",
+  "1v1",
+  "sprint",
+  "endurance",
+];
+
 /** Bot tick interval. 50ms = 20 ticks/sec, fine-grained enough to
  *  render smooth bot motion without burning the JS thread. */
 export const BOT_TICK_MS = 50;
-/** Trace sample interval. One point per second per racer. */
+/** Trace sample interval used when the race builds the post-run
+ *  summary chart. We sample once per second so the curve carries
+ *  shape without bloating the snapshot array. */
 export const TRACE_SAMPLE_MS = 1000;
-/** Rolling window over which your live WPM is averaged. */
-export const WPM_WINDOW_MS = 5000;
+export const COUNTDOWN_SECONDS = 3;
 
 /** Deterministic bot definition. Bots are local opponents — no
  *  network, no server-side state. Each bot has a steady-state target
- *  WPM, a per-tick noise band so the trace line looks organic
- *  (instead of arrow-straight), and a short ramp-up at the start so
- *  nobody starts at full speed the instant GO fires. */
+ *  WPM, a per-tick noise band so the curve reads organic, and a
+ *  short ramp-up at the start so nobody hits full speed instantly. */
+export type BotId = "damiel" | "selan" | "kassia";
 export type BotProfile = {
-  id: string;
+  id: BotId;
   name: string;
   flag: string;
   badge: string;
-  /** Steady-state target words per minute. */
   targetWpm: number;
-  /** Symmetric noise band: instantaneous wpm jitters in
-   *  [target - noise, target + noise] each tick. */
   noiseWpm: number;
-  /** Seconds the bot spends accelerating from 50% target to full
-   *  speed at race start. Stops bots reading like robots. */
   rampSeconds: number;
 };
 
-export const BOTS_1V3: readonly BotProfile[] = [
-  {
+export const BOTS: Record<BotId, BotProfile> = {
+  damiel: {
     id: "damiel",
     name: "@damiel",
     flag: "🇸🇪",
@@ -45,7 +87,7 @@ export const BOTS_1V3: readonly BotProfile[] = [
     noiseWpm: 14,
     rampSeconds: 3,
   },
-  {
+  selan: {
     id: "selan",
     name: "@selan",
     flag: "🇨🇦",
@@ -54,7 +96,7 @@ export const BOTS_1V3: readonly BotProfile[] = [
     noiseWpm: 9,
     rampSeconds: 4,
   },
-  {
+  kassia: {
     id: "kassia",
     name: "@kassia",
     flag: "🇩🇪",
@@ -63,12 +105,8 @@ export const BOTS_1V3: readonly BotProfile[] = [
     noiseWpm: 6,
     rampSeconds: 5,
   },
-] as const;
+};
 
-/** Deterministic mulberry32 PRNG — small, fast, and identical on
- *  server and client. Seeded so SSR's rendered passage matches the
- *  client hydration pass, which avoids the words flashing through
- *  one order before settling on another. */
 function mulberry32(seed: number): () => number {
   let s = seed >>> 0;
   return () => {
@@ -80,10 +118,10 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-/** Pull `count` words from the top-1000 list with a seeded RNG. We
- *  draw from positions 0..299 (the very-common slice) so the
- *  passage feels like fluent prose — racing on rare words turns
- *  every race into a vocab test. */
+/** Race passage. Drawn from the top-300 slice of the common-1000 list
+ *  so the words feel like fluent prose without dropping into rare
+ *  vocab. Seeded so two consumers (e.g. SSR + client) line up on the
+ *  same passage. */
 export function generateRacePassage(count: number, seed: number): string[] {
   const rng = mulberry32(seed);
   const pool = EN_COMMON_1000.slice(0, 300);
@@ -98,18 +136,9 @@ export function generateRacePassage(count: number, seed: number): string[] {
   return out;
 }
 
-/** Cumulative WPM since race start. Used for the human racer's lane
- *  display + the passage readout — bots use `instantBotWpm` instead so
- *  their lane jitters around the target value. */
-export function cumulativeWpm(correctChars: number, elapsedMs: number): number {
-  if (elapsedMs < 250) return 0;
-  return (correctChars / 5) * (60_000 / elapsedMs);
-}
-
 /** A bot's instantaneous WPM at time `elapsedMs` into the race —
- *  ramp + noise. Driven by a per-bot RNG seeded by raceSeed + bot
- *  id so two runs with the same race seed reproduce identical bots
- *  (helpful for replays / tests / "ghost" feature later). */
+ *  ramp + noise. Driven by a per-bot RNG keyed by raceSeed + id, so
+ *  two runs with the same seed reproduce identical bot motion. */
 export function instantBotWpm(
   bot: BotProfile,
   elapsedMs: number,
@@ -120,11 +149,15 @@ export function instantBotWpm(
       ? 1
       : Math.min(1, 0.5 + (elapsedMs / 1000 / bot.rampSeconds) * 0.5);
   const base = bot.targetWpm * ramp;
-  // Hash bot id into a stable seed so two bots in the same race
-  // don't share a jitter pattern.
   let h = raceSeed | 0;
   for (let i = 0; i < bot.id.length; i++) h = (h * 31 + bot.id.charCodeAt(i)) | 0;
   const rng = mulberry32(h ^ Math.floor(elapsedMs / 100));
   const jitter = (rng() * 2 - 1) * bot.noiseWpm;
   return Math.max(20, base + jitter);
+}
+
+/** Map a racer's char count to a `[0..1]` race progress. */
+export function progressOf(correctChars: number, totalChars: number): number {
+  if (totalChars <= 0) return 0;
+  return Math.max(0, Math.min(1, correctChars / totalChars));
 }

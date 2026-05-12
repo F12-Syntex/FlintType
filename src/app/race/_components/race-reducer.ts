@@ -1,22 +1,22 @@
 import {
-  BOTS_1V3,
+  BOTS,
   BOT_TICK_MS,
-  cumulativeWpm,
   generateRacePassage,
   instantBotWpm,
-  RACE_WORDS_1V3,
+  RACE_MODES,
+  type BotId,
+  type RaceModeId,
 } from "./race-data";
 import type {
   Action,
   FeedEvent,
   Racer,
   RaceState,
-  TraceSample,
 } from "./race-types";
 
-const FEED_LIMIT = 12;
+const FEED_LIMIT = 14;
 
-function buildRacers(): Racer[] {
+function buildRacers(botIds: readonly BotId[]): Racer[] {
   const you: Racer = {
     id: "you",
     name: "@you",
@@ -25,76 +25,63 @@ function buildRacers(): Racer[] {
     isYou: true,
     bot: null,
     correctChars: 0,
-    errorChars: 0,
     wpm: 0,
     finishedAt: null,
     place: null,
     charProgress: 0,
   };
-  const bots: Racer[] = BOTS_1V3.map((b) => ({
-    id: b.id,
-    name: b.name,
-    flag: b.flag,
-    badge: b.badge,
-    isYou: false,
-    bot: b,
-    correctChars: 0,
-    errorChars: 0,
-    wpm: 0,
-    finishedAt: null,
-    place: null,
-    charProgress: 0,
-  }));
+  const bots: Racer[] = botIds.map((id) => {
+    const b = BOTS[id];
+    return {
+      id: b.id,
+      name: b.name,
+      flag: b.flag,
+      badge: b.badge,
+      isYou: false,
+      bot: b,
+      correctChars: 0,
+      wpm: 0,
+      finishedAt: null,
+      place: null,
+      charProgress: 0,
+    };
+  });
   return [you, ...bots];
 }
 
-function buildPassageState(seed: number): {
-  words: string[];
-  charsBeforeWord: number[];
-  totalChars: number;
-} {
-  const words = generateRacePassage(RACE_WORDS_1V3, seed);
-  const charsBeforeWord: number[] = [];
-  let acc = 0;
-  for (const w of words) {
-    charsBeforeWord.push(acc);
-    acc += w.length + 1; // +1 for the trailing space committed at word end
-  }
-  const totalChars = acc - 1; // strip the +1 we added for the final word
-  return { words, charsBeforeWord, totalChars };
+/** Total chars for a passage = sum(word.length) + (words-1) spaces. */
+function totalCharsOf(words: readonly string[]): number {
+  if (words.length === 0) return 0;
+  let n = words.length - 1; // spaces between words
+  for (const w of words) n += w.length;
+  return n;
 }
 
-export function freshState(seed: number, now: number): RaceState {
-  const { words, charsBeforeWord, totalChars } = buildPassageState(seed);
+export function freshState(
+  modeId: RaceModeId,
+  seed: number,
+  now: number,
+): RaceState {
+  const mode = RACE_MODES[modeId];
+  const words = generateRacePassage(mode.wordCount, seed);
   return {
+    modeId,
     phase: "lobby",
     raceSeed: seed,
     words,
-    charsBeforeWord,
-    totalChars,
+    totalChars: totalCharsOf(words),
     countdownStartedAt: null,
     raceStartedAt: null,
     raceEndedAt: null,
     nowMs: now,
-    racers: buildRacers(),
+    racers: buildRacers(mode.botIds),
     feed: [
-      { t: 0, who: "race", text: "lobby · 4 racers ready", accent: false },
+      { t: 0, who: "race", text: `${mode.name} · lobby ready`, accent: false },
     ],
     trace: [],
-    typedInWord: "",
     lastLeaderId: null,
     milestonesByRacer: {},
   };
-}
-
-export function wordIdxFromChars(
-  charsBeforeWord: readonly number[],
-  correctChars: number,
-): number {
-  for (let i = charsBeforeWord.length - 1; i >= 0; i--) {
-    if (charsBeforeWord[i]! <= correctChars) return i;
-  }
-  return 0;
 }
 
 function elapsedSec(s: RaceState): number {
@@ -181,8 +168,6 @@ function recomputeLeader(s: RaceState): RaceState {
   }
   if (!leader) return s;
   if (leader.id === s.lastLeaderId) return s;
-  // Skip the very first leader emission — every racer is tied on 0
-  // chars and "you" wins ties, which isn't news.
   if (s.lastLeaderId == null && leader.correctChars === 0) {
     return { ...s, lastLeaderId: leader.id };
   }
@@ -204,9 +189,18 @@ function applyPipeline(s: RaceState): RaceState {
 
 export function reducer(s: RaceState, a: Action): RaceState {
   switch (a.type) {
+    case "SET_MODE":
+      return freshState(a.modeId, a.seed, a.now);
+    case "RESTART":
+      return freshState(s.modeId, a.seed, a.now);
     case "START_COUNTDOWN": {
       if (s.phase !== "lobby") return s;
-      return { ...s, phase: "countdown", countdownStartedAt: a.now, nowMs: a.now };
+      return {
+        ...s,
+        phase: "countdown",
+        countdownStartedAt: a.now,
+        nowMs: a.now,
+      };
     }
     case "START_RACE": {
       if (s.phase !== "countdown") return s;
@@ -226,16 +220,20 @@ export function reducer(s: RaceState, a: Action): RaceState {
       const dtSec = BOT_TICK_MS / 1000;
       const racers = next.racers.map((r) => {
         if (r.finishedAt != null) return r;
-        // Human: cumulative WPM keeps the lane in sync with the
-        // passage readout. Bots: instantaneous WPM + jitter so the
-        // trace line looks organic.
-        if (r.bot == null) {
+        if (r.isYou) {
+          // Don't touch finishedAt here — rankAndMaybeFinish owns
+          // the finish-line crossing for every racer uniformly so
+          // place numbering and feed events stay correct. The
+          // youFinished flag is informational; it'll naturally
+          // line up with correctChars >= totalChars at the same tick.
           return {
             ...r,
-            wpm: Math.round(cumulativeWpm(r.correctChars, elapsedMs)),
+            correctChars: Math.min(s.totalChars, a.youCorrectChars),
+            wpm: a.youWpm,
           };
         }
-        const wpm = instantBotWpm(r.bot, elapsedMs, s.raceSeed);
+        const bot = r.bot!;
+        const wpm = instantBotWpm(bot, elapsedMs, s.raceSeed);
         const charsThisTick = (wpm / 60) * 5 * dtSec;
         const totalProg = r.charProgress + charsThisTick;
         const whole = Math.floor(totalProg);
@@ -248,67 +246,5 @@ export function reducer(s: RaceState, a: Action): RaceState {
       });
       return applyPipeline({ ...next, racers });
     }
-    case "TYPE_CHAR": {
-      if (s.phase !== "racing") return s;
-      const youIdx = s.racers.findIndex((r) => r.isYou);
-      const you = s.racers[youIdx]!;
-      if (you.finishedAt != null) return s;
-      const wordIdx = wordIdxFromChars(s.charsBeforeWord, you.correctChars);
-      if (wordIdx >= s.words.length) return s;
-      const word = s.words[wordIdx]!;
-      const expected = word[s.typedInWord.length];
-      if (expected !== a.ch) {
-        const racers = s.racers.map((r, i) =>
-          i === youIdx ? { ...r, errorChars: r.errorChars + 1 } : r,
-        );
-        return { ...s, racers };
-      }
-      const racers = s.racers.map((r, i) =>
-        i === youIdx ? { ...r, correctChars: r.correctChars + 1 } : r,
-      );
-      return applyPipeline({
-        ...s,
-        racers,
-        typedInWord: s.typedInWord + a.ch,
-      });
-    }
-    case "BACKSPACE": {
-      if (s.phase !== "racing") return s;
-      const youIdx = s.racers.findIndex((r) => r.isYou);
-      const you = s.racers[youIdx]!;
-      if (you.finishedAt != null || s.typedInWord.length === 0) return s;
-      const racers = s.racers.map((r, i) =>
-        i === youIdx
-          ? { ...r, correctChars: Math.max(0, r.correctChars - 1) }
-          : r,
-      );
-      return { ...s, racers, typedInWord: s.typedInWord.slice(0, -1) };
-    }
-    case "SPACE": {
-      if (s.phase !== "racing") return s;
-      const youIdx = s.racers.findIndex((r) => r.isYou);
-      const you = s.racers[youIdx]!;
-      if (you.finishedAt != null) return s;
-      const wordIdx = wordIdxFromChars(s.charsBeforeWord, you.correctChars);
-      if (wordIdx >= s.words.length) return s;
-      const word = s.words[wordIdx]!;
-      if (s.typedInWord !== word) {
-        const racers = s.racers.map((r, i) =>
-          i === youIdx ? { ...r, errorChars: r.errorChars + 1 } : r,
-        );
-        return { ...s, racers };
-      }
-      // Commit the trailing space unless this is the last word.
-      const isLast = wordIdx === s.words.length - 1;
-      const racers = s.racers.map((r, i) =>
-        i === youIdx && !isLast
-          ? { ...r, correctChars: r.correctChars + 1 }
-          : r,
-      );
-      return applyPipeline({ ...s, racers, typedInWord: "" });
-    }
-    case "RESTART":
-      return freshState(a.seed, a.now);
   }
 }
-

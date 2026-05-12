@@ -1,27 +1,29 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import {
+  progressOf,
+  RACE_MODES,
+  RACE_MODE_ORDER,
+  type RaceModeId,
+} from "./race-data";
 import { useRace } from "./race-state";
-import { wordIdxFromChars } from "./race-reducer";
 
-/** Right-rail sidebar. Three sections, all live:
- *    RACE FEED   — milestones, leader changes, finishes (state.feed)
- *    YOUR RUN    — your current placement, wpm, accuracy, completion
- *    RACE MODES  — visual chip stack; 1V3 is the only wired mode for
- *                  now, the rest sit dim with "soon". */
+/** Right-rail sidebar. Three live sections:
+ *    RACE FEED   — milestones, leader changes, finishes
+ *    YOUR RUN    — your placement, wpm, accuracy, completion
+ *    RACE MODES  — every mode is selectable; clicking swaps the
+ *                  passage + bot lineup and resets to lobby. */
 export function RaceSidebar() {
-  const { state, yourWpm, yourAccuracy, elapsedSeconds } = useRace();
+  const { state, modeId, setModeId, elapsedSeconds } = useRace();
   const racers = [...state.racers].sort(
     (a, b) => b.correctChars - a.correctChars,
   );
   const you = state.racers.find((r) => r.isYou)!;
   const yourLivePlace =
     you.place ?? racers.findIndex((r) => r.id === "you") + 1;
-  const wordsTotal = state.words.length;
-  const pct =
-    state.totalChars === 0
-      ? 0
-      : Math.round((you.correctChars / state.totalChars) * 100);
+  const pct = Math.round(progressOf(you.correctChars, state.totalChars) * 100);
+  const allowSwitch = state.phase === "lobby" || state.phase === "finished";
 
   return (
     <aside className="flex flex-col border-t border-border lg:border-t-0 lg:border-l">
@@ -63,24 +65,26 @@ export function RaceSidebar() {
             value={`#${yourLivePlace} of ${state.racers.length}`}
             accent={yourLivePlace === 1}
           />
-          <Row label="wpm" value={String(yourWpm)} accent />
-          <Row label="accuracy" value={`${yourAccuracy.toFixed(1)}%`} />
-          <Row
-            label="words done"
-            value={`${wordsDoneCount(you.correctChars, state.totalChars, state.charsBeforeWord, wordsTotal)}/${wordsTotal}`}
-          />
+          <Row label="wpm" value={String(you.wpm)} accent />
           <Row label="progress" value={`${pct}%`} />
           <Row label="elapsed" value={formatT(elapsedSeconds)} />
         </div>
       </Section>
 
-      <Section title="RACE MODES">
+      <Section
+        title="RACE MODES"
+        rightHint={allowSwitch ? "" : "FINISH TO SWAP"}
+      >
         <div className="flex flex-col gap-2">
-          <ModeChip name="1V3" detail="4 racers · 50 words" active />
-          <ModeChip name="1V1" detail="head-to-head — soon" />
-          <ModeChip name="BURST" detail="one word, ten times — soon" />
-          <ModeChip name="SPRINT" detail="15-second blitz — soon" />
-          <ModeChip name="ENDURANCE" detail="500 words — soon" />
+          {RACE_MODE_ORDER.map((id) => (
+            <ModeChip
+              key={id}
+              id={id}
+              active={id === modeId}
+              disabled={!allowSwitch}
+              onSelect={() => setModeId(id)}
+            />
+          ))}
         </div>
       </Section>
     </aside>
@@ -138,35 +142,51 @@ function Row({
 }
 
 function ModeChip({
-  name,
-  detail,
-  active = false,
+  id,
+  active,
+  disabled,
+  onSelect,
 }: {
-  name: string;
-  detail: string;
-  active?: boolean;
+  id: RaceModeId;
+  active: boolean;
+  disabled: boolean;
+  onSelect: () => void;
 }) {
+  const mode = RACE_MODES[id];
   return (
-    <div
+    <button
+      type="button"
+      onClick={onSelect}
+      disabled={disabled}
+      aria-pressed={active}
       className={cn(
-        "flex justify-between gap-3 rounded-sm border px-2 py-1.5",
+        "flex w-full items-center justify-between gap-3 rounded-md border px-2.5 py-2 text-left transition-colors",
+        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40",
         active
           ? "border-primary/50 bg-primary/[0.06]"
-          : "border-border opacity-70",
+          : "border-border hover:bg-accent/40",
+        disabled && !active && "cursor-not-allowed opacity-50 hover:bg-transparent",
       )}
     >
       <div>
         <div
           className={cn(
-            "text-[11px] font-semibold",
+            "text-[11px] font-semibold uppercase tracking-[0.16em]",
             active ? "text-primary" : "text-foreground",
           )}
         >
-          {name}
+          {mode.name}
         </div>
-        <div className="mt-0.5 text-[10px] text-muted-foreground">{detail}</div>
+        <div className="mt-0.5 text-[10px] text-muted-foreground">
+          {mode.detail}
+        </div>
       </div>
-    </div>
+      {active ? (
+        <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-primary">
+          active
+        </span>
+      ) : null}
+    </button>
   );
 }
 
@@ -174,14 +194,4 @@ function formatT(sec: number): string {
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);
   return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-function wordsDoneCount(
-  correctChars: number,
-  totalChars: number,
-  charsBefore: readonly number[],
-  wordsTotal: number,
-): number {
-  if (totalChars > 0 && correctChars >= totalChars) return wordsTotal;
-  return wordIdxFromChars(charsBefore, correctChars);
 }

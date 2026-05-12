@@ -1,20 +1,21 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { RACE_MODES } from "./race-data";
 import { useRace } from "./race-state";
 
-/** Compact control strip rendered at the top of the race surface,
- *  right below the AppChrome top bar. Owns the elapsed clock, the
- *  start / restart CTA, and the results overlay trigger.
- *
- *  Three visible states:
- *    lobby      — "Start race" CTA + tagline
- *    countdown  — small "Starting..." pill (the countdown number
- *                 itself paints over the passage)
+/** Compact control strip at the top of the race surface. Owns the
+ *  elapsed clock, the start / restart CTA, and the mode-specific
+ *  tagline that swaps when the user picks a different race mode.
+ *  Four visible states:
+ *    lobby      — "Start race" CTA + mode tagline
+ *    countdown  — "● STARTING" pill; the big countdown number paints
+ *                 over the passage itself
  *    racing     — "● RACE LIVE · M:SS ELAPSED" + abandon link
  *    finished   — placement summary + "Race again" CTA */
 export function RaceControls() {
-  const { state, startCountdown, restart, elapsedSeconds } = useRace();
+  const { state, modeId, startCountdown, restart, elapsedSeconds } = useRace();
+  const mode = RACE_MODES[modeId];
   const you = state.racers.find((r) => r.isYou)!;
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3.5 sm:px-14">
@@ -27,7 +28,7 @@ export function RaceControls() {
         />
         <span className="text-[11px] tracking-wide text-muted-foreground">
           {state.phase === "lobby"
-            ? "1v3 ranked race · 50 words"
+            ? `${mode.name} · ${mode.detail}`
             : state.phase === "countdown"
               ? "type the moment the count hits GO"
               : state.phase === "finished"

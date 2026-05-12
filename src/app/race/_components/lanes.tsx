@@ -1,21 +1,26 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { progressOf } from "./race-data";
 import { useRace } from "./race-state";
 import type { Racer } from "./race-types";
 
-/** Leaderboard strip across the top of the race surface. One <Lane>
- *  per racer; the human's bar paints primary, bots paint the muted
- *  foreground so only your row carries the brand spark. The position
- *  glyph leads with primary when the racer is 1st. */
+/** Leaderboard strip across the top of the race surface. Sorts by
+ *  progress while racing and by final place when finished. Only the
+ *  human's bar carries primary; bots stay neutral so the brand spark
+ *  remains the user's anchor. */
 export function RaceLanes() {
   const { state } = useRace();
   const racers = sortRacers(state.racers, state.phase);
-  const totalChars = Math.max(1, state.totalChars);
   return (
     <div className="flex flex-col gap-3">
       {racers.map((r, i) => (
-        <Lane key={r.id} racer={r} pos={i + 1} totalChars={totalChars} />
+        <Lane
+          key={r.id}
+          racer={r}
+          pos={i + 1}
+          totalChars={state.totalChars}
+        />
       ))}
     </div>
   );
@@ -30,7 +35,7 @@ function Lane({
   pos: number;
   totalChars: number;
 }) {
-  const prog = Math.min(1, racer.correctChars / totalChars);
+  const prog = progressOf(racer.correctChars, totalChars);
   const status = racer.place != null ? `PLACE ${racer.place}` : racer.badge;
   return (
     <div className="grid grid-cols-[28px_1fr_auto] items-center gap-3 sm:grid-cols-[36px_240px_1fr_90px] sm:gap-3.5">

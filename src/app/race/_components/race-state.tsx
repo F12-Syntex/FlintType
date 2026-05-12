@@ -2,7 +2,6 @@
 
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -10,29 +9,26 @@ import {
   useRef,
   type ReactNode,
 } from "react";
+import { calcWpmAndRaw, countChars } from "@/lib/wpm";
+import { usePractice } from "../../_components/practice-state";
 import {
   BOT_TICK_MS,
   COUNTDOWN_SECONDS,
-  cumulativeWpm,
   instantBotWpm,
   TRACE_SAMPLE_MS,
+  type RaceModeId,
 } from "./race-data";
-import { freshState, reducer, wordIdxFromChars } from "./race-reducer";
-import type { Action, RaceState, TraceSample } from "./race-types";
+import { freshState, reducer } from "./race-reducer";
+import type { Action, RaceState } from "./race-types";
 
 export type RaceCtx = {
   state: RaceState;
+  modeId: RaceModeId;
+  setModeId: (modeId: RaceModeId) => void;
   startCountdown: () => void;
   restart: () => void;
   dispatch: React.Dispatch<Action>;
-  /** Per-racer cursor — wordIdx + charIdx — derived once per render
-   *  so the lanes / passage don't recompute independently. */
-  cursors: { wordIdx: number; charIdx: number }[];
-  /** Your live accuracy percent. */
-  yourAccuracy: number;
-  /** Your live WPM, computed cumulatively since GO. */
-  yourWpm: number;
-  /** Countdown integer (3..2..1..0). Null outside the countdown phase. */
+  /** Countdown integer (3..2..1..0). Null outside countdown. */
   countdownNumber: number | null;
   /** Elapsed seconds since GO. Zero in lobby / countdown. */
   elapsedSeconds: number;
@@ -40,23 +36,85 @@ export type RaceCtx = {
 
 const Ctx = createContext<RaceCtx | null>(null);
 
-export function RaceProvider({ children }: { children: ReactNode }) {
-  // Stable initial seed for SSR so the server's empty render doesn't
-  // disagree with the client's hydration pass. The first useEffect
-  // below re-seeds against the wall clock once mounted.
+/** Reads the user's typing snapshot from PracticeContext (mounted by
+ *  the parent shell). The reducer never reaches across into
+ *  PracticeContext directly — the bot tick gets a fresh snapshot
+ *  through TICK args so the reducer stays pure.
+ *
+ *  We deliberately drive WPM off race-clock time (raceStartedAt →
+ *  raceNowMs) rather than practice's internal startTime so the user
+ *  and the bots share the same clock. Without this they diverge: a
+ *  user who pauses for 2s after GO would otherwise show a higher WPM
+ *  than the bot they're trailing. `correctChars` includes the spaces
+ *  between completed words so the lane progress bars step uniformly. */
+function useYouSnapshot(raceStartedAt: number | null, raceNowMs: number) {
+  const { state } = usePractice();
+  return useMemo(() => {
+    const counts = countChars(state.typed, state.words, true);
+    const correctChars = counts.allCorrectChars + counts.correctSpaces;
+    const elapsedMs =
+      raceStartedAt != null ? Math.max(0, raceNowMs - raceStartedAt) : 0;
+    const wpm =
+      elapsedMs > 250
+        ? calcWpmAndRaw(state.typed, state.words, elapsedMs, true).wpm
+        : 0;
+    return {
+      correctChars,
+      wpm: Math.max(0, Math.round(wpm)),
+      finished: state.phase === "done",
+    };
+  }, [state.typed, state.words, state.phase, raceStartedAt, raceNowMs]);
+}
+
+/** Mounted inside the parent shell's PracticeProvider + InputCapture
+ *  tree. Owns the race phase machine, bot simulation, feed events
+ *  and trace history. The shell controls mode/seed (lockedWords on
+ *  the practice provider come from the same seed), so this provider
+ *  just receives modeId + the callbacks the UI needs. The whole
+ *  subtree is keyed in the shell so a mode change or restart resets
+ *  both practice and race state in lockstep. */
+export function RaceProvider({
+  modeId,
+  raceSeed,
+  setModeId,
+  restartShell,
+  children,
+}: {
+  modeId: RaceModeId;
+  raceSeed: number;
+  setModeId: (next: RaceModeId) => void;
+  restartShell: () => void;
+  children: ReactNode;
+}) {
   const [state, dispatch] = useReducer(reducer, undefined, () =>
-    freshState(1, 0),
+    freshState(modeId, raceSeed, Date.now()),
   );
 
-  const didMount = useRef(false);
-  useEffect(() => {
-    if (didMount.current) return;
-    didMount.current = true;
-    dispatch({ type: "RESTART", now: Date.now(), seed: Date.now() | 0 });
-  }, []);
+  const you = useYouSnapshot(state.raceStartedAt, state.nowMs);
+  const youRef = useRef(you);
+  youRef.current = you;
 
-  // One interval covers countdown + racing. Cheap, since BOT_TICK_MS
-  // is short enough (50ms) that we don't perceive countdown lag.
+  // Block printable typing during lobby + countdown so an over-eager
+  // early keystroke doesn't bleed into practice state before GO. We
+  // intercept at the capture phase so the InputCapture's onKeyDown
+  // never sees the event. Letting non-printable keys through keeps
+  // OS shortcuts (cmd-tab, ctrl-r, etc.) working in the lobby.
+  useEffect(() => {
+    if (state.phase === "racing") return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key.length > 1 && e.key !== "Backspace" && e.key !== " ") return;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    window.addEventListener("keydown", handler, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", handler, { capture: true });
+  }, [state.phase]);
+
+  // Countdown + race tick. One interval drives both phases — the
+  // countdown number falls out of state.countdownStartedAt and
+  // state.nowMs, refreshed on every TICK.
   useEffect(() => {
     if (state.phase !== "countdown" && state.phase !== "racing") return;
     const id = setInterval(() => {
@@ -69,14 +127,21 @@ export function RaceProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "START_RACE", now });
         return;
       }
-      dispatch({ type: "TICK", now });
+      const y = youRef.current;
+      dispatch({
+        type: "TICK",
+        now,
+        youCorrectChars: y.correctChars,
+        youWpm: y.wpm,
+        youFinished: y.finished,
+      });
     }, BOT_TICK_MS);
     return () => clearInterval(id);
   }, [state.phase, state.countdownStartedAt]);
 
-  // Per-second trace sampler. We send the sample through the
-  // reducer so the trace history is in state (not in a ref) — the
-  // SVG `<RaceTrace>` reads state.trace directly.
+  // Once-per-second trace sampler. Stored in state but only drawn
+  // in the post-race results panel — no live curve to distract from
+  // typing during the run.
   const stateRef = useRef(state);
   stateRef.current = state;
   useEffect(() => {
@@ -88,8 +153,8 @@ export function RaceProvider({ children }: { children: ReactNode }) {
       const wpmByRacer: Record<string, number> = {};
       for (const r of s.racers) {
         if (r.finishedAt != null) {
-          const lastSample = s.trace[s.trace.length - 1];
-          wpmByRacer[r.id] = lastSample?.wpmByRacer[r.id] ?? r.wpm;
+          const last = s.trace[s.trace.length - 1];
+          wpmByRacer[r.id] = last?.wpmByRacer[r.id] ?? r.wpm;
           continue;
         }
         if (r.bot) {
@@ -97,35 +162,23 @@ export function RaceProvider({ children }: { children: ReactNode }) {
             instantBotWpm(r.bot, elapsedMs, s.raceSeed),
           );
         } else {
-          wpmByRacer[r.id] = Math.round(cumulativeWpm(r.correctChars, elapsedMs));
+          wpmByRacer[r.id] = youRef.current.wpm;
         }
       }
-      const trace: TraceSample = {
-        t: Math.floor(elapsedMs / 1000),
-        wpmByRacer,
-      };
-      dispatch({ type: "TICK", now: Date.now(), trace });
+      const y = youRef.current;
+      dispatch({
+        type: "TICK",
+        now: Date.now(),
+        youCorrectChars: y.correctChars,
+        youWpm: y.wpm,
+        youFinished: y.finished,
+        trace: { t: Math.floor(elapsedMs / 1000), wpmByRacer },
+      });
     }, TRACE_SAMPLE_MS);
     return () => clearInterval(id);
   }, [state.phase, state.raceStartedAt]);
 
   const derived = useMemo(() => {
-    const cursors = state.racers.map((r) => {
-      const wIdx = wordIdxFromChars(state.charsBeforeWord, r.correctChars);
-      const charIdx = r.correctChars - state.charsBeforeWord[wIdx]!;
-      return { wordIdx: wIdx, charIdx };
-    });
-    const you = state.racers.find((r) => r.isYou)!;
-    const totalKeystrokes = you.correctChars + you.errorChars;
-    const yourAccuracy =
-      totalKeystrokes === 0
-        ? 100
-        : Math.round((you.correctChars / totalKeystrokes) * 1000) / 10;
-    let yourWpm = 0;
-    if (state.raceStartedAt != null) {
-      const elapsedMs = state.nowMs - state.raceStartedAt;
-      yourWpm = Math.round(cumulativeWpm(you.correctChars, elapsedMs));
-    }
     let countdownNumber: number | null = null;
     if (state.phase === "countdown" && state.countdownStartedAt != null) {
       const left =
@@ -136,21 +189,21 @@ export function RaceProvider({ children }: { children: ReactNode }) {
       state.raceStartedAt != null
         ? Math.max(0, Math.floor((state.nowMs - state.raceStartedAt) / 1000))
         : 0;
-    return { cursors, yourAccuracy, yourWpm, countdownNumber, elapsedSeconds };
+    return { countdownNumber, elapsedSeconds };
   }, [state]);
 
-  const startCountdown = useCallback(
-    () => dispatch({ type: "START_COUNTDOWN", now: Date.now() }),
-    [],
-  );
-  const restart = useCallback(
-    () => dispatch({ type: "RESTART", now: Date.now(), seed: Date.now() | 0 }),
-    [],
-  );
-
   const value = useMemo<RaceCtx>(
-    () => ({ state, dispatch, startCountdown, restart, ...derived }),
-    [state, derived, startCountdown, restart],
+    () => ({
+      state,
+      modeId,
+      setModeId,
+      startCountdown: () =>
+        dispatch({ type: "START_COUNTDOWN", now: Date.now() }),
+      restart: restartShell,
+      dispatch,
+      ...derived,
+    }),
+    [state, modeId, setModeId, restartShell, derived],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
