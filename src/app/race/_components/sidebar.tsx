@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { cn } from "@/lib/utils";
 import {
@@ -112,14 +111,6 @@ export function RaceSidebar() {
         </Section>
       ) : null}
 
-      <Section title="MULTIPLAYER">
-        <Link
-          href="/customise/appearance#multiplayer"
-          className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Open multiplayer settings →
-        </Link>
-      </Section>
       </div>
     </aside>
   );
