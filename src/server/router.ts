@@ -6,6 +6,7 @@ import { history } from './routes/history';
 import { monkeytype } from './routes/monkeytype';
 import { notifications } from './routes/notifications';
 import { prefs } from './routes/prefs';
+import { race } from './routes/race';
 
 export const router = defineNamespace({
   middleware: [logging],
@@ -16,6 +17,7 @@ export const router = defineNamespace({
     history,
     monkeytype,
     notifications,
+    race,
   },
 });
 

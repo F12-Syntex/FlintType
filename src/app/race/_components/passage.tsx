@@ -5,6 +5,7 @@ import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { Passage } from "../../_components/passage";
 import { usePractice } from "../../_components/practice-state";
 import { cn } from "@/lib/utils";
+import { ChallengeLobby } from "./challenge-lobby";
 import { playerColorFor, RACE_MODES } from "./race-data";
 import { RacePlayerStrip } from "./player-strip";
 import { useRace } from "./race-state";
@@ -120,6 +121,8 @@ export function RacePassage() {
             />
           )}
         </div>
+
+        <ChallengeLobby />
 
         {showLineup ? (
           <RacePlayerStrip

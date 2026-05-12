@@ -4,21 +4,18 @@ import { useUser } from "@clerk/nextjs";
 import {
   useCallback,
   useEffect,
-  useMemo,
   useState,
   type ReactNode,
 } from "react";
+import { useBackend } from "@/lib/backend";
 import { InputCapture } from "../../_components/input-capture";
 import { PracticeProvider } from "../../_components/practice-state";
-import { generateRacePassage, RACE_MODES, type RaceModeId } from "./race-data";
+import { RACE_MODES, type RaceModeId } from "./race-data";
 import { RaceProvider } from "./race-state";
 
 /** Pull a short, race-feed-friendly handle from the Clerk session.
  *  Mirrors the `firstName ?? username ?? email-localpart ?? "you"`
- *  fallback chain used in the topbar so the racer reads as the same
- *  identity. Always prefixed with `@` so feed entries (`@saif took
- *  the lead`) and lane labels keep the chat-handle shape that the
- *  bot names already use. */
+ *  fallback chain used in the topbar. Always prefixed with `@`. */
 function useYouHandle(): string {
   const { user, isSignedIn } = useUser();
   if (!isSignedIn || !user) return "@you";
@@ -30,91 +27,151 @@ function useYouHandle(): string {
   return raw.startsWith("@") ? raw : `@${raw}`;
 }
 
-/** Race shell. Owns the mode + seed + queue-flow pair that pins
- *  both the practice passage (via PracticeProvider's `lockedWords`)
- *  and the race state's bot lineup.
- *
- *  Three reset paths bubble up from the race UI:
- *    - `setModeId(next)` — mode chip → fresh queue with new mode
- *    - `restart()`       — race-again → new passage, skip queue
- *    - `rematch()`       — find new opponents → fresh queue, same mode
- *
- *  Each path bumps `seedKey`, which re-keys the whole practice + race
- *  subtree so state resets in lockstep. `withQueue` tells RaceProvider
- *  whether to drop into queue (bots not yet joined) or straight into
- *  lobby (race-again — bots stay at the table).
- *
- *  Architecture, top-down:
- *    RaceShell        ← config: { modeId, seed, withQueue }
- *      PracticeProvider lockedWords={raceWords}
- *        InputCapture
- *          RaceProvider  (drives bot tick + phase machine)
- *            children   (race UI) */
-export function RaceShell({ children }: { children: ReactNode }) {
-  const [modeId, setModeId] = useState<RaceModeId>("1v3");
-  // Seed starts deterministic so SSR + client hydration agree on the
-  // passage. The mount effect swaps it for a wall-clock seed so the
-  // first race the user sees is genuinely random.
-  const [seed, setSeed] = useState<number>(1);
-  const [withQueue, setWithQueue] = useState<boolean>(true);
-  useEffect(() => {
-    setSeed(Date.now() | 0);
-  }, []);
+export type RaceShellOnline = {
+  roomId: string;
+  sessionToken: string;
+  words: readonly string[];
+  totalChars: number;
+  modeId: RaceModeId;
+};
 
-  const switchMode = useCallback((next: RaceModeId) => {
-    setModeId(next);
-    setSeed(Date.now() | 0);
-    setWithQueue(true);
-  }, []);
-  const restartShell = useCallback(() => {
-    setSeed(Date.now() | 0);
-    setWithQueue(false);
-  }, []);
-  const enterQueueShell = useCallback(() => {
-    setSeed(Date.now() | 0);
-    setWithQueue(true);
-  }, []);
-
+/** Race shell. Owns:
+ *
+ *    - modeId for the current race mode
+ *    - online room handle (after the user enters matchmaking / a
+ *      challenge), which carries the passage words for PracticeProvider
+ *    - the subtree key — bumped on every room join / mode switch so
+ *      both PracticeProvider's lockedWords and the race provider's
+ *      internal state reset in lockstep
+ *
+ *  Routes branch:
+ *    - burst mode → offline reducer (still local, see race-state.tsx)
+ *    - everything else → online provider (server-driven via SSE) */
+export function RaceShell({
+  children,
+  initialOnline,
+  initialModeId,
+}: {
+  children: ReactNode;
+  /** Pre-joined online room — used by /race/c/[slug] which hits
+   *  challenge.join on the server *before* the shell mounts. */
+  initialOnline?: RaceShellOnline | null;
+  initialModeId?: RaceModeId;
+}) {
+  const backend = useBackend();
+  const [modeId, setModeId] = useState<RaceModeId>(initialModeId ?? "1v3");
+  const [online, setOnline] = useState<RaceShellOnline | null>(
+    initialOnline ?? null,
+  );
+  // Burst stays offline; the shell still mounts PracticeProvider for
+  // it but with an empty word list (the burst surface owns its own
+  // typing). For passage modes, words come from the server when the
+  // user enters a room.
   const mode = RACE_MODES[modeId];
   const isBurst = mode.kind === "burst";
-  const words = useMemo(
-    () =>
-      isBurst
-        ? // Burst doesn't drive practice — feed PracticeProvider an empty
-          // word list so it doesn't try to render a phantom passage if
-          // anything reaches into it.
-          ([] as readonly string[])
-        : generateRacePassage(mode.wordCount, seed),
-    [isBurst, mode.wordCount, seed],
+
+  const enterQueue = useCallback(async () => {
+    try {
+      const res = await backend.race.queue({ modeId });
+      setOnline({
+        roomId: res.roomId,
+        sessionToken: res.sessionToken,
+        words: res.words,
+        totalChars: res.totalChars,
+        modeId: res.modeId as RaceModeId,
+      });
+    } catch {
+      // Keep the user on the queue surface; race-controls will let
+      // them retry. No throw — backend hiccup shouldn't crash the UI.
+    }
+  }, [backend, modeId]);
+
+  const abandon = useCallback(() => {
+    if (online) {
+      void backend.race.leave({
+        roomId: online.roomId,
+        sessionToken: online.sessionToken,
+      });
+      setOnline(null);
+    }
+  }, [backend, online]);
+
+  const restart = useCallback(() => {
+    if (online) {
+      void backend.race.leave({
+        roomId: online.roomId,
+        sessionToken: online.sessionToken,
+      });
+      setOnline(null);
+    }
+    // Defer the re-queue to the next tick so the leave POST fires
+    // first; not strictly required (the route accepts overlapping
+    // calls) but it keeps the server log honest.
+    void Promise.resolve().then(enterQueue);
+  }, [backend, online, enterQueue]);
+
+  const switchMode = useCallback(
+    (next: RaceModeId) => {
+      if (online) {
+        void backend.race.leave({
+          roomId: online.roomId,
+          sessionToken: online.sessionToken,
+        });
+        setOnline(null);
+      }
+      setModeId(next);
+    },
+    [backend, online],
   );
 
   const youName = useYouHandle();
-  // Re-key on the user handle too so a session change (sign-in /
-  // sign-out mid-session) cleanly rebuilds the racer roster instead
-  // of leaving a stale name baked into the reducer's initial state.
-  const subtreeKey = `${modeId}:${seed}:${withQueue ? "q" : "l"}:${youName}`;
+  const words = isBurst ? ([] as readonly string[]) : online?.words ?? [];
+  // Subtree key — bumps when the room handle changes (or on mode
+  // switch). Both PracticeProvider and the race provider re-mount
+  // together so racing state never lags the practice state.
+  const subtreeKey = `${modeId}:${online?.roomId ?? "queue"}:${youName}`;
 
-  // Burst mode owns its own typing via the BurstRaceSurface's window
-  // keydown listener — InputCapture would steal focus into a hidden
-  // input and swallow the keypresses before they reach the burst
-  // surface. Skip it entirely for burst; keep it for passage modes.
-  const raceProvider = (
+  // For burst mode, fall back to the legacy seed-based provider path:
+  // it manages its own queue → matching → lobby state locally.
+  const initialRoomForProvider =
+    !isBurst && online
+      ? { roomId: online.roomId, sessionToken: online.sessionToken }
+      : null;
+
+  const raceTree = (
     <RaceProvider
       key={subtreeKey}
       modeId={modeId}
-      raceSeed={seed}
-      withQueue={withQueue}
+      raceSeed={(online?.roomId ? hashSeed(online.roomId) : Date.now()) | 0}
+      withQueue={!online}
       youName={youName}
       setModeId={switchMode}
-      restartShell={restartShell}
-      enterQueueShell={enterQueueShell}
+      restartShell={restart}
+      enterQueueShell={enterQueue}
+      onlineEnterQueue={isBurst ? undefined : enterQueue}
+      onlineAbandon={isBurst ? undefined : abandon}
+      initialOnlineRoom={initialRoomForProvider}
     >
       {children}
     </RaceProvider>
   );
+
   return (
     <PracticeProvider key={subtreeKey} lockedWords={words}>
-      {isBurst ? raceProvider : <InputCapture>{raceProvider}</InputCapture>}
+      {isBurst ? raceTree : <InputCapture>{raceTree}</InputCapture>}
     </PracticeProvider>
   );
+}
+
+/** Stable 32-bit seed derived from a room id. Used so client-side
+ *  features that key off `state.raceSeed` (e.g. the offline bots'
+ *  jitter, which the online flow doesn't run anyway) still see a
+ *  consistent value per room rather than a constantly-rotating
+ *  Date.now(). */
+function hashSeed(roomId: string): number {
+  let h = 5381;
+  for (let i = 0; i < roomId.length; i += 1) {
+    h = ((h << 5) + h + roomId.charCodeAt(i)) >>> 0;
+  }
+  return h;
 }

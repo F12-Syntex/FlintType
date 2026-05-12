@@ -39,7 +39,11 @@ export type TraceSample = {
  *  (correctChars, wpm) into a Racer object so lanes / ranking /
  *  finish logic operate on a uniform shape across humans + bots. */
 export type Racer = {
-  id: BotId | "you";
+  /** Racer id. `"you"` for the local player, a `BotId` for a server
+   *  bot, or a server-issued session token for a remote real player.
+   *  `isYou` is the canonical check; only the bot-id case is also a
+   *  meaningful key (playerColorFor looks it up). */
+  id: string;
   name: string;
   flag: string;
   badge: string;
