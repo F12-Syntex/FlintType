@@ -1,8 +1,10 @@
 "use client";
 
+import { Crown } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
+import { recordIfPb } from "@/lib/pb-cache";
 import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
 import { cn } from "@/lib/utils";
 import { type KeyEvent, usePractice } from "./practice-state";
@@ -47,20 +49,29 @@ function BigStat({
   value,
   suffix,
   accent = false,
+  pb = false,
 }: {
   label: string;
   value: string | number;
   suffix?: string;
   accent?: boolean;
+  /** When true, paint the PB crown + sparkle next to the stat. */
+  pb?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-1 leading-none">
+    <div className="relative flex flex-col gap-1 leading-none">
       <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
         {label}
+        {pb ? (
+          <span className="ml-1.5 inline-flex items-center gap-1 align-middle font-mono text-[9px] font-semibold uppercase tracking-[0.22em] text-primary">
+            <Crown size={10} className="motion-safe:animate-bounce" />
+            new PB
+          </span>
+        ) : null}
       </span>
       <span
         className={cn(
-          "text-2xl font-semibold tabular-nums sm:text-3xl lg:text-4xl",
+          "relative inline-flex items-baseline gap-2 text-2xl font-semibold tabular-nums sm:text-3xl lg:text-4xl",
           accent ? "text-primary" : "text-foreground",
         )}
       >
@@ -70,8 +81,37 @@ function BigStat({
             {suffix}
           </span>
         ) : null}
+        {pb ? <PbSparkle /> : null}
       </span>
     </div>
+  );
+}
+
+/** Lightweight CSS-only celebration for the new-PB crown. Six dots
+ *  spring out from the badge centre and fade — no canvas, no
+ *  Framer, single-fire on mount. Each dot carries its angle via a
+ *  CSS variable so the shared `pb-spark` keyframe (in globals.css)
+ *  can interpolate from origin to a rotated outward translation.
+ *  Skipped under prefers-reduced-motion via Tailwind's motion-safe. */
+function PbSparkle() {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute -top-2 -right-3 size-6"
+    >
+      {[0, 60, 120, 180, 240, 300].map((deg, i) => (
+        <span
+          key={i}
+          className="absolute top-1/2 left-1/2 size-1.5 rounded-full bg-primary opacity-0 motion-safe:animate-[pb-spark_900ms_ease-out_forwards]"
+          style={
+            {
+              ["--spark-angle"]: `${deg}deg`,
+              animationDelay: `${i * 40}ms`,
+            } as React.CSSProperties
+          }
+        />
+      ))}
+    </span>
   );
 }
 
@@ -308,6 +348,24 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
   const { state, wpm, raw, accuracy, elapsedMs, wpmHistory } = usePractice();
   const { prefs: appearance } = useAppearancePrefs();
   const [replaying, setReplaying] = useState(false);
+
+  // PB detection. Runs once per finished run — compares the just-
+  // completed WPM against the localStorage-cached PB for the same
+  // (mode, length) bucket. When it beats the cache, flip isNewPb on
+  // for this render so the crown badge + sparkle land in the result
+  // card. Skipped in preview mode (the customise → Result preview
+  // shouldn't trigger live PB writes).
+  const [isNewPb, setIsNewPb] = useState(false);
+  useEffect(() => {
+    if (preview) return;
+    if (state.phase !== "done") return;
+    const mode = state.mode.toLowerCase();
+    const beat = recordIfPb(mode, state.length, wpm);
+    if (beat) setIsNewPb(true);
+    // We deliberately watch only mode/length/wpm here so a hot-render
+    // doesn't re-evaluate. The effect fires once when phase=done.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.phase]);
   // Convert the live wpmHistory samples into chart buckets keyed by
   // whole-second markers. monkeytype draws its WPM trace from exactly
   // this stream.
@@ -363,6 +421,7 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
                 appearance.alwaysShowDecimal,
               )}
               accent
+              pb={isNewPb}
             />
             <BigStat
               label="acc"

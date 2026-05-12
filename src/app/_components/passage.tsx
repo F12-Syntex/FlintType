@@ -185,13 +185,25 @@ function AdaptLoadingSkeleton() {
  *  ran usePractice, then early-returned, then ran a dozen more hooks
  *  on the non-loading path — which is the "Rendered more hooks than
  *  during the previous render" violation.) */
-export function Passage() {
+export type PassageProps = {
+  /** Optional per-word background tint. Race uses this to overlay
+   *  opponent-position bands so the user can see where each racer is
+   *  in the passage. Returns a CSS colour (e.g. `color-mix(...)`) or
+   *  undefined for no tint. Practice and drills don't pass this. */
+  wordBackground?: (wordIdx: number) => string | undefined;
+};
+
+export function Passage(props: PassageProps = {}) {
   const { adaptLoading } = usePractice();
   if (adaptLoading) return <AdaptLoadingSkeleton />;
-  return <PassageBody />;
+  return <PassageBody wordBackground={props.wordBackground} />;
 }
 
-function PassageBody() {
+function PassageBody({
+  wordBackground,
+}: {
+  wordBackground?: (wordIdx: number) => string | undefined;
+}) {
   const { state } = usePractice();
   const { words, cursorWord, cursorChar, errorWords, phase, typed } = state;
   const { settings: caretSettings } = useCaretSettings();
@@ -443,6 +455,17 @@ function PassageBody() {
           />
         ) : null}
         {words.map((word, wi) => {
+          // Race-only background tint marking which opponent has
+          // passed this word. Practice / drills leave wordBackground
+          // undefined so this is always a no-op outside /race.
+          const tint = wordBackground?.(wi);
+          const tintStyle = tint
+            ? {
+                backgroundColor: tint,
+                borderRadius: 3,
+                boxShadow: `0 0 0 2px ${tint}`,
+              }
+            : undefined;
           if (wi < cursorWord) {
             const isErr = errorWords.has(wi);
             // Appearance: markIncompleteWord gates the visible error
@@ -455,6 +478,7 @@ function PassageBody() {
             return (
               <span
                 key={wi}
+                style={tintStyle}
                 className={cn(
                   blind ? UNTYPED_TEXT : TYPED_TEXT,
                   showErr &&
@@ -481,6 +505,7 @@ function PassageBody() {
               <span
                 key={wi}
                 ref={activeWordRef}
+                style={tintStyle}
                 className={cn(
                   highlightCurrentWord &&
                     cn(
@@ -513,6 +538,7 @@ function PassageBody() {
           return (
             <span
               key={wi}
+              style={tintStyle}
               className={cn(
                 UNTYPED_TEXT,
                 isNextWord &&

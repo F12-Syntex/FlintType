@@ -1,10 +1,13 @@
 "use client";
 
+import { useMemo } from "react";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { Passage } from "../../_components/passage";
 import { usePractice } from "../../_components/practice-state";
+import { playerColorFor } from "./race-data";
 import { RacePlayerStrip } from "./player-strip";
 import { useRace } from "./race-state";
+import type { Racer } from "./race-types";
 import { cn } from "@/lib/utils";
 
 /** Race passage. The actual typing surface IS practice's <Passage>
@@ -26,6 +29,39 @@ export function RacePassage() {
   const acc = liveAccuracy(practice.typed, practice.words);
   const wpm = you.wpm;
   const showStrip = appearance.multiplayerOpponentStrip;
+  const showColors = appearance.multiplayerPlayerColors;
+
+  // Per-word tint: for each word in the passage, find the slowest
+  // opponent who has typed past that word's first character. Apply
+  // that opponent's colour as a low-opacity background tint so the
+  // user sees layered bands marking each opponent's leading edge.
+  // The user themselves is omitted — their cursor is the practice
+  // caret, not a tint.
+  const wordTints = useMemo(() => {
+    if (!showColors) return undefined;
+    const wordStarts: number[] = [];
+    let acc = 0;
+    for (const w of state.words) {
+      wordStarts.push(acc);
+      acc += w.length + 1;
+    }
+    // Sort opponents slowest-first so the first match in the loop is
+    // the slowest racer who has covered each word — yielding bands
+    // that step outward as faster racers extend past slower ones.
+    const opponents = state.racers
+      .filter((r): r is Racer => !r.isYou && r.correctChars > 0)
+      .sort((a, b) => a.correctChars - b.correctChars);
+    return (wi: number): string | undefined => {
+      const start = wordStarts[wi];
+      if (start == null) return undefined;
+      for (const r of opponents) {
+        if (r.correctChars > start) {
+          return `color-mix(in oklch, ${playerColorFor(r.id)} 22%, transparent)`;
+        }
+      }
+      return undefined;
+    };
+  }, [showColors, state.racers, state.words]);
   return (
     <div className="relative flex min-h-[18rem] flex-1 flex-col rounded-md border border-border bg-card px-7 py-8 sm:px-9">
       <div className="mb-5 flex flex-wrap justify-between gap-2">
@@ -48,7 +84,7 @@ export function RacePassage() {
       </div>
 
       <div className="min-h-0 flex-1">
-        <Passage />
+        <Passage wordBackground={wordTints} />
       </div>
 
       {showStrip &&

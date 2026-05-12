@@ -137,7 +137,13 @@ function applyMilestones(s: RaceState): RaceState {
 function rankAndMaybeFinish(s: RaceState): RaceState {
   const finishingNow: number[] = [];
   let racers = s.racers.map((r, idx) => {
-    if (r.finishedAt != null) return r;
+    if (r.place != null) return r;
+    if (r.finishedAt != null) {
+      // Pre-set finishedAt (e.g. human via TICK youFinished) still
+      // needs a place number — flag for the assignment loop below.
+      finishingNow.push(idx);
+      return r;
+    }
     if (r.correctChars >= s.totalChars) {
       finishingNow.push(idx);
       return { ...r, correctChars: s.totalChars, finishedAt: elapsedSec(s) };
@@ -284,15 +290,23 @@ export function reducer(s: RaceState, a: Action): RaceState {
       const racers = next.racers.map((r) => {
         if (r.finishedAt != null) return r;
         if (r.isYou) {
-          // Don't touch finishedAt here — rankAndMaybeFinish owns
-          // the finish-line crossing for every racer uniformly so
-          // place numbering and feed events stay correct. The
-          // youFinished flag is informational; it'll naturally
-          // line up with correctChars >= totalChars at the same tick.
+          // Mark finishedAt the moment practice flips to `done`. The
+          // user doesn't need to hit 100% accuracy — they just need
+          // to reach the end of the passage (pressing space past the
+          // last word, in practice's WORDS mode). correctChars stays
+          // at whatever they actually typed correctly so the lane bar
+          // is honest about their accuracy. rankAndMaybeFinish picks
+          // up the pre-set finishedAt below and assigns a place.
           return {
             ...r,
             correctChars: Math.min(s.totalChars, a.youCorrectChars),
             wpm: a.youWpm,
+            finishedAt:
+              r.finishedAt != null
+                ? r.finishedAt
+                : a.youFinished
+                  ? elapsedSec(next)
+                  : null,
           };
         }
         const bot = r.bot!;
