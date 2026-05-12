@@ -6,10 +6,11 @@ import { ScrollToTop } from "./scroll-to-top";
 import { TopbarActions } from "./topbar-actions";
 
 const NAV: NavItem[] = [
-  { href: "/", label: "PRACTICE" },
-  { href: "/drills", label: "DRILLS" },
-  { href: "/race", label: "RACES" },
-  { href: "/insights", label: "INSIGHTS" },
+  { href: "/", label: "Practice" },
+  { href: "/drills", label: "Drills" },
+  { href: "/race", label: "Races" },
+  { href: "/leaderboard", label: "Leaderboard" },
+  { href: "/insights", label: "Insights" },
 ];
 
 export function AppChrome({
