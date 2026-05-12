@@ -54,4 +54,7 @@ setttings.json
 .agents/
 .claude/
 skills-lock.json
-todo
+todo]
+
+
+.playwright-cli

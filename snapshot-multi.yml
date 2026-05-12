@@ -1,0 +1,1215 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - link "flinttype home" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - img [ref=e5]
+        - generic [ref=e6]: FLINTTYPE
+        - generic [ref=e7]: v5.1.2
+      - link "OPEN SOURCE" [ref=e8] [cursor=pointer]:
+        - /url: https://github.com/F12-Syntex/FlintType
+        - text: ·OPEN SOURCE
+      - navigation [ref=e9]:
+        - link "PRACTICE" [ref=e10] [cursor=pointer]:
+          - /url: /
+        - link "DRILLS" [ref=e11] [cursor=pointer]:
+          - /url: /drills
+        - link "RACES" [ref=e12] [cursor=pointer]:
+          - /url: /race
+        - link "INSIGHTS" [ref=e13] [cursor=pointer]:
+          - /url: /insights
+      - generic [ref=e16]:
+        - radiogroup "Theme mode" [ref=e17]:
+          - radio "Switch to System mode" [checked] [ref=e18] [cursor=pointer]:
+            - img [ref=e19]
+          - radio "Switch to Light mode" [ref=e21] [cursor=pointer]:
+            - img [ref=e22]
+          - radio "Switch to Dark mode" [ref=e28] [cursor=pointer]:
+            - img [ref=e29]
+        - button "Notifications, 1 unread" [ref=e1611]:
+          - img [ref=e1612]
+        - link "Settings" [ref=e31] [cursor=pointer]:
+          - /url: /customise
+          - img [ref=e32]
+        - link "Profile · syntex" [ref=e1616] [cursor=pointer]:
+          - /url: /profile
+          - generic [ref=e36]: S
+          - generic [ref=e37]: syntex
+    - main [ref=e38]:
+      - generic [ref=e40]:
+        - navigation "Settings sections" [ref=e41]:
+          - generic [ref=e45]: Customise
+          - list [ref=e47]:
+            - listitem [ref=e48]:
+              - link "Appearance" [ref=e49] [cursor=pointer]:
+                - /url: /customise/appearance
+                - img [ref=e50]
+                - generic [ref=e52]: Appearance
+            - listitem [ref=e53]:
+              - list [ref=e54]:
+                - listitem [ref=e55]:
+                  - link "Themes & mode" [ref=e56] [cursor=pointer]:
+                    - /url: /customise/appearance#themes
+                    - generic [ref=e57]: Themes & mode
+                - listitem [ref=e58]:
+                  - link "Colors" [ref=e59] [cursor=pointer]:
+                    - /url: /customise/appearance#colors
+                    - generic [ref=e60]: Colors
+                - listitem [ref=e61]:
+                  - link "Geometry" [ref=e62] [cursor=pointer]:
+                    - /url: /customise/appearance#geometry
+                    - generic [ref=e63]: Geometry
+                - listitem [ref=e64]:
+                  - link "Caret & cursor" [ref=e65] [cursor=pointer]:
+                    - /url: /customise/appearance#caret
+                    - generic [ref=e66]: Caret & cursor
+                - listitem [ref=e67]:
+                  - link "Typography" [ref=e68] [cursor=pointer]:
+                    - /url: /customise/appearance#typography
+                    - generic [ref=e69]: Typography
+                - listitem [ref=e70]:
+                  - link "Keyboard" [ref=e71] [cursor=pointer]:
+                    - /url: /customise/appearance#keyboard
+                    - generic [ref=e72]: Keyboard
+                - listitem [ref=e73]:
+                  - link "Background" [ref=e74] [cursor=pointer]:
+                    - /url: /customise/appearance#background
+                    - generic [ref=e75]: Background
+                - listitem [ref=e76]:
+                  - link "Live stats" [ref=e77] [cursor=pointer]:
+                    - /url: /customise/appearance#live-stats
+                    - generic [ref=e78]: Live stats
+                - listitem [ref=e79]:
+                  - link "Typing area" [ref=e80] [cursor=pointer]:
+                    - /url: /customise/appearance#typing-area
+                    - generic [ref=e81]: Typing area
+                - listitem [ref=e82]:
+                  - link "Result" [ref=e83] [cursor=pointer]:
+                    - /url: /customise/appearance#result
+                    - generic [ref=e84]: Result
+                - listitem [ref=e85]:
+                  - link "Keymap" [ref=e86] [cursor=pointer]:
+                    - /url: /customise/appearance#keymap
+                    - generic [ref=e87]: Keymap
+                - listitem [ref=e88]:
+                  - link "Multiplayer" [ref=e89] [cursor=pointer]:
+                    - /url: /customise/appearance#multiplayer
+                    - generic [ref=e91]: Multiplayer
+            - listitem [ref=e92]:
+              - link "Behaviour 9" [ref=e93] [cursor=pointer]:
+                - /url: /customise/behaviour
+                - generic [ref=e94]: Behaviour
+                - generic [ref=e95]: "9"
+        - generic [ref=e99]:
+          - generic [ref=e100]:
+            - generic [ref=e103]: Customise · Appearance
+            - generic [ref=e104]:
+              - generic [ref=e105]:
+                - heading "Make it look the way you think" [level=2] [ref=e106]
+                - paragraph [ref=e107]: Every visual control with its own live preview built from the real test surface — every override you make appears here exactly as it will on /app.
+              - generic [ref=e108]:
+                - generic [ref=e109]:
+                  - generic [ref=e110]: "0"
+                  - generic [ref=e111]: untouched
+                - generic [ref=e112]:
+                  - button "Reset all" [disabled]
+                  - button "Import or export settings" [ref=e114]:
+                    - img
+                    - generic [ref=e115]: Manage
+          - generic [ref=e116]:
+            - generic [ref=e117]:
+              - generic [ref=e120]: Surface
+              - generic [ref=e122]:
+                - heading "Themes & mode" [level=3] [ref=e123]
+                - paragraph [ref=e124]: Pick a community palette and flip light / dark. The preview is the real practice passage — every palette swap repaints it.
+            - generic [ref=e130]:
+              - generic [ref=e131]: the
+              - generic [ref=e133]: quicx
+              - generic [ref=e134]: brown
+              - generic [ref=e135]: fox
+              - generic [ref=e137]: jumps
+              - generic [ref=e138]: over
+              - generic [ref=e139]: the
+              - generic [ref=e140]: lazy
+              - generic [ref=e141]: dog
+            - generic [ref=e142]:
+              - generic [ref=e143]:
+                - generic [ref=e144]: Theme
+                - button "Pick a theme" [ref=e145]:
+                  - generic [ref=e151]: Default
+                  - img
+              - generic [ref=e152]:
+                - generic [ref=e153]: Mode
+                - radiogroup "Theme mode" [ref=e154]:
+                  - radio "Switch to System mode" [checked] [ref=e155] [cursor=pointer]:
+                    - img [ref=e157]
+                  - radio "Switch to Light mode" [ref=e159] [cursor=pointer]:
+                    - img [ref=e160]
+                  - radio "Switch to Dark mode" [ref=e166] [cursor=pointer]:
+                    - img [ref=e167]
+              - link "Browse all palettes" [ref=e170] [cursor=pointer]:
+                - /url: /customise/appearance/themes
+                - text: Browse all palettes
+                - img [ref=e171]
+          - generic [ref=e175]:
+            - generic [ref=e176]:
+              - generic [ref=e179]: Tokens
+              - generic [ref=e181]:
+                - heading "Colors" [level=3] [ref=e182]
+                - paragraph [ref=e183]: Override the active palette one CSS variable at a time. The preview pairs the live stats strip with the practice passage so every token has a visible target.
+            - generic [ref=e185]:
+              - generic [ref=e187]:
+                - generic [ref=e188]:
+                  - generic [ref=e189]:
+                    - generic [ref=e190]: ELAPSED
+                    - generic [ref=e191]: 0:12
+                  - generic [ref=e192]:
+                    - generic [ref=e193]: WORD
+                    - generic [ref=e194]: 5/9
+                - generic [ref=e195]:
+                  - generic [ref=e196]:
+                    - generic [ref=e197]: WPM
+                    - generic [ref=e198]: "64"
+                  - generic [ref=e199]:
+                    - generic [ref=e200]: ACC
+                    - generic [ref=e201]: 96%
+                  - generic [ref=e202]:
+                    - generic [ref=e203]: ERR
+                    - generic [ref=e204]: "1"
+              - generic [ref=e208]:
+                - generic [ref=e209]: the
+                - generic [ref=e211]: quicx
+                - generic [ref=e212]: brown
+                - generic [ref=e213]: fox
+                - generic [ref=e215]: jumps
+                - generic [ref=e216]: over
+                - generic [ref=e217]: the
+                - generic [ref=e218]: lazy
+                - generic [ref=e219]: dog
+            - generic [ref=e220]:
+              - generic [ref=e222]:
+                - generic [ref=e223]: Primary accent
+                - generic [ref=e224]: Active states, CTAs, the brand spark
+                - button "Pick Primary accent" [ref=e227]:
+                  - text: Default
+                  - img
+              - generic [ref=e230]:
+                - generic [ref=e231]: Primary text
+                - generic [ref=e232]: Text rendered on top of the primary accent
+                - button "Pick Primary text" [ref=e235]:
+                  - text: Default
+                  - img
+              - generic [ref=e238]:
+                - generic [ref=e239]: Highlight tint
+                - generic [ref=e240]: Soft hover backgrounds and accent surfaces
+                - button "Pick Highlight tint" [ref=e243]:
+                  - text: Default
+                  - img
+              - generic [ref=e246]:
+                - generic [ref=e247]: Highlight text
+                - generic [ref=e248]: Text rendered on top of the highlight tint
+                - button "Pick Highlight text" [ref=e251]:
+                  - text: Default
+                  - img
+              - generic [ref=e254]:
+                - generic [ref=e255]: Page background
+                - generic [ref=e256]: The main canvas behind every screen
+                - button "Pick Page background" [ref=e259]:
+                  - text: Default
+                  - img
+              - generic [ref=e262]:
+                - generic [ref=e263]: Body text
+                - generic [ref=e264]: Default text color for headlines and prose
+                - button "Pick Body text" [ref=e267]:
+                  - text: Default
+                  - img
+              - generic [ref=e270]:
+                - generic [ref=e271]: Card surface
+                - generic [ref=e272]: Lifted panels — settings rows, popovers, mode-bar
+                - button "Pick Card surface" [ref=e275]:
+                  - text: Default
+                  - img
+              - generic [ref=e278]:
+                - generic [ref=e279]: Muted surface
+                - generic [ref=e280]: Sidebars and de-emphasized regions
+                - button "Pick Muted surface" [ref=e283]:
+                  - text: Default
+                  - img
+              - generic [ref=e286]:
+                - generic [ref=e287]: Muted text
+                - generic [ref=e288]: Captions, eyebrow labels, secondary metadata
+                - button "Pick Muted text" [ref=e291]:
+                  - text: Default
+                  - img
+              - generic [ref=e294]:
+                - generic [ref=e295]: Border
+                - generic [ref=e296]: Hairline dividers and outlines
+                - button "Pick Border" [ref=e299]:
+                  - text: Default
+                  - img
+              - generic [ref=e302]:
+                - generic [ref=e303]: Input track
+                - generic [ref=e304]: Form fields and toggle off-state tracks
+                - button "Pick Input track" [ref=e307]:
+                  - text: Default
+                  - img
+              - generic [ref=e310]:
+                - generic [ref=e311]: Focus ring
+                - generic [ref=e312]: The outline that wraps a focused element
+                - button "Pick Focus ring" [ref=e315]:
+                  - text: Default
+                  - img
+              - generic [ref=e318]:
+                - generic [ref=e319]: Practice text
+                - generic [ref=e320]: Letters you've already typed in the practice passage. Defaults to the primary accent.
+                - button "Pick Practice text" [ref=e323]:
+                  - text: Default
+                  - img
+              - generic [ref=e326]:
+                - generic [ref=e327]: Practice text (pending)
+                - generic [ref=e328]: Letters not yet typed in the practice passage. Independent of muted text.
+                - button "Pick Practice text (pending)" [ref=e331]:
+                  - text: Default
+                  - img
+              - generic [ref=e334]:
+                - generic [ref=e335]: Practice text (error)
+                - generic [ref=e336]: Letters mistyped in the practice passage. Defaults to the theme's destructive colour.
+                - button "Pick Practice text (error)" [ref=e339]:
+                  - text: Default
+                  - img
+          - generic [ref=e341]:
+            - generic [ref=e342]:
+              - generic [ref=e345]: Shape
+              - generic [ref=e347]:
+                - heading "Geometry" [level=3] [ref=e348]
+                - paragraph [ref=e349]: Corner radius and the borders rule across the app. Every component honours these — the passage card, buttons, chips, popovers.
+            - generic [ref=e351]:
+              - generic [ref=e355]:
+                - generic [ref=e356]: the
+                - generic [ref=e358]: quicx
+                - generic [ref=e359]: brown
+                - generic [ref=e360]: fox
+                - generic [ref=e362]: jumps
+                - generic [ref=e363]: over
+                - generic [ref=e364]: the
+                - generic [ref=e365]: lazy
+                - generic [ref=e366]: dog
+              - generic [ref=e367]:
+                - button "Action" [ref=e368]
+                - button "Outline" [ref=e369]
+                - button "Ghost" [ref=e370]
+                - generic [ref=e371]: Chip
+            - generic [ref=e372]:
+              - generic [ref=e374]:
+                - generic [ref=e375]: Preset
+                - generic [ref=e376]:
+                  - button "Sharp" [ref=e377]:
+                    - generic [ref=e380]: Sharp
+                  - button "Subtle" [ref=e381]:
+                    - generic [ref=e384]: Subtle
+                  - button "Small" [ref=e385]:
+                    - generic [ref=e388]: Small
+                  - button "Medium" [pressed] [ref=e389]:
+                    - generic [ref=e392]: Medium
+                  - button "Large" [ref=e393]:
+                    - generic [ref=e396]: Large
+                  - button "Pillowy" [ref=e397]:
+                    - generic [ref=e400]: Pillowy
+              - generic [ref=e401]:
+                - generic [ref=e402]: Borders
+                - generic [ref=e403]:
+                  - button "Default" [ref=e404]:
+                    - generic [ref=e407]: Default
+                  - button "Soft" [pressed] [ref=e408]:
+                    - generic [ref=e411]: Soft
+                  - button "Hidden" [ref=e412]:
+                    - generic [ref=e415]: Hidden
+          - generic [ref=e416]:
+            - generic [ref=e417]:
+              - generic [ref=e420]: Cursor
+              - generic [ref=e422]:
+                - heading "Caret & cursor" [level=3] [ref=e423]
+                - paragraph [ref=e424]: Style, thickness, roundness, blink, smooth-motion — the marker that follows your typing. The preview runs the real caret on a frozen passage so every option (including blink and smooth) plays here.
+            - generic [ref=e430]:
+              - generic [ref=e431]: the
+              - generic [ref=e433]: quicx
+              - generic [ref=e434]: brown
+              - generic [ref=e435]: fox
+              - generic [ref=e437]: jumps
+              - generic [ref=e438]: over
+              - generic [ref=e439]: the
+              - generic [ref=e440]: lazy
+              - generic [ref=e441]: dog
+            - generic [ref=e443]:
+              - generic [ref=e444]:
+                - generic [ref=e445]: Style
+                - generic [ref=e446]:
+                  - button "Line" [pressed] [ref=e447]:
+                    - generic [ref=e452]: Line
+                  - button "Block" [ref=e453]:
+                    - generic [ref=e458]: Block
+                  - button "Under" [ref=e459]:
+                    - generic [ref=e464]: Under
+                  - button "Outline" [ref=e465]:
+                    - generic [ref=e470]: Outline
+                  - button "— Off" [ref=e471]:
+                    - generic [ref=e474]: —
+                    - generic [ref=e475]: "Off"
+              - generic [ref=e476]:
+                - generic [ref=e477]: Thickness
+                - generic [ref=e478]:
+                  - button "1px" [ref=e479]:
+                    - generic [ref=e482]: 1px
+                  - button "2px" [pressed] [ref=e483]:
+                    - generic [ref=e486]: 2px
+                  - button "3px" [ref=e487]:
+                    - generic [ref=e490]: 3px
+                  - button "4px" [ref=e491]:
+                    - generic [ref=e494]: 4px
+              - generic [ref=e495]:
+                - generic [ref=e496]: Roundness
+                - generic [ref=e497]:
+                  - button "Sharp" [ref=e498]:
+                    - generic [ref=e501]: Sharp
+                  - button "Soft" [ref=e502]:
+                    - generic [ref=e505]: Soft
+                  - button "Round" [ref=e506]:
+                    - generic [ref=e509]: Round
+              - generic [ref=e510]:
+                - generic [ref=e511]: Blink
+                - generic [ref=e512]:
+                  - button "Off" [pressed] [ref=e513]:
+                    - generic [ref=e514]: "Off"
+                  - button "Slow" [ref=e515]:
+                    - generic [ref=e516]: Slow
+                  - button "Normal" [ref=e517]:
+                    - generic [ref=e518]: Normal
+                  - button "Fast" [ref=e519]:
+                    - generic [ref=e520]: Fast
+              - generic [ref=e521]:
+                - generic [ref=e522]: Smooth
+                - generic [ref=e523]:
+                  - button "Off" [ref=e524]:
+                    - generic [ref=e525]: "Off"
+                  - button "Snappy" [ref=e526]:
+                    - generic [ref=e527]: Snappy
+                  - button "Smooth" [ref=e528]:
+                    - generic [ref=e529]: Smooth
+                  - button "Flow" [ref=e530]:
+                    - generic [ref=e531]: Flow
+                  - button "Glide" [ref=e532]:
+                    - generic [ref=e533]: Glide
+                  - button "Drift" [ref=e534]:
+                    - generic [ref=e535]: Drift
+          - generic [ref=e536]:
+            - generic [ref=e537]:
+              - generic [ref=e540]: Type
+              - generic [ref=e542]:
+                - heading "Typography" [level=3] [ref=e543]
+                - paragraph [ref=e544]: Font family, size, and word spacing of the practice passage. Body text and chrome stay on JetBrains Mono — only the passage changes.
+            - generic [ref=e550]:
+              - generic [ref=e551]: the
+              - generic [ref=e553]: quicx
+              - generic [ref=e554]: brown
+              - generic [ref=e555]: fox
+              - generic [ref=e557]: jumps
+              - generic [ref=e558]: over
+              - generic [ref=e559]: the
+              - generic [ref=e560]: lazy
+              - generic [ref=e561]: dog
+            - generic [ref=e563]:
+              - generic [ref=e565]:
+                - generic [ref=e566]: Font
+                - generic [ref=e567]: The typeface used in the practice passage. Every Google font ships with the app, so picks apply instantly and work offline.
+                - button "Pick font" [ref=e570]:
+                  - generic [ref=e571]: Aa
+                  - generic [ref=e572]: Default
+                  - img
+              - generic [ref=e573]:
+                - generic [ref=e574]: Size
+                - generic [ref=e575]:
+                  - spinbutton "Font size (px)" [ref=e576]: "40"
+                  - generic: px
+              - generic [ref=e577]:
+                - generic [ref=e578]: Word spacing
+                - generic [ref=e579]:
+                  - button "Tight" [ref=e580]:
+                    - generic [ref=e581]: Tight
+                  - button "Snug" [ref=e582]:
+                    - generic [ref=e583]: Snug
+                  - button "Normal" [pressed] [ref=e584]:
+                    - generic [ref=e585]: Normal
+                  - button "Loose" [ref=e586]:
+                    - generic [ref=e587]: Loose
+                  - button "Airy" [ref=e588]:
+                    - generic [ref=e589]: Airy
+          - generic [ref=e590]:
+            - generic [ref=e591]:
+              - generic [ref=e594]: Visual
+              - generic [ref=e596]:
+                - heading "Keyboard widget" [level=3] [ref=e597]
+                - paragraph [ref=e598]: The live keyboard rendered under the passage. Every option here repaints the preview above instantly.
+            - img "virtual keyboard, QWERTY layout" [ref=e601]:
+              - generic [ref=e602]:
+                - generic [ref=e603]:
+                  - generic [ref=e604]:
+                    - generic: ~
+                    - generic [ref=e605]: "`"
+                  - generic [ref=e606]:
+                    - generic: "!"
+                    - generic [ref=e607]: "1"
+                  - generic [ref=e608]:
+                    - generic: "@"
+                    - generic [ref=e609]: "2"
+                  - generic [ref=e610]:
+                    - generic: "#"
+                    - generic [ref=e611]: "3"
+                  - generic [ref=e612]:
+                    - generic: $
+                    - generic [ref=e613]: "4"
+                  - generic [ref=e614]:
+                    - generic: "%"
+                    - generic [ref=e615]: "5"
+                  - generic [ref=e616]:
+                    - generic: ^
+                    - generic [ref=e617]: "6"
+                  - generic [ref=e618]:
+                    - generic: "&"
+                    - generic [ref=e619]: "7"
+                  - generic [ref=e620]:
+                    - generic: "*"
+                    - generic [ref=e621]: "8"
+                  - generic [ref=e622]:
+                    - generic: (
+                    - generic [ref=e623]: "9"
+                  - generic [ref=e624]:
+                    - generic: )
+                    - generic [ref=e625]: "0"
+                  - generic [ref=e626]:
+                    - generic: _
+                    - generic [ref=e627]: "-"
+                  - generic [ref=e628]:
+                    - generic: +
+                    - generic [ref=e629]: =
+                  - img [ref=e631]
+                - generic [ref=e635]:
+                  - generic [ref=e637]: Tab
+                  - generic [ref=e639]: q
+                  - generic [ref=e641]: w
+                  - generic [ref=e643]: e
+                  - generic [ref=e645]: r
+                  - generic [ref=e647]: t
+                  - generic [ref=e649]: "y"
+                  - generic [ref=e651]: u
+                  - generic [ref=e653]: i
+                  - generic [ref=e655]: o
+                  - generic [ref=e657]: p
+                  - generic [ref=e658]:
+                    - generic: "{"
+                    - generic [ref=e659]: "["
+                  - generic [ref=e660]:
+                    - generic: "}"
+                    - generic [ref=e661]: "]"
+                  - generic [ref=e662]:
+                    - generic: "|"
+                    - generic [ref=e663]: \
+                - generic [ref=e664]:
+                  - generic [ref=e666]: Caps
+                  - generic [ref=e668]: a
+                  - generic [ref=e670]: s
+                  - generic [ref=e672]: d
+                  - generic [ref=e674]: f
+                  - generic [ref=e676]: g
+                  - generic [ref=e678]: h
+                  - generic [ref=e680]: j
+                  - generic [ref=e682]: k
+                  - generic [ref=e684]: l
+                  - generic [ref=e685]:
+                    - generic: ":"
+                    - generic [ref=e686]: ;
+                  - generic [ref=e687]:
+                    - generic: "\""
+                    - generic [ref=e688]: "'"
+                  - img [ref=e690]
+                - generic [ref=e693]:
+                  - img [ref=e695]
+                  - generic [ref=e698]: z
+                  - generic [ref=e700]: x
+                  - generic [ref=e702]: c
+                  - generic [ref=e704]: v
+                  - generic [ref=e706]: b
+                  - generic [ref=e708]: "n"
+                  - generic [ref=e710]: m
+                  - generic [ref=e711]:
+                    - generic: <
+                    - generic [ref=e712]: ","
+                  - generic [ref=e713]:
+                    - generic: ">"
+                    - generic [ref=e714]: .
+                  - generic [ref=e715]:
+                    - generic: "?"
+                    - generic [ref=e716]: /
+                  - img [ref=e718]
+                - generic [ref=e720]:
+                  - img [ref=e722]
+                  - img [ref=e725]
+                  - img [ref=e728]
+                  - img [ref=e732]
+                  - img [ref=e735]
+                  - img [ref=e738]
+                  - img [ref=e740]
+            - generic [ref=e743]:
+              - generic [ref=e744]:
+                - generic [ref=e745]: Design
+                - generic [ref=e746]:
+                  - button "Solid" [ref=e747]:
+                    - generic [ref=e752]: Solid
+                  - button "Outline" [pressed] [ref=e753]:
+                    - generic [ref=e758]: Outline
+                  - button "Ghost" [ref=e759]:
+                    - generic [ref=e764]: Ghost
+                  - button "Lifted" [ref=e765]:
+                    - generic [ref=e770]: Lifted
+                  - button "Glass" [ref=e771]:
+                    - generic [ref=e776]: Glass
+              - generic [ref=e777]:
+                - generic [ref=e778]: Shape
+                - generic [ref=e779]:
+                  - button "Square" [ref=e780]:
+                    - generic [ref=e783]: Square
+                  - button "Rounded" [pressed] [ref=e784]:
+                    - generic [ref=e787]: Rounded
+                  - button "Pill" [ref=e788]:
+                    - generic [ref=e791]: Pill
+              - generic [ref=e792]:
+                - generic [ref=e793]: Compact
+                - generic [ref=e794]:
+                  - button "Off" [pressed] [ref=e795]:
+                    - generic [ref=e796]: "Off"
+                  - button "On" [ref=e797]:
+                    - generic [ref=e798]: "On"
+              - generic [ref=e799]:
+                - generic [ref=e800]: Home pegs
+                - generic [ref=e801]:
+                  - button "Off" [ref=e802]:
+                    - generic [ref=e803]: "Off"
+                  - button "On" [pressed] [ref=e804]:
+                    - generic [ref=e805]: "On"
+              - generic [ref=e806]:
+                - generic [ref=e807]: Shift labels
+                - generic [ref=e808]:
+                  - button "Off" [ref=e809]:
+                    - generic [ref=e810]: "Off"
+                  - button "On" [pressed] [ref=e811]:
+                    - generic [ref=e812]: "On"
+          - generic [ref=e813]:
+            - generic [ref=e814]:
+              - generic [ref=e817]: Canvas
+              - generic [ref=e819]:
+                - heading "Background" [level=3] [ref=e820]
+                - paragraph [ref=e821]: Drop in an image, pick how it fits, and tune opacity. Local to your browser — nothing uploads.
+            - generic [ref=e829]:
+              - generic [ref=e830]: the
+              - generic [ref=e832]: quicx
+              - generic [ref=e833]: brown
+              - generic [ref=e834]: fox
+              - generic [ref=e836]: jumps
+              - generic [ref=e837]: over
+              - generic [ref=e838]: the
+              - generic [ref=e839]: lazy
+              - generic [ref=e840]: dog
+            - generic [ref=e842]:
+              - generic [ref=e843]: No background image
+              - generic [ref=e844]:
+                - generic [ref=e846]:
+                  - generic [ref=e847]: Image URL
+                  - generic [ref=e848]: Paste a remote image link. Synced across devices.
+                - textbox "https://example.com/image.jpg" [ref=e850]
+              - generic [ref=e851]:
+                - generic [ref=e853]:
+                  - generic [ref=e854]: Or upload
+                  - generic [ref=e855]: Stored on this device only. Overrides the URL while set.
+                - button "Choose" [ref=e857]:
+                  - img
+                  - text: Choose
+              - generic [ref=e858]:
+                - generic [ref=e860]:
+                  - generic [ref=e861]: Fit
+                  - generic [ref=e862]: How the image scales to the area.
+                - generic [ref=e863]:
+                  - button "Cover" [pressed] [ref=e864]:
+                    - generic [ref=e865]: Cover
+                  - button "Contain" [ref=e866]:
+                    - generic [ref=e867]: Contain
+                  - button "Auto" [ref=e868]:
+                    - generic [ref=e869]: Auto
+                  - button "Tile" [ref=e870]:
+                    - generic [ref=e871]: Tile
+              - generic [ref=e872]:
+                - generic [ref=e874]:
+                  - generic [ref=e875]: Scope
+                  - generic [ref=e876]: Page covers the full viewport; Content only paints inside the main area.
+                - generic [ref=e877]:
+                  - button "Page" [pressed] [ref=e878]:
+                    - generic [ref=e879]: Page
+                  - button "Content only" [ref=e880]:
+                    - generic [ref=e881]: Content only
+              - generic [ref=e882]:
+                - generic [ref=e884]:
+                  - generic [ref=e885]: Opacity
+                  - generic [ref=e886]: Fade the image so foreground text stays readable.
+                - generic [ref=e887]:
+                  - slider [ref=e892]
+                  - generic [ref=e893]: 100%
+              - generic [ref=e894]:
+                - generic [ref=e896]:
+                  - generic [ref=e897]: Blur
+                  - generic [ref=e898]: Soften the image so it doesn't fight the typing surface.
+                - generic [ref=e899]:
+                  - slider [ref=e903]
+                  - generic [ref=e904]: 0px
+              - generic [ref=e905]:
+                - generic [ref=e907]:
+                  - generic [ref=e908]: Darken
+                  - generic [ref=e909]: Black overlay strength on top of the image.
+                - generic [ref=e910]:
+                  - slider [ref=e915]
+                  - generic [ref=e916]: 70%
+          - generic [ref=e917]:
+            - generic [ref=e918]:
+              - generic [ref=e921]: Heads-up
+              - generic [ref=e923]:
+                - heading "Live stats" [level=3] [ref=e924]
+                - paragraph [ref=e925]: WPM and accuracy ticker rendered alongside the passage. Colour, opacity, style (off / text / mini / flash), unit and decimal toggle all reflect in the real Readouts strip.
+            - generic [ref=e929]:
+              - generic [ref=e930]:
+                - generic [ref=e931]:
+                  - generic [ref=e932]: ELAPSED
+                  - generic [ref=e933]: 0:12
+                - generic [ref=e934]:
+                  - generic [ref=e935]: WORD
+                  - generic [ref=e936]: 5/9
+              - generic [ref=e937]:
+                - generic [ref=e938]:
+                  - generic [ref=e939]: WPM
+                  - generic [ref=e940]: "64"
+                - generic [ref=e941]:
+                  - generic [ref=e942]: ACC
+                  - generic [ref=e943]: 96%
+                - generic [ref=e944]:
+                  - generic [ref=e945]: ERR
+                  - generic [ref=e946]: "1"
+            - generic [ref=e948]:
+              - generic [ref=e949]:
+                - generic [ref=e951]:
+                  - generic [ref=e952]: Live progress style
+                  - generic [ref=e953]: Timer / word count style during a test. Flash briefly shows the timer every 15 seconds in timed modes.
+                - generic [ref=e954]:
+                  - button "Off" [ref=e955]:
+                    - generic [ref=e956]: "Off"
+                  - button "Text" [pressed] [ref=e957]:
+                    - generic [ref=e958]: Text
+                  - button "Mini" [ref=e959]:
+                    - generic [ref=e960]: Mini
+                  - button "Flash" [ref=e961]:
+                    - generic [ref=e962]: Flash
+              - generic [ref=e963]:
+                - generic [ref=e965]:
+                  - generic [ref=e966]: Live speed style
+                  - generic [ref=e967]: Style of the live speed shown during the test.
+                - generic [ref=e968]:
+                  - button "Off" [ref=e969]:
+                    - generic [ref=e970]: "Off"
+                  - button "Text" [pressed] [ref=e971]:
+                    - generic [ref=e972]: Text
+                  - button "Mini" [ref=e973]:
+                    - generic [ref=e974]: Mini
+                  - button "Flash" [ref=e975]:
+                    - generic [ref=e976]: Flash
+              - generic [ref=e977]:
+                - generic [ref=e979]:
+                  - generic [ref=e980]: Live accuracy style
+                  - generic [ref=e981]: Style of the live accuracy shown during the test.
+                - generic [ref=e982]:
+                  - button "Off" [ref=e983]:
+                    - generic [ref=e984]: "Off"
+                  - button "Text" [pressed] [ref=e985]:
+                    - generic [ref=e986]: Text
+                  - button "Mini" [ref=e987]:
+                    - generic [ref=e988]: Mini
+                  - button "Flash" [ref=e989]:
+                    - generic [ref=e990]: Flash
+              - generic [ref=e991]:
+                - generic [ref=e993]:
+                  - generic [ref=e994]: Live burst style
+                  - generic [ref=e995]: Style of the live burst speed shown during the test.
+                - generic [ref=e996]:
+                  - button "Off" [pressed] [ref=e997]:
+                    - generic [ref=e998]: "Off"
+                  - button "Text" [ref=e999]:
+                    - generic [ref=e1000]: Text
+                  - button "Mini" [ref=e1001]:
+                    - generic [ref=e1002]: Mini
+                  - button "Flash" [ref=e1003]:
+                    - generic [ref=e1004]: Flash
+              - generic [ref=e1006]:
+                - generic [ref=e1007]: Live stats color
+                - generic [ref=e1008]: Color of the progress, live speed, accuracy and burst text.
+                - button "Pick Live stats color" [ref=e1011]:
+                  - text: Default
+                  - img
+              - generic [ref=e1013]:
+                - generic [ref=e1015]:
+                  - generic [ref=e1016]: Live stats opacity
+                  - generic [ref=e1017]: Opacity of the progress, speed, burst and accuracy text.
+                - generic [ref=e1018]:
+                  - slider [ref=e1023]
+                  - generic [ref=e1024]: 100%
+          - generic [ref=e1025]:
+            - generic [ref=e1026]:
+              - generic [ref=e1029]: Surface
+              - generic [ref=e1031]:
+                - heading "Typing area" [level=3] [ref=e1032]
+                - paragraph [ref=e1033]: Line count, max width, tape vs free-flow, smooth scroll. The passage above is the same component the test screen runs — every toggle moves it live.
+            - generic [ref=e1039]:
+              - generic [ref=e1040]: the
+              - generic [ref=e1042]: quicx
+              - generic [ref=e1043]: brown
+              - generic [ref=e1044]: fox
+              - generic [ref=e1046]: jumps
+              - generic [ref=e1047]: over
+              - generic [ref=e1048]: the
+              - generic [ref=e1049]: lazy
+              - generic [ref=e1050]: dog
+            - generic [ref=e1052]:
+              - generic [ref=e1053]:
+                - generic [ref=e1055]:
+                  - generic [ref=e1056]: Highlight mode
+                  - generic [ref=e1057]: What gets highlighted as you type.
+                - generic [ref=e1058]:
+                  - button "Off" [ref=e1059]:
+                    - generic [ref=e1060]: "Off"
+                  - button "Letter" [pressed] [ref=e1061]:
+                    - generic [ref=e1062]: Letter
+                  - button "Word" [ref=e1063]:
+                    - generic [ref=e1064]: Word
+                  - button "Next word" [ref=e1065]:
+                    - generic [ref=e1066]: Next word
+                  - button "Next letter" [ref=e1067]:
+                    - generic [ref=e1068]: Next letter
+              - generic [ref=e1069]:
+                - generic [ref=e1071]:
+                  - generic [ref=e1072]: Typed effect
+                  - generic [ref=e1073]: How typed words are shown.
+                - generic [ref=e1074]:
+                  - button "Off" [pressed] [ref=e1075]:
+                    - generic [ref=e1076]: "Off"
+                  - button "Fade" [ref=e1077]:
+                    - generic [ref=e1078]: Fade
+                  - button "Strike" [ref=e1079]:
+                    - generic [ref=e1080]: Strike
+              - generic [ref=e1081]:
+                - generic [ref=e1083]:
+                  - generic [ref=e1084]: Mark incomplete words
+                  - generic [ref=e1085]: Underline a word in red when you press space before finishing it. Off keeps the passage quiet — accuracy still counts the skip.
+                - generic [ref=e1086]:
+                  - button "Off" [ref=e1087]:
+                    - generic [ref=e1088]: "Off"
+                  - button "On" [pressed] [ref=e1089]:
+                    - generic [ref=e1090]: "On"
+              - generic [ref=e1091]:
+                - generic [ref=e1093]:
+                  - generic [ref=e1094]: Tape mode
+                  - generic [ref=e1095]: One scrolling line. Word scrolls per word, Letter scrolls per keypress. Best with smooth scroll + a mono font.
+                - generic [ref=e1096]:
+                  - button "Off" [pressed] [ref=e1097]:
+                    - generic [ref=e1098]: "Off"
+                  - button "Word" [ref=e1099]:
+                    - generic [ref=e1100]: Word
+                  - button "Letter" [ref=e1101]:
+                    - generic [ref=e1102]: Letter
+              - generic [ref=e1103]:
+                - generic [ref=e1105]:
+                  - generic [ref=e1106]: Tape margin
+                  - generic [ref=e1107]: Caret position from the left edge of the typing test (50% centers it).
+                - generic [ref=e1108]:
+                  - slider [ref=e1113]
+                  - generic [ref=e1114]: 50%
+              - generic [ref=e1115]:
+                - generic [ref=e1117]:
+                  - generic [ref=e1118]: Smooth line scroll
+                  - generic [ref=e1119]: Animate line transitions instead of jumping.
+                - generic [ref=e1120]:
+                  - button "Off" [ref=e1121]:
+                    - generic [ref=e1122]: "Off"
+                  - button "On" [pressed] [ref=e1123]:
+                    - generic [ref=e1124]: "On"
+              - generic [ref=e1125]:
+                - generic [ref=e1127]:
+                  - generic [ref=e1128]: Lines rendered
+                  - generic [ref=e1129]: How many lines of the passage are visible at once. Pick a number, or All to fill the available height.
+                - generic [ref=e1130]:
+                  - spinbutton "Lines rendered" [ref=e1131]: "3"
+                  - button "All" [ref=e1132]:
+                    - generic [ref=e1133]: All
+              - generic [ref=e1134]:
+                - generic [ref=e1136]:
+                  - generic [ref=e1137]: Max line width
+                  - generic [ref=e1138]: Maximum width of the typing test in characters. 0 aligns words to the content edges.
+                - generic [ref=e1139]:
+                  - slider [ref=e1144]
+                  - generic [ref=e1145]: "80"
+          - generic [ref=e1146]:
+            - generic [ref=e1147]:
+              - generic [ref=e1150]: Outcome
+              - generic [ref=e1152]:
+                - heading "Result screen" [level=3] [ref=e1153]
+                - paragraph [ref=e1154]: What the post-test screen shows. The preview embeds the real result components (BigStats and WpmTrace) so the layout, type ramp, and chart shape are exactly what the user sees after a run.
+            - generic [ref=e1158]:
+              - generic [ref=e1159]:
+                - generic [ref=e1160]:
+                  - generic [ref=e1161]:
+                    - generic [ref=e1162]: wpm
+                    - generic [ref=e1163]: "57"
+                  - generic [ref=e1164]:
+                    - generic [ref=e1165]: acc
+                    - generic [ref=e1166]: 94.3%
+                  - generic [ref=e1167]:
+                    - generic [ref=e1168]: test type
+                    - generic [ref=e1169]: words 9
+                    - generic [ref=e1170]: english
+                - generic [ref=e1172]:
+                  - application [ref=e1176]:
+                    - generic [ref=e1193]:
+                      - generic [ref=e1194]:
+                        - generic [ref=e1196]: 1s
+                        - generic [ref=e1198]: 2s
+                        - generic [ref=e1200]: 3s
+                        - generic [ref=e1202]: 4s
+                        - generic [ref=e1204]: 5s
+                        - generic [ref=e1206]: 6s
+                        - generic [ref=e1208]: 7s
+                        - generic [ref=e1210]: 8s
+                        - generic [ref=e1212]: 9s
+                      - generic [ref=e1213]:
+                        - generic [ref=e1215]: "40"
+                        - generic [ref=e1217]: "50"
+                        - generic [ref=e1219]: "60"
+                        - generic [ref=e1221]: "70"
+                        - generic [ref=e1223]: "80"
+                  - generic [ref=e1225]:
+                    - generic [ref=e1226]: errors over time
+                    - generic [ref=e1227]: 2 total · peak 1/s
+              - generic [ref=e1238]:
+                - generic [ref=e1239]:
+                  - generic [ref=e1240]: raw
+                  - generic [ref=e1241]: "61"
+                - generic [ref=e1242]:
+                  - generic [ref=e1243]: peak
+                  - generic [ref=e1244]: "68"
+                - generic [ref=e1245]:
+                  - generic [ref=e1246]: avg
+                  - generic [ref=e1247]: "57"
+                - generic [ref=e1248]:
+                  - generic [ref=e1249]: stall
+                  - generic [ref=e1250]: "42"
+                - generic [ref=e1251]:
+                  - generic [ref=e1252]: consistency
+                  - generic [ref=e1253]: 87%
+                - generic [ref=e1254]:
+                  - generic [ref=e1255]: errors
+                  - generic [ref=e1256]: "2"
+                - generic [ref=e1257]:
+                  - generic [ref=e1258]: time
+                  - generic [ref=e1259]: 9s
+            - generic [ref=e1261]:
+              - generic [ref=e1262]:
+                - generic [ref=e1264]:
+                  - generic [ref=e1265]: Always show decimal places
+                  - generic [ref=e1266]: Show decimals on the result page without needing to hover.
+                - generic [ref=e1267]:
+                  - button "Off" [pressed] [ref=e1268]:
+                    - generic [ref=e1269]: "Off"
+                  - button "On" [ref=e1270]:
+                    - generic [ref=e1271]: "On"
+              - generic [ref=e1272]:
+                - generic [ref=e1274]:
+                  - generic [ref=e1275]: Typing speed unit
+                  - generic [ref=e1276]: Display typing speed in the chosen unit.
+                - generic [ref=e1277]:
+                  - button "WPM" [pressed] [ref=e1278]:
+                    - generic [ref=e1279]: WPM
+                  - button "CPM" [ref=e1280]:
+                    - generic [ref=e1281]: CPM
+                  - button "WPS" [ref=e1282]:
+                    - generic [ref=e1283]: WPS
+                  - button "CPS" [ref=e1284]:
+                    - generic [ref=e1285]: CPS
+                  - button "WPH" [ref=e1286]:
+                    - generic [ref=e1287]: WPH
+              - generic [ref=e1288]:
+                - generic [ref=e1290]:
+                  - generic [ref=e1291]: Start graphs at zero
+                  - generic [ref=e1292]: Force the graph axis to start at zero. Off may exaggerate value changes.
+                - generic [ref=e1293]:
+                  - button "Off" [pressed] [ref=e1294]:
+                    - generic [ref=e1295]: "Off"
+                  - button "On" [ref=e1296]:
+                    - generic [ref=e1297]: "On"
+              - generic [ref=e1298]:
+                - generic [ref=e1300]:
+                  - generic [ref=e1301]: Run shape stats
+                  - generic [ref=e1302]: Longest streak, words finished, pause count, longest pause.
+                - generic [ref=e1303]:
+                  - button "Off" [pressed] [ref=e1304]:
+                    - generic [ref=e1305]: "Off"
+                  - button "On" [ref=e1306]:
+                    - generic [ref=e1307]: "On"
+              - generic [ref=e1308]:
+                - generic [ref=e1310]:
+                  - generic [ref=e1311]: Slowest letters
+                  - generic [ref=e1312]: Top eight unique characters by average keystroke latency.
+                - generic [ref=e1313]:
+                  - button "Off" [pressed] [ref=e1314]:
+                    - generic [ref=e1315]: "Off"
+                  - button "On" [ref=e1316]:
+                    - generic [ref=e1317]: "On"
+              - generic [ref=e1318]:
+                - generic [ref=e1320]:
+                  - generic [ref=e1321]: Hand balance
+                  - generic [ref=e1322]: Left vs right hand load split across the run's keystrokes.
+                - generic [ref=e1323]:
+                  - button "Off" [pressed] [ref=e1324]:
+                    - generic [ref=e1325]: "Off"
+                  - button "On" [ref=e1326]:
+                    - generic [ref=e1327]: "On"
+              - generic [ref=e1328]:
+                - generic [ref=e1330]:
+                  - generic [ref=e1331]: Passage heatmap
+                  - generic [ref=e1332]: The run's passage tinted per-letter by keystroke latency.
+                - generic [ref=e1333]:
+                  - button "Off" [pressed] [ref=e1334]:
+                    - generic [ref=e1335]: "Off"
+                  - button "On" [ref=e1336]:
+                    - generic [ref=e1337]: "On"
+          - generic [ref=e1338]:
+            - generic [ref=e1339]:
+              - generic [ref=e1342]: Layout
+              - generic [ref=e1344]:
+                - heading "Keymap" [level=3] [ref=e1345]
+                - paragraph [ref=e1346]: Hand-layout that powers the heatmap and ergonomic stats. The preview reacts to every keymap setting; switching layout swaps the legend live.
+            - img "virtual keyboard, QWERTY layout" [ref=e1349]:
+              - generic [ref=e1350]:
+                - generic [ref=e1351]:
+                  - generic [ref=e1352]:
+                    - generic: ~
+                    - generic [ref=e1353]: "`"
+                  - generic [ref=e1354]:
+                    - generic: "!"
+                    - generic [ref=e1355]: "1"
+                  - generic [ref=e1356]:
+                    - generic: "@"
+                    - generic [ref=e1357]: "2"
+                  - generic [ref=e1358]:
+                    - generic: "#"
+                    - generic [ref=e1359]: "3"
+                  - generic [ref=e1360]:
+                    - generic: $
+                    - generic [ref=e1361]: "4"
+                  - generic [ref=e1362]:
+                    - generic: "%"
+                    - generic [ref=e1363]: "5"
+                  - generic [ref=e1364]:
+                    - generic: ^
+                    - generic [ref=e1365]: "6"
+                  - generic [ref=e1366]:
+                    - generic: "&"
+                    - generic [ref=e1367]: "7"
+                  - generic [ref=e1368]:
+                    - generic: "*"
+                    - generic [ref=e1369]: "8"
+                  - generic [ref=e1370]:
+                    - generic: (
+                    - generic [ref=e1371]: "9"
+                  - generic [ref=e1372]:
+                    - generic: )
+                    - generic [ref=e1373]: "0"
+                  - generic [ref=e1374]:
+                    - generic: _
+                    - generic [ref=e1375]: "-"
+                  - generic [ref=e1376]:
+                    - generic: +
+                    - generic [ref=e1377]: =
+                  - img [ref=e1379]
+                - generic [ref=e1383]:
+                  - generic [ref=e1385]: Tab
+                  - generic [ref=e1387]: q
+                  - generic [ref=e1389]: w
+                  - generic [ref=e1391]: e
+                  - generic [ref=e1393]: r
+                  - generic [ref=e1395]: t
+                  - generic [ref=e1397]: "y"
+                  - generic [ref=e1399]: u
+                  - generic [ref=e1401]: i
+                  - generic [ref=e1403]: o
+                  - generic [ref=e1405]: p
+                  - generic [ref=e1406]:
+                    - generic: "{"
+                    - generic [ref=e1407]: "["
+                  - generic [ref=e1408]:
+                    - generic: "}"
+                    - generic [ref=e1409]: "]"
+                  - generic [ref=e1410]:
+                    - generic: "|"
+                    - generic [ref=e1411]: \
+                - generic [ref=e1412]:
+                  - generic [ref=e1414]: Caps
+                  - generic [ref=e1416]: a
+                  - generic [ref=e1418]: s
+                  - generic [ref=e1420]: d
+                  - generic [ref=e1422]: f
+                  - generic [ref=e1424]: g
+                  - generic [ref=e1426]: h
+                  - generic [ref=e1428]: j
+                  - generic [ref=e1430]: k
+                  - generic [ref=e1432]: l
+                  - generic [ref=e1433]:
+                    - generic: ":"
+                    - generic [ref=e1434]: ;
+                  - generic [ref=e1435]:
+                    - generic: "\""
+                    - generic [ref=e1436]: "'"
+                  - img [ref=e1438]
+                - generic [ref=e1441]:
+                  - img [ref=e1443]
+                  - generic [ref=e1446]: z
+                  - generic [ref=e1448]: x
+                  - generic [ref=e1450]: c
+                  - generic [ref=e1452]: v
+                  - generic [ref=e1454]: b
+                  - generic [ref=e1456]: "n"
+                  - generic [ref=e1458]: m
+                  - generic [ref=e1459]:
+                    - generic: <
+                    - generic [ref=e1460]: ","
+                  - generic [ref=e1461]:
+                    - generic: ">"
+                    - generic [ref=e1462]: .
+                  - generic [ref=e1463]:
+                    - generic: "?"
+                    - generic [ref=e1464]: /
+                  - img [ref=e1466]
+                - generic [ref=e1468]:
+                  - img [ref=e1470]
+                  - img [ref=e1473]
+                  - img [ref=e1476]
+                  - img [ref=e1480]
+                  - img [ref=e1483]
+                  - img [ref=e1486]
+                  - img [ref=e1488]
+            - generic [ref=e1491]:
+              - generic [ref=e1492]:
+                - generic [ref=e1494]:
+                  - generic [ref=e1495]: Keymap
+                  - generic [ref=e1496]: Show your layout while typing. React shows what you pressed; Next shows what to press next.
+                - generic [ref=e1497]:
+                  - button "Off" [ref=e1498]:
+                    - generic [ref=e1499]: "Off"
+                  - button "Static" [ref=e1500]:
+                    - generic [ref=e1501]: Static
+                  - button "React" [pressed] [ref=e1502]:
+                    - generic [ref=e1503]: React
+                  - button "Next" [ref=e1504]:
+                    - generic [ref=e1505]: Next
+              - generic [ref=e1506]:
+                - generic [ref=e1508]:
+                  - generic [ref=e1509]: Keymap layout
+                  - generic [ref=e1510]: Which layout the keymap displays.
+                - generic [ref=e1511]:
+                  - button "QWERTY" [pressed] [ref=e1512]:
+                    - generic [ref=e1513]: QWERTY
+                  - button "Dvorak" [ref=e1514]:
+                    - generic [ref=e1515]: Dvorak
+                  - button "Colemak" [ref=e1516]:
+                    - generic [ref=e1517]: Colemak
+              - generic [ref=e1518]:
+                - generic [ref=e1520]:
+                  - generic [ref=e1521]: Keymap style
+                  - generic [ref=e1522]: Physical layout style.
+                - generic [ref=e1523]:
+                  - button "Staggered" [pressed] [ref=e1524]:
+                    - generic [ref=e1525]: Staggered
+                  - button "Matrix" [ref=e1526]:
+                    - generic [ref=e1527]: Matrix
+                  - button "Split" [ref=e1528]:
+                    - generic [ref=e1529]: Split
+                  - button "Alice" [ref=e1530]:
+                    - generic [ref=e1531]: Alice
+              - generic [ref=e1532]:
+                - generic [ref=e1534]:
+                  - generic [ref=e1535]: Keymap legend
+                  - generic [ref=e1536]: How key labels are rendered.
+                - generic [ref=e1537]:
+                  - button "Lower" [pressed] [ref=e1538]:
+                    - generic [ref=e1539]: Lower
+                  - button "Upper" [ref=e1540]:
+                    - generic [ref=e1541]: Upper
+                  - button "Blank" [ref=e1542]:
+                    - generic [ref=e1543]: Blank
+                  - button "Dynamic" [ref=e1544]:
+                    - generic [ref=e1545]: Dynamic
+              - generic [ref=e1546]:
+                - generic [ref=e1548]:
+                  - generic [ref=e1549]: Keymap top row
+                  - generic [ref=e1550]: Whether to render the top number row.
+                - generic [ref=e1551]:
+                  - button "Always" [ref=e1552]:
+                    - generic [ref=e1553]: Always
+                  - button "Layout" [pressed] [ref=e1554]:
+                    - generic [ref=e1555]: Layout
+                  - button "Never" [ref=e1556]:
+                    - generic [ref=e1557]: Never
+              - generic [ref=e1558]:
+                - generic [ref=e1560]:
+                  - generic [ref=e1561]: Keymap size
+                  - generic [ref=e1562]: Scale of the keymap.
+                - generic [ref=e1563]:
+                  - slider [ref=e1568]
+                  - generic [ref=e1569]: "1.0"
+              - generic [ref=e1570]:
+                - generic [ref=e1572]:
+                  - generic [ref=e1573]: Compact
+                  - generic [ref=e1574]: Drop modifier keys (Tab, Caps, Shift, Ctrl, Alt, Enter, Backspace, Space) and render only the letter grid. Useful when the keymap competes with the typing area for vertical space.
+                - generic [ref=e1575]:
+                  - button "Off" [pressed] [ref=e1576]:
+                    - generic [ref=e1577]: "Off"
+                  - button "On" [ref=e1578]:
+                    - generic [ref=e1579]: "On"
+          - generic [ref=e1580]:
+            - generic [ref=e1581]:
+              - generic [ref=e1584]: Race
+              - generic [ref=e1586]:
+                - heading "Multiplayer" [level=3] [ref=e1587]
+                - paragraph [ref=e1588]: How live opponents read in /race. Today's only race surface is the 1v3 bot race, but the rule of thumb still holds — visuals here only affect surfaces with more than one racer.
+            - generic [ref=e1591]:
+              - generic [ref=e1593]:
+                - generic [ref=e1594]: Show player colours
+                - generic [ref=e1595]: Paint a coloured underline beneath each opponent's current word in the race passage so you can spot where everyone is at a glance.
+              - generic [ref=e1596]:
+                - button "Off" [pressed] [ref=e1597]:
+                  - generic [ref=e1598]: "Off"
+                - button "On" [ref=e1599]:
+                  - generic [ref=e1600]: "On"
+    - contentinfo [ref=e1601]:
+      - generic [ref=e1602]: FLINTTYPE © MMXXVI
+      - navigation "Footer" [ref=e1603]:
+        - link "GitHub" [ref=e1604] [cursor=pointer]:
+          - /url: https://github.com/F12-Syntex/FlintType
+        - link "Settings" [ref=e1605] [cursor=pointer]:
+          - /url: /customise
+        - link "Changelog" [ref=e1606] [cursor=pointer]:
+          - /url: /changelog
+        - link "Privacy" [ref=e1607] [cursor=pointer]:
+          - /url: /privacy
+  - alert [ref=e1608]
+  - generic [ref=e1609]: "40"
