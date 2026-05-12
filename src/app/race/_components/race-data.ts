@@ -162,22 +162,30 @@ export function progressOf(correctChars: number, totalChars: number): number {
   return Math.max(0, Math.min(1, correctChars / totalChars));
 }
 
-/** Stable per-racer colour for the multiplayer overlay. Lifts from
- *  the project's `--chart-*` palette so the values inherit the
- *  active theme (light / dark / community palette) instead of
- *  burning in hex. The human stays on `--primary`; bots draw from
- *  the chart slots so they're distinguishable from each other and
- *  from the brand spark. */
+/** Stable per-racer colour for the multiplayer overlay. The human
+ *  stays on `--primary` (the brand spark); opponents draw from a
+ *  hardcoded blue / teal / violet triplet that's far from both the
+ *  destructive red (hue ≈ 25) and the flinttype coral primary
+ *  (hue ≈ 35), so an opponent never reads as an error and never
+ *  competes with your own colour. We hardcode the OKLCH values
+ *  rather than pull from `--chart-*` because community palettes
+ *  shuffle those slots — one palette's `--chart-3` is destructive
+ *  red, which would silently break the "never look like an error"
+ *  invariant. Hand-tuned lightness 0.65–0.70 keeps the swatches
+ *  readable on both light and dark surfaces. */
 export function playerColorFor(id: string): string {
   switch (id) {
     case "you":
       return "var(--primary)";
     case "damiel":
-      return "var(--chart-4)";
+      // Cobalt blue — hue 250, deep enough to differ from teal.
+      return "oklch(0.65 0.18 250)";
     case "selan":
-      return "var(--chart-3)";
+      // Teal — hue 195, well clear of both red and the coral primary.
+      return "oklch(0.70 0.13 195)";
     case "kassia":
-      return "var(--chart-5)";
+      // Violet — hue 305, distinctive against the other two.
+      return "oklch(0.68 0.20 305)";
     default:
       return "var(--muted-foreground)";
   }

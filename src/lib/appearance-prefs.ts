@@ -188,9 +188,11 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   // marathon-length.
   burstReps: 5,
 
-  // Off by default — keeps the single-accent baseline on /race.
-  // Users who want to see live opponent positions flip this on.
-  multiplayerPlayerColors: false,
+  // On by default — a race is a multi-racer surface and the user
+  // expects opponents to be visually distinct out of the box.
+  // Single-accent purists can flip it off to drop back to the
+  // editorial baseline.
+  multiplayerPlayerColors: true,
   multiplayerOpponentStrip: false,
   // `text` is the right default *when* player colours are on —
   // letters bleeding back toward you reads more clearly than a soft

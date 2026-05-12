@@ -247,11 +247,12 @@ type MockOpponent = { id: string; color: string; reachedWord: number };
 // Slowest first — matches the slowest-first sort in RacePassage so
 // the rendered tide reads identically. With the preview cursor at
 // word 4, kassia sits one word behind, selan two ahead, damiel five
-// ahead — every marker mode has a visible read.
+// ahead — every marker mode has a visible read. Colours kept in
+// sync with `playerColorFor` so the preview matches the race.
 const MOCK_OPPONENTS: readonly MockOpponent[] = [
-  { id: "kassia", color: "var(--chart-5)", reachedWord: 3 },
-  { id: "selan", color: "var(--chart-3)", reachedWord: 6 },
-  { id: "damiel", color: "var(--chart-4)", reachedWord: 9 },
+  { id: "kassia", color: "oklch(0.68 0.20 305)", reachedWord: 3 },
+  { id: "selan", color: "oklch(0.70 0.13 195)", reachedWord: 6 },
+  { id: "damiel", color: "oklch(0.65 0.18 250)", reachedWord: 9 },
 ];
 const MOCK_USER_CURSOR = 4;
 

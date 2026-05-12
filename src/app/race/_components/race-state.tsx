@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
-import { calcWpmAndRaw, countChars } from "@/lib/wpm";
+import { calcWpmAndRaw } from "@/lib/wpm";
 import { usePractice } from "../../_components/practice-state";
 import {
   BOT_TICK_MS,
@@ -61,8 +61,22 @@ const Ctx = createContext<RaceCtx | null>(null);
 function useYouSnapshot(raceStartedAt: number | null, raceNowMs: number) {
   const { state } = usePractice();
   return useMemo(() => {
-    const counts = countChars(state.typed, state.words, true);
-    const correctChars = counts.allCorrectChars + counts.correctSpaces;
+    // Race progress = cursor position in the passage, NOT correct-char
+    // count. A user who mistypes still moves forward through the
+    // passage (the cursor advances, words commit on space even when
+    // mis-typed) — pinning the lane bar on `correctChars` would stall
+    // it on every error and undercount how far they actually are. For
+    // each typed word, the user has advanced past `min(typed.len,
+    // word.len)` chars of the target, plus one space between completed
+    // words. Extras (typed > target) cap at the word length so a long
+    // overshoot doesn't push progress past 100 %.
+    let progressChars = 0;
+    for (let i = 0; i < state.typed.length; i += 1) {
+      const t = state.typed[i] ?? "";
+      const w = state.words[i] ?? "";
+      progressChars += Math.min(t.length, w.length);
+      if (i < state.typed.length - 1) progressChars += 1;
+    }
     const elapsedMs =
       raceStartedAt != null ? Math.max(0, raceNowMs - raceStartedAt) : 0;
     const wpm =
@@ -70,7 +84,7 @@ function useYouSnapshot(raceStartedAt: number | null, raceNowMs: number) {
         ? calcWpmAndRaw(state.typed, state.words, elapsedMs, true).wpm
         : 0;
     return {
-      correctChars,
+      correctChars: progressChars,
       wpm: Math.max(0, Math.round(wpm)),
       finished: state.phase === "done",
     };

@@ -62,7 +62,7 @@ export function RaceLanes() {
 
 function WaitingSlot({ pos }: { pos: number }) {
   return (
-    <div className="grid grid-cols-[28px_1fr_auto] items-center gap-3 sm:grid-cols-[36px_240px_1fr_90px] sm:gap-3.5">
+    <div className="grid grid-cols-[28px_1fr] items-center gap-3 sm:grid-cols-[36px_220px_minmax(0,1fr)] sm:gap-3.5">
       <span className="text-sm font-bold tabular-nums text-muted-foreground/40">
         {String(pos).padStart(2, "0")}
       </span>
@@ -73,12 +73,9 @@ function WaitingSlot({ pos }: { pos: number }) {
         </span>
       </div>
       <div
-        className="relative col-span-2 h-5 overflow-hidden rounded-sm border border-dashed border-border/70 bg-muted/30 sm:col-span-1"
+        className="relative col-span-2 h-7 overflow-hidden rounded-sm border border-dashed border-border/70 bg-muted/30 sm:col-span-1"
         aria-hidden
       />
-      <div aria-hidden className="opacity-0">
-        <span className="text-base font-bold tabular-nums">0</span>
-      </div>
     </div>
   );
 }
@@ -105,8 +102,9 @@ function Lane({
   const prog = progressOf(racer.correctChars, totalChars);
   const status = racer.place != null ? `PLACE ${racer.place}` : racer.badge;
   const playerColor = playerColorFor(racer.id);
+  const pct = Math.round(prog * 100);
   return (
-    <div className="grid grid-cols-[28px_1fr_auto] items-center gap-3 sm:grid-cols-[36px_240px_1fr_90px] sm:gap-3.5">
+    <div className="grid grid-cols-[28px_1fr] items-center gap-3 sm:grid-cols-[36px_220px_minmax(0,1fr)] sm:gap-3.5">
       <span
         className={cn(
           "text-sm font-bold tabular-nums",
@@ -143,7 +141,18 @@ function Lane({
           </span>
         </div>
       </div>
-      <div className="relative col-span-2 h-5 overflow-hidden rounded-sm border border-border bg-muted sm:col-span-1">
+      {/* Progress bar stretches across the remaining row width. WPM
+       *  sits in a small pill anchored at the right of the bar so the
+       *  number rides with the lane edge — no separate fixed-width
+       *  column, no "% done" label, no dead space. */}
+      <div
+        className="relative col-span-2 h-7 overflow-hidden rounded-sm border border-border bg-muted sm:col-span-1"
+        aria-label={`${racer.name} progress`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={pct}
+        role="progressbar"
+      >
         <div
           className={cn(
             "absolute top-0 bottom-0 left-0 transition-[width] duration-100 ease-linear",
@@ -171,25 +180,20 @@ function Lane({
           className="absolute top-0 right-0 bottom-0 w-1 bg-primary"
           aria-hidden
         />
-      </div>
-      <div className="flex flex-col items-end">
         {wpmVisible ? (
           <span
             className={cn(
-              "text-base font-bold tabular-nums",
+              "absolute top-1/2 right-2 -translate-y-1/2 rounded-sm bg-background/80 px-1.5 py-0.5",
+              "font-mono text-[11px] font-bold tabular-nums backdrop-blur-[1px]",
               racer.isYou ? "text-primary" : "text-foreground",
             )}
           >
             {racer.wpm}
+            <span className="ml-1 text-[8px] font-medium tracking-[0.14em] text-muted-foreground">
+              WPM
+            </span>
           </span>
-        ) : (
-          <span aria-hidden className="text-base font-bold leading-none text-transparent">
-            —
-          </span>
-        )}
-        <span className="text-[9px] tracking-wide text-muted-foreground tabular-nums">
-          {Math.round(prog * 100)}% done
-        </span>
+        ) : null}
       </div>
     </div>
   );
