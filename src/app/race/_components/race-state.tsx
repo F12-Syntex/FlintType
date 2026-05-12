@@ -111,14 +111,25 @@ export function RaceProvider({
   const youRef = useRef(you);
   youRef.current = you;
 
-  // Block printable typing outside the racing phase so an over-eager
-  // early keystroke doesn't bleed into practice state before GO. We
-  // intercept at the capture phase so the InputCapture's onKeyDown
-  // never sees the event. Letting non-printable keys through keeps
-  // OS shortcuts (cmd-tab, ctrl-r, etc.) working.
+  // Window-level keydown guard for the race surface.
+  //
+  // 1) Tab + Escape are always swallowed — practice-state wires both
+  //    to its `restart` action, which would wipe the user's typed
+  //    progress mid-race. The race has its own Abandon button for
+  //    that intent; accidental Tab/Esc shouldn't reset anyone's run.
+  //
+  // 2) Outside the racing phase we also swallow printable typing +
+  //    Backspace + Space so an over-eager press doesn't bleed into
+  //    practice state before GO fires.
   useEffect(() => {
-    if (state.phase === "racing") return;
+    const isRacing = state.phase === "racing";
     const handler = (e: KeyboardEvent) => {
+      if (e.key === "Tab" || e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      if (isRacing) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key.length > 1 && e.key !== "Backspace" && e.key !== " ") return;
       e.preventDefault();

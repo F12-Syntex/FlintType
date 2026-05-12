@@ -1,4 +1,3 @@
-import { IdentDot } from "@/components/ft";
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../_components/app-chrome";
 import { RaceControls } from "./_components/race-controls";
@@ -18,7 +17,7 @@ export const metadata = buildPageMetadata({
 
 export default function RacePage() {
   return (
-    <AppChrome ident={<IdentDot emberDot>RACE · LIVE</IdentDot>}>
+    <AppChrome>
       <RaceShell>
         <RaceControls />
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px]">

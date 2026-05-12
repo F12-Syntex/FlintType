@@ -9,8 +9,7 @@ import {
 } from "./race-data";
 import { useRace } from "./race-state";
 
-/** Right-rail sidebar. Three live sections:
- *    RACE FEED   — milestones, leader changes, finishes
+/** Right-rail sidebar. Two live sections:
  *    YOUR RUN    — your placement, wpm, accuracy, completion
  *    RACE MODES  — every mode is selectable; clicking swaps the
  *                  passage + bot lineup and resets to lobby. */
@@ -30,37 +29,6 @@ export function RaceSidebar() {
 
   return (
     <aside className="flex flex-col border-t border-border lg:border-t-0 lg:border-l">
-      <Section title="RACE FEED" rightHint={state.phase === "racing" ? "LIVE" : ""}>
-        <div className="flex flex-col gap-2.5">
-          {state.feed.length === 0 ? (
-            <span className="text-[10px] text-muted-foreground">
-              Race events appear here once GO fires.
-            </span>
-          ) : null}
-          {state.feed.map((e, i) => (
-            <div
-              key={i}
-              className="grid grid-cols-[40px_1fr] items-baseline gap-2"
-            >
-              <span className="text-[10px] tabular-nums text-muted-foreground">
-                {formatT(e.t)}
-              </span>
-              <div className="text-[11px] leading-snug">
-                <span
-                  className={cn(
-                    "font-semibold",
-                    e.accent ? "text-primary" : "text-foreground",
-                  )}
-                >
-                  {e.who}
-                </span>{" "}
-                <span className="text-muted-foreground">{e.text}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Section>
-
       <Section title="YOUR RUN">
         <div className="flex flex-col gap-2.5 text-[11px]">
           <Row

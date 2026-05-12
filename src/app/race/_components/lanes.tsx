@@ -5,30 +5,42 @@ import { progressOf } from "./race-data";
 import { useRace } from "./race-state";
 import type { Racer } from "./race-types";
 
-/** Leaderboard strip across the top of the race surface. Sorts by
- *  progress while racing and by final place when finished. Only the
- *  human's bar carries primary; bots stay neutral so the brand spark
- *  remains the user's anchor. */
+/** Leaderboard strip across the top of the race surface. The
+ *  human's lane is pinned to position 01 so it never reshuffles
+ *  with mode changes or bot overtakes — you always look at the
+ *  same row to find yourself. The bots beneath sort by progress
+ *  (or final place once finished). Only your bar carries primary;
+ *  bots stay neutral so the brand spark stays your anchor. */
 export function RaceLanes() {
   const { state } = useRace();
   // Only joined racers appear in the lanes. During the matching
   // phase the user sees themselves + however many bots have already
   // hopped in, growing one row at a time as the schedule fires.
-  const joined = state.racers.filter((r) => r.joinedAt != null);
-  const racers = sortRacers(joined, state.phase);
+  // The user's lane is always lane 01; bot rows sort underneath.
+  const you = state.racers.find((r) => r.isYou && r.joinedAt != null) ?? null;
+  const joinedBots = state.racers.filter(
+    (r) => !r.isYou && r.joinedAt != null,
+  );
+  const bots = sortBots(joinedBots, state.phase);
   const expectedSlots = state.racers.length;
+  const filledSlots = (you ? 1 : 0) + bots.length;
+  // Reserve a fixed min-height equivalent to the maximum 4-racer
+  // grid so the passage below sits at the same vertical position in
+  // every mode. Smaller modes (1v1, sprint, endurance) leave the
+  // remainder as empty space instead of pulling the passage upward.
   return (
-    <div className="flex flex-col gap-3">
-      {racers.map((r, i) => (
+    <div className="flex min-h-[10rem] flex-col gap-3">
+      {you ? <Lane racer={you} pos={1} totalChars={state.totalChars} /> : null}
+      {bots.map((r, i) => (
         <Lane
           key={r.id}
           racer={r}
-          pos={i + 1}
+          pos={i + 2}
           totalChars={state.totalChars}
         />
       ))}
-      {Array.from({ length: expectedSlots - racers.length }).map((_, i) => (
-        <WaitingSlot key={`slot-${i}`} pos={racers.length + i + 1} />
+      {Array.from({ length: expectedSlots - filledSlots }).map((_, i) => (
+        <WaitingSlot key={`slot-${i}`} pos={filledSlots + i + 1} />
       ))}
     </div>
   );
@@ -138,7 +150,7 @@ function Lane({
   );
 }
 
-function sortRacers(racers: readonly Racer[], phase: string): Racer[] {
+function sortBots(racers: readonly Racer[], phase: string): Racer[] {
   const arr = [...racers];
   if (phase === "finished") {
     return arr.sort((a, b) => (a.place ?? 99) - (b.place ?? 99));
