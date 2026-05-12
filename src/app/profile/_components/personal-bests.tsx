@@ -1,63 +1,119 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { PersonalBest } from "./derive-stats";
 import { ProfileSection } from "./profile-section";
 
-/** MonkeyType-style personal bests. Casual first, then Training.
- *  Each mode block carries Time + Words sub-strips with fixed
- *  standard amounts (15s/30s/60s/120s and 10/25/50/100). Empty
- *  cells render with `—` so the user sees what they haven't
- *  attempted — same invitational pattern MT uses on a fresh profile.
- *
- *  Sizes follow ui-law §4 stat-xl (text-4xl sm:text-[44px]) — the
- *  marquee numbers are the page's emotional anchor. */
+/** Personal bests, MonkeyType-style — Time / Words sub-strips with
+ *  fixed standard amounts (15s/30s/60s/120s and 10/25/50/100). The
+ *  chip group above lets the viewer slice by category:
+ *    ALL          — best across every mode
+ *    CASUAL       — casual practice tests only
+ *    MULTIPLAYER  — race-tagged tests only (populates once race
+ *                   submissions are tagged in a future commit)
+ *    PRACTICE     — adaptive practice (training mode)
+ *  Empty cells render with `—` so the user sees what they haven't
+ *  attempted yet — same invitational pattern MT uses. */
 export function PersonalBests({ bests }: { bests: PersonalBest[] }) {
-  const lookup = new Map<string, PersonalBest>();
-  for (const b of bests) lookup.set(`${b.mode}|${b.amount}`, b);
+  const [filter, setFilter] = useState<Category>("all");
+
+  const lookup = useMemo(() => buildLookup(bests, filter), [bests, filter]);
 
   return (
     <ProfileSection label="Personal bests">
-      <div className="flex flex-col gap-8 sm:gap-12">
-        {MODE_ORDER.map((mode) => (
-          <ModeBlock key={mode} mode={mode} lookup={lookup} />
-        ))}
+      <div className="flex flex-col gap-6 sm:gap-8">
+        <CategoryChips value={filter} onChange={setFilter} />
+        <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
+          <SubStrip
+            label="Time"
+            unit="s"
+            amounts={TIME_AMOUNTS}
+            lookup={lookup}
+          />
+          <SubStrip
+            label="Words"
+            unit=""
+            amounts={WORDS_AMOUNTS}
+            lookup={lookup}
+          />
+        </div>
       </div>
     </ProfileSection>
   );
 }
 
-const MODE_ORDER = ["casual", "training"] as const;
+type Category = "all" | "casual" | "multiplayer" | "practice";
+
+const CATEGORY_ORDER: readonly Category[] = [
+  "all",
+  "casual",
+  "multiplayer",
+  "practice",
+];
+
+/** Maps each public category to the underlying mode strings the
+ *  derive layer produces. `multiplayer` reserves a "race" mode for
+ *  when race-finished tests get tagged; today it filters to nothing,
+ *  which surfaces the same "no run yet" empty state as a cold
+ *  category. */
+const CATEGORY_MODES: Record<Category, readonly string[]> = {
+  all: ["casual", "training", "race"],
+  casual: ["casual"],
+  multiplayer: ["race"],
+  practice: ["training"],
+};
 
 const TIME_AMOUNTS = [15, 30, 60, 120] as const;
 const WORDS_AMOUNTS = [10, 25, 50, 100] as const;
 
-function ModeBlock({
-  mode,
-  lookup,
+function buildLookup(
+  bests: readonly PersonalBest[],
+  filter: Category,
+): Map<number, PersonalBest> {
+  const allowed = new Set(CATEGORY_MODES[filter]);
+  const out = new Map<number, PersonalBest>();
+  for (const b of bests) {
+    if (!allowed.has(b.mode)) continue;
+    const existing = out.get(b.amount);
+    if (!existing || b.bestWpm > existing.bestWpm) out.set(b.amount, b);
+  }
+  return out;
+}
+
+function CategoryChips({
+  value,
+  onChange,
 }: {
-  mode: string;
-  lookup: Map<string, PersonalBest>;
+  value: Category;
+  onChange: (next: Category) => void;
 }) {
   return (
-    <div className="flex flex-col gap-4">
-      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground">
-        {prettyMode(mode)}
-      </span>
-      <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
-        <SubStrip
-          label="Time"
-          unit="s"
-          amounts={TIME_AMOUNTS}
-          mode={mode}
-          lookup={lookup}
-        />
-        <SubStrip
-          label="Words"
-          unit=""
-          amounts={WORDS_AMOUNTS}
-          mode={mode}
-          lookup={lookup}
-        />
-      </div>
+    <div
+      role="tablist"
+      aria-label="Personal bests category"
+      className="inline-flex flex-wrap gap-1.5 rounded-md border border-border bg-muted p-1"
+    >
+      {CATEGORY_ORDER.map((id) => {
+        const active = id === value;
+        return (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(id)}
+            className={cn(
+              "rounded-sm px-3 py-1.5 text-[10.5px] font-medium uppercase tracking-[0.18em] transition-colors",
+              active
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {prettyCategory(id)}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -66,14 +122,12 @@ function SubStrip({
   label,
   unit,
   amounts,
-  mode,
   lookup,
 }: {
   label: string;
   unit: string;
   amounts: readonly number[];
-  mode: string;
-  lookup: Map<string, PersonalBest>;
+  lookup: Map<number, PersonalBest>;
 }) {
   return (
     <div className="flex flex-col gap-2 sm:gap-2.5">
@@ -87,7 +141,7 @@ function SubStrip({
               key={amt}
               amount={amt}
               unit={unit}
-              best={lookup.get(`${mode}|${amt}`) ?? null}
+              best={lookup.get(amt) ?? null}
             />
           ))}
         </div>
@@ -105,15 +159,11 @@ function BestCell({
   unit: string;
   best: PersonalBest | null;
 }) {
-  // No bg fill — cells separate via divider hairlines only, matching
-  // the un-carded lifetime-totals strip.
   const empty = best == null;
   return (
     <div className="flex flex-col gap-1.5 px-3 py-4 sm:gap-2 sm:px-4 sm:py-5">
       <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground sm:tracking-[0.18em]">
-        <span
-          className={cn("tabular-nums", empty ? "" : "text-foreground")}
-        >
+        <span className={cn("tabular-nums", empty ? "" : "text-foreground")}>
           {amount}
           {unit}
         </span>
@@ -142,8 +192,10 @@ function BestCell({
   );
 }
 
-function prettyMode(mode: string): string {
-  if (mode === "training") return "Training";
-  if (mode === "casual") return "Casual";
-  return mode;
+function prettyCategory(c: Category): string {
+  if (c === "all") return "All";
+  if (c === "casual") return "Casual";
+  if (c === "multiplayer") return "Multiplayer";
+  if (c === "practice") return "Practice";
+  return c;
 }

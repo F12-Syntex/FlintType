@@ -9,11 +9,11 @@ import {
   useRef,
   type ReactNode,
 } from "react";
+import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { calcWpmAndRaw, countChars } from "@/lib/wpm";
 import { usePractice } from "../../_components/practice-state";
 import {
   BOT_TICK_MS,
-  COUNTDOWN_SECONDS,
   instantBotWpm,
   TRACE_SAMPLE_MS,
   type RaceModeId,
@@ -30,10 +30,13 @@ export type RaceCtx = {
   enterQueue: () => void;
   startCountdown: () => void;
   /** Race-again: restart the same mode with a new passage. Skips
-   *  queue/matching — bots stay at the table. */
+   *  queue/matching — bots stay at the table, auto-countdown fires. */
   restart: () => void;
-  /** Force re-matching: same mode + new bot lineup intro. Useful
-   *  from finished if the user wants a "find new opponents" loop. */
+  /** Abandon: leave the current race and drop back to the queue
+   *  state with no bots present. The user has to actively press
+   *  Find race to start a new match — no auto-countdown. */
+  abandon: () => void;
+  /** Force re-matching: same mode + new bot lineup intro. */
   rematch: () => void;
   dispatch: React.Dispatch<Action>;
   /** Countdown integer (3..2..1..0). Null outside countdown. */
@@ -106,6 +109,11 @@ export function RaceProvider({
   const [state, dispatch] = useReducer(reducer, undefined, () =>
     freshState(modeId, raceSeed, Date.now(), withQueue),
   );
+  const { prefs: appearance } = useAppearancePrefs();
+  const countdownSeconds = Math.max(
+    1,
+    Math.min(5, appearance.multiplayerCountdownSeconds),
+  );
 
   const you = useYouSnapshot(state.raceStartedAt, state.nowMs);
   const youRef = useRef(you);
@@ -113,20 +121,34 @@ export function RaceProvider({
 
   // Window-level keydown guard for the race surface.
   //
-  // 1) Tab + Escape are always swallowed — practice-state wires both
-  //    to its `restart` action, which would wipe the user's typed
-  //    progress mid-race. The race has its own Abandon button for
-  //    that intent; accidental Tab/Esc shouldn't reset anyone's run.
+  // 1) Tab + Escape are always swallowed at the capture phase so
+  //    practice-state's wired-up restart action can't reach them
+  //    and wipe the user's typed progress mid-race.
   //
-  // 2) Outside the racing phase we also swallow printable typing +
-  //    Backspace + Space so an over-eager press doesn't bleed into
-  //    practice state before GO fires.
+  // 2) Outside the racing phase, Tab starts a new race — same
+  //    intent practice uses for Tab=restart, mapped to the race
+  //    equivalent (Find race in queue, Race again in finished).
+  //
+  // 3) Outside racing we also swallow printable typing + Backspace
+  //    + Space so an over-eager press doesn't bleed into practice
+  //    state before GO fires.
   useEffect(() => {
     const isRacing = state.phase === "racing";
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Tab" || e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
+        if (isRacing) return;
+        // Tab outside of racing is the "start a new race" shortcut.
+        // The action it triggers depends on phase so the keystroke
+        // mirrors whichever button is currently visible.
+        if (state.phase === "queue") {
+          dispatch({ type: "ENTER_QUEUE", now: Date.now() });
+        } else if (state.phase === "finished") {
+          restartShell();
+        }
+        // matching / lobby / countdown: deliberately a no-op — the
+        // race is mid-progression, no second commit needed.
         return;
       }
       if (isRacing) return;
@@ -138,7 +160,7 @@ export function RaceProvider({
     window.addEventListener("keydown", handler, { capture: true });
     return () =>
       window.removeEventListener("keydown", handler, { capture: true });
-  }, [state.phase]);
+  }, [state.phase, restartShell]);
 
   // Auto-start the countdown the moment the lobby fills. The user
   // just watched the lobby populate — they shouldn't need to commit
@@ -184,7 +206,7 @@ export function RaceProvider({
       if (
         state.phase === "countdown" &&
         state.countdownStartedAt != null &&
-        now - state.countdownStartedAt >= COUNTDOWN_SECONDS * 1000
+        now - state.countdownStartedAt >= countdownSeconds * 1000
       ) {
         dispatch({ type: "START_RACE", now });
         return;
@@ -199,7 +221,7 @@ export function RaceProvider({
       });
     }, BOT_TICK_MS);
     return () => clearInterval(id);
-  }, [state.phase, state.countdownStartedAt]);
+  }, [state.phase, state.countdownStartedAt, countdownSeconds]);
 
   // Once-per-second trace sampler. Stored in state but only drawn
   // in the post-race results panel — no live curve to distract from
@@ -244,7 +266,7 @@ export function RaceProvider({
     let countdownNumber: number | null = null;
     if (state.phase === "countdown" && state.countdownStartedAt != null) {
       const left =
-        COUNTDOWN_SECONDS * 1000 - (state.nowMs - state.countdownStartedAt);
+        countdownSeconds * 1000 - (state.nowMs - state.countdownStartedAt);
       countdownNumber = Math.max(0, Math.ceil(left / 1000));
     }
     const elapsedSeconds =
@@ -263,6 +285,7 @@ export function RaceProvider({
       startCountdown: () =>
         dispatch({ type: "START_COUNTDOWN", now: Date.now() }),
       restart: restartShell,
+      abandon: () => enterQueueShell?.(),
       rematch: () => enterQueueShell?.(),
       dispatch,
       ...derived,

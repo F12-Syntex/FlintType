@@ -90,12 +90,25 @@ export type AppearancePrefs = {
    *  top-100 sprint, trigram burst) honours it. Range 1–10. */
   burstReps: number;
 
-  /** Multiplayer — race surface only. When true, each non-you racer
-   *  gets a coloured underline beneath the word they're currently
-   *  typing, so the user can spot where every opponent sits in the
-   *  passage without scanning lane bars. Default off to honour the
-   *  single-accent rule (§2); flip on for live race readability. */
+  /** Multiplayer — race surface only. When true, each racer's lane
+   *  + position marker paints in their own colour pulled from the
+   *  --chart-* palette so opponents are visually distinct. Default
+   *  off to keep the single-accent baseline (§2). */
   multiplayerPlayerColors: boolean;
+  /** Show the live opponent-positions strip below the passage.
+   *  Independent of player colours — the strip can stay off even
+   *  when colours are on, e.g. for a minimal racing surface. */
+  multiplayerOpponentStrip: boolean;
+  /** Bring back the chronological race feed (joins / leader
+   *  changes / milestones / finishes) in the side panel. */
+  multiplayerRaceFeed: boolean;
+  /** Show each opponent's live WPM number in their lane row.
+   *  Off keeps the lanes minimal and shifts the focus to the bars. */
+  multiplayerShowOpponentWpm: boolean;
+  /** Countdown duration in seconds before GO fires (1–5). 3 is
+   *  the standard "3, 2, 1" cadence; speedrunners can drop it to
+   *  1 to skip the wait. */
+  multiplayerCountdownSeconds: number;
 };
 
 export const DEFAULT_APPEARANCE: AppearancePrefs = {
@@ -161,6 +174,10 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   // Off by default — keeps the single-accent baseline on /race.
   // Users who want to see live opponent positions flip this on.
   multiplayerPlayerColors: false,
+  multiplayerOpponentStrip: false,
+  multiplayerRaceFeed: true,
+  multiplayerShowOpponentWpm: true,
+  multiplayerCountdownSeconds: 3,
 };
 
 export function useAppearancePrefs() {

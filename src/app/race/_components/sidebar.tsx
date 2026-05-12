@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { cn } from "@/lib/utils";
 import {
   progressOf,
@@ -15,6 +17,8 @@ import { useRace } from "./race-state";
  *                  passage + bot lineup and resets to lobby. */
 export function RaceSidebar() {
   const { state, modeId, setModeId, elapsedSeconds } = useRace();
+  const { prefs } = useAppearancePrefs();
+  const showFeed = prefs.multiplayerRaceFeed;
   const racers = [...state.racers].sort(
     (a, b) => b.correctChars - a.correctChars,
   );
@@ -28,7 +32,7 @@ export function RaceSidebar() {
     state.phase === "finished";
 
   return (
-    <aside className="flex w-full shrink-0 flex-col rounded-md border border-border bg-card/40 lg:w-[20rem] lg:rounded-none lg:border-0 lg:border-l lg:bg-transparent">
+    <aside className="flex w-full shrink-0 flex-col rounded-md border border-border bg-card/40 lg:w-[24rem] lg:rounded-none lg:border-0 lg:border-l lg:bg-transparent">
       <Section title="YOUR RUN">
         <div className="flex flex-col gap-2.5 text-[11px]">
           <Row
@@ -57,6 +61,51 @@ export function RaceSidebar() {
             />
           ))}
         </div>
+      </Section>
+
+      {showFeed ? (
+        <Section
+          title="RACE FEED"
+          rightHint={state.phase === "racing" ? "LIVE" : ""}
+        >
+          <div className="flex max-h-[12rem] flex-col gap-2 overflow-y-auto pr-1">
+            {state.feed.length === 0 ? (
+              <span className="text-[10px] text-muted-foreground">
+                Race events appear here once GO fires.
+              </span>
+            ) : null}
+            {state.feed.map((e, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-[40px_1fr] items-baseline gap-2"
+              >
+                <span className="text-[10px] tabular-nums text-muted-foreground">
+                  {formatT(e.t)}
+                </span>
+                <div className="text-[11px] leading-snug">
+                  <span
+                    className={cn(
+                      "font-semibold",
+                      e.accent ? "text-primary" : "text-foreground",
+                    )}
+                  >
+                    {e.who}
+                  </span>{" "}
+                  <span className="text-muted-foreground">{e.text}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      ) : null}
+
+      <Section title="MULTIPLAYER">
+        <Link
+          href="/customise/appearance#multiplayer"
+          className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Open multiplayer settings →
+        </Link>
       </Section>
     </aside>
   );

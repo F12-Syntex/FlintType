@@ -16,6 +16,7 @@ export function RaceLanes() {
   const { state } = useRace();
   const { prefs } = useAppearancePrefs();
   const colorize = prefs.multiplayerPlayerColors;
+  const showOpponentWpm = prefs.multiplayerShowOpponentWpm;
   // Only joined racers appear in the lanes. During the matching
   // phase the user sees themselves + however many bots have already
   // hopped in, growing one row at a time as the schedule fires.
@@ -39,6 +40,7 @@ export function RaceLanes() {
           pos={1}
           totalChars={state.totalChars}
           colorize={colorize}
+          showOpponentWpm={showOpponentWpm}
         />
       ) : null}
       {bots.map((r, i) => (
@@ -48,6 +50,7 @@ export function RaceLanes() {
           pos={i + 2}
           totalChars={state.totalChars}
           colorize={colorize}
+          showOpponentWpm={showOpponentWpm}
         />
       ))}
       {Array.from({ length: expectedSlots - filledSlots }).map((_, i) => (
@@ -85,16 +88,20 @@ function Lane({
   pos,
   totalChars,
   colorize,
+  showOpponentWpm,
 }: {
   racer: Racer;
   pos: number;
   totalChars: number;
   /** When true, the bar paints in this racer's `playerColorFor`
    *  colour (so each racer is visually distinct mid-race). When
-   *  false, bots all share the neutral foreground/55 fill — same
-   *  default the project had before multiplayer colours shipped. */
+   *  false, bots all share the neutral foreground/55 fill. */
   colorize: boolean;
+  /** When false, opponent WPM is hidden so the lane reads as a
+   *  pure progress visual. Your own WPM is always shown. */
+  showOpponentWpm: boolean;
 }) {
+  const wpmVisible = racer.isYou || showOpponentWpm;
   const prog = progressOf(racer.correctChars, totalChars);
   const status = racer.place != null ? `PLACE ${racer.place}` : racer.badge;
   const playerColor = playerColorFor(racer.id);
@@ -166,14 +173,20 @@ function Lane({
         />
       </div>
       <div className="flex flex-col items-end">
-        <span
-          className={cn(
-            "text-base font-bold tabular-nums",
-            racer.isYou ? "text-primary" : "text-foreground",
-          )}
-        >
-          {racer.wpm}
-        </span>
+        {wpmVisible ? (
+          <span
+            className={cn(
+              "text-base font-bold tabular-nums",
+              racer.isYou ? "text-primary" : "text-foreground",
+            )}
+          >
+            {racer.wpm}
+          </span>
+        ) : (
+          <span aria-hidden className="text-base font-bold leading-none text-transparent">
+            —
+          </span>
+        )}
         <span className="text-[9px] tracking-wide text-muted-foreground tabular-nums">
           {Math.round(prog * 100)}% done
         </span>

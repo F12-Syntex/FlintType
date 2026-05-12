@@ -25,7 +25,7 @@ export function RacePassage() {
       : Math.min(practice.cursorWord, state.words.length);
   const acc = liveAccuracy(practice.typed, practice.words);
   const wpm = you.wpm;
-  const showColors = appearance.multiplayerPlayerColors;
+  const showStrip = appearance.multiplayerOpponentStrip;
   return (
     <div className="relative flex min-h-[18rem] flex-1 flex-col rounded-md border border-border bg-card px-7 py-8 sm:px-9">
       <div className="mb-5 flex flex-wrap justify-between gap-2">
@@ -51,7 +51,7 @@ export function RacePassage() {
         <Passage />
       </div>
 
-      {showColors &&
+      {showStrip &&
       (state.phase === "racing" || state.phase === "finished") ? (
         <div className="mt-5 border-t border-border/70 pt-4">
           <RacePlayerStrip

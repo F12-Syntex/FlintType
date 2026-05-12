@@ -6,11 +6,16 @@ import { usePractice } from "../../_components/practice-state";
 import { useRace } from "./race-state";
 
 /** Post-race summary panel. Mounts only after every racer has
- *  crossed the line. Hosts the placement headline, your final
- *  stats, a static WPM-trace SVG built from the run's stored
- *  samples (no live drawing), and a per-racer leaderboard table. */
+ *  crossed the line. Hosts the placement headline, a five-cell stat
+ *  strip (WPM / accuracy / chars / errors / time), the static
+ *  WPM-trace SVG, the per-racer leaderboard table, and the
+ *  Race-again CTA so the loop closes inside one screen.
+ *
+ *  The Tab key is wired to the same Race-again action from the race
+ *  state's window keydown handler — pressing Tab on this surface
+ *  jumps straight to a new race. */
 export function RaceResults() {
-  const { state } = useRace();
+  const { state, restart } = useRace();
   const { state: practice } = usePractice();
   if (state.phase !== "finished") return null;
   const you = state.racers.find((r) => r.isYou)!;
@@ -18,6 +23,9 @@ export function RaceResults() {
   const ordered = [...state.racers].sort(
     (a, b) => (a.place ?? 99) - (b.place ?? 99),
   );
+  const counts = countChars(practice.typed, practice.words, true);
+  const charsTyped = counts.allCorrectChars + counts.correctSpaces;
+  const errors = counts.incorrectChars + counts.extraChars;
   const yourAcc = accuracyFromTyped(practice.typed, practice.words);
   return (
     <div className="flex flex-col gap-7 rounded-md border border-border bg-card px-7 py-8 sm:px-9">
@@ -37,11 +45,28 @@ export function RaceResults() {
             {summaryLine(place, state.racers.length, you.finishedAt ?? 0)}
           </p>
         </div>
-        <div className="grid grid-cols-3 gap-x-8 gap-y-2 sm:gap-x-12">
-          <Stat label="your wpm" value={String(you.wpm)} accent />
-          <Stat label="accuracy" value={`${yourAcc.toFixed(1)}%`} />
-          <Stat label="time" value={formatT(you.finishedAt ?? 0)} />
-        </div>
+        <button
+          type="button"
+          onClick={restart}
+          className={cn(
+            "inline-flex items-center gap-2 self-start rounded-md bg-primary px-4 py-2.5 sm:self-auto",
+            "font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-foreground",
+            "transition-colors hover:bg-primary/90 active:translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+          )}
+        >
+          Race again
+          <span className="text-[9px] tracking-[0.2em] text-primary-foreground/70">
+            · TAB
+          </span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-6 gap-y-4 border-y border-border/70 py-5 sm:grid-cols-5 sm:gap-x-10">
+        <Stat label="your wpm" value={String(you.wpm)} accent />
+        <Stat label="accuracy" value={`${yourAcc.toFixed(1)}%`} />
+        <Stat label="chars typed" value={String(charsTyped)} />
+        <Stat label="errors" value={String(errors)} />
+        <Stat label="time" value={formatT(you.finishedAt ?? 0)} />
       </div>
 
       <FinalTrace />

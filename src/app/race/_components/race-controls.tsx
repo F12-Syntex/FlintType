@@ -16,7 +16,8 @@ import { useRace } from "./race-state";
  *    racing     — "Abandon" ghost button
  *    finished   — "Race again" primary CTA */
 export function RaceControls() {
-  const { state, modeId, enterQueue, restart, elapsedSeconds } = useRace();
+  const { state, modeId, enterQueue, restart, abandon, elapsedSeconds } =
+    useRace();
   const mode = RACE_MODES[modeId];
   const you = state.racers.find((r) => r.isYou)!;
   const totalRacers = mode.botIds.length + 1;
@@ -57,7 +58,7 @@ export function RaceControls() {
         ) : state.phase === "finished" ? (
           <PrimaryButton onClick={restart}>Race again</PrimaryButton>
         ) : (
-          <GhostButton onClick={restart}>Abandon</GhostButton>
+          <GhostButton onClick={abandon}>Abandon</GhostButton>
         )}
       </div>
     </div>
