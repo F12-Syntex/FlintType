@@ -3,6 +3,7 @@ import { defineNamespace, defineRoute } from "@/server";
 import { BackendError } from "@/lib/errors";
 import type { Database } from "@/db/server";
 import { requireAuth } from "@/server/middleware/auth";
+import { rateLimit } from "@/server/middleware/rate-limit";
 import {
   bigramRowsToStates,
   trigramRowsToStates,
@@ -167,7 +168,7 @@ async function loadHistorySummary(
 }
 
 const summary = defineRoute<void, HistorySummaryOutput>({
-  middleware: [requireAuth],
+  middleware: [requireAuth, rateLimit({ limit: 30, windowMs: 60_000 })],
   handler: async ({ db, meta }) =>
     loadHistorySummary(db, meta.userId as string),
 });
@@ -177,9 +178,16 @@ const summary = defineRoute<void, HistorySummaryOutput>({
  *  NOT_FOUND when the username doesn't exist on Clerk. The data
  *  shape is identical to `summary` so the profile UI can render
  *  either source uniformly; only the owner-only chrome (Edit,
- *  MonkeyType, Sign out) is gated client-side. */
+ *  MonkeyType, Sign out) is gated client-side.
+ *
+ *  Tight per-IP cap because this route is unauthenticated and hits
+ *  Clerk's API on every call — without a budget, a scripted scanner
+ *  could enumerate usernames AND chew through our Clerk API quota
+ *  in a few seconds. 10/min per IP is enough for a human browsing
+ *  several profiles and zero for an enumeration attempt. */
 const publicProfile = defineRoute<PublicProfileInput, HistorySummaryOutput>({
   input: publicProfileInputSchema,
+  middleware: [rateLimit({ limit: 10, windowMs: 60_000 })],
   handler: async ({ input, db }) => {
     const client = await clerkClient();
     const list = await client.users.getUserList({

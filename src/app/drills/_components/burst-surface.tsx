@@ -417,13 +417,13 @@ function StatCard({
   return (
     <div
       className={cn(
-        "flex w-[64px] flex-col items-center justify-center gap-1 rounded-md border border-border bg-card px-2 py-2 text-center sm:w-[72px] sm:py-3",
+        "flex min-w-[68px] flex-col items-center justify-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-center sm:min-w-[80px] sm:py-2.5",
         accent === "muted" && "border-dashed",
       )}
     >
       <span
         className={cn(
-          "font-mono text-base font-bold leading-none tabular-nums sm:text-lg",
+          "font-mono text-[13px] font-bold leading-none tabular-nums sm:text-[15px]",
           accent === "default" ? "text-foreground" : "text-muted-foreground",
         )}
         style={{ fontFamily: "var(--ft-font-family, inherit)" }}

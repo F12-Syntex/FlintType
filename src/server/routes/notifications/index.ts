@@ -1,5 +1,6 @@
 import { defineNamespace, defineRoute } from "@/server";
 import { requireAuth } from "@/server/middleware/auth";
+import { rateLimit } from "@/server/middleware/rate-limit";
 import {
   markReadInputSchema,
   type ListNotificationsOutput,
@@ -12,7 +13,6 @@ import {
  *  unread count so the bell badge isn't a count over the limited
  *  list slice. */
 const list = defineRoute<void, ListNotificationsOutput>({
-  middleware: [requireAuth],
   handler: async ({ db, meta }) => {
     const userId = meta.userId as string;
     const [rows, unreadCount] = await Promise.all([
@@ -34,20 +34,24 @@ const list = defineRoute<void, ListNotificationsOutput>({
 
 const markRead = defineRoute<MarkReadInput, void>({
   input: markReadInputSchema,
-  middleware: [requireAuth],
   handler: async ({ input, db, meta }) => {
     await db.notifications.markRead(meta.userId as string, input.id);
   },
 });
 
 const markAllRead = defineRoute<void, void>({
-  middleware: [requireAuth],
   handler: async ({ db, meta }) => {
     await db.notifications.markAllRead(meta.userId as string);
   },
 });
 
+/** `requireAuth` first → `rateLimit` second, so the bucket keys by
+ *  Clerk user id (per-user budget) rather than IP. 60/min covers a
+ *  heavily-popped notifications popover (bell open, scroll,
+ *  mark-individual, mark-all) and stops a scripted caller from
+ *  spamming the mark-read endpoint. */
 export const notifications = defineNamespace({
+  middleware: [requireAuth, rateLimit({ limit: 60, windowMs: 60_000 })],
   routes: { list, markRead, markAllRead },
 });
 

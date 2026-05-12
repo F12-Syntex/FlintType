@@ -48,6 +48,9 @@ export type ListNotificationsOutput = {
 };
 
 export const markReadInputSchema = z.object({
-  id: z.string().min(1),
+  // Notification ids are UUIDv4 from the DB (36 chars). 64 leaves
+  // headroom for any id-scheme change without exposing an unbounded
+  // string vector.
+  id: z.string().min(1).max(64),
 });
 export type MarkReadInput = z.infer<typeof markReadInputSchema>;

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { defineNamespace, defineRoute } from "@/server";
 import { requireAuth } from "@/server/middleware/auth";
+import { rateLimit } from "@/server/middleware/rate-limit";
 import {
   bigramRowsToStates,
   motorFeatureRowsToStates,
@@ -368,8 +369,14 @@ const snapshot = defineRoute<void, AdaptSnapshotOutput>({
 
 // ─── adapt.scoreWord ─────────────────────────────────────────────────
 
+/** Tighter route-level cap because scoreWord loads four model tables
+ *  and walks per-character against word.length² in the breakdown
+ *  loop. 30 calls/minute is more than enough for the confidence
+ *  playground's debounced lookups (one per typed word) and stops a
+ *  scripted caller from grinding the model tables. */
 const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
   input: scoreWordInputSchema,
+  middleware: [rateLimit({ limit: 30, windowMs: 60_000 })],
   handler: async ({ input, db, meta }) => {
     const userId = meta.userId as string;
     const prefs = await loadAdaptPrefs(db, userId);
@@ -590,7 +597,12 @@ function formatLength(mode: string, amount: number): string {
   return String(amount);
 }
 
+/** Namespace-wide budget — 120 requests/minute is comfortably above
+ *  a focused practice session (one /words + one /submit + a /snapshot
+ *  read every ~5s) and well below what a scripted abuser would push.
+ *  Individual expensive routes layer tighter caps on top so a hot
+ *  scoreWord loop can't drain the namespace bucket. */
 export const adapt = defineNamespace({
-  middleware: [requireAuth],
+  middleware: [requireAuth, rateLimit({ limit: 120, windowMs: 60_000 })],
   routes: { submit, words, snapshot, scoreWord: scoreWordRoute },
 });

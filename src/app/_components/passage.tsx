@@ -205,6 +205,7 @@ function PassageBody() {
   // through already-typed words. Both have an "off" no-op.
   const hl = appearance.highlightMode;
   const typedEffect = appearance.typedEffect;
+  const markIncompleteWord = appearance.markIncompleteWord;
   const highlightCurrentWord = hl === "word";
   const highlightNextWord = hl === "next-word";
   const highlightNextLetter = hl === "next-letter";
@@ -444,14 +445,19 @@ function PassageBody() {
         {words.map((word, wi) => {
           if (wi < cursorWord) {
             const isErr = errorWords.has(wi);
+            // Appearance: markIncompleteWord gates the visible error
+            // treatment on past-error words. When off, the word
+            // renders the same as a clean past word — no underline,
+            // no per-char colour split. The state still tracks the
+            // word as errored for accuracy / summary.
+            const showErr = !blind && isErr && markIncompleteWord;
             const typedWord = typed[wi] ?? "";
             return (
               <span
                 key={wi}
                 className={cn(
                   blind ? UNTYPED_TEXT : TYPED_TEXT,
-                  !blind &&
-                    isErr &&
+                  showErr &&
                     cn(
                       "underline decoration-1 underline-offset-[6px]",
                       ERROR_DECORATION,
@@ -461,7 +467,7 @@ function PassageBody() {
                   !blind && typedEffect === "strike" && "line-through decoration-1 opacity-70",
                 )}
               >
-                {!blind && isErr ? (
+                {showErr ? (
                   <PastErrorWord target={word} typed={typedWord} />
                 ) : (
                   word

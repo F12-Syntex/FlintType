@@ -30,6 +30,13 @@ export type AppearancePrefs = {
 
   highlightMode: HighlightMode;
   typedEffect: TypedEffect;
+  /** When true, the practice passage marks a word as errored if the
+   *  user pressed space before completing it — the word is added to
+   *  errorWords and renders with the destructive underline. When
+   *  false, the skip is silent: typed chars stay typed, untyped chars
+   *  stay muted, no underline. The summary still counts the word as
+   *  an error for accuracy purposes either way. */
+  markIncompleteWord: boolean;
 
   tapeMode: TapeMode;
   /** 0–100, percent from the left edge of the typing area. */
@@ -100,6 +107,10 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   // baseline; fade / strike are opt-in flavour.
   highlightMode: "letter",
   typedEffect: "off",
+  // Default ON — the underline on a skipped word is the standard
+  // typing-test cue that you bailed without completing it. Power
+  // users who prefer a quieter passage can flip it off.
+  markIncompleteWord: true,
 
   // Tape mode opt-in. Multi-line is the friendlier default.
   tapeMode: "off",

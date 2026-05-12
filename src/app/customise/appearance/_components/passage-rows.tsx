@@ -127,6 +127,21 @@ export function PassageRows() {
       <SettingsRow
         label={
           <LabelWithDesc
+            title="Mark incomplete words"
+            desc="Underline a word in red when you press space before finishing it. Off keeps the passage quiet — accuracy still counts the skip."
+          />
+        }
+        control={
+          <ToggleChips
+            value={prefs.markIncompleteWord}
+            onChange={(v) => update("markIncompleteWord", v)}
+          />
+        }
+      />
+
+      <SettingsRow
+        label={
+          <LabelWithDesc
             title="Tape mode"
             desc="One scrolling line. Word scrolls per word, Letter scrolls per keypress. Best with smooth scroll + a mono font."
           />

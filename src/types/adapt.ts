@@ -33,8 +33,13 @@ export type ModelDelta = {
  *  feeding it into the models. */
 export const keystrokeTimingSchema = z.object({
   t: z.number().nonnegative(),
-  expected: z.string(),
-  typed: z.string(),
+  // Bound at 8 chars so a malformed payload can't blow up the
+  // 20,000-timing array into a multi-megabyte memory hit. 8 is wider
+  // than any real keystroke (a single grapheme is at most a handful
+  // of code units, even for compound emoji) and still keeps the
+  // worst-case payload under a few hundred KB.
+  expected: z.string().max(8),
+  typed: z.string().max(8),
   correct: z.boolean(),
   /** Word index (within the test passage) of the keystroke. Used by
    *  the filter to detect "first keystroke after a backspace" — that
@@ -62,7 +67,11 @@ export const submitTestInputSchema = z.object({
   errorCount: z.number().int().nonnegative(),
   resetCount: z.number().int().nonnegative(),
   wasCompleted: z.boolean(),
-  words: z.array(z.string()).max(2000),
+  // Per-word string cap mirrors the longest single token we'd ever
+  // place in a passage (long English words top out around 30 chars;
+  // 64 covers any reasonable URL/identifier the algorithm might
+  // emit and stops a malformed payload from inflating the array).
+  words: z.array(z.string().max(64)).max(2000),
   timings: z.array(keystrokeTimingSchema).max(20000),
 });
 export type SubmitTestInput = z.infer<typeof submitTestInputSchema>;
@@ -77,8 +86,10 @@ export const requestWordsInputSchema = z.object({
   count: z.number().int().min(1).max(2000),
   /** Pool to draw from — the algorithm scores each candidate against
    *  the user's models. The shipping pool is the top ~200 monkeytype
-   *  english words; passing it explicitly keeps the route stateless. */
-  pool: z.array(z.string()).min(1).max(50000),
+   *  english words; passing it explicitly keeps the route stateless.
+   *  Per-string cap stops a malformed pool of giant strings from
+   *  pushing the array's serialised size into MB territory. */
+  pool: z.array(z.string().max(64)).min(1).max(50000),
   /** How many independent batches of `count` words to generate in one
    *  call. The first batch is the active passage; the rest fill a
    *  client-side prefetch queue so the next few resets don't pause
