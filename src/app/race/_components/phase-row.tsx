@@ -57,38 +57,30 @@ export function PhaseRow({
   const kind = phase as PhaseKind;
   if (kind === "done") return null;
 
-  // The tick is a 6 × 6 square (project's severity-dot pattern). It
-  // pulses while the lobby is live (matching / lobby / countdown /
-  // racing) so the eye picks up activity even peripheral. Steady when
-  // queue / finished — those phases are static states, not in-motion.
+  // No more square tick — the label itself carries the state via its
+  // colour. Active phases (matching / lobby / countdown / racing)
+  // paint in primary; passive phases (queue / finished) sit in muted.
+  // Pulsing reserved for active phases so peripheral vision picks up
+  // motion without a separate glyph.
   const tickActive =
     kind === "matching" ||
     kind === "lobby" ||
     kind === "countdown" ||
     kind === "racing";
-  const tickMuted = kind === "queue" || kind === "finished";
   const labelText = labelFor(kind);
 
   return (
     <div className="flex min-h-9 flex-wrap items-baseline gap-x-3 gap-y-1 sm:gap-x-4">
-      <div className="flex items-baseline gap-2">
-        <span
-          aria-hidden
-          className={cn(
-            "inline-block size-1.5 translate-y-[1px] rounded-[1px]",
-            tickActive && "bg-primary motion-safe:animate-pulse",
-            tickMuted && "bg-muted-foreground/60",
-          )}
-        />
-        <span
-          className={cn(
-            "font-mono text-[10px] font-medium uppercase tracking-[0.2em]",
-            tickActive ? "text-foreground" : "text-muted-foreground",
-          )}
-        >
-          {labelText}
-        </span>
-      </div>
+      <span
+        className={cn(
+          "font-mono text-[10px] font-semibold uppercase tracking-[0.22em]",
+          tickActive
+            ? "text-primary motion-safe:animate-pulse"
+            : "text-muted-foreground",
+        )}
+      >
+        {labelText}
+      </span>
       <span
         aria-hidden
         className="hidden h-px flex-1 bg-border sm:block"

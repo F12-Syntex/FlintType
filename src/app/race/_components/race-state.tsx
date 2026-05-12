@@ -253,15 +253,25 @@ function OfflineRaceProvider({
     () => dispatch({ type: "START_COUNTDOWN", now: Date.now() }),
     [],
   );
+  // Burst is offline — abandon must reset locally, NOT call the
+  // shell's `enterQueueShell` (which was wired to the online
+  // `backend.race.queue` POST and would auto-start a fresh race the
+  // moment the user clicked Abandon). Local RESTART with
+  // withQueue=true drops back to the queue surface without firing
+  // any matchmaking. Same for rematch — the user expects an explicit
+  // Find race click, not an automatic re-queue.
   const abandon = useCallback(
-    () => enterQueueShell?.(),
-    [enterQueueShell],
+    () =>
+      dispatch({
+        type: "RESTART",
+        seed: Date.now() | 0,
+        now: Date.now(),
+        withQueue: true,
+      }),
+    [],
   );
   const restart = restartShell;
-  const rematch = useCallback(
-    () => enterQueueShell?.(),
-    [enterQueueShell],
-  );
+  const rematch = abandon;
 
   const ctx = useMemo<RaceCtx>(
     () => ({

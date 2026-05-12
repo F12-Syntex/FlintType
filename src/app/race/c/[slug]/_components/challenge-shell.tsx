@@ -92,15 +92,9 @@ export function ChallengeShell({
   if (resolved.state === "loading") {
     return (
       <div className="flex flex-1 items-center justify-center px-8 py-16">
-        <div className="flex items-center gap-2">
-          <span
-            aria-hidden
-            className="size-1.5 rounded-sm bg-primary motion-safe:animate-pulse"
-          />
-          <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-            Joining {slug}
-          </span>
-        </div>
+        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-primary motion-safe:animate-pulse">
+          Joining {slug}…
+        </span>
       </div>
     );
   }
@@ -157,15 +151,9 @@ function ChallengeError({
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-6 px-6 py-16 text-center">
-      <div className="flex flex-col items-center gap-3">
-        <span
-          aria-hidden
-          className="inline-block size-1.5 rounded-[1px] bg-muted-foreground/60"
-        />
-        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-          Challenge · {slug}
-        </span>
-      </div>
+      <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+        Challenge · {slug}
+      </span>
       <h1 className="font-mono text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
         {headline}
       </h1>

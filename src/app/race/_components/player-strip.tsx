@@ -68,11 +68,6 @@ function RacerRow({
   const color = playerColorFor(racer.id);
   const place = racer.place;
   const disconnected = racer.disconnected;
-  const tickColor = disconnected
-    ? "var(--muted-foreground)"
-    : showColors || racer.isYou
-      ? color
-      : "var(--muted-foreground)";
   // Error tail width: cap at the racer's current progress so the
   // destructive overlay can't extend past the racer's bar fill.
   const errorWidth =
@@ -82,7 +77,7 @@ function RacerRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[8px_minmax(72px,120px)_minmax(0,1fr)_auto] items-center gap-3",
+        "grid grid-cols-[minmax(72px,140px)_minmax(0,1fr)_auto] items-center gap-3",
         disconnected && "opacity-60",
       )}
       role="progressbar"
@@ -91,11 +86,6 @@ function RacerRow({
       aria-valuemax={100}
       aria-valuenow={pct}
     >
-      <span
-        aria-hidden
-        className="inline-block size-1.5 rounded-[1px]"
-        style={{ backgroundColor: tickColor }}
-      />
       <div className="flex min-w-0 items-baseline gap-2">
         <span
           className={cn(
