@@ -237,22 +237,26 @@ export function BurstRaceSurface() {
         : state.phase === "finished"
           ? "FINISHED"
           : "LIVE";
-  const showStripLive =
-    state.phase === "racing" ||
-    state.phase === "finished" ||
-    state.phase === "countdown";
+  // Same overlay-blur rule as RacePassage — hide the readout ribbon
+  // outside the active run so it doesn't peek through the blurred
+  // queue/matching/lobby overlays.
+  const showReadouts =
+    state.phase === "racing" || state.phase === "finished";
+  const showStripLive = showReadouts || state.phase === "countdown";
   return (
     <>
-      <div className="hidden flex-wrap items-baseline justify-between gap-x-8 gap-y-1 md:flex">
-        <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-          ITEM {Math.min(itemIdx + 1, itemsCount)}/{itemsCount}
-        </span>
-        <div className="flex flex-wrap gap-x-6 gap-y-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-          <span className="text-primary tabular-nums">WPM {wpm}</span>
-          <span className="tabular-nums">GATE {burst.thresholdWpm}</span>
-          <span>{phaseWord}</span>
+      {showReadouts ? (
+        <div className="hidden flex-wrap items-baseline justify-between gap-x-8 gap-y-1 md:flex">
+          <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            ITEM {Math.min(itemIdx + 1, itemsCount)}/{itemsCount}
+          </span>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            <span className="text-primary tabular-nums">WPM {wpm}</span>
+            <span className="tabular-nums">GATE {burst.thresholdWpm}</span>
+            <span>{phaseWord}</span>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8">

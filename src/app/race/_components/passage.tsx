@@ -84,22 +84,27 @@ export function RacePassage() {
         : state.phase === "finished"
           ? "FINISHED"
           : "LIVE";
-  const showStrip =
-    state.phase === "racing" ||
-    state.phase === "finished" ||
-    state.phase === "countdown";
+  // Overlay phases (queue/matching/lobby/countdown) paint a blurred
+  // panel over the passage — keeping the live stat ribbon visible
+  // above it duplicates the overlay's status word and reads as a
+  // floating ghost over the blur. Hide it outside the active run.
+  const showReadouts =
+    state.phase === "racing" || state.phase === "finished";
+  const showStrip = showReadouts || state.phase === "countdown";
   return (
     <>
-      <div className="hidden flex-wrap items-baseline justify-between gap-x-8 gap-y-1 md:flex">
-        <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-          {wordsDone}/{state.words.length} WORDS
-        </span>
-        <div className="flex flex-wrap gap-x-6 gap-y-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-          <span className="text-primary tabular-nums">WPM {wpm}</span>
-          <span className="tabular-nums">ACC {acc.toFixed(1)}%</span>
-          <span>{phaseWord}</span>
+      {showReadouts ? (
+        <div className="hidden flex-wrap items-baseline justify-between gap-x-8 gap-y-1 md:flex">
+          <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            {wordsDone}/{state.words.length} WORDS
+          </span>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            <span className="text-primary tabular-nums">WPM {wpm}</span>
+            <span className="tabular-nums">ACC {acc.toFixed(1)}%</span>
+            <span>{phaseWord}</span>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
         <div className="min-h-0 flex-1">

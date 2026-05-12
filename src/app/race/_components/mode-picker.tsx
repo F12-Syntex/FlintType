@@ -34,17 +34,15 @@ export function ModePicker({
           type="button"
           aria-label={`Race mode — ${mode.name}, ${mode.detail}`}
           className={cn(
-            "group inline-flex h-8 items-center gap-2 rounded-md border border-border bg-muted px-2.5",
-            "text-xs font-medium text-foreground transition-colors",
+            "group inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-3",
+            "font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground transition-colors",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40",
             disabled
               ? "cursor-not-allowed opacity-50"
-              : "hover:bg-accent/40",
+              : "hover:border-foreground/30 hover:bg-accent/40",
           )}
         >
-          <span className="rounded-sm bg-primary px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary-foreground">
-            {mode.name}
-          </span>
+          {mode.name}
           <ChevronDown
             size={12}
             aria-hidden
