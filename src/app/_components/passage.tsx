@@ -191,18 +191,32 @@ export type PassageProps = {
    *  in the passage. Returns a CSS colour (e.g. `color-mix(...)`) or
    *  undefined for no tint. Practice and drills don't pass this. */
   wordBackground?: (wordIdx: number) => string | undefined;
+  /** Optional per-word text colour override. Race uses this to paint
+   *  upcoming words in an opponent's colour so the opponent's leading
+   *  edge reads as coloured letters bleeding back toward the user.
+   *  Only applied to words *past* the user's cursor — already-typed
+   *  words keep their typed colour so the user's own progress feedback
+   *  stays intact. */
+  wordTextColor?: (wordIdx: number) => string | undefined;
 };
 
 export function Passage(props: PassageProps = {}) {
   const { adaptLoading } = usePractice();
   if (adaptLoading) return <AdaptLoadingSkeleton />;
-  return <PassageBody wordBackground={props.wordBackground} />;
+  return (
+    <PassageBody
+      wordBackground={props.wordBackground}
+      wordTextColor={props.wordTextColor}
+    />
+  );
 }
 
 function PassageBody({
   wordBackground,
+  wordTextColor,
 }: {
   wordBackground?: (wordIdx: number) => string | undefined;
+  wordTextColor?: (wordIdx: number) => string | undefined;
 }) {
   const { state } = usePractice();
   const { words, cursorWord, cursorChar, errorWords, phase, typed } = state;
@@ -535,16 +549,25 @@ function PassageBody({
           const isNextWord =
             (highlightNextWord || highlightNextLetter) &&
             wi === cursorWord + 1;
+          // Race-only text-colour override on upcoming words.
+          // `wordTextColor(wi)` returns an opponent's colour when
+          // that opponent has typed past this word — the letters
+          // then paint in their colour so the opponent's leading
+          // edge reads as a coloured tide bleeding back toward you.
+          // Skipped on already-typed words so the user's own
+          // typed-colour feedback stays intact.
+          const opponentColor = wordTextColor?.(wi);
+          const colorStyle = opponentColor ? { color: opponentColor } : undefined;
           return (
             <span
               key={wi}
-              style={tintStyle}
+              style={{ ...tintStyle, ...colorStyle }}
               className={cn(
-                UNTYPED_TEXT,
+                opponentColor ? "" : UNTYPED_TEXT,
                 isNextWord &&
                   cn(
                     "rounded-sm bg-foreground/10 px-1 opacity-80",
-                    TYPED_TEXT,
+                    !opponentColor && TYPED_TEXT,
                   ),
               )}
             >

@@ -1,12 +1,25 @@
 "use client";
 
-import { useAppearancePrefs } from "@/lib/appearance-prefs";
+import {
+  type MultiplayerOpponentMarker,
+  useAppearancePrefs,
+} from "@/lib/appearance-prefs";
 import {
   LabelWithDesc,
+  SelectChips,
   SliderRow,
   ToggleChips,
 } from "../../_components/controls";
 import { SettingsRow } from "../../_components/row";
+
+const OPPONENT_MARKER_OPTIONS: readonly {
+  id: MultiplayerOpponentMarker;
+  label: string;
+}[] = [
+  { id: "off", label: "Off" },
+  { id: "tint", label: "Highlight" },
+  { id: "text", label: "Text colour" },
+];
 
 /** Multiplayer row stack. Settings here only affect surfaces with
  *  more than one racer (today: /race). Defaults keep the section
@@ -28,6 +41,22 @@ export function MultiplayerRows() {
           <ToggleChips
             value={prefs.multiplayerPlayerColors}
             onChange={(v) => update("multiplayerPlayerColors", v)}
+          />
+        }
+      />
+
+      <SettingsRow
+        label={
+          <LabelWithDesc
+            title="In-passage opponent marker"
+            desc="How an opponent's leading edge shows up inside the passage. Text colour paints the upcoming letters in their colour (a tide of colour bleeds back as they catch up); Highlight paints a soft band behind covered words; Off hides the marker entirely. Requires player colours."
+          />
+        }
+        control={
+          <SelectChips
+            value={prefs.multiplayerOpponentMarker}
+            options={OPPONENT_MARKER_OPTIONS}
+            onChange={(v) => update("multiplayerOpponentMarker", v)}
           />
         }
       />

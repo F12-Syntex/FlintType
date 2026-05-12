@@ -30,24 +30,23 @@ export function RacePassage() {
   const wpm = you.wpm;
   const showStrip = appearance.multiplayerOpponentStrip;
   const showColors = appearance.multiplayerPlayerColors;
+  const marker = appearance.multiplayerOpponentMarker;
 
-  // Per-word tint: for each word in the passage, find the slowest
-  // opponent who has typed past that word's first character. Apply
-  // that opponent's colour as a low-opacity background tint so the
-  // user sees layered bands marking each opponent's leading edge.
-  // The user themselves is omitted — their cursor is the practice
-  // caret, not a tint.
-  const wordTints = useMemo(() => {
-    if (!showColors) return undefined;
+  // Pre-compute the leading opponent per word, then render either as
+  // a soft background tint or as a text-colour override depending on
+  // the user's `multiplayerOpponentMarker` pref. Both modes share the
+  // same upstream calculation: for each word, find the slowest
+  // opponent who has typed past it. The slowest-first sort yields
+  // layered bands — slowest opponent flags the most words, faster
+  // opponents extend further past them.
+  const opponentByWord = useMemo(() => {
+    if (!showColors || marker === "off") return undefined;
     const wordStarts: number[] = [];
     let acc = 0;
     for (const w of state.words) {
       wordStarts.push(acc);
       acc += w.length + 1;
     }
-    // Sort opponents slowest-first so the first match in the loop is
-    // the slowest racer who has covered each word — yielding bands
-    // that step outward as faster racers extend past slower ones.
     const opponents = state.racers
       .filter((r): r is Racer => !r.isYou && r.correctChars > 0)
       .sort((a, b) => a.correctChars - b.correctChars);
@@ -55,13 +54,24 @@ export function RacePassage() {
       const start = wordStarts[wi];
       if (start == null) return undefined;
       for (const r of opponents) {
-        if (r.correctChars > start) {
-          return `color-mix(in oklch, ${playerColorFor(r.id)} 22%, transparent)`;
-        }
+        if (r.correctChars > start) return playerColorFor(r.id);
       }
       return undefined;
     };
-  }, [showColors, state.racers, state.words]);
+  }, [showColors, marker, state.racers, state.words]);
+
+  const wordTints = useMemo(() => {
+    if (!opponentByWord || marker !== "tint") return undefined;
+    return (wi: number): string | undefined => {
+      const c = opponentByWord(wi);
+      return c ? `color-mix(in oklch, ${c} 22%, transparent)` : undefined;
+    };
+  }, [opponentByWord, marker]);
+
+  const wordTextColor = useMemo(() => {
+    if (!opponentByWord || marker !== "text") return undefined;
+    return (wi: number): string | undefined => opponentByWord(wi);
+  }, [opponentByWord, marker]);
   return (
     <div className="relative flex min-h-[18rem] flex-1 flex-col rounded-md border border-border bg-card px-7 py-8 sm:px-9">
       <div className="mb-5 flex flex-wrap justify-between gap-2">
@@ -84,7 +94,7 @@ export function RacePassage() {
       </div>
 
       <div className="min-h-0 flex-1">
-        <Passage wordBackground={wordTints} />
+        <Passage wordBackground={wordTints} wordTextColor={wordTextColor} />
       </div>
 
       {showStrip &&

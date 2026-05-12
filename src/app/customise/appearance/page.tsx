@@ -30,6 +30,7 @@ import {
   KeyboardLivePreview,
   KeymapLivePreview,
   LiveStatsPreview,
+  MultiplayerPreview,
   ResultLivePreview,
   ThemePreview,
   TypingAreaPreview,
@@ -244,6 +245,7 @@ export default function AppearancePage() {
         eyebrow="Race"
         title="Multiplayer"
         description="How live opponents read in /race. Today's only race surface is the 1v3 bot race, but the rule of thumb still holds — visuals here only affect surfaces with more than one racer."
+        preview={<MultiplayerPreview />}
       >
         <MultiplayerRows />
       </SettingsSection>

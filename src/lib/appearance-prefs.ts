@@ -11,6 +11,16 @@ export type TypedEffect = "off" | "fade" | "strike";
 export type TapeMode = "off" | "word" | "letter";
 export type TypingSpeedUnit = "wpm" | "cpm" | "wps" | "cps" | "wph";
 export type Keymap = "off" | "static" | "react" | "next";
+/** How an opponent's leading edge is marked inside the practice
+ *  passage on the race screen.
+ *    off  — no marking; the passage reads exactly like single-player
+ *    tint — soft background band painted with a low-opacity wash of
+ *           the slowest opponent's colour (legacy "highlight" mode)
+ *    text — the *text* of words ahead of your cursor paints in the
+ *           slowest opponent's colour, so opponent progress reads as
+ *           coloured letters bleeding back toward you instead of a
+ *           highlight band */
+export type MultiplayerOpponentMarker = "off" | "tint" | "text";
 export type KeymapStyle = "staggered" | "matrix" | "split" | "alice";
 export type KeymapLegend = "lowercase" | "uppercase" | "blank" | "dynamic";
 export type KeymapTopRow = "always" | "layout" | "never";
@@ -99,6 +109,13 @@ export type AppearancePrefs = {
    *  Independent of player colours — the strip can stay off even
    *  when colours are on, e.g. for a minimal racing surface. */
   multiplayerOpponentStrip: boolean;
+  /** How an opponent's progress is marked *inside* the practice
+   *  passage. `text` (default) paints the letters of upcoming words
+   *  in the slowest opponent's colour so opponents read as a
+   *  coloured tide bleeding back toward you; `tint` falls back to
+   *  the original soft background band; `off` hides the marker
+   *  entirely. Honoured only when player colours are on. */
+  multiplayerOpponentMarker: MultiplayerOpponentMarker;
   /** Bring back the chronological race feed (joins / leader
    *  changes / milestones / finishes) in the side panel. */
   multiplayerRaceFeed: boolean;
@@ -175,6 +192,13 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   // Users who want to see live opponent positions flip this on.
   multiplayerPlayerColors: false,
   multiplayerOpponentStrip: false,
+  // `text` is the right default *when* player colours are on —
+  // letters bleeding back toward you reads more clearly than a soft
+  // background band, and the band fought the typed/untyped
+  // colour split in the passage. The whole marker is gated on
+  // multiplayerPlayerColors so the editorial baseline stays quiet
+  // until the user opts in to colours at all.
+  multiplayerOpponentMarker: "text",
   multiplayerRaceFeed: true,
   multiplayerShowOpponentWpm: true,
   multiplayerCountdownSeconds: 3,
