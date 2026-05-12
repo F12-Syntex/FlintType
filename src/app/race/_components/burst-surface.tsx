@@ -8,8 +8,10 @@ import {
   useRef,
   useState,
 } from "react";
+import { useBackend } from "@/lib/backend";
 import { useCaretSettings, type CaretStyle } from "@/lib/caret-settings";
 import { cn } from "@/lib/utils";
+import type { KeystrokeTiming } from "@/types/adapt";
 import { PhaseRow } from "./phase-row";
 import { RACE_MODES } from "./race-data";
 import { RacePlayerStrip } from "./player-strip";
@@ -102,6 +104,7 @@ function burstWpm(charCount: number, durationMs: number): number {
 
 export function BurstRaceSurface() {
   const { state, dispatch, countdownNumber } = useRace();
+  const backend = useBackend();
   const mode = RACE_MODES[state.modeId];
   const burst = mode.burst;
   const [local, localDispatch] = useReducer(localReducer, initialLocal);
@@ -111,6 +114,22 @@ export function BurstRaceSurface() {
   const reps = you.burstReps ?? 0;
   const targetWord =
     burst && itemIdx < burst.items.length ? burst.items[itemIdx]! : "";
+
+  // Capture every successful commit so we can submit the run to adapt
+  // on finish. Failed attempts (slow / wrong) are tallied for the
+  // accuracy + errorCount fields but their keystroke data is dropped
+  // — partial / garbled timings would muddy the bigram models.
+  const attemptsRef = useRef<
+    Array<{
+      target: string;
+      startedAt: number;
+      endedAt: number;
+      wpm: number;
+    }>
+  >([]);
+  const totalAttemptsRef = useRef(0);
+  const failedAttemptsRef = useRef(0);
+  const submittedRef = useRef(false);
 
   // Brief outcome flash so the user gets visible feedback without it
   // lingering longer than the next keystroke.
@@ -169,12 +188,22 @@ export function BurstRaceSurface() {
         ) {
           e.preventDefault();
           e.stopPropagation();
-          const wpm = burstWpm(
-            cur.targetWord.length,
-            Date.now() - cur.local.attemptStartedAt,
-          );
+          const now = Date.now();
+          const startedAt = cur.local.attemptStartedAt;
+          const wpm = burstWpm(cur.targetWord.length, now - startedAt);
           const wpmRounded = Math.round(wpm);
           const success = burst != null && wpm >= burst.thresholdWpm;
+          totalAttemptsRef.current += 1;
+          if (success) {
+            attemptsRef.current.push({
+              target: cur.targetWord,
+              startedAt,
+              endedAt: now,
+              wpm: wpmRounded,
+            });
+          } else {
+            failedAttemptsRef.current += 1;
+          }
           localDispatch({
             type: "COMMIT",
             success,
@@ -183,7 +212,7 @@ export function BurstRaceSurface() {
           });
           dispatch({
             type: "USER_BURST_COMMIT",
-            now: Date.now(),
+            now,
             success,
             wpm: wpmRounded,
           });
@@ -211,6 +240,8 @@ export function BurstRaceSurface() {
         targetWord: cur.targetWord,
       });
       if (isMistype) {
+        totalAttemptsRef.current += 1;
+        failedAttemptsRef.current += 1;
         dispatch({
           type: "USER_BURST_COMMIT",
           now: Date.now(),
@@ -226,6 +257,70 @@ export function BurstRaceSurface() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onKeyDown]);
+
+  // Submit the run to adapt the moment the user crosses the finish.
+  // Burst doesn't go through PracticeProvider's natural submit path
+  // (it owns its own typing surface), so we build the SubmitTestInput
+  // by hand: every successful commit contributes N evenly-spaced
+  // KeystrokeTiming events with its `wordIndex` distinct from the
+  // other commits' indices. That keeps the bigram filter from
+  // splicing across commit boundaries and the same letter-pair stats
+  // the practice surface feeds adapt apply uniformly.
+  useEffect(() => {
+    if (submittedRef.current) return;
+    if (you.finishedAt == null) return;
+    if (!burst) return;
+    const attempts = attemptsRef.current;
+    if (attempts.length === 0) return;
+    submittedRef.current = true;
+    const startMs = attempts[0]!.startedAt;
+    const endMs = attempts[attempts.length - 1]!.endedAt;
+    const words: string[] = [];
+    const timings: KeystrokeTiming[] = [];
+    attempts.forEach((a, idx) => {
+      words.push(a.target);
+      const n = a.target.length;
+      const dur = Math.max(1, a.endedAt - a.startedAt);
+      for (let i = 0; i < n; i += 1) {
+        timings.push({
+          t: a.startedAt - startMs + Math.round(((i + 1) / n) * dur),
+          expected: a.target[i] ?? "",
+          typed: a.target[i] ?? "",
+          correct: true,
+          wordIndex: idx,
+        });
+      }
+    });
+    const wpmAvg = Math.round(
+      attempts.reduce((sum, a) => sum + a.wpm, 0) / attempts.length,
+    );
+    const totalAttempts = totalAttemptsRef.current;
+    const failed = failedAttemptsRef.current;
+    const accuracy =
+      totalAttempts === 0
+        ? 100
+        : Math.round(((totalAttempts - failed) / totalAttempts) * 1000) / 10;
+    void backend.adapt
+      .submit({
+        startedAt: startMs,
+        completedAt: endMs,
+        mode: "race",
+        durationOrWordCount: burst.items.length * burst.repsPerItem,
+        wpm: wpmAvg,
+        accuracy,
+        errorCount: failed,
+        resetCount: 0,
+        wasCompleted: true,
+        words,
+        timings,
+      })
+      .catch(() => {
+        // Anonymous (Clerk-less) users 401 on adapt.submit — silently
+        // skip; their typing data has nowhere to land server-side
+        // anyway. Signed-in users see the row appear in their
+        // history + adapt model update.
+      });
+  }, [you.finishedAt, burst, backend]);
 
   if (!burst) return null;
   const itemsCount = burst.items.length;

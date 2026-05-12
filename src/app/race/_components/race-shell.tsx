@@ -162,8 +162,14 @@ export function RaceShell({
     </RaceProvider>
   );
 
+  // raceMode tags the submitTest row as mode="race" so the user's
+  // history can distinguish race runs from regular practice. Only
+  // online passage races feed PracticeProvider with a real word
+  // list — burst handles its own typing surface and saves separately.
+  const raceMode = !isBurst && online != null;
+
   return (
-    <PracticeProvider key={subtreeKey} lockedWords={words}>
+    <PracticeProvider key={subtreeKey} lockedWords={words} raceMode={raceMode}>
       {isBurst ? raceTree : <InputCapture>{raceTree}</InputCapture>}
     </PracticeProvider>
   );

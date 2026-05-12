@@ -49,11 +49,15 @@ export const keystrokeTimingSchema = z.object({
 export type KeystrokeTiming = z.infer<typeof keystrokeTimingSchema>;
 
 /** Test mode the algorithm cares about. The history surface may
- *  expose other display modes; this is the algorithmic axis. */
+ *  expose other display modes; this is the algorithmic axis.
+ *  `race` is multiplayer-race output — the typing data feeds the
+ *  same bigram/trigram/word models as a casual run, but the row
+ *  is tagged separately so history and PB queries can filter it. */
 export const testModeSchema = z.enum([
   "casual",
   "training",
   "reverse_adaptive",
+  "race",
 ]);
 export type TestMode = z.infer<typeof testModeSchema>;
 

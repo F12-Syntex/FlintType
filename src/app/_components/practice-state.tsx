@@ -522,6 +522,7 @@ export function PracticeProvider({
   children,
   lockedWords,
   suddenDeath = false,
+  raceMode = false,
 }: {
   children: React.ReactNode;
   /** When provided, the provider runs in "drill" mode: the passage is
@@ -538,6 +539,13 @@ export function PracticeProvider({
    *  random words on every miss, which is not the drill the
    *  caller asked for. */
   suddenDeath?: boolean;
+  /** True when the provider's typing data is feeding a multiplayer
+   *  race. Tags the submitted test row with `mode: "race"` so the
+   *  history page can distinguish race runs from regular practice.
+   *  The bigram / trigram / word adaptive models still update the
+   *  same way — race typing is real typing and the user expects it
+   *  to feed their weakness profile. */
+  raceMode?: boolean;
 }) {
   const [state, dispatch] = useReducer(
     reducer,
@@ -802,11 +810,16 @@ export function PracticeProvider({
     const adaptOn = state.adapt;
     const wordsMode = state.mode === "WORDS";
     const length = state.length;
+    const submitMode = raceMode
+      ? "race"
+      : adaptOn
+        ? "training"
+        : "casual";
     void (async () => {
       await adaptRef.current.submitTest({
         startedAt: startTime,
         completedAt: endTime,
-        mode: adaptOn ? "training" : "casual",
+        mode: submitMode,
         durationOrWordCount: length,
         wpm,
         accuracy,
