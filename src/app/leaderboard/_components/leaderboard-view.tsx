@@ -124,7 +124,7 @@ function Table({ entries }: { entries: readonly LeaderboardEntry[] }) {
 
 function Row({ entry }: { entry: LeaderboardEntry }) {
   const handle = entry.username ? `@${entry.username}` : entry.name;
-  const linkHref = entry.username ? `/u/${entry.username}` : null;
+  const linkHref = entry.username ? `/profile/${entry.username}` : null;
   const HandleEl: React.ElementType = linkHref ? Link : "span";
   const handleProps = linkHref ? { href: linkHref } : {};
   const leader = entry.rank === 1;
