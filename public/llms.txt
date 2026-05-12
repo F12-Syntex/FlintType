@@ -1,10 +1,16 @@
 # flinttype
 
-> Open-source typing speed test. Practice, measure your WPM, and track your progress. Built on Next.js + shadcn with a typed `useBackend()` client, Drizzle on Neon, and Clerk auth.
+> Free open-source typing speed test and WPM trainer. Measure your typing speed, fix your weakest letter pairs with adaptive drills, and race friends or bots online. Built on Next.js + shadcn with a typed `useBackend()` client, Drizzle on Neon, and Clerk auth.
 
 ## Pages
 
-- [Home](/): the typing practice surface. Anonymous users can practice; profile / insights / drills / customise require sign-in for some surfaces.
+- [Home](/): the typing practice surface — start typing to begin a test, switch modes (words / time / quote) at the top
+- [About](/about): what flinttype is, who it's for, and the adaptive-drills story
+- [Leaderboard](/leaderboard): global top WPM and net-WPM scores across modes
+- [Race](/race): multiplayer races against bots or friends; private challenge links shareable per lobby
+- [Drills](/drills): targeted drills (burst, pangram, top-100, sudden death, worst words)
+- [Insights](/insights): per-user weakness ranking + WPM history (requires sign-in)
+- [Customise](/customise): theme, typography, caret, keyboard, layout, multiplayer
 
 ## Conventions
 

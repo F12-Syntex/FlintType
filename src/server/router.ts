@@ -3,6 +3,7 @@ import { logging } from './middleware/logging';
 import { adapt } from './routes/adapt';
 import { health } from './routes/health';
 import { history } from './routes/history';
+import { leaderboard } from './routes/leaderboard';
 import { monkeytype } from './routes/monkeytype';
 import { notifications } from './routes/notifications';
 import { prefs } from './routes/prefs';
@@ -15,6 +16,7 @@ export const router = defineNamespace({
     prefs,
     adapt,
     history,
+    leaderboard,
     monkeytype,
     notifications,
     race,

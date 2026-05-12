@@ -68,4 +68,75 @@ describe("testsRepo", () => {
     const u1 = await ctx.db.tests.recentForUser("u1", 10);
     expect(u1.map((r) => r.id)).toEqual(["t_a"]);
   });
+
+  it("topLeaderboard ranks by net WPM (wpm × accuracy / 100)", async () => {
+    await ctx.db.tests.insert(
+      row({ id: "t_fast_sloppy", userId: "u1", wpm: 120, accuracy: 80 }),
+    );
+    await ctx.db.tests.insert(
+      row({ id: "t_steady", userId: "u2", wpm: 100, accuracy: 100 }),
+    );
+    const rows = await ctx.db.tests.topLeaderboard({});
+    expect(rows[0]?.testId).toBe("t_steady");
+    expect(rows[1]?.testId).toBe("t_fast_sloppy");
+    expect(rows[0]?.netWpm).toBeCloseTo(100, 1);
+    expect(rows[1]?.netWpm).toBeCloseTo(96, 1);
+  });
+
+  it("topLeaderboard surfaces each user's best run per bucket", async () => {
+    await ctx.db.tests.insert(
+      row({ id: "t_u1_a", userId: "u1", wpm: 80, accuracy: 100 }),
+    );
+    await ctx.db.tests.insert(
+      row({ id: "t_u1_b", userId: "u1", wpm: 90, accuracy: 100 }),
+    );
+    const rows = await ctx.db.tests.topLeaderboard({});
+    expect(rows.length).toBe(1);
+    expect(rows[0]?.testId).toBe("t_u1_b");
+  });
+
+  it("topLeaderboard filters out incomplete runs", async () => {
+    await ctx.db.tests.insert(
+      row({ id: "t_partial", wpm: 150, accuracy: 100, wasCompleted: false }),
+    );
+    await ctx.db.tests.insert(
+      row({ id: "t_done", wpm: 80, accuracy: 100, wasCompleted: true }),
+    );
+    const rows = await ctx.db.tests.topLeaderboard({});
+    expect(rows.map((r) => r.testId)).toEqual(["t_done"]);
+  });
+
+  it("topLeaderboard can filter by mode", async () => {
+    await ctx.db.tests.insert(
+      row({ id: "t_race", userId: "u1", mode: "race", wpm: 90 }),
+    );
+    await ctx.db.tests.insert(
+      row({ id: "t_casual", userId: "u2", mode: "casual", wpm: 95 }),
+    );
+    const race = await ctx.db.tests.topLeaderboard({ mode: "race" });
+    expect(race.map((r) => r.testId)).toEqual(["t_race"]);
+  });
+
+  it("topLeaderboard sinceMs filters older runs", async () => {
+    await ctx.db.tests.insert(
+      row({
+        id: "t_old",
+        userId: "u1",
+        wpm: 100,
+        completedAt: new Date(2025, 0, 1),
+      }),
+    );
+    await ctx.db.tests.insert(
+      row({
+        id: "t_new",
+        userId: "u2",
+        wpm: 80,
+        completedAt: new Date(2026, 0, 1),
+      }),
+    );
+    const rows = await ctx.db.tests.topLeaderboard({
+      sinceMs: new Date(2025, 6, 1).getTime(),
+    });
+    expect(rows.map((r) => r.testId)).toEqual(["t_new"]);
+  });
 });

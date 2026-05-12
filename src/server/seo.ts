@@ -4,7 +4,7 @@ import { env } from './env';
 export const siteConfig = {
   name: 'flinttype',
   description:
-    'Open-source typing speed test. Practice, measure your WPM, and track your progress.',
+    'Free open-source typing speed test and WPM trainer. Measure your typing speed, fix your weakest letter pairs with adaptive drills, and race friends or bots online.',
   url: env.SITE_URL,
   locale: 'en_US',
 } as const;
