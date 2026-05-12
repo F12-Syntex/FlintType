@@ -79,7 +79,7 @@ describe("race routes", () => {
     expect(res.ok).toBe(true);
   });
 
-  it("leave drops the racer", async () => {
+  it("leave drops the racer but keeps the room alive for late rejoins", async () => {
     const join = await callRoute<QueueOutput>(["race", "queue"], {
       input: { modeId: "1v3" },
     });
@@ -88,9 +88,12 @@ describe("race routes", () => {
     await callRoute<LeaveOutput>(["race", "leave"], {
       input: { roomId: join.roomId, sessionToken: join.sessionToken },
     });
-    // Matchmaking rooms dispose themselves when the last real racer
-    // leaves — getRoom returns null after dispose.
-    expect(getRoom(join.roomId)).toBeNull();
+    // The room intentionally survives a last-real-leave so React
+    // strict-mode / dev fast-refresh remounts can reconnect without
+    // a 404. The natural idle GC handles cleanup.
+    const room = getRoom(join.roomId);
+    expect(room).not.toBeNull();
+    expect(room?.snapshot().racers.find((r) => !r.isBot)).toBeUndefined();
   });
 
   it("keystroke rejects unknown roomId with NOT_FOUND", async () => {

@@ -377,11 +377,13 @@ export class RaceRoom {
     if (!r) return;
     this.racers.delete(token);
     this.scheduleBroadcast();
-    // If everyone real has left a matchmaking room, just dispose it.
-    const anyReal = [...this.racers.values()].some((x) => !x.isBot);
-    if (!anyReal && this.kind === "matchmaking") {
-      this.dispose();
-    }
+    // No eager dispose on last-real-leave. React strict-mode / dev
+    // fast-refresh both fire transient unmount-then-remount cycles
+    // that would otherwise dispose a room the user just joined.
+    // The natural lifecycle handles cleanup either way:
+    //   - matchmaking rooms still finish their race against the bots
+    //     and then schedule GC on phase=finished
+    //   - the global ROOM_TTL_MS sweep clears anything truly idle
   }
 
   private maybeFinishRace(now: number) {

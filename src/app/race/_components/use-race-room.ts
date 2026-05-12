@@ -143,16 +143,19 @@ export function useRaceRoom({
     void backend.race.leave({ roomId: room, sessionToken: token });
   }, [backend]);
 
-  // Best-effort leave on unmount. Doesn't run on page hard-close
-  // (tab close fires beforeunload but the navigator.sendBeacon path
-  // would require extra plumbing — for now the room's idle GC kicks
-  // in 5 min after the last activity).
+  // No auto-leave on unmount. React strict-mode and dev fast-refresh
+  // both double-invoke effect cleanups, which would call `race.leave`
+  // during a transient unmount-then-remount. The server treats a
+  // matchmaking room with no real players left as disposable, so a
+  // strict-mode unmount would dispose the room the user just queued
+  // for and the remount's SSE stream would 404. The room's own 5-min
+  // idle GC + the explicit `abandon` callback handle real-leave
+  // cases; we only flush the debounce timer here.
   useEffect(() => {
     return () => {
       if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
-      leave();
     };
-  }, [leave]);
+  }, []);
 
   return { snapshot, ready, state, sendProgress, leave };
 }
