@@ -266,11 +266,17 @@ function Avatar({
 }
 
 function LevelBadge({ totals }: { totals: ProfileTotals }) {
+  const numberFmt = new Intl.NumberFormat("en-US");
   return (
     <div className="mt-2 flex w-full max-w-xs flex-col items-center gap-1.5">
       <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
         Level{" "}
         <span className="text-foreground tabular-nums">{totals.level}</span>
+        <span className="mx-1.5 text-foreground/30">·</span>
+        <span className="text-foreground tabular-nums">
+          {numberFmt.format(totals.totalXp)}
+        </span>{" "}
+        xp
       </span>
       <span
         aria-hidden
@@ -285,6 +291,9 @@ function LevelBadge({ totals }: { totals: ProfileTotals }) {
             width: "100%",
           }}
         />
+      </span>
+      <span className="font-mono text-[10px] tabular-nums text-muted-foreground/85">
+        {numberFmt.format(totals.xpIntoLevel)} / 1,000 to next
       </span>
     </div>
   );

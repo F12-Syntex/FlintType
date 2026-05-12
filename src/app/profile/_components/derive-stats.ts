@@ -24,29 +24,32 @@ export type ProfileTotals = {
   bestWpmAccuracy: number;
   meanAccuracy: number;
   level: number;
+  /** Lifetime XP across every completed test. */
+  totalXp: number;
+  /** XP earned inside the current level, 0..XP_PER_LEVEL-1. */
+  xpIntoLevel: number;
   /** XP toward the next level, 0..1. */
   levelProgress: number;
 };
 
-/** Test-driven level: every full level requires more tests than the
- *  one before it (5, 8, 12, 19, …) so the early levels feel quick and
- *  late levels feel earned. Returns floor(level) and the [0..1)
- *  progress to the next one. */
+/** Fixed XP economy: each completed test grants `XP_PER_TEST`, every
+ *  level costs `XP_PER_LEVEL`. Predictable and visible — the bar
+ *  moves the same amount every test and 10 tests is always exactly
+ *  one level. */
+export const XP_PER_TEST = 100;
+export const XP_PER_LEVEL = 1000;
+
 function levelFromCount(testsCompleted: number): {
   level: number;
+  totalXp: number;
+  xpIntoLevel: number;
   progress: number;
 } {
-  if (testsCompleted <= 0) return { level: 1, progress: 0 };
-  let level = 1;
-  let needed = 5;
-  let used = 0;
-  while (used + needed <= testsCompleted) {
-    used += needed;
-    level += 1;
-    needed = Math.round(needed * 1.5);
-  }
-  const progress = Math.max(0, Math.min(1, (testsCompleted - used) / needed));
-  return { level, progress };
+  const totalXp = Math.max(0, testsCompleted) * XP_PER_TEST;
+  const level = Math.floor(totalXp / XP_PER_LEVEL) + 1;
+  const xpIntoLevel = totalXp % XP_PER_LEVEL;
+  const progress = xpIntoLevel / XP_PER_LEVEL;
+  return { level, totalXp, xpIntoLevel, progress };
 }
 
 export function deriveTotals(tests: readonly HistoryTest[]): ProfileTotals {
@@ -76,7 +79,8 @@ export function deriveTotals(tests: readonly HistoryTest[]): ProfileTotals {
     completed.length > 0
       ? completed.reduce((s, t) => s + t.accuracy, 0) / completed.length
       : 0;
-  const { level, progress } = levelFromCount(testsCompleted);
+  const { level, totalXp, xpIntoLevel, progress } =
+    levelFromCount(testsCompleted);
   return {
     testsStarted,
     testsCompleted,
@@ -87,6 +91,8 @@ export function deriveTotals(tests: readonly HistoryTest[]): ProfileTotals {
     bestWpmAccuracy,
     meanAccuracy,
     level,
+    totalXp,
+    xpIntoLevel,
     levelProgress: progress,
   };
 }
@@ -267,7 +273,8 @@ export function mergeTotalsWithMt(
   // so the two never drift — bug bait when one curve is tweaked and
   // the other is forgotten.
   const combinedCompleted = local.testsCompleted + mtCompleted;
-  const { level, progress } = levelFromCount(combinedCompleted);
+  const { level, totalXp, xpIntoLevel, progress } =
+    levelFromCount(combinedCompleted);
   return {
     ...local,
     testsStarted: local.testsStarted + mtStarted,
@@ -279,6 +286,8 @@ export function mergeTotalsWithMt(
     totalSeconds: local.totalSeconds + mtTime,
     bestWpm: Math.max(local.bestWpm, mtBestWpm),
     level,
+    totalXp,
+    xpIntoLevel,
     levelProgress: progress,
   };
 }
