@@ -84,16 +84,14 @@ function BigStat({
 
 /** Crown badge that sits to the right of the stat value on a new PB.
  *  Inline-positioned so it shares the value's baseline — no absolute
- *  positioning to collide with the digits. Drops a primary-tinted
- *  shadow so it lifts off the surface, and pops in on mount under
- *  motion-safe. Reduced-motion users see the rest pose. */
+ *  positioning to collide with the digits. Pops in on mount under
+ *  motion-safe; reduced-motion users see the rest pose. */
 function PbCrown() {
   return (
     <span
       aria-label="new personal best"
       className={cn(
         "ml-1 inline-flex items-center self-center text-primary",
-        "drop-shadow-[0_2px_8px_color-mix(in_oklch,var(--primary)_45%,transparent)]",
         "motion-safe:animate-[pb-crown-pop_700ms_cubic-bezier(0.16,1,0.3,1)_both]",
       )}
     >
