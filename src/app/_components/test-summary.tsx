@@ -69,40 +69,38 @@ function BigStat({
           accent ? "text-primary" : "text-foreground",
         )}
       >
-        {pb ? <PbCrown /> : null}
         {value}
         {suffix ? (
           <span className="text-base font-normal text-muted-foreground">
             {suffix}
           </span>
         ) : null}
+        {pb ? <PbCrown /> : null}
         {pb ? <PbConfetti /> : null}
       </span>
     </div>
   );
 }
 
-/** Crown badge that hovers above the stat value on a new PB. Sized
- *  to read at a glance — sits ~`size-7` on mobile, scaling with the
- *  surrounding value text. Drops a tiny shadow so it feels lifted
- *  off the surface, and rotates in from the side on mount. The
- *  `motion-safe:` prefix means users with prefers-reduced-motion get
- *  the crown statically. */
+/** Crown badge that sits to the right of the stat value on a new PB.
+ *  Inline-positioned so it shares the value's baseline — no absolute
+ *  positioning to collide with the digits. Drops a primary-tinted
+ *  shadow so it lifts off the surface, and pops in on mount under
+ *  motion-safe. Reduced-motion users see the rest pose. */
 function PbCrown() {
   return (
     <span
       aria-label="new personal best"
       className={cn(
-        "pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2",
-        "text-primary motion-safe:animate-[pb-crown-pop_700ms_cubic-bezier(0.16,1,0.3,1)_both]",
+        "ml-1 inline-flex items-center self-center text-primary",
         "drop-shadow-[0_2px_8px_color-mix(in_oklch,var(--primary)_45%,transparent)]",
-        "sm:-top-8 lg:-top-9",
+        "motion-safe:animate-[pb-crown-pop_700ms_cubic-bezier(0.16,1,0.3,1)_both]",
       )}
     >
       <Crown
-        size={28}
         strokeWidth={2.25}
         className="size-7 sm:size-8 lg:size-9"
+        aria-hidden
       />
     </span>
   );
