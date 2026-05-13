@@ -53,4 +53,21 @@ describe("users repo", () => {
     await ctx.db.users.ensureForUser("user_a");
     expect(await ctx.db.users.count()).toBe(2);
   });
+
+  it("ogGrantedAt starts null on a fresh row", async () => {
+    const { row } = await ctx.db.users.ensureForUser("user_a");
+    expect(row.ogGrantedAt).toBeNull();
+  });
+
+  it("markOgGranted stamps the flag, subsequent findById sees it set", async () => {
+    await ctx.db.users.ensureForUser("user_a");
+    await ctx.db.users.markOgGranted("user_a");
+    const row = await ctx.db.users.findById("user_a");
+    expect(row?.ogGrantedAt).toBeInstanceOf(Date);
+  });
+
+  it("markOgGranted is a no-op for unknown users", async () => {
+    await ctx.db.users.markOgGranted("user_does_not_exist");
+    expect(await ctx.db.users.findById("user_does_not_exist")).toBeNull();
+  });
 });

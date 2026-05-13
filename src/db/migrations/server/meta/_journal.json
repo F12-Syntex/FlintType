@@ -36,6 +36,13 @@
       "when": 1778669259408,
       "tag": "0004_high_ma_gnuci",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778677031989,
+      "tag": "0005_spooky_excalibur",
+      "breakpoints": true
     }
   ]
 }

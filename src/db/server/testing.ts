@@ -78,9 +78,10 @@ const SCHEMA_DDL = `
   );
   CREATE INDEX IF NOT EXISTS notifications_user_time_idx ON notifications (user_id, created_at);
   CREATE TABLE IF NOT EXISTS users (
-    id          text PRIMARY KEY,
-    seq         serial NOT NULL,
-    created_at  timestamp NOT NULL DEFAULT now()
+    id              text PRIMARY KEY,
+    seq             serial NOT NULL,
+    created_at      timestamp NOT NULL DEFAULT now(),
+    og_granted_at   timestamp
   );
 `;
 

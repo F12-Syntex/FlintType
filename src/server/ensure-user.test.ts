@@ -114,4 +114,45 @@ describe("ensureUser", () => {
     expect(row!.seq).toBeGreaterThan(OG_MILESTONE_LIMIT);
     expect((await ctx.db.notifications.listForUser("user_late")).length).toBe(0);
   });
+
+  it("retroactively grants OG to an existing eligible row whose flag is null", async () => {
+    setupClientOk();
+    // Simulate an existing user who materialised before the OG
+    // feature shipped — row exists, seq is within the milestone, but
+    // og_granted_at is null.
+    const drizzle = ctx.db.$drizzle;
+    const { users } = await import("@/db/schema/server/users");
+    await drizzle.insert(users).values({ id: "user_old" });
+    const result = await ensureUser({
+      meta: { userId: "user_old" },
+      db: ctx.db,
+      log: logger,
+    });
+    expect(result).not.toBeNull();
+    expect(result!.seq).toBeLessThanOrEqual(OG_MILESTONE_LIMIT);
+    // Grant fired — notification created, og_granted_at stamped.
+    const notifs = await ctx.db.notifications.listForUser("user_old");
+    expect(notifs.length).toBe(1);
+    expect(notifs[0]!.kind).toBe("og_granted");
+    const refetch = await ctx.db.users.findById("user_old");
+    expect(refetch?.ogGrantedAt).not.toBeNull();
+  });
+
+  it("does not re-grant once og_granted_at is set", async () => {
+    setupClientOk();
+    // First call: grant fires, flag stamped.
+    await ensureUser({
+      meta: { userId: "user_a" },
+      db: ctx.db,
+      log: logger,
+    });
+    // Second call: flag is set, grant is skipped — no second
+    // notification, no second Clerk write.
+    await ensureUser({
+      meta: { userId: "user_a" },
+      db: ctx.db,
+      log: logger,
+    });
+    expect((await ctx.db.notifications.listForUser("user_a")).length).toBe(1);
+  });
 });

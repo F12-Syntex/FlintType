@@ -12,12 +12,19 @@ export type EnsureUserContext = {
 };
 
 /** Lazily materialise the local mirror row for the authenticated user,
- *  and fire any first-encounter side-effects.
+ *  and fire any pending OG-grant side-effects.
  *
- *  Side-effects (only on the very first call for a user):
- *    - If the assigned `seq` is within `OG_MILESTONE_LIMIT`, grant the
- *      OG identity tag (writes Clerk `publicMetadata.tags` and fires
- *      an `og_granted` notification).
+ *  Side-effects (only when the row is eligible AND not yet granted):
+ *    - If `seq <= OG_MILESTONE_LIMIT` and `ogGrantedAt == null`, run
+ *      the grant pipeline: write the OG tag onto Clerk
+ *      publicMetadata, fire the `og_granted` notification, then
+ *      stamp `ogGrantedAt` so future visits skip the work.
+ *
+ *  This branch fires for BOTH first-time and retroactive grants —
+ *  the moment an existing user (created before the OG feature
+ *  shipped, or before the cap lowered) hits `ensureUser`, their next
+ *  request runs the grant. The `ogGrantedAt` flag prevents repeated
+ *  Clerk reads on subsequent visits.
  *
  *  Must be called from a handler downstream of `requireAuth` — the
  *  Clerk userId is read from `ctx.meta.userId`. Throws INTERNAL when
@@ -47,9 +54,20 @@ export async function ensureUser(
     );
   }
   try {
-    const { row, created } = await ctx.db.users.ensureForUser(userId);
-    if (created && row.seq <= OG_MILESTONE_LIMIT) {
+    const { row } = await ctx.db.users.ensureForUser(userId);
+    const eligible = row.seq <= OG_MILESTONE_LIMIT;
+    const alreadyGranted = row.ogGrantedAt != null;
+    if (eligible && !alreadyGranted) {
       await grantOg({ db: ctx.db, log: ctx.log }, userId, row.seq);
+      // Even if `grantOg` swallowed a transient Clerk error, stamp
+      // the flag — the notification path runs inside the same try
+      // block and the dedupe key on the notification handles a
+      // retry. The alternative (refusing to stamp until everything
+      // succeeded) would hammer Clerk every visit if a single API
+      // call ever 503'd. Worst case: a user's OG tag isn't on Clerk
+      // but the local notification fired; they'll get the tag on
+      // their next account update or re-grant flow.
+      await ctx.db.users.markOgGranted(userId);
     }
     return row;
   } catch (err) {

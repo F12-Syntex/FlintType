@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "og_granted_at" timestamp;

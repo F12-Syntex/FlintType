@@ -1,13 +1,17 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { users, type UserRow } from "@/db/schema/server/users";
 import type { ServerDrizzle } from "../driver";
 
-/** The signup-order threshold for the OG identity tag. The first
- *  `OG_MILESTONE_LIMIT` rows materialised in the `users` table receive
- *  the OG tag automatically via `ensureUser` + `grantOgIfEligible`.
- *  Past the threshold, no automatic grant fires — OG is permanent for
- *  early users, never extended retroactively. */
-export const OG_MILESTONE_LIMIT = 1000;
+/** The signup-order threshold for the OG identity tag. Every row with
+ *  `seq <= OG_MILESTONE_LIMIT` is eligible for the OG tag; past the
+ *  threshold, no grant fires.
+ *
+ *  Eligibility is granted **retroactively** — when an existing user
+ *  whose `og_granted_at` is null hits `ensureUser`, the grant
+ *  pipeline runs even though `seq` was assigned long before the
+ *  feature shipped. The flag column above ensures we only do the
+ *  Clerk write + notification once per eligible user. */
+export const OG_MILESTONE_LIMIT = 100;
 
 /** Result of `ensureForUser`. `created=true` means this call inserted
  *  the row — the caller can read `row.seq` to decide whether a
@@ -69,6 +73,18 @@ export function usersRepo(db: ServerDrizzle) {
     async count(): Promise<number> {
       const rows = await db.select({ id: users.id }).from(users);
       return rows.length;
+    },
+
+    /** Stamp `og_granted_at` to now after a successful grant pipeline
+     *  (Clerk publicMetadata write + notification create). Once set,
+     *  `ensureUser` skips the grant for this user permanently. No-op
+     *  when the row doesn't exist (defensive — should never happen
+     *  because `ensureUser` calls `ensureForUser` first). */
+    async markOgGranted(userId: string): Promise<void> {
+      await db
+        .update(users)
+        .set({ ogGrantedAt: sql`now()` })
+        .where(eq(users.id, userId));
     },
   };
 }
