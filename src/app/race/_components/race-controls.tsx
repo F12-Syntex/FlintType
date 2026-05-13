@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useBackend } from "@/lib/backend";
 import { cn } from "@/lib/utils";
 import { writeHostStorage } from "../c/[slug]/_components/challenge-shell";
@@ -34,10 +35,33 @@ export function RaceControls() {
     state.phase === "queue" ||
     state.phase === "lobby" ||
     state.phase === "finished";
+  // "Bare" phases — `queue` and `finished` — let mode switches go
+  // straight through. Every other phase (matching / lobby /
+  // countdown / racing) represents a live commitment that the user
+  // shouldn't lose to a misclick; gate them behind a confirm dialog.
+  const requiresConfirm =
+    state.phase === "matching" ||
+    state.phase === "lobby" ||
+    state.phase === "countdown" ||
+    state.phase === "racing";
+  const [pendingMode, setPendingMode] = useState<RaceModeId | null>(null);
+
+  const onPickMode = useCallback(
+    (next: RaceModeId) => {
+      if (next === modeId) return;
+      if (requiresConfirm) {
+        setPendingMode(next);
+        return;
+      }
+      setModeId(next);
+    },
+    [modeId, requiresConfirm, setModeId],
+  );
+
   return (
     <div className="flex shrink-0 flex-wrap items-end justify-center gap-x-8 gap-y-4 px-7 py-4">
       <Field label="mode">
-        <ModePicker modeId={modeId} onPick={setModeId} disabled={!allowSwitch} />
+        <ModePicker modeId={modeId} onPick={onPickMode} disabled={!allowSwitch} />
       </Field>
       <Field label="action">
         <ActionButton
@@ -54,6 +78,26 @@ export function RaceControls() {
           <CreateChallengeButton modeId={modeId} />
         </Field>
       ) : null}
+
+      <ConfirmDialog
+        open={pendingMode != null}
+        onOpenChange={(next) => {
+          if (!next) setPendingMode(null);
+        }}
+        title="Switch race mode?"
+        confirmLabel="Switch mode"
+        cancelLabel="Stay"
+        confirmVariant="destructive"
+        onConfirm={() => {
+          if (pendingMode) setModeId(pendingMode);
+          setPendingMode(null);
+        }}
+      >
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          You&apos;re already in a race. Switching modes will drop you
+          out of the current lobby and start a fresh queue.
+        </p>
+      </ConfirmDialog>
     </div>
   );
 }
