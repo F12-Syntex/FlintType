@@ -18,8 +18,6 @@ import {
 } from "./derive-stats";
 import { PersonalBests } from "./personal-bests";
 import { ProfileHero } from "./profile-hero";
-import { ProfileStats } from "./profile-stats";
-import { ProfileXp } from "./profile-xp";
 import { RecentRuns } from "./recent-runs";
 import { WpmTrend } from "./wpm-trend";
 
@@ -28,11 +26,11 @@ const EMPTY_MT_SLICE: MonkeytypeStatsSlice = {
   pbs: { time: {}, words: {} },
 };
 
-/** /profile/<username> orchestrator. Editorial single-column layout
- *  capped at `max-w-2xl` (672px). Each section reads as a paragraph
- *  with a hairline rule above it — no card surrounds, no nested
- *  borders. The data fetch and the owner/visitor branch are
- *  unchanged; only the rendering shape did. */
+/** /profile/<username> orchestrator. Wide MonkeyType-style layout —
+ *  one column per "panel", each panel a bordered card carrying its
+ *  own data block. Panels stack vertically with a tight gap. Personal
+ *  bests render two strips (Time / Words) side-by-side on desktop;
+ *  everything else is full-width. */
 export function ProfileView({ username }: { username?: string }) {
   const backend = useBackend();
   const { user, isLoaded: userLoaded } = useUser();
@@ -82,8 +80,6 @@ export function ProfileView({ username }: { username?: string }) {
   const ownMtSlice = mtSliceRaw.importedAt > 0 ? mtSliceRaw : null;
   const hasStoredKey = isOwner === true && ownMtSlice?.encryptedApiKey != null;
 
-  // Auto-sync once per page load when a stored Ape Key exists AND the
-  // viewer is the owner. Visitors never trigger MT sync.
   const syncedRef = useRef(false);
   useEffect(() => {
     if (!hasStoredKey || syncedRef.current) return;
@@ -95,9 +91,7 @@ export function ProfileView({ username }: { username?: string }) {
         if (cancelled) return;
         updateMtSlice(out.slice);
       })
-      .catch(() => {
-        /* stored key may be inactive — silent */
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -121,21 +115,21 @@ export function ProfileView({ username }: { username?: string }) {
   const subjectTags = snapshot?.tags ?? [];
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col px-5 py-12 sm:px-8 sm:py-16">
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-6 sm:gap-4 sm:px-5 sm:py-8 lg:px-8 lg:py-10">
       <ProfileHero
         username={username}
         isOwner={heroIsOwner}
         tags={subjectTags}
+        totals={totals}
+        streak={streak}
       />
-      <ProfileXp totals={totals} />
 
       {error ? (
-        <p className="mt-12 border-t border-border/60 pt-10 text-sm text-primary">
+        <div className="rounded-md border border-border bg-card px-4 py-3 text-sm text-primary">
           {error}
-        </p>
+        </div>
       ) : (
         <>
-          <ProfileStats totals={totals} streak={streak} rank={null} />
           <PersonalBests bests={bests} />
           <ActivityHeatmap days={activity} streak={streak} />
           <WpmTrend points={trend} />
@@ -144,7 +138,7 @@ export function ProfileView({ username }: { username?: string }) {
       )}
 
       {loading && !error ? (
-        <p className="mt-10 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+        <p className="rounded-md border border-border bg-card px-4 py-3 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
           Loading the rest of {heroIsOwner ? "your" : "their"} history…
         </p>
       ) : null}
@@ -152,11 +146,7 @@ export function ProfileView({ username }: { username?: string }) {
   );
 }
 
-/** True when the URL's username slug matches the signed-in user.
- *  Checks the trio of fall-back identities the redirect can produce
- *  (`user.username`, email-local-part, `user.id`) so the canonical
- *  /profile/<slug> URL marks the user as owner regardless of
- *  which fall-back the redirect picked. */
+/** True when the URL's username slug matches the signed-in user. */
 function matchesViewer(
   urlUsername: string | undefined,
   user: ReturnType<typeof useUser>["user"],

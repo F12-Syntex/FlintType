@@ -1,15 +1,10 @@
 import { cn } from "@/lib/utils";
 import type { DayCell, StreakStats } from "./derive-stats";
 
-/** Activity strip — last 52 weeks of completed tests per day. Halved
- *  in height from the prior bordered-card version so the section
- *  reads as a strip beneath the page rhythm, not a wall. No
- *  surrounding card; single quiet caption above + the legend below.
- *
- *  On mobile the columns can collapse under 6px squares, so we keep
- *  the existing `overflow-x-auto` wrapper with a fixed minimum width
- *  — the user swipes the year horizontally if their viewport is
- *  narrower than ~440px. */
+/** Activity heatmap panel — wide 52-week strip inside a bordered
+ *  card, with a single caption line in the header and the Less/More
+ *  legend in the footer. Cells stretch to fill the available width
+ *  on desktop; mobile overflows into a swipeable strip below ~440px. */
 export function ActivityHeatmap({
   days,
   streak,
@@ -30,21 +25,26 @@ export function ActivityHeatmap({
   ].filter(Boolean) as string[];
 
   return (
-    <section className="mt-12 border-t border-border/60 pt-10 sm:mt-14 sm:pt-12">
-      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
-        <SectionLabel>Activity · last 12 months</SectionLabel>
-        <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/80 tabular-nums">
+    <section className="rounded-md border border-border bg-card px-4 py-4 sm:px-6 sm:py-5">
+      <header className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span aria-hidden className="inline-block h-px w-4 bg-primary" />
+          <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+            Activity · last 12 months
+          </span>
+        </div>
+        <span className="text-[10px] font-medium uppercase tracking-[0.14em] tabular-nums text-muted-foreground/80">
           {captionParts.join(" · ")}
         </span>
-      </div>
+      </header>
 
-      <div className="-mx-5 overflow-x-auto px-5 sm:mx-0 sm:overflow-visible sm:px-0">
-        <div className="flex min-w-[440px] flex-col gap-1.5 sm:w-full sm:min-w-0">
+      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+        <div className="flex min-w-[520px] flex-col gap-1.5 sm:w-full sm:min-w-0">
           <MonthAxis columns={columns} />
           <div
             className="grid w-full gap-[2px]"
             style={{
-              gridTemplateColumns: `repeat(${columns.length}, minmax(6px, 1fr))`,
+              gridTemplateColumns: `repeat(${columns.length}, minmax(8px, 1fr))`,
             }}
           >
             {columns.map((week, wi) => (
@@ -64,7 +64,7 @@ export function ActivityHeatmap({
           <span
             key={i}
             aria-hidden
-            className="size-2.5"
+            className="size-3 rounded-[2px]"
             style={{ background: cellBg(v) }}
           />
         ))}
@@ -110,7 +110,12 @@ function MonthAxis({ columns }: { columns: (DayCell | null)[][] }) {
 
 function Cell({ day, max }: { day: DayCell | null; max: number }) {
   if (!day) {
-    return <span aria-hidden className="block aspect-square w-full" />;
+    return (
+      <span
+        aria-hidden
+        className="block aspect-square w-full rounded-[2px]"
+      />
+    );
   }
   const ratio = max > 0 ? Math.max(0, Math.min(1, day.tests / max)) : 0;
   const label =
@@ -121,7 +126,9 @@ function Cell({ day, max }: { day: DayCell | null; max: number }) {
     <span
       title={label}
       aria-label={label}
-      className={cn("block aspect-square w-full")}
+      className={cn(
+        "block aspect-square w-full rounded-[2px] border border-foreground/[0.03]",
+      )}
       style={{ background: cellBg(ratio) }}
     />
   );
@@ -157,15 +164,4 @@ function chunkIntoWeeks(days: DayCell[]): (DayCell | null)[][] {
     out.push(week);
   }
   return out;
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span aria-hidden className="inline-block h-px w-4 bg-primary" />
-      <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-        {children}
-      </span>
-    </div>
-  );
 }

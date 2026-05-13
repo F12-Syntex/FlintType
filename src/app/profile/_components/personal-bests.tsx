@@ -34,24 +34,28 @@ const CATEGORY_DETAIL: Record<Category, string> = {
   practice: "Adaptive practice (training mode)",
 };
 
-/** Personal bests — Time + Words strips, MonkeyType layout. The
- *  bordered card surround is gone; cells sit as bare numbers in a
- *  grid. Empty cells render `—` in `text-foreground/25` so the
- *  viewer sees what they haven't attempted yet. The category picker
- *  stays as a compact dropdown chip above the strips so the user
- *  can slice by mode without leaving the page. */
+/** Personal bests — Time + Words strips rendered side-by-side at md+
+ *  inside a single bordered card. Each strip is a 4-cell horizontal
+ *  row of `<bracket> / WPM / accuracy` cells. Empty cells render `—`
+ *  in foreground/25 so the viewer immediately sees what they haven't
+ *  attempted yet. The category dropdown sits in the panel header. */
 export function PersonalBests({ bests }: { bests: PersonalBest[] }) {
   const [filter, setFilter] = useState<Category>("all");
   const lookup = useMemo(() => buildLookup(bests, filter), [bests, filter]);
 
   return (
-    <section className="mt-12 border-t border-border/60 pt-10 sm:mt-14 sm:pt-12">
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <SectionLabel>Personal bests</SectionLabel>
+    <section className="rounded-md border border-border bg-card px-4 py-4 sm:px-6 sm:py-5">
+      <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span aria-hidden className="inline-block h-px w-4 bg-primary" />
+          <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+            Personal bests
+          </span>
+        </div>
         <CategoryPicker value={filter} onChange={setFilter} />
-      </div>
+      </header>
 
-      <div className="grid gap-6 sm:grid-cols-2 sm:gap-10">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8 md:divide-x md:divide-border/60">
         <SubStrip
           label="Time"
           unit="s"
@@ -63,6 +67,7 @@ export function PersonalBests({ bests }: { bests: PersonalBest[] }) {
           unit=""
           amounts={WORDS_AMOUNTS}
           lookup={lookup}
+          inset
         />
       </div>
     </section>
@@ -161,18 +166,20 @@ function SubStrip({
   unit,
   amounts,
   lookup,
+  inset = false,
 }: {
   label: string;
   unit: string;
   amounts: readonly number[];
   lookup: Map<number, PersonalBest>;
+  inset?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-3">
-      <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+    <div className={cn("flex flex-col gap-3", inset && "md:pl-8")}>
+      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </span>
-      <div className="grid grid-cols-4 gap-x-3 gap-y-4">
+      <div className="grid grid-cols-4 gap-x-3">
         {amounts.map((amt) => (
           <BestCell
             key={amt}
@@ -198,33 +205,20 @@ function BestCell({
   const empty = best == null;
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground tabular-nums">
+      <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground tabular-nums">
         {amount}
         {unit}
       </span>
       <span
         className={cn(
-          "text-2xl font-bold tracking-[-0.04em] leading-none tabular-nums sm:text-[28px]",
+          "text-2xl font-bold leading-none tracking-[-0.03em] tabular-nums sm:text-[28px]",
           empty ? "text-foreground/25" : "text-primary",
         )}
       >
         {empty ? "—" : Math.round(best.bestWpm)}
       </span>
-      {!empty ? (
-        <span className="text-[10px] font-medium tabular-nums text-muted-foreground/80">
-          {best.bestAccuracy.toFixed(1)}%
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span aria-hidden className="inline-block h-px w-4 bg-primary" />
-      <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-        {children}
+      <span className="text-[10px] font-medium tabular-nums text-muted-foreground/80">
+        {empty ? "—" : `${best.bestAccuracy.toFixed(1)}%`}
       </span>
     </div>
   );

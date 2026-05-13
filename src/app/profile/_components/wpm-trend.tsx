@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import {
+  Area,
   CartesianGrid,
   ComposedChart,
   Line,
@@ -24,18 +25,18 @@ const chartConfig = {
 
 type Range = "day" | "week" | "month" | "3months" | "all";
 const RANGES: { id: Range; label: string; ms: number | null }[] = [
-  { id: "day", label: "Day", ms: 86_400_000 },
-  { id: "week", label: "Week", ms: 7 * 86_400_000 },
-  { id: "month", label: "Month", ms: 30 * 86_400_000 },
-  { id: "3months", label: "3m", ms: 90 * 86_400_000 },
-  { id: "all", label: "All", ms: null },
+  { id: "day", label: "Last day", ms: 86_400_000 },
+  { id: "week", label: "Last week", ms: 7 * 86_400_000 },
+  { id: "month", label: "Last month", ms: 30 * 86_400_000 },
+  { id: "3months", label: "Last 3 months", ms: 90 * 86_400_000 },
+  { id: "all", label: "All time", ms: null },
 ];
 
-/** WPM trend — line only (the area fill from the prior version
- *  doubled the visual mass without adding signal). Text-only range
- *  toggles above the chart instead of bordered chips, so the
- *  controls read as part of the section caption rather than a
- *  toolbar. Half height vs the prior version. */
+/** WPM trend panel — the page's headline chart. Wide bordered card,
+ *  taller than the other panels (h-56 sm:h-72) so the curve has room
+ *  to read. Range toggles render as button chips beside the section
+ *  label; tooltip on hover shows test index + date. The dashed
+ *  reference line marks the running mean WPM across the slice. */
 export function WpmTrend({ points }: { points: TrendPoint[] }) {
   const [range, setRange] = useState<Range>("all");
 
@@ -52,11 +53,16 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
   }, [filtered]);
 
   return (
-    <section className="mt-12 border-t border-border/60 pt-10 sm:mt-14 sm:pt-12">
-      <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
-        <SectionLabel>WPM trend</SectionLabel>
+    <section className="rounded-md border border-border bg-card px-4 py-4 sm:px-6 sm:py-5">
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span aria-hidden className="inline-block h-px w-4 bg-primary" />
+          <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+            WPM trend
+          </span>
+        </div>
         <RangeToggles value={range} onChange={setRange} />
-      </div>
+      </header>
 
       {filtered.length < 2 ? (
         <p className="text-sm text-muted-foreground">
@@ -64,7 +70,7 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
         </p>
       ) : (
         <>
-          <div className="mb-3 flex items-baseline justify-between gap-3 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="mb-3 flex items-baseline justify-between gap-3 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
             <span>
               <span className="text-foreground tabular-nums">
                 {filtered.length}
@@ -81,13 +87,27 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
           </div>
           <ChartContainer
             config={chartConfig}
-            className="aspect-auto h-40 w-full sm:h-48"
+            className="aspect-auto h-56 w-full sm:h-64 lg:h-72"
           >
             <ComposedChart
               accessibilityLayer
               data={filtered}
-              margin={{ left: 4, right: 8, top: 12, bottom: 0 }}
+              margin={{ left: 4, right: 12, top: 16, bottom: 0 }}
             >
+              <defs>
+                <linearGradient id="wpmTrendArea" x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="0%"
+                    stopColor="var(--color-wpm)"
+                    stopOpacity={0.16}
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor="var(--color-wpm)"
+                    stopOpacity={0}
+                  />
+                </linearGradient>
+              </defs>
               <CartesianGrid
                 vertical={false}
                 stroke="currentColor"
@@ -105,7 +125,7 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={6}
-                width={28}
+                width={32}
                 domain={["auto", "auto"]}
               />
               <ChartTooltip
@@ -133,11 +153,18 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
                   strokeDasharray="3 4"
                 />
               ) : null}
+              <Area
+                dataKey="wpm"
+                type="monotone"
+                stroke="none"
+                fill="url(#wpmTrendArea)"
+                isAnimationActive={false}
+              />
               <Line
                 dataKey="wpm"
                 type="monotone"
                 stroke="var(--color-wpm)"
-                strokeWidth={1.75}
+                strokeWidth={2}
                 dot={false}
                 activeDot={{
                   r: 3,
@@ -162,7 +189,7 @@ function RangeToggles({
   onChange: (next: Range) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-semibold uppercase tracking-[0.18em]">
+    <div className="flex flex-wrap items-center gap-1.5">
       {RANGES.map((r) => {
         const active = value === r.id;
         return (
@@ -172,25 +199,16 @@ function RangeToggles({
             onClick={() => onChange(r.id)}
             aria-pressed={active}
             className={cn(
-              "transition-colors",
-              active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+              "inline-flex h-7 items-center rounded-md border px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors",
+              active
+                ? "border-primary/40 bg-primary/[0.08] text-primary"
+                : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
             )}
           >
             {r.label}
           </button>
         );
       })}
-    </div>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span aria-hidden className="inline-block h-px w-4 bg-primary" />
-      <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-        {children}
-      </span>
     </div>
   );
 }
