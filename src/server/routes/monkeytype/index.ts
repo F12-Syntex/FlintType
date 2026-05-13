@@ -4,6 +4,7 @@ import {
   decryptApiKey,
   encryptApiKey,
   isEncryptedApiKey,
+  type EncryptedApiKey,
 } from "@/server/api-key-crypto";
 import { requireAuth } from "@/server/middleware/auth";
 import { rateLimit } from "@/server/middleware/rate-limit";
@@ -147,29 +148,53 @@ const importRoute = defineRoute<MonkeytypeImportInput, MonkeytypeImportOutput>({
     }
 
     // ─── PBs + lifetime stats → user_prefs slice ─────────────────
-    // Read-merge-write the user's prefs blob so we don't clobber
-    // unrelated slices (caret, theme, behaviour, …). Race-only
-    // risk: a concurrent client write at the exact moment of
-    // import could lose; acceptable for a manual user action.
+    // Encrypt the Ape Key with the server-side AES-256-GCM key so
+    // future loads can auto-sync without the user re-pasting. The
+    // DB stores ciphertext + IV + auth tag only — never the raw key.
+    //
+    // Encryption is best-effort: when `API_KEY_ENC_SECRET` is
+    // missing (production env var unset, or an operator rotation in
+    // progress), `encryptApiKey` throws. We catch it here and ship
+    // the slice WITHOUT `encryptedApiKey` — the manual import still
+    // succeeds (user gets their tests + PBs + lifetime stats) and
+    // only the auto-sync feature degrades (no stored key = no
+    // re-pull on next profile load). Falling back here keeps "I
+    // pasted my key" from 500-ing on a server-side config oversight.
+    let encryptedApiKey: EncryptedApiKey | undefined;
+    try {
+      encryptedApiKey = encryptApiKey(apiKey);
+    } catch (err) {
+      log.warn("monkeytype.import key encryption skipped", {
+        userId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
     const slice: MonkeytypeStatsSlice = {
       importedAt: Date.now(),
       completedTests: stats.completedTests,
       startedTests: stats.startedTests,
       timeTyping: stats.timeTyping,
       pbs: { time: pbsTime, words: pbsWords },
-      // Encrypt the Ape Key with the server-side AES-256-GCM key so
-      // future loads can auto-sync without the user re-pasting.
-      // The DB stores ciphertext + IV + auth tag only — never the
-      // raw key.
-      encryptedApiKey: encryptApiKey(apiKey),
+      ...(encryptedApiKey ? { encryptedApiKey } : {}),
     };
     // Read-merge-write so unrelated prefs slices survive. We
     // already pulled `existingPrefs` above for the key-resolution
-    // branch — reuse it.
-    await db.userPrefs.set(userId, {
-      ...existingPrefs,
-      monkeytypeStats: slice,
-    });
+    // branch — reuse it. Specific error message on failure so the
+    // dialog tells the user something useful (the dispatcher's
+    // fallback would just say "Internal error" without context).
+    try {
+      await db.userPrefs.set(userId, {
+        ...existingPrefs,
+        monkeytypeStats: slice,
+      });
+    } catch (err) {
+      log.error("monkeytype.import prefs save failed", err, { userId });
+      throw new BackendError(
+        500,
+        "INTERNAL",
+        "Couldn't save your MonkeyType data after the fetch — please try again.",
+      );
+    }
 
     return {
       imported,
