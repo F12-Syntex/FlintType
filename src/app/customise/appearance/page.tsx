@@ -1,13 +1,23 @@
 "use client";
 
 import { ExternalLink } from "lucide-react";
+import { useTheme as useNextTheme } from "next-themes";
 import Link from "next/link";
 import { ModeSwitcher } from "@/components/ui/mode-switcher";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import {
+  type ThemeOverrides,
   type ThemeVar,
   useThemeOverrides,
 } from "@/lib/theme-customization";
+import {
+  BACKGROUND_REACTIVE_ID,
+} from "@/lib/themes/background-reactive";
+import {
+  CUSTOM_THEME_ID,
+  findTheme,
+} from "@/lib/themes/registry";
+import { usePalette } from "@/lib/themes/use-palette";
 import { SettingsPageHeader } from "../_components/page-header";
 import { SettingsRow } from "../_components/row";
 import { SettingsSection } from "../_components/settings-section";
@@ -79,10 +89,57 @@ const COLOR_ROWS: readonly ColorRowDef[] = [
   },
 ];
 
+/** Resolve a colour token to the value currently visible inside the
+ *  theme-scope elements. Themes + per-var overrides paint onto
+ *  [data-ft-theme-scope] markers, not `:root`, so reading `var(--x)`
+ *  from the chrome (which is what the Colors section is) returns the
+ *  default palette regardless of the active theme. Compute the
+ *  effective value the same way the cascade would: user override →
+ *  active named theme's value for `var` (or its `fallbackVar`) →
+ *  default `var()` lookup. Reactive palettes are sampled at runtime
+ *  onto scopes — we don't have that value here, so reactive falls
+ *  through to the default lookup (acceptable: the previews still
+ *  reflect it, the swatch is just a chip). */
+function resolveSwatchColor(
+  varName: ThemeVar,
+  fallbackVar: `--${string}` | undefined,
+  overrides: ThemeOverrides,
+  activeId: string | null,
+  mode: "light" | "dark",
+): string {
+  const override = overrides[varName];
+  if (override) return override;
+
+  if (
+    activeId &&
+    activeId !== CUSTOM_THEME_ID &&
+    activeId !== BACKGROUND_REACTIVE_ID
+  ) {
+    const theme = findTheme(activeId);
+    if (theme) {
+      const key = varName.replace(/^--/, "");
+      const themeVal = theme.cssVars[mode][key];
+      if (themeVal) return themeVal;
+      if (fallbackVar) {
+        const fbKey = fallbackVar.replace(/^--/, "");
+        const fbVal = theme.cssVars[mode][fbKey];
+        if (fbVal) return fbVal;
+      }
+    }
+  }
+
+  return fallbackVar
+    ? `var(${varName}, var(${fallbackVar}))`
+    : `var(${varName})`;
+}
+
 export default function AppearancePage() {
   const { overrides, setVar, clearVar, reset } = useThemeOverrides();
   const { customizedCount: appearanceCustomized, reset: resetAppearance } =
     useAppearancePrefs();
+  const { activeId } = usePalette();
+  const { resolvedTheme } = useNextTheme();
+  const mode: "light" | "dark" = resolvedTheme === "dark" ? "dark" : "light";
   const customizedCount =
     Object.keys(overrides).length + appearanceCustomized;
 
@@ -133,11 +190,13 @@ export default function AppearancePage() {
             key={row.var}
             label={row.label}
             desc={row.desc}
-            swatchColor={
-              row.fallbackVar
-                ? `var(${row.var}, var(${row.fallbackVar}))`
-                : `var(${row.var})`
-            }
+            swatchColor={resolveSwatchColor(
+              row.var,
+              row.fallbackVar,
+              overrides,
+              activeId,
+              mode,
+            )}
             value={overrides[row.var]}
             onChange={(hex) => setVar(row.var, hex)}
             onClear={() => clearVar(row.var)}
