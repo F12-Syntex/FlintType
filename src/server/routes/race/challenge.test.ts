@@ -32,6 +32,12 @@ describe("race.challenge routes", () => {
     expect(res.sessionToken).toMatch(/^s_/);
   });
 
+  it("create refuses burst — burst is local-only, no shared room", async () => {
+    await expect(
+      callRoute(["race", "challenge", "create"], { input: { modeId: "burst" } }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+  });
+
   it("join lets a second player land in the same room by slug", async () => {
     const host = await callRoute<CreateChallengeOutput>(
       ["race", "challenge", "create"],
