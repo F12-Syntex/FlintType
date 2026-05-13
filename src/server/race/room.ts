@@ -56,13 +56,8 @@ export type RoomOptions = {
   modeId: RaceModeId;
   /** Deterministic seed for passage generation + bot motion. */
   raceSeed: number;
-  /** Word count for the passage. Burst mode passes its items via
-   *  `words` directly and totalChars is the rep count. */
+  /** Word count for the passage. */
   wordCount?: number;
-  /** Burst-mode item list, when applicable. */
-  burstItems?: readonly string[];
-  /** Burst-mode total reps target (items × repsPerItem). */
-  burstTotalChars?: number;
   /** Fires when the room's last activity is older than ROOM_TTL_MS
    *  AND the room is finished — the store uses this to GC. */
   onIdle?: () => void;
@@ -106,13 +101,8 @@ export class RaceRoom {
     this.modeId = options.modeId;
     this.capacity = capacityFor(options.modeId);
     this.raceSeed = options.raceSeed;
-    if (options.burstItems) {
-      this.words = options.burstItems;
-      this.totalChars = options.burstTotalChars ?? 0;
-    } else {
-      this.words = generateRacePassage(options.wordCount ?? 25, options.raceSeed);
-      this.totalChars = totalCharsOf(this.words);
-    }
+    this.words = generateRacePassage(options.wordCount ?? 25, options.raceSeed);
+    this.totalChars = totalCharsOf(this.words);
     this.matchmakingStartedAt = Date.now();
     this.lastTouchedAt = this.matchmakingStartedAt;
     // Challenge rooms skip the matchmaking auto-fill — host invites

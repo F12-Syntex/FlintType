@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ZodError } from "zod";
 
 vi.mock("@clerk/nextjs/server", () => ({
   auth: vi.fn(async () => ({ userId: null, sessionClaims: null })),
@@ -33,10 +34,15 @@ describe("race.challenge routes", () => {
     expect(res.sessionToken).toMatch(/^s_/);
   });
 
-  it("create refuses burst — burst is local-only, no shared room", async () => {
+  it("create refuses unknown modeIds via the schema", async () => {
+    // The pipeline rethrows ZodError as-is; the HTTP dispatcher is
+    // what maps it to BackendError(VALIDATION). callRoute bypasses
+    // the dispatcher, so we assert the raw zod error instead.
     await expect(
-      callRoute(["race", "challenge", "create"], { input: { modeId: "burst" } }),
-    ).rejects.toMatchObject({ code: "VALIDATION" });
+      callRoute(["race", "challenge", "create"], {
+        input: { modeId: "burst" as never },
+      }),
+    ).rejects.toBeInstanceOf(ZodError);
   });
 
   it("join lets a second player land in the same room by slug", async () => {

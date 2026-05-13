@@ -50,11 +50,9 @@ export type Racer = {
   isYou: boolean;
   /** Bot profile, null for the human. */
   bot: BotProfile | null;
-  /** Progress through the race. In passage mode this is the user's
-   *  cursor position in chars; in burst mode it's total reps cleared
-   *  (`burstItemIdx × repsPerItem + burstReps`). Either way it's a
-   *  monotonic 0..totalChars counter that drives lane bars, leader
-   *  detection, and finish checks. */
+  /** Cursor position in the passage (chars, includes the spaces
+   *  between completed words). Monotonic 0..totalChars; drives lane
+   *  bars, leader detection, and finish checks. */
   correctChars: number;
   /** Instantaneous WPM — bots: jitter around target; you: cumulative
    *  since GO, mirrored from practice's calcWpmAndRaw. */
@@ -64,21 +62,13 @@ export type Racer = {
   /** Place 1..N when finished, null while still racing. */
   place: number | null;
   /** Bot-only: fractional progress accumulator so a sub-1 advance
-   *  per tick still produces smooth motion. Burst mode uses the same
-   *  accumulator for fractional reps; the bot ticks add reps/sec
-   *  instead of chars/sec. */
+   *  per tick still produces smooth motion. */
   charProgress: number;
   /** When this racer entered the lobby. Null for bots that haven't
    *  joined yet (during the matching phase). You are always joined
    *  at time 0. Used by lanes to filter and by the feed for
    *  "@damiel joined the lobby" entries. */
   joinedAt: number | null;
-  /** Burst-mode only: which item this racer is currently on. 0-based;
-   *  equals items.length when finished. Undefined in passage mode. */
-  burstItemIdx?: number;
-  /** Burst-mode only: reps cleared on the current item (resets on
-   *  advance). Undefined in passage mode. */
-  burstReps?: number;
   /** Accumulated mistype count for this racer (wrong + extra chars).
    *  Drives the destructive-coloured tail on the player-strip bar.
    *  Bots are always 0; the user's number is published per-keystroke. */
@@ -112,50 +102,3 @@ export type RaceState = {
   /** Which 25/50/75% milestones each racer has already triggered. */
   milestonesByRacer: Record<string, number[]>;
 };
-
-export type Action =
-  | {
-      type: "SET_MODE";
-      modeId: RaceModeId;
-      seed: number;
-      now: number;
-      /** When true (mode change / first load) we drop straight into
-       *  the queue so the user goes through matching. When false
-       *  (race-again) we skip ahead to lobby so the bots stay in
-       *  place and the user doesn't replay the intro. */
-      withQueue: boolean;
-    }
-  | {
-      type: "RESTART";
-      seed: number;
-      now: number;
-      withQueue: boolean;
-    }
-  | { type: "ENTER_QUEUE"; now: number }
-  | { type: "BOT_JOIN"; botIdx: number; now: number }
-  | { type: "START_COUNTDOWN"; now: number }
-  | { type: "START_RACE"; now: number }
-  | {
-      type: "TICK";
-      now: number;
-      /** Snapshot of the user's typing supplied by the bridge so the
-       *  reducer doesn't need to cross-read PracticeContext. */
-      youCorrectChars: number;
-      youWpm: number;
-      youFinished: boolean;
-      trace?: TraceSample;
-    }
-  | {
-      /** Burst mode only — fired by the burst surface after the user
-       *  commits an attempt with space. `success` is true when the
-       *  attempt passed the threshold WPM and matched the target, in
-       *  which case reps += 1 (and on the threshold-hit, itemIdx
-       *  advances). On failure reps reset to 0 — the user has to
-       *  rebuild their streak on the current item. `wpm` is the
-       *  attempt's measured WPM, surfaced as the racer's live wpm so
-       *  the lane number reads honestly. */
-      type: "USER_BURST_COMMIT";
-      now: number;
-      success: boolean;
-      wpm: number;
-    };

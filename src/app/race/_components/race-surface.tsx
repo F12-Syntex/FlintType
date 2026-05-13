@@ -1,15 +1,11 @@
 "use client";
 
-import { RACE_MODES } from "./race-data";
-import { BurstRaceSurface } from "./burst-surface";
 import { RacePassage } from "./passage";
-import { useRace } from "./race-state";
 
-/** Thin client switch between the passage surface and the burst
- *  surface. Lives in its own file so the race page can stay a server
- *  component while still routing to the right surface per mode. */
+/** Race surface — every mode is a passage race, so this is currently
+ *  a one-line wrapper. Kept as its own module so the race page tree
+ *  has a clear "surface" component to mount and any future per-mode
+ *  routing can land here without touching the page. */
 export function RaceSurface() {
-  const { modeId } = useRace();
-  const mode = RACE_MODES[modeId];
-  return mode.kind === "burst" ? <BurstRaceSurface /> : <RacePassage />;
+  return <RacePassage />;
 }

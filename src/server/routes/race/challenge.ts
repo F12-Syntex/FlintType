@@ -25,19 +25,6 @@ import {
 const create = defineRoute<CreateChallengeInput, CreateChallengeOutput>({
   input: createChallengeInputSchema,
   handler: async ({ input }) => {
-    // Burst races don't have a server-driven multiplayer flow — the
-    // burst surface is local-only (each client runs its own reducer).
-    // Letting a host create a burst challenge would mint a sharable
-    // slug whose joiners would silently land in their own isolated
-    // local lobby. Reject at the door so the URL semantics stay
-    // honest: every challenge slug points at a real shared room.
-    if (input.modeId === "burst") {
-      throw new BackendError(
-        400,
-        "VALIDATION",
-        "burst races don't support shared challenges",
-      );
-    }
     const sessionToken = newSessionToken();
     const identity = await getRaceIdentity(sessionToken);
     const seed = Date.now() | 0;

@@ -37,6 +37,7 @@ export function OnlineRaceProvider({
   setModeId,
   restartShell,
   initialRoom,
+  challengeSlug,
   onEnterQueue,
   onAbandon,
   onRoomCancelled,
@@ -52,6 +53,9 @@ export function OnlineRaceProvider({
    *  rooms whose handle is pre-created on the server before the
    *  provider mounts. */
   initialRoom?: { roomId: string; sessionToken: string } | null;
+  /** Slug of the challenge room when the provider was mounted from
+   *  `/race/c/<slug>`. Surfaced via RaceCtx for the share-link UI. */
+  challengeSlug?: string | null;
   /** Shell-owned queue / abandon callbacks. The shell needs to be
    *  the one to fetch the room handle because it has to re-key the
    *  surrounding PracticeProvider with the new word list. */
@@ -204,12 +208,13 @@ export function OnlineRaceProvider({
       rematch: abandon,
       cancelLobby,
       isHost,
-      dispatch: () => undefined, // online provider doesn't expose a reducer
       ...derived,
       // Online-only conveniences read by the UI:
       onlineRoomId: room?.roomId ?? null,
       onlineSessionToken: youSessionToken,
       onlineSnapshot: snapshot,
+      isChallenge: snapshot?.kind === "challenge",
+      challengeSlug: challengeSlug ?? snapshot?.slug ?? null,
     }),
     [
       state,
@@ -224,6 +229,7 @@ export function OnlineRaceProvider({
       room?.roomId,
       youSessionToken,
       snapshot,
+      challengeSlug,
     ],
   );
 

@@ -107,8 +107,6 @@ export function evictFromMatchmaking(room: RaceRoom): void {
 export function createChallengeRoom(opts: {
   modeId: RaceModeId;
   raceSeed: number;
-  burstItems?: readonly string[];
-  burstTotalChars?: number;
 }): RaceRoom {
   const store = getStore();
   const id = newRoomId();
@@ -120,8 +118,6 @@ export function createChallengeRoom(opts: {
     modeId: opts.modeId,
     raceSeed: opts.raceSeed,
     wordCount: 25,
-    burstItems: opts.burstItems,
-    burstTotalChars: opts.burstTotalChars,
     onIdle: () => {
       store.byId.delete(id);
       store.bySlug.delete(slug);

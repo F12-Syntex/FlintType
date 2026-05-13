@@ -10,70 +10,30 @@ import { useRace } from "./race-state";
  *    - host  → share link + Start race button
  *    - guest → "waiting on the host" hint
  *
- *  Two providers feed it:
- *    - passage (online) — `onlineSnapshot.kind === "challenge"` + the
- *      server tells us the host identity and phase.
- *    - burst (offline) — no online snapshot exists; the URL is the
- *      slug, the host is always the local user, and the lobby phase
- *      comes from the offline reducer's `state.phase`. The
- *      `isChallenge` flag on the ctx tells us when we're in the
- *      offline-challenge variant.
- *
- *  Returns null in every other phase, and for matchmaking rooms
- *  (which don't have a host concept). Sits intentionally lightweight
- *  so it doesn't compete with the existing RacePoster behind it. */
+ *  Server snapshot is the source of truth — `onlineSnapshot.kind ===
+ *  "challenge"` plus `onlineSnapshot.phase === "lobby"` is the only
+ *  case this card renders. Returns null otherwise. */
 export function ChallengeLobby() {
-  const {
-    state,
-    onlineSnapshot,
-    onlineSessionToken,
-    onlineRoomId,
-    isChallenge,
-    challengeSlug,
-  } = useRace();
+  const { onlineSnapshot, onlineSessionToken, onlineRoomId } = useRace();
 
-  // Passage-online challenge path — snapshot is the source of truth.
-  if (onlineSnapshot?.kind === "challenge") {
-    if (onlineSnapshot.phase !== "lobby") return null;
-    const me = onlineSnapshot.racers.find((r) => r.id === onlineSessionToken);
-    const isHost = me?.isHost ?? false;
-    const slug = onlineSnapshot.slug ?? "";
-    return (
-      <LobbyCard
-        slug={slug}
-        showHostBar={isHost}
-        roomId={onlineRoomId ?? ""}
-        sessionToken={onlineSessionToken ?? ""}
-      />
-    );
-  }
-
-  // Burst-offline challenge path — no snapshot, just the local
-  // reducer. The local user is always the host (joiners would land
-  // as spectators since burst rooms don't support multi-user
-  // gameplay yet).
-  if (isChallenge && challengeSlug && state.phase === "lobby") {
-    return (
-      <LobbyCard
-        slug={challengeSlug}
-        showHostBar={false}
-        roomId=""
-        sessionToken=""
-      />
-    );
-  }
-
-  return null;
+  if (onlineSnapshot?.kind !== "challenge") return null;
+  if (onlineSnapshot.phase !== "lobby") return null;
+  const me = onlineSnapshot.racers.find((r) => r.id === onlineSessionToken);
+  const isHost = me?.isHost ?? false;
+  const slug = onlineSnapshot.slug ?? "";
+  return (
+    <LobbyCard
+      slug={slug}
+      showHostBar={isHost}
+      roomId={onlineRoomId ?? ""}
+      sessionToken={onlineSessionToken ?? ""}
+    />
+  );
 }
 
-/** Shared card body used by both the online and offline challenge
- *  paths. `showHostBar=true` reveals the share-link + Start-race
+/** Card body. `showHostBar=true` reveals the share-link + Start-race
  *  buttons (Start-race fires the server `challenge.start` route).
- *  Offline-burst challenges pass `showHostBar=false` because the
- *  Start-race button for them already lives in the top action
- *  strip (`<ActionButton phase="lobby" isChallenge />` → fires the
- *  offline `startCountdown` action) — duplicating it here would
- *  read as two competing CTAs on the same surface. */
+ *  Guests get a share-link-only variant. */
 function LobbyCard({
   slug,
   showHostBar,
@@ -99,9 +59,7 @@ function LobbyCard({
   );
 }
 
-/** Just the share-link row (no Start button). Used by the offline
- *  burst-challenge path where the action button at the top of the
- *  surface already owns Start. */
+/** Share-link row (no Start button) — rendered for non-host viewers. */
 function ShareLink({ slug }: { slug: string }) {
   const [copied, setCopied] = useState(false);
   const url =

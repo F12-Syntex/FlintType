@@ -7,7 +7,7 @@ import { useBackend } from "@/lib/backend";
 import { cn } from "@/lib/utils";
 import { writeHostStorage } from "../c/[slug]/_components/challenge-shell";
 import { ModePicker } from "./mode-picker";
-import { RACE_MODES, type RaceModeId } from "./race-data";
+import type { RaceModeId } from "./race-data";
 import { useRace } from "./race-state";
 
 /** Top race strip, sibling of practice's `<ModeBar>`. Same centred
@@ -75,11 +75,7 @@ export function RaceControls() {
           onAbandon={abandon}
         />
       </Field>
-      {/* Challenge create is only meaningful for server-shared races.
-       *  Burst is a local-only mode (each client runs its own reducer)
-       *  so a sharable lobby URL would mislead the joiner into a
-       *  brand-new local lobby — hide the affordance entirely. */}
-      {state.phase === "queue" && RACE_MODES[modeId].kind !== "burst" ? (
+      {state.phase === "queue" ? (
         <Field label="challenge">
           <CreateChallengeButton modeId={modeId} />
         </Field>
