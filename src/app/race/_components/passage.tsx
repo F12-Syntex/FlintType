@@ -10,6 +10,7 @@ import { playerColorFor, RACE_MODES } from "./race-data";
 import { RaceLineupPanel } from "./lineup-panel";
 import { useRace } from "./race-state";
 import type { Racer, RacePhase } from "./race-types";
+import { SpectatorPassage } from "./spectator-passage";
 
 /** Race passage. The actual typing surface IS practice's <Passage>
  *  component — same caret, same per-char colouring, same smooth-line
@@ -81,6 +82,12 @@ export function RacePassage() {
 
   const racing =
     state.phase === "racing" || state.phase === "finished";
+  // Spectator window: you've finished, but the room hasn't — swap
+  // your passage for a live view of another racer's cursor.
+  // RaceResults renders below in the page tree (page.tsx) so your
+  // stats are visible at the same time.
+  const youFinished = you.finishedAt != null;
+  const showSpectator = state.phase === "racing" && youFinished;
   // Player roster shows from matching onwards. Hidden in queue
   // (empty room — only the user) and in finished if everyone's
   // already wrapped (RaceResults takes over visually).
@@ -99,10 +106,17 @@ export function RacePassage() {
         {racing ? (
           <div className="flex h-full w-full flex-col gap-3">
             <div className="min-h-0 flex-1">
-              <Passage
-                wordBackground={wordTints}
-                wordTextColor={wordTextColor}
-              />
+              {showSpectator ? (
+                <SpectatorPassage
+                  words={state.words}
+                  racers={state.racers}
+                />
+              ) : (
+                <Passage
+                  wordBackground={wordTints}
+                  wordTextColor={wordTextColor}
+                />
+              )}
             </div>
             {quoteSource ? <QuoteAttribution source={quoteSource} /> : null}
           </div>
