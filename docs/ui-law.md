@@ -122,6 +122,17 @@ The dark race screen, dark TopBar/footer, popovers, and editorial dark panels sh
 
 These are part of the §2.3 fixed layer — they do not swap with `<ModeToggle>` / `<ThemeSwitcher>`. Reach for them only on surfaces that are *intentionally* dark regardless of the user's palette.
 
+#### Third-party brand tokens
+
+Third-party brand colours are fixed identity assets — they don't get themed. Every entry must be tied to a brand-mark surface (an OAuth button, a partner chip, an integration badge); never reach for these as generic accents.
+
+| Token                            | Hex      | Use                                                              |
+|----------------------------------|----------|------------------------------------------------------------------|
+| `bg-ft-brand-discord`            | `#5865F2`| Discord OAuth button fill (`<DiscordButton>`).                   |
+| `bg-ft-brand-discord-hover`      | `#4752C4`| Hover/active state on the Discord OAuth button.                  |
+
+If you add a new third-party brand surface, register the token in `globals.css` under the brand-tokens block and add a row here in the same commit.
+
 ---
 
 ## 3. Spacing

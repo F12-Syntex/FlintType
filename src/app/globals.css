@@ -228,6 +228,13 @@
      "ghost runner" track pattern. Two tones close to ft-ink-popover. */
   --color-ft-ghost-stripe-a: #3a3530;
   --color-ft-ghost-stripe-b: #2a2620;
+
+  /* Third-party brand tokens — fixed, never themed. Each one must be
+     justified by a brand-mark requirement (a button or chip that
+     represents the third party itself) and listed in docs/ui-law.md
+     §2.3. Don't reach for these for generic accents. */
+  --color-ft-brand-discord: #5865f2;
+  --color-ft-brand-discord-hover: #4752c4;
 }
 
 /* Half cycle at the element's natural opacity (1 multiplied with whatever

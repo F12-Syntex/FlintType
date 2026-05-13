@@ -22,7 +22,7 @@ export function DiscordButton({
       size="default"
       disabled={disabled}
       onClick={() => void onStart()}
-      className="w-full justify-center gap-3 bg-[#5865F2] text-white hover:bg-[#4752C4]"
+      className="w-full justify-center gap-3 bg-ft-brand-discord text-white hover:bg-ft-brand-discord-hover"
     >
       <DiscordGlyph />
       Continue with Discord
