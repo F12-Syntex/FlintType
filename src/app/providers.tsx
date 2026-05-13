@@ -2,6 +2,7 @@
 
 import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { ApplyThemeOverrides } from "@/lib/apply-theme-overrides";
 import { PaletteProvider } from "@/lib/themes/use-palette";
 import { BackgroundApplier } from "./background-applier";
@@ -19,7 +20,13 @@ export function Providers({ children }: { children: ReactNode }) {
         <ApplyThemeOverrides />
         <BackgroundApplier />
         <BordersApplier />
-        {children}
+        {/* delayDuration 300ms feels responsive without firing on
+            casual mouse-overs; skipDelayDuration 100ms gives the
+            Monkeytype-style "fly between adjacent chips and the
+            tooltip swaps instantly" behaviour. */}
+        <TooltipProvider delayDuration={300} skipDelayDuration={100}>
+          {children}
+        </TooltipProvider>
       </PaletteProvider>
     </ThemeProvider>
   );

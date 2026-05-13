@@ -206,7 +206,12 @@ export function EditProfileDialog({
                         : "opacity-40 grayscale hover:opacity-70",
                     )}
                   >
-                    <UserTag tag={t} size="sm" />
+                    {/* tooltip={false} — the chip is the visual
+                        affordance for the outer toggle button; an
+                        on-hover tooltip here would compete with the
+                        button's role and read as noise next to the
+                        already-explanatory dialog copy. */}
+                    <UserTag tag={t} size="sm" tooltip={false} />
                   </button>
                 );
               })}

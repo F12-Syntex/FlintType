@@ -34,7 +34,7 @@ Protocol:
    - Patch (`0.0.X`) — default, small fix/docs/chore
    - Minor (`0.X.0`) — new user-facing feature
    - Major (`X.0.0`) — breaking change
-3. Write the new version back to `VERSION` and include it in the stage.
+3. Write the new version back to `VERSION` **and** update the `version` field in `package.json` to the same value. Both must match every commit — `package.json` is what npm / Vercel / GitHub Releases / Sentry / any registry tooling sees, `VERSION` is the canonical plain-text source that the rest of the app reads. Stage both files. Never let them drift.
 4. Commit with Conventional Commits format:
    - Subject: `type(scope): short title` where type ∈ {feat, fix, chore, docs, refactor, test, build, style}
    - Body line 1: the new version (e.g. `0.0.2`)
