@@ -1,5 +1,6 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import { Download, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -213,6 +214,8 @@ function formatAge(ms: number): string {
 /* ─── Table ──────────────────────────────────────────────────── */
 
 function Table({ entries }: { entries: readonly LeaderboardEntry[] }) {
+  const { user } = useUser();
+  const youUserId = user?.id ?? null;
   return (
     <div className="flex flex-col">
       <div
@@ -230,14 +233,20 @@ function Table({ entries }: { entries: readonly LeaderboardEntry[] }) {
       </div>
       <ol className="flex flex-col">
         {entries.map((e) => (
-          <Row key={e.testId} entry={e} />
+          <Row key={e.testId} entry={e} isYou={e.userId === youUserId} />
         ))}
       </ol>
     </div>
   );
 }
 
-function Row({ entry }: { entry: LeaderboardEntry }) {
+function Row({
+  entry,
+  isYou,
+}: {
+  entry: LeaderboardEntry;
+  isYou: boolean;
+}) {
   const handle = entry.username ? `@${entry.username}` : entry.name;
   // Every row links somewhere — username is the pretty slug when the
   // racer set one, the Clerk user_id is the fallback for racers who
@@ -251,6 +260,10 @@ function Row({ entry }: { entry: LeaderboardEntry }) {
         "group/row border-b border-border/60 py-3 last:border-b-0",
         "grid grid-cols-[32px_minmax(0,1fr)_auto] items-baseline gap-x-3",
         "sm:grid-cols-[40px_minmax(0,1fr)_120px_72px_64px_64px] sm:gap-x-4 sm:py-3.5",
+        // Soft primary tint when this row is the viewer's own entry —
+        // matches the highlighting on the race-results table so the
+        // "find me" scan reads identical across surfaces.
+        isYou && "bg-primary/[0.05]",
       )}
     >
       <span
@@ -268,7 +281,13 @@ function Row({ entry }: { entry: LeaderboardEntry }) {
             href={linkHref}
             className={cn(
               "min-w-0 truncate text-[14px] transition-colors hover:text-primary sm:text-[15px]",
-              leader ? "font-semibold text-foreground" : "text-foreground/90",
+              // Own-row paints in primary regardless of rank so it
+              // stands out even when you're somewhere mid-table.
+              isYou
+                ? "font-semibold text-primary"
+                : leader
+                  ? "font-semibold text-foreground"
+                  : "text-foreground/90",
             )}
           >
             {handle}
@@ -276,6 +295,14 @@ function Row({ entry }: { entry: LeaderboardEntry }) {
           {entry.tags.map((t) => (
             <UserTag key={t} tag={t} size="sm" className="shrink-0" />
           ))}
+          {isYou ? (
+            <span
+              aria-label="Your entry"
+              className="inline-flex h-5 shrink-0 items-center rounded-md border border-primary/40 bg-primary/[0.08] px-1.5 text-[9px] font-semibold uppercase leading-none tracking-[0.18em] text-primary"
+            >
+              You
+            </span>
+          ) : null}
         </div>
         {/* Mobile sub-line: mode chip + raw + acc on one row beneath
          *  the handle so the table reads compactly at 375 px. The
