@@ -21,21 +21,24 @@ export const RACE_MODES: Record<RaceModeId, RaceMode> = {
     name: "1V3",
     detail: "4 racers · 25 words",
     wordCount: 25,
-    botIds: ["damiel", "selan", "kassia"],
+    // Curated for variety — grandmaster, mid, rookie — so a solo
+    // player faces a recognisable spectrum instead of three near-
+    // identical speedsters.
+    botIds: ["damiel", "elias", "onyx"],
   },
   "1v1": {
     id: "1v1",
     name: "1V1",
     detail: "head-to-head · 25 words",
     wordCount: 25,
-    botIds: ["selan"],
+    botIds: ["mireille"],
   },
   sprint: {
     id: "sprint",
     name: "SPRINT",
     detail: "fast-pair · 25 words",
     wordCount: 25,
-    botIds: ["damiel", "selan"],
+    botIds: ["haru", "nadya"],
   },
   endurance: {
     id: "endurance",
@@ -50,7 +53,7 @@ export const RACE_MODES: Record<RaceModeId, RaceMode> = {
     // Length is set by the server (medium bracket — 101–300 chars).
     detail: "famous quote · medium length",
     wordCount: 0,
-    botIds: ["selan", "kassia"],
+    botIds: ["elias", "mireille"],
   },
 };
 
@@ -71,11 +74,22 @@ export const BOT_TICK_MS = 50;
 export const TRACE_SAMPLE_MS = 1000;
 export const COUNTDOWN_SECONDS = 3;
 
-/** Deterministic bot definition. Bots are local opponents — no
- *  network, no server-side state. Each bot has a steady-state target
- *  WPM, a per-tick noise band so the curve reads organic, and a
- *  short ramp-up at the start so nobody hits full speed instantly. */
-export type BotId = "damiel" | "selan" | "kassia";
+/** Bot definition (display mirror). The server is the source of
+ *  truth — `src/server/race/bots.ts` ticks WPM + errors per room.
+ *  The client copy is read by `race-online.tsx` to attach a profile
+ *  to each `Racer` row so the UI can show badge / flag / colour
+ *  without re-fetching anything. Keep the two in lockstep. */
+export type BotId =
+  | "damiel"
+  | "haru"
+  | "nadya"
+  | "selan"
+  | "elias"
+  | "mireille"
+  | "kassia"
+  | "yusuf"
+  | "onyx";
+
 export type BotProfile = {
   id: BotId;
   name: string;
@@ -84,36 +98,22 @@ export type BotProfile = {
   targetWpm: number;
   noiseWpm: number;
   rampSeconds: number;
+  /** Fraction of correctly-typed chars (0..1). Server uses this for
+   *  per-char error rolls during the race; client reads it only for
+   *  display contexts (lobby preview, results breakdown). */
+  accuracyTarget: number;
 };
 
 export const BOTS: Record<BotId, BotProfile> = {
-  damiel: {
-    id: "damiel",
-    name: "@damiel",
-    flag: "🇸🇪",
-    badge: "GRANDMASTER",
-    targetWpm: 188,
-    noiseWpm: 14,
-    rampSeconds: 3,
-  },
-  selan: {
-    id: "selan",
-    name: "@selan",
-    flag: "🇨🇦",
-    badge: "EXPERT",
-    targetWpm: 128,
-    noiseWpm: 9,
-    rampSeconds: 4,
-  },
-  kassia: {
-    id: "kassia",
-    name: "@kassia",
-    flag: "🇩🇪",
-    badge: "ADEPT",
-    targetWpm: 78,
-    noiseWpm: 6,
-    rampSeconds: 5,
-  },
+  damiel: { id: "damiel",   name: "@damiel",   flag: "🇸🇪", badge: "GRANDMASTER", targetWpm: 188, noiseWpm: 12, rampSeconds: 3, accuracyTarget: 0.99  },
+  haru:   { id: "haru",     name: "@haru",     flag: "🇯🇵", badge: "ELITE",       targetWpm: 165, noiseWpm:  8, rampSeconds: 3, accuracyTarget: 0.985 },
+  nadya:  { id: "nadya",    name: "@nadya",    flag: "🇵🇱", badge: "EXPERT",      targetWpm: 142, noiseWpm: 14, rampSeconds: 4, accuracyTarget: 0.96  },
+  selan:  { id: "selan",    name: "@selan",    flag: "🇨🇦", badge: "ADEPT",       targetWpm: 118, noiseWpm: 11, rampSeconds: 4, accuracyTarget: 0.95  },
+  elias:  { id: "elias",    name: "@elias",    flag: "🇩🇪", badge: "ADEPT",       targetWpm:  98, noiseWpm:  9, rampSeconds: 4, accuracyTarget: 0.94  },
+  mireille:{ id: "mireille",name: "@mireille", flag: "🇫🇷", badge: "STEADY",      targetWpm:  82, noiseWpm: 12, rampSeconds: 5, accuracyTarget: 0.93  },
+  kassia: { id: "kassia",   name: "@kassia",   flag: "🇩🇪", badge: "STEADY",      targetWpm:  72, noiseWpm: 14, rampSeconds: 5, accuracyTarget: 0.92  },
+  yusuf:  { id: "yusuf",    name: "@yusuf",    flag: "🇹🇷", badge: "ROOKIE",      targetWpm:  58, noiseWpm: 16, rampSeconds: 6, accuracyTarget: 0.9   },
+  onyx:   { id: "onyx",     name: "@onyx",     flag: "🇺🇸", badge: "ROOKIE",      targetWpm:  42, noiseWpm: 18, rampSeconds: 6, accuracyTarget: 0.87  },
 };
 
 function mulberry32(seed: number): () => number {
@@ -186,15 +186,29 @@ export function playerColorFor(id: string): string {
   switch (id) {
     case "you":
       return "var(--primary)";
+    // Per-bot colours sit on a hand-tuned wheel (hue 195–340) that
+    // avoids both the destructive red (~25) and the coral primary
+    // (~35), so a bot never reads as an error and never competes
+    // with the user's own colour. Lightness 0.65–0.72 keeps every
+    // swatch readable on light and dark surfaces.
     case "damiel":
-      // Cobalt blue — hue 250, deep enough to differ from teal.
-      return "oklch(0.65 0.18 250)";
+      return "oklch(0.65 0.18 250)"; // cobalt blue
+    case "haru":
+      return "oklch(0.68 0.18 215)"; // sky
+    case "nadya":
+      return "oklch(0.68 0.20 330)"; // magenta
     case "selan":
-      // Teal — hue 195, well clear of both red and the coral primary.
-      return "oklch(0.70 0.13 195)";
+      return "oklch(0.70 0.13 195)"; // teal
+    case "elias":
+      return "oklch(0.70 0.15 145)"; // moss green
+    case "mireille":
+      return "oklch(0.72 0.16 275)"; // periwinkle
     case "kassia":
-      // Violet — hue 305, distinctive against the other two.
-      return "oklch(0.68 0.20 305)";
+      return "oklch(0.68 0.20 305)"; // violet
+    case "yusuf":
+      return "oklch(0.70 0.16 165)"; // jade
+    case "onyx":
+      return "oklch(0.66 0.10 240)"; // muted slate-blue
     default:
       return "var(--muted-foreground)";
   }

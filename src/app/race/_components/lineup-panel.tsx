@@ -157,6 +157,21 @@ function PhaseLabel({
   return null;
 }
 
+/** Tiny "BOT" chip painted beside an opponent's name so it's
+ *  unmistakable which racers are AI-driven. Hairline border, muted
+ *  fill, mono-tracked uppercase — reads as a system tag, not a
+ *  badge, so a row of three bots doesn't shout. */
+function BotChip() {
+  return (
+    <span
+      aria-label="Bot opponent"
+      className="inline-flex shrink-0 items-center rounded-md border border-foreground/15 bg-foreground/[0.04] px-1 py-[1px] text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+    >
+      Bot
+    </span>
+  );
+}
+
 /* ─── Racer row ───────────────────────────────────────────── */
 
 function RacerRow({
@@ -207,7 +222,7 @@ function RacerRow({
       <div className="flex min-w-0 flex-col gap-0.5">
         <span
           className={cn(
-            "truncate text-[14px] sm:text-[15px]",
+            "flex min-w-0 items-center gap-1.5 truncate text-[14px] sm:text-[15px]",
             disconnected
               ? "text-muted-foreground"
               : racer.isYou
@@ -215,7 +230,8 @@ function RacerRow({
                 : "text-foreground/85",
           )}
         >
-          {racer.name}
+          <span className="truncate">{racer.name}</span>
+          {racer.bot != null ? <BotChip /> : null}
         </span>
         {disconnected ? (
           <span className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/80">

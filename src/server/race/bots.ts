@@ -1,27 +1,53 @@
-/** Server-side bot model. Same deterministic WPM curve as the
- *  original client-side race-data.ts so a player who's seen bots on
- *  the old offline flow gets recognisable opponents on the new
- *  online flow. Curve = ramp-in + per-tick noise; seeded so two
- *  identical race seeds produce identical bot trajectories.
+/** Server-side bot model. Source of truth for the race room — bots
+ *  on the client (`src/app/race/_components/race-data.ts`) are a
+ *  display-only mirror.
  *
- *  Why duplicate from the client: the client copy is a UI/data file
- *  imported by other client components; importing it from `@/server`
- *  would drag client-only bits (and the client doesn't need to know
- *  about bot ticking anymore now that the server runs it). The
- *  source of truth lives here on the server. */
+ *  Each bot has a target WPM, a noise band, a ramp time, and an
+ *  accuracy target. The first three drive `instantBotWpm`; the last
+ *  drives realistic error accrual inside the room tick so a 87%
+ *  bot ends a race with visible mistakes on its row instead of the
+ *  perfect-100% number the old model produced. */
 
-export type BotId = "damiel" | "selan" | "kassia";
+export type BotId =
+  | "damiel"
+  | "haru"
+  | "nadya"
+  | "selan"
+  | "elias"
+  | "mireille"
+  | "kassia"
+  | "yusuf"
+  | "onyx";
 
 export type BotProfile = {
   id: BotId;
   name: string;
   flag: string;
   badge: string;
+  /** Steady-state WPM after ramp. */
   targetWpm: number;
+  /** Per-tick noise band around the target — higher = streakier. */
   noiseWpm: number;
+  /** Seconds to ramp from half-target → full target. */
   rampSeconds: number;
+  /** Fraction of correctly-typed chars (0..1). Drives per-char error
+   *  rolls inside the room tick. 0.99 is a top racer, 0.87 is a
+   *  beginner who hits a wrong letter every dozen-ish keys. */
+  accuracyTarget: number;
 };
 
+/** Bot roster. Nine personalities spanning ~40–200 WPM and 87–99%
+ *  accuracy, so a solo player races against a wide spectrum of
+ *  opponents instead of three machine-perfect speedsters.
+ *
+ *  Tuning intent:
+ *    - Fast tier (haru, damiel, nadya) — low noise, short ramp, high
+ *      accuracy. Feels confident and clean.
+ *    - Mid tier (selan, elias, mireille) — medium noise, normal ramp,
+ *      mid accuracy. The bracket most real players sit in.
+ *    - Slow tier (kassia, yusuf, onyx) — higher noise, longer ramp,
+ *      lower accuracy. Streaky, occasionally fast-fingered, occasionally
+ *      hesitant. */
 export const BOTS: Record<BotId, BotProfile> = {
   damiel: {
     id: "damiel",
@@ -29,38 +55,103 @@ export const BOTS: Record<BotId, BotProfile> = {
     flag: "🇸🇪",
     badge: "GRANDMASTER",
     targetWpm: 188,
-    noiseWpm: 14,
+    noiseWpm: 12,
     rampSeconds: 3,
+    accuracyTarget: 0.99,
+  },
+  haru: {
+    id: "haru",
+    name: "@haru",
+    flag: "🇯🇵",
+    badge: "ELITE",
+    targetWpm: 165,
+    noiseWpm: 8,
+    rampSeconds: 3,
+    accuracyTarget: 0.985,
+  },
+  nadya: {
+    id: "nadya",
+    name: "@nadya",
+    flag: "🇵🇱",
+    badge: "EXPERT",
+    targetWpm: 142,
+    noiseWpm: 14,
+    rampSeconds: 4,
+    accuracyTarget: 0.96,
   },
   selan: {
     id: "selan",
     name: "@selan",
     flag: "🇨🇦",
-    badge: "EXPERT",
-    targetWpm: 128,
+    badge: "ADEPT",
+    targetWpm: 118,
+    noiseWpm: 11,
+    rampSeconds: 4,
+    accuracyTarget: 0.95,
+  },
+  elias: {
+    id: "elias",
+    name: "@elias",
+    flag: "🇩🇪",
+    badge: "ADEPT",
+    targetWpm: 98,
     noiseWpm: 9,
     rampSeconds: 4,
+    accuracyTarget: 0.94,
+  },
+  mireille: {
+    id: "mireille",
+    name: "@mireille",
+    flag: "🇫🇷",
+    badge: "STEADY",
+    targetWpm: 82,
+    noiseWpm: 12,
+    rampSeconds: 5,
+    accuracyTarget: 0.93,
   },
   kassia: {
     id: "kassia",
     name: "@kassia",
     flag: "🇩🇪",
-    badge: "ADEPT",
-    targetWpm: 78,
-    noiseWpm: 6,
+    badge: "STEADY",
+    targetWpm: 72,
+    noiseWpm: 14,
     rampSeconds: 5,
+    accuracyTarget: 0.92,
+  },
+  yusuf: {
+    id: "yusuf",
+    name: "@yusuf",
+    flag: "🇹🇷",
+    badge: "ROOKIE",
+    targetWpm: 58,
+    noiseWpm: 16,
+    rampSeconds: 6,
+    accuracyTarget: 0.9,
+  },
+  onyx: {
+    id: "onyx",
+    name: "@onyx",
+    flag: "🇺🇸",
+    badge: "ROOKIE",
+    targetWpm: 42,
+    noiseWpm: 18,
+    rampSeconds: 6,
+    accuracyTarget: 0.87,
   },
 };
 
-/** Default bot lineup per mode. Same shape as the client's
- *  RACE_MODES so matchmaking-fill behaviour matches what offline
- *  players saw. */
+/** Default bot lineup per mode. Curated for *variety* — a 1v3 race
+ *  spans grandmaster → average → rookie so a solo player faces a
+ *  recognisable spread of opponents instead of three near-identical
+ *  speedsters. Sprint is a fast pair, endurance a mid pair, etc. */
 export const BOT_LINEUP: Record<string, readonly BotId[]> = {
-  "1v3": ["damiel", "selan", "kassia"],
-  "1v1": ["selan"],
-  sprint: ["damiel", "selan"],
+  "1v3": ["damiel", "elias", "onyx"],
+  "1v1": ["mireille"],
+  sprint: ["haru", "nadya"],
   endurance: ["selan", "kassia"],
-  burst: ["selan", "kassia"],
+  quote: ["elias", "mireille"],
+  burst: ["nadya", "kassia"],
 };
 
 export function capacityFor(modeId: string): number {
@@ -82,7 +173,7 @@ function mulberry32(seed: number): () => number {
 /** Bot's instantaneous WPM at `elapsedMs` into the race. Ramp from
  *  half-speed to target over `rampSeconds`, then noise band on top.
  *  Seeded by raceSeed × botId so two races with the same seed
- *  reproduce identical bot motion across instances and tabs. */
+ *  reproduce identical bot trajectories. */
 export function instantBotWpm(
   bot: BotProfile,
   elapsedMs: number,
@@ -93,11 +184,37 @@ export function instantBotWpm(
       ? 1
       : Math.min(1, 0.5 + (elapsedMs / 1000 / bot.rampSeconds) * 0.5);
   const base = bot.targetWpm * ramp;
-  let h = raceSeed | 0;
-  for (let i = 0; i < bot.id.length; i += 1) {
-    h = (h * 31 + bot.id.charCodeAt(i)) | 0;
-  }
-  const rng = mulberry32(h ^ Math.floor(elapsedMs / 100));
+  const rng = mulberry32(hashBotSeed(bot.id, raceSeed, elapsedMs));
   const jitter = (rng() * 2 - 1) * bot.noiseWpm;
   return Math.max(20, base + jitter);
+}
+
+/** Deterministic per-bot error roll. Returns `true` when this bot
+ *  would have mistyped the char at `charIndex` of the passage given
+ *  its accuracyTarget and the race seed. Seeded so a replay of the
+ *  same race produces identical error placement. */
+export function botMistakesChar(
+  bot: BotProfile,
+  charIndex: number,
+  raceSeed: number,
+): boolean {
+  if (bot.accuracyTarget >= 1) return false;
+  const rng = mulberry32(hashBotSeed(bot.id, raceSeed, charIndex * 1000));
+  return rng() >= bot.accuracyTarget;
+}
+
+/** Combine the bot id, race seed, and a numeric salt (elapsedMs for
+ *  WPM jitter, charIndex for error rolls) into a 32-bit seed for
+ *  mulberry32. Exposed so the room tick can call it once per tick
+ *  and reuse one RNG for a batch of error rolls. */
+export function hashBotSeed(
+  botId: string,
+  raceSeed: number,
+  salt: number,
+): number {
+  let h = raceSeed | 0;
+  for (let i = 0; i < botId.length; i += 1) {
+    h = (h * 31 + botId.charCodeAt(i)) | 0;
+  }
+  return h ^ Math.floor(salt) | 0;
 }

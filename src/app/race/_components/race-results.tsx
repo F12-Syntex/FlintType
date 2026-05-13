@@ -175,11 +175,19 @@ export function RaceResults() {
               </span>
               <span
                 className={cn(
-                  "truncate font-semibold",
+                  "flex min-w-0 items-center gap-1.5 truncate font-semibold",
                   r.isYou ? "text-primary" : "text-foreground",
                 )}
               >
-                {r.name}
+                <span className="truncate">{r.name}</span>
+                {r.bot != null ? (
+                  <span
+                    aria-label="Bot opponent"
+                    className="inline-flex shrink-0 items-center rounded-md border border-foreground/15 bg-foreground/[0.04] px-1 py-[1px] text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+                  >
+                    Bot
+                  </span>
+                ) : null}
               </span>
               <span
                 className={cn(
@@ -278,10 +286,22 @@ function strokeFor(id: string): string {
   switch (id) {
     case "damiel":
       return "color-mix(in oklch, var(--foreground) 80%, transparent)";
+    case "haru":
+      return "color-mix(in oklch, var(--foreground) 75%, transparent)";
+    case "nadya":
+      return "color-mix(in oklch, var(--foreground) 65%, transparent)";
     case "selan":
       return "color-mix(in oklch, var(--foreground) 55%, transparent)";
+    case "elias":
+      return "color-mix(in oklch, var(--foreground) 50%, transparent)";
+    case "mireille":
+      return "color-mix(in oklch, var(--foreground) 45%, transparent)";
     case "kassia":
-      return "color-mix(in oklch, var(--foreground) 35%, transparent)";
+      return "color-mix(in oklch, var(--foreground) 38%, transparent)";
+    case "yusuf":
+      return "color-mix(in oklch, var(--foreground) 32%, transparent)";
+    case "onyx":
+      return "color-mix(in oklch, var(--foreground) 28%, transparent)";
     default:
       return "var(--muted-foreground)";
   }

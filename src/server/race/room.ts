@@ -9,6 +9,7 @@ import type {
 import {
   BOTS,
   BOT_LINEUP,
+  botMistakesChar,
   capacityFor,
   instantBotWpm,
   type BotId,
@@ -368,13 +369,38 @@ export class RaceRoom {
       const totalProg = r.botCharProgress + charsThisTick;
       const whole = Math.floor(totalProg);
       r.botCharProgress = totalProg - whole;
-      const next = Math.min(this.totalChars, r.progressChars + whole);
-      if (next !== r.progressChars) {
+      const prevProgress = r.progressChars;
+      const next = Math.min(this.totalChars, prevProgress + whole);
+      // Per-char error roll. Each char the bot "types" this tick has
+      // a (1 - accuracyTarget) chance of being a mistype. Errors
+      // accumulate into the same `errors` counter real players publish,
+      // and the live accuracy percent is derived from it. Seeded by
+      // the (botId, raceSeed, charIndex) tuple inside `botMistakesChar`
+      // so a replay of the same race produces identical error placement.
+      if (next > prevProgress && r.botProfile.accuracyTarget < 1) {
+        for (let i = prevProgress; i < next; i += 1) {
+          if (botMistakesChar(r.botProfile, i, this.raceSeed)) {
+            r.errors += 1;
+            changed = true;
+          }
+        }
+      }
+      if (next !== prevProgress) {
         r.progressChars = next;
         changed = true;
       }
       if (Math.round(wpm) !== r.wpm) {
         r.wpm = Math.round(wpm);
+        changed = true;
+      }
+      // Live accuracy = correct / typed * 100, clamped to [0, 100].
+      // `progressChars` is the cursor-position char count; errors are
+      // accumulated alongside it, so the ratio is honest.
+      const typed = Math.max(1, r.progressChars);
+      const acc = Math.round(((typed - r.errors) / typed) * 1000) / 10;
+      const clampedAcc = Math.max(0, Math.min(100, acc));
+      if (clampedAcc !== r.accuracy) {
+        r.accuracy = clampedAcc;
         changed = true;
       }
       if (r.progressChars >= this.totalChars && r.finishedAt == null) {
