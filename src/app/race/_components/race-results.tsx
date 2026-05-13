@@ -23,25 +23,26 @@ export function RaceResults() {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
   const onDownload = useCallback(async () => {
-    const node = panelRef.current;
+    // Capture the whole content area (data-screenshot-root on
+    // AppChrome's main scroller) rather than just this panel, so the
+    // PNG reads as a page snapshot — passage, lineup, results, the
+    // race trace — instead of an orphaned card. Fallback to the
+    // panel keeps the export working if this component is ever
+    // mounted outside the app shell.
+    const { findScreenshotRoot, naturalScreenshotSize, pickScreenshotBg } =
+      await import("@/lib/screenshot");
+    const node = findScreenshotRoot(panelRef.current);
     if (!node || exporting) return;
     setExporting(true);
     try {
       const { toPng } = await import("html-to-image");
-      const surface =
-        getComputedStyle(document.documentElement).getPropertyValue(
-          "--card",
-        ).trim() || "#ffffff";
-      // See test-summary.tsx for the rationale on the pixelRatio
-      // change — html-to-image's default (window.devicePixelRatio)
-      // produces a correctly-sized PNG instead of one that reads as
-      // "zoomed in" when opened on DPR-1 desktops.
-      const rect = node.getBoundingClientRect();
+      const bg = pickScreenshotBg(node);
+      const { width, height } = naturalScreenshotSize(node);
       const dataUrl = await toPng(node, {
         cacheBust: true,
-        backgroundColor: surface,
-        width: Math.ceil(rect.width),
-        height: Math.ceil(rect.height),
+        backgroundColor: bg,
+        width,
+        height,
         filter: (n) => !(n instanceof HTMLElement && n.dataset.noExport === "true"),
       });
       const a = document.createElement("a");

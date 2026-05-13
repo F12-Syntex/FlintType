@@ -425,28 +425,24 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
   const captureRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
   const onDownload = useCallback(async () => {
-    const node = captureRef.current;
+    // Resolve the page-level content area (set via data-screenshot-root
+    // on AppChrome's main scroller). Captures everything between the
+    // topbar and footer — passage, stats, chart, ledger. Fallback to
+    // the inner result panel keeps preview / embedded uses working.
+    const { findScreenshotRoot, naturalScreenshotSize, pickScreenshotBg } =
+      await import("@/lib/screenshot");
+    const node = findScreenshotRoot(captureRef.current);
     if (!node || exporting) return;
     setExporting(true);
     try {
       const { toPng } = await import("html-to-image");
-      const bg =
-        getComputedStyle(document.documentElement).getPropertyValue(
-          "--background",
-        ).trim() || "#ffffff";
-      // pixelRatio defaults to window.devicePixelRatio inside
-      // html-to-image. We previously forced pixelRatio: 2 here, which
-      // on DPR-1 monitors (most Windows desktops) produced PNGs at 2×
-      // the visible CSS pixels — image viewers opened those at 100%
-      // and the result looked "zoomed in". The default matches the
-      // device's actual pixel density, so the saved file is crisp
-      // without being oversized.
-      const rect = node.getBoundingClientRect();
+      const bg = pickScreenshotBg(node);
+      const { width, height } = naturalScreenshotSize(node);
       const dataUrl = await toPng(node, {
         cacheBust: true,
         backgroundColor: bg,
-        width: Math.ceil(rect.width),
-        height: Math.ceil(rect.height),
+        width,
+        height,
         filter: (n) => !(n instanceof HTMLElement && n.dataset.noExport === "true"),
       });
       const a = document.createElement("a");

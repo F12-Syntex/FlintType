@@ -44,8 +44,9 @@ describe("ensureUser", () => {
       db: ctx.db,
       log: logger,
     });
-    expect(row.id).toBe("user_a");
-    expect(row.seq).toBe(1);
+    expect(row).not.toBeNull();
+    expect(row!.id).toBe("user_a");
+    expect(row!.seq).toBe(1);
     const list = await ctx.db.notifications.listForUser("user_a");
     expect(list.length).toBe(1);
     expect(list[0]!.kind).toBe("og_granted");
@@ -63,11 +64,35 @@ describe("ensureUser", () => {
       db: ctx.db,
       log: logger,
     });
-    expect(second.id).toBe(first.id);
-    expect(second.seq).toBe(first.seq);
+    expect(first).not.toBeNull();
+    expect(second).not.toBeNull();
+    expect(second!.id).toBe(first!.id);
+    expect(second!.seq).toBe(first!.seq);
     // Only one notification — the second call sees created=false and
     // never enters the grant branch.
     expect((await ctx.db.notifications.listForUser("user_a")).length).toBe(1);
+  });
+
+  it("returns null and does not throw when the mirror is unavailable", async () => {
+    setupClientOk();
+    const brokenDb = {
+      ...ctx.db,
+      users: {
+        ...ctx.db.users,
+        ensureForUser: vi.fn(async () => {
+          throw new Error('relation "users" does not exist');
+        }),
+      },
+    };
+    const result = await ensureUser({
+      meta: { userId: "user_a" },
+      db: brokenDb,
+      log: logger,
+    });
+    expect(result).toBeNull();
+    // And critically — no notifications were created (the grant
+    // pipeline never even started).
+    expect((await ctx.db.notifications.listForUser("user_a")).length).toBe(0);
   });
 
   it("does not grant OG past the milestone", async () => {
@@ -85,7 +110,8 @@ describe("ensureUser", () => {
       db: ctx.db,
       log: logger,
     });
-    expect(row.seq).toBeGreaterThan(OG_MILESTONE_LIMIT);
+    expect(row).not.toBeNull();
+    expect(row!.seq).toBeGreaterThan(OG_MILESTONE_LIMIT);
     expect((await ctx.db.notifications.listForUser("user_late")).length).toBe(0);
   });
 });

@@ -24,9 +24,20 @@ export type EnsureUserContext = {
  *  that's absent so misuse fails loudly rather than silently
  *  materialising an anonymous row.
  *
- *  The OG grant is awaited but failures inside it are swallowed (see
- *  `grantOg`); the parent request always succeeds. */
-export async function ensureUser(ctx: EnsureUserContext): Promise<UserRow> {
+ *  Fail-soft on DB errors: if the `users` mirror table doesn't exist
+ *  yet (e.g. a fresh production deploy where the migration hasn't
+ *  been applied), we log a warning and return null instead of
+ *  crashing the parent route. The grant retries on the next request
+ *  once the migration lands. Internal failures inside `grantOg` are
+ *  separately swallowed (Clerk API hiccups should never break the
+ *  parent request either).
+ *
+ *  Returns the user row on success, or null when the mirror is
+ *  unreachable. Callers that don't need the row can ignore the
+ *  return value either way. */
+export async function ensureUser(
+  ctx: EnsureUserContext,
+): Promise<UserRow | null> {
   const userId = ctx.meta.userId as string | undefined;
   if (!userId) {
     throw new BackendError(
@@ -35,9 +46,21 @@ export async function ensureUser(ctx: EnsureUserContext): Promise<UserRow> {
       "ensureUser called without an authenticated session",
     );
   }
-  const { row, created } = await ctx.db.users.ensureForUser(userId);
-  if (created && row.seq <= OG_MILESTONE_LIMIT) {
-    await grantOg({ db: ctx.db, log: ctx.log }, userId, row.seq);
+  try {
+    const { row, created } = await ctx.db.users.ensureForUser(userId);
+    if (created && row.seq <= OG_MILESTONE_LIMIT) {
+      await grantOg({ db: ctx.db, log: ctx.log }, userId, row.seq);
+    }
+    return row;
+  } catch (err) {
+    // Mirror table missing, transient DB outage, or any other write
+    // failure: log + skip. The parent request still proceeds; the
+    // worst-case impact is "OG grant is deferred to a later request"
+    // which is acceptable for an identity-decoration feature.
+    ctx.log.warn("ensureUser: mirror unavailable, skipping grant", {
+      userId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return null;
   }
-  return row;
 }

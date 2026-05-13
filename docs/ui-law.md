@@ -124,18 +124,18 @@ These are part of the §2.3 fixed layer — they do not swap with `<ModeToggle>`
 
 #### User-tag tokens
 
-Identity marks (OG, OWNER, …) paint from a per-tag token quartet that is **fixed across palettes**. A "founding member" or "owner" chip is a claim about the user, not chrome — themed-coral OG under one palette and themed-mint OG under another would let the tag drift across users and stop reading as a *kind*. Only the **fill alpha** drops in dark mode so the chip doesn't pop hot against an ink surface; `fg`, `border` and `glow` are identical between `:root` and `.dark`.
+Identity marks (OG, OWNER, …) paint from a per-tag token quartet that is **100% fixed across palettes AND modes**. A "founding member" or "owner" chip is a claim about the user, not chrome — themed-coral OG under one palette and themed-mint OG under another would let the tag drift across users and stop reading as a *kind*. The eight tokens have identical values in `:root` and `.dark`; there are no per-mode overrides. Fills are **solid opaque** so the chip carries its own contrast regardless of the surface behind it (dark race screens, light profile pages, every palette).
 
 | Token                    | Use                                                            |
 |--------------------------|-----------------------------------------------------------------|
 | `--ft-tag-og-fg`         | OG icon + label colour (aged-copper ink)                       |
 | `--ft-tag-og-border`     | OG hairline border                                             |
-| `--ft-tag-og-fill`       | OG soft cream fill (lower alpha in `.dark`)                    |
+| `--ft-tag-og-fill`       | OG opaque warm-cream fill                                      |
 | `--ft-tag-og-glow`       | OG outer + inset box-shadow (static, no animation)             |
-| `--ft-tag-owner-fg`      | OWNER icon + label colour (deep warm-ink)                      |
+| `--ft-tag-owner-fg`      | OWNER icon + label colour (deep brown for max contrast on gold) |
 | `--ft-tag-owner-border`  | OWNER hairline border                                          |
-| `--ft-tag-owner-fill`    | OWNER bone-paper fill (lower alpha in `.dark`)                 |
-| `--ft-tag-owner-glow`    | OWNER engraved-press box-shadow (1px outline + inset highlight) |
+| `--ft-tag-owner-fill`    | OWNER opaque amber-gold fill                                   |
+| `--ft-tag-owner-glow`    | OWNER outer halo + inner highlight (signet-press feel)         |
 
 Only `<UserTag>` (§11) consumes these — never reach for them from product surfaces. Adding a new tag requires extending the eight tokens, the `UserTagId` union (`src/types/user-tag.ts`), the catalog in `src/components/ft/user-tag.tsx`, and the rows in §11 + §14 of this doc, all in the same commit.
 

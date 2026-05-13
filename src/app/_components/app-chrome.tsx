@@ -58,6 +58,11 @@ export function AppChrome({
         className="relative min-h-0 flex-1 overflow-hidden"
       >
         <div
+          // data-screenshot-root marks the "content area" — the
+          // result-page export buttons (test-summary, race-results)
+          // walk up the DOM to find this element and capture it.
+          // Excludes the topbar and footer chrome by design.
+          data-screenshot-root="true"
           className={cn(
             // Global horizontal page-pad so /app surfaces breathe off
             // the chrome edge. Per-page sections may still add their
