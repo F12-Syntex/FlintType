@@ -293,6 +293,104 @@ describe("RaceRoom", () => {
     expect(room.hostCancel("s_unknown")).toBe(false);
   });
 
+  it("host leaving a challenge room cancels it (frees the slug)", () => {
+    let idleFired = false;
+    const room = new RaceRoom({
+      id: "r_host_leave_1",
+      slug: "warm-otter-99",
+      kind: "challenge",
+      modeId: "1v1",
+      raceSeed: 1,
+      wordCount: 5,
+      onIdle: () => {
+        idleFired = true;
+      },
+    });
+    room.addRealRacer({
+      sessionToken: "s_host",
+      name: "@host",
+      badge: "RACER",
+      isHost: true,
+    });
+    room.addRealRacer({
+      sessionToken: "s_guest",
+      name: "@guest",
+      badge: "RACER",
+    });
+    const received: Array<{ cancelled?: boolean }> = [];
+    room.subscribe((snap) => received.push({ cancelled: snap.cancelled }));
+    room.removeRacer("s_host");
+    // Host leaving must broadcast a cancelled snapshot (so the guest's
+    // SSE bounces them out) and fire onIdle (so the store frees the slug).
+    expect(received.at(-1)?.cancelled).toBe(true);
+    expect(idleFired).toBe(true);
+  });
+
+  it("non-host leaving a challenge room does NOT cancel it", () => {
+    let idleFired = false;
+    const room = new RaceRoom({
+      id: "r_guest_leave_1",
+      slug: "warm-otter-100",
+      kind: "challenge",
+      modeId: "1v1",
+      raceSeed: 1,
+      wordCount: 5,
+      onIdle: () => {
+        idleFired = true;
+      },
+    });
+    room.addRealRacer({
+      sessionToken: "s_host",
+      name: "@host",
+      badge: "RACER",
+      isHost: true,
+    });
+    room.addRealRacer({
+      sessionToken: "s_guest",
+      name: "@guest",
+      badge: "RACER",
+    });
+    room.removeRacer("s_guest");
+    // Guest leaving drops their seat but the lobby stays alive for
+    // the host. onIdle must not fire.
+    expect(idleFired).toBe(false);
+    expect(room.snapshot().cancelled).toBeUndefined();
+    expect(room.snapshot().racers.find((r) => r.id === "s_host")).toBeDefined();
+  });
+
+  it("challenge room does NOT auto-dispose 5 min after a race finishes", () => {
+    let idleFired = false;
+    const room = new RaceRoom({
+      id: "r_challenge_post_finish_1",
+      slug: "warm-otter-101",
+      kind: "challenge",
+      modeId: "1v1",
+      raceSeed: 1,
+      wordCount: 5,
+      onIdle: () => {
+        idleFired = true;
+      },
+    });
+    room.addRealRacer({
+      sessionToken: "s_host",
+      name: "@host",
+      badge: "RACER",
+      isHost: true,
+    });
+    expect(room.hostStart("s_host")).toBe(true);
+    vi.advanceTimersByTime(700 + 3_000); // lobby + countdown
+    expect(room.phase).toBe("racing");
+    // Drive the room to finish: real player completes the passage,
+    // bot tick eventually finishes too.
+    room.setProgress("s_host", room.totalChars, 100, true);
+    vi.advanceTimersByTime(60_000); // bot finishes within 60s
+    expect(room.phase).toBe("finished");
+    // Matchmaking rooms would dispose 5 min after finish; challenge
+    // rooms must stay alive until the host leaves or cancels.
+    vi.advanceTimersByTime(5 * 60_000 + 1_000);
+    expect(idleFired).toBe(false);
+  });
+
   it("hostCancel works from racing phase too", () => {
     const room = new RaceRoom({
       id: "r_cancel3",

@@ -39,6 +39,15 @@ const COUNTDOWN_MS = 3_000;
 const BOT_TICK_MS = 100; // 10 Hz
 const BROADCAST_THROTTLE_MS = 80; // ~12 Hz max
 const ROOM_TTL_MS = 5 * 60_000;
+/** Challenge rooms keep their slug alive until the host actively
+ *  leaves or cancels. This is the safety net for the host's tab
+ *  disappearing without firing `leave` (crash, kill-process,
+ *  network loss long enough to drop the SSE without a clean
+ *  beforeunload). Sliding window — resets on any racer activity
+ *  (join, keystroke, rematch). 30 min is enough that no honest
+ *  lobby-link share gets killed; short enough that abandoned rooms
+ *  don't leak the in-memory store. */
+const CHALLENGE_HOST_IDLE_TTL_MS = 30 * 60_000;
 
 type InternalRacer = RoomRacer & {
   sessionToken: string;
@@ -139,6 +148,10 @@ export class RaceRoom {
       this.scheduleMatchmakingFill();
     } else {
       this.phase = "lobby";
+      // Arm the sliding-window idle timer from creation so a host who
+      // creates a lobby and walks away without ever starting / cancelling
+      // doesn't leak the room. Resets itself on every activity bump.
+      this.scheduleChallengeIdleGc();
     }
   }
 
@@ -492,6 +505,21 @@ export class RaceRoom {
       this.scheduleBroadcast();
       return;
     }
+    // Challenge host leaving the room kills the entire lobby.
+    // The slug is the user's invite link — when the host walks away
+    // there's no one with the authority to start a new race, so the
+    // honest signal to every other racer is "this room is over",
+    // same as if the host had hit Cancel. Without this, the slug
+    // would stay parked in the bySlug map until idle-GC fired, but
+    // any subsequent joiner would land in a leaderless lobby that
+    // can never start — worse than 404. Set `cancelled=true` then
+    // dispose so subscribers redirect and the slug is freed.
+    if (this.kind === "challenge" && r.isHost) {
+      this.cancelled = true;
+      this.flushBroadcast();
+      this.dispose();
+      return;
+    }
     // Pre-race we just drop the seat — no UI value in showing a
     // "(disconnected)" tag for someone who never entered the lobby.
     if (this.phase === "matching" || this.phase === "lobby") {
@@ -608,9 +636,42 @@ export class RaceRoom {
 
   private scheduleGc() {
     if (this.gcTimer) return;
+    // Challenge rooms intentionally outlive the post-finish window so
+    // the lobby link (slug) stays valid for late joiners until the
+    // host explicitly leaves or cancels. The only thing that GCs a
+    // challenge room from this codepath is the host abandoning their
+    // tab without firing `leave` (crash, kill); for that we run a
+    // longer sliding-window timer keyed off `lastTouchedAt`.
+    if (this.kind === "challenge") {
+      this.scheduleChallengeIdleGc();
+      return;
+    }
     this.gcTimer = setTimeout(() => {
       this.dispose();
     }, ROOM_TTL_MS);
+  }
+
+  /** Re-arms the sliding-window idle timer for a challenge room.
+   *  Called from every activity touchpoint (join, keystroke, finish,
+   *  rematch). If the host is connected and racers are still in the
+   *  room, the timer keeps getting pushed forward indefinitely — the
+   *  slug stays alive. Only fires when the room sits idle for the
+   *  full window with no host action. */
+  private scheduleChallengeIdleGc() {
+    if (this.gcTimer) {
+      clearTimeout(this.gcTimer);
+      this.gcTimer = null;
+    }
+    this.gcTimer = setTimeout(() => {
+      this.gcTimer = null;
+      const idleFor = Date.now() - this.lastTouchedAt;
+      if (idleFor >= CHALLENGE_HOST_IDLE_TTL_MS) {
+        this.dispose();
+        return;
+      }
+      // Activity happened since the timer was armed — push it out.
+      this.scheduleChallengeIdleGc();
+    }, CHALLENGE_HOST_IDLE_TTL_MS);
   }
 
   dispose() {
