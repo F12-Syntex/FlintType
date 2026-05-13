@@ -1,5 +1,6 @@
 import { BackendError } from "@/lib/errors";
 import { defineNamespace, defineRoute } from "@/server";
+import { rateLimit } from "@/server/middleware/rate-limit";
 import { getRaceIdentity } from "@/server/race/identity";
 import { pickRaceQuote } from "@/server/race/quotes";
 import {
@@ -159,5 +160,6 @@ const cancel = defineRoute<CancelChallengeInput, CancelChallengeOutput>({
 });
 
 export const challenge = defineNamespace({
+  middleware: [rateLimit({ limit: 120, windowMs: 60_000 })],
   routes: { create, join, start, cancel },
 });

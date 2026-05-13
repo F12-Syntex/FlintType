@@ -24,6 +24,7 @@ import { challenge } from "./challenge";
 
 const queue = defineRoute<QueueInput, QueueOutput>({
   input: queueInputSchema,
+  middleware: [rateLimit({ limit: 120, windowMs: 60_000 })],
   handler: async ({ input }) => {
     const sessionToken = newSessionToken();
     const identity = await getRaceIdentity(sessionToken);
@@ -114,6 +115,7 @@ const keystroke = defineRoute<KeystrokeInput, KeystrokeOutput>({
 
 const leave = defineRoute<LeaveInput, LeaveOutput>({
   input: leaveInputSchema,
+  middleware: [rateLimit({ limit: 120, windowMs: 60_000 })],
   handler: ({ input }) => {
     const room = getRoom(input.roomId);
     if (room) room.removeRacer(input.sessionToken);
@@ -125,11 +127,11 @@ const leave = defineRoute<LeaveInput, LeaveOutput>({
  *  `Guest · XYZ` labels via `getRaceIdentity` and can join matchmaking
  *  or challenge rooms identically to signed-in users.
  *
- *  Namespace-wide rate limit (120/min per IP) catches scripted abuse
- *  across the whole race surface (queue + leave + challenge.*). The
- *  `keystroke` route layers a tighter 600/min cap on top because it
- *  receives the per-keystroke firehose. */
+ *  Rate limits are attached per-route rather than namespace-wide: the
+ *  `keystroke` firehose needs its own 600/min budget (~360/min real
+ *  load) and a namespace-wide 120/min would compose with it and
+ *  bottleneck the firehose after ~20s. Every other race route carries
+ *  its own 120/min cap; `challenge.*` does the same internally. */
 export const race = defineNamespace({
-  middleware: [rateLimit({ limit: 120, windowMs: 60_000 })],
   routes: { queue, keystroke, leave, challenge },
 });
