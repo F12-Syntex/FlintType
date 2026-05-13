@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
 import { writeSlice } from "./prefs-store";
-import { CUSTOM_THEME_ID, findThemeScope } from "./themes/registry";
+import { CUSTOM_THEME_ID, findThemeScopes } from "./themes/registry";
 import { useRemotePrefs } from "./use-remote-prefs";
 
 /** Every CSS variable the user can override from the appearance page.
@@ -50,16 +50,19 @@ export type ThemeOverrides = Partial<Record<ThemeVar, string>>;
 
 function applyVar(name: ThemeVar, value: string | undefined) {
   if (typeof document === "undefined") return;
-  // Per-var overrides live alongside named themes on the same scope
-  // element (typing surface). When no scope is mounted (non-typing
-  // page like /profile or /leaderboard), this is a no-op — the
-  // effect below re-applies the moment the scope mounts.
-  const root = findThemeScope();
-  if (!root) return;
-  if (value == null || value === "") {
-    root.style.removeProperty(name);
-  } else {
-    root.style.setProperty(name, value);
+  // Per-var overrides live alongside named themes on every mounted
+  // scope element. On /customise that's every preview card, so a
+  // colour tweak instantly repaints all of them; on the typing
+  // surface it's the single race / practice wrapper. No scope
+  // mounted = no-op (the effect below re-applies the moment one
+  // mounts).
+  const scopes = findThemeScopes();
+  for (const root of scopes) {
+    if (value == null || value === "") {
+      root.style.removeProperty(name);
+    } else {
+      root.style.setProperty(name, value);
+    }
   }
 }
 
@@ -88,9 +91,9 @@ export function useThemeOverrides() {
   // scope when the user navigates onto a typing surface.
   const pathname = usePathname();
   useEffect(() => {
-    const scope = findThemeScope();
-    if (!scope) {
-      // Non-typing surface — drop the tracking set so a future
+    const scopes = findThemeScopes();
+    if (scopes.length === 0) {
+      // No theme scope mounted — drop the tracking set so a future
       // navigation onto a typed surface starts clean.
       appliedRef.current.clear();
       return;
@@ -100,12 +103,14 @@ export function useThemeOverrides() {
     for (const v of THEME_VARS) {
       const value = overrides[v];
       if (value != null && value !== "") {
-        scope.style.setProperty(v, value);
+        for (const s of scopes) s.style.setProperty(v, value);
         next.add(v);
       }
     }
     for (const v of prev) {
-      if (!next.has(v)) scope.style.removeProperty(v);
+      if (!next.has(v)) {
+        for (const s of scopes) s.style.removeProperty(v);
+      }
     }
     appliedRef.current = next;
   }, [overrides, pathname]);

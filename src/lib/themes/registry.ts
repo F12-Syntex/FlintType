@@ -105,12 +105,21 @@ export function findTheme(id: string | null | undefined): Theme | undefined {
  *  change the very surface the user is using to pick the theme. */
 export const THEME_SCOPE_ATTR = "data-ft-theme-scope";
 
-/** Resolve the currently-mounted theme-scope element. Returns null
- *  when the active route isn't a typing surface — callers should
- *  no-op rather than fall back to `<html>` (the whole point of
- *  scoping is to keep chrome / non-typing pages on the default
- *  palette). */
+/** Resolve every mounted theme-scope element. Returns an empty array
+ *  when the active route has none — callers no-op cleanly. Multiple
+ *  scopes are common on the customise page: each preview card wraps
+ *  its content in its own scope so palette changes propagate to
+ *  every preview at once. The typing-surface and race-surface scopes
+ *  are single-instance. */
+export function findThemeScopes(): HTMLElement[] {
+  if (typeof document === "undefined") return [];
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(`[${THEME_SCOPE_ATTR}]`),
+  );
+}
+
+/** Backwards-compat alias — returns the first scope or null. New
+ *  callers should use `findThemeScopes` and iterate. */
 export function findThemeScope(): HTMLElement | null {
-  if (typeof document === "undefined") return null;
-  return document.querySelector<HTMLElement>(`[${THEME_SCOPE_ATTR}]`);
+  return findThemeScopes()[0] ?? null;
 }

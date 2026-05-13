@@ -221,6 +221,17 @@ export function PreviewPracticeProvider({
   ]);
 
   return (
-    <PracticeContext.Provider value={value}>{children}</PracticeContext.Provider>
+    <PracticeContext.Provider value={value}>
+      {/* data-ft-theme-scope — every preview card on /customise
+       *  wraps in its own scope so the user's palette / typography /
+       *  geometry overrides paint here just as they would on the
+       *  real practice surface. Without the marker, the previews
+       *  render against the chrome's :root defaults and "changing a
+       *  colour does nothing" — which is exactly what the user
+       *  reported before this landed. */}
+      <div data-ft-theme-scope className="contents">
+        {children}
+      </div>
+    </PracticeContext.Provider>
   );
 }

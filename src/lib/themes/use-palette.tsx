@@ -23,7 +23,7 @@ import {
   clearThemeVars,
   CUSTOM_THEME_ID,
   findTheme,
-  findThemeScope,
+  findThemeScopes,
   THEMES,
   type Theme,
 } from "./registry";
@@ -68,34 +68,36 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Themes apply to the typing-test scope only — practice + race
-    // surfaces wrap their content in a [data-ft-theme-scope] element.
-    // When no scope is mounted (profile, leaderboard, customise, …),
-    // the apply is a no-op and the page renders against the chrome's
-    // :root defaults.
-    const root = findThemeScope();
-    if (!root) return;
+    // Themes apply to every mounted [data-ft-theme-scope] element —
+    // typing surfaces (practice / race) carry the marker, and so do
+    // each preview card on /customise/appearance, so palette changes
+    // propagate to every preview at once. Non-scoped routes have
+    // zero matches and we no-op, leaving them on the chrome's :root
+    // defaults.
+    const scopes = findThemeScopes();
+    if (scopes.length === 0) return;
 
     // "custom" — the user has per-var overrides applied via
     // useThemeOverrides. Don't touch the named-theme vars: the inline
     // overrides on the scope from useThemeOverrides are the source of
     // truth and would otherwise get clobbered by clearThemeVars below.
     if (activeId === CUSTOM_THEME_ID) {
-      clearReactivePalette(root);
+      for (const s of scopes) clearReactivePalette(s);
       return;
     }
 
     if (activeId === BACKGROUND_REACTIVE_ID) {
       // Reactive is async — sampling takes a frame or two. If we
-      // cleared the scope upfront and *then* sampled, every re-render
-      // (e.g. an unrelated pref-store notify that re-instantiates
-      // this effect) would briefly drop the user back to the default
-      // palette until the sample resolves. Instead, leave the prior
-      // reactive palette in place and swap atomically inside the
-      // .then — clear + apply in the same paint, no flash.
+      // cleared upfront and *then* sampled, every re-render would
+      // briefly drop the user back to the default palette until the
+      // sample resolves. Instead, leave the prior reactive palette
+      // in place and swap atomically inside the .then — clear +
+      // apply in the same paint, no flash.
       if (!effectiveImage) {
-        clearThemeVars(root);
-        clearReactivePalette(root);
+        for (const s of scopes) {
+          clearThemeVars(s);
+          clearReactivePalette(s);
+        }
         return;
       }
       let cancelled = false;
@@ -103,8 +105,10 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
         resolvedTheme === "dark" ? "dark" : "light";
       void samplePalette(effectiveImage, sampleMode).then((palette) => {
         if (cancelled || !palette) return;
-        clearThemeVars(root);
-        applyReactivePalette(root, palette);
+        for (const s of scopes) {
+          clearThemeVars(s);
+          applyReactivePalette(s, palette);
+        }
       });
       return () => {
         cancelled = true;
@@ -112,13 +116,15 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     }
 
     // Non-reactive paths are synchronous — clear and apply in one
-    // pass with no observable gap.
-    clearThemeVars(root);
-    clearReactivePalette(root);
+    // pass per scope so every preview repaints alongside the active
+    // surface.
     const theme = findTheme(activeId);
-    if (!theme) return;
     const mode = resolvedTheme === "dark" ? "dark" : "light";
-    applyTheme(root, theme, mode);
+    for (const s of scopes) {
+      clearThemeVars(s);
+      clearReactivePalette(s);
+      if (theme) applyTheme(s, theme, mode);
+    }
   }, [activeId, resolvedTheme, effectiveImage, pathname]);
 
   const apply = useCallback(
