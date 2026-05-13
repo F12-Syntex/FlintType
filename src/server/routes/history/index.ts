@@ -5,6 +5,8 @@ import type { Database } from "@/db/server";
 import { ensureUser } from "@/server/ensure-user";
 import { requireAuth } from "@/server/middleware/auth";
 import { rateLimit } from "@/server/middleware/rate-limit";
+import { resolveTagsFromClerkUser } from "@/server/resolve-tags";
+import type { UserTagId } from "@/types/user-tag";
 import {
   bigramRowsToStates,
   trigramRowsToStates,
@@ -52,6 +54,7 @@ const WORST_WORDS_LIMIT = 20;
 async function loadHistorySummary(
   db: Database,
   userId: string,
+  tags: UserTagId[],
 ): Promise<HistorySummaryOutput> {
   // Categorisation reads the user's finger map (Dvorak / Colemak
   // users have different same-finger pairs than QWERTY). Load it
@@ -165,6 +168,7 @@ async function loadHistorySummary(
     trigramBaselineMs: trigramBaseline,
     wordBaselineMs: wordBaseline,
     monkeytype,
+    tags,
   };
 }
 
@@ -176,7 +180,26 @@ const summary = defineRoute<void, HistorySummaryOutput>({
     // Failures inside the grant itself are swallowed; the summary
     // load always proceeds.
     await ensureUser(ctx);
-    return loadHistorySummary(ctx.db, ctx.meta.userId as string);
+    const userId = ctx.meta.userId as string;
+    // Pull the Clerk user once to resolve identity tags. A failure
+    // here downgrades tags to [] but doesn't break the summary —
+    // a profile without a tag chip is a usable profile.
+    let tags: UserTagId[] = [];
+    try {
+      const client = await clerkClient();
+      const user = await client.users.getUser(userId);
+      tags = resolveTagsFromClerkUser({
+        email: user.emailAddresses[0]?.emailAddress,
+        publicMetadataTags: (user.publicMetadata as { tags?: unknown } | null)
+          ?.tags,
+      });
+    } catch (err) {
+      ctx.log.warn("history.summary: tag resolution failed", {
+        userId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+    return loadHistorySummary(ctx.db, userId, tags);
   },
 });
 
@@ -208,7 +231,14 @@ const publicProfile = defineRoute<PublicProfileInput, HistorySummaryOutput>({
         `No flinttype profile for @${input.username}`,
       );
     }
-    return loadHistorySummary(db, user.id);
+    // We already have the Clerk user from the username lookup — read
+    // tags off it directly rather than pay for a second getUser call.
+    const tags = resolveTagsFromClerkUser({
+      email: user.emailAddresses[0]?.emailAddress,
+      publicMetadataTags: (user.publicMetadata as { tags?: unknown } | null)
+        ?.tags,
+    });
+    return loadHistorySummary(db, user.id, tags);
   },
 });
 

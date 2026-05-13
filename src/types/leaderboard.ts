@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { UserTagId } from "./user-tag";
 
 /** Leaderboard scope — which slice of test rows feeds the ranking.
  *  `all` keeps every completed run; `race` restricts to multiplayer-
@@ -69,6 +70,11 @@ export type LeaderboardEntry = {
   /** Lower-case handle (firstName/username/email-localpart) for
    *  linking to their public profile. */
   username: string | null;
+  /** Identity-marker tags resolved server-side from Clerk
+   *  publicMetadata + the OWNER allowlist. Always present (empty
+   *  array when the user has no tags). Display order is canonical
+   *  (OWNER first, then OG) — paint in array order beside the handle. */
+  tags: UserTagId[];
   netWpm: number;
   wpm: number;
   accuracy: number;

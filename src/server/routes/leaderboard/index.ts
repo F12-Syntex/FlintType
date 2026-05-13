@@ -1,6 +1,8 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { defineNamespace, defineRoute } from "@/server";
 import { rateLimit } from "@/server/middleware/rate-limit";
+import { resolveTagsFromClerkUser } from "@/server/resolve-tags";
+import type { UserTagId } from "@/types/user-tag";
 import {
   leaderboardInputSchema,
   PRESET_AMOUNT,
@@ -53,7 +55,16 @@ const list = defineRoute<LeaderboardInput, LeaderboardOutput>({
     // Rows whose userId Clerk doesn't recognise (deleted user, or a
     // total Clerk outage) are filtered out below — we don't ship
     // "Guest" placeholders to the leaderboard.
-    let nameByUserId = new Map<string, { name: string; username: string | null }>();
+    //
+    // Same fetch also drives identity-tag resolution: each user's
+    // emailAddresses + publicMetadata feed into resolveTagsFromClerkUser
+    // so we don't pay a second Clerk roundtrip per entry.
+    type UserInfo = {
+      name: string;
+      username: string | null;
+      tags: UserTagId[];
+    };
+    let userInfoByUserId = new Map<string, UserInfo>();
     try {
       const client = await clerkClient();
       const ids = [...new Set(rows.map((r) => r.userId))];
@@ -65,9 +76,14 @@ const list = defineRoute<LeaderboardInput, LeaderboardOutput>({
           u.emailAddresses[0]?.emailAddress?.split("@")[0] ??
           "racer";
         const display = raw.startsWith("@") ? raw : `@${raw}`;
-        nameByUserId.set(u.id, {
+        const tags = resolveTagsFromClerkUser({
+          email: u.emailAddresses[0]?.emailAddress,
+          publicMetadataTags: (u.publicMetadata as { tags?: unknown } | null)?.tags,
+        });
+        userInfoByUserId.set(u.id, {
           name: display,
           username: u.username ?? null,
+          tags,
         });
       }
     } catch (err) {
@@ -77,18 +93,19 @@ const list = defineRoute<LeaderboardInput, LeaderboardOutput>({
       log.warn("leaderboard: clerk getUserList failed", {
         error: err instanceof Error ? err.message : String(err),
       });
-      nameByUserId = new Map();
+      userInfoByUserId = new Map();
     }
     // Strip rows that don't have a known Clerk user. Re-rank afterwards
     // so positions are contiguous (1, 2, 3 …) on the filtered list.
-    const namedRows = rows.filter((r) => nameByUserId.has(r.userId));
+    const namedRows = rows.filter((r) => userInfoByUserId.has(r.userId));
     const entries: LeaderboardEntry[] = namedRows.map((r, i) => {
-      const named = nameByUserId.get(r.userId)!;
+      const info = userInfoByUserId.get(r.userId)!;
       return {
         testId: r.testId,
         rank: i + 1,
-        name: named.name,
-        username: named.username,
+        name: info.name,
+        username: info.username,
+        tags: info.tags,
         netWpm: Math.round(r.netWpm),
         wpm: Math.round(r.wpm),
         accuracy: Math.round(r.accuracy * 10) / 10,
