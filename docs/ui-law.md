@@ -41,6 +41,8 @@ Frontend is **tested manually in the browser** — `yarn dev`, open the page, ex
 
 React hooks and components (anything importing from `react` that renders or subscribes to component state) stay out of the automated suite — they're validated by clicking through the app.
 
+**Exception: pure reducers / helpers inside an `_components` file may still be tested.** A reducer is a pure function — even when it lives next to `useReducer` inside a `.tsx` module, calling it with a `State + Action` and asserting the output is exactly the kind of deterministic check the automated suite is for. The rule blocks *render-tree* tests, not pure-logic tests. Co-locate the test next to the module (`practice-state.test.ts` next to `practice-state.tsx`), mock the module's React-side imports (`@clerk/nextjs`, etc.) in the test, and import only the pure exports (`reducer`, `initialState`, etc.). Live precedent: `src/app/_components/practice-state.test.ts`.
+
 Mirror-rule in `docs/backend-rules.md` R12 exclusions table.
 
 ---

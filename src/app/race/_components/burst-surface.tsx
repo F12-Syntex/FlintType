@@ -53,6 +53,7 @@ const initialLocal: LocalState = {
 type LocalAction =
   | { type: "TYPE_CHAR"; char: string; now: number; targetWord: string }
   | { type: "BACKSPACE" }
+  | { type: "BACKSPACE_WORD" }
   | { type: "RESET_FLASH" }
   | {
       type: "COMMIT";
@@ -68,6 +69,14 @@ function localReducer(s: LocalState, a: LocalAction): LocalState {
     case "BACKSPACE":
       if (s.typed.length === 0) return s;
       return { ...s, typed: s.typed.slice(0, -1) };
+    case "BACKSPACE_WORD":
+      // Ctrl/Alt/⌘+Backspace — wipe the entire current attempt in one
+      // keystroke. Burst items are short single words so "delete
+      // word" is effectively "clear", which is exactly what the user
+      // wants when they realise they've botched the attempt and
+      // would rather restart it than slowly backspace each char.
+      if (s.typed.length === 0) return s;
+      return { ...s, typed: "", attemptStartedAt: null };
     case "TYPE_CHAR": {
       const target = a.targetWord;
       const nextTyped = s.typed + a.char;
@@ -160,7 +169,13 @@ export function BurstRaceSurface() {
     (e: KeyboardEvent) => {
       if (phase !== "racing") return;
       if (finished) return;
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // Only Backspace is allowed to carry a modifier (Ctrl /
+      // Alt(Win) / ⌥(Mac) / ⌘(Mac) + Backspace = "delete word").
+      // Everything else with a modifier falls through to the
+      // browser so Cmd+R, Ctrl+F, etc. still work.
+      const wordWise =
+        e.key === "Backspace" && (e.ctrlKey || e.altKey || e.metaKey);
+      if (!wordWise && (e.ctrlKey || e.metaKey || e.altKey)) return;
       if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
       const active = document.activeElement;
       if (
@@ -174,7 +189,7 @@ export function BurstRaceSurface() {
       if (e.key === "Backspace") {
         e.preventDefault();
         e.stopPropagation();
-        localDispatch({ type: "BACKSPACE" });
+        localDispatch({ type: wordWise ? "BACKSPACE_WORD" : "BACKSPACE" });
         return;
       }
       if (e.key.length !== 1) return;

@@ -66,6 +66,7 @@ type Action =
   | { type: "TYPE_CHAR"; char: string; now: number; targetWord: string }
   | { type: "CONFIRM"; now: number; thresholdWpm: number; repsPerItem: number; itemsLength: number; targetWord: string }
   | { type: "BACKSPACE" }
+  | { type: "BACKSPACE_WORD" }
   | { type: "RESET_FLASH" }
   | { type: "RESET" };
 
@@ -98,6 +99,13 @@ function reducer(state: State, action: Action): State {
     case "BACKSPACE":
       if (state.typed.length === 0) return state;
       return { ...state, typed: state.typed.slice(0, -1) };
+    case "BACKSPACE_WORD":
+      // Ctrl/Alt/⌘+Backspace — wipe the entire current attempt in
+      // one keystroke. Burst items are short single words so
+      // "delete word" is effectively "clear", which is what the
+      // user wants when they realise the attempt is botched.
+      if (state.typed.length === 0) return state;
+      return { ...state, typed: "", attemptStartedAt: null };
     case "TYPE_CHAR": {
       if (state.finished) return state;
       const target = action.targetWord;
@@ -229,7 +237,13 @@ export function BurstSurface({
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // Only Backspace is allowed to carry a modifier (Ctrl /
+      // Alt(Win) / ⌥(Mac) / ⌘(Mac) + Backspace = "delete word").
+      // Other modified shortcuts (Ctrl+R, Cmd+T, …) fall through to
+      // the browser unchanged.
+      const wordWise =
+        e.key === "Backspace" && (e.ctrlKey || e.altKey || e.metaKey);
+      if (!wordWise && (e.ctrlKey || e.metaKey || e.altKey)) return;
       if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
       const active = document.activeElement;
       if (
@@ -242,7 +256,7 @@ export function BurstSurface({
       }
       if (e.key === "Backspace") {
         e.preventDefault();
-        dispatch({ type: "BACKSPACE" });
+        dispatch({ type: wordWise ? "BACKSPACE_WORD" : "BACKSPACE" });
         return;
       }
       // Esc is intentionally not bound — accidental taps mid-burst

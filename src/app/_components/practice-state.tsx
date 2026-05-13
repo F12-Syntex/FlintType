@@ -78,7 +78,7 @@ export type State = {
 
 type WordCfg = Pick<BehaviourPrefs, "minWordLength" | "showSecondary">;
 
-type Action =
+export type Action =
   | { type: "SET_MODE"; mode: Mode; length: Length; words: string[]; quoteSource: string | null }
   | { type: "SET_LENGTH"; length: Length; words: string[]; quoteSource: string | null }
   | { type: "SET_QUOTE"; words: string[]; source: string }
@@ -254,7 +254,7 @@ function popTyped(typed: readonly string[], index: number): string[] {
   return next;
 }
 
-function reducer(s: State, a: Action): State {
+export function reducer(s: State, a: Action): State {
   switch (a.type) {
     case "SET_MODE":
       return freshRun(
@@ -372,35 +372,39 @@ function reducer(s: State, a: Action): State {
       };
     }
     case "BACKSPACE_WORD": {
-      // Ctrl/Alt/⌥+Backspace — wipe the current word's typed buffer in
-      // one keystroke. Mirrors the cross-word jump behaviour of plain
-      // BACKSPACE: when the cursor sits at column 0, jumping back into
-      // the previous word is gated on `errorWords` (otherwise we'd let
-      // the user retype already-correct work, which the practice loop
-      // counts as fresh keystrokes and skews WPM).
+      // Ctrl/Alt/⌥+Backspace — wipe the current word's typed buffer
+      // in one keystroke. Standard text-editor semantics: when the
+      // cursor sits at column 0, jump back into the previous word
+      // and wipe it too. Unlike plain BACKSPACE (which only crosses
+      // the word boundary when the previous word has errors), word-
+      // wise delete is the user's explicit "I want to redo the
+      // previous word" gesture, so it crosses unconditionally.
       if (s.phase === "done") return s;
       if (s.cursorChar === 0) {
-        if (s.cursorWord === 0 || !s.errorWords.has(s.cursorWord - 1))
-          return s;
-        // Land at the start of the previous word and wipe its typed
-        // buffer too — "delete the previous word" rather than just
-        // "land at the end of it" (which is what a single BACKSPACE
-        // does at column 0).
+        if (s.cursorWord === 0) return s;
         const next = [...s.typed];
         next[s.cursorWord - 1] = "";
+        // Re-clear the error flag if we just wiped that word's typed
+        // buffer — there's nothing left for the user to "fix" there.
+        const nextErrors = new Set(s.errorWords);
+        nextErrors.delete(s.cursorWord - 1);
         return {
           ...s,
           cursorWord: s.cursorWord - 1,
           cursorChar: 0,
           typed: next,
+          errorWords: nextErrors,
         };
       }
       const next = [...s.typed];
       if (s.cursorWord < next.length) next[s.cursorWord] = "";
+      const nextErrors = new Set(s.errorWords);
+      nextErrors.delete(s.cursorWord);
       return {
         ...s,
         cursorChar: 0,
         typed: next,
+        errorWords: nextErrors,
       };
     }
     case "SPACE": {
@@ -1089,7 +1093,15 @@ export function PracticeProvider({
   restartRef.current = value.restart;
 
   const onKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    // Only Backspace is allowed to ride a modifier — Ctrl / Alt(Win)
+    // / ⌥(Mac) / ⌘(Mac) + Backspace = "delete word". Every other
+    // modified shortcut (Ctrl+R, Cmd+T, …) falls through to the
+    // browser. Mirrors the same gate in `input-capture.tsx`; both
+    // listeners need it because focus can be on either the hidden
+    // input or the wider page.
+    const wordWise =
+      e.key === "Backspace" && (e.ctrlKey || e.altKey || e.metaKey);
+    if (!wordWise && (e.ctrlKey || e.metaKey || e.altKey)) return;
     // Suppress typing while a modal owns the screen — the modal opens
     // by clicking a button which moves focus off the hidden input, so
     // the input's own onKeyDown stops firing and keystrokes bubble
@@ -1135,7 +1147,7 @@ export function PracticeProvider({
       // start; all = block backspace entirely.
       if (p.confidence === "all") return;
       if (p.confidence === "word" && s.cursorChar === 0) return;
-      dispatch({ type: "BACKSPACE" });
+      dispatch({ type: wordWise ? "BACKSPACE_WORD" : "BACKSPACE" });
       return;
     }
     if (e.key.length === 1) {
