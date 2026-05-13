@@ -1,21 +1,18 @@
+"use client";
+
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { ProfileTotals, StreakStats } from "./derive-stats";
-import { ProfileSection } from "./profile-section";
 
-/** Lifetime-totals strip — tight horizontal row of stats with vertical
- *  hairline dividers between cells (no gap), each cell content
- *  centered. The strip itself centers within the section so it reads
- *  as a single composed band rather than a left-aligned grid.
+/** Headline stats grid. Four cells at sm+ (`tests · time · best wpm
+ *  · streak`), 2×2 at mobile. No borders, no dividers, no card
+ *  surround — just labels stacked over values, separated by `gap`.
  *
- *  Five real cells: tests completed (primary — drives XP/level), tests
- *  started (secondary, no XP), time typing, best WPM, streak. Optional
- *  Leaderboard cell only renders once a global rank exists.
- *
- *  Tests completed is accented because it's the one the loop rewards;
- *  tests started is shown alongside so the viewer can see drop-off
- *  rate but it carries no XP — the level economy in `derive-stats.ts`
- *  has always been keyed on `testsCompleted`, this strip just makes
- *  that visible. */
+ *  An optional "Show more" disclosure reveals the secondary metrics
+ *  (tests started, completion rate, mean wpm, mean accuracy) so
+ *  density stays low by default and the user can dig in if they
+ *  want. The disclosure remembers its state inside the section
+ *  only — closes on remount. */
 export function ProfileStats({
   totals,
   streak,
@@ -25,64 +22,81 @@ export function ProfileStats({
   streak: StreakStats;
   rank: number | null;
 }) {
-  const showRank = rank != null;
+  const [expanded, setExpanded] = useState(false);
   return (
-    <ProfileSection label="Lifetime totals">
-      <div className="mx-auto overflow-hidden rounded-md border border-border bg-card/40">
-        <div
-          className={cn(
-            "grid grid-cols-2 divide-x divide-y divide-border sm:divide-y-0",
-            showRank ? "sm:grid-cols-6" : "sm:grid-cols-5",
-          )}
-        >
-          <MetricCell
-            label="Tests completed"
-            value={totals.testsCompleted.toLocaleString()}
-            accent
-            subline={
-              totals.testsStarted > 0
-                ? `${Math.round(totals.completionRate * 100)}% finish rate`
-                : undefined
-            }
-          />
-          <MetricCell
+    <section className="mt-12 border-t border-border/60 pt-10 sm:mt-14 sm:pt-12">
+      <SectionLabel>Lifetime totals</SectionLabel>
+
+      <div className="grid grid-cols-2 gap-x-6 gap-y-7 sm:grid-cols-4 sm:gap-x-8">
+        <Cell
+          label="Tests"
+          value={totals.testsCompleted.toLocaleString()}
+          accent
+        />
+        <Cell label="Time typing" value={formatDuration(totals.totalSeconds)} />
+        <Cell
+          label="Best WPM"
+          value={Math.round(totals.bestWpm).toString()}
+          accent
+        />
+        <Cell
+          label="Streak"
+          value={streak.current.toString()}
+          suffix="d"
+          accent={streak.current > 0}
+        />
+      </div>
+
+      {expanded ? (
+        <div className="mt-7 grid grid-cols-2 gap-x-6 gap-y-7 sm:grid-cols-4 sm:gap-x-8">
+          <Cell
             label="Tests started"
             value={totals.testsStarted.toLocaleString()}
-          />
-          <MetricCell
-            label="Time typing"
-            value={formatDuration(totals.totalSeconds)}
-          />
-          <MetricCell
-            label="Best WPM"
-            value={Math.round(totals.bestWpm).toString()}
-            accent
             subline={
-              totals.bestWpm > 0
-                ? `${totals.bestWpmAccuracy.toFixed(1)}%`
+              totals.testsStarted > 0
+                ? `${Math.round(totals.completionRate * 100)}% finish`
                 : undefined
             }
           />
-          <MetricCell
-            label="Streak"
-            value={streak.current.toString()}
-            suffix="d"
-            accent={streak.current > 0}
+          <Cell
+            label="Mean WPM"
+            value={Math.round(totals.meanWpm).toString()}
+            subline={
+              totals.meanAccuracy > 0
+                ? `${totals.meanAccuracy.toFixed(1)}% acc`
+                : undefined
+            }
           />
-          {showRank ? (
-            <MetricCell
-              label="Leaderboard"
-              value={`#${rank}`}
-              subline="Global"
-            />
-          ) : null}
+          <Cell
+            label="Best acc"
+            value={
+              totals.bestWpm > 0 ? `${totals.bestWpmAccuracy.toFixed(1)}%` : "—"
+            }
+            subline={totals.bestWpm > 0 ? "on best run" : undefined}
+          />
+          {rank != null ? (
+            <Cell label="Leaderboard" value={`#${rank}`} subline="global" />
+          ) : (
+            <Cell label="Longest streak" value={`${streak.longest}d`} />
+          )}
         </div>
-      </div>
-    </ProfileSection>
+      ) : null}
+
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className={cn(
+          "mt-6 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground",
+          "transition-colors hover:text-foreground",
+        )}
+      >
+        {expanded ? "Show less ↑" : "Show more ↓"}
+      </button>
+    </section>
   );
 }
 
-function MetricCell({
+function Cell({
   label,
   value,
   suffix,
@@ -96,28 +110,39 @@ function MetricCell({
   accent?: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-1 px-2 py-4 text-center sm:gap-1.5 sm:px-4 sm:py-6">
-      <span className="text-[9px] font-medium uppercase tracking-[0.16em] text-muted-foreground sm:text-[10px] sm:tracking-[0.18em]">
+    <div className="flex flex-col gap-1">
+      <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </span>
       <span
         className={cn(
-          "text-base font-semibold tracking-[-0.01em] tabular-nums leading-none sm:text-2xl",
+          "text-2xl font-bold tracking-[-0.02em] leading-none tabular-nums",
           accent ? "text-primary" : "text-foreground",
         )}
       >
         {value}
         {suffix ? (
-          <span className="ml-0.5 text-[10px] font-medium text-muted-foreground sm:text-[11px]">
+          <span className="ml-0.5 text-[11px] font-medium text-muted-foreground">
             {suffix}
           </span>
         ) : null}
       </span>
       {subline ? (
-        <span className="text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[10px] sm:tracking-[0.14em]">
+        <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/80">
           {subline}
         </span>
       ) : null}
+    </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-5 flex items-center gap-3">
+      <span aria-hidden className="inline-block h-px w-4 bg-primary" />
+      <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+        {children}
+      </span>
     </div>
   );
 }

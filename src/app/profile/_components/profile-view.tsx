@@ -19,28 +19,20 @@ import {
 import { PersonalBests } from "./personal-bests";
 import { ProfileHero } from "./profile-hero";
 import { ProfileStats } from "./profile-stats";
+import { ProfileXp } from "./profile-xp";
 import { RecentRuns } from "./recent-runs";
 import { WpmTrend } from "./wpm-trend";
 
-/** useRemotePrefs needs a non-null object default; an empty slice
- *  with importedAt=0 acts as the "never imported" sentinel that the
- *  merge helpers detect to short-circuit. */
 const EMPTY_MT_SLICE: MonkeytypeStatsSlice = {
   importedAt: 0,
   pbs: { time: {}, words: {} },
 };
 
-/** /profile/<username> orchestrator. Fans one history fetch out
- *  to every panel — totals, streak, PBs, activity, trend, recent
- *  runs. Public-friendly: viewers can read another user's profile
- *  without an account; the owner-only chrome (Edit, MonkeyType
- *  manage, Sign out) is gated client-side via `isOwner`.
- *
- *  Two fetch paths:
- *    - own profile: history.summary (auth-required, signed-in user
- *      is the subject). MT auto-sync runs here too.
- *    - someone else's: history.publicProfile({ username }) — public,
- *      looks up the user via Clerk username. MT auto-sync skipped. */
+/** /profile/<username> orchestrator. Editorial single-column layout
+ *  capped at `max-w-2xl` (672px). Each section reads as a paragraph
+ *  with a hairline rule above it — no card surrounds, no nested
+ *  borders. The data fetch and the owner/visitor branch are
+ *  unchanged; only the rendering shape did. */
 export function ProfileView({ username }: { username?: string }) {
   const backend = useBackend();
   const { user, isLoaded: userLoaded } = useUser();
@@ -51,7 +43,6 @@ export function ProfileView({ username }: { username?: string }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Wait for Clerk to load so the owner / visitor branch is stable.
     if (isOwner == null) return;
     let cancelled = false;
     setLoading(true);
@@ -85,19 +76,6 @@ export function ProfileView({ username }: { username?: string }) {
   }, [backend, isOwner, username]);
 
   const tests = snapshot?.recentTests ?? [];
-  // Two MT slices participate here:
-  //   1. `subjectMtSlice` — comes from the snapshot. This is the
-  //      *subject's* MT overlay (the user the URL points at). The
-  //      server strips the encrypted Ape Key before returning it so
-  //      the visitor only ever sees public counters + PBs. This is
-  //      what drives the rendered level / PBs / lifetime totals so
-  //      visitors see the same numbers as the owner.
-  //   2. `mtSliceRaw` — the *viewer's* own stored slice from
-  //      user_prefs (via useRemotePrefs). Only used for the manage
-  //      dialog and auto-sync, never as merge input. Visitors looking
-  //      at someone else's profile must never see *their* MT PBs leak
-  //      into the visited profile, so this is gated on `isOwner` for
-  //      every UI surface that consumes it.
   const subjectMtSlice = snapshot?.monkeytype ?? null;
   const { value: mtSliceRaw, update: updateMtSlice } =
     useRemotePrefs<MonkeytypeStatsSlice>("monkeytypeStats", EMPTY_MT_SLICE);
@@ -140,44 +118,37 @@ export function ProfileView({ username }: { username?: string }) {
   const trend = useMemo(() => deriveTrend(tests, 60), [tests]);
 
   const heroIsOwner = isOwner === true;
-
   const subjectTags = snapshot?.tags ?? [];
 
-  if (error) {
-    return (
-      <>
-        <ProfileHero
-          totals={totals}
-          username={username}
-          isOwner={heroIsOwner}
-          tags={subjectTags}
-        />
-        <section className="px-5 py-12 sm:px-12 sm:py-14 lg:px-16">
-          <p className="text-sm text-primary">{error}</p>
-        </section>
-      </>
-    );
-  }
-
   return (
-    <>
+    <main className="mx-auto flex max-w-2xl flex-col px-5 py-12 sm:px-8 sm:py-16">
       <ProfileHero
-        totals={totals}
         username={username}
         isOwner={heroIsOwner}
         tags={subjectTags}
       />
-      <ProfileStats totals={totals} streak={streak} rank={null} />
-      <PersonalBests bests={bests} />
-      <ActivityHeatmap days={activity} streak={streak} />
-      <WpmTrend points={trend} />
-      <RecentRuns tests={tests} />
-      {loading ? (
-        <p className="px-5 pb-10 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground sm:px-12 lg:px-16">
+      <ProfileXp totals={totals} />
+
+      {error ? (
+        <p className="mt-12 border-t border-border/60 pt-10 text-sm text-primary">
+          {error}
+        </p>
+      ) : (
+        <>
+          <ProfileStats totals={totals} streak={streak} rank={null} />
+          <PersonalBests bests={bests} />
+          <ActivityHeatmap days={activity} streak={streak} />
+          <WpmTrend points={trend} />
+          <RecentRuns tests={tests} />
+        </>
+      )}
+
+      {loading && !error ? (
+        <p className="mt-10 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
           Loading the rest of {heroIsOwner ? "your" : "their"} history…
         </p>
       ) : null}
-    </>
+    </main>
   );
 }
 
@@ -191,9 +162,6 @@ function matchesViewer(
   user: ReturnType<typeof useUser>["user"],
 ): boolean {
   if (!user) return false;
-  // No username in the URL means /profile bare → always owner
-  // (the page should have redirected, but treat it as own as a
-  // safety net).
   if (!urlUsername) return true;
   const candidates = new Set<string>();
   if (user.username) candidates.add(user.username);

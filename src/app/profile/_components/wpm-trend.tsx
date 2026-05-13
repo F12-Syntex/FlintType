@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import {
-  Area,
   CartesianGrid,
   ComposedChart,
   Line,
@@ -18,26 +17,25 @@ import {
 } from "@/components/ui/line-chart";
 import { cn } from "@/lib/utils";
 import type { TrendPoint } from "./derive-stats";
-import { ProfileSection } from "./profile-section";
 
 const chartConfig = {
   wpm: { label: "wpm", color: "var(--primary)" },
 } satisfies ChartConfig;
 
+type Range = "day" | "week" | "month" | "3months" | "all";
 const RANGES: { id: Range; label: string; ms: number | null }[] = [
-  { id: "day", label: "Last day", ms: 86_400_000 },
-  { id: "week", label: "Last week", ms: 7 * 86_400_000 },
-  { id: "month", label: "Last month", ms: 30 * 86_400_000 },
-  { id: "3months", label: "Last 3 months", ms: 90 * 86_400_000 },
-  { id: "all", label: "All time", ms: null },
+  { id: "day", label: "Day", ms: 86_400_000 },
+  { id: "week", label: "Week", ms: 7 * 86_400_000 },
+  { id: "month", label: "Month", ms: 30 * 86_400_000 },
+  { id: "3months", label: "3m", ms: 90 * 86_400_000 },
+  { id: "all", label: "All", ms: null },
 ];
 
-type Range = "day" | "week" | "month" | "3months" | "all";
-
-/** WPM trend across the user's completed tests. MonkeyType-style time
- *  filter chips run above the chart so the user can zoom into a recent
- *  slice or step out to all-time. The avg dashed line + soft area
- *  fill stay; the chart breathes taller (h-60 sm:h-72) for presence. */
+/** WPM trend — line only (the area fill from the prior version
+ *  doubled the visual mass without adding signal). Text-only range
+ *  toggles above the chart instead of bordered chips, so the
+ *  controls read as part of the section caption rather than a
+ *  toolbar. Half height vs the prior version. */
 export function WpmTrend({ points }: { points: TrendPoint[] }) {
   const [range, setRange] = useState<Range>("all");
 
@@ -54,39 +52,19 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
   }, [filtered]);
 
   return (
-    <ProfileSection
-      label="WPM trend"
-      actions={
-        <div className="flex flex-wrap items-center gap-1.5">
-          {RANGES.map((r) => {
-            const active = range === r.id;
-            return (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => setRange(r.id)}
-                aria-pressed={active}
-                className={cn(
-                  "inline-flex shrink-0 items-center rounded-md border px-2 py-1 text-[10px] font-medium uppercase tracking-[0.12em] transition-colors sm:px-2.5 sm:text-[11px] sm:tracking-[0.14em]",
-                  active
-                    ? "border-primary/40 bg-primary/[0.06] text-primary"
-                    : "border-border text-muted-foreground hover:border-foreground/25 hover:text-foreground",
-                )}
-              >
-                {r.label}
-              </button>
-            );
-          })}
-        </div>
-      }
-    >
+    <section className="mt-12 border-t border-border/60 pt-10 sm:mt-14 sm:pt-12">
+      <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
+        <SectionLabel>WPM trend</SectionLabel>
+        <RangeToggles value={range} onChange={setRange} />
+      </div>
+
       {filtered.length < 2 ? (
         <p className="text-sm text-muted-foreground">
           Not enough data in this range. Try a wider window.
         </p>
       ) : (
         <>
-          <div className="mb-3 flex items-baseline justify-between gap-3 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+          <div className="mb-3 flex items-baseline justify-between gap-3 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
             <span>
               <span className="text-foreground tabular-nums">
                 {filtered.length}
@@ -103,31 +81,17 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
           </div>
           <ChartContainer
             config={chartConfig}
-            className="aspect-auto h-52 w-full sm:h-64 lg:h-72"
+            className="aspect-auto h-40 w-full sm:h-48"
           >
             <ComposedChart
               accessibilityLayer
               data={filtered}
-              margin={{ left: 8, right: 16, top: 18, bottom: 0 }}
+              margin={{ left: 4, right: 8, top: 12, bottom: 0 }}
             >
-              <defs>
-                <linearGradient id="wpmTrendArea" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="0%"
-                    stopColor="var(--color-wpm)"
-                    stopOpacity={0.18}
-                  />
-                  <stop
-                    offset="100%"
-                    stopColor="var(--color-wpm)"
-                    stopOpacity={0}
-                  />
-                </linearGradient>
-              </defs>
               <CartesianGrid
                 vertical={false}
                 stroke="currentColor"
-                strokeOpacity={0.08}
+                strokeOpacity={0.07}
               />
               <XAxis
                 dataKey="idx"
@@ -141,7 +105,7 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={6}
-                width={32}
+                width={28}
                 domain={["auto", "auto"]}
               />
               <ChartTooltip
@@ -165,22 +129,15 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
                 <ReferenceLine
                   y={avg}
                   stroke="currentColor"
-                  strokeOpacity={0.32}
+                  strokeOpacity={0.3}
                   strokeDasharray="3 4"
                 />
               ) : null}
-              <Area
-                dataKey="wpm"
-                type="monotone"
-                stroke="none"
-                fill="url(#wpmTrendArea)"
-                isAnimationActive={false}
-              />
               <Line
                 dataKey="wpm"
                 type="monotone"
                 stroke="var(--color-wpm)"
-                strokeWidth={2.25}
+                strokeWidth={1.75}
                 dot={false}
                 activeDot={{
                   r: 3,
@@ -193,6 +150,47 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
           </ChartContainer>
         </>
       )}
-    </ProfileSection>
+    </section>
+  );
+}
+
+function RangeToggles({
+  value,
+  onChange,
+}: {
+  value: Range;
+  onChange: (next: Range) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-semibold uppercase tracking-[0.18em]">
+      {RANGES.map((r) => {
+        const active = value === r.id;
+        return (
+          <button
+            key={r.id}
+            type="button"
+            onClick={() => onChange(r.id)}
+            aria-pressed={active}
+            className={cn(
+              "transition-colors",
+              active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {r.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span aria-hidden className="inline-block h-px w-4 bg-primary" />
+      <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+        {children}
+      </span>
+    </div>
   );
 }

@@ -1,18 +1,15 @@
 import { cn } from "@/lib/utils";
 import type { DayCell, StreakStats } from "./derive-stats";
-import { ProfileSection } from "./profile-section";
 
-/** GitHub-style activity heatmap. Each column is a week (Mon → Sun);
- *  each cell is a day, painted by test count against the user's own
- *  busiest day so power users still see contrast.
+/** Activity strip — last 52 weeks of completed tests per day. Halved
+ *  in height from the prior bordered-card version so the section
+ *  reads as a strip beneath the page rhythm, not a wall. No
+ *  surrounding card; single quiet caption above + the legend below.
  *
- *  Cells stretch to fill the available row width — the column count
- *  is fixed (52 weeks) so the cell width is `(100 / 52)%` minus the
- *  inter-cell gap. No horizontal scroll on standard widths; the
- *  whole year reads at a glance.
- *
- *  Static — no animation, no tooltips beyond `title=` so screen
- *  readers can read the count out per cell. */
+ *  On mobile the columns can collapse under 6px squares, so we keep
+ *  the existing `overflow-x-auto` wrapper with a fixed minimum width
+ *  — the user swipes the year horizontally if their viewport is
+ *  narrower than ~440px. */
 export function ActivityHeatmap({
   days,
   streak,
@@ -24,52 +21,34 @@ export function ActivityHeatmap({
   const max = days.reduce((m, d) => (d.tests > m ? d.tests : m), 0);
   const total = days.reduce((s, d) => s + d.tests, 0);
   const activeDays = days.filter((d) => d.tests > 0).length;
-
-  // Group days into week columns. A week column always has 7 cells —
-  // pad the last column with placeholder nulls so the grid stays
-  // aligned to Monday-start regardless of where today lands.
   const columns = chunkIntoWeeks(days);
 
+  const captionParts = [
+    `${total} tests`,
+    `${activeDays} active days`,
+    streak.longest > 0 ? `${streak.longest}-day record` : null,
+  ].filter(Boolean) as string[];
+
   return (
-    <ProfileSection
-      label="Activity · last 12 months"
-      actions={
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          <span>
-            <span className="text-foreground tabular-nums">{total}</span>{" "}
-            tests
-          </span>
-          <span>
-            <span className="text-foreground tabular-nums">{activeDays}</span>{" "}
-            active days
-          </span>
-          {streak.longest > 0 ? (
-            <span>
-              <span className="text-foreground tabular-nums">
-                {streak.longest}
-              </span>
-              -day record
-            </span>
-          ) : null}
-        </div>
-      }
-    >
-      {/* Horizontal scroll on mobile keeps every cell at a minimum
-       *  legible size (8px) — at 375px viewport, 52 fr cells would
-       *  collapse to ~4px squares. The grid uses minmax(8px, 1fr) so
-       *  cells fill available width on desktop and overflow into a
-       *  swipeable strip below sm. */}
-      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
-        <div className="flex min-w-[440px] flex-col gap-1.5 sm:min-w-0 sm:w-full">
+    <section className="mt-12 border-t border-border/60 pt-10 sm:mt-14 sm:pt-12">
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+        <SectionLabel>Activity · last 12 months</SectionLabel>
+        <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/80 tabular-nums">
+          {captionParts.join(" · ")}
+        </span>
+      </div>
+
+      <div className="-mx-5 overflow-x-auto px-5 sm:mx-0 sm:overflow-visible sm:px-0">
+        <div className="flex min-w-[440px] flex-col gap-1.5 sm:w-full sm:min-w-0">
           <MonthAxis columns={columns} />
           <div
-            className="grid w-full gap-[3px]"
+            className="grid w-full gap-[2px]"
             style={{
-              gridTemplateColumns: `repeat(${columns.length}, minmax(8px, 1fr))`,
+              gridTemplateColumns: `repeat(${columns.length}, minmax(6px, 1fr))`,
             }}
           >
             {columns.map((week, wi) => (
-              <div key={wi} className="flex flex-col gap-[3px]">
+              <div key={wi} className="flex flex-col gap-[2px]">
                 {week.map((d, di) => (
                   <Cell key={di} day={d} max={max} />
                 ))}
@@ -79,26 +58,22 @@ export function ActivityHeatmap({
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-end gap-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+      <div className="mt-3 flex items-center justify-end gap-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/80">
         <span>Less</span>
         {[0, 0.25, 0.5, 0.75, 1].map((v, i) => (
           <span
             key={i}
             aria-hidden
-            className="size-3 rounded-[2px]"
+            className="size-2.5"
             style={{ background: cellBg(v) }}
           />
         ))}
         <span>More</span>
       </div>
-    </ProfileSection>
+    </section>
   );
 }
 
-/** Top axis showing which week column each new month begins in.
- *  Labels share the same grid as the cells so they auto-align as the
- *  cell width flexes with the container. We render a label only on
- *  the first week of each month. */
 function MonthAxis({ columns }: { columns: (DayCell | null)[][] }) {
   const labels = new Map<number, string>();
   let lastMonth = -1;
@@ -116,7 +91,7 @@ function MonthAxis({ columns }: { columns: (DayCell | null)[][] }) {
   });
   return (
     <div
-      className="grid w-full text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground"
+      className="grid w-full text-[9px] font-medium uppercase tracking-[0.14em] text-muted-foreground/80"
       style={{
         gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
       }}
@@ -124,7 +99,7 @@ function MonthAxis({ columns }: { columns: (DayCell | null)[][] }) {
       {columns.map((_, idx) => (
         <span
           key={idx}
-          className="overflow-hidden text-left whitespace-nowrap"
+          className="overflow-hidden whitespace-nowrap text-left"
         >
           {labels.get(idx) ?? ""}
         </span>
@@ -135,12 +110,7 @@ function MonthAxis({ columns }: { columns: (DayCell | null)[][] }) {
 
 function Cell({ day, max }: { day: DayCell | null; max: number }) {
   if (!day) {
-    return (
-      <span
-        aria-hidden
-        className="block aspect-square w-full rounded-[2px]"
-      />
-    );
+    return <span aria-hidden className="block aspect-square w-full" />;
   }
   const ratio = max > 0 ? Math.max(0, Math.min(1, day.tests / max)) : 0;
   const label =
@@ -151,9 +121,7 @@ function Cell({ day, max }: { day: DayCell | null; max: number }) {
     <span
       title={label}
       aria-label={label}
-      className={cn(
-        "block aspect-square w-full rounded-[2px] border border-foreground/[0.04]",
-      )}
+      className={cn("block aspect-square w-full")}
       style={{ background: cellBg(ratio) }}
     />
   );
@@ -161,13 +129,11 @@ function Cell({ day, max }: { day: DayCell | null; max: number }) {
 
 function cellBg(ratio: number): string {
   if (ratio <= 0)
-    return "color-mix(in oklch, var(--foreground) 5%, transparent)";
-  // Five steps from muted to primary so contrast carries even at
-  // narrow viewports.
+    return "color-mix(in oklch, var(--foreground) 6%, transparent)";
   if (ratio < 0.2)
-    return "color-mix(in oklch, var(--primary) 20%, transparent)";
+    return "color-mix(in oklch, var(--primary) 22%, transparent)";
   if (ratio < 0.4)
-    return "color-mix(in oklch, var(--primary) 40%, transparent)";
+    return "color-mix(in oklch, var(--primary) 42%, transparent)";
   if (ratio < 0.7)
     return "color-mix(in oklch, var(--primary) 65%, transparent)";
   if (ratio < 0.9)
@@ -191,4 +157,15 @@ function chunkIntoWeeks(days: DayCell[]): (DayCell | null)[][] {
     out.push(week);
   }
   return out;
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span aria-hidden className="inline-block h-px w-4 bg-primary" />
+      <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+        {children}
+      </span>
+    </div>
+  );
 }
