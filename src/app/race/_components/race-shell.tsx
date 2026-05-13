@@ -78,7 +78,7 @@ export function RaceShell({
 }) {
   const backend = useBackend();
   const router = useRouter();
-  const [modeId, setModeId] = useState<RaceModeId>(initialModeId ?? "1v3");
+  const [modeId, setModeId] = useState<RaceModeId>(initialModeId ?? "1v1v1v1");
   const [online, setOnline] = useState<RaceShellOnline | null>(
     initialOnline ?? null,
   );

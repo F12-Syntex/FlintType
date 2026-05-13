@@ -529,7 +529,7 @@ export class RaceRoom {
    *  Threshold:
    *    - In a room with one real player (the rest are bots), one
    *      ready vote is enough — the bots count as the second
-   *      "player" so a 1v1 / 1v3 user can rematch instantly.
+   *      "player" so a 1v1 / 1v1v1v1 user can rematch instantly.
    *    - In a room with two+ real players, we need at least two
    *      ready votes before kicking off the new round. The room
    *      doesn't auto-include bots in the multi-real count to avoid

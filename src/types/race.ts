@@ -4,7 +4,7 @@ import { z } from "zod";
  *  `src/app/race/_components/race-data.ts` — the server only validates
  *  that the requested mode is in the union; the client picks display
  *  data + bot profiles. */
-export const RACE_MODE_IDS = ["1v3", "1v1", "sprint", "endurance", "quote"] as const;
+export const RACE_MODE_IDS = ["1v1v1v1", "1v1", "sprint", "endurance", "quote"] as const;
 export type RaceModeId = (typeof RACE_MODE_IDS)[number];
 
 /** Lifecycle of a server-authoritative race room.

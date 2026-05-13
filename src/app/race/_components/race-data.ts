@@ -2,7 +2,7 @@ import { EN_COMMON_1000 } from "@/data/en-common-1000";
 
 /** Race configuration. Each mode is a passage race — type a fixed
  *  passage; first to the line wins. Bot lineup varies per mode. */
-export type RaceModeId = "1v3" | "1v1" | "sprint" | "endurance" | "quote";
+export type RaceModeId = "1v1v1v1" | "1v1" | "sprint" | "endurance" | "quote";
 
 export type RaceMode = {
   id: RaceModeId;
@@ -16,9 +16,9 @@ export type RaceMode = {
 };
 
 export const RACE_MODES: Record<RaceModeId, RaceMode> = {
-  "1v3": {
-    id: "1v3",
-    name: "1V3",
+  "1v1v1v1": {
+    id: "1v1v1v1",
+    name: "1V1V1V1",
     detail: "4 racers · 25 words",
     wordCount: 25,
     // Curated for variety — grandmaster, mid, rookie — so a solo
@@ -58,7 +58,7 @@ export const RACE_MODES: Record<RaceModeId, RaceMode> = {
 };
 
 export const RACE_MODE_ORDER: readonly RaceModeId[] = [
-  "1v3",
+  "1v1v1v1",
   "1v1",
   "sprint",
   "endurance",

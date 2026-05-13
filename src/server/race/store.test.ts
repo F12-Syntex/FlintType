@@ -19,13 +19,13 @@ describe("race/store", () => {
   });
 
   it("joinOrCreateMatchmaking returns the same open room for the same mode", () => {
-    const a = joinOrCreateMatchmaking("1v3", 1);
-    const b = joinOrCreateMatchmaking("1v3", 1);
+    const a = joinOrCreateMatchmaking("1v1v1v1", 1);
+    const b = joinOrCreateMatchmaking("1v1v1v1", 1);
     expect(a.id).toBe(b.id);
   });
 
   it("creates separate rooms for different modes", () => {
-    const a = joinOrCreateMatchmaking("1v3", 1);
+    const a = joinOrCreateMatchmaking("1v1v1v1", 1);
     const b = joinOrCreateMatchmaking("1v1", 1);
     expect(a.id).not.toBe(b.id);
   });
@@ -40,7 +40,7 @@ describe("race/store", () => {
   });
 
   it("getRoom by id round-trips", () => {
-    const room = joinOrCreateMatchmaking("1v3", 1);
+    const room = joinOrCreateMatchmaking("1v1v1v1", 1);
     expect(getRoom(room.id)?.id).toBe(room.id);
     expect(getRoom("missing")).toBeNull();
   });

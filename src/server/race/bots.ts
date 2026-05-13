@@ -141,12 +141,12 @@ export const BOTS: Record<BotId, BotProfile> = {
   },
 };
 
-/** Default bot lineup per mode. Curated for *variety* — a 1v3 race
+/** Default bot lineup per mode. Curated for *variety* — a 1v1v1v1 race
  *  spans grandmaster → average → rookie so a solo player faces a
  *  recognisable spread of opponents instead of three near-identical
  *  speedsters. Sprint is a fast pair, endurance a mid pair, etc. */
 export const BOT_LINEUP: Record<string, readonly BotId[]> = {
-  "1v3": ["damiel", "elias", "onyx"],
+  "1v1v1v1": ["damiel", "elias", "onyx"],
   "1v1": ["mireille"],
   sprint: ["haru", "nadya"],
   endurance: ["selan", "kassia"],

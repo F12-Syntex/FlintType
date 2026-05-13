@@ -29,7 +29,7 @@ describe("race/bots", () => {
   });
 
   it("capacity is 1 + bot lineup length", () => {
-    expect(capacityFor("1v3")).toBe(4);
+    expect(capacityFor("1v1v1v1")).toBe(4);
     expect(capacityFor("1v1")).toBe(2);
     expect(capacityFor("sprint")).toBe(3);
     expect(capacityFor("endurance")).toBe(3);
@@ -55,7 +55,7 @@ describe("race/bots", () => {
   });
 
   it("BOT_LINEUP covers every shipped mode id", () => {
-    for (const mode of ["1v3", "1v1", "sprint", "endurance", "quote", "burst"]) {
+    for (const mode of ["1v1v1v1", "1v1", "sprint", "endurance", "quote", "burst"]) {
       expect(BOT_LINEUP[mode]?.length).toBeGreaterThan(0);
     }
   });

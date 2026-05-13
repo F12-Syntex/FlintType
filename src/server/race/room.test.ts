@@ -19,7 +19,7 @@ describe("RaceRoom", () => {
       id: "r_test",
       slug: null,
       kind: "matchmaking",
-      modeId: "1v3",
+      modeId: "1v1v1v1",
       raceSeed: 1,
       wordCount: 5,
     });
@@ -47,7 +47,7 @@ describe("RaceRoom", () => {
     expect(room.snapshot().racers.length).toBe(3);
     vi.advanceTimersByTime(1_000);
     expect(room.snapshot().racers.length).toBe(4);
-    // Room hit capacity (4 for 1v3) — should now be in lobby phase.
+    // Room hit capacity (4 for 1v1v1v1) — should now be in lobby phase.
     expect(room.phase).toBe("lobby");
   });
 
@@ -94,7 +94,7 @@ describe("RaceRoom", () => {
   it("transitions to countdown after the 700ms lobby hold then to racing after 3s", () => {
     const room = makeRoom();
     room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
-    // 1v3 has a 3-bot lineup, so the room fills (and lobby fires) at
+    // 1v1v1v1 has a 3-bot lineup, so the room fills (and lobby fires) at
     // t=3s when the third bot joins. From there: 700ms lobby hold,
     // 3000ms countdown.
     vi.advanceTimersByTime(3_000);

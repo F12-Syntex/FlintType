@@ -244,7 +244,7 @@ export default function AppearancePage() {
         id="multiplayer"
         eyebrow="Race"
         title="Multiplayer"
-        description="How live opponents read in /race. Today's only race surface is the 1v3 bot race, but the rule of thumb still holds — visuals here only affect surfaces with more than one racer."
+        description="How live opponents read in /race. Today's only race surface is the 1v1v1v1 bot race, but the rule of thumb still holds — visuals here only affect surfaces with more than one racer."
         preview={<MultiplayerPreview />}
       >
         <MultiplayerRows />

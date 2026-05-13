@@ -81,7 +81,7 @@ describe("race routes", () => {
 
   it("leave drops the racer but keeps the room alive for late rejoins", async () => {
     const join = await callRoute<QueueOutput>(["race", "queue"], {
-      input: { modeId: "1v3" },
+      input: { modeId: "1v1v1v1" },
     });
     const before = getRoom(join.roomId)?.snapshot().racers.length;
     expect(before).toBe(1);
