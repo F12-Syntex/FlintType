@@ -93,7 +93,14 @@ export function freshState(
   const totalChars = isBurst
     ? mode.burst!.items.length * mode.burst!.repsPerItem
     : totalCharsOf(words);
-  let racers = buildRacers(mode.botIds, withQueue, youName);
+  // Burst challenge lobbies (withQueue=false + burst) are single-
+  // player by design — the offline reducer drives them and the
+  // server doesn't track burst racers. Suppress the bot lineup
+  // entirely so the lobby reads honestly ("just you, waiting to
+  // start"). Matchmaking burst (withQueue=true) keeps the bot fill
+  // because they're the opponents the matchmaking loop simulates.
+  const botIds = isBurst && !withQueue ? [] : mode.botIds;
+  let racers = buildRacers(botIds, withQueue, youName);
   if (isBurst) {
     racers = racers.map((r) => ({ ...r, burstItemIdx: 0, burstReps: 0 }));
   }
