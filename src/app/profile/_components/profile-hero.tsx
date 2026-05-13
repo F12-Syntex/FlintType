@@ -3,7 +3,6 @@
 import { useClerk, useUser } from "@clerk/nextjs";
 import { Download, Link2, LogOut, Pencil } from "lucide-react";
 import { useState } from "react";
-import { Tag } from "@/components/ft";
 import { Button } from "@/components/ui/button";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { cn } from "@/lib/utils";
@@ -125,11 +124,6 @@ export function ProfileHero({
           ) : null}
         </>
       ) : null}
-
-      <div className="mb-5 flex items-center justify-center gap-3 sm:mb-7">
-        <span aria-hidden className="inline-block h-px w-5 bg-primary" />
-        <Tag>Public profile</Tag>
-      </div>
 
       <div className="mx-auto flex max-w-md flex-col items-center gap-4 text-center sm:gap-5">
         <Avatar

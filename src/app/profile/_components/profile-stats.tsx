@@ -5,11 +5,12 @@ import { ProfileSection } from "./profile-section";
 /** Lifetime-totals strip — tight horizontal row of stats with vertical
  *  hairline dividers between cells (no gap), each cell content
  *  centered. The strip itself centers within the section so it reads
- *  as a single composed band rather than a left-aligned 6-cell grid.
+ *  as a single composed band rather than a left-aligned grid.
  *
- *  Wraps responsively: 2-up on mobile, 3-up at sm, all 6 inline at
- *  lg+. The dividers + bordered card frame replace the wide gaps that
- *  used to scatter the cells across the row. */
+ *  Four real cells (tests started, time typing, best WPM, streak) +
+ *  an optional Leaderboard cell that only renders once a global rank
+ *  exists. Placeholder "Coming soon" cells were dropped — they added
+ *  visual noise without surfacing data. */
 export function ProfileStats({
   totals,
   streak,
@@ -19,13 +20,16 @@ export function ProfileStats({
   streak: StreakStats;
   rank: number | null;
 }) {
+  const showRank = rank != null;
   return (
     <ProfileSection label="Lifetime totals">
       <div className="mx-auto overflow-hidden rounded-md border border-border bg-card/40">
-        {/* Mobile: 3 + 2 grid (Tests | Time | Best WPM on row 1,
-         *  Streak | Leaderboard on row 2) reads tighter than the old
-         *  2 + 2 + 1 layout where Leaderboard was orphaned. */}
-        <div className="grid grid-cols-3 divide-x divide-y divide-border sm:grid-cols-5 sm:divide-y-0">
+        <div
+          className={cn(
+            "grid grid-cols-2 divide-x divide-y divide-border sm:divide-y-0",
+            showRank ? "sm:grid-cols-5" : "sm:grid-cols-4",
+          )}
+        >
           <MetricCell
             label="Tests started"
             value={totals.testsStarted.toLocaleString()}
@@ -48,14 +52,16 @@ export function ProfileStats({
           <MetricCell
             label="Streak"
             value={streak.current.toString()}
-            suffix={streak.current === 1 ? "d" : "d"}
+            suffix="d"
             accent={streak.current > 0}
           />
-          <MetricCell
-            label="Leaderboard"
-            value={rank != null ? `#${rank}` : "—"}
-            subline={rank != null ? "Global" : "Coming soon"}
-          />
+          {showRank ? (
+            <MetricCell
+              label="Leaderboard"
+              value={`#${rank}`}
+              subline="Global"
+            />
+          ) : null}
         </div>
       </div>
     </ProfileSection>
