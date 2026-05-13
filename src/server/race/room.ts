@@ -56,8 +56,14 @@ export type RoomOptions = {
   modeId: RaceModeId;
   /** Deterministic seed for passage generation + bot motion. */
   raceSeed: number;
-  /** Word count for the passage. */
+  /** Word count for the passage. Ignored when `quoteText` is set —
+   *  the quote determines the passage. */
   wordCount?: number;
+  /** When set, the room runs a QUOTE race: the passage is this
+   *  exact string, split on whitespace into words, and the source
+   *  flows out via every snapshot for the client attribution line. */
+  quoteText?: string;
+  quoteSource?: string;
   /** Fires when the room's last activity is older than ROOM_TTL_MS
    *  AND the room is finished — the store uses this to GC. */
   onIdle?: () => void;
@@ -72,6 +78,9 @@ export class RaceRoom {
   readonly raceSeed: number;
   readonly words: readonly string[];
   readonly totalChars: number;
+  /** Source attribution for QUOTE rooms; undefined for word-passage
+   *  rooms. Broadcast on every snapshot. */
+  readonly quoteSource: string | undefined;
   phase: RacePhase = "matching";
   matchmakingStartedAt: number;
   matchmakingEndsAt: number | null = null;
@@ -101,7 +110,13 @@ export class RaceRoom {
     this.modeId = options.modeId;
     this.capacity = capacityFor(options.modeId);
     this.raceSeed = options.raceSeed;
-    this.words = generateRacePassage(options.wordCount ?? 25, options.raceSeed);
+    if (options.quoteText != null) {
+      this.words = options.quoteText.split(/\s+/).filter(Boolean);
+      this.quoteSource = options.quoteSource;
+    } else {
+      this.words = generateRacePassage(options.wordCount ?? 25, options.raceSeed);
+      this.quoteSource = undefined;
+    }
     this.totalChars = totalCharsOf(this.words);
     this.matchmakingStartedAt = Date.now();
     this.lastTouchedAt = this.matchmakingStartedAt;
@@ -517,6 +532,7 @@ export class RaceRoom {
       raceEndedAt: this.raceEndedAt,
       racers,
       cancelled: this.cancelled || undefined,
+      quoteSource: this.quoteSource,
     };
   }
 

@@ -1,6 +1,7 @@
 import { BackendError } from "@/lib/errors";
 import { defineNamespace, defineRoute } from "@/server";
 import { getRaceIdentity } from "@/server/race/identity";
+import { pickRaceQuote } from "@/server/race/quotes";
 import {
   createChallengeRoom,
   getRoom,
@@ -28,7 +29,13 @@ const create = defineRoute<CreateChallengeInput, CreateChallengeOutput>({
     const sessionToken = newSessionToken();
     const identity = await getRaceIdentity(sessionToken);
     const seed = Date.now() | 0;
-    const room = createChallengeRoom({ modeId: input.modeId, raceSeed: seed });
+    const passage =
+      input.modeId === "quote" ? pickRaceQuote() : undefined;
+    const room = createChallengeRoom({
+      modeId: input.modeId,
+      raceSeed: seed,
+      passage,
+    });
     const racer = room.addRealRacer({
       sessionToken,
       name: identity.name,

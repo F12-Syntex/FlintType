@@ -4,7 +4,7 @@ import { z } from "zod";
  *  `src/app/race/_components/race-data.ts` — the server only validates
  *  that the requested mode is in the union; the client picks display
  *  data + bot profiles. */
-export const RACE_MODE_IDS = ["1v3", "1v1", "sprint", "endurance"] as const;
+export const RACE_MODE_IDS = ["1v3", "1v1", "sprint", "endurance", "quote"] as const;
 export type RaceModeId = (typeof RACE_MODE_IDS)[number];
 
 /** Lifecycle of a server-authoritative race room.
@@ -93,6 +93,11 @@ export type RoomSnapshot = {
    *  disposes itself, when the host hit Cancel. Clients use this to
    *  redirect everyone in the room back to /race with a notice. */
   cancelled?: boolean;
+  /** Author / source attribution for quote rooms. Sent on every
+   *  snapshot (alongside `words` once racing starts) so the client
+   *  can render a "— Source" line under the passage. Absent for
+   *  non-quote modes. */
+  quoteSource?: string;
 };
 
 /* ─── Request schemas ──────────────────────────────────────────── */

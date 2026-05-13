@@ -2,7 +2,7 @@ import { EN_COMMON_1000 } from "@/data/en-common-1000";
 
 /** Race configuration. Each mode is a passage race — type a fixed
  *  passage; first to the line wins. Bot lineup varies per mode. */
-export type RaceModeId = "1v3" | "1v1" | "sprint" | "endurance";
+export type RaceModeId = "1v3" | "1v1" | "sprint" | "endurance" | "quote";
 
 export type RaceMode = {
   id: RaceModeId;
@@ -44,6 +44,14 @@ export const RACE_MODES: Record<RaceModeId, RaceMode> = {
     wordCount: 25,
     botIds: ["selan", "kassia"],
   },
+  quote: {
+    id: "quote",
+    name: "QUOTE",
+    // Length is set by the server (medium bracket — 101–300 chars).
+    detail: "famous quote · medium length",
+    wordCount: 0,
+    botIds: ["selan", "kassia"],
+  },
 };
 
 export const RACE_MODE_ORDER: readonly RaceModeId[] = [
@@ -51,6 +59,7 @@ export const RACE_MODE_ORDER: readonly RaceModeId[] = [
   "1v1",
   "sprint",
   "endurance",
+  "quote",
 ];
 
 /** Bot tick interval. 50ms = 20 ticks/sec, fine-grained enough to

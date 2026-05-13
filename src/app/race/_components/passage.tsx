@@ -18,9 +18,14 @@ import type { Racer, RacePhase } from "./race-types";
  *  phase) and the per-racer progress strip below. No more blurred
  *  overlays; the passage is always cleanly visible. */
 export function RacePassage() {
-  const { state, countdownNumber } = useRace();
+  const { state, countdownNumber, onlineSnapshot } = useRace();
   const { state: practice } = usePractice();
   const { prefs: appearance } = useAppearancePrefs();
+  // Author attribution for QUOTE races. The server stamps this on
+  // every snapshot once the room is created so the line lands even
+  // before the passage is revealed (so the lobby can already render
+  // it under the "QUOTE" poster).
+  const quoteSource = onlineSnapshot?.quoteSource;
   const you = state.racers.find((r) => r.isYou)!;
   const totalChars = state.totalChars;
   const correctChars = you.correctChars;
@@ -92,7 +97,15 @@ export function RacePassage() {
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
       <div className="min-h-0 flex-1">
         {racing ? (
-          <Passage wordBackground={wordTints} wordTextColor={wordTextColor} />
+          <div className="flex h-full w-full flex-col gap-3">
+            <div className="min-h-0 flex-1">
+              <Passage
+                wordBackground={wordTints}
+                wordTextColor={wordTextColor}
+              />
+            </div>
+            {quoteSource ? <QuoteAttribution source={quoteSource} /> : null}
+          </div>
         ) : state.phase === "countdown" ? (
           <CountdownPanel n={countdownNumber ?? 3} />
         ) : (
@@ -100,6 +113,7 @@ export function RacePassage() {
             modeName={RACE_MODES[state.modeId].name}
             detail={RACE_MODES[state.modeId].detail}
             phase={state.phase}
+            quoteSource={quoteSource}
           />
         )}
       </div>
@@ -164,14 +178,35 @@ function CountdownPanel({ n }: { n: number }) {
  *  content: the race you're about to run, sitting calmly until you
  *  start. Big mode name, one line of detail beneath, sized to fill
  *  the typing slot without competing with the chrome above. */
+/** Editorial dash + author line that sits under the passage during
+ *  racing in QUOTE rooms. Right-aligned, muted, JetBrains Mono — the
+ *  attribution should read as a footnote, never compete with the
+ *  passage above it. */
+function QuoteAttribution({ source }: { source: string }) {
+  return (
+    <p
+      className={cn(
+        "px-1 text-right text-[12px] text-muted-foreground sm:text-[13px]",
+        "italic tabular-nums",
+      )}
+    >
+      — {source}
+    </p>
+  );
+}
+
 function RacePoster({
   modeName,
   detail,
   phase,
+  quoteSource,
 }: {
   modeName: string;
   detail: string;
   phase: string;
+  /** Author attribution to render under the detail line in QUOTE
+   *  rooms during the lobby beats. Skipped silently for other modes. */
+  quoteSource?: string;
 }) {
   // The headline never changes between queue/matching/lobby — same
   // race, same poster. The subtitle nudges contextually so the user
@@ -201,6 +236,11 @@ function RacePoster({
       <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
         {detail}
       </span>
+      {quoteSource ? (
+        <span className="mt-1 text-[12px] italic text-muted-foreground sm:text-[13px]">
+          — {quoteSource}
+        </span>
+      ) : null}
     </div>
   );
 }

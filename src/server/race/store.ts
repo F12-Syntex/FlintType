@@ -70,7 +70,15 @@ export function getRoomBySlug(slug: string): RaceRoom | null {
  *  the lookup: this fn always returns an *existing* room first if
  *  one is open, which is where the bot-fill schedule is already
  *  running with seats reserved. */
-export function joinOrCreateMatchmaking(modeId: RaceModeId, raceSeed: number): RaceRoom {
+export function joinOrCreateMatchmaking(
+  modeId: RaceModeId,
+  raceSeed: number,
+  /** Passage override — used by quote rooms whose passage comes from
+   *  the curated quote pool rather than the random word generator.
+   *  Ignored on the join path (we always join the existing room, even
+   *  if the caller would have proposed a different quote). */
+  passage?: { text: string; source: string },
+): RaceRoom {
   const store = getStore();
   const existing = store.matchmakingByMode.get(modeId);
   if (existing && existing.canJoinAsReal()) return existing;
@@ -82,6 +90,8 @@ export function joinOrCreateMatchmaking(modeId: RaceModeId, raceSeed: number): R
     modeId,
     raceSeed,
     wordCount: 25,
+    quoteText: passage?.text,
+    quoteSource: passage?.source,
     onIdle: () => {
       store.byId.delete(id);
       if (store.matchmakingByMode.get(modeId) === room) {
@@ -107,6 +117,9 @@ export function evictFromMatchmaking(room: RaceRoom): void {
 export function createChallengeRoom(opts: {
   modeId: RaceModeId;
   raceSeed: number;
+  /** Passage override — used by quote rooms whose passage comes from
+   *  the curated quote pool. */
+  passage?: { text: string; source: string };
 }): RaceRoom {
   const store = getStore();
   const id = newRoomId();
@@ -118,6 +131,8 @@ export function createChallengeRoom(opts: {
     modeId: opts.modeId,
     raceSeed: opts.raceSeed,
     wordCount: 25,
+    quoteText: opts.passage?.text,
+    quoteSource: opts.passage?.source,
     onIdle: () => {
       store.byId.delete(id);
       store.bySlug.delete(slug);

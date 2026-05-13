@@ -20,6 +20,14 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_APP_VERSION: appVersion,
   },
+  // Ship the quote pool to every serverless function so the race
+  // quote mode can pick passages at room-creation time without a
+  // network hop. Without this, Vercel only bundles files reachable
+  // from imports; the server reads the JSON via fs.readFileSync, so
+  // we trace it explicitly.
+  outputFileTracingIncludes: {
+    "/**": ["./public/quotes/monkeytype/english.json"],
+  },
 };
 
 export default nextConfig;

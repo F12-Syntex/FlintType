@@ -2,6 +2,7 @@ import { BackendError } from "@/lib/errors";
 import { defineNamespace, defineRoute } from "@/server";
 import { rateLimit } from "@/server/middleware/rate-limit";
 import { getRaceIdentity } from "@/server/race/identity";
+import { pickRaceQuote } from "@/server/race/quotes";
 import {
   evictFromMatchmaking,
   getRoom,
@@ -29,7 +30,13 @@ const queue = defineRoute<QueueInput, QueueOutput>({
     // Seed off the wall clock — the room itself caches the seed so
     // every joiner of this room sees the same passage / bot motion.
     const seed = Date.now() | 0;
-    const room = joinOrCreateMatchmaking(input.modeId, seed);
+    // Quote rooms swap the random-word passage for a curated medium-
+    // length quote so every racer types the same line + author. The
+    // pick happens at *create* time only — joining an existing room
+    // doesn't re-roll the quote.
+    const passage =
+      input.modeId === "quote" ? pickRaceQuote() : undefined;
+    const room = joinOrCreateMatchmaking(input.modeId, seed, passage);
     const added = room.addRealRacer({
       sessionToken,
       name: identity.name,
@@ -40,7 +47,7 @@ const queue = defineRoute<QueueInput, QueueOutput>({
       // got locked between findOrCreate and addRealRacer. Recurse
       // once: with the previous room evicted, we'll get a fresh one.
       evictFromMatchmaking(room);
-      const fresh = joinOrCreateMatchmaking(input.modeId, seed);
+      const fresh = joinOrCreateMatchmaking(input.modeId, seed, passage);
       const second = fresh.addRealRacer({
         sessionToken,
         name: identity.name,
