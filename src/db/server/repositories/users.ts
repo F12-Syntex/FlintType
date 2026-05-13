@@ -11,7 +11,7 @@ import type { ServerDrizzle } from "../driver";
  *  pipeline runs even though `seq` was assigned long before the
  *  feature shipped. The flag column above ensures we only do the
  *  Clerk write + notification once per eligible user. */
-export const OG_MILESTONE_LIMIT = 100;
+export const OG_MILESTONE_LIMIT = 1000;
 
 /** Result of `ensureForUser`. `created=true` means this call inserted
  *  the row — the caller can read `row.seq` to decide whether a

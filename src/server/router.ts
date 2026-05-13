@@ -1,6 +1,7 @@
 import { defineNamespace } from '@/server';
 import { logging } from './middleware/logging';
 import { adapt } from './routes/adapt';
+import { admin } from './routes/admin';
 import { health } from './routes/health';
 import { history } from './routes/history';
 import { leaderboard } from './routes/leaderboard';
@@ -16,6 +17,7 @@ export const router = defineNamespace({
     health,
     prefs,
     adapt,
+    admin,
     history,
     leaderboard,
     monkeytype,
