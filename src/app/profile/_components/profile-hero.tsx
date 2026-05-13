@@ -1,7 +1,14 @@
 "use client";
 
 import { useClerk, useUser } from "@clerk/nextjs";
-import { Download, Link2, LogOut, MoreHorizontal, Pencil } from "lucide-react";
+import {
+  Download,
+  Link2,
+  LogOut,
+  MoreHorizontal,
+  Pencil,
+  User as UserIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { UserTag } from "@/components/ft";
 import {
@@ -10,30 +17,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { cn } from "@/lib/utils";
-import type { MonkeytypeStatsSlice } from "@/types/monkeytype";
 import type { UserTagId } from "@/types/user-tag";
 import type { ProfileTotals, StreakStats } from "./derive-stats";
 import { EditProfileDialog } from "./edit-profile-dialog";
-import { MonkeyTypeImportDialog } from "./monkeytype-import-dialog";
-import { MonkeyTypeManageDialog } from "./monkeytype-manage-dialog";
-
-const EMPTY_MT_SLICE: MonkeytypeStatsSlice = {
-  importedAt: 0,
-  pbs: { time: {}, words: {} },
-};
 
 const NUM_FMT = new Intl.NumberFormat("en-US");
 
 /** Wide MonkeyType-style hero panel — identity on the left, big
  *  headline stats inline on the right, kebab menu pinned to the far
  *  right corner. Stacks vertically on mobile and goes side-by-side at
- *  md+. The level lockup + XP bar sit underneath the name on the
- *  identity side so the eye reads "who, then what they've done."
+ *  md+.
  *
- *  Visually this is one bordered card panel, matching the rest of the
- *  page rhythm; the panel itself is the section. */
+ *  MonkeyType import / manage state lives in the parent
+ *  (`profile-view.tsx`) — both the kebab menu and the dismissible
+ *  banner above the hero open the same dialog through `onOpenMt`. */
 export function ProfileHero({
   username,
   isOwner,
@@ -42,32 +40,26 @@ export function ProfileHero({
   onTagsChanged,
   totals,
   streak,
+  isMtConnected = false,
+  onOpenMt,
 }: {
   username?: string;
   isOwner: boolean;
   tags?: UserTagId[];
-  /** Full set of tags the subject is eligible to display. Owner-only:
-   *  passed through to the EditProfileDialog so the toggle UI can
-   *  paint every eligible chip (selected and unselected). */
   eligibleTags?: UserTagId[];
-  /** Fires when the dialog saves a new selection. Parents use this
-   *  to refresh the visible tag set without a snapshot refetch. */
   onTagsChanged?: (next: UserTagId[]) => void;
   totals: ProfileTotals;
   streak: StreakStats;
+  /** True when the owner has a stored MonkeyType Ape Key. Drives the
+   *  kebab item's label ("MonkeyType" → manage / "Import" → connect). */
+  isMtConnected?: boolean;
+  /** Routes to the appropriate MT dialog based on connection state.
+   *  Parent (profile-view) decides which (manage vs import) opens. */
+  onOpenMt?: () => void;
 }) {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
   const [editOpen, setEditOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
-  const [manageOpen, setManageOpen] = useState(false);
-
-  const { value: mtSliceRaw, update: updateMtSlice } =
-    useRemotePrefs<MonkeytypeStatsSlice>("monkeytypeStats", EMPTY_MT_SLICE);
-  const isConnected =
-    isOwner &&
-    mtSliceRaw.importedAt > 0 &&
-    mtSliceRaw.encryptedApiKey != null;
 
   const displayName = isOwner
     ? !isLoaded
@@ -78,7 +70,6 @@ export function ProfileHero({
           user?.emailAddresses[0]?.emailAddress.split("@")[0] ??
           "Anonymous")
     : (username ?? "Anonymous");
-  const initial = (displayName.charAt(0) || "·").toUpperCase();
   const handle = isOwner ? (user?.username ?? username ?? null) : (username ?? null);
   const joined =
     isOwner && user?.createdAt != null
@@ -87,18 +78,21 @@ export function ProfileHero({
           month: "short",
         })
       : null;
-  const avatarImageUrl = isOwner ? (user?.imageUrl ?? null) : null;
+  // Clerk auto-generates a gradient default avatar when the user
+  // hasn't uploaded one (`hasImage === false`). That default reads as
+  // a generic AI-art swatch — replace it with a quiet silhouette so
+  // an unconfigured profile looks intentionally blank, not stock.
+  const showRealImage =
+    isOwner && isLoaded && (user?.hasImage ?? false) && user?.imageUrl;
+  const avatarImageUrl = showRealImage ? user!.imageUrl : null;
+  const avatarIsLoaded = isOwner ? isLoaded : true;
 
   return (
     <section className="rounded-md border border-border bg-card px-4 py-4 sm:px-6 sm:py-5">
       <div className="flex flex-col gap-5 md:flex-row md:items-center md:gap-8">
         {/* Identity — avatar + name + tags + level lockup */}
         <div className="flex items-center gap-4 md:min-w-0 md:flex-1">
-          <Avatar
-            imageUrl={avatarImageUrl}
-            initial={initial}
-            isLoaded={isOwner ? isLoaded : true}
-          />
+          <Avatar imageUrl={avatarImageUrl} isLoaded={avatarIsLoaded} />
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
               <h1 className="truncate text-lg font-bold tracking-tight text-foreground sm:text-xl">
@@ -119,8 +113,10 @@ export function ProfileHero({
           </div>
         </div>
 
-        {/* Headline stats — inline strip with hairline dividers */}
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4 sm:gap-x-6 md:flex md:flex-none md:items-baseline md:gap-x-8 md:divide-x md:divide-border/60">
+        {/* Headline stats — inline strip, no dividers. Mobile drops to
+         *  a 2×2 grid; md+ keeps them on one row separated only by
+         *  generous gap so each cell reads as its own column. */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4 sm:gap-x-6 md:flex md:flex-none md:items-baseline md:gap-x-10">
           <StatCell
             label="Tests"
             value={NUM_FMT.format(totals.testsCompleted)}
@@ -151,42 +147,22 @@ export function ProfileHero({
 
         {isOwner ? (
           <OwnerMenu
-            isConnected={isConnected}
-            onImport={() => setImportOpen(true)}
-            onManage={() => setManageOpen(true)}
+            isMtConnected={isMtConnected}
             onEdit={() => setEditOpen(true)}
+            onOpenMt={onOpenMt ?? (() => undefined)}
             onSignOut={() => void signOut({ redirectUrl: "/" })}
           />
         ) : null}
       </div>
 
       {isOwner ? (
-        <>
-          <EditProfileDialog
-            open={editOpen}
-            onOpenChange={setEditOpen}
-            tags={tags}
-            eligibleTags={eligibleTags}
-            onTagsChanged={onTagsChanged}
-          />
-          <MonkeyTypeImportDialog
-            open={importOpen}
-            onOpenChange={setImportOpen}
-          />
-          {isConnected ? (
-            <MonkeyTypeManageDialog
-              open={manageOpen}
-              onOpenChange={setManageOpen}
-              slice={mtSliceRaw}
-              onSliceUpdate={(next) => updateMtSlice(next)}
-              onSliceCleared={() => updateMtSlice(EMPTY_MT_SLICE)}
-              onRepaste={() => {
-                setManageOpen(false);
-                setImportOpen(true);
-              }}
-            />
-          ) : null}
-        </>
+        <EditProfileDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          tags={tags}
+          eligibleTags={eligibleTags}
+          onTagsChanged={onTagsChanged}
+        />
       ) : null}
     </section>
   );
@@ -206,7 +182,7 @@ function StatCell({
   accent?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-0.5 md:pl-8 md:first:pl-0">
+    <div className="flex flex-col gap-0.5">
       <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </span>
@@ -267,11 +243,9 @@ function LevelLockup({ totals }: { totals: ProfileTotals }) {
 
 function Avatar({
   imageUrl,
-  initial,
   isLoaded,
 }: {
   imageUrl: string | null;
-  initial: string;
   isLoaded: boolean;
 }) {
   const sizeClass = "size-12 shrink-0 sm:size-14";
@@ -299,30 +273,42 @@ function Avatar({
       />
     );
   }
+  // Blank fallback — Clerk's auto-gradient is suppressed (`hasImage`
+  // gates the imageUrl branch above). Quiet silhouette + muted bg
+  // reads as "no avatar set" rather than "AI made me a portrait."
   return (
     <span
       aria-hidden
       className={cn(
         sizeClass,
-        "flex items-center justify-center rounded-full border border-border bg-background text-base font-bold tracking-tight text-primary sm:text-lg",
+        "flex items-center justify-center rounded-full border border-border bg-muted/60 text-muted-foreground",
       )}
     >
-      {initial}
+      <UserIcon
+        size={20}
+        strokeWidth={1.5}
+        className="sm:hidden"
+        aria-hidden
+      />
+      <UserIcon
+        size={22}
+        strokeWidth={1.5}
+        className="hidden sm:block"
+        aria-hidden
+      />
     </span>
   );
 }
 
 function OwnerMenu({
-  isConnected,
-  onImport,
-  onManage,
+  isMtConnected,
   onEdit,
+  onOpenMt,
   onSignOut,
 }: {
-  isConnected: boolean;
-  onImport: () => void;
-  onManage: () => void;
+  isMtConnected: boolean;
   onEdit: () => void;
+  onOpenMt: () => void;
   onSignOut: () => void;
 }) {
   return (
@@ -350,15 +336,15 @@ function OwnerMenu({
           <span>Edit profile</span>
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={isConnected ? onManage : onImport}
+          onSelect={onOpenMt}
           className="flex items-center gap-2.5 rounded-sm py-2 pl-2 pr-3 text-[12px] font-medium uppercase tracking-[0.12em]"
         >
-          {isConnected ? (
+          {isMtConnected ? (
             <Link2 size={13} aria-hidden className="text-muted-foreground" />
           ) : (
             <Download size={13} aria-hidden className="text-muted-foreground" />
           )}
-          <span>{isConnected ? "MonkeyType" : "Import"}</span>
+          <span>{isMtConnected ? "MonkeyType" : "Import"}</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={onSignOut}

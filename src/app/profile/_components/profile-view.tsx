@@ -1,7 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BackendError, useBackend } from "@/lib/backend";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import type { HistorySummaryOutput } from "@/types/history";
@@ -16,6 +16,9 @@ import {
   mergePersonalBestsWithMt,
   mergeTotalsWithMt,
 } from "./derive-stats";
+import { MonkeytypeBanner } from "./monkeytype-banner";
+import { MonkeyTypeImportDialog } from "./monkeytype-import-dialog";
+import { MonkeyTypeManageDialog } from "./monkeytype-manage-dialog";
 import { PersonalBests } from "./personal-bests";
 import { ProfileHero } from "./profile-hero";
 import { RecentRuns } from "./recent-runs";
@@ -27,10 +30,11 @@ const EMPTY_MT_SLICE: MonkeytypeStatsSlice = {
 };
 
 /** /profile/<username> orchestrator. Wide MonkeyType-style layout —
- *  one column per "panel", each panel a bordered card carrying its
- *  own data block. Panels stack vertically with a tight gap. Personal
- *  bests render two strips (Time / Words) side-by-side on desktop;
- *  everything else is full-width. */
+ *  one card panel per section, stacked vertically with a tight gap.
+ *
+ *  Owns the MonkeyType import + manage dialog state so both the hero
+ *  kebab menu AND the dismissible MonkeyType banner can open them
+ *  through the same callbacks. */
 export function ProfileView({ username }: { username?: string }) {
   const backend = useBackend();
   const { user, isLoaded: userLoaded } = useUser();
@@ -39,6 +43,8 @@ export function ProfileView({ username }: { username?: string }) {
   const [snapshot, setSnapshot] = useState<HistorySummaryOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [importOpen, setImportOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
 
   useEffect(() => {
     if (isOwner == null) return;
@@ -79,7 +85,10 @@ export function ProfileView({ username }: { username?: string }) {
     useRemotePrefs<MonkeytypeStatsSlice>("monkeytypeStats", EMPTY_MT_SLICE);
   const ownMtSlice = mtSliceRaw.importedAt > 0 ? mtSliceRaw : null;
   const hasStoredKey = isOwner === true && ownMtSlice?.encryptedApiKey != null;
+  const isMtConnected = hasStoredKey;
 
+  // Auto-sync once per page load when a stored Ape Key exists AND the
+  // viewer is the owner. Visitors never trigger MT sync.
   const syncedRef = useRef(false);
   useEffect(() => {
     if (!hasStoredKey || syncedRef.current) return;
@@ -115,15 +124,24 @@ export function ProfileView({ username }: { username?: string }) {
   const subjectTags = snapshot?.tags ?? [];
   const subjectEligibleTags = snapshot?.eligibleTags ?? [];
 
-  // Mirror successful tag toggles into the snapshot so the hero
-  // chip strip updates immediately without re-fetching the entire
-  // profile payload.
-  const onTagsChanged = (next: typeof subjectTags) => {
+  const onTagsChanged = useCallback((next: typeof subjectTags) => {
     setSnapshot((prev) => (prev ? { ...prev, tags: next } : prev));
-  };
+  }, []);
+
+  // MT dialog open/manage routing — the kebab menu and the banner
+  // share these. Open Manage when connected, Import otherwise.
+  const onOpenMt = useCallback(() => {
+    if (isMtConnected) setManageOpen(true);
+    else setImportOpen(true);
+  }, [isMtConnected]);
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-6 sm:gap-4 sm:px-5 sm:py-8 lg:px-8 lg:py-10">
+      <MonkeytypeBanner
+        isOwner={heroIsOwner}
+        isConnected={isMtConnected}
+        onConnect={() => setImportOpen(true)}
+      />
       <ProfileHero
         username={username}
         isOwner={heroIsOwner}
@@ -132,6 +150,8 @@ export function ProfileView({ username }: { username?: string }) {
         onTagsChanged={heroIsOwner ? onTagsChanged : undefined}
         totals={totals}
         streak={streak}
+        isMtConnected={isMtConnected}
+        onOpenMt={heroIsOwner ? onOpenMt : undefined}
       />
 
       {error ? (
@@ -152,11 +172,32 @@ export function ProfileView({ username }: { username?: string }) {
           Loading the rest of {heroIsOwner ? "your" : "their"} history…
         </p>
       ) : null}
+
+      {heroIsOwner ? (
+        <>
+          <MonkeyTypeImportDialog
+            open={importOpen}
+            onOpenChange={setImportOpen}
+          />
+          {isMtConnected ? (
+            <MonkeyTypeManageDialog
+              open={manageOpen}
+              onOpenChange={setManageOpen}
+              slice={mtSliceRaw}
+              onSliceUpdate={(next) => updateMtSlice(next)}
+              onSliceCleared={() => updateMtSlice(EMPTY_MT_SLICE)}
+              onRepaste={() => {
+                setManageOpen(false);
+                setImportOpen(true);
+              }}
+            />
+          ) : null}
+        </>
+      ) : null}
     </main>
   );
 }
 
-/** True when the URL's username slug matches the signed-in user. */
 function matchesViewer(
   urlUsername: string | undefined,
   user: ReturnType<typeof useUser>["user"],
