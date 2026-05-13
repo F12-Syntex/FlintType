@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /** Internal hook powering `<LeaveGuard>` — see leave-guard.tsx. Splits
  *  the listener wiring from the dialog rendering so the dialog markup
@@ -33,6 +33,11 @@ export function useLeaveGuard({
   cancel: () => void;
 } {
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+  // Flips true the moment the user accepts our in-app confirm dialog.
+  // The beforeunload handler reads it and bails out so the browser's
+  // native confirm popup doesn't fire on top of the dialog the user
+  // *just* answered.
+  const confirmedRef = useRef(false);
 
   useEffect(() => {
     if (!active || bypass) {
@@ -47,6 +52,7 @@ export function useLeaveGuard({
       "You're in a race. Leaving will drop you out — continue?";
 
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (confirmedRef.current) return;
       e.preventDefault();
       e.returnValue = message;
       return message;
@@ -103,6 +109,10 @@ export function useLeaveGuard({
     pendingHref,
     confirm: () => {
       if (!pendingHref) return;
+      // Suppress the beforeunload native prompt for the navigation
+      // we're about to trigger — the user already confirmed via the
+      // in-app dialog, a second OS-level popup is the bug.
+      confirmedRef.current = true;
       // Hard-nav so the race surface tears down cleanly (the React
       // router's soft nav would race against the cleanup effects
       // that drop the user from the room).
