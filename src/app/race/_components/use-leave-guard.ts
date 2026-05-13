@@ -1,33 +1,53 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
-/** Confirm before leaving an in-progress race. Two routes out:
+/** Internal hook powering `<LeaveGuard>` — see leave-guard.tsx. Splits
+ *  the listener wiring from the dialog rendering so the dialog markup
+ *  can live in a `.tsx` sibling and pure listener logic stays here.
  *
- *  1. The browser tab itself (close, refresh, hard back) — handled
- *     via `beforeunload`. We return a string so the browser shows
- *     its native "Are you sure?" dialog. Modern browsers ignore the
- *     custom message but still show the prompt.
- *  2. An in-app `<Link>` click (TopBar nav to drills / insights /
- *     practice). We attach a document-level capture-phase click
- *     listener on the nearest enclosing `<a href>`; if the user
- *     confirms via window.confirm we let the navigation proceed,
- *     otherwise we preventDefault.
+ *  Three states:
+ *   - `active=false` → no listeners attached at all.
+ *   - `active=true` + `bypass=true` → no prompts; nav goes through.
+ *     Used post-finish so the results screen feels weightless.
+ *   - `active=true` + `bypass=false` → beforeunload prompt the browser
+ *     for tab-close / refresh; capture in-app link clicks and defer to
+ *     the caller via `pendingHref` (caller renders the dialog and
+ *     calls `confirm()` / `cancel()`).
  *
- *  Activates only when `active` is true so the guard is silent on
- *  the queue surface and the finished panel. The shell flips it on
- *  the moment a room handle is set. */
-export function useLeaveGuard(active: boolean): void {
+ *  Returns:
+ *   - `pendingHref` — href of the link the user clicked, while the
+ *     confirm dialog is open. Null otherwise.
+ *   - `confirm()` — proceed with the navigation that was deferred.
+ *   - `cancel()` — drop the deferred navigation; dialog should close.
+ */
+export function useLeaveGuard({
+  active,
+  bypass,
+}: {
+  active: boolean;
+  bypass: boolean;
+}): {
+  pendingHref: string | null;
+  confirm: () => void;
+  cancel: () => void;
+} {
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
   useEffect(() => {
-    if (!active) return;
+    if (!active || bypass) {
+      // Clear any deferred href that was captured before the bypass
+      // flipped on — once the race is finished, the user shouldn't
+      // see a stale confirm dialog.
+      setPendingHref(null);
+      return;
+    }
 
     const message =
       "You're in a race. Leaving will drop you out — continue?";
 
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
-      // Some older browsers read `returnValue`, modern Chromium reads
-      // the canonical preventDefault + ignores the returned string.
       e.returnValue = message;
       return message;
     };
@@ -47,9 +67,6 @@ export function useLeaveGuard(active: boolean): void {
       if (href.startsWith("#")) return;
       // External / target=_blank — leave alone, browser handles it.
       if (anchor.target && anchor.target !== "_self") return;
-      // Stay on /race subpaths without prompting (challenge join page
-      // is the same race surface and we want the user to slide into
-      // it without a dialog).
       try {
         const resolvedTarget =
           href.startsWith("http") || href.startsWith("//")
@@ -65,11 +82,13 @@ export function useLeaveGuard(active: boolean): void {
       } catch {
         return;
       }
-      const ok = window.confirm(message);
-      if (!ok) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
+      // Defer the navigation — preventDefault to block the immediate
+      // link traversal, store the resolved href, and let the caller
+      // surface the confirmation dialog. `pendingHref` flipping to a
+      // string is the signal to render the dialog.
+      e.preventDefault();
+      e.stopPropagation();
+      setPendingHref(anchor.href);
     };
 
     window.addEventListener("beforeunload", onBeforeUnload);
@@ -78,5 +97,17 @@ export function useLeaveGuard(active: boolean): void {
       window.removeEventListener("beforeunload", onBeforeUnload);
       document.removeEventListener("click", onClick, { capture: true });
     };
-  }, [active]);
+  }, [active, bypass]);
+
+  return {
+    pendingHref,
+    confirm: () => {
+      if (!pendingHref) return;
+      // Hard-nav so the race surface tears down cleanly (the React
+      // router's soft nav would race against the cleanup effects
+      // that drop the user from the room).
+      window.location.assign(pendingHref);
+    },
+    cancel: () => setPendingHref(null),
+  };
 }

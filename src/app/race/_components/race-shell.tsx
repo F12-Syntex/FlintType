@@ -12,7 +12,7 @@ import { InputCapture } from "../../_components/input-capture";
 import { PracticeProvider } from "../../_components/practice-state";
 import { RACE_MODES, type RaceModeId } from "./race-data";
 import { RaceProvider } from "./race-state";
-import { useLeaveGuard } from "./use-leave-guard";
+import { LeaveGuard } from "./leave-guard";
 
 /** Pull a short, race-feed-friendly handle from the Clerk session.
  *  Mirrors the `firstName ?? username ?? email-localpart ?? "you"`
@@ -126,9 +126,12 @@ export function RaceShell({
   );
 
   // Confirm-before-leave is on whenever the user is connected to a
-  // server room (matching → lobby → countdown → racing → finished).
-  // Burst mode runs offline so the guard stays off for it.
-  useLeaveGuard(online != null);
+  // server room (matching → lobby → countdown → racing). Burst mode
+  // runs offline so the guard stays off for it. The actual prompt
+  // lives in `<LeaveGuard>` further down — mounted inside the race
+  // provider so it can read `phase` and silently bypass once the
+  // race has finished (no "are you sure?" on the results screen).
+  const leaveGuardActive = online != null;
 
   // Tab is hard-blocked while the race shell is mounted. Practice's
   // own keydown handler binds Tab to RESTART the test; on the race
@@ -176,6 +179,9 @@ export function RaceShell({
       onlineAbandon={isBurst ? undefined : abandon}
       initialOnlineRoom={initialRoomForProvider}
     >
+      {/* LeaveGuard reads race phase to silence the prompt once the
+       *  race has finished, so the results screen feels lightweight. */}
+      <LeaveGuard active={leaveGuardActive} />
       {children}
     </RaceProvider>
   );
