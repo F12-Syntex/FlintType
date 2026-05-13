@@ -3,10 +3,12 @@
 import { useClerk, useUser } from "@clerk/nextjs";
 import { Download, Link2, LogOut, Pencil } from "lucide-react";
 import { useState } from "react";
+import { UserTag } from "@/components/ft";
 import { Button } from "@/components/ui/button";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { cn } from "@/lib/utils";
 import type { MonkeytypeStatsSlice } from "@/types/monkeytype";
+import type { UserTagId } from "@/types/user-tag";
 import type { ProfileTotals } from "./derive-stats";
 import { EditProfileDialog } from "./edit-profile-dialog";
 import { MonkeyTypeImportDialog } from "./monkeytype-import-dialog";
@@ -27,6 +29,7 @@ export function ProfileHero({
   totals,
   username,
   isOwner,
+  tags = [],
 }: {
   totals: ProfileTotals;
   username?: string;
@@ -34,6 +37,11 @@ export function ProfileHero({
    *  MonkeyType, Sign out) is hidden when false so visitors see a
    *  pure-data view of someone else's profile. */
   isOwner: boolean;
+  /** Identity-marker tags for the *subject* of this profile, resolved
+   *  server-side (see `src/server/resolve-tags.ts`). Painted as
+   *  `<UserTag size="md">` chips inline beside the display name in
+   *  array order (OWNER first, then OG). */
+  tags?: UserTagId[];
 }) {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
@@ -104,7 +112,11 @@ export function ProfileHero({
 
       {isOwner ? (
         <>
-          <EditProfileDialog open={editOpen} onOpenChange={setEditOpen} />
+          <EditProfileDialog
+            open={editOpen}
+            onOpenChange={setEditOpen}
+            tags={tags}
+          />
           <MonkeyTypeImportDialog
             open={importOpen}
             onOpenChange={setImportOpen}
@@ -136,6 +148,13 @@ export function ProfileHero({
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             {displayName}
           </h1>
+          {tags.length > 0 ? (
+            <div className="flex flex-wrap items-center justify-center gap-1.5">
+              {tags.map((t) => (
+                <UserTag key={t} tag={t} size="md" />
+              ))}
+            </div>
+          ) : null}
           {joined ? (
             <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground sm:text-[11px] sm:tracking-[0.18em]">
               Member since {joined}

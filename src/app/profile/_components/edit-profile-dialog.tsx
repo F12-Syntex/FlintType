@@ -2,11 +2,13 @@
 
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
+import { UserTag } from "@/components/ft";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { BackendError, useBackend } from "@/lib/backend";
 import { cn } from "@/lib/utils";
 import { USERNAME_REGEX } from "@/types/profile";
+import type { UserTagId } from "@/types/user-tag";
 
 /** Edit profile.
  *
@@ -26,9 +28,15 @@ import { USERNAME_REGEX } from "@/types/profile";
 export function EditProfileDialog({
   open,
   onOpenChange,
+  tags = [],
 }: {
   open: boolean;
   onOpenChange: (next: boolean) => void;
+  /** Identity tags owned by the signed-in user, resolved server-side
+   *  (see `src/server/resolve-tags.ts`). Rendered read-only — the user
+   *  can't pick or remove their own tags here. Empty by default so
+   *  callers that don't pass tags get a no-op section. */
+  tags?: UserTagId[];
 }) {
   const { user, isLoaded } = useUser();
   const backend = useBackend();
@@ -122,6 +130,23 @@ export function EditProfileDialog({
       confirmDisabled={!canSave}
     >
       <div className="flex flex-col gap-5">
+        {tags.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Your tags
+              </span>
+              <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                read-only
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {tags.map((t) => (
+                <UserTag key={t} tag={t} size="sm" />
+              ))}
+            </div>
+          </div>
+        ) : null}
         <Field
           label="First name"
           current={currentFirstName || "—"}

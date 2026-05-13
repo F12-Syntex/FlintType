@@ -141,6 +141,8 @@ export function ProfileView({ username }: { username?: string }) {
 
   const heroIsOwner = isOwner === true;
 
+  const subjectTags = snapshot?.tags ?? [];
+
   if (error) {
     return (
       <>
@@ -148,6 +150,7 @@ export function ProfileView({ username }: { username?: string }) {
           totals={totals}
           username={username}
           isOwner={heroIsOwner}
+          tags={subjectTags}
         />
         <section className="px-5 py-12 sm:px-12 sm:py-14 lg:px-16">
           <p className="text-sm text-primary">{error}</p>
@@ -162,6 +165,7 @@ export function ProfileView({ username }: { username?: string }) {
         totals={totals}
         username={username}
         isOwner={heroIsOwner}
+        tags={subjectTags}
       />
       <ProfileStats totals={totals} streak={streak} rank={null} />
       <PersonalBests bests={bests} />

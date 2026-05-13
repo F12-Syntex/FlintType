@@ -3,6 +3,7 @@
 import { RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { UserTag } from "@/components/ft";
 import { cn } from "@/lib/utils";
 import { type LeaderboardEntry } from "@/types/leaderboard";
 import {
@@ -180,16 +181,21 @@ function Row({ entry }: { entry: LeaderboardEntry }) {
       </span>
 
       <div className="flex min-w-0 flex-col gap-0.5">
-        <HandleEl
-          {...(handleProps as { href?: string })}
-          className={cn(
-            "min-w-0 truncate text-[14px] sm:text-[15px]",
-            leader ? "font-semibold text-foreground" : "text-foreground/90",
-            linkHref && "transition-colors hover:text-primary",
-          )}
-        >
-          {handle}
-        </HandleEl>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <HandleEl
+            {...(handleProps as { href?: string })}
+            className={cn(
+              "min-w-0 truncate text-[14px] sm:text-[15px]",
+              leader ? "font-semibold text-foreground" : "text-foreground/90",
+              linkHref && "transition-colors hover:text-primary",
+            )}
+          >
+            {handle}
+          </HandleEl>
+          {entry.tags.map((t) => (
+            <UserTag key={t} tag={t} size="sm" className="shrink-0" />
+          ))}
+        </div>
         <div className="flex items-baseline gap-3 text-[10px] uppercase tracking-[0.14em] tabular-nums text-muted-foreground sm:hidden">
           <span>raw {entry.wpm}</span>
           <span>acc {Math.round(entry.accuracy)}%</span>
