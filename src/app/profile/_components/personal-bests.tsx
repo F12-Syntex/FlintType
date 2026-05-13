@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { OptionSwitch } from "@/components/ui/option-switch";
 import { cn } from "@/lib/utils";
 import type { PersonalBest } from "./derive-stats";
 import { ProfileSection } from "./profile-section";
 
 /** Personal bests, MonkeyType-style — Time / Words sub-strips with
  *  fixed standard amounts (15s/30s/60s/120s and 10/25/50/100). The
- *  chip group above lets the viewer slice by category:
+ *  switch above lets the viewer slice by category:
  *    ALL          — best across every mode
  *    CASUAL       — casual practice tests only
  *    MULTIPLAYER  — race-tagged tests only (populates once race
@@ -23,7 +24,7 @@ export function PersonalBests({ bests }: { bests: PersonalBest[] }) {
   return (
     <ProfileSection label="Personal bests">
       <div className="flex flex-col gap-6 sm:gap-8">
-        <CategoryChips value={filter} onChange={setFilter} />
+        <CategorySwitch value={filter} onChange={setFilter} />
         <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
           <SubStrip
             label="Time"
@@ -81,52 +82,32 @@ function buildLookup(
   return out;
 }
 
-function CategoryChips({
+/** Routed through `<OptionSwitch>` (the canonical segmented control
+ *  used by the practice mode-bar) instead of hand-rolling another
+ *  tab strip — keeps the multi-option picker visually uniform across
+ *  the app. */
+function CategorySwitch({
   value,
   onChange,
 }: {
   value: Category;
   onChange: (next: Category) => void;
 }) {
-  // Inline editorial tab strip: shrinks to content (self-start +
-  // w-fit so flex-col's stretch alignment can't stretch it), one
-  // hairline at the bottom, the active label sits over a 2px primary
-  // marker. Replaces the previous full-width bg-muted track which
-  // visually dominated the section it labelled.
   return (
-    <div
-      role="tablist"
-      aria-label="Personal bests category"
-      className="flex w-fit flex-wrap items-end gap-x-5 gap-y-1 self-start border-b border-border pb-1"
+    <OptionSwitch
+      name="personal-bests-category"
+      size="small"
+      value={value}
+      onValueChange={(v) => onChange(v as Category)}
     >
-      {CATEGORY_ORDER.map((id) => {
-        const active = id === value;
-        return (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={active}
-            onClick={() => onChange(id)}
-            className={cn(
-              "relative -mb-1 pb-2 text-[11px] font-medium uppercase tracking-[0.16em] transition-colors outline-none",
-              "focus-visible:text-foreground",
-              active
-                ? "text-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {prettyCategory(id)}
-            {active ? (
-              <span
-                aria-hidden
-                className="absolute right-0 -bottom-px left-0 h-px bg-primary"
-              />
-            ) : null}
-          </button>
-        );
-      })}
-    </div>
+      {CATEGORY_ORDER.map((id) => (
+        <OptionSwitch.Control
+          key={id}
+          value={id}
+          label={prettyCategory(id)}
+        />
+      ))}
+    </OptionSwitch>
   );
 }
 
