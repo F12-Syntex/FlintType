@@ -7,10 +7,15 @@ import { ProfileSection } from "./profile-section";
  *  centered. The strip itself centers within the section so it reads
  *  as a single composed band rather than a left-aligned grid.
  *
- *  Four real cells (tests started, time typing, best WPM, streak) +
- *  an optional Leaderboard cell that only renders once a global rank
- *  exists. Placeholder "Coming soon" cells were dropped — they added
- *  visual noise without surfacing data. */
+ *  Five real cells: tests completed (primary — drives XP/level), tests
+ *  started (secondary, no XP), time typing, best WPM, streak. Optional
+ *  Leaderboard cell only renders once a global rank exists.
+ *
+ *  Tests completed is accented because it's the one the loop rewards;
+ *  tests started is shown alongside so the viewer can see drop-off
+ *  rate but it carries no XP — the level economy in `derive-stats.ts`
+ *  has always been keyed on `testsCompleted`, this strip just makes
+ *  that visible. */
 export function ProfileStats({
   totals,
   streak,
@@ -27,13 +32,22 @@ export function ProfileStats({
         <div
           className={cn(
             "grid grid-cols-2 divide-x divide-y divide-border sm:divide-y-0",
-            showRank ? "sm:grid-cols-5" : "sm:grid-cols-4",
+            showRank ? "sm:grid-cols-6" : "sm:grid-cols-5",
           )}
         >
           <MetricCell
+            label="Tests completed"
+            value={totals.testsCompleted.toLocaleString()}
+            accent
+            subline={
+              totals.testsStarted > 0
+                ? `${Math.round(totals.completionRate * 100)}% finish rate`
+                : undefined
+            }
+          />
+          <MetricCell
             label="Tests started"
             value={totals.testsStarted.toLocaleString()}
-            accent
           />
           <MetricCell
             label="Time typing"
