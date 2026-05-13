@@ -1,21 +1,15 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-// `practice-state.tsx` is a `"use client"` module — its top-level
-// imports include `useUser` from `@clerk/nextjs`. The reducer itself
-// is pure (no Clerk dependency), but Vitest still evaluates every
-// top-level import in node, so we mock Clerk to keep the module
-// happy. We only test the pure reducer; provider behaviour is
-// validated manually in the browser (per UI law §1.3).
-vi.mock("@clerk/nextjs", () => ({
-  useUser: () => ({ user: null, isLoaded: true, isSignedIn: false }),
-}));
-
+// The reducer + types live in `./practice-reducer` — a pure module
+// with no React imports. The Provider/hooks in `./practice-state`
+// import from here too. Per UI law §1.3 (the pure-reducer exception),
+// this is the canonical home for the unit suite.
 import {
   initialState,
   reducer,
   type Action,
   type State,
-} from "./practice-state";
+} from "./practice-reducer";
 
 /** Helper: seed a State at a specific cursor position with a typed
  *  buffer matching what the user has entered. The reducer doesn't
