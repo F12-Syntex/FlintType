@@ -3,10 +3,7 @@
 import { CornerDownLeft } from "lucide-react";
 import { Kbd } from "@/components/ft";
 import { Passage } from "@/app/_components/passage";
-import {
-  decorate,
-  type State,
-} from "@/app/_components/practice-state";
+import { decorate } from "@/app/_components/practice-state";
 import { type BehaviourPrefs } from "@/lib/behaviour-prefs";
 import { cn } from "@/lib/utils";
 import { PreviewPracticeProvider } from "../../_components/preview-practice";

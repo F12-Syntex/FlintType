@@ -104,7 +104,11 @@ function OfflineRaceProvider({
   youName,
   setModeId,
   restartShell,
-  enterQueueShell,
+  // Accepted for API parity with OnlineRaceProvider (race-online.tsx)
+  // even though offline play has no separate queue surface to bounce
+  // back to. Keeping the prop here lets <RaceShell> hand the same
+  // bag to both providers without conditionals.
+  enterQueueShell: _enterQueueShell,
   children,
 }: {
   modeId: RaceModeId;

@@ -146,7 +146,6 @@ function MobileStrip(props: StatsProps) {
     errs,
     wordIdx,
     wordCount,
-    elapsedMs,
     running,
     speedStyle,
     accuracyStyle,

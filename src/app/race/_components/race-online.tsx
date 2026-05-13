@@ -9,11 +9,7 @@ import {
 } from "react";
 import { calcWpmAndRaw } from "@/lib/wpm";
 import { usePractice } from "../../_components/practice-state";
-import type {
-  RoomRacer,
-  RoomSnapshot,
-  RaceModeId as ServerRaceModeId,
-} from "@/types/race";
+import type { RoomRacer, RoomSnapshot } from "@/types/race";
 import { BOTS, type BotId } from "./race-data";
 import { useRaceRoom } from "./use-race-room";
 import { type RaceCtx, RaceContext } from "./race-context";

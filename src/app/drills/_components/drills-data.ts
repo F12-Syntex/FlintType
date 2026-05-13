@@ -145,7 +145,6 @@ const TRICKY_DRILL_LENGTH = 35;
 // honestly. Pangrams use their own constant — a whole sentence is a
 // big enough unit of work without insisting on multiple reps.
 const DEFAULT_BURST_REPS = 5;
-const WORD_BURST_LENGTH = 25;
 const SPRINT_BURST_LENGTH = 40;
 const PANGRAM_REPS = 1;
 

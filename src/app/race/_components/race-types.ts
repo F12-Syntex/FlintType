@@ -1,4 +1,4 @@
-import type { BotId, BotProfile, RaceModeId } from "./race-data";
+import type { BotProfile, RaceModeId } from "./race-data";
 
 /** Phases of a single race session.
  *    queue      — first paint; only you in the lobby. User clicks
