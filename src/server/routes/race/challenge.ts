@@ -69,11 +69,18 @@ const join = defineRoute<JoinChallengeInput, JoinChallengeOutput>({
       badge: identity.badge,
     });
     if (!racer) {
-      throw new BackendError(
-        409,
-        "CONFLICT",
-        "challenge lobby is full or has already started",
-      );
+      // Room is full or past the lobby phase. Instead of 409-ing
+      // the caller out, hand them a read-only spectator response —
+      // they can still see the race unfold via SSE. The client
+      // gates writes (keystroke, leave, start) on `spectate=false`.
+      return {
+        roomId: room.id,
+        sessionToken: "",
+        words: room.words,
+        totalChars: room.totalChars,
+        modeId: room.modeId,
+        spectate: true,
+      };
     }
     return {
       roomId: room.id,

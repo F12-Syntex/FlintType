@@ -45,6 +45,13 @@ export function RaceProvider(props: {
    *  provider doesn't run its own queue handshake (the page already
    *  has roomId + sessionToken from challenge.create/join). */
   initialOnlineRoom?: { roomId: string; sessionToken: string } | null;
+  /** Slug of the challenge room when the provider was mounted from
+   *  `/race/c/<slug>`. Surfaced via RaceCtx.challengeSlug so the
+   *  share-link UI works for both passage-online challenges (where
+   *  the server snapshot also carries the slug) and offline burst
+   *  challenges (where no snapshot exists — the URL is the only
+   *  source). */
+  challengeSlug?: string | null;
   /** Shell-supplied queue-entry callback. The online provider hands
    *  control back to the shell so the shell can fetch words from
    *  the server and re-key PracticeProvider before the racing UI
@@ -104,6 +111,7 @@ function OfflineRaceProvider({
   youName,
   setModeId,
   restartShell,
+  challengeSlug,
   // Accepted for API parity with OnlineRaceProvider (race-online.tsx)
   // even though offline play has no separate queue surface to bounce
   // back to. Keeping the prop here lets <RaceShell> hand the same
@@ -118,6 +126,7 @@ function OfflineRaceProvider({
   setModeId: (next: RaceModeId) => void;
   restartShell: () => void;
   enterQueueShell?: () => void;
+  challengeSlug?: string | null;
   children: ReactNode;
 }) {
   const [state, dispatch] = useReducer(reducer, undefined, () =>
@@ -300,6 +309,7 @@ function OfflineRaceProvider({
       rematch,
       dispatch: dispatch as (a: Action) => void,
       isChallenge: isChallengeLobby,
+      challengeSlug: challengeSlug ?? null,
       ...derived,
     }),
     [
@@ -313,6 +323,7 @@ function OfflineRaceProvider({
       rematch,
       derived,
       isChallengeLobby,
+      challengeSlug,
     ],
   );
 

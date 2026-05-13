@@ -12,6 +12,7 @@ import { useBackend } from "@/lib/backend";
 import { useCaretSettings, type CaretStyle } from "@/lib/caret-settings";
 import { cn } from "@/lib/utils";
 import type { KeystrokeTiming } from "@/types/adapt";
+import { ChallengeLobby } from "./challenge-lobby";
 import { RaceLineupPanel } from "./lineup-panel";
 import { RACE_MODES } from "./race-data";
 import { useRace } from "./race-state";
@@ -377,22 +378,41 @@ export function BurstRaceSurface() {
           ) : state.phase === "countdown" ? (
             <BurstCountdownPanel n={countdownNumber ?? 3} />
           ) : (
-            <BurstPoster
-              modeName={mode.name}
-              detail={mode.detail}
-              phase={state.phase}
-            />
+            <>
+              <BurstPoster
+                modeName={mode.name}
+                detail={mode.detail}
+                phase={state.phase}
+              />
+              {/* Challenge-lobby card (share link) — renders when the
+               *  user landed at /race/c/<slug> with a burst mode.
+               *  The "Start race" CTA already lives in the top action
+               *  strip via `<ActionButton phase="lobby" isChallenge />`,
+               *  so we only need the share-link half here. */}
+              <ChallengeLobby />
+            </>
           )}
       </div>
 
       {/* Lineup at the bottom — same positioning as the passage
-       *  surface so race surfaces feel uniform. */}
+       *  surface so race surfaces feel uniform.
+       *
+       *  The "item N/total" tail only renders once the user is in
+       *  countdown or actively racing — before that, the user
+       *  hasn't started yet and "item 1/5" reads as if they're a
+       *  rep behind. Lobby/matching phases see the mode name only. */}
       {showLineup ? (
         <RaceLineupPanel
           racers={state.racers}
           totalChars={state.totalChars}
           phase={state.phase as RacePhase}
-          modeName={`${mode.name} · item ${Math.min(itemIdx + 1, itemsCount)}/${itemsCount}`}
+          modeName={
+            state.phase === "racing" ||
+            state.phase === "countdown" ||
+            state.phase === "finished"
+              ? `${mode.name} · item ${Math.min(itemIdx + 1, itemsCount)}/${itemsCount}`
+              : mode.name
+          }
           joinedOpponents={joinedOpponents}
           totalOpponents={totalOpponents}
           wordsDone={Math.min(itemIdx, itemsCount)}

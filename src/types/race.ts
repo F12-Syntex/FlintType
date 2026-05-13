@@ -159,10 +159,19 @@ export type JoinChallengeInput = z.infer<typeof joinChallengeInputSchema>;
 
 export type JoinChallengeOutput = {
   roomId: string;
+  /** Session token for the joiner. Empty string when the response
+   *  represents a spectator slot — spectators don't write to the
+   *  room (no keystroke / leave / start) and therefore don't need
+   *  a token, but the field is kept for the existing client shape. */
   sessionToken: string;
   words: readonly string[];
   totalChars: number;
   modeId: RaceModeId;
+  /** True when the requested challenge was full or already past the
+   *  lobby phase — the response represents a read-only spectator
+   *  subscription rather than a participant slot. The client renders
+   *  the race in view-only mode and never sends keystrokes. */
+  spectate?: boolean;
 };
 
 export const startChallengeInputSchema = z.object({

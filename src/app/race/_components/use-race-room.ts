@@ -182,6 +182,9 @@ export function useRaceRoom({
     const onPageHide = () => {
       const room = roomRef.current;
       const token = tokenRef.current;
+      // Spectators receive an empty `sessionToken` — they never
+      // occupied a server-side seat, so there's nothing to free.
+      // Skip the beacon for them entirely.
       if (!room || !token) return;
       const url = "/api/race/leave";
       const body = JSON.stringify({ roomId: room, sessionToken: token });

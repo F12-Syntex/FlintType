@@ -85,4 +85,29 @@ describe("race.challenge routes", () => {
     // own tests cover the timeline. This route test verifies the route
     // forwarded the call.
   });
+
+  it("join returns a spectator response when the lobby is past lobby phase", async () => {
+    // Create the room with the host, then start it — the room moves
+    // into countdown and a fresh join can't take a seat. Instead of
+    // 409-ing, the route now returns `spectate: true` with an empty
+    // sessionToken so the client can mount in read-only mode.
+    const host = await callRoute<CreateChallengeOutput>(
+      ["race", "challenge", "create"],
+      { input: { modeId: "1v1" } },
+    );
+    await callRoute<StartChallengeOutput>(
+      ["race", "challenge", "start"],
+      { input: { roomId: host.roomId, sessionToken: host.sessionToken } },
+    );
+    // 1v1 is full after host + 1 bot fill; combined with the lobby
+    // phase advancing past matching, addRealRacer returns null.
+    vi.advanceTimersByTime(800);
+    const spectator = await callRoute<JoinChallengeOutput>(
+      ["race", "challenge", "join"],
+      { input: { slug: host.slug } },
+    );
+    expect(spectator.spectate).toBe(true);
+    expect(spectator.sessionToken).toBe("");
+    expect(spectator.roomId).toBe(host.roomId);
+  });
 });

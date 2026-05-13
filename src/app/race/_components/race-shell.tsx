@@ -34,6 +34,12 @@ export type RaceShellOnline = {
   words: readonly string[];
   totalChars: number;
   modeId: RaceModeId;
+  /** True when the user joined a full/started challenge as a
+   *  spectator. The shell drops InputCapture entirely (no typing),
+   *  the leave-guard sleeps, and a banner replaces the action
+   *  cluster. Snapshots still stream so the spectator sees the race
+   *  unfold live. */
+  spectate?: boolean;
 };
 
 /** Race shell. Owns:
@@ -52,12 +58,18 @@ export function RaceShell({
   children,
   initialOnline,
   initialModeId,
+  challengeSlug,
 }: {
   children: ReactNode;
   /** Pre-joined online room — used by /race/c/[slug] which hits
    *  challenge.join on the server *before* the shell mounts. */
   initialOnline?: RaceShellOnline | null;
   initialModeId?: RaceModeId;
+  /** The slug of the challenge room (only set when this shell was
+   *  mounted from `/race/c/<slug>`). Threaded into RaceCtx so the
+   *  lobby UI can render the share-link for both passage-online
+   *  challenges and offline burst challenges from a single source. */
+  challengeSlug?: string;
 }) {
   const backend = useBackend();
   const [modeId, setModeId] = useState<RaceModeId>(initialModeId ?? "1v3");
@@ -127,11 +139,13 @@ export function RaceShell({
 
   // Confirm-before-leave is on whenever the user is connected to a
   // server room (matching → lobby → countdown → racing). Burst mode
-  // runs offline so the guard stays off for it. The actual prompt
-  // lives in `<LeaveGuard>` further down — mounted inside the race
-  // provider so it can read `phase` and silently bypass once the
-  // race has finished (no "are you sure?" on the results screen).
-  const leaveGuardActive = online != null;
+  // runs offline so the guard stays off for it. Spectators also skip
+  // the guard — they're already read-only and have no progress to
+  // lose. The actual prompt lives in `<LeaveGuard>` further down,
+  // mounted inside the race provider so it can read `phase` and
+  // silently bypass once the race has finished.
+  const isSpectating = online?.spectate === true;
+  const leaveGuardActive = online != null && !isSpectating;
 
   // Tab is hard-blocked while the race shell is mounted. Practice's
   // own keydown handler binds Tab to RESTART the test; on the race
@@ -178,6 +192,7 @@ export function RaceShell({
       onlineEnterQueue={isBurst ? undefined : enterQueue}
       onlineAbandon={isBurst ? undefined : abandon}
       initialOnlineRoom={initialRoomForProvider}
+      challengeSlug={challengeSlug ?? null}
     >
       {/* LeaveGuard reads race phase to silence the prompt once the
        *  race has finished, so the results screen feels lightweight. */}
@@ -192,10 +207,41 @@ export function RaceShell({
   // list — burst handles its own typing surface and saves separately.
   const raceMode = !isBurst && online != null;
 
+  // Spectators are read-only — never wrap the surface in
+  // InputCapture (we'd capture their typing into a hidden input that
+  // dispatches into PracticeProvider, even though they have no role
+  // in the race). Mounting raceTree directly preserves the visible
+  // surface (snapshots stream as normal) while dropping the
+  // keystroke pipeline. A persistent banner at the top makes the
+  // read-only context unmistakable.
   return (
     <PracticeProvider key={subtreeKey} lockedWords={words} raceMode={raceMode}>
-      {isBurst ? raceTree : <InputCapture>{raceTree}</InputCapture>}
+      {isSpectating ? <SpectatorBanner /> : null}
+      {isBurst || isSpectating ? (
+        raceTree
+      ) : (
+        <InputCapture>{raceTree}</InputCapture>
+      )}
     </PracticeProvider>
+  );
+}
+
+/** Persistent banner at the top of the race surface declaring the
+ *  user is in spectate mode. Sits above the race tree so it never
+ *  competes with whichever race surface (passage / burst) is mounted
+ *  underneath. Hairline border + muted-foreground type keep it calm
+ *  — spectator mode is *information*, not an alert. */
+function SpectatorBanner() {
+  return (
+    <div
+      role="status"
+      className="flex shrink-0 items-center justify-center gap-2 border-b border-border bg-card/40 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+    >
+      <span aria-hidden className="size-1.5 rounded-full bg-primary motion-safe:animate-pulse" />
+      <span>
+        Spectating · this lobby is full or already started
+      </span>
+    </div>
   );
 }
 

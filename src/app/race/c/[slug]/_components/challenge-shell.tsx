@@ -66,6 +66,10 @@ export function ChallengeShell({
       try {
         const res = await backend.race.challenge.join({ slug });
         if (cancelled) return;
+        // Server returns `spectate: true` instead of 409 CONFLICT
+        // when the room is full or has already started. We pipe
+        // that flag through to RaceShell so the surface mounts in
+        // read-only mode (no InputCapture, no leave-guard).
         setResolved({
           state: "ready",
           online: {
@@ -74,6 +78,7 @@ export function ChallengeShell({
             words: res.words,
             totalChars: res.totalChars,
             modeId: res.modeId as RaceModeId,
+            spectate: res.spectate ?? false,
           },
         });
       } catch (err) {
@@ -105,6 +110,7 @@ export function ChallengeShell({
     <RaceShell
       initialOnline={resolved.online}
       initialModeId={resolved.online.modeId}
+      challengeSlug={slug}
     >
       {children}
     </RaceShell>
