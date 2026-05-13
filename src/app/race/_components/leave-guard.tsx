@@ -6,8 +6,10 @@ import { useLeaveGuard } from "./use-leave-guard";
 
 /** Confirm-before-leave for an in-progress race. Mounts inside the
  *  RaceProvider tree so it can read phase via `useRace()`:
- *   - `phase === "finished"` → guard silently bypasses; the results
- *     screen is read-only progress and shouldn't prompt on exit.
+ *   - `phase === "finished"` OR the local user has crossed the line
+ *     (`you.finishedAt != null`) → guard silently bypasses; once your
+ *     own run is done the results screen is read-only progress and
+ *     shouldn't prompt on exit, even if bots are still racing.
  *   - any other phase + `active=true` → beforeunload prompt for tab
  *     close, custom `<ConfirmDialog>` for in-app link clicks.
  *
@@ -20,7 +22,9 @@ import { useLeaveGuard } from "./use-leave-guard";
  *  attach listeners based on `active && !finished`. */
 export function LeaveGuard({ active }: { active: boolean }) {
   const { state } = useRace();
-  const bypass = state.phase === "finished";
+  const youFinished =
+    state.racers.find((r) => r.isYou)?.finishedAt != null;
+  const bypass = state.phase === "finished" || youFinished;
   const { pendingHref, confirm, cancel } = useLeaveGuard({ active, bypass });
 
   return (

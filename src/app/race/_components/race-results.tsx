@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback, useRef, useState } from "react";
+import { Download } from "lucide-react";
 import { countChars } from "@/lib/wpm";
 import { cn } from "@/lib/utils";
 import { usePractice } from "../../_components/practice-state";
@@ -18,6 +20,36 @@ export function RaceResults() {
   const { state, restart } = useRace();
   const { state: practice } = usePractice();
   const you = state.racers.find((r) => r.isYou)!;
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const onDownload = useCallback(async () => {
+    const node = panelRef.current;
+    if (!node || exporting) return;
+    setExporting(true);
+    try {
+      const { toPng } = await import("html-to-image");
+      const surface =
+        getComputedStyle(document.documentElement).getPropertyValue(
+          "--card",
+        ).trim() || "#ffffff";
+      const dataUrl = await toPng(node, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: surface,
+        filter: (n) => !(n instanceof HTMLElement && n.dataset.noExport === "true"),
+      });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `flinttype-race-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error("[race-results] screenshot failed", err);
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting]);
   // Two surfaces: the room is fully finished (every racer crossed),
   // OR the local user has finished but bots / other real players
   // are still mid-race. In the second case we show your results
@@ -35,7 +67,10 @@ export function RaceResults() {
   const errors = counts.incorrectChars + counts.extraChars;
   const yourAcc = accuracyFromTyped(practice.typed, practice.words);
   return (
-    <div className="flex flex-col gap-7 rounded-md border border-border bg-card px-7 py-8 sm:px-9">
+    <div
+      ref={panelRef}
+      className="flex flex-col gap-7 rounded-md border border-border bg-card px-7 py-8 sm:px-9"
+    >
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-2">
           <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
@@ -52,20 +87,41 @@ export function RaceResults() {
             {summaryLine(place, state.racers.length, you.finishedAt ?? 0)}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={restart}
-          className={cn(
-            "inline-flex items-center gap-2 self-start rounded-md bg-primary px-4 py-2.5 sm:self-auto",
-            "text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-foreground",
-            "transition-colors hover:bg-primary/90 active:translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-          )}
+        <div
+          data-no-export="true"
+          className="flex flex-wrap items-center gap-2 self-start sm:self-auto"
         >
-          Race again
-          <span className="text-[9px] tracking-[0.2em] text-primary-foreground/70">
-            · TAB
-          </span>
-        </button>
+          <button
+            type="button"
+            onClick={onDownload}
+            disabled={exporting}
+            aria-label="Save results as image"
+            className={cn(
+              "inline-flex items-center gap-2 rounded-md border border-border bg-background px-3.5 py-2.5",
+              "text-[11px] font-semibold uppercase tracking-[0.22em] text-foreground",
+              "transition-colors hover:bg-accent hover:text-accent-foreground active:translate-y-[1px]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+              "disabled:cursor-not-allowed disabled:opacity-60",
+            )}
+          >
+            <Download size={14} className="shrink-0" />
+            {exporting ? "Saving" : "Save image"}
+          </button>
+          <button
+            type="button"
+            onClick={restart}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5",
+              "text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-foreground",
+              "transition-colors hover:bg-primary/90 active:translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+            )}
+          >
+            Race again
+            <span className="text-[9px] tracking-[0.2em] text-primary-foreground/70">
+              · TAB
+            </span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-x-6 gap-y-4 border-y border-border/70 py-5 sm:grid-cols-6 sm:gap-x-10">
