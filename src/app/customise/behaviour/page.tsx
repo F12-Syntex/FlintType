@@ -212,6 +212,20 @@ export default function BehaviourPage() {
           onChange={(v) => set("showSecondary", v)}
         />
       </SettingsSection>
+
+      <SettingsSection
+        id="adaptive"
+        eyebrow="Algorithm"
+        title="Adaptive"
+        description="How casual runs feed the adaptive engine. Training and race runs always contribute — they're the algorithm's primary signal."
+      >
+        <ToggleRow
+          label="Exclude casual runs from adapt"
+          desc="When on, casual-mode keystrokes don't update the bigram / trigram / word weakness models. Test results + PBs still record either way."
+          value={prefs.excludeCasualFromAdapt}
+          onChange={(v) => set("excludeCasualFromAdapt", v)}
+        />
+      </SettingsSection>
     </section>
   );
 }
