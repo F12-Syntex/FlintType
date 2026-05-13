@@ -400,8 +400,21 @@ export class RaceRoom {
         r.progressChars = next;
         changed = true;
       }
-      if (Math.round(wpm) !== r.wpm) {
-        r.wpm = Math.round(wpm);
+      // Display WPM — cumulative, not the per-tick instant value. The
+      // instantBotWpm function drives the progress simulation (chars
+      // advanced this tick) and naturally jitters ±noiseWpm every
+      // 100ms; surfacing that raw number in the lineup panel made it
+      // flicker badly ("a bot reads 17 wpm one frame and 60 the
+      // next"). Cumulative = correct chars / 5 / elapsed-minutes is
+      // the same formula real players publish, so the two are
+      // apples-to-apples for at-a-glance comparison.
+      const elapsedSec = Math.max(1, elapsedMs / 1000);
+      const correctProgress = Math.max(0, r.progressChars - r.errors);
+      const cumulativeWpm = Math.round(
+        (correctProgress / 5) * (60 / elapsedSec),
+      );
+      if (cumulativeWpm !== r.wpm) {
+        r.wpm = cumulativeWpm;
         changed = true;
       }
       // Live accuracy = correct / typed * 100, clamped to [0, 100].
@@ -644,8 +657,22 @@ export class RaceRoom {
       kind: this.kind,
       modeId: this.modeId,
       phase: this.phase,
+      // Words gating: hide the passage during the first match's
+      // pre-race phases (matching/lobby/countdown) so nobody pre-
+      // reads. For rematches (roundNumber > 1) the racers are already
+      // in the same room and have all just seen each other's last
+      // round — fairness is already established, and emitting the
+      // words during the rematch lobby+countdown is what lets the
+      // client re-key its practice + race providers before the new
+      // round starts racing. Without this, the client only learns
+      // about the new round when phase=racing arrives, the re-mount
+      // happens mid-race, and "rematch kind of just ends" (the
+      // client jumps from finished to mid-racing with no countdown
+      // beat in between).
       words:
-        this.phase === "racing" || this.phase === "finished"
+        this.phase === "racing" ||
+        this.phase === "finished" ||
+        this.roundNumber > 1
           ? this.words
           : undefined,
       totalChars: this.totalChars,

@@ -279,40 +279,37 @@ export function OnlineRaceProvider({
 function useYouLocalSnapshot(raceStartedAt: number | null) {
   const { state } = usePractice();
   return useMemo(() => {
+    // progressChars — cursor position in the passage, computed from
+    // the *current* typed state (since the cursor moves with
+    // backspaces). This is what the server uses for spectator views
+    // and progress bars; it doesn't count corrected mistakes.
     let progressChars = 0;
-    let errors = 0;
-    let correctTyped = 0;
-    let typedTotal = 0;
     for (let i = 0; i < state.typed.length; i += 1) {
       const t = state.typed[i] ?? "";
       const w = state.words[i] ?? "";
       progressChars += Math.min(t.length, w.length);
       if (i < state.typed.length - 1) progressChars += 1;
-      const len = Math.min(t.length, w.length);
-      for (let ci = 0; ci < len; ci += 1) {
-        if (t[ci] !== w[ci]) {
-          errors += 1;
-        } else {
-          correctTyped += 1;
-        }
-        typedTotal += 1;
-      }
-      if (t.length > w.length) {
-        const extras = t.length - w.length;
-        errors += extras;
-        typedTotal += extras;
-      }
     }
+    // Strict accuracy + errors — derived from the reducer's running
+    // counters, which increment on every keystroke and DO NOT
+    // decrement on backspace. Making a mistake counts as a mistake
+    // even if the user corrects it — the user's reasonable
+    // expectation for a typing race, and what the race UI was missing
+    // before (the old calc walked state.typed and only saw the
+    // post-correction state, so a fix-up looked like 100% accuracy).
+    const totalKeystrokes = state.totalChars;
+    const correctKeystrokes = state.correctChars;
+    const errors = Math.max(0, totalKeystrokes - correctKeystrokes);
+    const accuracy =
+      totalKeystrokes === 0
+        ? 100
+        : Math.round((correctKeystrokes / totalKeystrokes) * 1000) / 10;
     const elapsedMs =
       raceStartedAt != null ? Math.max(0, Date.now() - raceStartedAt) : 0;
     const wpm =
       elapsedMs > 250
         ? calcWpmAndRaw(state.typed, state.words, elapsedMs, true).wpm
         : 0;
-    const accuracy =
-      typedTotal === 0
-        ? 100
-        : Math.round(((correctTyped / typedTotal) * 100) * 10) / 10;
     return {
       correctChars: progressChars,
       errors,
@@ -320,7 +317,14 @@ function useYouLocalSnapshot(raceStartedAt: number | null) {
       accuracy,
       finished: state.phase === "done",
     };
-  }, [state.typed, state.words, state.phase, raceStartedAt]);
+  }, [
+    state.typed,
+    state.words,
+    state.phase,
+    state.totalChars,
+    state.correctChars,
+    raceStartedAt,
+  ]);
 }
 
 /* ─── Snapshot → RaceState mapping ───────────────────────────── */

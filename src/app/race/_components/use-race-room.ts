@@ -198,7 +198,16 @@ export function useRaceRoom({
   // beacons and Chromium fires pagehide on bfcache enter too.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const onPageHide = () => {
+    const onPageHide = (e: PageTransitionEvent) => {
+      // `event.persisted === true` means the page is being put into
+      // the back-forward cache rather than truly unloading. iOS
+      // Safari and modern Chromium often fire pagehide on tab-switch
+      // or browser-backgrounded states where the user IS coming
+      // back. Firing leave there marks them disconnected mid-race,
+      // freezes their progress for everyone else, and orphans the
+      // SSE stream that the resumed page re-opens. Only fire leave
+      // on genuine unloads (persisted=false).
+      if (e.persisted) return;
       const room = roomRef.current;
       const token = tokenRef.current;
       // Spectators receive an empty `sessionToken` — they never
