@@ -1,7 +1,7 @@
 "use client";
 
-import { Crown } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Crown, Download } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { recordIfPb } from "@/lib/pb-cache";
@@ -422,6 +422,36 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
   const { state, wpm, raw, accuracy, elapsedMs, wpmHistory } = usePractice();
   const { prefs: appearance } = useAppearancePrefs();
   const [replaying, setReplaying] = useState(false);
+  const captureRef = useRef<HTMLDivElement | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const onDownload = useCallback(async () => {
+    const node = captureRef.current;
+    if (!node || exporting) return;
+    setExporting(true);
+    try {
+      const { toPng } = await import("html-to-image");
+      const bg =
+        getComputedStyle(document.documentElement).getPropertyValue(
+          "--background",
+        ).trim() || "#ffffff";
+      const dataUrl = await toPng(node, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: bg,
+        filter: (n) => !(n instanceof HTMLElement && n.dataset.noExport === "true"),
+      });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `flinttype-result-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error("[test-summary] screenshot failed", err);
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting]);
 
   // PB detection. Runs once per finished run — compares the just-
   // completed WPM against the localStorage-cached PB for the same
@@ -483,7 +513,10 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
       {/* my-auto keeps the content vertically centred when it fits in
        *  the viewport; once it overflows, the auto margin collapses
        *  and the natural overflow-y-auto scroll takes over. */}
-      <div className="my-auto flex w-full max-w-5xl flex-col gap-4 sm:gap-6">
+      <div
+        ref={captureRef}
+        className="my-auto flex w-full max-w-5xl flex-col gap-4 sm:gap-6"
+      >
         {/* Top row: stat column on the left, smaller centered chart. */}
         <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[140px_1fr] sm:gap-6 lg:grid-cols-[160px_1fr]">
           <div className="flex flex-row items-baseline gap-6 sm:flex-col sm:items-start sm:gap-4">
@@ -581,7 +614,10 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
          *  customise card doesn't show a replay button that would
          *  enter ReplayView inside a settings page. */}
         {preview ? null : (
-          <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          <div
+            data-no-export="true"
+            className="flex flex-wrap items-center justify-center gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+          >
             <span className="rounded-sm border border-border bg-card px-2 py-1 font-mono normal-case text-foreground">
               tab
             </span>
@@ -596,6 +632,17 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
                 ▶ replay
               </Button>
             ) : null}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDownload}
+              disabled={exporting}
+              aria-label="Save results as image"
+              className="gap-1.5 text-[11px] uppercase tracking-[0.18em]"
+            >
+              <Download size={13} className="shrink-0" />
+              {exporting ? "saving" : "save image"}
+            </Button>
           </div>
         )}
       </div>
