@@ -635,10 +635,9 @@ A new tag ships only when **every** piece below lands in the same commit:
 
 1. Extend `USER_TAG_IDS` (`src/types/user-tag.ts`) with the new id. Order matters — the array is the display-weight order.
 2. Add the eight CSS tokens (`--ft-tag-<id>-{fg,border,fill,glow}` in `:root`; the `fill` override in `.dark`) to `src/app/globals.css`.
-3. Add a catalog entry (label, aria-label, icon kind) to `TAG_CONFIG` in `src/components/ft/user-tag.tsx`.
-4. If the glyph isn't reusable, add a new `IconKind` branch in the same file's `TagGlyph` renderer.
-5. Add a row to §2.3 "User-tag tokens" and update §14.1 if the surface set changes.
-6. Wire the backend grant path (where the tag becomes attached to a user).
+3. Add a catalog entry (label, aria-label, lucide icon component) to `TAG_CONFIG` in `src/components/ft/user-tag.tsx`. **Always a lucide-react `LucideIcon`** — never a hand-rolled SVG. Tags share the icon vocabulary with every other glyph in the app; bespoke SVGs read as foreign next to the lucide stroke family even when proportions are close. If lucide doesn't have a glyph that fits, pick the closest match and discuss before adding a custom one.
+4. Add a row to §2.3 "User-tag tokens" and update §14.1 if the surface set changes.
+5. Wire the backend grant path (where the tag becomes attached to a user).
 
 ### 14.3 Don't
 
