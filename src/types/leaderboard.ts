@@ -63,6 +63,12 @@ export type LeaderboardInput = z.infer<typeof leaderboardInputSchema>;
 export type LeaderboardEntry = {
   testId: string;
   rank: number;
+  /** Clerk user id (`user_…`). Used as a fallback profile-link slug
+   *  for racers who haven't set a Clerk username — the public
+   *  profile route accepts both `username` and `user_…` as the
+   *  lookup key, so every leaderboard row is clickable regardless
+   *  of whether the user picked a handle. */
+  userId: string;
   /** Display name pulled from Clerk. Rows whose userId Clerk can't
    *  resolve are filtered out before this list is built, so every
    *  entry here represents a real signed-in user. */

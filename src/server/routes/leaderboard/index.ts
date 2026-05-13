@@ -113,6 +113,7 @@ const list = defineRoute<LeaderboardInput, LeaderboardOutput>({
       return {
         testId: r.testId,
         rank: i + 1,
+        userId: r.userId,
         name: info.name,
         username: info.username,
         tags: info.tags,

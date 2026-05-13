@@ -218,11 +218,12 @@ function Table({ entries }: { entries: readonly LeaderboardEntry[] }) {
       <div
         className={cn(
           "hidden items-baseline gap-4 border-b border-border pb-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground",
-          "sm:grid sm:grid-cols-[40px_minmax(0,1fr)_72px_64px_64px]",
+          "sm:grid sm:grid-cols-[40px_minmax(0,1fr)_120px_72px_64px_64px]",
         )}
       >
         <span>#</span>
-        <span>Racer · mode</span>
+        <span>Racer</span>
+        <span>Mode</span>
         <span className="text-right">Net</span>
         <span className="text-right">Raw</span>
         <span className="text-right">Acc</span>
@@ -238,9 +239,10 @@ function Table({ entries }: { entries: readonly LeaderboardEntry[] }) {
 
 function Row({ entry }: { entry: LeaderboardEntry }) {
   const handle = entry.username ? `@${entry.username}` : entry.name;
-  const linkHref = entry.username ? `/profile/${entry.username}` : null;
-  const HandleEl: React.ElementType = linkHref ? Link : "span";
-  const handleProps = linkHref ? { href: linkHref } : {};
+  // Every row links somewhere — username is the pretty slug when the
+  // racer set one, the Clerk user_id is the fallback for racers who
+  // didn't. history.publicProfile accepts both.
+  const linkHref = `/profile/${entry.username ?? entry.userId}`;
   const leader = entry.rank === 1;
 
   return (
@@ -248,7 +250,7 @@ function Row({ entry }: { entry: LeaderboardEntry }) {
       className={cn(
         "group/row border-b border-border/60 py-3 last:border-b-0",
         "grid grid-cols-[32px_minmax(0,1fr)_auto] items-baseline gap-x-3",
-        "sm:grid-cols-[40px_minmax(0,1fr)_72px_64px_64px] sm:gap-x-4 sm:py-3.5",
+        "sm:grid-cols-[40px_minmax(0,1fr)_120px_72px_64px_64px] sm:gap-x-4 sm:py-3.5",
       )}
     >
       <span
@@ -262,29 +264,32 @@ function Row({ entry }: { entry: LeaderboardEntry }) {
 
       <div className="flex min-w-0 flex-col gap-1">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <HandleEl
-            {...(handleProps as { href?: string })}
+          <Link
+            href={linkHref}
             className={cn(
-              "min-w-0 truncate text-[14px] sm:text-[15px]",
+              "min-w-0 truncate text-[14px] transition-colors hover:text-primary sm:text-[15px]",
               leader ? "font-semibold text-foreground" : "text-foreground/90",
-              linkHref && "transition-colors hover:text-primary",
             )}
           >
             {handle}
-          </HandleEl>
+          </Link>
           {entry.tags.map((t) => (
             <UserTag key={t} tag={t} size="sm" className="shrink-0" />
           ))}
-          <ModeTag
-            mode={entry.mode}
-            amount={entry.durationOrWordCount}
-          />
         </div>
-        <div className="flex items-baseline gap-3 text-[10px] uppercase tracking-[0.14em] tabular-nums text-muted-foreground sm:hidden">
+        {/* Mobile sub-line: mode chip + raw + acc on one row beneath
+         *  the handle so the table reads compactly at 375 px. The
+         *  desktop variant fills the dedicated Mode column instead. */}
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[10px] uppercase tracking-[0.14em] tabular-nums text-muted-foreground sm:hidden">
+          <ModeTag mode={entry.mode} amount={entry.durationOrWordCount} />
           <span>raw {entry.wpm}</span>
           <span>acc {Math.round(entry.accuracy)}%</span>
         </div>
       </div>
+
+      <span className="hidden items-center sm:inline-flex">
+        <ModeTag mode={entry.mode} amount={entry.durationOrWordCount} />
+      </span>
 
       <span
         className={cn(

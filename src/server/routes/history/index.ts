@@ -247,10 +247,24 @@ const publicProfile = defineRoute<PublicProfileInput, HistorySummaryOutput>({
   middleware: [rateLimit({ limit: 10, windowMs: 60_000 })],
   handler: async ({ input, db }) => {
     const client = await clerkClient();
-    const list = await client.users.getUserList({
-      username: [input.username],
-    });
-    const user = list.data[0];
+    const slug = input.username;
+    // Dual-mode lookup: Clerk username, or — if the slug looks like a
+    // user_id — direct getUser. The leaderboard surfaces rows for
+    // users who never set a Clerk username by linking via their
+    // user_id, so every entry is clickable. The slug pattern is
+    // unambiguous (Clerk usernames are `^[a-zA-Z_]+$` per our regex,
+    // user ids start with `user_`).
+    let user: Awaited<ReturnType<typeof client.users.getUser>> | null = null;
+    if (slug.startsWith("user_")) {
+      try {
+        user = await client.users.getUser(slug);
+      } catch {
+        user = null;
+      }
+    } else {
+      const list = await client.users.getUserList({ username: [slug] });
+      user = list.data[0] ?? null;
+    }
     if (!user) {
       throw new BackendError(
         404,
