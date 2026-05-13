@@ -70,12 +70,21 @@ const ALL_VAR_NAMES: readonly string[] = (() => {
 })();
 
 /** Strip every var any installed theme can set — used when switching
- *  away from the active theme so its colors don't bleed into the next. */
-export function clearThemeVars(root: HTMLElement) {
+ *  away from the active theme so its colors don't bleed into the next.
+ *  No-op on null so callers can pipe `findThemeScope()` straight in
+ *  without manual guards (themes are scoped to a marker element that
+ *  only exists on typing surfaces — see `THEME_SCOPE_ATTR`). */
+export function clearThemeVars(root: HTMLElement | null) {
+  if (!root) return;
   for (const k of ALL_VAR_NAMES) root.style.removeProperty(`--${k}`);
 }
 
-export function applyTheme(root: HTMLElement, theme: Theme, mode: "light" | "dark") {
+export function applyTheme(
+  root: HTMLElement | null,
+  theme: Theme,
+  mode: "light" | "dark",
+) {
+  if (!root) return;
   clearThemeVars(root);
   const vars = mode === "dark" ? theme.cssVars.dark : theme.cssVars.light;
   for (const [k, v] of Object.entries(vars)) {
@@ -86,4 +95,22 @@ export function applyTheme(root: HTMLElement, theme: Theme, mode: "light" | "dar
 export function findTheme(id: string | null | undefined): Theme | undefined {
   if (!id) return undefined;
   return THEMES.find((t) => t.id === id);
+}
+
+/** Marker attribute on the element that should receive theme CSS
+ *  variables. Only typing-test surfaces (practice / race / future
+ *  drills) carry this; other pages (profile, leaderboard, customise
+ *  preview, …) intentionally don't — the user's chosen palette would
+ *  drown the editorial chrome there, and on the customise page would
+ *  change the very surface the user is using to pick the theme. */
+export const THEME_SCOPE_ATTR = "data-ft-theme-scope";
+
+/** Resolve the currently-mounted theme-scope element. Returns null
+ *  when the active route isn't a typing surface — callers should
+ *  no-op rather than fall back to `<html>` (the whole point of
+ *  scoping is to keep chrome / non-typing pages on the default
+ *  palette). */
+export function findThemeScope(): HTMLElement | null {
+  if (typeof document === "undefined") return null;
+  return document.querySelector<HTMLElement>(`[${THEME_SCOPE_ATTR}]`);
 }

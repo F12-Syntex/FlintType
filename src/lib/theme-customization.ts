@@ -1,8 +1,9 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
 import { writeSlice } from "./prefs-store";
-import { CUSTOM_THEME_ID } from "./themes/registry";
+import { CUSTOM_THEME_ID, findThemeScope } from "./themes/registry";
 import { useRemotePrefs } from "./use-remote-prefs";
 
 /** Every CSS variable the user can override from the appearance page.
@@ -49,7 +50,12 @@ export type ThemeOverrides = Partial<Record<ThemeVar, string>>;
 
 function applyVar(name: ThemeVar, value: string | undefined) {
   if (typeof document === "undefined") return;
-  const root = document.documentElement;
+  // Per-var overrides live alongside named themes on the same scope
+  // element (typing surface). When no scope is mounted (non-typing
+  // page like /profile or /leaderboard), this is a no-op — the
+  // effect below re-applies the moment the scope mounts.
+  const root = findThemeScope();
+  if (!root) return;
   if (value == null || value === "") {
     root.style.removeProperty(name);
   } else {
@@ -77,21 +83,32 @@ export function useThemeOverrides() {
   // hook has set and only remove the ones we wrote that no longer
   // appear in `overrides`.
   const appliedRef = useRef<Set<ThemeVar>>(new Set());
+  // Route changes swap the [data-ft-theme-scope] element under us —
+  // pathname is in the deps so the effect re-runs and finds the new
+  // scope when the user navigates onto a typing surface.
+  const pathname = usePathname();
   useEffect(() => {
+    const scope = findThemeScope();
+    if (!scope) {
+      // Non-typing surface — drop the tracking set so a future
+      // navigation onto a typed surface starts clean.
+      appliedRef.current.clear();
+      return;
+    }
     const prev = appliedRef.current;
     const next = new Set<ThemeVar>();
     for (const v of THEME_VARS) {
       const value = overrides[v];
       if (value != null && value !== "") {
-        applyVar(v, value);
+        scope.style.setProperty(v, value);
         next.add(v);
       }
     }
     for (const v of prev) {
-      if (!next.has(v)) applyVar(v, undefined);
+      if (!next.has(v)) scope.style.removeProperty(v);
     }
     appliedRef.current = next;
-  }, [overrides]);
+  }, [overrides, pathname]);
 
   const setVar = useCallback(
     (name: ThemeVar, value: string) => {

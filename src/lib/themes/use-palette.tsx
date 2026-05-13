@@ -1,6 +1,7 @@
 "use client";
 
 import { useTheme as useNextTheme } from "next-themes";
+import { usePathname } from "next/navigation";
 import {
   createContext,
   type ReactNode,
@@ -22,6 +23,7 @@ import {
   clearThemeVars,
   CUSTOM_THEME_ID,
   findTheme,
+  findThemeScope,
   THEMES,
   type Theme,
 } from "./registry";
@@ -59,14 +61,25 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
   );
   const activeId = value.activeId;
   const { effectiveImage } = useBackgroundPrefs();
+  // pathname is in the deps so a route change re-runs the apply —
+  // the [data-ft-theme-scope] element appears + disappears between
+  // pages (typing surfaces have it, other pages don't), and the
+  // effect would otherwise paint into a stale or null node.
+  const pathname = usePathname();
 
   useEffect(() => {
-    const root = document.documentElement;
+    // Themes apply to the typing-test scope only — practice + race
+    // surfaces wrap their content in a [data-ft-theme-scope] element.
+    // When no scope is mounted (profile, leaderboard, customise, …),
+    // the apply is a no-op and the page renders against the chrome's
+    // :root defaults.
+    const root = findThemeScope();
+    if (!root) return;
 
     // "custom" — the user has per-var overrides applied via
     // useThemeOverrides. Don't touch the named-theme vars: the inline
-    // overrides on :root from useThemeOverrides are the source of truth
-    // and would otherwise get clobbered by clearThemeVars below.
+    // overrides on the scope from useThemeOverrides are the source of
+    // truth and would otherwise get clobbered by clearThemeVars below.
     if (activeId === CUSTOM_THEME_ID) {
       clearReactivePalette(root);
       return;
@@ -74,7 +87,7 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
 
     if (activeId === BACKGROUND_REACTIVE_ID) {
       // Reactive is async — sampling takes a frame or two. If we
-      // cleared :root upfront and *then* sampled, every re-render
+      // cleared the scope upfront and *then* sampled, every re-render
       // (e.g. an unrelated pref-store notify that re-instantiates
       // this effect) would briefly drop the user back to the default
       // palette until the sample resolves. Instead, leave the prior
@@ -106,7 +119,7 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     if (!theme) return;
     const mode = resolvedTheme === "dark" ? "dark" : "light";
     applyTheme(root, theme, mode);
-  }, [activeId, resolvedTheme, effectiveImage]);
+  }, [activeId, resolvedTheme, effectiveImage, pathname]);
 
   const apply = useCallback(
     (id: string) => {
