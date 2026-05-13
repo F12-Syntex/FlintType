@@ -1,21 +1,31 @@
 "use client";
 
+import { Check, ChevronDown } from "lucide-react";
 import { useMemo, useState } from "react";
-import { OptionSwitch } from "@/components/ui/option-switch";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import type { PersonalBest } from "./derive-stats";
 import { ProfileSection } from "./profile-section";
 
 /** Personal bests, MonkeyType-style — Time / Words sub-strips with
  *  fixed standard amounts (15s/30s/60s/120s and 10/25/50/100). The
- *  switch above lets the viewer slice by category:
+ *  category dropdown above slices by mode:
  *    ALL          — best across every mode
  *    CASUAL       — casual practice tests only
  *    MULTIPLAYER  — race-tagged tests only (populates once race
  *                   submissions are tagged in a future commit)
  *    PRACTICE     — adaptive practice (training mode)
- *  Empty cells render with `—` so the user sees what they haven't
- *  attempted yet — same invitational pattern MT uses. */
+ *  Empty cells render with `—` so the viewer sees what they haven't
+ *  attempted yet — same invitational pattern MT uses.
+ *
+ *  Dropdown shape mirrors `<ModePicker>` on the race surface — same
+ *  trigger styling, same checkmark+title+blurb item shape — so the
+ *  product reads as one design language across pages. */
 export function PersonalBests({ bests }: { bests: PersonalBest[] }) {
   const [filter, setFilter] = useState<Category>("all");
 
@@ -24,7 +34,7 @@ export function PersonalBests({ bests }: { bests: PersonalBest[] }) {
   return (
     <ProfileSection label="Personal bests">
       <div className="flex flex-col gap-6 sm:gap-8">
-        <CategorySwitch value={filter} onChange={setFilter} />
+        <CategoryPicker value={filter} onChange={setFilter} />
         <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
           <SubStrip
             label="Time"
@@ -82,11 +92,21 @@ function buildLookup(
   return out;
 }
 
-/** Routed through `<OptionSwitch>` (the canonical segmented control
- *  used by the practice mode-bar) instead of hand-rolling another
- *  tab strip — keeps the multi-option picker visually uniform across
- *  the app. */
-function CategorySwitch({
+/** One-line categorical description per filter — surfaced in the
+ *  dropdown item's blurb so the user reads what each mode covers
+ *  before picking. Keep these short; they sit on a single row under
+ *  the title. */
+const CATEGORY_DETAIL: Record<Category, string> = {
+  all: "Best across every mode",
+  casual: "Casual practice tests only",
+  multiplayer: "Race-tagged tests",
+  practice: "Adaptive practice (training mode)",
+};
+
+/** Matches `<ModePicker>` (race surface) — the canonical dropdown
+ *  chip in this app. Same trigger size + style + chevron, same
+ *  item layout (checkmark + uppercase title + lowercase blurb). */
+function CategoryPicker({
   value,
   onChange,
 }: {
@@ -94,20 +114,76 @@ function CategorySwitch({
   onChange: (next: Category) => void;
 }) {
   return (
-    <OptionSwitch
-      name="personal-bests-category"
-      size="small"
-      value={value}
-      onValueChange={(v) => onChange(v as Category)}
-    >
-      {CATEGORY_ORDER.map((id) => (
-        <OptionSwitch.Control
-          key={id}
-          value={id}
-          label={prettyCategory(id)}
-        />
-      ))}
-    </OptionSwitch>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label={`Personal bests filter — ${prettyCategory(value)}`}
+          className={cn(
+            "group inline-flex h-8 items-center gap-2 self-start rounded-md border border-border bg-background px-3",
+            "text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground",
+            "transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+            "hover:border-foreground/40 hover:bg-accent/40",
+          )}
+        >
+          <span>{prettyCategory(value)}</span>
+          <span aria-hidden className="h-3 w-px bg-border" />
+          <span className="text-[10px] font-medium normal-case tracking-normal text-muted-foreground">
+            {CATEGORY_DETAIL[value]}
+          </span>
+          <ChevronDown
+            size={11}
+            aria-hidden
+            className={cn(
+              "ml-0.5 text-muted-foreground transition-transform duration-150",
+              "group-data-[state=open]:rotate-180",
+            )}
+          />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="start"
+        sideOffset={6}
+        className="min-w-60 p-1"
+      >
+        {CATEGORY_ORDER.map((id) => {
+          const active = id === value;
+          return (
+            <DropdownMenuItem
+              key={id}
+              onSelect={() => onChange(id)}
+              className={cn(
+                "flex items-start gap-2.5 rounded-sm py-2 pl-2 pr-3",
+                active && "bg-primary/[0.06]",
+              )}
+            >
+              <span
+                aria-hidden
+                className={cn(
+                  "mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center",
+                  active ? "text-primary" : "text-transparent",
+                )}
+              >
+                <Check size={13} strokeWidth={2.5} />
+              </span>
+              <div className="min-w-0 flex-1 leading-tight">
+                <div
+                  className={cn(
+                    "text-[11px] font-semibold uppercase tracking-[0.14em]",
+                    active ? "text-primary" : "text-foreground",
+                  )}
+                >
+                  {prettyCategory(id)}
+                </div>
+                <div className="mt-0.5 text-[10px] text-muted-foreground">
+                  {CATEGORY_DETAIL[id]}
+                </div>
+              </div>
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
