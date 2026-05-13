@@ -152,6 +152,7 @@ export function ProfileView({ username }: { username?: string }) {
         streak={streak}
         isMtConnected={isMtConnected}
         onOpenMt={heroIsOwner ? onOpenMt : undefined}
+        subjectAvatarUrl={snapshot?.subjectAvatarUrl ?? null}
       />
 
       {error ? (

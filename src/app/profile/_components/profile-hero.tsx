@@ -42,6 +42,7 @@ export function ProfileHero({
   streak,
   isMtConnected = false,
   onOpenMt,
+  subjectAvatarUrl = null,
 }: {
   username?: string;
   isOwner: boolean;
@@ -56,6 +57,13 @@ export function ProfileHero({
   /** Routes to the appropriate MT dialog based on connection state.
    *  Parent (profile-view) decides which (manage vs import) opens. */
   onOpenMt?: () => void;
+  /** Avatar URL for the profile's *subject*, returned by the server
+   *  (history.summary / publicProfile) and pre-filtered through
+   *  `hasImage` so Clerk's auto-gradient never ships through. Lets
+   *  visitors see a real photo for someone else's profile — useUser()
+   *  alone only knows the viewer's image. Null falls back to the
+   *  silhouette placeholder. */
+  subjectAvatarUrl?: string | null;
 }) {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
@@ -78,13 +86,24 @@ export function ProfileHero({
           month: "short",
         })
       : null;
-  // Clerk auto-generates a gradient default avatar when the user
-  // hasn't uploaded one (`hasImage === false`). That default reads as
-  // a generic AI-art swatch — replace it with a quiet silhouette so
-  // an unconfigured profile looks intentionally blank, not stock.
-  const showRealImage =
-    isOwner && isLoaded && (user?.hasImage ?? false) && user?.imageUrl;
-  const avatarImageUrl = showRealImage ? user!.imageUrl : null;
+  // Avatar resolution. Two sources, in priority order:
+  //   1. useUser() — owner's own Clerk profile (instant, available
+  //      before the snapshot lands).
+  //   2. subjectAvatarUrl — the *subject*'s avatar from the server's
+  //      history payload. Required for visitors viewing someone
+  //      else's profile because useUser() only knows about the
+  //      viewer's image.
+  // Both sources have already filtered Clerk's auto-generated
+  // gradient default (`hasImage === false`) so we never paint the
+  // generic AI-art swatch — silhouette covers that case.
+  const ownerImageUrl =
+    isOwner && isLoaded && (user?.hasImage ?? false) && user?.imageUrl
+      ? user.imageUrl
+      : null;
+  const avatarImageUrl = ownerImageUrl ?? subjectAvatarUrl ?? null;
+  // Avatar is "loaded" once we either have the owner's Clerk data
+  // (for own profile) OR the snapshot has arrived (for visitors).
+  // When neither has resolved, render the pulsing placeholder.
   const avatarIsLoaded = isOwner ? isLoaded : true;
 
   return (

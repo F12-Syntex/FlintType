@@ -79,6 +79,12 @@ export type HistorySummaryOutput = {
    *  someone else's profile receive the same array (it's not
    *  sensitive — tags are display data). */
   eligibleTags: UserTagId[];
+  /** Subject's avatar URL — null when they haven't uploaded a real
+   *  photo (Clerk's auto-generated gradient is suppressed at this
+   *  layer). Returned by both `summary` (own avatar) and
+   *  `publicProfile` (subject avatar visible to visitors) so the hero
+   *  doesn't have to round-trip Clerk for someone else's photo. */
+  subjectAvatarUrl: string | null;
 };
 
 /** Subset of MonkeytypeStatsSlice safe to expose over the public

@@ -60,6 +60,7 @@ async function loadHistorySummary(
   userId: string,
   tags: UserTagId[],
   eligibleTags: UserTagId[],
+  subjectAvatarUrl: string | null,
 ): Promise<HistorySummaryOutput> {
   // Categorisation reads the user's finger map (Dvorak / Colemak
   // users have different same-finger pairs than QWERTY). Load it
@@ -175,6 +176,7 @@ async function loadHistorySummary(
     monkeytype,
     tags,
     eligibleTags,
+    subjectAvatarUrl,
   };
 }
 
@@ -187,10 +189,12 @@ const summary = defineRoute<void, HistorySummaryOutput>({
     // load always proceeds.
     await ensureUser(ctx);
     const userId = ctx.meta.userId as string;
-    // Pull the Clerk user once to resolve identity tags. A failure
-    // here downgrades to no tags but doesn't break the summary —
-    // a profile without a tag chip is a usable profile.
+    // Pull the Clerk user once to resolve identity tags + the subject's
+    // avatar URL. A failure here downgrades to no tags / no avatar but
+    // doesn't break the summary — a profile without a tag chip or
+    // photo is a usable profile.
     let eligibleTags: UserTagId[] = [];
+    let subjectAvatarUrl: string | null = null;
     try {
       const client = await clerkClient();
       const user = await client.users.getUser(userId);
@@ -199,8 +203,13 @@ const summary = defineRoute<void, HistorySummaryOutput>({
         publicMetadataTags: (user.publicMetadata as { tags?: unknown } | null)
           ?.tags,
       });
+      // Suppress Clerk's auto-generated gradient default — only return
+      // a URL when the user has actually uploaded a photo.
+      if (user.hasImage && user.imageUrl) {
+        subjectAvatarUrl = user.imageUrl;
+      }
     } catch (err) {
-      ctx.log.warn("history.summary: tag resolution failed", {
+      ctx.log.warn("history.summary: tag/avatar resolution failed", {
         userId,
         error: err instanceof Error ? err.message : String(err),
       });
@@ -211,7 +220,13 @@ const summary = defineRoute<void, HistorySummaryOutput>({
     const prefs = await ctx.db.userPrefs.get(userId);
     const selection = readTagSelection(prefs);
     const tags = applyTagSelection(eligibleTags, selection);
-    return loadHistorySummary(ctx.db, userId, tags, eligibleTags);
+    return loadHistorySummary(
+      ctx.db,
+      userId,
+      tags,
+      eligibleTags,
+      subjectAvatarUrl,
+    );
   },
 });
 
@@ -244,16 +259,25 @@ const publicProfile = defineRoute<PublicProfileInput, HistorySummaryOutput>({
       );
     }
     // We already have the Clerk user from the username lookup — read
-    // tags off it directly rather than pay for a second getUser call.
+    // tags + avatar off it directly rather than pay for a second
+    // getUser call.
     const eligibleTags = resolveEligibleTags({
       email: user.emailAddresses[0]?.emailAddress,
       publicMetadataTags: (user.publicMetadata as { tags?: unknown } | null)
         ?.tags,
     });
+    const subjectAvatarUrl =
+      user.hasImage && user.imageUrl ? user.imageUrl : null;
     const subjectPrefs = await db.userPrefs.get(user.id);
     const selection = readTagSelection(subjectPrefs);
     const tags = applyTagSelection(eligibleTags, selection);
-    return loadHistorySummary(db, user.id, tags, eligibleTags);
+    return loadHistorySummary(
+      db,
+      user.id,
+      tags,
+      eligibleTags,
+      subjectAvatarUrl,
+    );
   },
 });
 
