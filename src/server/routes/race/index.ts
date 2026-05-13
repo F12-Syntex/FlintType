@@ -1,5 +1,6 @@
 import { BackendError } from "@/lib/errors";
 import { defineNamespace, defineRoute } from "@/server";
+import { rateLimit } from "@/server/middleware/rate-limit";
 import { getRaceIdentity } from "@/server/race/identity";
 import {
   evictFromMatchmaking,
@@ -70,8 +71,16 @@ const queue = defineRoute<QueueInput, QueueOutput>({
   },
 });
 
+/** Keystroke firehose — the client batches at ~6 Hz over a 60s race
+ *  (~360 hits/min), so 600/min per IP leaves comfortable headroom for
+ *  retries and dropped packets without letting a scripted abuser
+ *  push every connected room into a hot-write loop. Per-IP keying is
+ *  fine here because there's no auth and the route's authorisation
+ *  is the (roomId, sessionToken) pair — the rate limit is a separate
+ *  cap on raw call volume. */
 const keystroke = defineRoute<KeystrokeInput, KeystrokeOutput>({
   input: keystrokeInputSchema,
+  middleware: [rateLimit({ limit: 600, windowMs: 60_000 })],
   handler: ({ input }) => {
     const room = getRoom(input.roomId);
     if (!room) {
@@ -107,10 +116,13 @@ const leave = defineRoute<LeaveInput, LeaveOutput>({
 
 /** Public race namespace. No `requireAuth` — anonymous users get
  *  `Guest · XYZ` labels via `getRaceIdentity` and can join matchmaking
- *  or challenge rooms identically to signed-in users. Rate-limit
- *  keeps a keystroke-firehose from drowning the server: at the
- *  client's ~6 Hz cadence over a 60s race ≈ 360 calls per minute, so
- *  600 leaves comfortable headroom for retries / dropped packets. */
+ *  or challenge rooms identically to signed-in users.
+ *
+ *  Namespace-wide rate limit (120/min per IP) catches scripted abuse
+ *  across the whole race surface (queue + leave + challenge.*). The
+ *  `keystroke` route layers a tighter 600/min cap on top because it
+ *  receives the per-keystroke firehose. */
 export const race = defineNamespace({
+  middleware: [rateLimit({ limit: 120, windowMs: 60_000 })],
   routes: { queue, keystroke, leave, challenge },
 });

@@ -2,6 +2,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { defineNamespace, defineRoute } from "@/server";
 import { BackendError } from "@/lib/errors";
 import { requireAuth } from "@/server/middleware/auth";
+import { rateLimit } from "@/server/middleware/rate-limit";
 import {
   updateUsernameInputSchema,
   type UpdateUsernameInput,
@@ -41,7 +42,9 @@ export function _resetUsernameWindow(): void {
  *  the most likely failure after our pre-check is a TOCTOU collision. */
 const updateUsername = defineRoute<UpdateUsernameInput, UpdateUsernameOutput>({
   input: updateUsernameInputSchema,
-  middleware: [requireAuth],
+  // `requireAuth` lives on the namespace below — no need to re-list it
+  // here. The route-internal 1/hour budget keys on `meta.userId` which
+  // the namespace middleware populates.
   handler: async ({ input, meta, log }) => {
     const userId = meta.userId as string;
     const next = input.username.trim();
@@ -117,6 +120,16 @@ const updateUsername = defineRoute<UpdateUsernameInput, UpdateUsernameOutput>({
   },
 });
 
+/** Profile namespace. The `updateUsername` route enforces its own
+ *  1/hour per-user budget for successful writes (rate-limit by Clerk
+ *  user id) — that's the rule the user cares about. The 20/min
+ *  per-user middleware here is a separate guard against scripted
+ *  *failed* attempts: someone hammering the route with bogus values
+ *  to enumerate the no-op vs. conflict branches. Per-user keying via
+ *  the auth middleware above; falls back to per-IP for unauth'd
+ *  callers (which can't actually reach the handler since requireAuth
+ *  401s first). */
 export const profile = defineNamespace({
+  middleware: [requireAuth, rateLimit({ limit: 20, windowMs: 60_000 })],
   routes: { updateUsername },
 });

@@ -169,8 +169,47 @@ export function useRaceRoom({
   // for and the remount's SSE stream would 404. The room's own 5-min
   // idle GC + the explicit `abandon` callback handle real-leave
   // cases; we only flush the debounce timer here.
+  //
+  // Page-unload, however, IS a genuine leave — the user is gone, and
+  // dragging the server's room around for the full 5-min GC means the
+  // matchmaking queue advertises a phantom slot. Fire `race.leave`
+  // through navigator.sendBeacon on `pagehide` so the cleanup hits
+  // even when the browser is in the middle of unloading us. We use
+  // pagehide (not beforeunload) because Safari ignores beforeunload
+  // beacons and Chromium fires pagehide on bfcache enter too.
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onPageHide = () => {
+      const room = roomRef.current;
+      const token = tokenRef.current;
+      if (!room || !token) return;
+      const url = "/api/race/leave";
+      const body = JSON.stringify({ roomId: room, sessionToken: token });
+      // Some browsers reject sendBeacon for application/json — wrap in
+      // a Blob with that mime so the dispatcher's JSON-body parser
+      // still picks it up cleanly.
+      try {
+        if (typeof navigator.sendBeacon === "function") {
+          navigator.sendBeacon(
+            url,
+            new Blob([body], { type: "application/json" }),
+          );
+        } else {
+          void fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body,
+            keepalive: true,
+          });
+        }
+      } catch {
+        // Best-effort — the server's 5-min idle GC catches anything
+        // we miss here.
+      }
+    };
+    window.addEventListener("pagehide", onPageHide);
     return () => {
+      window.removeEventListener("pagehide", onPageHide);
       if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
     };
   }, []);
