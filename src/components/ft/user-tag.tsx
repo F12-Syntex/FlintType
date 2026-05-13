@@ -62,7 +62,7 @@ export function UserTag({
       role="img"
       aria-label={config.aria}
       className={cn(
-        "inline-flex items-center whitespace-nowrap rounded-md border font-semibold uppercase leading-none tracking-[0.12em]",
+        "inline-flex cursor-pointer items-center whitespace-nowrap rounded-md border font-semibold uppercase leading-none tracking-[0.12em]",
         sizeClass,
         className,
       )}
