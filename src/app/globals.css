@@ -269,21 +269,48 @@
   }
 }
 
-/* New-PB sparkle dot — fires once on mount, springs outward + fades.
-   The keyframe applies to a child wrapper that's already rotated +
-   translated to its outer position; we only animate distance and
-   opacity here so each rotated dot lands in a different direction. */
-@keyframes pb-spark {
+/* New-PB confetti — each piece bursts from the stat origin to
+   (dx, dy) while rotating once, then fades. The CSS custom
+   properties `--burst-dx` / `--burst-dy` / `--burst-rotate` are set
+   per-piece in the JSX so a single keyframe drives the whole spray.
+   The piece is positioned at top:0 left:0 inside a size-0 container
+   centered on the stat, so the initial transform of `translate(0,0)
+   rotate(0)` lands the piece exactly on the origin. */
+@keyframes pb-confetti {
   0% {
     opacity: 0;
-    transform: translate(-50%, -50%) rotate(var(--spark-angle, 0deg)) translate(0, -2px) scale(0.4);
+    transform: translate(0, 0) rotate(0);
   }
-  60% {
+  6% {
+    opacity: 1;
+  }
+  80% {
     opacity: 1;
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -50%) rotate(var(--spark-angle, 0deg)) translate(0, -16px) scale(0.8);
+    transform:
+      translate(var(--burst-dx, 0), var(--burst-dy, 0))
+      rotate(var(--burst-rotate, 720deg));
+  }
+}
+
+/* New-PB crown — single-shot lift + settle when the badge mounts.
+   Slight upward overshoot then settles to its resting position so
+   the crown reads as "landing" on top of the stat rather than just
+   appearing. Reduced-motion users get the static rest pose. */
+@keyframes pb-crown-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 12px) scale(0.5) rotate(-12deg);
+  }
+  55% {
+    opacity: 1;
+    transform: translate(-50%, -6px) scale(1.08) rotate(4deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1) rotate(0);
   }
 }
 

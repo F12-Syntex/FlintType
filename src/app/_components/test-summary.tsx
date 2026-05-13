@@ -55,19 +55,13 @@ function BigStat({
   value: string | number;
   suffix?: string;
   accent?: boolean;
-  /** When true, paint the PB crown + sparkle next to the stat. */
+  /** When true, paint the PB crown + confetti burst over the stat. */
   pb?: boolean;
 }) {
   return (
     <div className="relative flex flex-col gap-1 leading-none">
       <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
         {label}
-        {pb ? (
-          <span className="ml-1.5 inline-flex items-center gap-1 align-middle font-mono text-[9px] font-semibold uppercase tracking-[0.22em] text-primary">
-            <Crown size={10} className="motion-safe:animate-bounce" />
-            new PB
-          </span>
-        ) : null}
       </span>
       <span
         className={cn(
@@ -75,38 +69,73 @@ function BigStat({
           accent ? "text-primary" : "text-foreground",
         )}
       >
+        {pb ? <PbCrown /> : null}
         {value}
         {suffix ? (
           <span className="text-base font-normal text-muted-foreground">
             {suffix}
           </span>
         ) : null}
-        {pb ? <PbSparkle /> : null}
+        {pb ? <PbConfetti /> : null}
       </span>
     </div>
   );
 }
 
-/** Lightweight CSS-only celebration for the new-PB crown. Six dots
- *  spring out from the badge centre and fade — no canvas, no
- *  Framer, single-fire on mount. Each dot carries its angle via a
- *  CSS variable so the shared `pb-spark` keyframe (in globals.css)
- *  can interpolate from origin to a rotated outward translation.
- *  Skipped under prefers-reduced-motion via Tailwind's motion-safe. */
-function PbSparkle() {
+/** Crown badge that hovers above the stat value on a new PB. Sized
+ *  to read at a glance — sits ~`size-7` on mobile, scaling with the
+ *  surrounding value text. Drops a tiny shadow so it feels lifted
+ *  off the surface, and rotates in from the side on mount. The
+ *  `motion-safe:` prefix means users with prefers-reduced-motion get
+ *  the crown statically. */
+function PbCrown() {
+  return (
+    <span
+      aria-label="new personal best"
+      className={cn(
+        "pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2",
+        "text-primary motion-safe:animate-[pb-crown-pop_700ms_cubic-bezier(0.16,1,0.3,1)_both]",
+        "drop-shadow-[0_2px_8px_color-mix(in_oklch,var(--primary)_45%,transparent)]",
+        "sm:-top-8 lg:-top-9",
+      )}
+    >
+      <Crown
+        size={28}
+        strokeWidth={2.25}
+        className="size-7 sm:size-8 lg:size-9"
+      />
+    </span>
+  );
+}
+
+/** Confetti burst that fires once when the user lands a new PB.
+ *  Pure CSS — 24 thin rectangles fan out from the stat origin at
+ *  pre-baked angles, drop under "gravity" via a `dy` offset, and
+ *  fade out as they rotate. Each piece's end position is encoded as
+ *  CSS variables (--burst-dx / --burst-dy) so the shared
+ *  `pb-confetti` keyframe (in globals.css) interpolates from origin
+ *  to a final point without trig functions. Hidden under
+ *  prefers-reduced-motion via the `motion-safe:` prefix on the
+ *  animation class. */
+function PbConfetti() {
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute -top-2 -right-3 size-6"
+      className="pointer-events-none absolute top-1/2 left-1/2 size-0"
     >
-      {[0, 60, 120, 180, 240, 300].map((deg, i) => (
+      {CONFETTI_PIECES.map((p, i) => (
         <span
           key={i}
-          className="absolute top-1/2 left-1/2 size-1.5 rounded-full bg-primary opacity-0 motion-safe:animate-[pb-spark_900ms_ease-out_forwards]"
+          className="absolute top-0 left-0 block opacity-0 motion-safe:animate-[pb-confetti_1200ms_cubic-bezier(0.22,0.61,0.36,1)_forwards]"
           style={
             {
-              ["--spark-angle"]: `${deg}deg`,
-              animationDelay: `${i * 40}ms`,
+              ["--burst-dx"]: `${p.dx}px`,
+              ["--burst-dy"]: `${p.dy}px`,
+              ["--burst-rotate"]: `${p.rotate}deg`,
+              width: `${p.w}px`,
+              height: `${p.h}px`,
+              backgroundColor: p.color,
+              animationDelay: `${p.delay}ms`,
             } as React.CSSProperties
           }
         />
@@ -114,6 +143,55 @@ function PbSparkle() {
     </span>
   );
 }
+
+/** Confetti is deterministic — pre-baked once at module load so each
+ *  burst is identical (no SSR/client jitter, no per-render reshuffle).
+ *  Two layers: a wide initial spray angled mostly upward, a slower
+ *  trickle of larger pieces. Colours pull from the brand-accent set
+ *  via `var(--primary)`, the accent foreground, and a couple of
+ *  warm-paper highlights so the burst doesn't read as a single-hue
+ *  glow. */
+type ConfettiPiece = {
+  dx: number;
+  dy: number;
+  rotate: number;
+  w: number;
+  h: number;
+  color: string;
+  delay: number;
+};
+const CONFETTI_PIECES: readonly ConfettiPiece[] = (() => {
+  const COUNT = 24;
+  const COLORS = [
+    "var(--primary)",
+    "var(--primary)",
+    "color-mix(in oklch, var(--primary) 60%, var(--foreground))",
+    "color-mix(in oklch, var(--primary) 55%, white)",
+    "var(--accent-foreground)",
+  ];
+  const out: ConfettiPiece[] = [];
+  for (let i = 0; i < COUNT; i += 1) {
+    // Upper hemisphere only (angle 200°-340°) so confetti shoots up
+    // and outward like a real party popper, then arcs back down via
+    // the +dy gravity addition. Mirror the index to keep distribution
+    // even on both sides of the stat.
+    const t = i / COUNT;
+    const angleDeg = 200 + t * 140 + (i % 2 === 0 ? -8 : 8);
+    const angleRad = (angleDeg * Math.PI) / 180;
+    const distance = 70 + ((i * 13) % 40);
+    const gravity = 60 + ((i * 7) % 40);
+    out.push({
+      dx: Math.round(Math.cos(angleRad) * distance),
+      dy: Math.round(Math.sin(angleRad) * distance + gravity),
+      rotate: 360 + ((i * 47) % 360),
+      w: 4 + ((i * 3) % 4),
+      h: 8 + ((i * 5) % 6),
+      color: COLORS[i % COLORS.length]!,
+      delay: (i * 14) % 120,
+    });
+  }
+  return out;
+})();
 
 /** Render the run's source passage with each character coloured by its
  *  *speed* — fast = foreground (white/black per theme), slow = primary
