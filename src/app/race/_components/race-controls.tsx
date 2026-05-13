@@ -20,7 +20,16 @@ import { useRace } from "./race-state";
  *  `<PhaseRow>` above the passage where the rest of the per-phase
  *  signal already lives — one place to look, not two. */
 export function RaceControls() {
-  const { state, modeId, setModeId, enterQueue, restart, abandon } = useRace();
+  const {
+    state,
+    modeId,
+    setModeId,
+    enterQueue,
+    startCountdown,
+    restart,
+    abandon,
+    isChallenge,
+  } = useRace();
   const allowSwitch =
     state.phase === "queue" ||
     state.phase === "lobby" ||
@@ -33,7 +42,9 @@ export function RaceControls() {
       <Field label="action">
         <ActionButton
           phase={state.phase}
+          isChallenge={isChallenge ?? false}
           onEnter={enterQueue}
+          onStart={startCountdown}
           onRestart={restart}
           onAbandon={abandon}
         />
@@ -122,12 +133,20 @@ function Field({
  *    countdown        → disabled ghost (system is doing the work) */
 function ActionButton({
   phase,
+  isChallenge,
   onEnter,
+  onStart,
   onRestart,
   onAbandon,
 }: {
   phase: string;
+  /** True when the user is in a `/race/c/<slug>` challenge lobby. In
+   *  challenge mode the lobby phase exposes a clickable "Start race"
+   *  primary CTA (host-controlled), instead of the auto-progressing
+   *  matchmaking flow's disabled "Starting" pip. */
+  isChallenge: boolean;
   onEnter: () => void;
+  onStart: () => void;
   onRestart: () => void;
   onAbandon: () => void;
 }) {
@@ -138,6 +157,9 @@ function ActionButton({
     return <DisabledButton>Matching</DisabledButton>;
   }
   if (phase === "lobby") {
+    if (isChallenge) {
+      return <PrimaryButton onClick={onStart}>Start race</PrimaryButton>;
+    }
     return <DisabledButton>Starting</DisabledButton>;
   }
   if (phase === "countdown") {

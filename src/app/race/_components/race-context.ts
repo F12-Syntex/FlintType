@@ -26,6 +26,13 @@ export type RaceCtx = {
   onlineRoomId?: string | null;
   onlineSessionToken?: string | null;
   onlineSnapshot?: RoomSnapshot | null;
+  /** True when the provider was mounted from a challenge slug
+   *  (`/race/c/<slug>`) rather than the matchmaking queue. Used by
+   *  offline-burst challenge lobbies that need to suppress the
+   *  auto-countdown and wait for the host to click Start. The slug
+   *  itself is exposed for the share-link UI. */
+  isChallenge?: boolean;
+  challengeSlug?: string | null;
 };
 
 export const RaceContext = createContext<RaceCtx | null>(null);

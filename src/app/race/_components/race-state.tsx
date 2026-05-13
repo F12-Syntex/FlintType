@@ -153,13 +153,24 @@ function OfflineRaceProvider({
     return () => window.removeEventListener("keydown", handler, { capture: true });
   }, [state.phase, restartShell]);
 
+  // Challenge lobbies are host-controlled — the user (host) must
+  // press "Start race" themselves. Matchmaking lobbies auto-progress
+  // 700 ms after the bots finish joining so the loop stays
+  // single-click. `_enterQueueShell` is the canonical signal that the
+  // shell mounted this provider from a challenge room (the offline
+  // provider only receives that prop on burst challenges; see
+  // race-shell.tsx). We treat any provider mounted with `withQueue=false`
+  // and a non-queue starting phase as a challenge lobby — that's the
+  // exact shape RaceShell uses for /race/c/<slug> burst races.
+  const isChallengeLobby = !withQueue;
   useEffect(() => {
     if (state.phase !== "lobby") return;
+    if (isChallengeLobby) return; // wait for the manual Start
     const id = setTimeout(() => {
       dispatch({ type: "START_COUNTDOWN", now: Date.now() });
     }, 700);
     return () => clearTimeout(id);
-  }, [state.phase]);
+  }, [state.phase, isChallengeLobby]);
 
   useEffect(() => {
     if (state.phase !== "matching") return;
@@ -288,6 +299,7 @@ function OfflineRaceProvider({
       abandon,
       rematch,
       dispatch: dispatch as (a: Action) => void,
+      isChallenge: isChallengeLobby,
       ...derived,
     }),
     [
@@ -300,6 +312,7 @@ function OfflineRaceProvider({
       abandon,
       rematch,
       derived,
+      isChallengeLobby,
     ],
   );
 
