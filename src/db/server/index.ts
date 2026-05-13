@@ -1,7 +1,5 @@
 import {
   createServerDrizzle,
-  selectDriverMode,
-  type DriverMode,
   type ServerDrizzle,
 } from './driver';
 import {
@@ -32,10 +30,7 @@ export type Database = {
   $drizzle: ServerDrizzle;
 };
 
-export function createDatabase(
-  drizzle: ServerDrizzle,
-  _driver: DriverMode,
-): Database {
+export function createDatabase(drizzle: ServerDrizzle): Database {
   return {
     userPrefs: userPrefsRepo(drizzle),
     bigramModels: bigramModelsRepo(drizzle),
@@ -52,8 +47,7 @@ let instance: Database | null = null;
 
 export function getDatabase(): Database {
   if (!instance) {
-    const driver = selectDriverMode();
-    instance = createDatabase(createServerDrizzle(), driver);
+    instance = createDatabase(createServerDrizzle());
   }
   return instance;
 }

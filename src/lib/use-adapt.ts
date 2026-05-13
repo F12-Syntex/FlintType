@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import { BackendError, useBackend } from "@/lib/backend";
+import { useBackend } from "@/lib/backend";
 import type { SubmitTestInput } from "@/types/adapt";
 
 /** Target queue depth. Every test, every reset, every dequeue kicks a

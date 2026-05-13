@@ -16,6 +16,14 @@ const schema = z.object({
    *  generated secret — production must set this explicitly via
    *  `.env.local`. See `src/server/api-key-crypto.ts`. */
   API_KEY_ENC_SECRET: z.string().optional(),
+  /** Build-time snapshot of the VERSION file, injected via
+   *  `next.config.ts`. Server-side reads use this as the fallback
+   *  when reading the VERSION file from disk fails (e.g. on a
+   *  hosting platform that strips non-bundled files). Client-side
+   *  reads still hit `process.env.NEXT_PUBLIC_APP_VERSION` directly
+   *  because `src/lib/version.ts` ships in the client bundle and
+   *  must not import this server module. */
+  NEXT_PUBLIC_APP_VERSION: z.string().default('0.0.0'),
 });
 
 const parsed = schema.safeParse({
@@ -30,6 +38,7 @@ const parsed = schema.safeParse({
   PGLITE_DATA_DIR: process.env.PGLITE_DATA_DIR,
   OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
   API_KEY_ENC_SECRET: process.env.API_KEY_ENC_SECRET,
+  NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION,
 });
 
 if (!parsed.success) {

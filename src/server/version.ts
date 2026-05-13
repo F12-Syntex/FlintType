@@ -2,6 +2,7 @@ import "server-only";
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { env } from "@/server/env";
 
 /** Read the project's VERSION file at request time. Server-only — calls
  *  fs sync, so it must never reach the client bundle.
@@ -10,9 +11,11 @@ import path from "node:path";
  *  to VERSION is reflected the next time the user navigates without
  *  needing a dev-server restart.
  *
- *  Falls back to the build-time NEXT_PUBLIC_APP_VERSION env var (set in
- *  next.config.ts) if the disk read fails — e.g. on a hosting platform
- *  that strips non-bundled files. */
+ *  Falls back to the validated `env.NEXT_PUBLIC_APP_VERSION` (sourced
+ *  from `next.config.ts` and parsed in `src/server/env.ts`) when the
+ *  disk read fails — e.g. on a hosting platform that strips
+ *  non-bundled files. The env table in `env.ts` is the single source
+ *  of truth for the build-time version snapshot. */
 export function getAppVersion(): string {
   try {
     return readFileSync(
@@ -20,6 +23,6 @@ export function getAppVersion(): string {
       "utf-8",
     ).trim();
   } catch {
-    return process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0";
+    return env.NEXT_PUBLIC_APP_VERSION;
   }
 }

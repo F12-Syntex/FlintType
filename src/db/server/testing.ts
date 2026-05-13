@@ -102,7 +102,7 @@ export async function createTestDatabase(): Promise<{
   for (const stmt of splitStatements(SCHEMA_DDL)) {
     await drizzleDb.execute(sql.raw(stmt));
   }
-  const db = createDatabase(drizzleDb, "pglite");
+  const db = createDatabase(drizzleDb);
   return {
     db,
     reset: async () => {
