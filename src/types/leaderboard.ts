@@ -62,11 +62,12 @@ export type LeaderboardInput = z.infer<typeof leaderboardInputSchema>;
 export type LeaderboardEntry = {
   testId: string;
   rank: number;
-  /** Display name pulled from Clerk; "Guest" for users we can't
-   *  resolve (deleted account, anonymous, etc). */
+  /** Display name pulled from Clerk. Rows whose userId Clerk can't
+   *  resolve are filtered out before this list is built, so every
+   *  entry here represents a real signed-in user. */
   name: string;
   /** Lower-case handle (firstName/username/email-localpart) for
-   *  linking to their public profile. Null when name is "Guest". */
+   *  linking to their public profile. */
   username: string | null;
   netWpm: number;
   wpm: number;

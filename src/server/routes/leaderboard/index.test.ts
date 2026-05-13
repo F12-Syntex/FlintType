@@ -45,9 +45,28 @@ describe("leaderboard.list", () => {
   beforeEach(async () => {
     await ctx.reset();
     mockClerkClient.mockReset();
+    // Default Clerk roster — `u1` and `u2` resolve to display names so
+    // tests that don't care about the Clerk lookup itself can insert
+    // rows under those ids and see them surface in the result. Tests
+    // that exercise the "unknown user" filter override this mock.
     mockClerkClient.mockResolvedValue({
       users: {
-        getUserList: vi.fn(async () => ({ data: [] })),
+        getUserList: vi.fn(async () => ({
+          data: [
+            {
+              id: "u1",
+              firstName: "alice",
+              username: "alice",
+              emailAddresses: [],
+            },
+            {
+              id: "u2",
+              firstName: "bob",
+              username: "bob",
+              emailAddresses: [],
+            },
+          ],
+        })),
       },
     } as unknown as Awaited<ReturnType<typeof clerkClient>>);
   });
@@ -69,25 +88,48 @@ describe("leaderboard.list", () => {
     expect(res.entries[1]?.netWpm).toBe(72);
   });
 
-  it("falls back to Guest when Clerk lookup yields no user", async () => {
+  it("filters out entries whose userId Clerk doesn't recognise", async () => {
     await ctx.db.tests.insert(row({ id: "t_a", userId: "deleted_user" }));
     const res = await callRoute<LeaderboardOutput>(["leaderboard", "list"], {
       input: {},
       db: ctx.db,
     });
-    expect(res.entries[0]?.name).toBe("Guest");
-    expect(res.entries[0]?.username).toBeNull();
+    expect(res.entries).toEqual([]);
   });
 
-  it("survives a Clerk lookup failure (renders anonymised entries)", async () => {
+  it("returns no entries when the Clerk lookup itself throws", async () => {
     mockClerkClient.mockRejectedValue(new Error("clerk-down"));
     await ctx.db.tests.insert(row({ id: "t_a", userId: "u1" }));
     const res = await callRoute<LeaderboardOutput>(["leaderboard", "list"], {
       input: {},
       db: ctx.db,
     });
-    expect(res.entries.length).toBe(1);
-    expect(res.entries[0]?.name).toBe("Guest");
+    expect(res.entries).toEqual([]);
+  });
+
+  it("re-ranks contiguously after filtering out unknown users", async () => {
+    mockClerkClient.mockResolvedValue({
+      users: {
+        getUserList: vi.fn(async () => ({
+          data: [
+            {
+              id: "u2",
+              firstName: "alice",
+              username: "alice",
+              emailAddresses: [],
+            },
+          ],
+        })),
+      },
+    } as unknown as Awaited<ReturnType<typeof clerkClient>>);
+    await ctx.db.tests.insert(row({ id: "t_unknown", userId: "u1", wpm: 200 }));
+    await ctx.db.tests.insert(row({ id: "t_known", userId: "u2", wpm: 100 }));
+    const res = await callRoute<LeaderboardOutput>(["leaderboard", "list"], {
+      input: {},
+      db: ctx.db,
+    });
+    expect(res.entries.map((e) => e.testId)).toEqual(["t_known"]);
+    expect(res.entries[0]?.rank).toBe(1);
   });
 
   it("scope=race filters out casual runs", async () => {

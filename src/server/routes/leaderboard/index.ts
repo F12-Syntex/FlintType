@@ -50,7 +50,9 @@ const list = defineRoute<LeaderboardInput, LeaderboardOutput>({
     }
     // Resolve Clerk display names in one bulk fetch. Clerk's
     // getUserList accepts a `userId` array, returning the same set.
-    // If a user has been deleted from Clerk we fall back to "Guest".
+    // Rows whose userId Clerk doesn't recognise (deleted user, or a
+    // total Clerk outage) are filtered out below — we don't ship
+    // "Guest" placeholders to the leaderboard.
     let nameByUserId = new Map<string, { name: string; username: string | null }>();
     try {
       const client = await clerkClient();
@@ -69,21 +71,24 @@ const list = defineRoute<LeaderboardInput, LeaderboardOutput>({
         });
       }
     } catch (err) {
-      // Clerk lookup failures shouldn't fail the route — the page
-      // still renders with anonymised entries. Logged so we notice
-      // if it's a regression rather than a transient blip.
+      // Clerk lookup failures shouldn't fail the route — we simply
+      // emit no entries this cycle rather than blast the table with
+      // anonymised rows. Logged so a regression is visible.
       log.warn("leaderboard: clerk getUserList failed", {
         error: err instanceof Error ? err.message : String(err),
       });
       nameByUserId = new Map();
     }
-    const entries: LeaderboardEntry[] = rows.map((r, i) => {
-      const named = nameByUserId.get(r.userId);
+    // Strip rows that don't have a known Clerk user. Re-rank afterwards
+    // so positions are contiguous (1, 2, 3 …) on the filtered list.
+    const namedRows = rows.filter((r) => nameByUserId.has(r.userId));
+    const entries: LeaderboardEntry[] = namedRows.map((r, i) => {
+      const named = nameByUserId.get(r.userId)!;
       return {
         testId: r.testId,
         rank: i + 1,
-        name: named?.name ?? "Guest",
-        username: named?.username ?? null,
+        name: named.name,
+        username: named.username,
         netWpm: Math.round(r.netWpm),
         wpm: Math.round(r.wpm),
         accuracy: Math.round(r.accuracy * 10) / 10,
