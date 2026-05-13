@@ -12,7 +12,7 @@ import { extract } from "@/server/adapt/measure";
 import {
   RECENCY_RECOVERY_TESTS,
 } from "@/server/adapt/scoring";
-import { advanceRecency } from "@/server/adapt/select";
+import { advanceRecency, COLD_BIGRAM_THRESHOLD } from "@/server/adapt/select";
 import {
   submitTestInputSchema,
   type SubmitTestInput,
@@ -54,6 +54,17 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
     const motorStates = motorFeatureRowsToStates(motorRows);
     const wordStates = wordRowsToStates(wordRows);
 
+    // Pre-submit cold flag — total bigram samples in the model BEFORE
+    // we fold this run's deltas in. Used downstream to gate the PB
+    // notification on training-mode runs: until the algorithm has
+    // ~200 samples, the curated word pool is still mostly random and
+    // a "PB" off it isn't a meaningful claim.
+    const totalBigramSamples = bigramRows.reduce(
+      (s, r) => s + r.sampleCount,
+      0,
+    );
+    const wasCold = totalBigramSamples < COLD_BIGRAM_THRESHOLD;
+
     const baselines = {
       bigram: new Map(
         Array.from(bigramStates, ([k, s]) => [k, s.mean] as const),
@@ -67,29 +78,48 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
     };
     const samples = extract(input.timings, prefs.handLayout, baselines);
 
-    await Promise.all([
-      db.bigramModels.bulkUpsert(userId, deltasFor(bigramStates, samples.bigrams)),
-      db.trigramModels.bulkUpsert(
-        userId,
-        deltasFor(trigramStates, samples.trigrams),
-      ),
-      db.motorFeatureModels.bulkUpsert(
-        userId,
-        deltasFor(motorStates, samples.motorFeatures),
-      ),
-      db.wordModels.bulkUpsert(
-        userId,
-        deltasFor(wordStates, samples.words),
-      ),
-    ]);
+    // Behaviour-pref opt-out: when the user has flipped
+    // `excludeCasualFromAdapt`, casual-mode tests skip the model
+    // update entirely. The test row + PB still record (those are
+    // user-facing history), but the bigram / trigram / motor-feature
+    // / word models stay frozen for that run. Training and race runs
+    // always contribute regardless of the toggle.
+    const behaviour =
+      (prefs.raw.behaviour as
+        | { excludeCasualFromAdapt?: boolean }
+        | undefined) ?? {};
+    const skipAdaptUpdate =
+      input.mode === "casual" && behaviour.excludeCasualFromAdapt === true;
+
+    if (!skipAdaptUpdate) {
+      await Promise.all([
+        db.bigramModels.bulkUpsert(userId, deltasFor(bigramStates, samples.bigrams)),
+        db.trigramModels.bulkUpsert(
+          userId,
+          deltasFor(trigramStates, samples.trigrams),
+        ),
+        db.motorFeatureModels.bulkUpsert(
+          userId,
+          deltasFor(motorStates, samples.motorFeatures),
+        ),
+        db.wordModels.bulkUpsert(
+          userId,
+          deltasFor(wordStates, samples.words),
+        ),
+      ]);
+    }
 
     const testId = randomUUID();
-    // Look up the prior best for this (mode, length) bucket *before*
-    // inserting the new row so the comparison is apples-to-apples and
-    // the just-inserted row never appears in its own "previous best"
-    // query. We only fire a PB notification for completed runs — a
-    // half-finished run isn't a PB regardless of partial WPM.
-    const previousWpm = input.wasCompleted
+    // PB eligibility — a completed run is eligible for the PB
+    // notification UNLESS it was a training-mode run that landed
+    // while the algorithm was still cold (`totalBigramSamples < 200`
+    // before this run's deltas). Training while cold serves a
+    // near-random word selection, so a "PB" off it would
+    // misrepresent the user's real ceiling — wait for the model to
+    // warm up before celebrating training PBs.
+    const pbEligible =
+      input.wasCompleted && !(input.mode === "training" && wasCold);
+    const previousWpm = pbEligible
       ? await db.tests.bestBefore(
           userId,
           input.mode,
@@ -121,7 +151,7 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
     // the test row id, which is unique by construction. Failures are
     // swallowed: an analytics notification falling over must never
     // turn a good test submit into a 5xx.
-    if (input.wasCompleted && (previousWpm == null || input.wpm > previousWpm)) {
+    if (pbEligible && (previousWpm == null || input.wpm > previousWpm)) {
       try {
         await db.notifications.createIfAbsent({
           userId,

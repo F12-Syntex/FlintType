@@ -311,7 +311,11 @@ describe("adapt routes", () => {
     signedInAs("u1");
     await callRoute<SubmitTestOutput>(["adapt", "submit"], {
       db: ctx.db,
-      input: submitInput(),
+      // Use casual mode so the cold-algorithm PB gate doesn't kick
+      // in. The PB notification path is shared between training and
+      // casual; the only difference is the cold-training suppression
+      // which the dedicated test below covers.
+      input: submitInput({ mode: "casual" }),
     });
     const list = await ctx.db.notifications.listForUser("u1");
     expect(list.length).toBe(1);
@@ -330,6 +334,7 @@ describe("adapt routes", () => {
     await callRoute<SubmitTestOutput>(["adapt", "submit"], {
       db: ctx.db,
       input: submitInput({
+        mode: "casual",
         startedAt: 1_700_000_000_000,
         completedAt: 1_700_000_010_000,
         wpm: 80,
@@ -339,6 +344,7 @@ describe("adapt routes", () => {
     await callRoute<SubmitTestOutput>(["adapt", "submit"], {
       db: ctx.db,
       input: submitInput({
+        mode: "casual",
         startedAt: 1_700_000_020_000,
         completedAt: 1_700_000_030_000,
         wpm: 100,
@@ -348,6 +354,7 @@ describe("adapt routes", () => {
     await callRoute<SubmitTestOutput>(["adapt", "submit"], {
       db: ctx.db,
       input: submitInput({
+        mode: "casual",
         startedAt: 1_700_000_040_000,
         completedAt: 1_700_000_050_000,
         wpm: 95,
@@ -363,6 +370,74 @@ describe("adapt routes", () => {
     const data = newest.data as { previousWpm: number; wpm: number };
     expect(data.previousWpm).toBe(80);
     expect(data.wpm).toBe(100);
+  });
+
+  it("training-mode run while the algorithm is cold suppresses the PB notification", async () => {
+    signedInAs("u1");
+    // No bigram samples seeded → algorithm is cold (< 200 samples).
+    // A training PB here would misrepresent the user's real ceiling
+    // because the served word pool is still near-random.
+    await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({ mode: "training" }),
+    });
+    expect(
+      (await ctx.db.notifications.listForUser("u1")).length,
+    ).toBe(0);
+  });
+
+  it("training-mode run after the algorithm warms fires PB normally", async () => {
+    signedInAs("u1");
+    // Pre-seed the bigram model with enough samples to clear the
+    // cold threshold (200). bulkUpsert takes a Map<key, delta>; one
+    // high-sample-count entry is a simpler fixture than typing out
+    // 200 keystrokes.
+    await ctx.db.bigramModels.bulkUpsert(
+      "u1",
+      new Map([
+        ["th", { meanMs: 110, varianceMs: 1, sampleCount: 250 }],
+      ]),
+    );
+    await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({ mode: "training" }),
+    });
+    const list = await ctx.db.notifications.listForUser("u1");
+    expect(list.length).toBe(1);
+    expect(list[0]!.kind).toBe("personal_best");
+  });
+
+  it("excludeCasualFromAdapt skips the model update for casual runs", async () => {
+    signedInAs("u1");
+    // Flip the pref before the casual submit.
+    await ctx.db.userPrefs.set("u1", {
+      behaviour: { excludeCasualFromAdapt: true },
+    });
+    await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({ mode: "casual" }),
+    });
+    // No bigram rows written despite real timings being submitted.
+    expect((await ctx.db.bigramModels.listForUser("u1")).length).toBe(0);
+    // Test row + PB notification still landed — they're separate from
+    // the model-update path.
+    expect((await ctx.db.tests.recentForUser("u1", 10)).length).toBe(1);
+    expect((await ctx.db.notifications.listForUser("u1")).length).toBe(1);
+  });
+
+  it("training runs still feed the model even when excludeCasualFromAdapt is on", async () => {
+    signedInAs("u1");
+    await ctx.db.userPrefs.set("u1", {
+      behaviour: { excludeCasualFromAdapt: true },
+    });
+    await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({ mode: "training" }),
+    });
+    // The toggle is casual-only — training keeps contributing.
+    expect(
+      (await ctx.db.bigramModels.listForUser("u1")).length,
+    ).toBeGreaterThan(0);
   });
 
   it("incomplete runs never fire a PB notification, regardless of WPM", async () => {

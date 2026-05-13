@@ -20,6 +20,12 @@ export type BehaviourPrefs = {
   blindMode: boolean;
   minWordLength: number;
   showSecondary: boolean;
+  /** When true, completed tests in casual mode do NOT feed the
+   *  adaptive bigram / trigram / motor-feature / word models — the
+   *  test row + PB still record, but the algorithm ignores the
+   *  keystrokes. Default false (casual contributes), since the
+   *  more data the model has the better its weakness picks get. */
+  excludeCasualFromAdapt: boolean;
 };
 
 export const DEFAULT_BEHAVIOUR: BehaviourPrefs = {
@@ -31,6 +37,7 @@ export const DEFAULT_BEHAVIOUR: BehaviourPrefs = {
   blindMode: false,
   minWordLength: 1,
   showSecondary: false,
+  excludeCasualFromAdapt: false,
 };
 
 export function useBehaviourPrefs() {
