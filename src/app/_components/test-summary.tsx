@@ -434,10 +434,19 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
         getComputedStyle(document.documentElement).getPropertyValue(
           "--background",
         ).trim() || "#ffffff";
+      // pixelRatio defaults to window.devicePixelRatio inside
+      // html-to-image. We previously forced pixelRatio: 2 here, which
+      // on DPR-1 monitors (most Windows desktops) produced PNGs at 2×
+      // the visible CSS pixels — image viewers opened those at 100%
+      // and the result looked "zoomed in". The default matches the
+      // device's actual pixel density, so the saved file is crisp
+      // without being oversized.
+      const rect = node.getBoundingClientRect();
       const dataUrl = await toPng(node, {
         cacheBust: true,
-        pixelRatio: 2,
         backgroundColor: bg,
+        width: Math.ceil(rect.width),
+        height: Math.ceil(rect.height),
         filter: (n) => !(n instanceof HTMLElement && n.dataset.noExport === "true"),
       });
       const a = document.createElement("a");

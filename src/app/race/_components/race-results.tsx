@@ -32,10 +32,16 @@ export function RaceResults() {
         getComputedStyle(document.documentElement).getPropertyValue(
           "--card",
         ).trim() || "#ffffff";
+      // See test-summary.tsx for the rationale on the pixelRatio
+      // change — html-to-image's default (window.devicePixelRatio)
+      // produces a correctly-sized PNG instead of one that reads as
+      // "zoomed in" when opened on DPR-1 desktops.
+      const rect = node.getBoundingClientRect();
       const dataUrl = await toPng(node, {
         cacheBust: true,
-        pixelRatio: 2,
         backgroundColor: surface,
+        width: Math.ceil(rect.width),
+        height: Math.ceil(rect.height),
         filter: (n) => !(n instanceof HTMLElement && n.dataset.noExport === "true"),
       });
       const a = document.createElement("a");
