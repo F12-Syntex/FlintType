@@ -30,6 +30,7 @@ export function RaceResults() {
     rematch,
     rematchReady,
     onlineSessionToken,
+    abandon,
   } = useRace();
   const { state: practice } = usePractice();
   const you = state.racers.find((r) => r.isYou)!;
@@ -181,7 +182,7 @@ export function RaceResults() {
           )}
           <button
             type="button"
-            onClick={restart}
+            onClick={abandon}
             className={cn(
               "inline-flex items-center rounded-md px-3 py-2.5",
               "text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground",

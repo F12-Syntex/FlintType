@@ -218,15 +218,14 @@ function Table({ entries }: { entries: readonly LeaderboardEntry[] }) {
       <div
         className={cn(
           "hidden items-baseline gap-4 border-b border-border pb-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground",
-          "sm:grid sm:grid-cols-[40px_minmax(0,1fr)_72px_64px_64px_96px]",
+          "sm:grid sm:grid-cols-[40px_minmax(0,1fr)_72px_64px_64px]",
         )}
       >
         <span>#</span>
-        <span>Racer</span>
+        <span>Racer · mode</span>
         <span className="text-right">Net</span>
         <span className="text-right">Raw</span>
         <span className="text-right">Acc</span>
-        <span className="text-right">Mode</span>
       </div>
       <ol className="flex flex-col">
         {entries.map((e) => (
@@ -249,7 +248,7 @@ function Row({ entry }: { entry: LeaderboardEntry }) {
       className={cn(
         "group/row border-b border-border/60 py-3 last:border-b-0",
         "grid grid-cols-[32px_minmax(0,1fr)_auto] items-baseline gap-x-3",
-        "sm:grid-cols-[40px_minmax(0,1fr)_72px_64px_64px_96px] sm:gap-x-4 sm:py-3.5",
+        "sm:grid-cols-[40px_minmax(0,1fr)_72px_64px_64px] sm:gap-x-4 sm:py-3.5",
       )}
     >
       <span
@@ -261,8 +260,8 @@ function Row({ entry }: { entry: LeaderboardEntry }) {
         {entry.rank.toString().padStart(2, "0")}
       </span>
 
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <div className="flex min-w-0 items-center gap-1.5">
+      <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <HandleEl
             {...(handleProps as { href?: string })}
             className={cn(
@@ -276,11 +275,14 @@ function Row({ entry }: { entry: LeaderboardEntry }) {
           {entry.tags.map((t) => (
             <UserTag key={t} tag={t} size="sm" className="shrink-0" />
           ))}
+          <ModeTag
+            mode={entry.mode}
+            amount={entry.durationOrWordCount}
+          />
         </div>
         <div className="flex items-baseline gap-3 text-[10px] uppercase tracking-[0.14em] tabular-nums text-muted-foreground sm:hidden">
           <span>raw {entry.wpm}</span>
           <span>acc {Math.round(entry.accuracy)}%</span>
-          <span>{MODE_LABEL[entry.mode] ?? entry.mode}</span>
         </div>
       </div>
 
@@ -299,10 +301,50 @@ function Row({ entry }: { entry: LeaderboardEntry }) {
       <span className="hidden text-right text-[12px] tabular-nums text-muted-foreground sm:inline">
         {Math.round(entry.accuracy)}%
       </span>
-      <span className="hidden text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground sm:inline">
-        {MODE_LABEL[entry.mode] ?? entry.mode} · {entry.durationOrWordCount}
-      </span>
     </li>
+  );
+}
+
+/* ─── Mode tag ────────────────────────────────────────────────── */
+
+/** Per-mode visual treatment for the mode tag chip. Race draws the
+ *  brand spark (it's the competitive surface and deserves the eye);
+ *  training is a higher-contrast neutral to read as "adaptive
+ *  practice"; casual + reverse stay quietest so the chip doesn't
+ *  shout across the table on the common cases. */
+const MODE_TAG_STYLE: Record<string, string> = {
+  race: "border-primary/40 bg-primary/[0.08] text-primary",
+  training: "border-foreground/25 bg-foreground/[0.05] text-foreground",
+  casual: "border-border bg-muted text-muted-foreground",
+  reverse_adaptive: "border-foreground/15 bg-muted/50 text-muted-foreground",
+};
+
+/** Time-mode standard durations. WORDS lengths don't overlap with
+ *  these (15/30/60/120 are all time-only in the shipping mode set)
+ *  so a strict membership check is enough to pick the right suffix. */
+const TIME_AMOUNTS = new Set([15, 30, 60, 120]);
+
+function ModeTag({ mode, amount }: { mode: string; amount: number }) {
+  const style = MODE_TAG_STYLE[mode] ?? MODE_TAG_STYLE.casual;
+  const label = (MODE_LABEL[mode] ?? mode).toUpperCase();
+  const suffix = TIME_AMOUNTS.has(amount) ? "s" : "";
+  return (
+    <span
+      className={cn(
+        "inline-flex h-5 shrink-0 items-center gap-1 whitespace-nowrap rounded-md border px-1.5",
+        "text-[9px] font-semibold uppercase leading-none tracking-[0.18em]",
+        style,
+      )}
+    >
+      <span>{label}</span>
+      <span aria-hidden className="opacity-50">
+        ·
+      </span>
+      <span className="tabular-nums">
+        {amount}
+        {suffix}
+      </span>
+    </span>
   );
 }
 
