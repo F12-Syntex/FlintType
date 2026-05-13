@@ -113,6 +113,14 @@ export function ProfileView({ username }: { username?: string }) {
 
   const heroIsOwner = isOwner === true;
   const subjectTags = snapshot?.tags ?? [];
+  const subjectEligibleTags = snapshot?.eligibleTags ?? [];
+
+  // Mirror successful tag toggles into the snapshot so the hero
+  // chip strip updates immediately without re-fetching the entire
+  // profile payload.
+  const onTagsChanged = (next: typeof subjectTags) => {
+    setSnapshot((prev) => (prev ? { ...prev, tags: next } : prev));
+  };
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-6 sm:gap-4 sm:px-5 sm:py-8 lg:px-8 lg:py-10">
@@ -120,6 +128,8 @@ export function ProfileView({ username }: { username?: string }) {
         username={username}
         isOwner={heroIsOwner}
         tags={subjectTags}
+        eligibleTags={subjectEligibleTags}
+        onTagsChanged={heroIsOwner ? onTagsChanged : undefined}
         totals={totals}
         streak={streak}
       />

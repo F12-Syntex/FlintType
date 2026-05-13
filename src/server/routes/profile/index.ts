@@ -3,12 +3,17 @@ import { defineNamespace, defineRoute } from "@/server";
 import { BackendError } from "@/lib/errors";
 import { requireAuth } from "@/server/middleware/auth";
 import { rateLimit } from "@/server/middleware/rate-limit";
+import { resolveEligibleTags } from "@/server/resolve-tags";
 import {
+  setTagsInputSchema,
+  type SetTagsInput,
+  type SetTagsOutput,
   updateUsernameInputSchema,
   type UpdateUsernameInput,
   type UpdateUsernameOutput,
   USERNAME_REGEX,
 } from "@/types/profile";
+import type { UserTagId } from "@/types/user-tag";
 
 /** Per-user record of the last successful username update. Strict
  *  1/hour window applies — but only successful updates consume the
@@ -120,6 +125,45 @@ const updateUsername = defineRoute<UpdateUsernameInput, UpdateUsernameOutput>({
   },
 });
 
+/** Update the caller's tag-display selection — which of their
+ *  eligible identity tags they want shown beside their name.
+ *
+ *  Server validates the input against the caller's eligibility set
+ *  (Clerk publicMetadata + OWNER allowlist) and stores the filtered
+ *  selection inside the user-prefs blob under `selectedTags`.
+ *  Display layers (history.summary, history.publicProfile,
+ *  leaderboard.list) intersect this with eligibility at read time.
+ *
+ *  Idempotent — passing the same selection twice is a no-op write
+ *  (last write wins). Passing a tag the user isn't eligible for
+ *  silently drops it from the stored value rather than throwing,
+ *  so stale client state doesn't 4xx the dialog. */
+const setTags = defineRoute<SetTagsInput, SetTagsOutput>({
+  input: setTagsInputSchema,
+  handler: async ({ input, db, meta }) => {
+    const userId = meta.userId as string;
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    const eligible = resolveEligibleTags({
+      email: user.emailAddresses[0]?.emailAddress,
+      publicMetadataTags: (user.publicMetadata as { tags?: unknown } | null)
+        ?.tags,
+    });
+    const eligibleSet = new Set<UserTagId>(eligible);
+    // Filter the input down to what's actually allowed. Dedupe via
+    // the Set so {og, og} doesn't end up double-stored.
+    const validated: UserTagId[] = [];
+    const seen = new Set<UserTagId>();
+    for (const t of input.tags) {
+      if (!eligibleSet.has(t) || seen.has(t)) continue;
+      seen.add(t);
+      validated.push(t);
+    }
+    await db.userPrefs.merge(userId, { selectedTags: validated });
+    return { tags: validated, eligibleTags: eligible };
+  },
+});
+
 /** Profile namespace. The `updateUsername` route enforces its own
  *  1/hour per-user budget for successful writes (rate-limit by Clerk
  *  user id) — that's the rule the user cares about. The 20/min
@@ -131,5 +175,5 @@ const updateUsername = defineRoute<UpdateUsernameInput, UpdateUsernameOutput>({
  *  401s first). */
 export const profile = defineNamespace({
   middleware: [requireAuth, rateLimit({ limit: 20, windowMs: 60_000 })],
-  routes: { updateUsername },
+  routes: { updateUsername, setTags },
 });

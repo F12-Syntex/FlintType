@@ -624,10 +624,10 @@ Identity tags (OG, OWNER, future kinds) are not chrome — they're a claim *abou
 |----------------------------------|-------|-------------------------------------------------------|
 | Leaderboard row                  | `sm`  | inline run after the handle, before any stat columns  |
 | Profile hero                     | `md`  | inline run beside the display-name `h1`                |
-| Edit-profile dialog ("Your tags")| `sm`  | read-only chip row; the user can't pick or remove tags |
+| Edit-profile dialog ("Your tags")| `sm`  | toggleable chip row — every eligible tag rendered; tap to show/hide. Auto-saves on click via `profile.setTags` |
 | Notifications popover (grant row)| `sm`  | inside the `og_granted` notification body              |
 
-Tags are display-only on the client. Adding, removing or re-ordering tags is a backend responsibility (the catalog assigns canonical weight; see `USER_TAG_IDS` in `src/types/user-tag.ts`).
+Tag display is the intersection of **eligibility** (which tags the user is allowed to wear, decided server-side from grants + the OWNER allowlist) and **selection** (which of those the user has opted to actually display, stored in user-prefs). Eligibility is permanent; selection is reversible — users toggle chips in the Edit Profile dialog and the change saves immediately. A user with no stored selection defaults to "show all eligible"; an empty `[]` selection is the explicit opt-out. Canonical paint order comes from `USER_TAG_IDS` in `src/types/user-tag.ts` either way.
 
 ### 14.2 Adding a new tag
 

@@ -5,7 +5,11 @@ import type { Database } from "@/db/server";
 import { ensureUser } from "@/server/ensure-user";
 import { requireAuth } from "@/server/middleware/auth";
 import { rateLimit } from "@/server/middleware/rate-limit";
-import { resolveTagsFromClerkUser } from "@/server/resolve-tags";
+import {
+  applyTagSelection,
+  readTagSelection,
+  resolveEligibleTags,
+} from "@/server/resolve-tags";
 import type { UserTagId } from "@/types/user-tag";
 import {
   bigramRowsToStates,
@@ -55,6 +59,7 @@ async function loadHistorySummary(
   db: Database,
   userId: string,
   tags: UserTagId[],
+  eligibleTags: UserTagId[],
 ): Promise<HistorySummaryOutput> {
   // Categorisation reads the user's finger map (Dvorak / Colemak
   // users have different same-finger pairs than QWERTY). Load it
@@ -169,6 +174,7 @@ async function loadHistorySummary(
     wordBaselineMs: wordBaseline,
     monkeytype,
     tags,
+    eligibleTags,
   };
 }
 
@@ -182,13 +188,13 @@ const summary = defineRoute<void, HistorySummaryOutput>({
     await ensureUser(ctx);
     const userId = ctx.meta.userId as string;
     // Pull the Clerk user once to resolve identity tags. A failure
-    // here downgrades tags to [] but doesn't break the summary —
+    // here downgrades to no tags but doesn't break the summary —
     // a profile without a tag chip is a usable profile.
-    let tags: UserTagId[] = [];
+    let eligibleTags: UserTagId[] = [];
     try {
       const client = await clerkClient();
       const user = await client.users.getUser(userId);
-      tags = resolveTagsFromClerkUser({
+      eligibleTags = resolveEligibleTags({
         email: user.emailAddresses[0]?.emailAddress,
         publicMetadataTags: (user.publicMetadata as { tags?: unknown } | null)
           ?.tags,
@@ -199,7 +205,13 @@ const summary = defineRoute<void, HistorySummaryOutput>({
         error: err instanceof Error ? err.message : String(err),
       });
     }
-    return loadHistorySummary(ctx.db, userId, tags);
+    // Apply the caller's tag-display selection — stored in user-prefs
+    // under `selectedTags`. A missing selection means "show all
+    // eligible" so existing users don't lose tags overnight.
+    const prefs = await ctx.db.userPrefs.get(userId);
+    const selection = readTagSelection(prefs);
+    const tags = applyTagSelection(eligibleTags, selection);
+    return loadHistorySummary(ctx.db, userId, tags, eligibleTags);
   },
 });
 
@@ -233,12 +245,15 @@ const publicProfile = defineRoute<PublicProfileInput, HistorySummaryOutput>({
     }
     // We already have the Clerk user from the username lookup — read
     // tags off it directly rather than pay for a second getUser call.
-    const tags = resolveTagsFromClerkUser({
+    const eligibleTags = resolveEligibleTags({
       email: user.emailAddresses[0]?.emailAddress,
       publicMetadataTags: (user.publicMetadata as { tags?: unknown } | null)
         ?.tags,
     });
-    return loadHistorySummary(db, user.id, tags);
+    const subjectPrefs = await db.userPrefs.get(user.id);
+    const selection = readTagSelection(subjectPrefs);
+    const tags = applyTagSelection(eligibleTags, selection);
+    return loadHistorySummary(db, user.id, tags, eligibleTags);
   },
 });
 

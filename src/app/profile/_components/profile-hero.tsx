@@ -38,12 +38,21 @@ export function ProfileHero({
   username,
   isOwner,
   tags = [],
+  eligibleTags = [],
+  onTagsChanged,
   totals,
   streak,
 }: {
   username?: string;
   isOwner: boolean;
   tags?: UserTagId[];
+  /** Full set of tags the subject is eligible to display. Owner-only:
+   *  passed through to the EditProfileDialog so the toggle UI can
+   *  paint every eligible chip (selected and unselected). */
+  eligibleTags?: UserTagId[];
+  /** Fires when the dialog saves a new selection. Parents use this
+   *  to refresh the visible tag set without a snapshot refetch. */
+  onTagsChanged?: (next: UserTagId[]) => void;
   totals: ProfileTotals;
   streak: StreakStats;
 }) {
@@ -157,6 +166,8 @@ export function ProfileHero({
             open={editOpen}
             onOpenChange={setEditOpen}
             tags={tags}
+            eligibleTags={eligibleTags}
+            onTagsChanged={onTagsChanged}
           />
           <MonkeyTypeImportDialog
             open={importOpen}

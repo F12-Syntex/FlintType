@@ -43,4 +43,47 @@ describe("userPrefsRepo", () => {
       caret: { style: "underline" },
     });
   });
+
+  it("bulkGet returns a Map of userId → blob for rows that exist", async () => {
+    await ctx.db.userPrefs.set("u1", { selectedTags: ["og"] });
+    await ctx.db.userPrefs.set("u2", { selectedTags: [] });
+    const out = await ctx.db.userPrefs.bulkGet(["u1", "u2", "u3"]);
+    expect(out.size).toBe(2);
+    expect(out.get("u1")).toEqual({ selectedTags: ["og"] });
+    expect(out.get("u2")).toEqual({ selectedTags: [] });
+    expect(out.has("u3")).toBe(false);
+  });
+
+  it("bulkGet short-circuits an empty input", async () => {
+    const out = await ctx.db.userPrefs.bulkGet([]);
+    expect(out.size).toBe(0);
+  });
+
+  it("merge writes into the existing blob without clobbering unrelated keys", async () => {
+    await ctx.db.userPrefs.set("u1", {
+      caret: { style: "block" },
+      behaviour: { strictSpace: true },
+    });
+    await ctx.db.userPrefs.merge("u1", { selectedTags: ["og"] });
+    expect(await ctx.db.userPrefs.get("u1")).toEqual({
+      caret: { style: "block" },
+      behaviour: { strictSpace: true },
+      selectedTags: ["og"],
+    });
+  });
+
+  it("merge creates the row when none exists", async () => {
+    await ctx.db.userPrefs.merge("u_new", { selectedTags: [] });
+    expect(await ctx.db.userPrefs.get("u_new")).toEqual({
+      selectedTags: [],
+    });
+  });
+
+  it("merge overrides existing keys with the patch", async () => {
+    await ctx.db.userPrefs.set("u1", { selectedTags: ["og"] });
+    await ctx.db.userPrefs.merge("u1", { selectedTags: ["owner", "og"] });
+    expect(await ctx.db.userPrefs.get("u1")).toEqual({
+      selectedTags: ["owner", "og"],
+    });
+  });
 });

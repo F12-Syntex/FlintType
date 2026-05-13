@@ -1,7 +1,11 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { defineNamespace, defineRoute } from "@/server";
 import { rateLimit } from "@/server/middleware/rate-limit";
-import { resolveTagsFromClerkUser } from "@/server/resolve-tags";
+import {
+  applyTagSelection,
+  readTagSelection,
+  resolveEligibleTags,
+} from "@/server/resolve-tags";
 import type { UserTagId } from "@/types/user-tag";
 import {
   leaderboardInputSchema,
@@ -69,6 +73,10 @@ const list = defineRoute<LeaderboardInput, LeaderboardOutput>({
       const client = await clerkClient();
       const ids = [...new Set(rows.map((r) => r.userId))];
       const { data } = await client.users.getUserList({ userId: ids, limit: ids.length });
+      // Bulk-fetch user-prefs for the same ids so each row honours
+      // the racer's tag-display selection. One indexed SELECT covers
+      // the whole batch — no per-row roundtrip.
+      const prefsByUserId = await db.userPrefs.bulkGet(ids);
       for (const u of data) {
         const raw =
           u.firstName ??
@@ -76,10 +84,12 @@ const list = defineRoute<LeaderboardInput, LeaderboardOutput>({
           u.emailAddresses[0]?.emailAddress?.split("@")[0] ??
           "racer";
         const display = raw.startsWith("@") ? raw : `@${raw}`;
-        const tags = resolveTagsFromClerkUser({
+        const eligibleTags = resolveEligibleTags({
           email: u.emailAddresses[0]?.emailAddress,
           publicMetadataTags: (u.publicMetadata as { tags?: unknown } | null)?.tags,
         });
+        const selection = readTagSelection(prefsByUserId.get(u.id));
+        const tags = applyTagSelection(eligibleTags, selection);
         userInfoByUserId.set(u.id, {
           name: display,
           username: u.username ?? null,

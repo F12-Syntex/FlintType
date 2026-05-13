@@ -191,3 +191,121 @@ describe("profile.updateUsername", () => {
     ).rejects.toMatchObject({ code: "CONFLICT" });
   });
 });
+
+/* ─── setTags ─────────────────────────────────────────── */
+
+import { createTestDatabase } from "@/db/server/testing";
+import { OWNER_EMAILS } from "@/server/owner-config";
+import type { SetTagsOutput } from "@/types/profile";
+
+function mockClerkUserMeta(opts: {
+  id: string;
+  email: string | null;
+  publicMetadataTags?: readonly string[];
+}) {
+  mockClerkClient.mockResolvedValue({
+    users: {
+      getUser: vi.fn(async (id: string) => ({
+        id,
+        username: null,
+        emailAddresses: opts.email
+          ? [{ emailAddress: opts.email }]
+          : [],
+        publicMetadata:
+          opts.publicMetadataTags != null
+            ? { tags: opts.publicMetadataTags }
+            : {},
+      })),
+      getUserList: vi.fn(async () => ({ data: [], totalCount: 0 })),
+      updateUser: vi.fn(async () => ({ id: opts.id })),
+    },
+  } as unknown as Awaited<ReturnType<typeof clerkClient>>);
+}
+
+describe("profile.setTags", () => {
+  let ctx: Awaited<ReturnType<typeof createTestDatabase>>;
+
+  beforeEach(async () => {
+    if (!ctx) ctx = await createTestDatabase();
+    await ctx.reset();
+    mockAuth.mockReset();
+    mockClerkClient.mockReset();
+  });
+
+  it("rejects unauthenticated callers", async () => {
+    mockAuth.mockResolvedValue({
+      userId: null,
+      sessionClaims: null,
+    } as unknown as Awaited<ReturnType<typeof auth>>);
+    await expect(
+      callRoute(["profile", "setTags"], { input: { tags: ["og"] } }),
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
+  it("stores an eligible tag selection and echoes the validated list", async () => {
+    signedInAs("u_me");
+    mockClerkUserMeta({
+      id: "u_me",
+      email: OWNER_EMAILS[0]!,
+      publicMetadataTags: ["og"],
+    });
+    const out = await callRoute<SetTagsOutput>(
+      ["profile", "setTags"],
+      { input: { tags: ["og"] }, db: ctx.db },
+    );
+    expect(out.tags).toEqual(["og"]);
+    expect(out.eligibleTags).toEqual(["owner", "og"]);
+    // Stored under selectedTags inside the user-prefs blob.
+    expect((await ctx.db.userPrefs.get("u_me")).selectedTags).toEqual(["og"]);
+  });
+
+  it("silently drops tags the caller isn't eligible for", async () => {
+    signedInAs("u_me");
+    mockClerkUserMeta({
+      id: "u_me",
+      email: "nobody@example.com",
+      publicMetadataTags: ["og"],
+    });
+    const out = await callRoute<SetTagsOutput>(
+      ["profile", "setTags"],
+      { input: { tags: ["og", "owner"] }, db: ctx.db },
+    );
+    // The user is OG-eligible but not OWNER-eligible — only `og`
+    // makes it through. No 4xx; the route stays idempotent.
+    expect(out.tags).toEqual(["og"]);
+    expect(out.eligibleTags).toEqual(["og"]);
+  });
+
+  it("[] selection persists as opt-out (zero tags displayed)", async () => {
+    signedInAs("u_me");
+    mockClerkUserMeta({
+      id: "u_me",
+      email: OWNER_EMAILS[0]!,
+      publicMetadataTags: ["og"],
+    });
+    const out = await callRoute<SetTagsOutput>(
+      ["profile", "setTags"],
+      { input: { tags: [] }, db: ctx.db },
+    );
+    expect(out.tags).toEqual([]);
+    expect((await ctx.db.userPrefs.get("u_me")).selectedTags).toEqual([]);
+  });
+
+  it("merges into the prefs blob without clobbering unrelated keys", async () => {
+    signedInAs("u_me");
+    mockClerkUserMeta({
+      id: "u_me",
+      email: null,
+      publicMetadataTags: ["og"],
+    });
+    await ctx.db.userPrefs.set("u_me", { caret: { style: "block" } });
+    await callRoute<SetTagsOutput>(
+      ["profile", "setTags"],
+      { input: { tags: ["og"] }, db: ctx.db },
+    );
+    expect(await ctx.db.userPrefs.get("u_me")).toEqual({
+      caret: { style: "block" },
+      selectedTags: ["og"],
+    });
+  });
+});

@@ -68,11 +68,17 @@ export type HistorySummaryOutput = {
    *  stripped server-side — visitors only see the lifetime counters
    *  and PB cells that drive the rendered level + bests. */
   monkeytype: PublicMonkeytypeStats | null;
-  /** Identity-marker tags for the *subject* of this profile. Resolved
-   *  server-side from Clerk publicMetadata + the OWNER allowlist.
-   *  Always present (empty array when the user has no tags). Paint
-   *  beside the display name in array order. */
+  /** Identity-marker tags currently displayed for the subject. This
+   *  is the *eligibility ∩ selection* set — the user can hide tags
+   *  they're eligible for, or opt out entirely. Paint beside the
+   *  display name in array order. */
   tags: UserTagId[];
+  /** Full set of tags the subject is *eligible* to display. Returned
+   *  alongside `tags` so the edit-profile UI knows which chips to
+   *  offer for toggling without a second round-trip. Visitors viewing
+   *  someone else's profile receive the same array (it's not
+   *  sensitive — tags are display data). */
+  eligibleTags: UserTagId[];
 };
 
 /** Subset of MonkeytypeStatsSlice safe to expose over the public
