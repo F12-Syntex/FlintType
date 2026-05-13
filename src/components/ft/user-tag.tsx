@@ -57,10 +57,27 @@ export function UserTag({
       : "h-5 gap-1 px-2 text-[10px]";
   const iconSize = size === "md" ? 14 : 12;
   const Icon = config.icon;
+  // Tags are info chips — they should never trigger their parent
+  // affordance. Stop the click here so a chip rendered inside a
+  // `<Link>` row (notifications popover, future leaderboard rows
+  // with row-level clicks) doesn't navigate away when the user is
+  // trying to read the tooltip. Matches Monkeytype's behaviour.
+  //
+  // Only applies when the chip *is* the info affordance — when
+  // `tooltip={false}` the parent (e.g. the edit-profile toggle
+  // button) owns the click and we must let it bubble.
+  const swallowClick = tooltip
+    ? (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    : undefined;
   const chip = (
     <span
       role="img"
       aria-label={config.aria}
+      onClick={swallowClick}
+      onMouseDown={swallowClick}
       className={cn(
         "inline-flex cursor-pointer items-center whitespace-nowrap rounded-md border font-semibold uppercase leading-none tracking-[0.12em]",
         sizeClass,
