@@ -98,6 +98,17 @@ export type RoomSnapshot = {
    *  can render a "— Source" line under the passage. Absent for
    *  non-quote modes. */
   quoteSource?: string;
+  /** 1-indexed round number inside this room. Increments each time
+   *  the room transitions back to lobby after a rematch. Clients use
+   *  the delta to detect "a new round started" — when this rises,
+   *  the practice + race state needs to reset for the new passage. */
+  roundNumber: number;
+  /** Session tokens of real players who've clicked Rematch since the
+   *  current round finished. Bots are implicitly ready (no token,
+   *  not in this list). Cleared when the new round transitions to
+   *  lobby. Drives the "Ready · waiting for opponent" UI on the
+   *  post-race surface. */
+  rematchReady: readonly string[];
 };
 
 /* ─── Request schemas ──────────────────────────────────────────── */
@@ -197,3 +208,16 @@ export const startChallengeInputSchema = z.object({
 export type StartChallengeInput = z.infer<typeof startChallengeInputSchema>;
 
 export type StartChallengeOutput = { ok: true };
+
+export const rematchInputSchema = z.object({
+  roomId: z.string().min(1),
+  sessionToken: z.string().min(1),
+});
+export type RematchInput = z.infer<typeof rematchInputSchema>;
+export type RematchOutput = {
+  ok: true;
+  /** True when the caller's ready vote met threshold and the room
+   *  has already transitioned into the new round. False means we
+   *  recorded the ready state and are waiting for more votes. */
+  started: boolean;
+};

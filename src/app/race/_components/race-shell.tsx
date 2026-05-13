@@ -36,6 +36,12 @@ export type RaceShellOnline = {
   words: readonly string[];
   totalChars: number;
   modeId: RaceModeId;
+  /** 1-indexed round counter — included in the subtree key so a
+   *  rematch (round bump) triggers a clean re-mount of PracticeProvider
+   *  and the race provider with the new passage. Starts at 1 the
+   *  moment the room is first joined; the shell bumps it via
+   *  `onlineRoundAdvance` when the server starts a new round. */
+  roundNumber: number;
   /** True when the user joined a full/started challenge as a
    *  spectator. The shell drops InputCapture entirely (no typing),
    *  the leave-guard sleeps, and a banner replaces the action
@@ -87,6 +93,7 @@ export function RaceShell({
         words: res.words,
         totalChars: res.totalChars,
         modeId: res.modeId as RaceModeId,
+        roundNumber: 1,
       });
     } catch {
       // Keep the user on the queue surface; race-controls will let
@@ -143,6 +150,34 @@ export function RaceShell({
     router.push("/race");
   }, [challengeSlug, router]);
 
+  // Rematch fired server-side — the room bumped its roundNumber and
+  // re-rolled the passage. Update our stored words + totalChars +
+  // roundNumber so the subtree key changes (see below), which
+  // re-mounts PracticeProvider with the fresh passage and the race
+  // provider with a clean state machine. The SSE subscription
+  // briefly reconnects across the re-mount; the room's next snapshot
+  // immediately puts the client back into lobby/countdown for the
+  // new round.
+  const onRoundAdvance = useCallback(
+    (next: {
+      words: readonly string[];
+      totalChars: number;
+      roundNumber: number;
+    }) => {
+      setOnline((prev) =>
+        prev
+          ? {
+              ...prev,
+              words: next.words,
+              totalChars: next.totalChars,
+              roundNumber: next.roundNumber,
+            }
+          : prev,
+      );
+    },
+    [],
+  );
+
   // Confirm-before-leave is on whenever the user is connected to a
   // server room (matching → lobby → countdown → racing). Spectators
   // skip the guard — they're already read-only and have no progress
@@ -172,10 +207,12 @@ export function RaceShell({
 
   const youName = useYouHandle();
   const words = online?.words ?? [];
-  // Subtree key — bumps when the room handle changes (or on mode
-  // switch). Both PracticeProvider and the race provider re-mount
-  // together so racing state never lags the practice state.
-  const subtreeKey = `${modeId}:${online?.roomId ?? "queue"}:${youName}`;
+  // Subtree key — bumps when the room handle changes, the mode
+  // switches, OR the room starts a new round (rematch). Including
+  // roundNumber forces PracticeProvider and the race provider to
+  // re-mount together with the fresh passage so racing state never
+  // lags the practice state.
+  const subtreeKey = `${modeId}:${online?.roomId ?? "queue"}:r${online?.roundNumber ?? 1}:${youName}`;
 
   const initialRoomForProvider = online
     ? { roomId: online.roomId, sessionToken: online.sessionToken }
@@ -194,6 +231,7 @@ export function RaceShell({
       onlineEnterQueue={enterQueue}
       onlineAbandon={abandon}
       onlineRoomCancelled={onRoomCancelled}
+      onlineRoundAdvance={onRoundAdvance}
       initialOnlineRoom={initialRoomForProvider}
       challengeSlug={challengeSlug ?? null}
     >

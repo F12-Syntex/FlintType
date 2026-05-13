@@ -7,6 +7,13 @@ import { cn } from "@/lib/utils";
 import { usePractice } from "../../_components/practice-state";
 import { useRace } from "./race-state";
 
+/** Track whether the local user already cast a rematch vote on the
+ *  current finished round. Read from the server snapshot
+ *  (`rematchReady` list) for source-of-truth, plus a local optimistic
+ *  flag for the moment between click and the next snapshot. The
+ *  subtree re-mounts when the new round starts, so the optimistic
+ *  flag resets cleanly without manual cleanup. */
+
 /** Post-race summary panel. Mounts only after every racer has
  *  crossed the line. Hosts the placement headline, a five-cell stat
  *  strip (WPM / accuracy / chars / errors / time), the static
@@ -17,11 +24,36 @@ import { useRace } from "./race-state";
  *  state's window keydown handler — pressing Tab on this surface
  *  jumps straight to a new race. */
 export function RaceResults() {
-  const { state, restart } = useRace();
+  const {
+    state,
+    restart,
+    rematch,
+    rematchReady,
+    onlineSessionToken,
+  } = useRace();
   const { state: practice } = usePractice();
   const you = state.racers.find((r) => r.isYou)!;
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [rematchClicked, setRematchClicked] = useState(false);
+
+  // Source of truth: did the server ack our vote? Plus optimistic
+  // local state so the button flips the moment the user clicks.
+  const remoteVoted =
+    onlineSessionToken != null &&
+    (rematchReady ?? []).includes(onlineSessionToken);
+  const voted = remoteVoted || rematchClicked;
+  const readyCount = (rematchReady ?? []).length;
+  const realCount = state.racers.filter(
+    (r) => r.bot == null && !r.disconnected,
+  ).length;
+  const required = Math.max(1, Math.min(2, realCount));
+  const waitingForOthers = voted && required > 1 && readyCount < required;
+
+  const onRematch = useCallback(() => {
+    setRematchClicked(true);
+    rematch();
+  }, [rematch]);
   const onDownload = useCallback(async () => {
     // Capture the whole content area (data-screenshot-root on
     // AppChrome's main scroller) rather than just this panel, so the
@@ -114,19 +146,50 @@ export function RaceResults() {
             <Download size={14} className="shrink-0" />
             {exporting ? "Saving" : "Save image"}
           </button>
+          {voted ? (
+            <span
+              role="status"
+              aria-live="polite"
+              className={cn(
+                "inline-flex items-center gap-2 rounded-md border border-primary/40 bg-primary/[0.06] px-4 py-2.5",
+                "text-[11px] font-semibold uppercase tracking-[0.22em] text-primary",
+              )}
+            >
+              {waitingForOthers ? (
+                <>
+                  Ready{" "}
+                  <span className="text-primary/70 tabular-nums">
+                    {readyCount}/{required}
+                  </span>
+                </>
+              ) : (
+                "Starting…"
+              )}
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={onRematch}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5",
+                "text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-foreground",
+                "transition-colors hover:bg-primary/90 active:translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+              )}
+            >
+              Rematch
+            </button>
+          )}
           <button
             type="button"
             onClick={restart}
             className={cn(
-              "inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5",
-              "text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-foreground",
-              "transition-colors hover:bg-primary/90 active:translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+              "inline-flex items-center rounded-md px-3 py-2.5",
+              "text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground",
+              "transition-colors hover:text-foreground active:translate-y-[1px]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
             )}
           >
-            Race again
-            <span className="text-[9px] tracking-[0.2em] text-primary-foreground/70">
-              · TAB
-            </span>
+            Leave
           </button>
         </div>
       </div>

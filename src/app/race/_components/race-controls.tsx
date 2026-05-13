@@ -137,6 +137,7 @@ function CreateChallengeButton({ modeId }: { modeId: RaceModeId }) {
         words: res.words,
         totalChars: res.totalChars,
         modeId: res.modeId as Parameters<typeof writeHostStorage>[1]["modeId"],
+        roundNumber: 1,
       });
       router.push(`/race/c/${res.slug}`);
     } catch {

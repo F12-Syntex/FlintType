@@ -29,6 +29,10 @@ export type RaceRoomBinding = {
     accuracy: number,
   ) => void;
   leave: () => void;
+  /** Cast a rematch-ready vote for the current round. Resolves to
+   *  `started=true` when this vote met threshold and the new round
+   *  has already kicked off server-side. */
+  rematch: () => Promise<{ started: boolean }>;
 };
 
 export type UseRaceRoomArgs = {
@@ -161,6 +165,21 @@ export function useRaceRoom({
     void backend.race.leave({ roomId: room, sessionToken: token });
   }, [backend]);
 
+  const rematch = useCallback(async () => {
+    const room = roomRef.current;
+    const token = tokenRef.current;
+    if (!room || !token) return { started: false };
+    try {
+      const res = await backend.race.rematch({ roomId: room, sessionToken: token });
+      return { started: res.started };
+    } catch {
+      // Soft-fail — the SSE snapshot is still the source of truth
+      // for whether a new round actually started; a network glitch
+      // on the vote just means the user re-clicks.
+      return { started: false };
+    }
+  }, [backend]);
+
   // No auto-leave on unmount. React strict-mode and dev fast-refresh
   // both double-invoke effect cleanups, which would call `race.leave`
   // during a transient unmount-then-remount. The server treats a
@@ -217,5 +236,5 @@ export function useRaceRoom({
     };
   }, []);
 
-  return { snapshot, ready, state, sendProgress, leave };
+  return { snapshot, ready, state, sendProgress, leave, rematch };
 }

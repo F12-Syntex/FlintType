@@ -36,6 +36,15 @@ export type RaceCtx = {
    *  itself is exposed for the share-link UI. */
   isChallenge?: boolean;
   challengeSlug?: string | null;
+  /** Session tokens of real players who've cast a rematch-ready vote
+   *  on the current finished round. Empty until at least one user
+   *  clicks Rematch; cleared the moment the new round starts.
+   *  Drives the post-race "Ready · waiting for opponent" status. */
+  rematchReady?: readonly string[];
+  /** 1-indexed round counter inside the current room. Increments
+   *  when a rematch starts. Surfaced so the UI can label "Round 2",
+   *  "Round 3" if it wants. */
+  roundNumber?: number;
 };
 
 export const RaceContext = createContext<RaceCtx | null>(null);

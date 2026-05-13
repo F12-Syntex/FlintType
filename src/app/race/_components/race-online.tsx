@@ -41,6 +41,7 @@ export function OnlineRaceProvider({
   onEnterQueue,
   onAbandon,
   onRoomCancelled,
+  onRoundAdvance,
   children,
 }: {
   modeId: RaceModeId;
@@ -65,6 +66,16 @@ export function OnlineRaceProvider({
    *  destroyed the lobby. Shell tears down the slug-side state and
    *  navigates back to /race. */
   onRoomCancelled?: () => void;
+  /** Fires when the server snapshot's `roundNumber` increments —
+   *  i.e. the room just transitioned out of "finished" into the next
+   *  round via a rematch. The shell uses this to update its stored
+   *  `online.words` and bump the subtree key so PracticeProvider
+   *  re-mounts with the fresh passage. */
+  onRoundAdvance?: (next: {
+    words: readonly string[];
+    totalChars: number;
+    roundNumber: number;
+  }) => void;
   children: ReactNode;
 }) {
   const backend = useBackend();
@@ -74,7 +85,7 @@ export function OnlineRaceProvider({
   // null, we're in the local queue state.
   const room = initialRoom ?? null;
 
-  const { snapshot, sendProgress, leave } = useRaceRoom({
+  const { snapshot, sendProgress, leave, rematch: rematchRoom } = useRaceRoom({
     roomId: room?.roomId ?? null,
     sessionToken: room?.sessionToken ?? null,
   });
@@ -131,6 +142,30 @@ export function OnlineRaceProvider({
     leave();
     restartShell();
   }, [leave, restartShell]);
+
+  const rematch = useCallback(() => {
+    void rematchRoom();
+  }, [rematchRoom]);
+
+  // Detect when the room transitions into a new round (rematch fired
+  // server-side). The shell needs to hear this so it can update its
+  // `online.words` snapshot and bump the subtree key — that re-mounts
+  // PracticeProvider with the fresh passage. We fire the callback
+  // only when the round number actually advances (not on every
+  // snapshot) and only when words have arrived (the server emits
+  // them once phase enters racing).
+  const lastRoundRef = useRef<number>(1);
+  useEffect(() => {
+    if (!snapshot) return;
+    if (snapshot.roundNumber <= lastRoundRef.current) return;
+    if (!snapshot.words || snapshot.words.length === 0) return;
+    lastRoundRef.current = snapshot.roundNumber;
+    onRoundAdvance?.({
+      words: snapshot.words,
+      totalChars: snapshot.totalChars,
+      roundNumber: snapshot.roundNumber,
+    });
+  }, [snapshot, onRoundAdvance]);
 
   // Find "you" in the snapshot so the UI can show host-only controls
   // (Cancel) without prop-drilling the host flag through every layer.
@@ -205,7 +240,7 @@ export function OnlineRaceProvider({
       startCountdown: () => undefined, // server-driven; client can't force it
       restart,
       abandon,
-      rematch: abandon,
+      rematch,
       cancelLobby,
       isHost,
       ...derived,
@@ -215,6 +250,8 @@ export function OnlineRaceProvider({
       onlineSnapshot: snapshot,
       isChallenge: snapshot?.kind === "challenge",
       challengeSlug: challengeSlug ?? snapshot?.slug ?? null,
+      rematchReady: snapshot?.rematchReady ?? [],
+      roundNumber: snapshot?.roundNumber ?? 1,
     }),
     [
       state,
@@ -223,6 +260,7 @@ export function OnlineRaceProvider({
       enterQueue,
       restart,
       abandon,
+      rematch,
       cancelLobby,
       isHost,
       derived,

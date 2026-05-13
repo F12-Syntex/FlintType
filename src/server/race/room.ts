@@ -76,11 +76,14 @@ export class RaceRoom {
   readonly kind: RaceRoomKind;
   readonly modeId: RaceModeId;
   readonly capacity: number;
-  readonly raceSeed: number;
-  readonly words: readonly string[];
-  readonly totalChars: number;
+  /** Mutable on rematch — every new round re-rolls the passage with a
+   *  fresh seed so word-passage racers don't replay the same line. */
+  raceSeed: number;
+  words: readonly string[];
+  totalChars: number;
   /** Source attribution for QUOTE rooms; undefined for word-passage
-   *  rooms. Broadcast on every snapshot. */
+   *  rooms. Broadcast on every snapshot. Quote rooms keep the same
+   *  quote across rematches — the room *is* about that quote. */
   readonly quoteSource: string | undefined;
   phase: RacePhase = "matching";
   matchmakingStartedAt: number;
@@ -88,6 +91,14 @@ export class RaceRoom {
   countdownStartedAt: number | null = null;
   raceStartedAt: number | null = null;
   raceEndedAt: number | null = null;
+  /** 1-indexed round counter. Bumps each time `startNewRound` fires.
+   *  Clients watch this for "the room transitioned to a new race" so
+   *  they can reset their practice / race providers cleanly. */
+  roundNumber = 1;
+  /** Session tokens of real players who've voted to rematch since the
+   *  current round finished. Bots count as implicitly ready (we never
+   *  store them here). Cleared by `startNewRound`. */
+  private readonly rematchReady = new Set<string>();
   /** Set true the moment the challenge host fires `hostCancel`. The
    *  next (and final) snapshot carries this flag so every connected
    *  client knows to bounce back to /race. */
@@ -495,6 +506,93 @@ export class RaceRoom {
     this.scheduleGc();
   }
 
+  /* ─── Rematch ────────────────────────────────────────────── */
+
+  /** Mark a real player as ready for a rematch. Idempotent. Returns
+   *  `{ ok: false }` for unknown tokens / bots / wrong phase, or
+   *  `{ ok: true, started: <bool> }` where `started=true` means this
+   *  vote met threshold and the new round is already in motion.
+   *
+   *  Threshold:
+   *    - In a room with one real player (the rest are bots), one
+   *      ready vote is enough — the bots count as the second
+   *      "player" so a 1v1 / 1v3 user can rematch instantly.
+   *    - In a room with two+ real players, we need at least two
+   *      ready votes before kicking off the new round. The room
+   *      doesn't auto-include bots in the multi-real count to avoid
+   *      starting a race before any human is actually ready. */
+  markRematchReady(token: string): { ok: boolean; started: boolean } {
+    if (this.phase !== "finished" || this.cancelled) {
+      return { ok: false, started: false };
+    }
+    const racer = this.racers.get(token);
+    if (!racer || racer.isBot || racer.disconnected) {
+      return { ok: false, started: false };
+    }
+    this.rematchReady.add(token);
+    this.lastTouchedAt = Date.now();
+    const realCount = [...this.racers.values()].filter(
+      (r) => !r.isBot && !r.disconnected,
+    ).length;
+    const required = Math.max(1, Math.min(2, realCount));
+    if (this.rematchReady.size >= required) {
+      this.startNewRound();
+      return { ok: true, started: true };
+    }
+    this.scheduleBroadcast();
+    return { ok: true, started: false };
+  }
+
+  /** Reset every racer's progress, regenerate the passage (word-mode
+   *  only; quote rooms keep their quote), and run the room back
+   *  through lobby → countdown → racing. Bumps `roundNumber` so
+   *  every connected client knows to reset its practice / race
+   *  provider for the new passage. */
+  private startNewRound() {
+    if (this.gcTimer) {
+      clearTimeout(this.gcTimer);
+      this.gcTimer = null;
+    }
+    if (this.botTickInterval) {
+      clearInterval(this.botTickInterval);
+      this.botTickInterval = null;
+    }
+    this.cancelTimers();
+    // Re-roll the passage. Quote rooms keep the same quote text (the
+    // room is "about" that quote) so we read from options.quoteText
+    // when present; everything else regenerates from a derived seed
+    // so two consecutive rounds don't reproduce the same word list.
+    this.raceSeed = (this.raceSeed * 31 + Date.now() + this.roundNumber) | 0;
+    if (this.options.quoteText != null) {
+      this.words = this.options.quoteText.split(/\s+/).filter(Boolean);
+    } else {
+      this.words = generateRacePassage(
+        this.options.wordCount ?? 25,
+        this.raceSeed,
+      );
+    }
+    this.totalChars = totalCharsOf(this.words);
+    // Reset per-racer state — keep identity (id / name / flag / badge
+    // / isHost / isBot / botProfile) but wipe everything race-bound.
+    for (const r of this.racers.values()) {
+      r.progressChars = 0;
+      r.errors = 0;
+      r.wpm = 0;
+      r.accuracy = 100;
+      r.finishedAt = null;
+      r.place = null;
+      r.botCharProgress = 0;
+    }
+    this.rematchReady.clear();
+    this.nextPlace = 1;
+    this.raceStartedAt = null;
+    this.raceEndedAt = null;
+    this.countdownStartedAt = null;
+    this.roundNumber += 1;
+    this.phase = "lobby";
+    this.scheduleLobbyHold();
+  }
+
   private scheduleGc() {
     if (this.gcTimer) return;
     this.gcTimer = setTimeout(() => {
@@ -559,6 +657,8 @@ export class RaceRoom {
       racers,
       cancelled: this.cancelled || undefined,
       quoteSource: this.quoteSource,
+      roundNumber: this.roundNumber,
+      rematchReady: [...this.rematchReady],
     };
   }
 

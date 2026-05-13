@@ -35,6 +35,14 @@ export function RaceProvider(props: {
   /** Fires when the host cancels the challenge mid-flight. Shell
    *  clears the slug-side state and bounces to /race. */
   onlineRoomCancelled?: () => void;
+  /** Fires when the server starts a new round inside the same room
+   *  (rematch). The shell uses this to refresh its stored words and
+   *  bump the subtree key. */
+  onlineRoundAdvance?: (next: {
+    words: readonly string[];
+    totalChars: number;
+    roundNumber: number;
+  }) => void;
   children: ReactNode;
 }) {
   return (
@@ -44,6 +52,7 @@ export function RaceProvider(props: {
       onEnterQueue={props.onlineEnterQueue}
       onAbandon={props.onlineAbandon}
       onRoomCancelled={props.onlineRoomCancelled}
+      onRoundAdvance={props.onlineRoundAdvance}
     >
       {props.children}
     </OnlineRaceProvider>

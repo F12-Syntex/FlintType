@@ -16,9 +16,12 @@ import {
   type LeaveOutput,
   type QueueInput,
   type QueueOutput,
+  type RematchInput,
+  type RematchOutput,
   keystrokeInputSchema,
   leaveInputSchema,
   queueInputSchema,
+  rematchInputSchema,
 } from "@/types/race";
 import { challenge } from "./challenge";
 
@@ -123,6 +126,35 @@ const leave = defineRoute<LeaveInput, LeaveOutput>({
   },
 });
 
+/** Vote to rematch. Idempotent — clicking twice yields the same
+ *  ready-state. Server short-circuits to the new round the moment
+ *  threshold is met; the response's `started` flag mirrors that so
+ *  the client can flip its UI without waiting for the SSE snapshot.
+ *
+ *  Rate-limited per IP. 60/min is well above any honest click rate
+ *  but keeps a script from spamming ready-votes to force-start
+ *  rounds in rooms it doesn't belong to (the sessionToken check
+ *  already prevents writes on rooms the caller hasn't joined). */
+const rematch = defineRoute<RematchInput, RematchOutput>({
+  input: rematchInputSchema,
+  middleware: [rateLimit({ limit: 60, windowMs: 60_000 })],
+  handler: ({ input }) => {
+    const room = getRoom(input.roomId);
+    if (!room) {
+      throw new BackendError(404, "NOT_FOUND", "race room not found");
+    }
+    const result = room.markRematchReady(input.sessionToken);
+    if (!result.ok) {
+      // Wrong phase, wrong token, or caller is a bot — gracefully
+      // accept without writing. The UI doesn't need a 4xx for these
+      // (clicking Rematch outside the post-finish window is the user
+      // racing the snapshot, not a misuse).
+      return { ok: true, started: false };
+    }
+    return { ok: true, started: result.started };
+  },
+});
+
 /** Public race namespace. No `requireAuth` — anonymous users get
  *  `Guest · XYZ` labels via `getRaceIdentity` and can join matchmaking
  *  or challenge rooms identically to signed-in users.
@@ -133,5 +165,5 @@ const leave = defineRoute<LeaveInput, LeaveOutput>({
  *  bottleneck the firehose after ~20s. Every other race route carries
  *  its own 120/min cap; `challenge.*` does the same internally. */
 export const race = defineNamespace({
-  routes: { queue, keystroke, leave, challenge },
+  routes: { queue, keystroke, leave, rematch, challenge },
 });

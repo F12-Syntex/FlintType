@@ -313,4 +313,111 @@ describe("RaceRoom", () => {
     expect(room.phase).toBe("racing");
     expect(room.hostCancel("s_host")).toBe(true);
   });
+
+  /* ─── Rematch ───────────────────────────────────────────── */
+
+  /** Drive a 1v1 room through joining → countdown → racing → finished
+   *  and return it ready for a rematch test. Real player auto-finishes
+   *  by setting progress to totalChars; bot finishes by ticking under
+   *  fake timers. */
+  function makeFinished1v1(): RaceRoom {
+    const room = new RaceRoom({
+      id: "r_rematch_" + Math.random().toString(36).slice(2),
+      slug: null,
+      kind: "matchmaking",
+      modeId: "1v1",
+      raceSeed: 1,
+      wordCount: 5,
+    });
+    room.addRealRacer({
+      sessionToken: "s_alice",
+      name: "@alice",
+      badge: "RACER",
+    });
+    vi.advanceTimersByTime(1_000); // bot joins
+    vi.advanceTimersByTime(700); // lobby hold
+    vi.advanceTimersByTime(3_000); // countdown
+    expect(room.phase).toBe("racing");
+    // Alice finishes immediately
+    room.setProgress("s_alice", room.totalChars, 100, true);
+    // Tick bots until they cross the line too
+    vi.advanceTimersByTime(20_000);
+    expect(room.phase).toBe("finished");
+    return room;
+  }
+
+  it("markRematchReady starts a new round instantly in a 1-real room", () => {
+    const room = makeFinished1v1();
+    const beforeRound = room.roundNumber;
+    const beforeWords = room.words;
+    const res = room.markRematchReady("s_alice");
+    expect(res.ok).toBe(true);
+    expect(res.started).toBe(true);
+    expect(room.roundNumber).toBe(beforeRound + 1);
+    expect(room.phase).toBe("lobby");
+    // Word room: passage re-rolls. (Identity unlikely-but-possible with
+    // the seed bump, so allow either — what we really care about is
+    // that the state machine reset cleanly.)
+    expect(room.words.length).toBe(beforeWords.length);
+  });
+
+  it("startNewRound resets every racer's progress / errors / wpm / accuracy / place", () => {
+    const room = makeFinished1v1();
+    const finishedAlice = room.snapshot().racers.find((r) => r.id === "s_alice");
+    expect(finishedAlice?.finishedAt).not.toBeNull();
+    room.markRematchReady("s_alice");
+    // Snapshot after rematch trigger — phase=lobby and racers wiped
+    const snap = room.snapshot();
+    for (const r of snap.racers) {
+      expect(r.progressChars).toBe(0);
+      expect(r.errors).toBe(0);
+      expect(r.wpm).toBe(0);
+      expect(r.accuracy).toBe(100);
+      expect(r.finishedAt).toBeNull();
+      expect(r.place).toBeNull();
+    }
+  });
+
+  it("markRematchReady rejects votes outside the finished phase", () => {
+    const room = new RaceRoom({
+      id: "r_rematch_phase",
+      slug: null,
+      kind: "matchmaking",
+      modeId: "1v1",
+      raceSeed: 1,
+      wordCount: 5,
+    });
+    room.addRealRacer({
+      sessionToken: "s_alice",
+      name: "@alice",
+      badge: "RACER",
+    });
+    // Still in matching phase
+    expect(room.markRematchReady("s_alice").ok).toBe(false);
+    expect(room.markRematchReady("s_alice").started).toBe(false);
+  });
+
+  it("markRematchReady rejects bots and unknown tokens", () => {
+    const room = makeFinished1v1();
+    // Find the bot token
+    const bot = room.snapshot().racers.find((r) => r.isBot);
+    expect(bot).toBeDefined();
+    expect(room.markRematchReady(bot!.id).ok).toBe(false);
+    expect(room.markRematchReady("s_unknown").ok).toBe(false);
+    expect(room.snapshot().rematchReady.length).toBe(0);
+  });
+
+  it("snapshot exposes rematchReady + roundNumber", () => {
+    const room = makeFinished1v1();
+    expect(room.snapshot().roundNumber).toBe(1);
+    expect(room.snapshot().rematchReady).toEqual([]);
+    // After voting + before threshold flip-through: rematchReady is
+    // cleared the moment the new round starts, so a 1-real room
+    // never observes a non-empty list. Verify the path with an
+    // explicit assertion right after the rematch fires — round bumps
+    // and rematchReady stays empty (cleared as part of startNewRound).
+    room.markRematchReady("s_alice");
+    expect(room.snapshot().rematchReady).toEqual([]);
+    expect(room.snapshot().roundNumber).toBe(2);
+  });
 });

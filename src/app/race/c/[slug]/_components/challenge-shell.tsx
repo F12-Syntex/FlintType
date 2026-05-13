@@ -78,6 +78,7 @@ export function ChallengeShell({
             words: res.words,
             totalChars: res.totalChars,
             modeId: res.modeId as RaceModeId,
+            roundNumber: 1,
             spectate: res.spectate ?? false,
           },
         });
