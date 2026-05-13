@@ -77,10 +77,15 @@ const SCHEMA_DDL = `
     read_at     timestamp
   );
   CREATE INDEX IF NOT EXISTS notifications_user_time_idx ON notifications (user_id, created_at);
+  CREATE TABLE IF NOT EXISTS users (
+    id          text PRIMARY KEY,
+    seq         serial NOT NULL,
+    created_at  timestamp NOT NULL DEFAULT now()
+  );
 `;
 
 const TRUNCATE_ALL = `
-  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, word_models, tests, notifications;
+  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, word_models, tests, notifications, users RESTART IDENTITY;
 `;
 
 /** PGlite's parse-message path rejects multi-statement queries, so we

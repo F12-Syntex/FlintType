@@ -4,7 +4,7 @@ import { z } from "zod";
  *  Adding a new kind = add a new variant here + a renderer arm in the
  *  popover. No DB migration needed — the `kind` column is `text` and
  *  the `data` column is `jsonb`. */
-export type NotificationKind = "announcement" | "personal_best";
+export type NotificationKind = "announcement" | "personal_best" | "og_granted";
 
 export type AnnouncementData = {
   /** Optional CTA URL — when present the row becomes a link. */
@@ -25,7 +25,22 @@ export type PersonalBestData = {
   previousWpm: number | null;
 };
 
-export type NotificationData = AnnouncementData | PersonalBestData | null;
+/** Fired the first time a user lands in the OG milestone window
+ *  (`seq <= OG_MILESTONE_LIMIT`). Dedupes on the kind so a transient
+ *  Clerk failure can't double-fire on retry. The renderer paints the
+ *  OG `<UserTag>` chip inside the row body. */
+export type OgGrantedData = {
+  /** This user's signup-order seq (1-based, monotonic). */
+  seq: number;
+  /** The milestone cap when the grant fired (currently 1000). */
+  milestoneLimit: number;
+};
+
+export type NotificationData =
+  | AnnouncementData
+  | PersonalBestData
+  | OgGrantedData
+  | null;
 
 export type Notification = {
   id: string;

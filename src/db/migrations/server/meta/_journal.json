@@ -29,6 +29,13 @@
       "when": 1778516959685,
       "tag": "0003_amazing_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778669259408,
+      "tag": "0004_high_ma_gnuci",
+      "breakpoints": true
     }
   ]
 }

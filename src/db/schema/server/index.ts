@@ -5,3 +5,4 @@ export * from "./adapt-models";
 export * from "./tests";
 export * from "./word-models";
 export * from "./notifications";
+export * from "./users";

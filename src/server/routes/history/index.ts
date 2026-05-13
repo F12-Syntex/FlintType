@@ -2,6 +2,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { defineNamespace, defineRoute } from "@/server";
 import { BackendError } from "@/lib/errors";
 import type { Database } from "@/db/server";
+import { ensureUser } from "@/server/ensure-user";
 import { requireAuth } from "@/server/middleware/auth";
 import { rateLimit } from "@/server/middleware/rate-limit";
 import {
@@ -169,8 +170,14 @@ async function loadHistorySummary(
 
 const summary = defineRoute<void, HistorySummaryOutput>({
   middleware: [requireAuth, rateLimit({ limit: 30, windowMs: 60_000 })],
-  handler: async ({ db, meta }) =>
-    loadHistorySummary(db, meta.userId as string),
+  handler: async (ctx) => {
+    // Materialise the local mirror row on the user's first encounter.
+    // This is the OG-grant trigger — see src/server/ensure-user.ts.
+    // Failures inside the grant itself are swallowed; the summary
+    // load always proceeds.
+    await ensureUser(ctx);
+    return loadHistorySummary(ctx.db, ctx.meta.userId as string);
+  },
 });
 
 /** Public profile lookup — anyone (including signed-out viewers)

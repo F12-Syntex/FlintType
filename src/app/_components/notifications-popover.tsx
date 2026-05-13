@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBackend } from "@/lib/backend";
 import { cn } from "@/lib/utils";
+import { UserTag } from "@/components/ft";
 import type {
   Notification,
   PersonalBestData,
@@ -273,6 +274,11 @@ function Row({ item, dark }: { item: Notification; dark: boolean }) {
           {item.body}
         </p>
         {isPersonalBest(item) ? <PbDelta data={item.data} dark={dark} /> : null}
+        {item.kind === "og_granted" ? (
+          <span className="mt-1.5 inline-flex">
+            <UserTag tag="og" size="sm" />
+          </span>
+        ) : null}
       </div>
     </div>
   );

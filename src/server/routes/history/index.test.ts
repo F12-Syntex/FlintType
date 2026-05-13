@@ -2,6 +2,17 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 
 vi.mock("@clerk/nextjs/server", () => ({
   auth: vi.fn(async () => ({ userId: null, sessionClaims: null })),
+  clerkClient: vi.fn(async () => ({
+    users: {
+      // Default no-op stubs so `ensureUser` → `grantOg` can run without
+      // throwing during the auth'd summary path. Individual tests
+      // override `clerkClient` when they need a specific user lookup
+      // (publicProfile path) by re-mocking before the call.
+      getUser: vi.fn(async (id: string) => ({ id, publicMetadata: {} })),
+      updateUserMetadata: vi.fn(async () => undefined),
+      getUserList: vi.fn(async () => ({ data: [], totalCount: 0 })),
+    },
+  })),
 }));
 
 import { auth } from "@clerk/nextjs/server";

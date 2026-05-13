@@ -18,9 +18,11 @@ import {
 } from './repositories/notifications';
 import { testsRepo, type TestsRepo } from './repositories/tests';
 import { userPrefsRepo, type UserPrefsRepo } from './repositories/user-prefs';
+import { usersRepo, type UsersRepo } from './repositories/users';
 
 export type Database = {
   userPrefs: UserPrefsRepo;
+  users: UsersRepo;
   bigramModels: BigramModelsRepo;
   trigramModels: TrigramModelsRepo;
   motorFeatureModels: MotorFeatureModelsRepo;
@@ -33,6 +35,7 @@ export type Database = {
 export function createDatabase(drizzle: ServerDrizzle): Database {
   return {
     userPrefs: userPrefsRepo(drizzle),
+    users: usersRepo(drizzle),
     bigramModels: bigramModelsRepo(drizzle),
     trigramModels: trigramModelsRepo(drizzle),
     motorFeatureModels: motorFeatureModelsRepo(drizzle),
