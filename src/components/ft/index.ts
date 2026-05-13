@@ -6,3 +6,4 @@ export { Panel } from "./panel";
 export { Stat } from "./stat";
 export { Tag } from "./tag";
 export { IdentDot, TopBar, type NavItem } from "./top-bar";
+export { UserTag } from "./user-tag";

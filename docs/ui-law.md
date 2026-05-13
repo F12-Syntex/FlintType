@@ -122,6 +122,23 @@ The dark race screen, dark TopBar/footer, popovers, and editorial dark panels sh
 
 These are part of the §2.3 fixed layer — they do not swap with `<ModeToggle>` / `<ThemeSwitcher>`. Reach for them only on surfaces that are *intentionally* dark regardless of the user's palette.
 
+#### User-tag tokens
+
+Identity marks (OG, OWNER, …) paint from a per-tag token quartet that is **fixed across palettes**. A "founding member" or "owner" chip is a claim about the user, not chrome — themed-coral OG under one palette and themed-mint OG under another would let the tag drift across users and stop reading as a *kind*. Only the **fill alpha** drops in dark mode so the chip doesn't pop hot against an ink surface; `fg`, `border` and `glow` are identical between `:root` and `.dark`.
+
+| Token                    | Use                                                            |
+|--------------------------|-----------------------------------------------------------------|
+| `--ft-tag-og-fg`         | OG icon + label colour (aged-copper ink)                       |
+| `--ft-tag-og-border`     | OG hairline border                                             |
+| `--ft-tag-og-fill`       | OG soft cream fill (lower alpha in `.dark`)                    |
+| `--ft-tag-og-glow`       | OG outer + inset box-shadow (static, no animation)             |
+| `--ft-tag-owner-fg`      | OWNER icon + label colour (deep warm-ink)                      |
+| `--ft-tag-owner-border`  | OWNER hairline border                                          |
+| `--ft-tag-owner-fill`    | OWNER bone-paper fill (lower alpha in `.dark`)                 |
+| `--ft-tag-owner-glow`    | OWNER engraved-press box-shadow (1px outline + inset highlight) |
+
+Only `<UserTag>` (§11) consumes these — never reach for them from product surfaces. Adding a new tag requires extending the eight tokens, the `UserTagId` union (`src/types/user-tag.ts`), the catalog in `src/components/ft/user-tag.tsx`, and the rows in §11 + §14 of this doc, all in the same commit.
+
 #### Third-party brand tokens
 
 Third-party brand colours are fixed identity assets — they don't get themed. Every entry must be tied to a brand-mark surface (an OAuth button, a partner chip, an integration badge); never reach for these as generic accents.
@@ -469,6 +486,7 @@ Reusable building blocks live in `src/components/ft/`. Use these — don't repro
 | `<Panel>`    | `from "@/components/ft"`        | Bordered surface with `title` + `subtitle` header (both via `<Tag>`), background `bg-[#FAF7F0]`. Used for every dashboard widget.                                                                                                                                  |
 | `<Kbd>`      | `from "@/components/ft"`        | Inline keycap chip: white bg, double-bottom border, mono small caps.                                                                                                                                                                                               |
 | `<FtButton>` | `from "@/components/ft"`        | Square-cornered, uppercase, mono, tracked button. Variants: `ink`, `ember`, `ghost`, `ghostDark`. Sizes `sm \| md \| lg`.                                                                                                                                          |
+| `<UserTag>`  | `from "@/components/ft"`        | Identity tag chip — icon + uppercase label with per-tag colour/border/fill/glow tokens. Variants: `tag ∈ { og, owner }`. Sizes `sm` (leaderboard row, h-5/text-[10px]) / `md` (profile hero, h-6/text-[11px]). Static glow, no animation. Tokens are fixed across palettes (§2.3 User-tag tokens). |
 
 The shadcn `<Button>` is still preferred when the form/dialog already uses shadcn primitives — but flinttype-themed CTAs (the editorial buttons in screen designs) use `<FtButton>`.
 
@@ -596,12 +614,45 @@ Animation in flinttype is the **exception**, not a default. The product is edito
 - **Don't** loop ambient decorations on any surface. Loaders are the only acceptable infinite animation.
 - **Don't** ship any animation without `prefers-reduced-motion: reduce` collapsing it to a single static frame.
 
-## 14. Amending this document
+## 14. Identity & ownership marks
+
+Identity tags (OG, OWNER, future kinds) are not chrome — they're a claim *about* a user, surfaced wherever that user's name appears. The renderer is `<UserTag>` (§11), painted from the per-tag token quartet in §2.3 → **User-tag tokens**.
+
+### 14.1 Where tags render
+
+| Surface                          | Size  | Position                                              |
+|----------------------------------|-------|-------------------------------------------------------|
+| Leaderboard row                  | `sm`  | inline run after the handle, before any stat columns  |
+| Profile hero                     | `md`  | inline run beside the display-name `h1`                |
+| Edit-profile dialog ("Your tags")| `sm`  | read-only chip row; the user can't pick or remove tags |
+| Notifications popover (grant row)| `sm`  | inside the `og_granted` notification body              |
+
+Tags are display-only on the client. Adding, removing or re-ordering tags is a backend responsibility (the catalog assigns canonical weight; see `USER_TAG_IDS` in `src/types/user-tag.ts`).
+
+### 14.2 Adding a new tag
+
+A new tag ships only when **every** piece below lands in the same commit:
+
+1. Extend `USER_TAG_IDS` (`src/types/user-tag.ts`) with the new id. Order matters — the array is the display-weight order.
+2. Add the eight CSS tokens (`--ft-tag-<id>-{fg,border,fill,glow}` in `:root`; the `fill` override in `.dark`) to `src/app/globals.css`.
+3. Add a catalog entry (label, aria-label, icon kind) to `TAG_CONFIG` in `src/components/ft/user-tag.tsx`.
+4. If the glyph isn't reusable, add a new `IconKind` branch in the same file's `TagGlyph` renderer.
+5. Add a row to §2.3 "User-tag tokens" and update §14.1 if the surface set changes.
+6. Wire the backend grant path (where the tag becomes attached to a user).
+
+### 14.3 Don't
+
+- **Don't** animate a tag. The "glow" is a static box-shadow. Animated chips read as notifications, not identity.
+- **Don't** stretch a tag bigger than `md`. The chip is a sub-element beside a name, not a parallel headline.
+- **Don't** reach for tag tokens from product surfaces. Only `<UserTag>` consumes them.
+- **Don't** invent a "this account is verified / premium / staff" tag without first deciding whether it's an identity mark (use `<UserTag>`) or an *attribute* of the row (use `<Tag>` from §11 with `tone="ember"`). Identity marks are sparse and persistent; attributes can be plentiful and transient.
+
+## 15. Amending this document
 
 When you introduce a new pattern:
 
 1. Open this file.
-2. Add a row to the matching table (§2 color, §3 spacing, §4 typography, §5 layout, §12 settings, §13 animation) **or** a new section with the next sequential number.
+2. Add a row to the matching table (§2 color, §3 spacing, §4 typography, §5 layout, §12 settings, §13 animation, §14 identity marks) **or** a new section with the next sequential number.
 3. Include a one-line rationale — why this pattern, what problem it solves.
 4. Commit the doc change **in the same commit** as the code using it.
 5. From that commit forward, all UI must follow the new rule.

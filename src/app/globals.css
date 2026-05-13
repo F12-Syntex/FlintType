@@ -69,6 +69,23 @@
   --ds-gray-1000: hsla(0, 0%, 9%, 1);
   --ds-gray-alpha-400: hsla(0, 0%, 0%, 0.08);
   --ds-background-100: oklch(0.9050 0.0220 85);
+
+  /* User-tag tokens — identity marks (OG, OWNER). Fixed across
+     palettes (ui-law §2.3) so the tag reads as a *kind*, not as
+     chrome. Only the fill alpha drops in dark mode (.dark block
+     below) so the chip doesn't pop hot against an ink surface. */
+  --ft-tag-og-fg: oklch(0.46 0.10 65);
+  --ft-tag-og-border: oklch(0.78 0.08 65 / 0.55);
+  --ft-tag-og-fill: oklch(0.92 0.06 78 / 0.45);
+  --ft-tag-og-glow:
+    0 0 8px oklch(0.74 0.12 65 / 0.18),
+    inset 0 0 0 1px oklch(0.74 0.12 65 / 0.10);
+  --ft-tag-owner-fg: oklch(0.22 0.02 60);
+  --ft-tag-owner-border: oklch(0.45 0.04 60 / 0.85);
+  --ft-tag-owner-fill: oklch(0.86 0.02 75 / 0.7);
+  --ft-tag-owner-glow:
+    0 0 0 1px oklch(0.32 0.03 60 / 0.18),
+    inset 0 1px 0 oklch(1 0 0 / 0.5);
 }
 
 .dark {
@@ -130,6 +147,14 @@
   --ds-gray-1000: hsla(0, 0%, 93%, 1);
   --ds-gray-alpha-400: hsla(0, 0%, 100%, 0.14);
   --ds-background-100: hsla(0, 0%, 4%, 1);
+
+  /* User-tag fill-alpha overrides for dark mode. fg / border / glow
+     stay identical to :root so the tag reads as the same *kind*; only
+     the surface drops in opacity so a copper / bone chip doesn't pop
+     hot against an ink background. See :root for the full quartet
+     and ui-law §2.3 for the rationale. */
+  --ft-tag-og-fill: oklch(0.74 0.12 65 / 0.12);
+  --ft-tag-owner-fill: oklch(0.86 0.02 75 / 0.10);
 }
 
 @theme inline {
