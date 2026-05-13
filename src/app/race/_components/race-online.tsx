@@ -4,9 +4,11 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { useBackend } from "@/lib/backend";
 import { calcWpmAndRaw } from "@/lib/wpm";
 import { usePractice } from "../../_components/practice-state";
 import type { RoomRacer, RoomSnapshot } from "@/types/race";
@@ -37,6 +39,7 @@ export function OnlineRaceProvider({
   initialRoom,
   onEnterQueue,
   onAbandon,
+  onRoomCancelled,
   children,
 }: {
   modeId: RaceModeId;
@@ -54,8 +57,13 @@ export function OnlineRaceProvider({
    *  surrounding PracticeProvider with the new word list. */
   onEnterQueue?: () => void;
   onAbandon?: () => void;
+  /** Fires when the server snapshot reports `cancelled: true` — host
+   *  destroyed the lobby. Shell tears down the slug-side state and
+   *  navigates back to /race. */
+  onRoomCancelled?: () => void;
   children: ReactNode;
 }) {
+  const backend = useBackend();
   // The shell owns the room handle (it has to, because it controls
   // PracticeProvider's `lockedWords` and that prop must come from the
   // queue response). When `initialRoom` is set, we're connected; when
@@ -120,6 +128,41 @@ export function OnlineRaceProvider({
     restartShell();
   }, [leave, restartShell]);
 
+  // Find "you" in the snapshot so the UI can show host-only controls
+  // (Cancel) without prop-drilling the host flag through every layer.
+  const youRacer = useMemo(
+    () => snapshot?.racers.find((r) => r.id === youSessionToken) ?? null,
+    [snapshot, youSessionToken],
+  );
+  const isHost = youRacer?.isHost ?? false;
+
+  const cancelLobby = useCallback(async () => {
+    if (!room) return;
+    try {
+      await backend.race.challenge.cancel({
+        roomId: room.roomId,
+        sessionToken: room.sessionToken,
+      });
+    } catch {
+      // The server route is host-gated and only succeeds in a
+      // pre-finished phase; a 403 / 404 here means the cancel button
+      // was clicked from a state where it shouldn't have been visible.
+      // Swallow — there's no UI state to recover.
+    }
+  }, [backend, room]);
+
+  // React to the host's cancel: the server emits a final snapshot
+  // with `cancelled: true`. We hand control back to the shell so it
+  // can wipe the slug-side state (sessionStorage, route) before the
+  // user lands back on /race.
+  const cancelledFiredRef = useRef(false);
+  useEffect(() => {
+    if (!snapshot?.cancelled) return;
+    if (cancelledFiredRef.current) return;
+    cancelledFiredRef.current = true;
+    onRoomCancelled?.();
+  }, [snapshot?.cancelled, onRoomCancelled]);
+
   // Local-clock tick during countdown / racing. The server snapshot
   // only re-broadcasts on state changes; during the 3-second
   // countdown nothing changes server-side, so `snapshot.serverNowMs`
@@ -159,6 +202,8 @@ export function OnlineRaceProvider({
       restart,
       abandon,
       rematch: abandon,
+      cancelLobby,
+      isHost,
       dispatch: () => undefined, // online provider doesn't expose a reducer
       ...derived,
       // Online-only conveniences read by the UI:
@@ -173,6 +218,8 @@ export function OnlineRaceProvider({
       enterQueue,
       restart,
       abandon,
+      cancelLobby,
+      isHost,
       derived,
       room?.roomId,
       youSessionToken,

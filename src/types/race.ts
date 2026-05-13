@@ -89,6 +89,10 @@ export type RoomSnapshot = {
   raceStartedAt: number | null;
   raceEndedAt: number | null;
   racers: readonly RoomRacer[];
+  /** Set on the final snapshot a challenge room emits before it
+   *  disposes itself, when the host hit Cancel. Clients use this to
+   *  redirect everyone in the room back to /race with a notice. */
+  cancelled?: boolean;
 };
 
 /* ─── Request schemas ──────────────────────────────────────────── */
@@ -173,6 +177,13 @@ export type JoinChallengeOutput = {
    *  the race in view-only mode and never sends keystrokes. */
   spectate?: boolean;
 };
+
+export const cancelChallengeInputSchema = z.object({
+  roomId: z.string().min(1),
+  sessionToken: z.string().min(1),
+});
+export type CancelChallengeInput = z.infer<typeof cancelChallengeInputSchema>;
+export type CancelChallengeOutput = { ok: true };
 
 export const startChallengeInputSchema = z.object({
   roomId: z.string().min(1),

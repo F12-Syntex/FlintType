@@ -1,6 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
@@ -10,6 +11,7 @@ import {
 import { useBackend } from "@/lib/backend";
 import { InputCapture } from "../../_components/input-capture";
 import { PracticeProvider } from "../../_components/practice-state";
+import { clearHostStorage } from "../c/[slug]/_components/challenge-shell";
 import { RACE_MODES, type RaceModeId } from "./race-data";
 import { RaceProvider } from "./race-state";
 import { LeaveGuard } from "./leave-guard";
@@ -72,6 +74,7 @@ export function RaceShell({
   challengeSlug?: string;
 }) {
   const backend = useBackend();
+  const router = useRouter();
   const [modeId, setModeId] = useState<RaceModeId>(initialModeId ?? "1v3");
   const [online, setOnline] = useState<RaceShellOnline | null>(
     initialOnline ?? null,
@@ -137,6 +140,17 @@ export function RaceShell({
     [backend, online],
   );
 
+  // Host cancelled this challenge (or a guest's room was cancelled by
+  // the host) — wipe the slug-side session cache and bounce back to
+  // /race so the URL is no longer pointing at a dead room. We always
+  // clear the slug regardless of who triggered it; the host's storage
+  // key is keyed by slug and stays inert for guests.
+  const onRoomCancelled = useCallback(() => {
+    if (challengeSlug) clearHostStorage(challengeSlug);
+    setOnline(null);
+    router.push("/race");
+  }, [challengeSlug, router]);
+
   // Confirm-before-leave is on whenever the user is connected to a
   // server room (matching → lobby → countdown → racing). Burst mode
   // runs offline so the guard stays off for it. Spectators also skip
@@ -191,6 +205,7 @@ export function RaceShell({
       enterQueueShell={enterQueue}
       onlineEnterQueue={isBurst ? undefined : enterQueue}
       onlineAbandon={isBurst ? undefined : abandon}
+      onlineRoomCancelled={isBurst ? undefined : onRoomCancelled}
       initialOnlineRoom={initialRoomForProvider}
       challengeSlug={challengeSlug ?? null}
     >

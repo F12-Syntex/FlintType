@@ -29,6 +29,8 @@ export function RaceControls() {
     startCountdown,
     restart,
     abandon,
+    cancelLobby,
+    isHost,
     isChallenge,
   } = useRace();
   const allowSwitch =
@@ -80,6 +82,19 @@ export function RaceControls() {
       {state.phase === "queue" && RACE_MODES[modeId].kind !== "burst" ? (
         <Field label="challenge">
           <CreateChallengeButton modeId={modeId} />
+        </Field>
+      ) : null}
+
+      {/* Host-only Cancel — visible from the moment the challenge
+       *  has a lobby through the live race. Valid up to (not
+       *  including) finished; the server enforces the same gate. */}
+      {isChallenge &&
+      isHost &&
+      (state.phase === "lobby" ||
+        state.phase === "countdown" ||
+        state.phase === "racing") ? (
+        <Field label="host">
+          <CancelLobbyButton phase={state.phase} onCancel={cancelLobby} />
         </Field>
       ) : null}
 
@@ -147,6 +162,74 @@ function CreateChallengeButton({ modeId }: { modeId: RaceModeId }) {
     >
       {pending ? "Creating…" : "Create lobby"}
     </button>
+  );
+}
+
+/** Host-only "Cancel" affordance for challenge rooms. Mirrors the
+ *  GhostButton shape used by Abandon, but pops a ConfirmDialog first
+ *  because the action is destructive for *everyone* in the room
+ *  (every connected client receives a cancelled snapshot and bounces
+ *  out). Labels shift slightly by phase so the button reads correctly
+ *  whether the host hasn't started yet (Cancel lobby) or has
+ *  (End race). */
+function CancelLobbyButton({
+  phase,
+  onCancel,
+}: {
+  phase: string;
+  onCancel: () => Promise<void> | void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+  const inLobby = phase === "lobby";
+  const label = inLobby ? "Cancel lobby" : "End race";
+  const dialogTitle = inLobby ? "Cancel the lobby?" : "End the race for everyone?";
+  const dialogBody = inLobby
+    ? "Closing this lobby kicks every joiner back to the race menu. The share link will stop working."
+    : "Ending the race for everyone closes the room mid-flight. Active racers will be sent back to the race menu.";
+  const confirmLabel = inLobby ? "Cancel lobby" : "End race";
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        disabled={pending}
+        className={cn(
+          "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-transparent px-3",
+          "text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground",
+          "transition-colors duration-150 hover:border-destructive/40 hover:text-destructive",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40",
+          pending && "cursor-wait opacity-60",
+        )}
+      >
+        {pending ? "Cancelling…" : label}
+      </button>
+      <ConfirmDialog
+        open={open}
+        onOpenChange={(next) => {
+          if (!next && !pending) setOpen(false);
+        }}
+        title={dialogTitle}
+        confirmLabel={confirmLabel}
+        cancelLabel="Keep going"
+        confirmVariant="destructive"
+        onConfirm={async () => {
+          setPending(true);
+          try {
+            await onCancel();
+          } finally {
+            // Leave `pending` true — the shell is about to navigate
+            // away. Resetting would briefly re-enable the button on a
+            // stale tree before the route change tears it down.
+            setOpen(false);
+          }
+        }}
+      >
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          {dialogBody}
+        </p>
+      </ConfirmDialog>
+    </>
   );
 }
 

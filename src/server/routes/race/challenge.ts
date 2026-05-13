@@ -8,12 +8,15 @@ import {
   newSessionToken,
 } from "@/server/race/store";
 import {
+  type CancelChallengeInput,
+  type CancelChallengeOutput,
   type CreateChallengeInput,
   type CreateChallengeOutput,
   type JoinChallengeInput,
   type JoinChallengeOutput,
   type StartChallengeInput,
   type StartChallengeOutput,
+  cancelChallengeInputSchema,
   createChallengeInputSchema,
   joinChallengeInputSchema,
   startChallengeInputSchema,
@@ -131,6 +134,36 @@ const start = defineRoute<StartChallengeInput, StartChallengeOutput>({
   },
 });
 
+const cancel = defineRoute<CancelChallengeInput, CancelChallengeOutput>({
+  input: cancelChallengeInputSchema,
+  handler: ({ input }) => {
+    const room = getRoom(input.roomId);
+    if (!room) {
+      throw new BackendError(404, "NOT_FOUND", "race room not found");
+    }
+    if (room.kind !== "challenge") {
+      throw new BackendError(
+        400,
+        "VALIDATION",
+        "only challenge rooms can be host-cancelled",
+      );
+    }
+    const ok = room.hostCancel(input.sessionToken);
+    if (!ok) {
+      // Either the caller isn't the host, or the room is already past
+      // finished. Both are FORBIDDEN from the caller's perspective —
+      // they can't change this room's state. The finer-grained reason
+      // doesn't need to leak.
+      throw new BackendError(
+        403,
+        "FORBIDDEN",
+        "only the room host can cancel a challenge",
+      );
+    }
+    return { ok: true };
+  },
+});
+
 export const challenge = defineNamespace({
-  routes: { create, join, start },
+  routes: { create, join, start, cancel },
 });

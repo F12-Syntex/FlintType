@@ -17,6 +17,16 @@ export type RaceCtx = {
   restart: () => void;
   abandon: () => void;
   rematch: () => void;
+  /** Challenge host action — destroys the lobby for everyone. The
+   *  cancel cascades via SSE: every connected client (host included)
+   *  receives a final snapshot with `cancelled: true` and the shell
+   *  redirects to /race. Offline providers wire this to a no-op since
+   *  there's no server room to cancel. */
+  cancelLobby: () => Promise<void> | void;
+  /** True when the local user is the host of the current challenge
+   *  room. Used to gate the host-only Cancel button. Always false for
+   *  matchmaking races and for offline providers. */
+  isHost: boolean;
   dispatch: (action: Action) => void;
   countdownNumber: number | null;
   elapsedSeconds: number;

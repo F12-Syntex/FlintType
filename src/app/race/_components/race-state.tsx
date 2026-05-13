@@ -58,6 +58,10 @@ export function RaceProvider(props: {
    *  needs them. */
   onlineEnterQueue?: () => void;
   onlineAbandon?: () => void;
+  /** Fires when the host cancels the challenge mid-flight. Shell
+   *  clears the slug-side state and bounces to /race. Only meaningful
+   *  for online challenge rooms. */
+  onlineRoomCancelled?: () => void;
   children: ReactNode;
 }) {
   const mode = RACE_MODES[props.modeId];
@@ -70,6 +74,7 @@ export function RaceProvider(props: {
       initialRoom={props.initialOnlineRoom ?? null}
       onEnterQueue={props.onlineEnterQueue}
       onAbandon={props.onlineAbandon}
+      onRoomCancelled={props.onlineRoomCancelled}
     >
       {props.children}
     </OnlineRaceProvider>
@@ -308,6 +313,10 @@ function OfflineRaceProvider({
       abandon,
       rematch,
       dispatch: dispatch as (a: Action) => void,
+      // Offline (burst) — no server room, so cancel is a local no-op
+      // and the local user is never a "host" in the multiplayer sense.
+      cancelLobby: () => undefined,
+      isHost: false,
       isChallenge: isChallengeLobby,
       challengeSlug: challengeSlug ?? null,
       ...derived,

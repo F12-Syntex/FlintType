@@ -249,4 +249,68 @@ describe("RaceRoom", () => {
     });
     expect(room.hostStart("s_unknown")).toBe(false);
   });
+
+  it("hostCancel broadcasts a cancelled snapshot then disposes", () => {
+    const room = new RaceRoom({
+      id: "r_cancel1",
+      slug: "kind-bear-22",
+      kind: "challenge",
+      modeId: "1v1",
+      raceSeed: 1,
+      wordCount: 5,
+    });
+    room.addRealRacer({
+      sessionToken: "s_host",
+      name: "@host",
+      badge: "RACER",
+      isHost: true,
+    });
+    const received: Array<{ cancelled?: boolean; phase: string }> = [];
+    room.subscribe((snap) =>
+      received.push({ cancelled: snap.cancelled, phase: snap.phase }),
+    );
+    expect(room.hostCancel("s_host")).toBe(true);
+    // First emit on subscribe (no cancel flag), then the final
+    // cancelled emit, then dispose clears subs.
+    expect(received.at(-1)?.cancelled).toBe(true);
+  });
+
+  it("hostCancel rejects non-hosts", () => {
+    const room = new RaceRoom({
+      id: "r_cancel2",
+      slug: "kind-bear-23",
+      kind: "challenge",
+      modeId: "1v1",
+      raceSeed: 1,
+      wordCount: 5,
+    });
+    room.addRealRacer({
+      sessionToken: "s_host",
+      name: "@host",
+      badge: "RACER",
+      isHost: true,
+    });
+    expect(room.hostCancel("s_unknown")).toBe(false);
+  });
+
+  it("hostCancel works from racing phase too", () => {
+    const room = new RaceRoom({
+      id: "r_cancel3",
+      slug: "kind-bear-24",
+      kind: "challenge",
+      modeId: "1v1",
+      raceSeed: 1,
+      wordCount: 5,
+    });
+    room.addRealRacer({
+      sessionToken: "s_host",
+      name: "@host",
+      badge: "RACER",
+      isHost: true,
+    });
+    expect(room.hostStart("s_host")).toBe(true);
+    vi.advanceTimersByTime(700 + 3_000);
+    expect(room.phase).toBe("racing");
+    expect(room.hostCancel("s_host")).toBe(true);
+  });
 });

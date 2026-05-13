@@ -8,6 +8,7 @@ vi.mock("@clerk/nextjs/server", () => ({
 import { callRoute } from "@/server/testing";
 import { __resetStoreForTests } from "@/server/race/store";
 import type {
+  CancelChallengeOutput,
   CreateChallengeOutput,
   JoinChallengeOutput,
   StartChallengeOutput,
@@ -90,6 +91,40 @@ describe("race.challenge routes", () => {
     // No assertion needed beyond "didn't throw" — the room module's
     // own tests cover the timeline. This route test verifies the route
     // forwarded the call.
+  });
+
+  it("cancel as host wipes the lobby and frees the slug", async () => {
+    const host = await callRoute<CreateChallengeOutput>(
+      ["race", "challenge", "create"],
+      { input: { modeId: "1v1" } },
+    );
+    const res = await callRoute<CancelChallengeOutput>(
+      ["race", "challenge", "cancel"],
+      { input: { roomId: host.roomId, sessionToken: host.sessionToken } },
+    );
+    expect(res.ok).toBe(true);
+    // Slug must now be gone — a fresh join 404s.
+    await expect(
+      callRoute(["race", "challenge", "join"], {
+        input: { slug: host.slug },
+      }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("cancel as non-host is forbidden", async () => {
+    const host = await callRoute<CreateChallengeOutput>(
+      ["race", "challenge", "create"],
+      { input: { modeId: "1v1" } },
+    );
+    const joiner = await callRoute<JoinChallengeOutput>(
+      ["race", "challenge", "join"],
+      { input: { slug: host.slug } },
+    );
+    await expect(
+      callRoute(["race", "challenge", "cancel"], {
+        input: { roomId: host.roomId, sessionToken: joiner.sessionToken },
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("join returns a spectator response when the lobby is past lobby phase", async () => {

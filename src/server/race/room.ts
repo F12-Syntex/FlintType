@@ -83,6 +83,10 @@ export class RaceRoom {
   countdownStartedAt: number | null = null;
   raceStartedAt: number | null = null;
   raceEndedAt: number | null = null;
+  /** Set true the moment the challenge host fires `hostCancel`. The
+   *  next (and final) snapshot carries this flag so every connected
+   *  client knows to bounce back to /race. */
+  private cancelled = false;
   lastTouchedAt: number;
   private readonly racers = new Map<string, InternalRacer>();
   private readonly subs = new Set<Subscriber>();
@@ -269,6 +273,26 @@ export class RaceRoom {
     this.matchmakingEndsAt = null;
     this.cancelTimers();
     this.scheduleLobbyHold();
+  }
+
+  /** Challenge host triggered cancel. Valid in any phase before
+   *  `finished` — the host can wipe a lobby they no longer want OR
+   *  abort a countdown / live race. Broadcasts one final snapshot
+   *  with `cancelled: true` so every subscriber knows to redirect,
+   *  then disposes the room (which frees the slug + clears timers).
+   *  Only the host can call this; non-hosts get a false return. */
+  hostCancel(token: string): boolean {
+    if (this.kind !== "challenge") return false;
+    if (this.phase === "finished") return false;
+    const caller = this.racers.get(token);
+    if (!caller || !caller.isHost) return false;
+    this.cancelled = true;
+    // Use the synchronous flush directly — `scheduleBroadcast` might
+    // defer the snapshot past `dispose()`, which clears the
+    // subscriber set and silently drops every pending message.
+    this.flushBroadcast();
+    this.dispose();
+    return true;
   }
 
   /** Challenge host triggered start. Fills with bots to capacity then
@@ -502,6 +526,7 @@ export class RaceRoom {
       raceStartedAt: this.raceStartedAt,
       raceEndedAt: this.raceEndedAt,
       racers,
+      cancelled: this.cancelled || undefined,
     };
   }
 
