@@ -226,51 +226,60 @@ export function ThemesRow() {
         ) : (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[12rem]">
-              <DropdownMenuItem
-                onSelect={() => requestPick({ id: null, name: "Default" })}
-                className="gap-3"
-              >
-                <span
-                  className={cn(
-                    "inline-flex h-4 w-4 items-center justify-center",
-                    activeId === null ? "text-primary" : "text-transparent",
-                  )}
-                >
-                  <Check size={14} />
-                </span>
-                <span className="flex-1">Default</span>
-                <PaletteSwatches colors={DEFAULT_SWATCHES} />
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {themes.map((t) => (
+            <DropdownMenuContent
+              align="end"
+              collisionPadding={16}
+              className="flex max-h-[min(70vh,var(--radix-dropdown-menu-content-available-height))] w-[15rem] flex-col overflow-hidden p-0"
+            >
+              <div className="flex-none p-1">
                 <DropdownMenuItem
-                  key={t.id}
-                  onSelect={() => requestPick({ id: t.id, name: t.name })}
+                  onSelect={() => requestPick({ id: null, name: "Default" })}
                   className="gap-3"
                 >
                   <span
                     className={cn(
                       "inline-flex h-4 w-4 items-center justify-center",
-                      activeId === t.id ? "text-primary" : "text-transparent",
+                      activeId === null ? "text-primary" : "text-transparent",
                     )}
                   >
                     <Check size={14} />
                   </span>
-                  <span className="flex-1">{t.name}</span>
-                  <ThemeSwatches theme={t} />
+                  <span className="flex-1 truncate">Default</span>
+                  <PaletteSwatches colors={DEFAULT_SWATCHES} />
                 </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onSelect={() =>
-                  router.push("/customise/appearance/themes")
-                }
-                className="gap-3"
-              >
-                <span className="inline-flex h-4 w-4 items-center justify-center" />
-                <span className="flex-1 font-medium">Explore themes…</span>
-              </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1">
+                {themes.map((t) => (
+                  <DropdownMenuItem
+                    key={t.id}
+                    onSelect={() => requestPick({ id: t.id, name: t.name })}
+                    className="gap-3"
+                  >
+                    <span
+                      className={cn(
+                        "inline-flex h-4 w-4 items-center justify-center",
+                        activeId === t.id ? "text-primary" : "text-transparent",
+                      )}
+                    >
+                      <Check size={14} />
+                    </span>
+                    <span className="flex-1 truncate">{t.name}</span>
+                    <ThemeSwatches theme={t} />
+                  </DropdownMenuItem>
+                ))}
+              </div>
+              <div className="flex-none border-t border-border p-1">
+                <DropdownMenuItem
+                  onSelect={() =>
+                    router.push("/customise/appearance/themes")
+                  }
+                  className="gap-3"
+                >
+                  <span className="inline-flex h-4 w-4 items-center justify-center" />
+                  <span className="flex-1 font-medium">Explore themes…</span>
+                </DropdownMenuItem>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         )
