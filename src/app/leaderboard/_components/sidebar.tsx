@@ -63,6 +63,7 @@ export function LeaderboardSidebar() {
   return (
     <nav
       data-ft-chrome
+      data-no-export="true"
       aria-label="Leaderboard filters"
       className={cn(
         "hidden bg-background/85 backdrop-blur-md",

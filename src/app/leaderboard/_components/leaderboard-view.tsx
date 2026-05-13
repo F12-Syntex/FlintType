@@ -1,8 +1,9 @@
 "use client";
 
-import { RefreshCw } from "lucide-react";
+import { Download, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useCallback, useState } from "react";
 import { UserTag } from "@/components/ft";
 import { cn } from "@/lib/utils";
 import { type LeaderboardEntry } from "@/types/leaderboard";
@@ -48,27 +49,41 @@ export function LeaderboardView() {
         <div className="mb-5 flex items-center gap-3">
           <span aria-hidden className="inline-block h-px w-7 bg-primary" />
           <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-            Leaderboard · top scores
+            Leaderboard
           </span>
         </div>
-        <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:gap-8">
-          <h1 className="text-[28px] font-bold leading-[1.05] tracking-[-0.02em] text-foreground sm:text-[44px] lg:text-[52px]">
-            Top of the pack.
-            <br />
-            <span className="text-foreground/60">
-              {scopeLabel} · {windowLabelText}
-              {presetText ? ` · ${presetText}` : ""}.
-            </span>
-          </h1>
-          <div className="flex flex-col items-start gap-3 sm:items-end">
-            <p className="max-w-prose text-[13px] leading-relaxed text-muted-foreground sm:text-right">
-              Ranked by net WPM (raw × accuracy). Filter on the left.
+        <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-8">
+          {/* Title + filter chips. Dropping the dot-joined subtitle in
+           *  favour of inline filter chips reads at-a-glance without
+           *  the "·" separator the old design leaned on. Each chip
+           *  mirrors a sidebar control so the page tells you what
+           *  slice you're looking at in one row. */}
+          <div className="flex flex-col gap-4">
+            <h1 className="text-[28px] font-bold leading-[1.05] tracking-[-0.02em] text-foreground sm:text-[44px] lg:text-[52px]">
+              Top scores
+            </h1>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <FilterChip>{scopeLabel}</FilterChip>
+              <FilterChip>{windowLabelText}</FilterChip>
+              {presetText ? <FilterChip>{presetText}</FilterChip> : null}
+            </div>
+            <p className="max-w-prose text-[12px] leading-relaxed text-muted-foreground sm:text-[13px]">
+              Ranked by net WPM (raw × accuracy).
             </p>
+          </div>
+          {/* Action cluster — refresh + save image. Marked data-no-export
+           *  so the cluster itself is filtered out when the screenshot
+           *  helper captures the page. */}
+          <div
+            data-no-export="true"
+            className="flex flex-wrap items-center gap-2 self-start sm:self-end sm:justify-end"
+          >
             <RefreshButton
               onClick={refresh}
               refreshing={refreshing || loading}
               generatedAt={generatedAt}
             />
+            <SaveImageButton />
           </div>
         </div>
       </header>
@@ -85,6 +100,72 @@ export function LeaderboardView() {
         )}
       </div>
     </article>
+  );
+}
+
+function FilterChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-6 items-center rounded-md border border-border bg-background/40 px-2",
+        "text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground",
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+/* ─── Save image ──────────────────────────────────────────────── */
+
+function SaveImageButton() {
+  const [exporting, setExporting] = useState(false);
+  const onDownload = useCallback(async () => {
+    if (exporting) return;
+    const { findScreenshotRoot, naturalScreenshotSize, pickScreenshotBg } =
+      await import("@/lib/screenshot");
+    const node = findScreenshotRoot();
+    if (!node) return;
+    setExporting(true);
+    try {
+      const { toPng } = await import("html-to-image");
+      const bg = pickScreenshotBg(node);
+      const { width, height } = naturalScreenshotSize(node);
+      const dataUrl = await toPng(node, {
+        cacheBust: true,
+        backgroundColor: bg,
+        width,
+        height,
+        filter: (n) =>
+          !(n instanceof HTMLElement && n.dataset.noExport === "true"),
+      });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `flinttype-leaderboard-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error("[leaderboard] screenshot failed", err);
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting]);
+  return (
+    <button
+      type="button"
+      onClick={onDownload}
+      disabled={exporting}
+      aria-label="Save leaderboard as image"
+      className={cn(
+        "inline-flex items-center gap-2 rounded-md border border-border bg-background/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground transition-colors",
+        "hover:bg-foreground/[0.04] hover:text-foreground",
+        "disabled:cursor-not-allowed disabled:opacity-60",
+      )}
+    >
+      <Download size={12} className="shrink-0" aria-hidden />
+      <span>{exporting ? "Saving" : "Save image"}</span>
+    </button>
   );
 }
 
