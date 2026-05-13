@@ -1,35 +1,38 @@
+"use client";
+
 import { Crown } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { HistoryTest } from "@/types/history";
 import { ProfileSection } from "./profile-section";
+
+/** How many runs to show on initial render, and how many to add on
+ *  each Load more click. Ten matches the typical viewer's session
+ *  span and keeps the section scannable without a scrolljack. */
+const PAGE_SIZE = 10;
 
 /** Recent-runs list. One row per completed test, hairline-divided.
  *  Each row reads as a small editorial summary: when it ran (left),
  *  mode + length pill (middle), big primary WPM + tiny accuracy
  *  (right). The single highest WPM for each (mode, length) bucket
  *  carries a Crown badge so a PB stands out at a glance — the same
- *  bucketing used by /personal-bests. */
+ *  bucketing used by /personal-bests.
+ *
+ *  Pagination is client-side: the parent fetch (`history.summary`)
+ *  already pulls up to 500 recent runs, so a Load more click is a
+ *  free in-memory slice rather than another network round-trip. */
 export function RecentRuns({ tests }: { tests: readonly HistoryTest[] }) {
-  const completed = tests.filter((t) => t.wasCompleted).slice(0, 8);
-  // For each (mode, amount) we surface the highest WPM. The crown
-  // attaches to the test row whose id matches that all-time best.
+  const completed = tests.filter((t) => t.wasCompleted);
+  const [shown, setShown] = useState(PAGE_SIZE);
+  const visible = completed.slice(0, shown);
+  const remaining = Math.max(0, completed.length - shown);
   const pbIds = pickPbIds(tests);
 
   return (
-    <ProfileSection
-      label="Recent runs"
-      noBorder
-      actions={
-        <Link
-          href="/insights"
-          className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-primary"
-        >
-          View all →
-        </Link>
-      }
-    >
-      {completed.length === 0 ? (
+    <ProfileSection label="Recent runs" noBorder>
+      {visible.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No completed runs yet — kick one off at{" "}
           <Link href="/" className="text-primary hover:underline">
@@ -38,11 +41,26 @@ export function RecentRuns({ tests }: { tests: readonly HistoryTest[] }) {
           .
         </p>
       ) : (
-        <ul className="flex flex-col divide-y divide-border rounded-md border border-border">
-          {completed.map((t) => (
-            <RunRow key={t.id} test={t} pb={pbIds.has(t.id)} />
-          ))}
-        </ul>
+        <div className="flex flex-col gap-3">
+          <ul className="flex flex-col divide-y divide-border rounded-md border border-border">
+            {visible.map((t) => (
+              <RunRow key={t.id} test={t} pb={pbIds.has(t.id)} />
+            ))}
+          </ul>
+          {remaining > 0 ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShown((s) => s + PAGE_SIZE)}
+              className="self-center text-[11px] uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground"
+            >
+              Load {Math.min(PAGE_SIZE, remaining)} more
+              <span className="ml-2 text-muted-foreground/60 tabular-nums">
+                {visible.length} / {completed.length}
+              </span>
+            </Button>
+          ) : null}
+        </div>
       )}
     </ProfileSection>
   );
