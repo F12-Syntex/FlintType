@@ -24,7 +24,7 @@ export const metadata = buildPageMetadata({
 export default function LeaderboardPage() {
   return (
     <AppChrome compact>
-      <div className="grid h-full min-h-0 grid-cols-1 text-foreground lg:grid-cols-[220px_1fr] lg:gap-3 lg:py-3">
+      <div className="grid h-full min-h-0 grid-cols-1 text-foreground lg:grid-cols-[var(--app-rail-width)_1fr] lg:gap-3 lg:py-3">
         <Suspense fallback={<SidebarFallback />}>
           <LeaderboardSidebar />
         </Suspense>

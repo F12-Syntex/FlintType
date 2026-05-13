@@ -56,6 +56,11 @@
   --tracking-normal: 0em;
   --spacing: 0.27rem;
 
+  /* App chrome rail — the left sidebar column shared by /customise and
+     /leaderboard, mirrored in the topbar so the logo column aligns with
+     the sidebar and the nav aligns with the content column below. */
+  --app-rail-width: 13.75rem;
+
   /* Geist DS variables consumed by upstream component snippets. */
   --context-card-border: hsla(0, 0%, 92%, 1);
   --ds-gray-100: hsla(0, 0%, 95%, 1);

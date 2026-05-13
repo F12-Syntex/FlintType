@@ -196,6 +196,7 @@ All recipes are **mobile-first**: base classes target ≤ 375px viewports, `sm:`
 | Topbar (sticky header)    | `sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80` |
 | Topbar inner row          | `mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-3 sm:px-8 sm:py-4`          |
 | List row (long text + action) | `flex flex-col gap-2 rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900 sm:flex-row sm:items-center sm:justify-between` |
+| App shell with sidebar    | `grid h-full grid-cols-1 lg:grid-cols-[var(--app-rail-width)_1fr] lg:gap-3` — used by `/customise` and `/leaderboard`. `--app-rail-width` lives in `globals.css`; the `<TopBar>` reuses the same grid template (`[var(--app-rail-width)_1fr_auto]` with matching `lg:px-6`) so the logo column aligns with the sidebar and the nav aligns with the content card. |
 
 ---
 

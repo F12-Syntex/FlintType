@@ -6,7 +6,7 @@ import { SettingsSidebar } from "./_components/sidebar";
 export default function CustomiseLayout({ children }: { children: ReactNode }) {
   return (
     <AppChrome compact>
-      <div className="grid h-full min-h-0 grid-cols-1 text-foreground lg:grid-cols-[220px_1fr] lg:gap-3 lg:py-3">
+      <div className="grid h-full min-h-0 grid-cols-1 text-foreground lg:grid-cols-[var(--app-rail-width)_1fr] lg:gap-3 lg:py-3">
         <SettingsSidebar />
 
         {/* The bg-scope wrapper does NOT scroll — it owns the

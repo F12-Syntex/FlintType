@@ -14,11 +14,20 @@ export type NavItem = {
 
 /** Top app chrome.
  *
- *  Layout, lg+:
+ *  Layout, lg+ (CSS grid `[--app-rail-width 1fr auto]`):
  *
- *      ┌──────────────────────────────────────────────────────────────────┐
- *      │  ◇ FLINTTYPE 6.6.0   PRACTICE  RACE  …  RIGHT-SLOT   GH↗   ☰    │
- *      └──────────────────────────────────────────────────────────────────┘
+ *      ┌───────────────────┬───────────────────────────────────────────┐
+ *      │  ◇ FLINTTYPE 6.x  │  PRACTICE  RACE  …          RIGHT-SLOT ☰ │
+ *      └───────────────────┴───────────────────────────────────────────┘
+ *         ↑ same width as       ↑ same left edge as the content column
+ *         the page sidebar      below (sidebar gap + outer pad match).
+ *
+ *  The grid template and outer padding mirror the `/customise` and
+ *  `/leaderboard` page shells — `--app-rail-width` is declared in
+ *  `globals.css` and consumed by both layers, so the logo column sits
+ *  directly above the sidebar and the nav sits directly above the
+ *  content card. Below `lg:` there is no sidebar; the topbar collapses
+ *  to a flex-like `[auto 1fr auto]` grid (logo, nav, right cluster).
  *
  *  - Logo + version sit on the left, version-label muted so it doesn't
  *    compete with the brand mark.
@@ -28,8 +37,6 @@ export type NavItem = {
  *    confident, not coy).
  *  - Hover state: simple foreground-100 swap; no animated underline.
  *    The previous animated reveal made the bar feel busy.
- *  - "Open source ↗" badge moved into the right cluster — fewer
- *    things competing along the centre baseline. Hidden < md.
  *  - Right slot stays for caller-supplied actions (sign-in, profile,
  *    notifications). We constrain it to a flex row so multiple chips
  *    line up without each call site re-wrapping.
@@ -68,8 +75,13 @@ export function TopBar({
       data-ft-topbar
       className={cn(
         // h-14 keeps parity with the existing 56px chrome height that
-        // the rest of the layout reserves room for.
-        "safe-pt z-30 flex h-14 items-center gap-5 border-b px-4 backdrop-blur-md sm:px-6 lg:gap-7 lg:px-8",
+        // the rest of the layout reserves room for. Outer pad and grid
+        // template intentionally match the page content wrapper (see
+        // AppChrome + /customise + /leaderboard) so the logo column
+        // aligns with the sidebar and the nav aligns with the content
+        // column on lg+.
+        "safe-pt z-30 grid h-14 items-center gap-5 border-b px-4 backdrop-blur-md sm:px-6",
+        "grid-cols-[auto_1fr_auto] lg:grid-cols-[var(--app-rail-width)_1fr_auto] lg:gap-3 lg:px-6",
         sticky && "sticky top-0",
         dark
           ? "border-ft-ink-line bg-ft-ink/85 text-ft-paper"
@@ -80,7 +92,7 @@ export function TopBar({
       <Logo dark={dark} version={resolvedVersion} />
 
       {nav && nav.length > 0 ? (
-        <div className="ml-3 hidden flex-1 md:flex lg:ml-4">
+        <div className="hidden min-w-0 md:flex">
           <nav
             aria-label="Main"
             className={cn(
@@ -123,7 +135,9 @@ export function TopBar({
           </nav>
         </div>
       ) : (
-        <span className="flex-1" />
+        // Empty grid cell so the right cluster stays in column 3 and
+        // hugs the right edge when no nav prop is supplied.
+        <span aria-hidden />
       )}
 
       {/* Right cluster — caller-supplied actions + the mobile
