@@ -368,7 +368,8 @@ export function reducer(s: State, a: Action): State {
       // previous word" gesture, so it crosses unconditionally.
       if (s.phase === "done") return s;
       if (s.cursorChar === 0) {
-        if (s.cursorWord === 0) return s;
+        if (s.cursorWord === 0 || !s.errorWords.has(s.cursorWord - 1))
+          return s;
         const next = [...s.typed];
         next[s.cursorWord - 1] = "";
         // Re-clear the error flag if we just wiped that word's typed

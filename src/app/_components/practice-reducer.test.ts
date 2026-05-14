@@ -50,11 +50,10 @@ describe("practice reducer — BACKSPACE_WORD (Ctrl+Backspace)", () => {
     expect(next.typed).toEqual(["hello", ""]);
   });
 
-  it("jumps to the previous word even when it has no errors (text-editor behaviour)", () => {
-    // The pre-fix behaviour required the previous word to be in
-    // `errorWords` — a clean previous word silently swallowed the
-    // keystroke. The new behaviour matches every text editor on the
-    // planet: Ctrl+Backspace at column 0 deletes the previous word.
+  it("is a no-op when the previous word has no errors (MonkeyType behaviour)", () => {
+    // Ctrl+Backspace at column 0 must not cross back into a correctly-
+    // completed word — matches MonkeyType: once a clean word is locked
+    // in by space, it can't be erased by Ctrl+Backspace.
     const s = seed({
       words: ["hello", "world"],
       cursorWord: 1,
@@ -63,9 +62,7 @@ describe("practice reducer — BACKSPACE_WORD (Ctrl+Backspace)", () => {
       errorWords: new Set<number>(),
     });
     const next = reducer(s, { type: "BACKSPACE_WORD" });
-    expect(next.cursorWord).toBe(0);
-    expect(next.cursorChar).toBe(0);
-    expect(next.typed).toEqual(["", ""]);
+    expect(next).toBe(s);
   });
 
   it("clears the error flag on the word it just wiped", () => {
@@ -125,10 +122,10 @@ describe("practice reducer — BACKSPACE_WORD (Ctrl+Backspace)", () => {
 });
 
 describe("practice reducer — sequential Ctrl+Backspace", () => {
-  it("after typing 'hello world ', two Ctrl+Backspaces clear both words", () => {
-    // Start from clean: type "hello", space (advance), type "world",
-    // then ctrl+backspace twice. End state: cursor at (0, 0), both
-    // typed slots empty.
+  it("clears current word but cannot cross into a clean previous word", () => {
+    // Ctrl+Backspace on "world" (in progress) wipes it. A second
+    // Ctrl+Backspace at column 0 must not cross back into "hello"
+    // because it was typed correctly — matches MonkeyType behaviour.
     let s = seed({
       words: ["hello", "world", "foo"],
       typed: [],
@@ -161,10 +158,27 @@ describe("practice reducer — sequential Ctrl+Backspace", () => {
     expect(s.cursorChar).toBe(0);
     expect(s.typed).toEqual(["hello", ""]);
 
+    // second Ctrl+Backspace: "hello" has no errors → no-op
+    const before = s;
     s = run(s, { type: "BACKSPACE_WORD" });
-    expect(s.cursorWord).toBe(0);
-    expect(s.cursorChar).toBe(0);
-    expect(s.typed).toEqual(["", ""]);
+    expect(s).toBe(before);
+  });
+
+  it("crosses into the previous word when it has errors", () => {
+    // If the previous word was mistyped, Ctrl+Backspace at column 0
+    // should still cross back and wipe it (same as regular backspace).
+    const s = seed({
+      words: ["helo", "world", "foo"],
+      cursorWord: 1,
+      cursorChar: 0,
+      typed: ["helo", ""],
+      errorWords: new Set<number>([0]),
+    });
+    const next = reducer(s, { type: "BACKSPACE_WORD" });
+    expect(next.cursorWord).toBe(0);
+    expect(next.cursorChar).toBe(0);
+    expect(next.typed[0]).toBe("");
+    expect(next.errorWords.has(0)).toBe(false);
   });
 });
 
