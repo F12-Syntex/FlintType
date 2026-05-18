@@ -219,6 +219,8 @@ export function PreviewPracticeProvider({
       setMode: () => {},
       setLength: () => {},
       toggleAdapt: () => {},
+      setWordlist: () => {},
+      wordlist: "english",
       restart: () => {},
       elapsedMs: elapsedMs ?? sample.elapsedMs,
       wpm: wpm ?? sample.wpm,

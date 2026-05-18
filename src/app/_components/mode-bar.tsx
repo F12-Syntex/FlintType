@@ -9,8 +9,10 @@ import { OptionSwitch } from "@/components/ui/option-switch";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { QUOTE_GROUPS } from "@/lib/quotes";
 import { cn } from "@/lib/utils";
+import { wordlistLabel } from "@/lib/wordlists/use-wordlist";
 import { HandLayoutEditor } from "./keyboard/hands";
 import { type Mode, usePractice } from "./practice-state";
+import { WordlistPicker } from "./wordlist-picker";
 
 const MODES: readonly Mode[] = ["WORDS", "TIME", "QUOTE"];
 
@@ -171,9 +173,13 @@ function LengthPicker({
 // Vertical stack on mobile, horizontal flow on md+.
 
 function ModeControls() {
-  const { state, setMode, setLength } = usePractice();
+  const { state, setMode, setLength, wordlist, setWordlist } = usePractice();
   const presets = LENGTH_PRESETS[state.mode];
   const lengthLabel = LENGTH_FIELD_LABEL[state.mode];
+  const [wordlistOpen, setWordlistOpen] = useState(false);
+  // Wordlist chip only makes sense for word-pool modes — QUOTE pulls
+  // from the curated quote pool, not the wordlist catalog.
+  const showWordlist = state.mode === "WORDS" || state.mode === "TIME";
   return (
     <div className="flex flex-col items-stretch gap-3 md:flex-row md:flex-wrap md:items-end md:justify-center md:gap-x-8 md:gap-y-4">
       <Field label="mode">
@@ -197,6 +203,33 @@ function ModeControls() {
           allowCustom={CUSTOM_ALLOWED[state.mode]}
         />
       </Field>
+
+      {showWordlist ? (
+        <Field label="wordlist">
+          <button
+            type="button"
+            onClick={() => setWordlistOpen(true)}
+            className={cn(
+              "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-card px-3",
+              "text-[11px] font-medium tracking-[0.14em] uppercase text-foreground",
+              "transition-colors hover:border-primary/40 hover:bg-accent/40",
+              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+            )}
+          >
+            <span className="truncate max-w-[160px]">{wordlistLabel(wordlist)}</span>
+            <span aria-hidden className="text-muted-foreground">⌄</span>
+          </button>
+          <WordlistPicker
+            open={wordlistOpen}
+            onOpenChange={setWordlistOpen}
+            value={wordlist}
+            onPick={(id) => {
+              setWordlist(id);
+              setWordlistOpen(false);
+            }}
+          />
+        </Field>
+      ) : null}
     </div>
   );
 }

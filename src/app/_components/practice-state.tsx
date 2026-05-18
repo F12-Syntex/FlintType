@@ -16,6 +16,7 @@ import { loadQuotes, pickQuote, type QuoteGroup } from "@/lib/quotes";
 import { useAdapt } from "@/lib/use-adapt";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
+import { useWordlist } from "@/lib/wordlists/use-wordlist";
 import { calcWpmAndRaw, countChars } from "@/lib/wpm";
 import {
   avgWpm as computeAvgWpm,
@@ -86,6 +87,12 @@ type PracticeCtx = {
   setMode: (mode: Mode) => void;
   setLength: (length: Length) => void;
   toggleAdapt: () => void;
+  /** Swap the active wordlist. Persists to the practice slice, the
+   *  next render's useWordlist fires the fetch (or hits cache), and
+   *  the current passage gets re-rolled from the new pool. */
+  setWordlist: (id: string) => void;
+  /** Currently-selected wordlist id (read from the persisted slice). */
+  wordlist: string;
   restart: () => void;
   elapsedMs: number;
   wpm: number;
@@ -131,15 +138,25 @@ export function usePractice(): PracticeCtx {
   return ctx;
 }
 
-/** Persisted slice — the user's mode / length / adapt preferences,
- *  remembered across sessions via the user_prefs blob. The rest of
- *  the practice state (run-in-progress: phase, cursor, events…) is
- *  ephemeral and stays in the reducer. */
-type PracticeSlice = { mode: Mode; length: Length; adapt: boolean };
+/** Persisted slice — the user's mode / length / adapt / wordlist
+ *  preferences, remembered across sessions via the user_prefs blob.
+ *  The rest of the practice state (run-in-progress: phase, cursor,
+ *  events…) is ephemeral and stays in the reducer. */
+type PracticeSlice = {
+  mode: Mode;
+  length: Length;
+  adapt: boolean;
+  /** MonkeyType wordlist id (see src/data/wordlists/catalog.ts).
+   *  Empty/missing → DEFAULT_WORDLIST. Stored as a free string so
+   *  catalog refreshes (yarn wordlists:sync) don't widen the type
+   *  surface here — validation lives in `isWordlistId`. */
+  wordlist: string;
+};
 const DEFAULT_PRACTICE_SLICE: PracticeSlice = {
   mode: "WORDS",
   length: initialState.length,
   adapt: true,
+  wordlist: "english",
 };
 
 export function PracticeProvider({
@@ -206,6 +223,43 @@ export function PracticeProvider({
     value: practiceSlice,
     update: updatePracticeSlice,
   } = useRemotePrefs("practice", DEFAULT_PRACTICE_SLICE);
+
+  // Resolve the selected wordlist into its actual word array. Returns
+  // null until the CDN fetch resolves (or instantly when the cache is
+  // warm via in-memory / localStorage hits). While null, the reducer's
+  // embedded English-200 stays the fallback so first paint is never
+  // blank. Stash in a ref so generateForMode callsites read the latest
+  // pool without needing the call sites threaded through extra deps.
+  const { words: wordlistWords } = useWordlist(practiceSlice.wordlist);
+  const wordPoolRef = useRef<readonly string[] | null>(wordlistWords);
+  wordPoolRef.current = wordlistWords;
+
+  // When the wordlist swap finishes loading (or the user picks a new
+  // wordlist and the new pool resolves), re-roll the active passage —
+  // but only when the run hasn't started yet. Mid-run swaps are
+  // surfaced on the user's next restart instead so we don't yank the
+  // passage out from under them.
+  useEffect(() => {
+    if (lockedWordsRef.current) return;
+    if (wordlistWords == null) return;
+    if (state.phase !== "rest") return;
+    if (state.mode !== "WORDS" && state.mode !== "TIME") return;
+    const cfg: WordCfg = {
+      minWordLength: prefsRef.current.minWordLength,
+      showSecondary: prefsRef.current.showSecondary,
+      wordPool: wordlistWords,
+    };
+    dispatch({
+      type: "SET_MODE",
+      mode: state.mode,
+      length: state.length,
+      words: generateForMode(state.mode, state.length, cfg),
+      quoteSource: null,
+    });
+    // Watching only the loaded pool identity — other deps would
+    // cause this to re-fire on every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wordlistWords]);
   // Tracks whether we've already mirrored a given slice snapshot into
   // the reducer — prevents the "slice → dispatch → state → slice" loop
   // when the user flips a control: we cause the slice change ourselves
@@ -287,6 +341,7 @@ export function PracticeProvider({
       const cfg = {
         minWordLength: prefsRef.current.minWordLength,
         showSecondary: prefsRef.current.showSecondary,
+        wordPool: wordPoolRef.current ?? undefined,
       };
       dispatch({
         type: "SET_MODE",
@@ -641,6 +696,11 @@ export function PracticeProvider({
       return {
         minWordLength: p.minWordLength,
         showSecondary: p.showSecondary,
+        // Pool sourced from the user's selected wordlist — see
+        // useWordlist call above. Null while a fresh fetch is in
+        // flight; the reducer falls back to its embedded English
+        // pool in that case so first paint never blanks.
+        wordPool: wordPoolRef.current ?? undefined,
       };
     };
     const loadAndDispatchQuote = async (group: QuoteGroup) => {
@@ -763,6 +823,17 @@ export function PracticeProvider({
         const next = !state.adapt;
         lastAppliedSliceRef.current = `${state.mode}|${state.length}|${next}`;
         updatePracticeSlice({ adapt: next });
+      },
+      wordlist: practiceSlice.wordlist,
+      setWordlist: (id: string) => {
+        if (id === practiceSlice.wordlist) return;
+        updatePracticeSlice({ wordlist: id });
+        // No immediate re-roll here — useWordlist's effect will fire
+        // when practiceSlice.wordlist changes, wordPoolRef updates
+        // when its words resolve, and the user's next restart (Esc
+        // or palette → "Restart test") picks up the new pool. Doing
+        // a synchronous dispatch with stale wordPoolRef.current
+        // would re-roll against the previous wordlist's pool.
       },
       restart: () => {
         const cfg = buildCfg();

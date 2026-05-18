@@ -63,7 +63,14 @@ export type State = {
   quoteSource: string | null;
 };
 
-export type WordCfg = Pick<BehaviourPrefs, "minWordLength" | "showSecondary">;
+export type WordCfg = Pick<BehaviourPrefs, "minWordLength" | "showSecondary"> & {
+  /** Optional override for the word pool. When provided, generation
+   *  draws from this list instead of the embedded English-200. The
+   *  practice provider hands the user's currently-loaded MonkeyType
+   *  wordlist in via this field; absence (or empty) falls back to
+   *  the embedded set. */
+  wordPool?: readonly string[];
+};
 
 export type Action =
   | { type: "SET_MODE"; mode: Mode; length: Length; words: string[]; quoteSource: string | null }
@@ -106,8 +113,13 @@ function filteredList(cfg: WordCfg): readonly string[] {
   // Casual mode has no length-skew preference — just respect the user's
   // minimum-word-length floor. Adaptive mode picks purely on bigram
   // weakness data, no length skew.
-  const list = WORD_POOL.filter((w) => w.length >= cfg.minWordLength);
-  return list.length > 0 ? list : WORD_POOL;
+  //
+  // `cfg.wordPool` (set by the practice provider after a wordlist
+  // fetch resolves) overrides the embedded English-200 default.
+  const pool: readonly string[] =
+    cfg.wordPool && cfg.wordPool.length > 0 ? cfg.wordPool : WORD_POOL;
+  const list = pool.filter((w) => w.length >= cfg.minWordLength);
+  return list.length > 0 ? list : pool;
 }
 
 export function generateWords(
