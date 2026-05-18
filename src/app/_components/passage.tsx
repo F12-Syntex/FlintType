@@ -85,6 +85,26 @@ function ActiveWord({
             ? "rounded-sm bg-primary/15 text-primary px-0.5"
             : "";
 
+        // Active-word mistake feedback. Colour alone is too easy to
+        // miss at passage scale on near-monochrome palettes; pair the
+        // error hue with a soft fill + bold weight so a mistyped or
+        // extra letter pops without competing with the caret. Tint
+        // tracks --ft-passage-error so user customisation flows through.
+        // JetBrains Mono is width-stable across weights so the bold
+        // bump doesn't shift the caret measurement. (Past errored
+        // words already get an underline via §4 — this is the
+        // equivalent non-colour cue for in-progress mistakes.)
+        const isError =
+          !blind &&
+          (isExtra || (got !== undefined && got !== expected));
+        const errorCls = isError ? "rounded-sm font-bold" : "";
+        const errorStyle: React.CSSProperties | undefined = isError
+          ? {
+              backgroundColor:
+                "color-mix(in oklch, var(--ft-passage-error, var(--destructive)) 20%, transparent)",
+            }
+          : undefined;
+
         // Caret target:
         //   cursorChar < len  → left edge of char at cursorChar
         //   cursorChar >= len → right edge of last char (caret past the
@@ -101,7 +121,12 @@ function ActiveWord({
               : null;
 
         return (
-          <span key={ci} ref={ref} className={cn(cls, letterCls)}>
+          <span
+            key={ci}
+            ref={ref}
+            className={cn(cls, letterCls, errorCls)}
+            style={errorStyle}
+          >
             {glyph}
           </span>
         );
