@@ -180,7 +180,7 @@ export default async function OpengraphImage() {
             <span style={{ color: DIM_2 }}>&nbsp;dog, cof</span>
             <span
               style={{
-                display: "inline-block",
+                display: "flex",
                 width: 5,
                 height: HERO_PX * 0.85,
                 backgroundColor: EMBER,
