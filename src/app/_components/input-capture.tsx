@@ -131,16 +131,6 @@ export function InputCapture({ children }: { children: ReactNode }) {
           }
         }}
         onKeyDown={(e) => {
-          // Suppress typing while a modal is open. preventDefault stops
-          // Tab/Backspace from doing anything page-level; the modal's
-          // own window listener still receives the bubbled event for
-          // Escape close.
-          if (
-            document.querySelector('[role="dialog"][aria-modal="true"]')
-          ) {
-            e.preventDefault();
-            return;
-          }
           // Only Backspace is allowed to carry a modifier — Ctrl /
           // Alt(Win) / ⌥(Mac) / ⌘(Mac) + Backspace = "delete word".
           // Every other modified shortcut (Ctrl+R, Cmd+T, …) falls
@@ -149,10 +139,28 @@ export function InputCapture({ children }: { children: ReactNode }) {
             e.key === "Backspace" && (e.ctrlKey || e.altKey || e.metaKey);
           if (!wordWise && (e.ctrlKey || e.metaKey || e.altKey)) return;
           const p = prefsRef.current;
+          // Tab → restart runs BEFORE the dialog-modal gate below.
+          // Reason: Radix dialogs keep their Content mounted for ~150ms
+          // during the closing animation with aria-modal=true still set,
+          // so a stale matchModal can swallow Tab right after the user
+          // closes the command palette / a popover dialog. Tab is also
+          // unambiguous — palette / sub-dialogs that legitimately want
+          // to own Tab already preventDefault + stopPropagation on it,
+          // so the event never reaches this handler in those cases.
           if (e.key === "Tab") {
             if (!p.quickRestart) return;
             e.preventDefault();
             restart();
+            return;
+          }
+          // Suppress typing while a modal is open. preventDefault stops
+          // Backspace / letters from doing anything page-level; the
+          // modal's own window listener still receives the bubbled
+          // event for Escape close.
+          if (
+            document.querySelector('[role="dialog"][aria-modal="true"]')
+          ) {
+            e.preventDefault();
             return;
           }
           if (e.key === "Escape") {

@@ -814,6 +814,26 @@ export function PracticeProvider({
     const wordWise =
       e.key === "Backspace" && (e.ctrlKey || e.altKey || e.metaKey);
     if (!wordWise && (e.ctrlKey || e.metaKey || e.altKey)) return;
+
+    const s = stateRef.current;
+    const p = prefsRef.current;
+
+    // Tab → restart runs BEFORE the dialog-modal / active-input gates
+    // below. Reason: Radix dialogs keep their Content mounted for
+    // ~150ms during the closing animation with aria-modal=true still
+    // set, and the active-element check would bail on any focused
+    // input including the test's own hidden input. Tab is also
+    // unambiguous — dialogs that legitimately want to own Tab (the
+    // command palette, value-picker sub-views) already preventDefault
+    // + stopPropagation on it, so the event never reaches this
+    // window listener in those cases.
+    if (e.key === "Tab") {
+      if (!p.quickRestart) return;
+      e.preventDefault();
+      restartRef.current();
+      return;
+    }
+
     // Suppress typing while a modal owns the screen — the modal opens
     // by clicking a button which moves focus off the hidden input, so
     // the input's own onKeyDown stops firing and keystrokes bubble
@@ -828,17 +848,6 @@ export function PracticeProvider({
         active.tagName === "TEXTAREA" ||
         active.tagName === "SELECT")
     ) {
-      return;
-    }
-
-    const s = stateRef.current;
-    const p = prefsRef.current;
-
-    if (e.key === "Tab") {
-      // Quick restart off → let Tab do its native thing (focus shift).
-      if (!p.quickRestart) return;
-      e.preventDefault();
-      restartRef.current();
       return;
     }
     if (e.key === "Escape") {
