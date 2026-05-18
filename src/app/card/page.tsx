@@ -206,7 +206,7 @@ function Footer() {
           className="font-medium uppercase text-ft-warm-3"
           style={{ fontSize: 11, letterSpacing: "0.28em" }}
         >
-          Learns your weakest bigrams · Open source
+          Learns the bigrams you keep missing
         </span>
       </div>
     </div>
