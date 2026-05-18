@@ -92,3 +92,23 @@ export function parsePreset(s: string | null): LeaderboardPreset {
   const found = PRESET_IDS.find((id) => id === s);
   return found ?? "any";
 }
+
+/** Which kind of ranking the main pane shows. Switched from the
+ *  sidebar's "View" group.
+ *    `table`   — the per-run leaderboard (default; respects the
+ *                Mode / Window / Length filters)
+ *    `players` — one row per user, ranked by lifetime peak net-WPM
+ *    `levels`  — one row per user, ranked by accumulated XP / level
+ *  The user-centric views ignore the filter trio above. */
+export type LeaderboardView = "table" | "players" | "levels";
+
+export const VIEWS: readonly { id: LeaderboardView; label: string }[] = [
+  { id: "table", label: "Recent runs" },
+  { id: "players", label: "Top players" },
+  { id: "levels", label: "Top by level" },
+];
+
+export function parseView(s: string | null): LeaderboardView {
+  if (s === "players" || s === "levels") return s;
+  return "table";
+}

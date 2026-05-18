@@ -13,13 +13,15 @@ import type {
 import {
   parsePreset,
   parseScope,
+  parseView,
   parseWindow,
   PRESET_GROUPS,
   presetLabel,
   SCOPES,
+  VIEWS,
   WINDOWS,
+  type LeaderboardView,
 } from "./filters";
-import { SidebarTopLevels, SidebarTopPlayers } from "./sidebar-tops";
 
 function useLeaderboardParams() {
   const router = useRouter();
@@ -27,6 +29,7 @@ function useLeaderboardParams() {
   const scope = parseScope(params.get("scope"));
   const window_ = parseWindow(params.get("window"));
   const preset = parsePreset(params.get("preset"));
+  const view = parseView(params.get("view"));
 
   const setParams = useCallback(
     (
@@ -34,25 +37,29 @@ function useLeaderboardParams() {
         scope: LeaderboardScope;
         window: LeaderboardWindow;
         preset: LeaderboardPreset;
+        view: LeaderboardView;
       }>,
     ) => {
       const sp = new URLSearchParams(params.toString());
       const nextScope = next.scope ?? scope;
       const nextWindow = next.window ?? window_;
       const nextPreset = next.preset ?? preset;
+      const nextView = next.view ?? view;
       if (nextScope === "all") sp.delete("scope");
       else sp.set("scope", nextScope);
       if (nextWindow === "all_time") sp.delete("window");
       else sp.set("window", nextWindow);
       if (nextPreset === "any") sp.delete("preset");
       else sp.set("preset", nextPreset);
+      if (nextView === "table") sp.delete("view");
+      else sp.set("view", nextView);
       const qs = sp.toString();
       router.replace(`/leaderboard${qs ? `?${qs}` : ""}`, { scroll: false });
     },
-    [params, router, scope, window_, preset],
+    [params, router, scope, window_, preset, view],
   );
 
-  return { scope, window_, preset, setParams };
+  return { scope, window_, preset, view, setParams };
 }
 
 /** Desktop rail — two grouped lists (Mode + Window) keyed off URL
@@ -60,7 +67,12 @@ function useLeaderboardParams() {
  *  vertical list of options, active row marked with a primary tick on
  *  the left rule. */
 export function LeaderboardSidebar() {
-  const { scope, window_, preset, setParams } = useLeaderboardParams();
+  const { scope, window_, preset, view, setParams } = useLeaderboardParams();
+  // The Mode / Window / Length filters only shape the per-run table.
+  // Top-players / Top-by-level aggregate across every completed run,
+  // so the filter groups would be misleading sitting next to those
+  // views — hide them when view !== "table".
+  const showFilters = view === "table";
   return (
     <nav
       data-ft-chrome
@@ -82,55 +94,59 @@ export function LeaderboardSidebar() {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto py-3">
-        <Group title="Mode">
-          {SCOPES.map((o) => (
+        <Group title="View">
+          {VIEWS.map((o) => (
             <RailItem
               key={o.id}
               label={o.label}
-              active={o.id === scope}
-              onClick={() => setParams({ scope: o.id })}
+              active={o.id === view}
+              onClick={() => setParams({ view: o.id })}
             />
           ))}
         </Group>
 
-        <Group title="Window">
-          {WINDOWS.map((o) => (
-            <RailItem
-              key={o.id}
-              label={o.label}
-              active={o.id === window_}
-              onClick={() => setParams({ window: o.id })}
-            />
-          ))}
-        </Group>
+        {showFilters ? (
+          <>
+            <Group title="Mode">
+              {SCOPES.map((o) => (
+                <RailItem
+                  key={o.id}
+                  label={o.label}
+                  active={o.id === scope}
+                  onClick={() => setParams({ scope: o.id })}
+                />
+              ))}
+            </Group>
 
-        {/* Test-length presets render flat into the rail under one
-         *  "Length" eyebrow plus per-group sub-eyebrows (Words /
-         *  Time). Visual rhythm matches the customise sidebar's
-         *  Appearance → sub-anchors pattern. */}
-        {PRESET_GROUPS.map((g) => (
-          <Group key={g.title} title={g.title}>
-            {g.options.map((o) => (
-              <RailItem
-                key={o.id}
-                label={o.label}
-                active={o.id === preset}
-                onClick={() => setParams({ preset: o.id })}
-              />
+            <Group title="Window">
+              {WINDOWS.map((o) => (
+                <RailItem
+                  key={o.id}
+                  label={o.label}
+                  active={o.id === window_}
+                  onClick={() => setParams({ window: o.id })}
+                />
+              ))}
+            </Group>
+
+            {/* Test-length presets render flat into the rail under one
+             *  "Length" eyebrow plus per-group sub-eyebrows (Words /
+             *  Time). Visual rhythm matches the customise sidebar's
+             *  Appearance → sub-anchors pattern. */}
+            {PRESET_GROUPS.map((g) => (
+              <Group key={g.title} title={g.title}>
+                {g.options.map((o) => (
+                  <RailItem
+                    key={o.id}
+                    label={o.label}
+                    active={o.id === preset}
+                    onClick={() => setParams({ preset: o.id })}
+                  />
+                ))}
+              </Group>
             ))}
-          </Group>
-        ))}
-
-        {/* Top-player rails — independent of the filter params
-         *  above, so a Mode/Window swap doesn't refetch them. Each
-         *  rail is its own grouped list with a compact row per
-         *  player (rank + handle + secondary metric). */}
-        <div
-          className="my-3 mx-2 h-px bg-border"
-          aria-hidden
-        />
-        <SidebarTopPlayers />
-        <SidebarTopLevels />
+          </>
+        ) : null}
       </div>
     </nav>
   );
@@ -192,13 +208,15 @@ function RailItem({
  *  "Mode · Window" as the trigger label so the user can see the
  *  current slice at a glance. */
 export function MobileLeaderboardPicker() {
-  const { scope, window_, preset, setParams } = useLeaderboardParams();
+  const { scope, window_, preset, view, setParams } = useLeaderboardParams();
   const [open, setOpen] = useState(false);
 
   const scopeLabelText = SCOPES.find((s) => s.id === scope)?.label ?? "All modes";
   const windowLabelText =
     WINDOWS.find((w) => w.id === window_)?.label ?? "All time";
   const presetLabelText = presetLabel(preset);
+  const viewLabelText = VIEWS.find((v) => v.id === view)?.label ?? "Recent runs";
+  const showFilters = view === "table";
 
   function pickScope(id: LeaderboardScope) {
     setParams({ scope: id });
@@ -209,6 +227,9 @@ export function MobileLeaderboardPicker() {
   function pickPreset(id: LeaderboardPreset) {
     setParams({ preset: id });
   }
+  function pickView(id: LeaderboardView) {
+    setParams({ view: id });
+  }
 
   return (
     <>
@@ -217,7 +238,7 @@ export function MobileLeaderboardPicker() {
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`Filters — ${scopeLabelText}, ${windowLabelText}, ${presetLabelText}, tap to change`}
+        aria-label={`Filters — ${viewLabelText}, tap to change`}
         className={cn(
           "inline-flex h-9 max-w-[80vw] items-center gap-1.5 rounded-md px-2 -ml-2",
           "text-base font-semibold tracking-tight text-foreground",
@@ -225,10 +246,15 @@ export function MobileLeaderboardPicker() {
         )}
       >
         <span className="truncate">
-          {scopeLabelText}
-          <span className="text-muted-foreground"> · {windowLabelText}</span>
-          {preset !== "any" ? (
-            <span className="text-muted-foreground"> · {presetLabelText}</span>
+          {viewLabelText}
+          {showFilters ? (
+            <>
+              <span className="text-muted-foreground"> · {scopeLabelText}</span>
+              <span className="text-muted-foreground"> · {windowLabelText}</span>
+              {preset !== "any" ? (
+                <span className="text-muted-foreground"> · {presetLabelText}</span>
+              ) : null}
+            </>
           ) : null}
         </span>
         <ChevronDown
@@ -244,41 +270,47 @@ export function MobileLeaderboardPicker() {
       <MobileSheet open={open} onOpenChange={setOpen} title="Filters">
         <div className="flex h-full flex-col">
           <ul className="flex flex-col">
-            <SheetGroup title="Mode" />
-            {SCOPES.map((o) => (
+            <SheetGroup title="View" />
+            {VIEWS.map((o) => (
               <SheetRow
                 key={o.id}
                 label={o.label}
-                active={scope === o.id}
-                onClick={() => pickScope(o.id)}
+                active={view === o.id}
+                onClick={() => pickView(o.id)}
               />
             ))}
-            <SheetGroup title="Window" />
-            {WINDOWS.map((o) => (
-              <SheetRow
-                key={o.id}
-                label={o.label}
-                active={window_ === o.id}
-                onClick={() => pickWindow(o.id)}
-              />
-            ))}
-            {PRESET_GROUPS.map((g) => (
-              <PresetGroup
-                key={g.title}
-                title={g.title}
-                options={g.options}
-                active={preset}
-                onPick={pickPreset}
-              />
-            ))}
+            {showFilters ? (
+              <>
+                <SheetGroup title="Mode" />
+                {SCOPES.map((o) => (
+                  <SheetRow
+                    key={o.id}
+                    label={o.label}
+                    active={scope === o.id}
+                    onClick={() => pickScope(o.id)}
+                  />
+                ))}
+                <SheetGroup title="Window" />
+                {WINDOWS.map((o) => (
+                  <SheetRow
+                    key={o.id}
+                    label={o.label}
+                    active={window_ === o.id}
+                    onClick={() => pickWindow(o.id)}
+                  />
+                ))}
+                {PRESET_GROUPS.map((g) => (
+                  <PresetGroup
+                    key={g.title}
+                    title={g.title}
+                    options={g.options}
+                    active={preset}
+                    onPick={pickPreset}
+                  />
+                ))}
+              </>
+            ) : null}
           </ul>
-          {/* Top-player rails inside the mobile sheet so the small-
-           *  screen experience still reaches the user-centric ranks.
-           *  Sit below the filter list, scrollable with the rest. */}
-          <div className="mt-2 border-t border-border pt-2">
-            <SidebarTopPlayers />
-            <SidebarTopLevels />
-          </div>
         </div>
       </MobileSheet>
     </>

@@ -13,12 +13,14 @@ import {
   MODE_LABEL,
   parsePreset,
   parseScope,
+  parseView,
   parseWindow,
   presetLabel,
   SCOPES,
   WINDOWS,
 } from "./filters";
 import { useLeaderboard } from "./use-leaderboard";
+import { TopLevelsView, TopPlayersView } from "./user-views";
 
 /** /leaderboard content area. Reads scope+window+preset from URL
  *  params (set by the sidebar). Data flows through `useLeaderboard`,
@@ -30,6 +32,15 @@ export function LeaderboardView() {
   const scope = parseScope(params.get("scope"));
   const window_ = parseWindow(params.get("window"));
   const preset = parsePreset(params.get("preset"));
+  const view = parseView(params.get("view"));
+
+  // Branch on view — `players` and `levels` mount their own
+  // self-contained article (header + ranked list); only the default
+  // `table` view threads through the per-run leaderboard data hook
+  // below. Done up here so we don't pay for the useLeaderboard
+  // fetch when the user is on a user-centric view.
+  if (view === "players") return <TopPlayersView />;
+  if (view === "levels") return <TopLevelsView />;
 
   const { data, error, loading, refreshing, refresh } = useLeaderboard(
     scope,
