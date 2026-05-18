@@ -17,6 +17,23 @@ export type LeaderboardRow = {
   completedAt: Date;
 };
 
+/** Output row of `topPlayers` — one row per user with their
+ *  lifetime best net-WPM run + completed-test count. Joined with
+ *  Clerk display info client-side. */
+export type TopPlayerRow = {
+  userId: string;
+  /** Peak net-WPM across all completed runs (wpm × accuracy / 100). */
+  bestNetWpm: number;
+  bestWpm: number;
+  bestAccuracy: number;
+  testId: string;
+  mode: string;
+  durationOrWordCount: number;
+  /** Lifetime completed-test count — drives the secondary "runs" stat
+   *  beside the headline tier badge. */
+  testsCompleted: number;
+};
+
 export function testsRepo(db: ServerDrizzle) {
   return {
     async insert(row: NewTestRow): Promise<TestRow> {
@@ -173,6 +190,78 @@ export function testsRepo(db: ServerDrizzle) {
         if (out.length >= limit) break;
       }
       return out;
+    },
+    /** Top players by lifetime peak net-WPM. One row per user.
+     *  Powers the leaderboard's "Top players" pinned section — a
+     *  user-centric view alongside the existing run-centric table.
+     *
+     *  Implementation: over-fetch completed-run rows ordered by
+     *  net-WPM desc, walk them in order, keep the first hit per
+     *  userId (its lifetime PB), then attach the completed-count by
+     *  user in a second query so we don't try to express "max
+     *  netWpm + count + tie-break by completedAt" all in one SQL
+     *  aggregate. The over-fetch cap (limit * 50) covers the worst
+     *  realistic case — one user hammering attempts — without
+     *  blowing the row budget. */
+    async topPlayers(opts: { limit?: number }): Promise<TopPlayerRow[]> {
+      const limit = Math.max(1, Math.min(50, opts.limit ?? 10));
+      const netExpr = sql<number>`(${tests.wpm} * ${tests.accuracy} / 100.0)`;
+      // Pass 1: pull rows ordered by net-WPM desc; pluck the first
+      // (best) row per user. Cap the scan at limit * 50 so cold
+      // tables with many users still surface the top few quickly.
+      const rows = await db
+        .select({
+          testId: tests.id,
+          userId: tests.userId,
+          wpm: tests.wpm,
+          accuracy: tests.accuracy,
+          mode: tests.mode,
+          durationOrWordCount: tests.durationOrWordCount,
+          netWpm: netExpr,
+        })
+        .from(tests)
+        .where(eq(tests.wasCompleted, true))
+        .orderBy(desc(netExpr))
+        .limit(limit * 50);
+      const seen = new Set<string>();
+      const top: Omit<TopPlayerRow, "testsCompleted">[] = [];
+      for (const r of rows) {
+        if (seen.has(r.userId)) continue;
+        seen.add(r.userId);
+        top.push({
+          userId: r.userId,
+          bestNetWpm: Number(r.netWpm),
+          bestWpm: Number(r.wpm),
+          bestAccuracy: Number(r.accuracy),
+          testId: r.testId,
+          mode: r.mode,
+          durationOrWordCount: r.durationOrWordCount,
+        });
+        if (top.length >= limit) break;
+      }
+      if (top.length === 0) return [];
+      // Pass 2: completed-test count per surfaced user. Done in a
+      // single grouped query — keeps the round trip count flat
+      // regardless of how many users land in `top`.
+      const userIds = top.map((t) => t.userId);
+      const counts = await db
+        .select({
+          userId: tests.userId,
+          n: sql<number>`count(*)::int`,
+        })
+        .from(tests)
+        .where(
+          and(
+            eq(tests.wasCompleted, true),
+            sql`${tests.userId} = ANY(${userIds})`,
+          ),
+        )
+        .groupBy(tests.userId);
+      const countByUser = new Map(counts.map((c) => [c.userId, Number(c.n)]));
+      return top.map((t) => ({
+        ...t,
+        testsCompleted: countByUser.get(t.userId) ?? 0,
+      }));
     },
   };
 }

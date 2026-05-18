@@ -97,3 +97,30 @@ export type LeaderboardOutput = {
   /** Snapshot timestamp so the client can show "as of X". */
   generatedAtMs: number;
 };
+
+/** Input for the top-players (user-centric) leaderboard view —
+ *  surfaces each user's lifetime PB once, ranked. */
+export const topPlayersInputSchema = z.object({
+  limit: z.number().int().min(1).max(50).optional(),
+});
+export type TopPlayersInput = z.infer<typeof topPlayersInputSchema>;
+
+export type TopPlayer = {
+  rank: number;
+  userId: string;
+  /** Lower-case Clerk handle for /profile/<username>; null if the user
+   *  hasn't got one assigned yet. */
+  username: string | null;
+  name: string;
+  tags: UserTagId[];
+  /** Lifetime peak net WPM = best (wpm × accuracy / 100). */
+  bestNetWpm: number;
+  bestWpm: number;
+  bestAccuracy: number;
+  testsCompleted: number;
+};
+
+export type TopPlayersOutput = {
+  players: readonly TopPlayer[];
+  generatedAtMs: number;
+};
