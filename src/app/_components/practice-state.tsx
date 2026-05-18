@@ -570,24 +570,72 @@ export function PracticeProvider({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [practiceSlice, adaptAuthAllowed]);
 
+  // Live-stat values exposed to the context (Readouts, the rest hint,
+  // the mode bar). Throttled to 1 Hz during running — per-keystroke
+  // updates were jittery and made the numbers hard to read; a 1-second
+  // sampling cadence reads as steady. On `rest` they reset to zero/100;
+  // on `done` they snap to the final per-keystroke value so the post-
+  // test summary is exact, not stale-by-up-to-one-second. The actual
+  // submission path (see the `phase === "done"` effect further down)
+  // recomputes from state directly, so this throttle only affects
+  // displayed numbers — never recorded ones.
+  const [liveStats, setLiveStats] = useState<{
+    wpm: number;
+    raw: number;
+    accuracy: number;
+  }>({ wpm: 0, raw: 0, accuracy: 100 });
+
+  const liveStateRef = useRef(state);
+  liveStateRef.current = state;
+
+  useEffect(() => {
+    function compute(isFinal: boolean): {
+      wpm: number;
+      raw: number;
+      accuracy: number;
+    } {
+      const s = liveStateRef.current;
+      if (s.startTime == null) return { wpm: 0, raw: 0, accuracy: 100 };
+      const t =
+        isFinal && s.endTime != null ? s.endTime - s.startTime : Date.now() - s.startTime;
+      const { wpm: rawWpm, raw: rawRaw } = calcWpmAndRaw(
+        s.typed,
+        s.words,
+        t,
+        isFinal,
+      );
+      const counts = countChars(s.typed, s.words, isFinal);
+      const correct = counts.allCorrectChars;
+      const incorrect = counts.incorrectChars + counts.extraChars;
+      const acc =
+        correct + incorrect > 0
+          ? Math.round((correct / (correct + incorrect)) * 1000) / 10
+          : 100;
+      return {
+        wpm: Math.round(rawWpm),
+        raw: Math.round(rawRaw),
+        accuracy: acc,
+      };
+    }
+
+    if (state.phase === "rest") {
+      setLiveStats({ wpm: 0, raw: 0, accuracy: 100 });
+      return;
+    }
+    if (state.phase === "done") {
+      // Snap to the exact final values so the post-test screen
+      // doesn't show a stale-by-up-to-one-second sample.
+      setLiveStats(compute(true));
+      return;
+    }
+    // running — sample immediately then once per second.
+    setLiveStats(compute(false));
+    const id = setInterval(() => setLiveStats(compute(false)), 1000);
+    return () => clearInterval(id);
+  }, [state.phase, state.startTime, state.endTime]);
+
   const value = useMemo<PracticeCtx>(() => {
-    const isFinal = state.phase === "done";
-    const { wpm: rawWpm, raw: rawRaw } = calcWpmAndRaw(
-      state.typed,
-      state.words,
-      elapsedMs,
-      isFinal,
-    );
-    const wpm = Math.round(rawWpm);
-    const raw = Math.round(rawRaw);
-    // Accuracy uses monkeytype's char counts (correct vs incorrect).
-    const counts = countChars(state.typed, state.words, isFinal);
-    const correct = counts.allCorrectChars;
-    const incorrect = counts.incorrectChars + counts.extraChars;
-    const accuracy =
-      correct + incorrect > 0
-        ? Math.round((correct / (correct + incorrect)) * 1000) / 10
-        : 100;
+    const { wpm, raw, accuracy } = liveStats;
     const buildCfg = (): WordCfg => {
       const p = prefsRef.current;
       return {
@@ -748,7 +796,7 @@ export function PracticeProvider({
         }
       },
     };
-  }, [state, elapsedMs, wpmHistory, isMobile, adaptAuthAllowed, adaptLoading, suddenDeathRestarts, lastTestId]);
+  }, [state, elapsedMs, wpmHistory, liveStats, isMobile, adaptAuthAllowed, adaptLoading, suddenDeathRestarts, lastTestId]);
 
   // Keyboard listener — only when user isn't typing into another input.
   const stateRef = useRef(state);
@@ -835,6 +883,19 @@ export function PracticeProvider({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onKeyDown]);
+
+  // Cross-component restart channel. The command palette's Tab key
+  // (see src/components/command-palette/command-palette.tsx) closes
+  // the dialog and dispatches this event so the user's Tab muscle-
+  // memory still restarts the test even when the palette was the
+  // last thing they interacted with. The event bus bypasses the
+  // dialog-modal check above, which would otherwise see the still-
+  // unmounting Radix dialog and swallow the key.
+  useEffect(() => {
+    const onRestart = () => restartRef.current();
+    window.addEventListener("ft:practice:restart", onRestart);
+    return () => window.removeEventListener("ft:practice:restart", onRestart);
+  }, []);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
