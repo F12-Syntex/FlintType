@@ -589,10 +589,18 @@
     border-color: transparent !important;
   }
   /* text-only also hides the boxed nav pill — only the logo + plain
-     text links remain. Opt-in via [data-ft-topbar-pill]. */
-  html[data-ft-topbar-style="text-only"] [data-ft-topbar-pill] {
+     text links remain. Opt-in via [data-ft-topbar-pill] on any
+     boxed control in the topbar (nav, mode switcher, identity
+     cluster). The descendant selector also flattens any nested
+     active-state thumb (e.g. ModeSwitcher's motion span) so the
+     pill reads as bare icons / text. */
+  html[data-ft-topbar-style="text-only"] [data-ft-topbar-pill],
+  html[data-ft-topbar-style="text-only"] [data-ft-topbar-pill] * {
     background: transparent !important;
     border-color: transparent !important;
+    box-shadow: none !important;
+  }
+  html[data-ft-topbar-style="text-only"] [data-ft-topbar-pill] {
     padding: 0 !important;
   }
 
