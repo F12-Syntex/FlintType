@@ -26,6 +26,20 @@ export type KeymapLegend = "lowercase" | "uppercase" | "blank" | "dynamic";
 export type KeymapTopRow = "always" | "layout" | "never";
 export type BordersMode = "default" | "soft" | "hidden";
 
+// ─── Monkeytype-leaning minimisation knobs (see docs/ui-law.md §15) ──
+export type CardSurfaceMode = "solid" | "subtle" | "transparent";
+export type DividerMode = "hairline" | "dotted" | "hidden";
+export type PagePaddingMode = "comfortable" | "tight" | "roomy";
+export type BackgroundFillMode = "paper" | "bare";
+export type TopbarStyle = "elevated" | "flat" | "text-only";
+export type FooterStyle = "visible" | "compact" | "hidden";
+export type AutoHideMode = "off" | "dim" | "fade";
+export type ModeBarStyle = "chips" | "inline" | "hidden";
+export type StatStripSurface = "card" | "plain" | "none";
+export type ResultChrome = "framed" | "spare";
+export type CaretIdle = "off" | "pulse";
+export type QuoteAttribution = "below" | "chip" | "hidden";
+
 // ─── shape ────────────────────────────────────────────────────────────
 
 export type AppearancePrefs = {
@@ -118,6 +132,66 @@ export type AppearancePrefs = {
   /** Show each opponent's live WPM number in their lane row.
    *  Off keeps the lanes minimal and shifts the focus to the bars. */
   multiplayerShowOpponentWpm: boolean;
+
+  // ─── Surface (Monkeytype-leaning minimisation) ───
+  /** Global card-fill mode. `solid` paints --card/--popover/--muted as
+   *  themed fills (current). `subtle` drops them to 40% alpha of the
+   *  page bg so they read as faint washes. `transparent` makes every
+   *  card surface clear — pairs with borders:hidden for the
+   *  unframed Monkeytype look. Mirrored onto html[data-ft-cards]. */
+  cardSurfaces: CardSurfaceMode;
+  /** Inter-section divider lines (settings page breaks, topbar bottom
+   *  border, footer top border). Independent of card outlines (those
+   *  live on `borders`). Mirrored onto html[data-ft-dividers]. */
+  dividers: DividerMode;
+  /** Global multiplier on page-level padding from §3. `tight` reads
+   *  utility / keyboard-first; `roomy` reads editorial.
+   *  Mirrored onto html[data-ft-padding]. */
+  pagePadding: PagePaddingMode;
+  /** `paper` keeps the themed --background; `bare` overrides it to a
+   *  near-white / near-black neutral so the typing area dominates.
+   *  Mirrored onto html[data-ft-bg-fill]. */
+  backgroundFill: BackgroundFillMode;
+
+  // ─── Chrome (gets out of the way) ───
+  /** Topbar visual style. `elevated` is current backdrop-blur + border;
+   *  `flat` drops bg + border (links float on page bg); `text-only`
+   *  reduces to the bare minimum — logo + links, no chrome strip.
+   *  Mirrored onto html[data-ft-topbar]. */
+  topbarStyle: TopbarStyle;
+  /** Marketing footer visibility. `compact` keeps a single-line strip;
+   *  `hidden` removes it from chrome routes that opt in.
+   *  Mirrored onto html[data-ft-footer]. */
+  footerStyle: FooterStyle;
+  /** When the user is mid-run, fade chrome (topbar/footer/sidebar) so
+   *  the passage owns the screen. Restored on Esc / restart / done.
+   *  Mirrored onto html[data-ft-autohide]; pairs with html[data-ft-running]
+   *  set by AutoHideApplier reading PracticeContext. */
+  autoHide: AutoHideMode;
+  /** Mode bar on the practice surface. `inline` collapses chips to
+   *  middot-separated text; `hidden` removes it (settings page still
+   *  exposes the same controls). Mirrored onto html[data-ft-modebar]. */
+  modeBarStyle: ModeBarStyle;
+
+  // ─── Sub-surface tweaks ───
+  /** Live stats container. `card` is the current strip with bg/border;
+   *  `plain` drops both so the numbers float on the page; `none` makes
+   *  the strip invisible (numbers still take layout space). */
+  statStripSurface: StatStripSurface;
+  /** Result screen chrome. `spare` drops the section cards on the
+   *  post-test summary and lets the chart sit on bg. Mirrored onto
+   *  html[data-ft-result]. */
+  resultChrome: ResultChrome;
+  /** When phase === "rest" (test hasn't started), `pulse` softly
+   *  pulses the caret in primary at ~1Hz so the user sees where typing
+   *  will start. Useful on bare backgrounds. */
+  caretIdle: CaretIdle;
+  /** Quote attribution placement on quote-mode passages. */
+  quoteAttribution: QuoteAttribution;
+  /** Single-accent mode. When true, --accent collapses to --muted
+   *  globally so --primary is the only saturated colour anywhere
+   *  (caret, error, active CTA). Mirrored onto html[data-ft-monochrome]. */
+  monochromeChrome: boolean;
 };
 
 export const DEFAULT_APPEARANCE: AppearancePrefs = {
@@ -193,6 +267,28 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   multiplayerOpponentMarker: "text",
   multiplayerRaceFeed: true,
   multiplayerShowOpponentWpm: true,
+
+  // ─── Surface ───
+  // Defaults preserve the current editorial chrome: solid cards,
+  // hairline dividers, comfortable padding, paper bg. The Monkeytype
+  // bundle flips these via the Stripped preset.
+  cardSurfaces: "solid",
+  dividers: "hairline",
+  pagePadding: "comfortable",
+  backgroundFill: "paper",
+
+  // ─── Chrome ───
+  topbarStyle: "elevated",
+  footerStyle: "visible",
+  autoHide: "off",
+  modeBarStyle: "chips",
+
+  // ─── Sub-surface tweaks ───
+  statStripSurface: "card",
+  resultChrome: "framed",
+  caretIdle: "off",
+  quoteAttribution: "below",
+  monochromeChrome: false,
 };
 
 export function useAppearancePrefs() {

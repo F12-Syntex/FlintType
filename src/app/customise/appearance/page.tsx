@@ -14,6 +14,13 @@ import { SettingsSection } from "../_components/settings-section";
 import { BackgroundRow } from "./_components/background-row";
 import { BordersRow } from "./_components/borders-row";
 import { CaretRow } from "./_components/caret-row";
+import {
+  AutoHideRow,
+  FocusShortcutHint,
+  FooterStyleRow,
+  ModeBarStyleRow,
+  TopbarStyleRow,
+} from "./_components/chrome-rows";
 import { ColorRow } from "./_components/color-row";
 import { KeyboardRow } from "./_components/keyboard-row";
 import { KeymapRows } from "./_components/keymap-rows";
@@ -23,8 +30,17 @@ import { PassageRows } from "./_components/passage-rows";
 import { RadiusRow } from "./_components/radius-row";
 import { ResultRows } from "./_components/result-rows";
 import {
+  BackgroundFillRow,
+  CardSurfacesRow,
+  DividersRow,
+  MonochromeRow,
+  PagePaddingRow,
+  SurfacePresetRow,
+} from "./_components/surface-rows";
+import {
   BackgroundPreview,
   CaretPreview,
+  ChromePreview,
   ColorPreview,
   GeometryPreview,
   KeyboardLivePreview,
@@ -32,6 +48,7 @@ import {
   LiveStatsPreview,
   MultiplayerPreview,
   ResultLivePreview,
+  SurfacePreview,
   ThemePreview,
   TypingAreaPreview,
   TypographyPreview,
@@ -169,6 +186,35 @@ export default function AppearancePage() {
           onClear={() => clearVar("--radius")}
         />
         <BordersRow />
+      </SettingsSection>
+
+      <SettingsSection
+        id="surface"
+        eyebrow="Minimise"
+        title="Surface"
+        description="Collapse card surfaces, dividers, padding, background — the dial that takes flinttype from editorial paper to a Monkeytype-leaning minimal sheet. Presets ship three calibrated bundles."
+        preview={<SurfacePreview />}
+      >
+        <SurfacePresetRow />
+        <CardSurfacesRow />
+        <DividersRow />
+        <PagePaddingRow />
+        <BackgroundFillRow />
+        <MonochromeRow />
+      </SettingsSection>
+
+      <SettingsSection
+        id="chrome"
+        eyebrow="Layer"
+        title="Chrome"
+        description="Topbar, footer, mode bar style + auto-hide while typing. Tune how much of the app gets out of the way during a run."
+        preview={<ChromePreview />}
+      >
+        <TopbarStyleRow />
+        <FooterStyleRow />
+        <ModeBarStyleRow />
+        <AutoHideRow />
+        <FocusShortcutHint />
       </SettingsSection>
 
       <SettingsSection

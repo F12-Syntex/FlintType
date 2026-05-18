@@ -31,7 +31,13 @@ export function AppFooter({
       )}
     >
       <span>FLINTTYPE © MMXXVI</span>
-      <nav aria-label="Footer" className="flex flex-wrap items-center gap-5">
+      {/* data-ft-footer-expand — the nav block hides under
+       *  data-ft-footer-style="compact" so only the copyright remains. */}
+      <nav
+        data-ft-footer-expand
+        aria-label="Footer"
+        className="flex flex-wrap items-center gap-5"
+      >
         <FooterLink href={GITHUB_URL} external dark={dark}>
           GitHub
         </FooterLink>

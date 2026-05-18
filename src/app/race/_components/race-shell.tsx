@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useBackend } from "@/lib/backend";
+import { AutoHideApplier } from "../../_components/autohide-applier";
 import { InputCapture } from "../../_components/input-capture";
 import { PracticeProvider } from "../../_components/practice-state";
 import { clearHostStorage } from "../c/[slug]/_components/challenge-shell";
@@ -255,6 +256,7 @@ export function RaceShell({
   // read-only context unmistakable.
   return (
     <PracticeProvider key={subtreeKey} lockedWords={words} raceMode={raceMode}>
+      <AutoHideApplier />
       {isSpectating ? <SpectatorBanner /> : null}
       {isSpectating ? raceTree : <InputCapture>{raceTree}</InputCapture>}
     </PracticeProvider>

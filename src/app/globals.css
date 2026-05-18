@@ -506,6 +506,190 @@
     background-color: var(--input);
   }
 
+  /* ── Surface minimisation (see docs/ui-law.md §15) ───────────────
+     Each rule below mirrors a single appearance pref onto a global
+     CSS effect. Mounted by AppearanceApplier which mirrors
+     prefs → html data attrs. */
+
+  /* data-ft-cards: collapse every card / popover / muted surface to
+     either a subtle wash or fully transparent so the page bg shows
+     through. Pairs with data-ft-borders="hidden" for the full
+     unframed look. We re-redefine the CSS vars themselves so every
+     component reading `bg-card` / `bg-popover` / `bg-muted`
+     responds at once. */
+  html[data-ft-cards="subtle"] {
+    --card: color-mix(in oklch, var(--background) 70%, transparent);
+    --popover: color-mix(in oklch, var(--background) 80%, transparent);
+    --muted: color-mix(in oklch, var(--background) 85%, transparent);
+  }
+  html[data-ft-cards="transparent"] {
+    --card: transparent;
+    --popover: var(--background);
+    --muted: transparent;
+  }
+
+  /* data-ft-dividers: inter-section dividers (the things `border-t /
+     border-b` paint between sticky chrome strips, settings sections,
+     etc). Independent of card outlines (those live on
+     data-ft-borders). Targets the same `*` rule but only top + bottom
+     borders so card outlines survive. */
+  html[data-ft-dividers="dotted"] [data-ft-divider],
+  html[data-ft-dividers="dotted"] .ft-divider {
+    border-style: dashed;
+  }
+  html[data-ft-dividers="hidden"] [data-ft-divider],
+  html[data-ft-dividers="hidden"] .ft-divider {
+    border-color: transparent !important;
+  }
+
+  /* data-ft-padding: scales the page-pad utilities by setting a
+     custom property components opt into. The default `--ft-pad-mul`
+     is 1; the AppChrome and TopBar wrap their px/py classes in
+     `calc()` reads. */
+  html {
+    --ft-pad-mul: 1;
+  }
+  html[data-ft-padding="tight"] {
+    --ft-pad-mul: 0.55;
+  }
+  html[data-ft-padding="roomy"] {
+    --ft-pad-mul: 1.4;
+  }
+
+  /* data-ft-bg-fill="bare": override --background to a near-white /
+     near-black neutral, ignoring the theme. Keeps every other theme
+     var intact so the accent + foreground still read on the bare
+     surface. */
+  html[data-ft-bg-fill="bare"] {
+    --background: oklch(0.99 0 0);
+  }
+  html.dark[data-ft-bg-fill="bare"] {
+    --background: oklch(0.105 0 0);
+  }
+
+  /* data-ft-monochrome: single-accent mode. Collapse the accent role
+     to muted so --primary is the only saturated colour on the page.
+     The accent-foreground also flips to muted-foreground so the
+     contrast pairing stays sensible. */
+  html[data-ft-monochrome="on"] {
+    --accent: var(--muted);
+    --accent-foreground: var(--muted-foreground);
+  }
+
+  /* data-ft-topbar-style: chrome layer style for the sticky top bar.
+     The TopBar root already carries [data-ft-topbar] as a self-marker,
+     so we use a dedicated -style attr on <html> to avoid the
+     selector matching the bar element itself. The TopBar also opts
+     into [data-ft-chrome] so the auto-hide rule below can grab it
+     alongside other interior chrome layers (settings sidebar, etc). */
+  html[data-ft-topbar-style="flat"] [data-ft-topbar],
+  html[data-ft-topbar-style="text-only"] [data-ft-topbar] {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    border-color: transparent !important;
+  }
+  /* text-only also hides the boxed nav pill — only the logo + plain
+     text links remain. Opt-in via [data-ft-topbar-pill]. */
+  html[data-ft-topbar-style="text-only"] [data-ft-topbar-pill] {
+    background: transparent !important;
+    border-color: transparent !important;
+    padding: 0 !important;
+  }
+
+  /* data-ft-footer-style: hide / compact the marketing footer.
+     AppFooter root carries [data-ft-footer] already. */
+  html[data-ft-footer-style="hidden"] [data-ft-footer] {
+    display: none !important;
+  }
+  html[data-ft-footer-style="compact"] [data-ft-footer] [data-ft-footer-expand] {
+    display: none !important;
+  }
+
+  /* data-ft-autohide: while a practice run is active
+     (data-ft-running="1" applied by AutoHideApplier), dim or fade the
+     chrome strips so the passage owns the screen. Only `dim` keeps
+     them interactive — `fade` drops pointer-events so a stray click
+     doesn't cancel a run. Targets the same `[data-ft-chrome]` marker
+     existing interior chrome layers use plus the TopBar + footer. */
+  html[data-ft-autohide="dim"][data-ft-running="1"] [data-ft-chrome],
+  html[data-ft-autohide="dim"][data-ft-running="1"] [data-ft-topbar],
+  html[data-ft-autohide="dim"][data-ft-running="1"] [data-ft-footer] {
+    opacity: 0.2;
+  }
+  html[data-ft-autohide="fade"][data-ft-running="1"] [data-ft-chrome],
+  html[data-ft-autohide="fade"][data-ft-running="1"] [data-ft-topbar],
+  html[data-ft-autohide="fade"][data-ft-running="1"] [data-ft-footer] {
+    opacity: 0;
+    pointer-events: none;
+  }
+  /* Hover the very top edge of the viewport to peek the chrome back
+     during dim/fade. Lets the user reach the topbar without breaking
+     the run. */
+  html[data-ft-autohide][data-ft-running="1"] [data-ft-topbar]:hover,
+  html[data-ft-autohide][data-ft-running="1"] [data-ft-footer]:hover {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  [data-ft-chrome],
+  [data-ft-topbar],
+  [data-ft-footer] {
+    transition: opacity 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* data-ft-result="spare": drop section card outlines on the result
+     screen so the chart sits on bg. */
+  html[data-ft-result="spare"] [data-ft-result-card] {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* data-ft-focus="on": session-temporary "focus mode" toggled by the
+     F shortcut. Cascade everything off in one swoop. Doesn't write
+     to prefs — pure body attr. Esc clears it. */
+  html[data-ft-focus="on"] {
+    --card: transparent;
+    --popover: var(--background);
+    --muted: transparent;
+    --accent: var(--muted);
+    --accent-foreground: var(--muted-foreground);
+  }
+  html[data-ft-focus="on"] *,
+  html[data-ft-focus="on"] *::before,
+  html[data-ft-focus="on"] *::after {
+    border-color: transparent !important;
+  }
+  html[data-ft-focus="on"] [data-ft-chrome],
+  html[data-ft-focus="on"] [data-ft-topbar],
+  html[data-ft-focus="on"] [data-ft-footer] {
+    opacity: 0;
+    pointer-events: none;
+  }
+  html[data-ft-focus="on"] [data-ft-topbar]:hover,
+  html[data-ft-focus="on"] [data-ft-footer]:hover {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Caret idle pulse (~1Hz) for use when phase==="rest" and
+     caretIdle==="pulse". The caret element opts in by setting
+     `data-ft-caret-idle` itself. */
+  @keyframes ft-caret-idle-pulse {
+    0%, 100% { opacity: 0.35; }
+    50%      { opacity: 1; }
+  }
+  [data-ft-caret-idle="pulse"] {
+    animation: ft-caret-idle-pulse 1100ms cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-ft-caret-idle="pulse"] {
+      animation: none;
+      opacity: 1;
+    }
+  }
+
   /* Webkit scrollbars — slim, themed, no track chrome. */
   ::-webkit-scrollbar {
     width: 10px;

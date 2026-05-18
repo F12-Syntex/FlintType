@@ -1,6 +1,7 @@
 "use client";
 
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
+import { AutoHideApplier } from "./autohide-applier";
 import { InputCapture } from "./input-capture";
 import { Keyboard } from "./keyboard";
 import type { LayoutId } from "./keyboard/layouts";
@@ -45,6 +46,7 @@ export function TypingSurface(props: TypingSurfaceProps = {}) {
   const { lockedWords, ...body } = props;
   return (
     <PracticeProvider lockedWords={lockedWords}>
+      <AutoHideApplier />
       <InputCapture>
         <TypingSurfaceBody {...body} />
       </InputCapture>

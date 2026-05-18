@@ -31,6 +31,16 @@ export const APPEARANCE_SECTIONS: readonly AppearanceSection[] = [
     blurb: "Corner radius and the borders rule across the app.",
   },
   {
+    id: "surface",
+    name: "Surface",
+    blurb: "Collapse card surfaces, dividers, padding — the minimal/Monkeytype look.",
+  },
+  {
+    id: "chrome",
+    name: "Chrome",
+    blurb: "Topbar, footer, mode bar style + auto-hide while typing.",
+  },
+  {
     id: "caret",
     name: "Caret & cursor",
     blurb: "Style, thickness, blink — the marker that follows your typing.",

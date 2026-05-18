@@ -646,12 +646,56 @@ A new tag ships only when **every** piece below lands in the same commit:
 - **Don't** reach for tag tokens from product surfaces. Only `<UserTag>` consumes them.
 - **Don't** invent a "this account is verified / premium / staff" tag without first deciding whether it's an identity mark (use `<UserTag>`) or an *attribute* of the row (use `<Tag>` from §11 with `tone="ember"`). Identity marks are sparse and persistent; attributes can be plentiful and transient.
 
-## 15. Amending this document
+## 15. Minimisation knobs (Surface + Chrome)
+
+flinttype's editorial paper-and-ink default reads well at full chrome, but a sizeable cohort of typing-test users live in the Monkeytype idiom: passage on bg, no panels, no rules, chrome fades during a run. Rather than fork a "minimal mode," the design ships a slate of knobs that compose down to that look — each independently editable so the user can land anywhere between editorial and stripped.
+
+### 15.1 The two settings sections
+
+- **Surface** (`/customise/appearance#surface`) — `cardSurfaces` (solid / subtle / transparent), `dividers` (hairline / dashed / hidden), `pagePadding` (tight / comfortable / roomy), `backgroundFill` (themed / bare), `monochromeChrome` (off / on). All preserve the user's chosen *palette*; they collapse *containers*. Ships with three preset bundles (Editorial / Minimal / Stripped) so the most common landings are one click.
+- **Chrome** (`/customise/appearance#chrome`) — `topbarStyle` (elevated / flat / text-only), `footerStyle` (visible / compact / hidden), `modeBarStyle` (chips / inline / hidden), `autoHide` (off / dim / fade) for fading sticky chrome while a run is active. Plus a `Focus mode` reminder: press `F` (outside an input) for a session-temporary stripped view; `Esc` restores.
+
+### 15.2 Implementation contract — data attributes only
+
+Every Surface / Chrome knob lands as a `<html data-ft-…>` attribute, applied by `<AppearanceApplier>` in `src/app/appearance-applier.tsx`. globals.css owns every visual rule. **No component reads these prefs at runtime to alter its markup** (except where genuinely needed: ModeBar swaps render trees, Readouts gates rendering on `none`, Passage on caret idle / quote attribution). The contract:
+
+| Pref | HTML attr | Default value (no attr written) |
+|---|---|---|
+| `cardSurfaces` | `data-ft-cards` | `solid` |
+| `dividers` | `data-ft-dividers` | `hairline` |
+| `pagePadding` | `data-ft-padding` | `comfortable` |
+| `backgroundFill` | `data-ft-bg-fill` | `paper` |
+| `monochromeChrome` | `data-ft-monochrome` | (off; attr absent) |
+| `topbarStyle` | `data-ft-topbar-style` | `elevated` (note the `-style` suffix — `data-ft-topbar` is the self-marker on the TopBar element) |
+| `footerStyle` | `data-ft-footer-style` | `visible` (`-style` suffix for the same reason — `data-ft-footer` is the AppFooter self-marker) |
+| `autoHide` | `data-ft-autohide` + runtime `data-ft-running` | `off` |
+| `(Focus shortcut)` | `data-ft-focus="on"` | (off; attr absent) |
+
+Component self-markers that the CSS rules attach to:
+
+| Marker | Sits on | Purpose |
+|---|---|---|
+| `[data-ft-topbar]` | TopBar root | Auto-hide target + topbar style override target. |
+| `[data-ft-topbar-pill]` | The boxed nav inside TopBar | text-only mode flattens it. |
+| `[data-ft-footer]` | AppFooter root | Auto-hide target + footer-style override target. |
+| `[data-ft-footer-expand]` | Footer nav link block | Hidden under compact footer style. |
+| `[data-ft-chrome]` | Interior chrome (settings sidebar/header, leaderboard sidebar/header) | Auto-hide target. |
+| `[data-ft-divider]` / `.ft-divider` | Anything you want the divider rule to honour | Targeted by `data-ft-dividers="hidden|dotted"`. |
+| `[data-ft-caret-idle]` | CaretGlyph when `phase==="rest"` and `caretIdle==="pulse"` | Drives the `ft-caret-idle-pulse` keyframe. |
+
+### 15.3 Don't
+
+- **Don't** add a Surface / Chrome knob whose visual effect requires reading the pref inside a React component when a `<html data-ft-…>` attribute + a globals.css rule can deliver the same effect. Data-attr knobs are zero-cost to toggle and don't re-render components.
+- **Don't** rename `data-ft-topbar-style` / `data-ft-footer-style` to drop the `-style` suffix. The unsuffixed forms are taken by component self-markers; the suffix is load-bearing.
+- **Don't** animate the auto-hide transition beyond the 240ms opacity tween already defined. The user is mid-keystroke; the chrome should disappear quickly enough that they don't notice, not slowly enough to distract.
+- **Don't** drop `pointer-events: none` from the `fade` autohide rule. Without it, a stray click on the invisible topbar mid-run can cancel the test.
+
+## 16. Amending this document
 
 When you introduce a new pattern:
 
 1. Open this file.
-2. Add a row to the matching table (§2 color, §3 spacing, §4 typography, §5 layout, §12 settings, §13 animation, §14 identity marks) **or** a new section with the next sequential number.
+2. Add a row to the matching table (§2 color, §3 spacing, §4 typography, §5 layout, §12 settings, §13 animation, §14 identity marks, §15 minimisation knobs) **or** a new section with the next sequential number.
 3. Include a one-line rationale — why this pattern, what problem it solves.
 4. Commit the doc change **in the same commit** as the code using it.
 5. From that commit forward, all UI must follow the new rule.

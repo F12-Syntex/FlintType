@@ -6,6 +6,7 @@ import { Info, Lock, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { OptionSwitch } from "@/components/ui/option-switch";
+import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { QUOTE_GROUPS } from "@/lib/quotes";
 import { cn } from "@/lib/utils";
 import { HandLayoutEditor } from "./keyboard/hands";
@@ -517,7 +518,34 @@ function DesktopBar() {
   );
 }
 
+/** Compact inline rendering — mode · length · adapt · quote group,
+ *  middot-separated text on the page bg. Read-only summary; the user
+ *  edits these from /customise. Honours `modeBarStyle: "inline"`. */
+function InlineBar() {
+  const { state } = usePractice();
+  const parts: string[] = [state.mode.toLowerCase(), String(state.length)];
+  if (state.mode === "QUOTE" && state.quoteSource) {
+    parts.push(state.quoteSource);
+  }
+  if (state.adapt) parts.push("adapt");
+  return (
+    <div className="flex items-center justify-center gap-2 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+      {parts.map((p, i) => (
+        <span key={i} className="flex items-center gap-2">
+          {i > 0 ? (
+            <span aria-hidden className="inline-block size-0.5 rounded-full bg-muted-foreground/60" />
+          ) : null}
+          {p}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function ModeBar() {
+  const { prefs } = useAppearancePrefs();
+  if (prefs.modeBarStyle === "hidden") return null;
+  if (prefs.modeBarStyle === "inline") return <InlineBar />;
   return (
     <>
       <MobileBar />

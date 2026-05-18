@@ -94,6 +94,7 @@ export function TopBar({
       {nav && nav.length > 0 ? (
         <div className="hidden min-w-0 md:flex">
           <nav
+            data-ft-topbar-pill
             aria-label="Main"
             className={cn(
               // Wrap the nav in the same surface treatment as the

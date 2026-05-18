@@ -109,12 +109,24 @@ function useStatsProps(): StatsProps {
  *  inside <RestHint />'s footer row so the stats sit alongside the
  *  cancel control instead of taking a separate rail above the passage. */
 export function Readouts() {
-  return <DesktopStats {...useStatsProps()} />;
+  const { prefs } = useAppearancePrefs();
+  if (prefs.statStripSurface === "none") return null;
+  const stats = <DesktopStats {...useStatsProps()} />;
+  if (prefs.statStripSurface === "card") {
+    return (
+      <div className="rounded-md border border-border bg-card px-4 py-3">
+        {stats}
+      </div>
+    );
+  }
+  return stats;
 }
 
 /** Inline pip row for mobile — no chrome (no border, no bg, no padding).
  *  Consumer wraps it in whatever footer container makes sense. */
 export function MobileReadouts() {
+  const { prefs } = useAppearancePrefs();
+  if (prefs.statStripSurface === "none") return null;
   return <MobileStrip {...useStatsProps()} />;
 }
 

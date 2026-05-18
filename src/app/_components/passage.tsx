@@ -466,6 +466,7 @@ function PassageBody({
             caret={caret}
             settings={caretSettings}
             animate={animate}
+            idle={phase === "rest" && appearance.caretIdle === "pulse"}
           />
         ) : null}
         {words.map((word, wi) => {
@@ -577,10 +578,18 @@ function PassageBody({
         })}
       </div>
       </div>
-      {state.mode === "QUOTE" && state.quoteSource ? (
-        <p className="mt-6 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-          — {state.quoteSource}
-        </p>
+      {state.mode === "QUOTE" &&
+      state.quoteSource &&
+      appearance.quoteAttribution !== "hidden" ? (
+        appearance.quoteAttribution === "chip" ? (
+          <span className="mt-6 inline-flex w-fit items-center rounded-full border border-border bg-card px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            {state.quoteSource}
+          </span>
+        ) : (
+          <p className="mt-6 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            — {state.quoteSource}
+          </p>
+        )
       ) : null}
       {state.mode === "QUOTE" && words.length === 0 ? (
         <p className="mt-6 text-sm text-muted-foreground">
@@ -601,6 +610,7 @@ function CaretGlyph({
   caret,
   settings,
   animate,
+  idle,
 }: {
   caret: CaretPos;
   settings: {
@@ -611,6 +621,10 @@ function CaretGlyph({
     smoothSpeed: number;
   };
   animate: boolean;
+  /** When true (phase==="rest" + appearance.caretIdle==="pulse"), the
+   *  caret softly pulses ~1Hz so the user sees where typing will
+   *  start on a bare bg. CSS keyframe lives in globals.css §15. */
+  idle: boolean;
 }) {
   const { style, width, radius, blinkSpeed, smoothSpeed } = settings;
 
@@ -649,11 +663,12 @@ function CaretGlyph({
   return (
     <span
       aria-hidden
+      data-ft-caret-idle={idle ? "pulse" : undefined}
       className={cn(
         "pointer-events-none absolute top-0 left-0",
         // Class-based blink so per-keystroke re-renders don't restart
         // the animation (would never reach the hidden half otherwise).
-        blinkSpeed > 0 && "ft-caret-blink",
+        blinkSpeed > 0 && !idle && "ft-caret-blink",
       )}
       style={{
         width: w,
