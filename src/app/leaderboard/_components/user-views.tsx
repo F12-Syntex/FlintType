@@ -211,29 +211,17 @@ function LevelRow({
           </span>
         </div>
 
-        <div className="flex shrink-0 flex-col items-end gap-0.5">
+        <div className="flex shrink-0 items-center">
           <span
             className={cn(
-              "flex items-baseline tabular-nums",
+              "text-3xl font-bold leading-none tabular-nums sm:text-4xl",
               leader ? "text-primary" : "text-foreground",
             )}
           >
-            <span className="text-3xl font-bold leading-none sm:text-4xl">
-              {player.level}
-            </span>
-          </span>
-          <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground tabular-nums">
-            level · {formatXp(player.xp)} xp
+            {player.level}
           </span>
         </div>
       </Link>
     </li>
   );
-}
-
-function formatXp(xp: number): string {
-  if (xp < 1_000) return String(xp);
-  if (xp < 10_000) return `${(xp / 1_000).toFixed(1)}k`;
-  if (xp < 1_000_000) return `${Math.round(xp / 1_000)}k`;
-  return `${(xp / 1_000_000).toFixed(1)}M`;
 }
