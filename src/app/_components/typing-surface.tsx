@@ -104,7 +104,13 @@ function TypingSurfaceBody({
   return (
     <>
       {showModeBar ? <ModeBar /> : null}
-      <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pt-4 pb-3 sm:gap-6 sm:px-12 sm:py-8 lg:px-20">
+      {/* Vertical padding is keyed to viewport height — on short
+       *  viewports (1080p with 150% Windows display scaling is the
+       *  common case) the chrome ate every pixel the passage wanted.
+       *  py-3 sm:py-4 holds the floor; [@media(min-height:900px)]
+       *  restores the editorial sm:py-8 only when there's actually
+       *  room. Same trick for the gap. */}
+      <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pt-3 pb-3 sm:gap-4 sm:px-12 sm:py-4 [@media(min-height:900px)]:sm:gap-6 [@media(min-height:900px)]:sm:py-8 lg:px-20">
         {showReadouts && !done ? (
           <div className="hidden md:block">
             <Readouts />
@@ -120,7 +126,18 @@ function TypingSurfaceBody({
         ) : null}
         {!done ? belowHint : null}
         {renderKeyboard ? (
-          <div className="mt-auto hidden md:block">
+          // Auto-hide the keyboard widget at short viewports — its
+          // intrinsic height (6 rows × ~h-10 + gaps ≈ 260 px) was
+          // eating every pixel the passage wanted on 1080p with
+          // 150% display scaling (≈720 CSS px tall). Below 750 px
+          // tall there isn't honest room for both, so we drop the
+          // keyboard and let the passage breathe.
+          //
+          // Users who want the keyboard *always* visible can lower
+          // their `keymapSize` (Customise → Keymap) so it composes
+          // smaller, but the auto-hide rule is the right default
+          // when the viewport genuinely can't host both.
+          <div className="mt-auto hidden md:block [@media(max-height:750px)]:md:hidden">
             <Keyboard
               layout={layout}
               mode={appearance.keymap}

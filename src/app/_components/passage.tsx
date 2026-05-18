@@ -474,7 +474,16 @@ function PassageBody({
           // lg: bumps step up roughly proportionally; the
           // --ft-font-scale multiplier still applies so users can
           // shrink (or further enlarge) from the customise page.
-          "relative select-none font-normal tracking-[0.04em] text-[calc(var(--ft-font-scale,1)*1.75rem)] leading-[2.1] sm:text-[calc(var(--ft-font-scale,1)*2.125rem)] sm:leading-[2.2] lg:text-[calc(var(--ft-font-scale,1)*2.5rem)] lg:leading-[2.3]",
+          //
+          // The lg: bump (2.5rem) is gated on viewport HEIGHT too
+          // (`[@media(min-height:900px)]`) — at lg: width but a
+          // short viewport (1080p with 150% Windows display
+          // scaling lands at ~720 CSS px tall), the bigger text
+          // collides with the keyboard and the passage collapses
+          // to one line. Keeping the sm: bump (2.125rem) at lg:
+          // width on short viewports preserves the multi-line
+          // read.
+          "relative select-none font-normal tracking-[0.04em] text-[calc(var(--ft-font-scale,1)*1.75rem)] leading-[2.1] sm:text-[calc(var(--ft-font-scale,1)*2.125rem)] sm:leading-[2.2] [@media(min-height:900px)]:lg:text-[calc(var(--ft-font-scale,1)*2.5rem)] [@media(min-height:900px)]:lg:leading-[2.3]",
           // Default colour for any untyped span without an explicit
           // class — the wrapper itself paints in the untyped role.
           UNTYPED_TEXT,
