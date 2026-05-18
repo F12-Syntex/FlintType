@@ -2,6 +2,7 @@ import { TopBar, type NavItem } from "@/components/ft";
 import { cn } from "@/lib/utils";
 import { AppDrawerExtras } from "./app-drawer-extras";
 import { AppFooter } from "./app-footer";
+import { DiscordBanner } from "./discord-banner";
 import { ScrollToTop } from "./scroll-to-top";
 import { TopbarActions } from "./topbar-actions";
 
@@ -49,6 +50,11 @@ export function AppChrome({
         right={ident ?? <TopbarActions dark={dark} />}
         drawerExtras={<AppDrawerExtras dark={dark} />}
       />
+      {/* Discord nudge banner — single dismissable strip sitting
+       *  between the topbar and the page surface. The dark
+       *  race / always-dark screens get no banner (it would fight
+       *  the deliberate fixed presentation). */}
+      {dark ? null : <DiscordBanner />}
       {/* main owns the bg-scope but does NOT scroll — its ::before
           paints the bg image with position:absolute inset:0, which
           must stay pinned to the visible main area. The inner div

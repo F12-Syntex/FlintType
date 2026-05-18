@@ -1,6 +1,6 @@
 {
   "name": "flinttype",
-  "version": "6.54.5",
+  "version": "6.55.0",
   "private": true,
   "packageManager": "yarn@1.22.22",
   "scripts": {
