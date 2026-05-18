@@ -207,26 +207,23 @@ function LevelRow({
             />
           </div>
           <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground tabular-nums">
-            {player.xpIntoLevel} / {XP_PER_LEVEL} xp · next L{player.level + 1}
+            {player.xpIntoLevel} / {XP_PER_LEVEL} xp · next {player.level + 1}
           </span>
         </div>
 
         <div className="flex shrink-0 flex-col items-end gap-0.5">
           <span
             className={cn(
-              "flex items-baseline gap-1 tabular-nums",
+              "flex items-baseline tabular-nums",
               leader ? "text-primary" : "text-foreground",
             )}
           >
-            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              L
-            </span>
             <span className="text-3xl font-bold leading-none sm:text-4xl">
               {player.level}
             </span>
           </span>
           <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground tabular-nums">
-            {formatXp(player.xp)} xp total
+            level · {formatXp(player.xp)} xp
           </span>
         </div>
       </Link>
