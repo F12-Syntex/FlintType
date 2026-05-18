@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { BackendError } from "@/lib/errors";
 import {
   __resetStoreForTests,
   createChallengeRoom,
@@ -6,6 +7,7 @@ import {
   getRoom,
   getRoomBySlug,
   joinOrCreateMatchmaking,
+  MAX_LIVE_ROOMS,
   newSessionToken,
 } from "./store";
 
@@ -65,5 +67,46 @@ describe("race/store", () => {
     expect(room.canJoinAsReal()).toBe(true);
     vi.advanceTimersByTime(5_000);
     expect(room.canJoinAsReal()).toBe(false);
+  });
+
+  describe("global room cap", () => {
+    it("createChallengeRoom 503s once live rooms hit MAX_LIVE_ROOMS", () => {
+      // Saturate the store with challenge rooms (unique slugs/ids).
+      for (let i = 0; i < MAX_LIVE_ROOMS; i++) {
+        createChallengeRoom({ modeId: "1v1", raceSeed: i });
+      }
+      expect(() => createChallengeRoom({ modeId: "1v1", raceSeed: 999 }))
+        .toThrowError(BackendError);
+      try {
+        createChallengeRoom({ modeId: "1v1", raceSeed: 999 });
+      } catch (err) {
+        expect(err).toBeInstanceOf(BackendError);
+        const be = err as BackendError;
+        expect(be.status).toBe(503);
+        expect(be.code).toBe("CONFLICT");
+        expect(be.details).toMatchObject({ cap: MAX_LIVE_ROOMS });
+      }
+    });
+
+    it("joinOrCreateMatchmaking still reuses existing rooms even at cap", () => {
+      // First call creates the matchmaking room for this mode.
+      const first = joinOrCreateMatchmaking("sprint", 1);
+      // Fill the rest of the store with challenge rooms.
+      for (let i = 0; i < MAX_LIVE_ROOMS - 1; i++) {
+        createChallengeRoom({ modeId: "1v1", raceSeed: i });
+      }
+      // We're at the cap, but the matchmaking mode still has an open
+      // room — joining shouldn't try to create.
+      const second = joinOrCreateMatchmaking("sprint", 2);
+      expect(second.id).toBe(first.id);
+    });
+
+    it("joinOrCreateMatchmaking 503s when a fresh mode bucket would need a new room past the cap", () => {
+      for (let i = 0; i < MAX_LIVE_ROOMS; i++) {
+        createChallengeRoom({ modeId: "1v1", raceSeed: i });
+      }
+      expect(() => joinOrCreateMatchmaking("sprint", 1))
+        .toThrowError(BackendError);
+    });
   });
 });

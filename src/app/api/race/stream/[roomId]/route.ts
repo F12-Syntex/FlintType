@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { IS_RACE_AUTHORITY } from "@/server/env";
+import { acquireSseSlot } from "@/server/race/sse-limit";
 import { getRoom } from "@/server/race/store";
 
 /** SSE stream of room snapshots. The dispatcher in
@@ -46,8 +47,21 @@ export function OPTIONS(): Response {
   return new Response(null, { status: 204, headers: SSE_CORS_HEADERS });
 }
 
+/** Read the caller IP the same way `rateLimit` does — x-forwarded-for
+ *  first (the proxy chain stamps the real client IP first), then
+ *  x-real-ip, then a shared `anon` bucket as a last resort. The
+ *  shared bucket means an entirely-misconfigured deployment fails
+ *  closed (everyone shares one per-IP cap) rather than open. */
+function callerIp(req: NextRequest): string {
+  const fwd = req.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0]!.trim();
+  const real = req.headers.get("x-real-ip");
+  if (real) return real.trim();
+  return "anon";
+}
+
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ roomId: string }> },
 ): Promise<Response> {
   const { roomId } = await params;
@@ -74,10 +88,46 @@ export async function GET(
     );
   }
 
+  // Acquire a connection slot BEFORE binding the room subscriber or
+  // opening the stream. Past either ceiling we 429 (per-IP) or 503
+  // (global) with a clear retry hint — the EventSource client will
+  // back off and retry automatically.
+  const slot = acquireSseSlot(callerIp(req));
+  if (!slot.ok) {
+    if (slot.reason === "per-ip") {
+      return NextResponse.json(
+        {
+          error: `too many concurrent connections from this IP (cap ${slot.cap})`,
+          code: "RATE_LIMITED",
+          status: 429,
+          details: { ip: slot.ip, count: slot.count, cap: slot.cap },
+        },
+        { status: 429, headers: SSE_CORS_HEADERS },
+      );
+    }
+    return NextResponse.json(
+      {
+        error: `race service is at SSE capacity (${slot.total}/${slot.cap})`,
+        code: "CONFLICT",
+        status: 503,
+        details: { total: slot.total, cap: slot.cap },
+      },
+      { status: 503, headers: SSE_CORS_HEADERS },
+    );
+  }
+
   const encoder = new TextEncoder();
   let unsubscribe: (() => void) | null = null;
   let heartbeat: ReturnType<typeof setInterval> | null = null;
   let closed = false;
+
+  const cleanup = () => {
+    if (closed) return;
+    closed = true;
+    unsubscribe?.();
+    if (heartbeat) clearInterval(heartbeat);
+    slot.release();
+  };
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -86,7 +136,9 @@ export async function GET(
         try {
           controller.enqueue(encoder.encode(chunk));
         } catch {
-          closed = true;
+          // Best-effort cleanup if the controller errored (e.g. client
+          // already disconnected between throttle windows).
+          cleanup();
         }
       };
       const sendSnapshot = (snap: unknown) => {
@@ -101,9 +153,7 @@ export async function GET(
       heartbeat = setInterval(() => send(`: ping\n\n`), 15_000);
     },
     cancel() {
-      closed = true;
-      unsubscribe?.();
-      if (heartbeat) clearInterval(heartbeat);
+      cleanup();
     },
   });
 

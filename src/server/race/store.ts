@@ -1,7 +1,18 @@
 import { randomBytes } from "node:crypto";
+import { BackendError } from "@/lib/errors";
 import type { RaceModeId } from "@/types/race";
 import { RaceRoom } from "./room";
 import { generateSlug } from "./slug";
+
+/** Hard ceiling on live rooms hosted by this process. Each room
+ *  costs a few KB (racer slots, timers, subscriber list) so 1000 is
+ *  ~10MB worst-case — well within a single Railway Hobby instance
+ *  (8GB) but high enough that honest concurrent usage never touches
+ *  it. Past the ceiling, fresh creates 503 so a flood of
+ *  challenge-create requests can't OOM the box. Matchmaking is
+ *  bucketed per-mode (one room per mode at a time) so the cap
+ *  mainly defends against challenge spam. */
+export const MAX_LIVE_ROOMS = 1000;
 
 /** Process-wide registry of live race rooms.
  *
@@ -82,6 +93,14 @@ export function joinOrCreateMatchmaking(
   const store = getStore();
   const existing = store.matchmakingByMode.get(modeId);
   if (existing && existing.canJoinAsReal()) return existing;
+  if (store.byId.size >= MAX_LIVE_ROOMS) {
+    throw new BackendError(
+      503,
+      "CONFLICT",
+      "race service is at capacity, try again shortly",
+      { liveRooms: store.byId.size, cap: MAX_LIVE_ROOMS },
+    );
+  }
   const id = newRoomId();
   const room = new RaceRoom({
     id,
@@ -122,6 +141,14 @@ export function createChallengeRoom(opts: {
   passage?: { text: string; source: string };
 }): RaceRoom {
   const store = getStore();
+  if (store.byId.size >= MAX_LIVE_ROOMS) {
+    throw new BackendError(
+      503,
+      "CONFLICT",
+      "race service is at capacity, try again shortly",
+      { liveRooms: store.byId.size, cap: MAX_LIVE_ROOMS },
+    );
+  }
   const id = newRoomId();
   const slug = generateSlug(new Set(store.bySlug.keys()));
   const room = new RaceRoom({
