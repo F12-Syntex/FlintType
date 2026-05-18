@@ -208,6 +208,7 @@ export function PreviewPracticeProvider({
       wpmHistory: sample.wpmHistory,
       adaptLoading: false,
       suddenDeathRestarts: 0,
+      lastTestId: null,
     };
   }, [
     words,

@@ -10,6 +10,7 @@ import { notifications } from './routes/notifications';
 import { prefs } from './routes/prefs';
 import { profile } from './routes/profile';
 import { race } from './routes/race';
+import { share } from './routes/share';
 
 export const router = defineNamespace({
   middleware: [logging],
@@ -24,6 +25,7 @@ export const router = defineNamespace({
     notifications,
     profile,
     race,
+    share,
   },
 });
 

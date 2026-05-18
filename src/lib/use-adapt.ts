@@ -135,7 +135,7 @@ export function useAdapt() {
   );
 
   const submitTest = useCallback(
-    async (input: SubmitTestInput): Promise<void> => {
+    async (input: SubmitTestInput): Promise<string | null> => {
       // Submitting updates the model. Queued batches were generated
       // against the *previous* snapshot — drop them so the next reset
       // sees only fresh-model batches. Also drop in-flight refill
@@ -147,11 +147,14 @@ export function useAdapt() {
       inflightRefillsRef.current.clear();
       refillTokensRef.current.clear();
       try {
-        await backend.adapt.submit(input);
+        const res = await backend.adapt.submit(input);
+        return res.testId;
       } catch {
         // Fire-and-forget — the user has already seen their results,
         // and the next submit will fold any timings we missed via
-        // the running-mean update.
+        // the running-mean update. Returning null tells the caller
+        // there's no shareable testId for this run.
+        return null;
       }
       // Caller is expected to invoke `refill(count, pool)` after this
       // resolves to replenish against the freshly-updated model. We

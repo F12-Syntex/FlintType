@@ -69,6 +69,18 @@ describe("testsRepo", () => {
     expect(u1.map((r) => r.id)).toEqual(["t_a"]);
   });
 
+  it("findById returns the row when present", async () => {
+    await ctx.db.tests.insert(row({ id: "t_seek", userId: "u1", wpm: 137 }));
+    const found = await ctx.db.tests.findById("t_seek");
+    expect(found?.id).toBe("t_seek");
+    expect(found?.wpm).toBe(137);
+  });
+
+  it("findById returns null for an unknown id", async () => {
+    const found = await ctx.db.tests.findById("t_missing");
+    expect(found).toBeNull();
+  });
+
   it("topLeaderboard ranks by net WPM (wpm × accuracy / 100)", async () => {
     await ctx.db.tests.insert(
       row({ id: "t_fast_sloppy", userId: "u1", wpm: 120, accuracy: 80 }),

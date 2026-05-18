@@ -25,6 +25,18 @@ export function testsRepo(db: ServerDrizzle) {
       return inserted;
     },
 
+    /** Single-row lookup by primary key. Returns null when the id
+     *  doesn't exist so callers (share.get, future deep links) can
+     *  map cleanly to NOT_FOUND without a throw. */
+    async findById(id: string): Promise<TestRow | null> {
+      const rows = await db
+        .select()
+        .from(tests)
+        .where(eq(tests.id, id))
+        .limit(1);
+      return rows[0] ?? null;
+    },
+
     async recentForUser(
       userId: string,
       limit: number,

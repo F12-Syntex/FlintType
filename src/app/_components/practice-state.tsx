@@ -101,6 +101,13 @@ type PracticeCtx = {
    *  of the restart streak. Always 0 when the provider is not in
    *  sudden-death mode. */
   suddenDeathRestarts: number;
+  /** Server-minted id for the most recently submitted completed run,
+   *  surfaced so the post-test summary can build a `/r/<id>` share
+   *  link. `null` while a run is still in progress, or when the most
+   *  recent submit failed (network / auth / 5xx). Reset every time a
+   *  fresh run starts so a stale id from the previous run never leaks
+   *  into the share affordance on the new run's results screen. */
+  lastTestId: string | null;
 };
 
 /** Exported so previews and other read-only consumers can mount their
@@ -386,6 +393,16 @@ export function PracticeProvider({
     return () => clearTimeout(id);
   }, [state.mode, state.phase, state.startTime, state.length]);
 
+  // Server-minted id for the most recent submitted run. Set when
+  // `adapt.submit` resolves (so the share affordance can build a
+  // /r/<id> link); cleared whenever the user leaves the "done" phase
+  // (restart, new run) so an old id can't leak into a fresh result
+  // screen.
+  const [lastTestId, setLastTestId] = useState<string | null>(null);
+  useEffect(() => {
+    if (state.phase !== "done") setLastTestId(null);
+  }, [state.phase]);
+
   // Submit completed runs to the adapt route. Fires once per
   // (startTime, endTime) tuple — guards against the effect re-running
   // when the user restarts (which keeps phase=done briefly).
@@ -427,7 +444,7 @@ export function PracticeProvider({
         ? "training"
         : "casual";
     void (async () => {
-      await adaptRef.current.submitTest({
+      const testId = await adaptRef.current.submitTest({
         startedAt: startTime,
         completedAt: endTime,
         mode: submitMode,
@@ -440,6 +457,7 @@ export function PracticeProvider({
         words: wordsActuallyTyped,
         timings: state.events,
       });
+      if (testId) setLastTestId(testId);
       // submitTest cleared the queue (model just changed). Top up
       // immediately against the new snapshot so the user's next
       // restart finds a ready batch waiting — no network glitch.
@@ -611,6 +629,7 @@ export function PracticeProvider({
       wpmHistory,
       adaptLoading: effectiveState.adapt && adaptLoading && state.phase === "rest",
       suddenDeathRestarts,
+      lastTestId,
       setMode: (mode) => {
         const length = defaultLengthFor(mode);
         const cfg = buildCfg();
@@ -691,7 +710,7 @@ export function PracticeProvider({
         }
       },
     };
-  }, [state, elapsedMs, wpmHistory, isMobile, adaptAuthAllowed, adaptLoading, suddenDeathRestarts]);
+  }, [state, elapsedMs, wpmHistory, isMobile, adaptAuthAllowed, adaptLoading, suddenDeathRestarts, lastTestId]);
 
   // Keyboard listener — only when user isn't typing into another input.
   const stateRef = useRef(state);
