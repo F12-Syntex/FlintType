@@ -85,7 +85,14 @@ export function ProfileView({ username }: { username?: string }) {
     useRemotePrefs<MonkeytypeStatsSlice>("monkeytypeStats", EMPTY_MT_SLICE);
   const ownMtSlice = mtSliceRaw.importedAt > 0 ? mtSliceRaw : null;
   const hasStoredKey = isOwner === true && ownMtSlice?.encryptedApiKey != null;
-  const isMtConnected = hasStoredKey;
+  // The MonkeyType banner hides once the owner has imported their
+  // data — by either path: storing an Ape Key for repeated re-sync
+  // OR doing a one-shot data import (which writes importedAt > 0
+  // but no encryptedApiKey). The previous "connected = key stored"
+  // rule let the banner stick around forever for users who imported
+  // their MT export without handing over a key. Auto-sync still
+  // gates on `hasStoredKey` below — only the banner relaxes.
+  const isMtConnected = ownMtSlice != null;
 
   // Auto-sync once per page load when a stored Ape Key exists AND the
   // viewer is the owner. Visitors never trigger MT sync.
