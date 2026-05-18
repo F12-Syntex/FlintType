@@ -8,6 +8,7 @@ import {
   type TypedEffect,
   useAppearancePrefs,
 } from "@/lib/appearance-prefs";
+import { cn } from "@/lib/utils";
 import { Chip } from "../../_components/chip";
 import {
   LabelWithDesc,
@@ -106,6 +107,7 @@ export function PassageRows() {
             onChange={(v) => update("highlightMode", v)}
           />
         }
+        preview={<HighlightModePreview mode={prefs.highlightMode} />}
       />
 
       <SettingsRow
@@ -122,6 +124,7 @@ export function PassageRows() {
             onChange={(v) => update("typedEffect", v)}
           />
         }
+        preview={<TypedEffectPreview effect={prefs.typedEffect} />}
       />
 
       <SettingsRow
@@ -137,6 +140,7 @@ export function PassageRows() {
             onChange={(v) => update("markIncompleteWord", v)}
           />
         }
+        preview={<IncompleteWordPreview on={prefs.markIncompleteWord} />}
       />
 
       <SettingsRow
@@ -223,5 +227,77 @@ export function PassageRows() {
         }
       />
     </div>
+  );
+}
+
+/* ─── Inline previews ────────────────────────────────────────────── */
+
+/** Small typed/untyped sample with the current highlight applied
+ *  to the active word ("brown") or its first letter, depending on
+ *  the selected mode. Subtle — sample stays inline, no chrome. */
+function HighlightModePreview({ mode }: { mode: HighlightMode }) {
+  const typed = "the quick ";
+  const active = "brown";
+  const tail = " fox jumps";
+  const wordRing = mode === "word" || mode === "next-word";
+  const letterRing = mode === "letter" || mode === "next-letter";
+  // For "next-letter" we'd ring the next letter; sample shows "b"
+  // (the first letter of the active word) lit either way.
+  return (
+    <span className="block font-mono text-sm">
+      <span className="text-primary">{typed}</span>
+      <span
+        className={cn(
+          wordRing && "rounded-sm bg-primary/15 px-1 ring-1 ring-primary/30",
+        )}
+      >
+        {letterRing ? (
+          <>
+            <span className="rounded-sm bg-primary/15 px-0.5 text-primary">
+              {active[0]}
+            </span>
+            <span>{active.slice(1)}</span>
+          </>
+        ) : (
+          active
+        )}
+      </span>
+      <span className="text-muted-foreground">{tail}</span>
+    </span>
+  );
+}
+
+/** Sample of typed words with the chosen effect applied. */
+function TypedEffectPreview({ effect }: { effect: TypedEffect }) {
+  const typedClass = cn(
+    "text-primary",
+    effect === "fade" && "opacity-40",
+    effect === "strike" && "line-through decoration-1 opacity-70",
+  );
+  return (
+    <span className="block font-mono text-sm">
+      <span className={typedClass}>the quick brown</span>
+      <span className="text-muted-foreground"> fox jumps</span>
+    </span>
+  );
+}
+
+/** On → the skipped word renders with the destructive underline
+ *  (same treatment the running passage uses). Off → no decoration. */
+function IncompleteWordPreview({ on }: { on: boolean }) {
+  return (
+    <span className="block font-mono text-sm">
+      <span className="text-primary">the </span>
+      <span
+        className={cn(
+          "text-primary",
+          on &&
+            "underline decoration-1 underline-offset-[5px] decoration-[var(--ft-passage-error,var(--destructive))]",
+        )}
+      >
+        qu
+      </span>
+      <span className="text-muted-foreground">ick brown fox</span>
+    </span>
   );
 }

@@ -533,6 +533,21 @@ Pick the smallest control that fits the choice space:
 
 **Color rows must use `<ColorRow>` (`src/app/app/customise/appearance/_components/color-row.tsx`).** Every colour-picker affordance on the appearance page — theme palette, live stats colour, future surfaces — routes through this single primitive so the swatch + hex + chevron button reads identically. Mobile renders a tight key/value row (label left, swatch right); desktop renders the Card layout above. Don't hand-roll an inline `<ColorPresetPicker>` trigger; reach for `<ColorRow>` instead.
 
+### 12.2a Per-row inline previews
+
+`<SettingsRow>` exposes an optional `preview` slot rendered as a hairline-separated strip beneath the control. Use it to show the **live effect of the row's current value** in a small inline sample — one short line, no chrome (same `bg-card` surface), `text-muted-foreground` framing.
+
+Reach for it on rows whose visual effect is non-obvious from the chip label alone:
+
+- **Active mistake** — sample word with one wrong letter rendered in the chosen mistake style.
+- **Highlight mode** — sample line with the active word / letter highlighted per the chosen mode.
+- **Typed effect** — sample line with typed words faded / struck / untouched.
+- **Mark incomplete words** — sample word showing the destructive underline on / off.
+
+Don't add row-level previews on rows whose chips already carry per-option previews (the chip-level pattern from §12.2 covers them — `caret-row.tsx`'s Style / Thickness / Roundness chips, the `<CardSurfacesRow>` chips). Doubling up just clutters the row.
+
+Implementation note: SSR-safe — the preview is a pure render of the current pref value, no `useEffect`. Subtle styling rule: hairline divider `border-t border-border/50`, padding `px-4 py-3`, text inherits `text-muted-foreground`.
+
 ### 12.3 Nesting rule
 
 Every option that belongs to the same parent topic lives **inside the same section**. Examples:

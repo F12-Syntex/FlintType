@@ -6,27 +6,42 @@ import { cn } from "@/lib/utils";
  *  Mobile-first: label sits *above* the control so the chips/buttons get
  *  the full row width instead of fighting the label and wrapping into
  *  4-5 lines on a 375 px viewport. From `sm:` up the row falls back to
- *  the inline label-left / control-right form. */
+ *  the inline label-left / control-right form.
+ *
+ *  Optional `preview`: when present, renders a hairline-separated strip
+ *  below the row showing the current value's live effect (a sample
+ *  passage with the chosen caret, a wrong-letter glyph in the chosen
+ *  mistake style, etc.). Subtle by design — same `bg-card` surface,
+ *  smaller scale, no extra border around the preview itself. */
 export function SettingsRow({
   label,
   control,
+  preview,
   className,
 }: {
   label: ReactNode;
   control: ReactNode;
+  preview?: ReactNode;
   className?: string;
 }) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 rounded-md border border-border bg-card px-4 py-4 sm:min-h-16 sm:max-h-48 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4 sm:py-0",
+        "flex flex-col rounded-md border border-border bg-card",
         className,
       )}
     >
-      <span className="text-base font-semibold text-foreground sm:text-sm sm:font-medium">
-        {label}
-      </span>
-      {control}
+      <div className="flex flex-col gap-3 px-4 py-4 sm:min-h-16 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-0">
+        <span className="text-base font-semibold text-foreground sm:text-sm sm:font-medium">
+          {label}
+        </span>
+        {control}
+      </div>
+      {preview ? (
+        <div className="border-t border-border/50 px-4 py-3 text-muted-foreground">
+          {preview}
+        </div>
+      ) : null}
     </div>
   );
 }
