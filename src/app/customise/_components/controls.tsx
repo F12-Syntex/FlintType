@@ -5,31 +5,55 @@ import { Slider } from "@/components/ui/slider";
 import { Chip, ChipGroup } from "./chip";
 
 /** Off / On binary toggle rendered as two chips, so it lines up with
- *  the SelectChips control in the same column. */
+ *  the SelectChips control in the same column.
+ *
+ *  Optional `offPreview` / `onPreview` slots — when present, each chip
+ *  shows a small visual of what that state looks like (per UI Law
+ *  §12.2). Skip them when the value isn't visual. */
 export function ToggleChips({
   value,
   onChange,
+  offPreview,
+  onPreview,
 }: {
   value: boolean;
   onChange: (next: boolean) => void;
+  offPreview?: ReactNode;
+  onPreview?: ReactNode;
 }) {
   return (
     <ChipGroup>
-      <Chip label="Off" active={!value} onClick={() => onChange(false)} />
-      <Chip label="On" active={value} onClick={() => onChange(true)} />
+      <Chip
+        label="Off"
+        active={!value}
+        onClick={() => onChange(false)}
+        preview={offPreview}
+      />
+      <Chip
+        label="On"
+        active={value}
+        onClick={() => onChange(true)}
+        preview={onPreview}
+      />
     </ChipGroup>
   );
 }
 
 /** N-way enum picker as chips. The chip labels are the only affordance
- *  so keep `label` short; if it's noisy text, use a Dropdown instead. */
+ *  so keep `label` short; if it's noisy text, use a Dropdown instead.
+ *
+ *  Each option may carry its own `preview` — a small visual sample
+ *  shown above the chip label so the user can compare what each
+ *  option does before picking. Reach for it whenever the value is
+ *  visual (a highlight effect, a fade strength, a tape mode); skip
+ *  it for purely-textual choices (a wpm/cpm unit). */
 export function SelectChips<T extends string | number>({
   value,
   options,
   onChange,
 }: {
   value: T;
-  options: readonly { id: T; label: string }[];
+  options: readonly { id: T; label: string; preview?: ReactNode }[];
   onChange: (next: T) => void;
 }) {
   return (
@@ -40,6 +64,7 @@ export function SelectChips<T extends string | number>({
           label={o.label}
           active={value === o.id}
           onClick={() => onChange(o.id)}
+          preview={o.preview}
         />
       ))}
     </ChipGroup>

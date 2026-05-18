@@ -533,20 +533,41 @@ Pick the smallest control that fits the choice space:
 
 **Color rows must use `<ColorRow>` (`src/app/app/customise/appearance/_components/color-row.tsx`).** Every colour-picker affordance on the appearance page — theme palette, live stats colour, future surfaces — routes through this single primitive so the swatch + hex + chevron button reads identically. Mobile renders a tight key/value row (label left, swatch right); desktop renders the Card layout above. Don't hand-roll an inline `<ColorPresetPicker>` trigger; reach for `<ColorRow>` instead.
 
-### 12.2a Per-row inline previews
+### 12.2a Per-option chip previews
 
-`<SettingsRow>` exposes an optional `preview` slot rendered as a hairline-separated strip beneath the control. Use it to show the **live effect of the row's current value** in a small inline sample — one short line, no chrome (same `bg-card` surface), `text-muted-foreground` framing.
+Whenever a setting's value is **visual**, each option in the chip group carries its own preview — a small sample of what that option does — stacked above the chip label. The user picks by comparison, not by guessing what "Bold" vs "Underline" means in context.
 
-Reach for it on rows whose visual effect is non-obvious from the chip label alone:
+`SelectChips` and `ToggleChips` accept per-option previews:
 
-- **Active mistake** — sample word with one wrong letter rendered in the chosen mistake style.
-- **Highlight mode** — sample line with the active word / letter highlighted per the chosen mode.
-- **Typed effect** — sample line with typed words faded / struck / untouched.
-- **Mark incomplete words** — sample word showing the destructive underline on / off.
+```tsx
+// Enum chips with per-option previews
+const OPTIONS = [
+  { id: "color", label: "Color", preview: <Sample style="color" /> },
+  { id: "bold",  label: "Bold",  preview: <Sample style="bold" /> },
+];
 
-Don't add row-level previews on rows whose chips already carry per-option previews (the chip-level pattern from §12.2 covers them — `caret-row.tsx`'s Style / Thickness / Roundness chips, the `<CardSurfacesRow>` chips). Doubling up just clutters the row.
+// Toggle chips with per-state previews
+<ToggleChips
+  value={prefs.markIncompleteWord}
+  onChange={…}
+  offPreview={<IncompleteChipPreview on={false} />}
+  onPreview={<IncompleteChipPreview on={true} />}
+/>
+```
 
-Implementation note: SSR-safe — the preview is a pure render of the current pref value, no `useEffect`. Subtle styling rule: hairline divider `border-t border-border/50`, padding `px-4 py-3`, text inherits `text-muted-foreground`.
+The `<Chip>` primitive (`src/app/customise/_components/chip.tsx`) stacks the `preview` above the `label` and inverts to primary when active.
+
+Reach for chip-level previews whenever:
+- The choice space is visual (highlight effect, caret style, fade strength, tape mode, mistake style, card surface).
+- The label alone wouldn't tell the user which option matches their mental model.
+
+Don't reach for them when:
+- The label IS the value (font name, "WPM" / "CPM" unit, palette id).
+- The effect is temporal and can't render statically (Blink speed, Smooth speed — the "Slow / Normal / Fast" labels carry it).
+
+`<SettingsRow>` also exposes a `preview` slot that renders below the row. Reserve it for the rare case where chip-level previews can't capture the effect (e.g. a slider's continuous value, or a setting that affects layout proportions). Don't double up — never add a row preview on a row whose chips already carry previews.
+
+Implementation note: chip previews are SSR-safe pure renders. Keep them small — one short line (`text-[11px] leading-none`), bare type or symbols, no chrome of their own.
 
 ### 12.3 Nesting rule
 

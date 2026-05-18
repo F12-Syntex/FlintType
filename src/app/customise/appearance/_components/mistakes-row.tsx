@@ -5,11 +5,50 @@ import { cn } from "@/lib/utils";
 import { LabelWithDesc, SelectChips } from "../../_components/controls";
 import { SettingsRow } from "../../_components/row";
 
-const MISTAKE_STYLE_OPTIONS: readonly { id: MistakeStyle; label: string }[] = [
-  { id: "color", label: "Color" },
-  { id: "bold", label: "Bold" },
-  { id: "underline", label: "Underline" },
-  { id: "highlight", label: "Highlight" },
+/** Per-chip preview: a single "wrong" letter ("y") rendered in that
+ *  option's variant so the user can compare all four styles at a
+ *  glance before picking. Matches the live treatment the practice
+ *  surface uses for active-word mistakes. */
+function ChipPreview({ style }: { style: MistakeStyle }) {
+  const errorBg =
+    "color-mix(in oklch, var(--ft-passage-error, var(--destructive)) 20%, transparent)";
+  return (
+    <span className="block font-mono text-sm leading-none">
+      <span
+        className={cn(
+          "text-[var(--ft-passage-error,var(--destructive))]",
+          style === "bold" && "font-bold",
+          style === "underline" &&
+            "underline decoration-2 underline-offset-[3px] decoration-[var(--ft-passage-error,var(--destructive))]",
+          style === "highlight" && "rounded-sm font-bold px-0.5",
+        )}
+        style={
+          style === "highlight" ? { backgroundColor: errorBg } : undefined
+        }
+      >
+        y
+      </span>
+    </span>
+  );
+}
+
+const MISTAKE_STYLE_OPTIONS: readonly {
+  id: MistakeStyle;
+  label: string;
+  preview: React.ReactNode;
+}[] = [
+  { id: "color", label: "Color", preview: <ChipPreview style="color" /> },
+  { id: "bold", label: "Bold", preview: <ChipPreview style="bold" /> },
+  {
+    id: "underline",
+    label: "Underline",
+    preview: <ChipPreview style="underline" />,
+  },
+  {
+    id: "highlight",
+    label: "Highlight",
+    preview: <ChipPreview style="highlight" />,
+  },
 ];
 
 export function MistakesRows() {
@@ -31,36 +70,7 @@ export function MistakesRows() {
             onChange={(v) => update("mistakeStyle", v)}
           />
         }
-        preview={<MistakeStylePreview style={prefs.mistakeStyle} />}
       />
     </div>
-  );
-}
-
-/** Inline mini-preview for the Active-mistake row: shows a single
- *  word ("jumps") with the third letter typed wrong (`y` vs `m`),
- *  styled with the user's current mistake style so the effect is
- *  visible without scrolling back to the section preview. */
-function MistakeStylePreview({ style }: { style: MistakeStyle }) {
-  const errorBg = "color-mix(in oklch, var(--ft-passage-error, var(--destructive)) 20%, transparent)";
-  return (
-    <span className="inline-flex items-baseline gap-[0.04em] font-mono text-base text-foreground">
-      <span>ju</span>
-      <span
-        className={cn(
-          "text-[var(--ft-passage-error,var(--destructive))]",
-          style === "bold" && "font-bold",
-          style === "underline" &&
-            "underline decoration-2 underline-offset-[5px] decoration-[var(--ft-passage-error,var(--destructive))]",
-          style === "highlight" && "rounded-sm font-bold",
-        )}
-        style={
-          style === "highlight" ? { backgroundColor: errorBg } : undefined
-        }
-      >
-        y
-      </span>
-      <span>ps</span>
-    </span>
   );
 }
