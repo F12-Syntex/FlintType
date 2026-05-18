@@ -138,12 +138,17 @@ export type TopLevelPlayer = {
   username: string | null;
   name: string;
   tags: UserTagId[];
-  /** Total XP accumulated across all completed runs. */
+  /** Total XP across every completed run. Matches the value the
+   *  profile hero shows (testsCompleted × XP_PER_TEST). */
   xp: number;
-  /** Level derived client-side from xp via levelForXp. Sent
-   *  pre-computed so the leaderboard table doesn't have to import
-   *  the derivation helper on a leaderboard render. */
+  /** Level — same number the profile hero shows for this user.
+   *  Derived server-side via `levelFromTestsCompleted` so the
+   *  formula stays in one place (src/lib/level.ts). */
   level: number;
+  /** XP earned inside the current level, 0..XP_PER_LEVEL-1. */
+  xpIntoLevel: number;
+  /** Fraction of progress toward the next level, 0..1. */
+  levelProgress: number;
   testsCompleted: number;
 };
 

@@ -1,3 +1,8 @@
+import {
+  XP_PER_LEVEL,
+  XP_PER_TEST,
+  levelFromTestsCompleted,
+} from "@/lib/level";
 import type { HistoryTest, PublicMonkeytypeStats } from "@/types/history";
 
 /** Either flavour of MT slice the merge layer accepts — the private
@@ -32,25 +37,12 @@ export type ProfileTotals = {
   levelProgress: number;
 };
 
-/** Fixed XP economy: each completed test grants `XP_PER_TEST`, every
- *  level costs `XP_PER_LEVEL`. Predictable and visible — the bar
- *  moves the same amount every test and 10 tests is always exactly
- *  one level. */
-export const XP_PER_TEST = 100;
-export const XP_PER_LEVEL = 1000;
-
-function levelFromCount(testsCompleted: number): {
-  level: number;
-  totalXp: number;
-  xpIntoLevel: number;
-  progress: number;
-} {
-  const totalXp = Math.max(0, testsCompleted) * XP_PER_TEST;
-  const level = Math.floor(totalXp / XP_PER_LEVEL) + 1;
-  const xpIntoLevel = totalXp % XP_PER_LEVEL;
-  const progress = xpIntoLevel / XP_PER_LEVEL;
-  return { level, totalXp, xpIntoLevel, progress };
-}
+/** XP economy lives in `src/lib/level.ts` — re-exported here so
+ *  existing consumers (profile-hero level bar) keep their import
+ *  path. The leaderboard's Top-by-Level route reads from the same
+ *  shared module so the level number a user sees on their profile
+ *  always equals their leaderboard rank's level. */
+export { XP_PER_TEST, XP_PER_LEVEL };
 
 export function deriveTotals(tests: readonly HistoryTest[]): ProfileTotals {
   const testsStarted = tests.length;
@@ -80,7 +72,7 @@ export function deriveTotals(tests: readonly HistoryTest[]): ProfileTotals {
       ? completed.reduce((s, t) => s + t.accuracy, 0) / completed.length
       : 0;
   const { level, totalXp, xpIntoLevel, progress } =
-    levelFromCount(testsCompleted);
+    levelFromTestsCompleted(testsCompleted);
   return {
     testsStarted,
     testsCompleted,
@@ -269,12 +261,12 @@ export function mergeTotalsWithMt(
   );
   // Recompute the combined level from the merged completed-test
   // count so a fresh MT import nudges the level bar forward. Routed
-  // through the same `levelFromCount` helper as the local-only path
+  // through the same `levelFromTestsCompleted` helper as the local-only path
   // so the two never drift — bug bait when one curve is tweaked and
   // the other is forgotten.
   const combinedCompleted = local.testsCompleted + mtCompleted;
   const { level, totalXp, xpIntoLevel, progress } =
-    levelFromCount(combinedCompleted);
+    levelFromTestsCompleted(combinedCompleted);
   return {
     ...local,
     testsStarted: local.testsStarted + mtStarted,

@@ -7,7 +7,7 @@ import {
   resolveEligibleTags,
 } from "@/server/resolve-tags";
 import type { UserTagId } from "@/types/user-tag";
-import { levelForXp } from "@/lib/skill-tier";
+import { levelFromTestsCompleted } from "@/lib/level";
 import {
   leaderboardInputSchema,
   PRESET_AMOUNT,
@@ -269,14 +269,23 @@ const topByLevel = defineRoute<TopByLevelInput, TopByLevelOutput>({
     const named = rows.filter((r) => userInfoByUserId.has(r.userId));
     const players: TopLevelPlayer[] = named.map((r, i) => {
       const info = userInfoByUserId.get(r.userId)!;
+      // Level is the SAME number the profile hero shows for this
+      // user — derived from completed-test count via the shared
+      // src/lib/level.ts economy (100 xp per test, 1000 xp per
+      // level). The repo's `xp` field (SUM of net-WPM) is unused
+      // here now but kept on the response shape for future
+      // surfaces that want the wpm-weighted total.
+      const stats = levelFromTestsCompleted(r.testsCompleted);
       return {
         rank: i + 1,
         userId: r.userId,
         username: info.username,
         name: info.name,
         tags: info.tags,
-        xp: Math.round(r.xp),
-        level: levelForXp(r.xp),
+        xp: stats.totalXp,
+        level: stats.level,
+        xpIntoLevel: stats.xpIntoLevel,
+        levelProgress: stats.progress,
         testsCompleted: r.testsCompleted,
       };
     });

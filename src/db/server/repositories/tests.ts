@@ -35,9 +35,13 @@ export type TopPlayerRow = {
 };
 
 /** Output row of `topByLevel` — one row per user with their
- *  accumulated XP (sum of net-WPM across all completed runs) +
- *  completed-test count. The client derives the level number from
- *  XP via `levelForXp` so the formula lives in one place. */
+ *  completed-test count + accumulated wpm-weighted XP. The
+ *  leaderboard route derives the user-facing level from the test
+ *  count via `levelFromTestsCompleted` (src/lib/level.ts) so the
+ *  number matches the level the profile hero shows for the same
+ *  user. The `xp` field here is the SUM(wpm * accuracy / 100)
+ *  variant — unused by the leaderboard renderer today, kept on
+ *  the row for future surfaces that want a skill-weighted total. */
 export type TopByLevelRow = {
   userId: string;
   /** Total XP — SUM(wpm * accuracy / 100.0) across every completed
@@ -203,26 +207,30 @@ export function testsRepo(db: ServerDrizzle) {
       }
       return out;
     },
-    /** Top users by accumulated XP. One row per user, ordered by
-     *  XP descending (highest level first).
+    /** Top users by completed-test count. One row per user, ordered
+     *  by COUNT(*) descending so the highest-level user lands at
+     *  rank 1 — same level economy the profile hero uses (see
+     *  src/lib/level.ts: every completed test grants XP_PER_TEST,
+     *  every level costs XP_PER_LEVEL, so test count IS level rank).
      *
-     *  XP = SUM(wpm * accuracy / 100) across every completed run —
-     *  one server-side aggregate, one query. The client derives the
-     *  level number from XP via `levelForXp` (src/lib/skill-tier.ts)
-     *  so the formula lives in one place. */
+     *  Also returns the wpm-weighted total (SUM(wpm * accuracy / 100))
+     *  on each row — unused by the leaderboard renderer, kept for
+     *  future surfaces that want a skill-weighted alternative
+     *  ordering without a second query. */
     async topByLevel(opts: { limit?: number }): Promise<TopByLevelRow[]> {
       const limit = Math.max(1, Math.min(50, opts.limit ?? 10));
       const xpExpr = sql<number>`SUM(${tests.wpm} * ${tests.accuracy} / 100.0)`;
+      const countExpr = sql<number>`count(*)::int`;
       const rows = await db
         .select({
           userId: tests.userId,
           xp: xpExpr,
-          testsCompleted: sql<number>`count(*)::int`,
+          testsCompleted: countExpr,
         })
         .from(tests)
         .where(eq(tests.wasCompleted, true))
         .groupBy(tests.userId)
-        .orderBy(desc(xpExpr))
+        .orderBy(desc(countExpr), desc(xpExpr))
         .limit(limit);
       return rows.map((r) => ({
         userId: r.userId,
