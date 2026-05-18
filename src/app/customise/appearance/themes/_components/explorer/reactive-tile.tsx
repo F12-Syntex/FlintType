@@ -25,7 +25,7 @@ export function ReactiveTile({
       accentName
     >
       <div
-        className="flex aspect-[5/4] flex-col gap-3 px-4 pt-3.5 pb-4 text-white"
+        className="flex aspect-[5/4] flex-col gap-2.5 px-4 pt-3.5 pb-4 text-white"
         style={{ background: grad }}
       >
         <div className="flex items-center justify-between gap-3">
@@ -78,6 +78,51 @@ export function ReactiveTile({
           <span className="border-b border-white text-white">lazy</span>
           <span className="text-white/60"> dog.</span>
         </p>
+
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <span
+              className="inline-flex items-center justify-center rounded-sm bg-white px-[7px] py-[4px] text-[8px] font-semibold uppercase leading-none tracking-[0.14em] text-black"
+              style={{ fontFamily: "ui-monospace, monospace" }}
+            >
+              Start
+            </span>
+            <span
+              className="inline-flex items-center justify-center rounded-sm border border-white/40 px-[6px] py-[3px] text-[8px] font-semibold uppercase leading-none tracking-[0.14em] text-white"
+              style={{ fontFamily: "ui-monospace, monospace" }}
+            >
+              Esc
+            </span>
+            <span
+              className="inline-flex items-center gap-1 rounded-sm bg-white/20 px-[6px] py-[3px] text-[8px] font-medium uppercase leading-none tracking-[0.14em] text-white"
+              style={{ fontFamily: "ui-monospace, monospace" }}
+            >
+              <span aria-hidden className="block size-1 rounded-full bg-white" />
+              Tag
+            </span>
+          </div>
+          <div
+            className="flex items-baseline gap-1"
+            style={{ fontFamily: "ui-monospace, monospace" }}
+          >
+            <span className="text-[12px] font-bold tabular-nums leading-none text-white">
+              92
+            </span>
+            <span className="text-[7px] uppercase tracking-[0.18em] text-white/60">
+              wpm
+            </span>
+            <span
+              aria-hidden
+              className="mx-0.5 block size-0.5 rounded-full bg-white/40"
+            />
+            <span className="text-[12px] font-bold tabular-nums leading-none text-white">
+              98
+            </span>
+            <span className="text-[7px] uppercase tracking-[0.18em] text-white/60">
+              acc
+            </span>
+          </div>
+        </div>
 
         <div className="mt-auto flex justify-center">
           <ReactiveKeyboard />

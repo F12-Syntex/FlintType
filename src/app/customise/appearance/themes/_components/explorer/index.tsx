@@ -80,8 +80,8 @@ export function ThemeExplorer() {
         </h1>
         <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted-foreground">
           Each tile is a slice of the app under that theme: palette,
-          radius, typography, and the keyboard widget&apos;s design and
-          shape. Tap to apply live.
+          radius, typography, buttons, chips, stats, and the keyboard
+          widget&apos;s design and shape. Tap to apply live.
         </p>
       </header>
 
