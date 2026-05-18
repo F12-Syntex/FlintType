@@ -893,6 +893,52 @@ export function PracticeProvider({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onKeyDown]);
 
+  // Dedicated capture-phase Tab → restart listener. This is the
+  // authoritative Tab handler while the practice surface is mounted;
+  // the Tab branches in the input element's onKeyDown and the regular
+  // window keydown above are now dead code for Tab (they remain only
+  // because they handle other keys — Backspace, letters, Escape).
+  //
+  // Why capture phase: it fires before ANY element-level listener and
+  // before Radix focus-trap handlers, so we can preventDefault before
+  // the browser shifts focus to the next focusable (the ModeBar chip,
+  // the topbar gear, etc.).
+  //
+  // Why stopImmediatePropagation: prevents the input's own onKeyDown
+  // Tab branch from also running and restarting a second time.
+  //
+  // Why target.closest('[role="dialog"]') instead of the global
+  // aria-modal query: the global query swallowed Tab during the
+  // ~150ms Radix dialog exit-animation window even when the user was
+  // typing in the test — the dialog was already invisible but its
+  // DOM lingered. Asking "did this event originate inside a dialog?"
+  // is the right question: dialogs that legitimately want Tab capture
+  // it on their own content before it bubbles, so reaching this
+  // handler means the user pressed Tab outside the dialog tree.
+  //
+  // quickRestart=false honours the user's pref but only short-circuits
+  // — never preventDefaults — so Tab does its native focus-shift in
+  // that mode, matching the historical behaviour.
+  useEffect(() => {
+    function onTab(e: KeyboardEvent) {
+      if (e.key !== "Tab") return;
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      if (!prefsRef.current.quickRestart) return;
+      const target = e.target;
+      if (
+        target instanceof Element &&
+        target.closest('[role="dialog"]')
+      ) {
+        return;
+      }
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      restartRef.current();
+    }
+    window.addEventListener("keydown", onTab, true);
+    return () => window.removeEventListener("keydown", onTab, true);
+  }, []);
+
   // Cross-component restart channel. The command palette's Tab key
   // (see src/components/command-palette/command-palette.tsx) closes
   // the dialog and dispatches this event so the user's Tab muscle-
