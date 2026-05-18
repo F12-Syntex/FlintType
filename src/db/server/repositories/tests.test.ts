@@ -81,6 +81,22 @@ describe("testsRepo", () => {
     expect(found).toBeNull();
   });
 
+  it("findByIdPrefix returns the unique row when one matches", async () => {
+    await ctx.db.tests.insert(row({ id: "a3f9c0d1-2b4e-4f1a-9c8d-0123456789ab", wpm: 92 }));
+    const found = await ctx.db.tests.findByIdPrefix("a3f9c0d1");
+    expect(found?.wpm).toBe(92);
+  });
+
+  it("findByIdPrefix returns null when nothing matches", async () => {
+    expect(await ctx.db.tests.findByIdPrefix("deadbeef")).toBeNull();
+  });
+
+  it("findByIdPrefix returns null when the prefix is ambiguous (caller treats as NOT_FOUND)", async () => {
+    await ctx.db.tests.insert(row({ id: "abc12345-aaaa-aaaa-aaaa-aaaaaaaaaaaa" }));
+    await ctx.db.tests.insert(row({ id: "abc12345-bbbb-bbbb-bbbb-bbbbbbbbbbbb" }));
+    expect(await ctx.db.tests.findByIdPrefix("abc12345")).toBeNull();
+  });
+
   it("topLeaderboard ranks by net WPM (wpm × accuracy / 100)", async () => {
     await ctx.db.tests.insert(
       row({ id: "t_fast_sloppy", userId: "u1", wpm: 120, accuracy: 80 }),

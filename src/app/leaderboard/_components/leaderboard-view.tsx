@@ -340,6 +340,8 @@ function Row({
        *  inside the dedicated grid track. */}
       <ShareRunButton
         testId={entry.testId}
+        handle={entry.username ?? entry.name}
+        wpm={entry.wpm}
         className="justify-self-end self-center sm:opacity-0 sm:transition-opacity sm:group-hover/row:opacity-100 sm:group-focus-within/row:opacity-100"
       />
     </li>

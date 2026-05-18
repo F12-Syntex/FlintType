@@ -1,5 +1,6 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import { Crown, Download } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ShareRunButton } from "@/components/share-run-button";
@@ -423,6 +424,15 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
   const { state, wpm, raw, accuracy, elapsedMs, wpmHistory, lastTestId } =
     usePractice();
   const { prefs: appearance } = useAppearancePrefs();
+  // The viewer's own Clerk handle — used to build a friendly slug for
+  // their own share image. Mirrors how the server picks a display
+  // name when joining identity onto a SharedTest.
+  const { user } = useUser();
+  const shareHandle =
+    user?.firstName ??
+    user?.username ??
+    user?.primaryEmailAddress?.emailAddress?.split("@")[0] ??
+    "racer";
   const [replaying, setReplaying] = useState(false);
   const captureRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -655,7 +665,12 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
              *  failed submits hide the button entirely; the user has
              *  no actionable link to share in those cases. */}
             {lastTestId ? (
-              <ShareRunButton testId={lastTestId} variant="labelled" />
+              <ShareRunButton
+                testId={lastTestId}
+                handle={shareHandle}
+                wpm={wpm}
+                variant="labelled"
+              />
             ) : null}
           </div>
         )}

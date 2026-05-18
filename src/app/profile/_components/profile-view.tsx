@@ -164,7 +164,7 @@ export function ProfileView({ username }: { username?: string }) {
           <PersonalBests bests={bests} />
           <ActivityHeatmap days={activity} streak={streak} />
           <WpmTrend points={trend} />
-          <RecentRuns tests={tests} />
+          <RecentRuns tests={tests} handle={username ?? "racer"} />
         </>
       )}
 

@@ -1,6 +1,7 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import type { Database } from "@/db/server";
 import { BackendError } from "@/lib/errors";
+import { parseShareSlug } from "@/lib/share-slug";
 import type { Logger } from "@/server/logger";
 import {
   applyTagSelection,
@@ -24,15 +25,23 @@ import type { UserTagId } from "@/types/user-tag";
  *  the share link is the user's, the chrome is decoration. */
 export async function loadSharedTest(
   db: Database,
-  testId: string,
+  slugOrId: string,
   log: Logger,
 ): Promise<SharedTest> {
-  const row = await db.tests.findById(testId);
+  // Accept either a full UUID (legacy `/r/<uuid>` links) or a friendly
+  // slug like `saif-92wpm-a3f9c0d1`. The parser pulls the trailing
+  // hex segment off the slug; the repo's prefix lookup resolves both
+  // shapes — a full UUID prefix is just a longer prefix.
+  const prefix = parseShareSlug(slugOrId);
+  if (!prefix) {
+    throw new BackendError(404, "NOT_FOUND", `No shareable test for ${slugOrId}`);
+  }
+  const row = await db.tests.findByIdPrefix(prefix);
   if (!row || !row.wasCompleted) {
     throw new BackendError(
       404,
       "NOT_FOUND",
-      `No shareable test for ${testId}`,
+      `No shareable test for ${slugOrId}`,
     );
   }
 
@@ -58,7 +67,7 @@ export async function loadSharedTest(
     });
   } catch (err) {
     log.warn("share.load: clerk getUser failed", {
-      testId,
+      testId: row.id,
       userId: row.userId,
       error: err instanceof Error ? err.message : String(err),
     });

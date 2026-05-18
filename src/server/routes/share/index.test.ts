@@ -16,9 +16,12 @@ import type { SharedTest } from "@/types/share";
 
 const mockClerkClient = vi.mocked(clerkClient);
 
+const SHARE_ID = "a3f9c0d12b4e4f1a9c8d0123456789ab";
+const SHARE_SLUG = `alice-124wpm-${SHARE_ID.slice(0, 8)}`;
+
 function row(over: Partial<NewTestRow> = {}): NewTestRow {
   return {
-    id: "t_share",
+    id: SHARE_ID,
     userId: "u1",
     startedAt: new Date(2026, 4, 1, 12, 0, 0),
     completedAt: new Date(2026, 4, 1, 12, 0, 34),
@@ -75,27 +78,33 @@ describe("share.get", () => {
     await ctx.close();
   });
 
-  it("returns the public projection joined with the runner's handle + avatar", async () => {
+  it("resolves a friendly slug to the run + joins handle + avatar", async () => {
     await ctx.db.tests.insert(row());
     const res = await callRoute<SharedTest>(["share", "get"], {
-      input: { testId: "t_share" },
+      input: { slug: SHARE_SLUG },
       db: ctx.db,
     });
-    expect(res.testId).toBe("t_share");
+    expect(res.testId).toBe(SHARE_ID);
     expect(res.wpm).toBe(124);
-    expect(res.accuracy).toBe(98);
-    expect(res.mode).toBe("training");
     expect(res.handle).toBe("@alice");
-    expect(res.username).toBe("alice");
     expect(res.avatarUrl).toBe("https://example.com/a.png");
     expect(res.durationSec).toBe(34);
+  });
+
+  it("also resolves a bare full UUID for legacy share links", async () => {
+    await ctx.db.tests.insert(row());
+    const res = await callRoute<SharedTest>(["share", "get"], {
+      input: { slug: SHARE_ID },
+      db: ctx.db,
+    });
+    expect(res.testId).toBe(SHARE_ID);
   });
 
   it("falls back to @racer + null avatar when Clerk lookup fails", async () => {
     mockClerkClient.mockRejectedValue(new Error("clerk-down"));
     await ctx.db.tests.insert(row());
     const res = await callRoute<SharedTest>(["share", "get"], {
-      input: { testId: "t_share" },
+      input: { slug: SHARE_SLUG },
       db: ctx.db,
     });
     expect(res.handle).toBe("@racer");
@@ -106,16 +115,25 @@ describe("share.get", () => {
     mockClerkUser({ hasImage: false });
     await ctx.db.tests.insert(row());
     const res = await callRoute<SharedTest>(["share", "get"], {
-      input: { testId: "t_share" },
+      input: { slug: SHARE_SLUG },
       db: ctx.db,
     });
     expect(res.avatarUrl).toBeNull();
   });
 
-  it("404s when the test does not exist", async () => {
+  it("404s when the slug's trailing hex matches nothing", async () => {
     await expect(
       callRoute<SharedTest>(["share", "get"], {
-        input: { testId: "t_missing" },
+        input: { slug: "ghost-92wpm-deadbeef" },
+        db: ctx.db,
+      }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("404s when the slug tail isn't hex (guards against bare-LIKE scans)", async () => {
+    await expect(
+      callRoute<SharedTest>(["share", "get"], {
+        input: { slug: "saif-92wpm-notahexid" },
         db: ctx.db,
       }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
@@ -125,18 +143,16 @@ describe("share.get", () => {
     await ctx.db.tests.insert(row({ wasCompleted: false }));
     await expect(
       callRoute<SharedTest>(["share", "get"], {
-        input: { testId: "t_share" },
+        input: { slug: SHARE_SLUG },
         db: ctx.db,
       }),
     ).rejects.toBeInstanceOf(BackendError);
   });
 
-  it("rejects an empty testId via Zod validation", async () => {
-    // Pipeline rethrows ZodError as-is; the HTTP dispatcher is what
-    // maps it to BackendError(400, 'VALIDATION') for the wire.
+  it("rejects an empty slug via Zod validation", async () => {
     await expect(
       callRoute<SharedTest>(["share", "get"], {
-        input: { testId: "" },
+        input: { slug: "" },
         db: ctx.db,
       }),
     ).rejects.toBeInstanceOf(ZodError);

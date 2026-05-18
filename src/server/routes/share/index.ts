@@ -12,7 +12,7 @@ import { loadSharedTest } from "./load";
  *  OG card. No auth — anyone holding the testId can fetch it. */
 const get = defineRoute<GetSharedTestInput, SharedTest>({
   input: getSharedTestInputSchema,
-  handler: ({ input, db, log }) => loadSharedTest(db, input.testId, log),
+  handler: ({ input, db, log }) => loadSharedTest(db, input.slug, log),
 });
 
 /** Tight per-IP cap because every miss hits Clerk's API. 60/min is

@@ -1,11 +1,14 @@
 import { z } from "zod";
 import type { UserTagId } from "./user-tag";
 
-/** Input to `share.get` — a single completed test id. Bounded length
- *  matches `randomUUID()` output (36 chars) with generous slack so a
- *  schema tweak elsewhere doesn't break this route silently. */
+/** Input to `share.get` — either a full UUID testId or a friendly
+ *  share slug like `saif-92wpm-a3f9c0d1`. The server parses the slug
+ *  to its trailing hex prefix and looks the test up that way; bare
+ *  UUIDs still resolve because the parser treats the whole input as
+ *  a single hex segment when there's no `-`-decoration. 128-char cap
+ *  comfortably covers any plausible slug shape. */
 export const getSharedTestInputSchema = z.object({
-  testId: z.string().min(1).max(64),
+  slug: z.string().min(1).max(128),
 });
 export type GetSharedTestInput = z.infer<typeof getSharedTestInputSchema>;
 

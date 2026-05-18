@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lt, max, sql } from "drizzle-orm";
+import { and, desc, eq, gte, like, lt, max, sql } from "drizzle-orm";
 import { tests } from "@/db/schema/server/tests";
 import type { NewTestRow, TestRow } from "@/types/adapt";
 import type { ServerDrizzle } from "../driver";
@@ -34,6 +34,28 @@ export function testsRepo(db: ServerDrizzle) {
         .from(tests)
         .where(eq(tests.id, id))
         .limit(1);
+      return rows[0] ?? null;
+    },
+
+    /** Lookup by a short id prefix — used by the share slug parser
+     *  so a friendly URL like `/r/saif-92wpm-a3f9c0d1` can resolve
+     *  back to its full UUIDv4 row. Returns the unique match, null
+     *  when the prefix matches nothing, and null when the prefix
+     *  matches more than one row (caller maps both to NOT_FOUND so
+     *  an ambiguous slug never silently resolves to the wrong run).
+     *
+     *  Caller is expected to validate the prefix is hex / bounded
+     *  length — this method does not. */
+    async findByIdPrefix(prefix: string): Promise<TestRow | null> {
+      // Limit 2 so we can detect the ambiguous-prefix case without
+      // scanning the whole table — a prefix that hits two rows is
+      // a "no answer" answer.
+      const rows = await db
+        .select()
+        .from(tests)
+        .where(like(tests.id, `${prefix}%`))
+        .limit(2);
+      if (rows.length !== 1) return null;
       return rows[0] ?? null;
     },
 

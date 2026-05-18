@@ -12,8 +12,19 @@ const PAGE_SIZE = 10;
 /** Recent runs ledger inside a bordered card panel. Hairline-divided
  *  rows, one per completed test. PB crown marks the highest WPM in
  *  each (mode, length) bucket. Pagination loads more in-memory; the
- *  parent fetch already pulled up to 500 runs. */
-export function RecentRuns({ tests }: { tests: readonly HistoryTest[] }) {
+ *  parent fetch already pulled up to 500 runs.
+ *
+ *  `handle` is the profile owner's identifier (so the share image
+ *  link can be built as `/r/<handle>-<wpm>wpm-<id>` and the OG image
+ *  reads as their artifact). Falls back to `racer` when the profile
+ *  is anonymous for some reason. */
+export function RecentRuns({
+  tests,
+  handle,
+}: {
+  tests: readonly HistoryTest[];
+  handle: string;
+}) {
   const completed = tests.filter((t) => t.wasCompleted);
   const [shown, setShown] = useState(PAGE_SIZE);
   const visible = completed.slice(0, shown);
@@ -41,7 +52,12 @@ export function RecentRuns({ tests }: { tests: readonly HistoryTest[] }) {
         <div className="flex flex-col gap-3">
           <ul className="flex flex-col divide-y divide-border/60">
             {visible.map((t) => (
-              <RunRow key={t.id} test={t} pb={pbIds.has(t.id)} />
+              <RunRow
+                key={t.id}
+                test={t}
+                pb={pbIds.has(t.id)}
+                handle={handle}
+              />
             ))}
           </ul>
           {remaining > 0 ? (
@@ -76,7 +92,15 @@ function pickPbIds(tests: readonly HistoryTest[]): Set<string> {
   return new Set(Array.from(best.values()).map((t) => t.id));
 }
 
-function RunRow({ test, pb }: { test: HistoryTest; pb: boolean }) {
+function RunRow({
+  test,
+  pb,
+  handle,
+}: {
+  test: HistoryTest;
+  pb: boolean;
+  handle: string;
+}) {
   return (
     <li className="group/row grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 py-3 sm:grid-cols-[1fr_auto_auto_auto] sm:gap-x-6">
       <div className="flex min-w-0 flex-col gap-0.5">
@@ -121,6 +145,8 @@ function RunRow({ test, pb }: { test: HistoryTest; pb: boolean }) {
          *  baseline cleanly. */}
         <ShareRunButton
           testId={test.id}
+          handle={handle}
+          wpm={test.wpm}
           className="self-center sm:opacity-0 sm:transition-opacity sm:group-hover/row:opacity-100 sm:group-focus-within/row:opacity-100"
         />
       </div>

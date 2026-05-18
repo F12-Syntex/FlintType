@@ -1,3 +1,6 @@
+"use client";
+
+import { useUser } from "@clerk/nextjs";
 import { ShareRunButton } from "@/components/share-run-button";
 import { cn } from "@/lib/utils";
 import type { HistoryTest } from "@/types/history";
@@ -7,6 +10,17 @@ import type { HistoryTest } from "@/types/history";
  *  insights doesn't need to bounce out to the profile to peek at
  *  recent activity. */
 export function RecentTests({ tests }: { tests: readonly HistoryTest[] }) {
+  // Insights only ever renders the signed-in user's own data
+  // (history.summary is auth-gated upstream), so the share slug
+  // handle is the viewer's own Clerk handle. Falls back to `racer`
+  // while Clerk loads or for the deeply-pathological signed-out
+  // path that should never reach this component.
+  const { user } = useUser();
+  const handle =
+    user?.firstName ??
+    user?.username ??
+    user?.primaryEmailAddress?.emailAddress?.split("@")[0] ??
+    "racer";
   const completed = tests.filter((t) => t.wasCompleted).slice(0, 6);
   if (completed.length === 0) {
     return (
@@ -43,6 +57,8 @@ export function RecentTests({ tests }: { tests: readonly HistoryTest[] }) {
             </span>
             <ShareRunButton
               testId={t.id}
+              handle={handle}
+              wpm={t.wpm}
               className="self-center sm:opacity-0 sm:transition-opacity sm:group-hover/row:opacity-100 sm:group-focus-within/row:opacity-100"
             />
           </div>
