@@ -1,5 +1,6 @@
-import type { HistoryTest } from "@/types/history";
+import { ShareRunButton } from "@/components/share-run-button";
 import { cn } from "@/lib/utils";
+import type { HistoryTest } from "@/types/history";
 
 /** Compact recent-runs list — last 6 completed tests, hairline-
  *  divided rows. Same shape as the profile list, kept inline so
@@ -21,7 +22,7 @@ export function RecentTests({ tests }: { tests: readonly HistoryTest[] }) {
         <li
           key={t.id}
           className={cn(
-            "grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-foreground/[0.02]",
+            "group/row grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-foreground/[0.02]",
           )}
         >
           <div className="flex flex-col gap-0.5">
@@ -33,13 +34,17 @@ export function RecentTests({ tests }: { tests: readonly HistoryTest[] }) {
               <span className="tabular-nums">{t.durationOrWordCount}</span>
             </span>
           </div>
-          <div className="flex items-baseline gap-3 font-mono tabular-nums">
+          <div className="flex items-baseline gap-2 font-mono tabular-nums sm:gap-3">
             <span className="text-xl font-bold text-primary">
               {Math.round(t.wpm)}
             </span>
             <span className="text-[11px] text-muted-foreground">
               {t.accuracy.toFixed(1)}%
             </span>
+            <ShareRunButton
+              testId={t.id}
+              className="self-center sm:opacity-0 sm:transition-opacity sm:group-hover/row:opacity-100 sm:group-focus-within/row:opacity-100"
+            />
           </div>
         </li>
       ))}

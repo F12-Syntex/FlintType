@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import { UserTag } from "@/components/ft";
+import { ShareRunButton } from "@/components/share-run-button";
 import { cn } from "@/lib/utils";
 import { type LeaderboardEntry } from "@/types/leaderboard";
 import {
@@ -258,8 +259,8 @@ function Row({
     <li
       className={cn(
         "group/row border-b border-border/60 py-3 last:border-b-0",
-        "grid grid-cols-[32px_minmax(0,1fr)_auto] items-baseline gap-x-3",
-        "sm:grid-cols-[40px_minmax(0,1fr)_120px_72px_64px_64px] sm:gap-x-4 sm:py-3.5",
+        "grid grid-cols-[32px_minmax(0,1fr)_auto_auto] items-baseline gap-x-3",
+        "sm:grid-cols-[40px_minmax(0,1fr)_120px_72px_64px_64px_28px] sm:gap-x-4 sm:py-3.5",
         // Soft primary tint when this row is the viewer's own entry —
         // matches the highlighting on the race-results table so the
         // "find me" scan reads identical across surfaces.
@@ -333,6 +334,14 @@ function Row({
       <span className="hidden text-right text-[12px] tabular-nums text-muted-foreground sm:inline">
         {Math.round(entry.accuracy)}%
       </span>
+      {/* Share cell — hover-reveal on desktop so the table stays
+       *  visually quiet, always visible on touch where hover doesn't
+       *  exist. `justify-self-end` parks it flush with the row edge
+       *  inside the dedicated grid track. */}
+      <ShareRunButton
+        testId={entry.testId}
+        className="justify-self-end self-center sm:opacity-0 sm:transition-opacity sm:group-hover/row:opacity-100 sm:group-focus-within/row:opacity-100"
+      />
     </li>
   );
 }

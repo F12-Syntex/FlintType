@@ -1,7 +1,8 @@
 "use client";
 
-import { Check, Crown, Download, Share2 } from "lucide-react";
+import { Crown, Download } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ShareRunButton } from "@/components/share-run-button";
 import { Button } from "@/components/ui/button";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { recordIfPb } from "@/lib/pb-cache";
@@ -425,30 +426,6 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
   const [replaying, setReplaying] = useState(false);
   const captureRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
-  // Share affordance — `copied` flips true for 1.5s after the user
-  // copies the link, swapping the button label to give the action a
-  // visible acknowledgement. Reset by a timer so subsequent shares
-  // also flash the feedback.
-  const [copied, setCopied] = useState(false);
-  const onShare = useCallback(async () => {
-    if (!lastTestId) return;
-    const url = `${window.location.origin}/r/${lastTestId}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ url, title: "flinttype run" });
-        return;
-      }
-    } catch {
-      // User cancelled the OS share sheet — fall through to clipboard.
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1_500);
-    } catch (err) {
-      console.error("[test-summary] share copy failed", err);
-    }
-  }, [lastTestId]);
   const onDownload = useCallback(async () => {
     // Resolve the page-level content area (set via data-screenshot-root
     // on AppChrome's main scroller). Captures everything between the
@@ -678,20 +655,7 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
              *  failed submits hide the button entirely; the user has
              *  no actionable link to share in those cases. */}
             {lastTestId ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onShare}
-                aria-label="Copy a shareable link to this run"
-                className="gap-1.5 text-[11px] uppercase tracking-[0.18em]"
-              >
-                {copied ? (
-                  <Check size={13} className="shrink-0 text-primary" />
-                ) : (
-                  <Share2 size={13} className="shrink-0" />
-                )}
-                {copied ? "copied" : "share"}
-              </Button>
+              <ShareRunButton testId={lastTestId} variant="labelled" />
             ) : null}
           </div>
         )}

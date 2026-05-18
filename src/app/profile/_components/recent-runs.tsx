@@ -3,6 +3,7 @@
 import { Crown } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { ShareRunButton } from "@/components/share-run-button";
 import { cn } from "@/lib/utils";
 import type { HistoryTest } from "@/types/history";
 
@@ -77,7 +78,7 @@ function pickPbIds(tests: readonly HistoryTest[]): Set<string> {
 
 function RunRow({ test, pb }: { test: HistoryTest; pb: boolean }) {
   return (
-    <li className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 py-3 sm:grid-cols-[1fr_auto_auto_auto] sm:gap-x-6">
+    <li className="group/row grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 py-3 sm:grid-cols-[1fr_auto_auto_auto] sm:gap-x-6">
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
           {formatWhen(test.startedAtMs)}
@@ -104,7 +105,7 @@ function RunRow({ test, pb }: { test: HistoryTest; pb: boolean }) {
         acc
       </span>
 
-      <div className="flex items-baseline gap-3 justify-self-end">
+      <div className="flex items-baseline gap-2 justify-self-end sm:gap-3">
         {pb ? (
           <Crown
             size={14}
@@ -115,6 +116,13 @@ function RunRow({ test, pb }: { test: HistoryTest; pb: boolean }) {
         <span className="text-xl font-bold leading-none tracking-[-0.02em] tabular-nums text-primary sm:text-2xl">
           {Math.round(test.wpm)}
         </span>
+        {/* Hover-reveal on desktop, always visible on mobile (no hover
+         *  state to trigger it). Self-center so it sits on the WPM
+         *  baseline cleanly. */}
+        <ShareRunButton
+          testId={test.id}
+          className="self-center sm:opacity-0 sm:transition-opacity sm:group-hover/row:opacity-100 sm:group-focus-within/row:opacity-100"
+        />
       </div>
     </li>
   );
