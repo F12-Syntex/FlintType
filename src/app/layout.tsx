@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Lora, IBM_Plex_Mono } from "next/font/google";
 import { VersionProvider } from "@/lib/version-context";
+import { siteConfig } from "@/server/seo";
 import { getAppVersion } from "@/server/version";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -25,6 +26,11 @@ const fontMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  // Required so file-based opengraph-image / twitter-image resolve to
+  // absolute URLs (https://flinttype.com/opengraph-image) instead of
+  // localhost. Without it Discord / Slack / Twitter scrapers can't fetch
+  // the card and the link preview falls back to a bare title.
+  metadataBase: new URL(siteConfig.url),
   title: {
     default: "flinttype",
     template: "%s · flinttype",
