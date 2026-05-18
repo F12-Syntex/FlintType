@@ -69,15 +69,29 @@ export function AuthShell({
             {children}
           </div>
 
-          <p className="text-center text-[12.5px] text-muted-foreground">
-            {altLabel}{" "}
+          {/* Footer lockup — eyebrow Tag flanked by hairlines, then the
+           *  alt-route link on its own row. Editorial rhythm (§12.1 eyebrow
+           *  pattern, adapted to centred) so it reads as deliberate utility,
+           *  not leftover text. */}
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex items-center gap-3">
+              <span aria-hidden className="h-px w-8 bg-border" />
+              <Tag>{altLabel}</Tag>
+              <span aria-hidden className="h-px w-8 bg-border" />
+            </div>
             <Link
               href={altHref}
-              className="font-medium text-primary underline-offset-4 hover:underline"
+              className="group inline-flex items-center gap-1.5 text-sm font-semibold text-foreground transition-colors hover:text-primary"
             >
               {altLinkText}
+              <span
+                aria-hidden
+                className="transition-transform group-hover:translate-x-0.5"
+              >
+                →
+              </span>
             </Link>
-          </p>
+          </div>
         </div>
       </div>
     </main>
