@@ -3,8 +3,14 @@ import { z } from "zod";
 /** Race modes the client can request. Keeps this list aligned with
  *  `src/app/race/_components/race-data.ts` — the server only validates
  *  that the requested mode is in the union; the client picks display
- *  data + bot profiles. */
-export const RACE_MODE_IDS = ["1v1v1v1", "1v1", "sprint", "endurance", "quote"] as const;
+ *  data + bot profiles.
+ *
+ *  Quote racing was retired — every race now draws from the
+ *  EN_COMMON_1000 word list (lowercase, no punctuation) so the
+ *  surface is consistent and ergonomic-test-friendly. Server-side
+ *  quote handling in `src/server/race/{room,store,quotes}.ts`
+ *  remains dormant; if the mode comes back, re-add "quote" here. */
+export const RACE_MODE_IDS = ["1v1v1v1", "1v1", "sprint", "endurance"] as const;
 export type RaceModeId = (typeof RACE_MODE_IDS)[number];
 
 /** Lifecycle of a server-authoritative race room.

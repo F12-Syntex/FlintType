@@ -31,12 +31,12 @@ const create = defineRoute<CreateChallengeInput, CreateChallengeOutput>({
     const sessionToken = newSessionToken();
     const identity = await getRaceIdentity(sessionToken);
     const seed = Date.now() | 0;
-    const passage =
-      input.modeId === "quote" ? pickRaceQuote() : undefined;
+    // Quote racing retired — challenges always use the word-list
+    // passage. Kept the passage option on createChallengeRoom for
+    // backward compat with the dormant quote pipeline.
     const room = createChallengeRoom({
       modeId: input.modeId,
       raceSeed: seed,
-      passage,
     });
     const racer = room.addRealRacer({
       sessionToken,

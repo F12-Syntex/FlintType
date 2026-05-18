@@ -96,20 +96,6 @@ describe("race routes", () => {
     expect(room?.snapshot().racers.find((r) => !r.isBot)).toBeUndefined();
   });
 
-  it("quote queue picks a medium-length quote and exposes the source", async () => {
-    const res = await callRoute<QueueOutput>(["race", "queue"], {
-      input: { modeId: "quote" },
-    });
-    const room = getRoom(res.roomId);
-    expect(room).not.toBeNull();
-    // The passage was assembled from the quote text — every word
-    // adds at least one char; totalChars sums to >= words.length-1.
-    expect(res.words.length).toBeGreaterThan(0);
-    expect(res.totalChars).toBeGreaterThanOrEqual(101);
-    // Snapshot carries the attribution so the client can render it.
-    expect(room!.snapshot().quoteSource).toBeTruthy();
-  });
-
   it("keystroke rejects unknown roomId with NOT_FOUND", async () => {
     await expect(
       callRoute(["race", "keystroke"], {
