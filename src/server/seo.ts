@@ -38,7 +38,12 @@ export function buildPageMetadata(input: PageMetaInput): Metadata {
       ...(input.image ? { images: [{ url: input.image }] } : {}),
     },
     twitter: {
-      card: input.image ? 'summary_large_image' : 'summary',
+      // The file-based opengraph-image / twitter-image (src/app/*) auto-
+      // injects a 1500x787 brand card into every page, so summary_large_image
+      // is the correct card kind even when no per-page image is provided —
+      // it makes the auto-injected image fill the preview at full width
+      // instead of being squashed into the small-summary thumbnail.
+      card: 'summary_large_image',
       title: input.title,
       description,
       ...(input.image ? { images: [input.image] } : {}),

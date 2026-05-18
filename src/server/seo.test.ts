@@ -54,10 +54,15 @@ describe('buildPageMetadata', () => {
     expect(twitter?.card).toBe('summary_large_image');
   });
 
-  it('omits image fields when no image is provided', () => {
+  it('omits per-page image fields when no image is provided', () => {
+    // The file-based opengraph-image (src/app/opengraph-image.tsx) is
+    // auto-injected by Next.js regardless — we just don't add a second
+    // images: [...] entry from this helper. Twitter card stays
+    // `summary_large_image` so the auto-injected brand card renders at
+    // full width.
     const m = buildPageMetadata({ title: 'X' });
     expect(m.openGraph?.images).toBeUndefined();
     const twitter = m.twitter as { card?: string } | undefined;
-    expect(twitter?.card).toBe('summary');
+    expect(twitter?.card).toBe('summary_large_image');
   });
 });
