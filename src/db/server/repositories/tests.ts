@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, like, lt, max, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, like, lt, max, sql } from "drizzle-orm";
 import { tests } from "@/db/schema/server/tests";
 import type { NewTestRow, TestRow } from "@/types/adapt";
 import type { ServerDrizzle } from "../driver";
@@ -244,6 +244,11 @@ export function testsRepo(db: ServerDrizzle) {
       // single grouped query — keeps the round trip count flat
       // regardless of how many users land in `top`.
       const userIds = top.map((t) => t.userId);
+      // `inArray` produces `WHERE user_id IN ($2, $3, …)` — the
+      // earlier `sql\`${tests.userId} = ANY(${userIds})\`` form
+      // splatted the array into separate params on the neon-http
+      // driver and Postgres rejected the resulting
+      // `ANY(($2,$3,$4))` syntax.
       const counts = await db
         .select({
           userId: tests.userId,
@@ -253,7 +258,7 @@ export function testsRepo(db: ServerDrizzle) {
         .where(
           and(
             eq(tests.wasCompleted, true),
-            sql`${tests.userId} = ANY(${userIds})`,
+            inArray(tests.userId, userIds),
           ),
         )
         .groupBy(tests.userId);
