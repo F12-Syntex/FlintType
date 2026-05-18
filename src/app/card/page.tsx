@@ -8,15 +8,15 @@ export const metadata: Metadata = buildPageMetadata({
   noIndex: true,
 });
 
-/** A 1500 × 787 (Twitter / OG aspect 1.91 : 1) brand card. Painted
- *  from the fixed `ft-*` paper-and-ink palette so every screenshot
- *  looks identical regardless of the viewer's theme.
+/** A 1500 × 787 (Twitter / OG aspect 1.91 : 1) brand card painted to
+ *  read as a screenshot of a real flinttype run — dark warm-ink
+ *  surface, real passage with typed / untyped / error letter states,
+ *  ember caret mid-keystroke, live stat strip with WPM accented. The
+ *  card sits next to other product screenshots in the maker's
+ *  portfolio without reading as the odd marketing tile.
  *
- *  Three bands top-to-bottom — header (wordmark + ADAPTIVE pill),
- *  hero (the brand's signature typing-surface visual), ink footer
- *  (one-line feature trail + tagline + the WPM/ACC numbers that
- *  prove the product works). Engineering depth is communicated by
- *  the feature trail line in the footer, not a separate strip. */
+ *  Painted from the fixed `ft-*` warm-ink ramp (docs/ui-law.md §2.3)
+ *  so every screenshot looks identical regardless of viewer theme. */
 export default function CardPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-zinc-200 p-6 dark:bg-zinc-900">
@@ -33,11 +33,11 @@ function Card() {
     <div
       data-screenshot-target="og-card"
       style={{ width: W, height: H }}
-      className="relative grid shrink-0 grid-rows-[auto_1fr_auto] overflow-hidden bg-ft-paper text-ft-ink shadow-2xl shadow-black/30 ring-1 ring-ft-line-soft"
+      className="relative grid shrink-0 grid-rows-[auto_1fr_auto] overflow-hidden bg-ft-ink-deep font-mono text-ft-paper"
     >
       <span
         aria-hidden
-        className="absolute inset-x-0 top-0 z-10 h-[6px] bg-ft-ember"
+        className="absolute inset-x-0 top-0 z-10 h-[3px] bg-ft-ember"
       />
       <Header />
       <Passage />
@@ -46,169 +46,174 @@ function Card() {
   );
 }
 
-/* ─── Header ────────────────────────────────────────────────────── */
+/* ─── Header rail ───────────────────────────────────────────────── */
 
+/** Slim app-shell top rail. Mirrors the real app's TopBar shape:
+ *  brand mark left, mode + live timer right. The ember dot + LIVE
+ *  label is the single instance of ember in this band — keeps the
+ *  reader's eye anchored. */
 function Header() {
   return (
-    <div className="flex items-center justify-between border-b border-ft-line-soft px-16 pt-14 pb-9">
-      <div className="flex items-center gap-5">
+    <div className="flex items-center justify-between border-b border-ft-ink-line px-14 pt-7 pb-6">
+      <div className="flex items-center gap-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/flinttype-logo.svg"
           alt=""
           aria-hidden
-          className="h-16 w-auto"
+          className="h-10 w-auto"
         />
         <span
-          className="font-extrabold tracking-tight"
-          style={{ fontSize: 52, letterSpacing: "-0.04em" }}
+          className="font-extrabold tracking-tight text-ft-paper"
+          style={{ fontSize: 30, letterSpacing: "-0.04em" }}
         >
           flinttype
         </span>
       </div>
-      <AdaptiveBadge />
-    </div>
-  );
-}
-
-/** Loud ember pill — the headline feature. A five-bar sparkline
- *  (drawn from divs so no SVG dependency in OG screenshotters) plus
- *  the single word "Adaptive" in caps. */
-function AdaptiveBadge() {
-  return (
-    <div
-      className="flex items-center gap-4 bg-ft-ember px-6 py-3 text-ft-paper"
-      style={{ boxShadow: "0 12px 30px -10px rgba(225, 88, 44, 0.55)" }}
-    >
-      <Sparkline />
-      <span
-        className="font-bold uppercase"
-        style={{ fontSize: 24, letterSpacing: "0.16em" }}
-      >
-        Adaptive
-      </span>
-    </div>
-  );
-}
-
-function Sparkline() {
-  const heights = [10, 16, 22, 18, 28];
-  return (
-    <div className="flex items-end gap-1">
-      {heights.map((h, i) => (
+      <div className="flex items-center gap-6">
         <span
-          key={i}
-          aria-hidden
-          className="block w-[5px] bg-ft-paper"
-          style={{ height: h }}
-        />
-      ))}
+          className="font-semibold uppercase text-ft-warm-3"
+          style={{ fontSize: 12, letterSpacing: "0.22em" }}
+        >
+          Words · 50
+        </span>
+        <span aria-hidden className="block h-3 w-px bg-ft-ink-line" />
+        <span
+          className="font-medium tabular-nums text-ft-warm-1"
+          style={{ fontSize: 15, letterSpacing: "0.04em" }}
+        >
+          0:34
+        </span>
+        <span aria-hidden className="block h-3 w-px bg-ft-ink-line" />
+        <span className="flex items-center gap-2">
+          <span aria-hidden className="block h-[7px] w-[7px] bg-ft-ember" />
+          <span
+            className="font-bold uppercase text-ft-ember"
+            style={{ fontSize: 11, letterSpacing: "0.26em" }}
+          >
+            Live
+          </span>
+        </span>
+      </div>
     </div>
   );
 }
 
-/* ─── Hero passage ─────────────────────────────────────────────── */
+/* ─── Passage ───────────────────────────────────────────────────── */
 
-/** Two forced lines so the passage never browser-wraps at an awkward
- *  point. Each line is its own block-level element; both fit
- *  comfortably inside (W − 2·px-16) at the chosen HERO_PX. */
+/** Three lines of editorial prose painted as a mid-run snapshot.
+ *  Line 1 fully typed (paper). Line 2 in progress — typed prefix in
+ *  paper, ember caret, untyped suffix in warm-4, and the next word
+ *  carries the per-letter highlight tint that the real Passage uses
+ *  in `next-word` mode. Line 3 untyped (warm-4). One ember caret. */
 function Passage() {
-  const HERO_PX = 88;
+  const PASSAGE_PX = 60;
   const lineStyle = {
-    fontSize: HERO_PX,
-    lineHeight: 1.14,
-    letterSpacing: "-0.02em",
+    fontSize: PASSAGE_PX,
+    lineHeight: 1.34,
+    letterSpacing: "-0.018em",
     fontWeight: 500,
     display: "block",
     whiteSpace: "nowrap" as const,
-  };
+  } as const;
   return (
-    <div className="flex flex-col justify-center px-16">
-      <p className="font-mono">
+    <div className="flex flex-col justify-center px-20">
+      <p
+        className="mx-auto"
+        style={{ wordSpacing: "0.18em", maxWidth: 1180 }}
+      >
         <span style={lineStyle}>
-          <span className="text-ft-ember">the&nbsp;quick&nbsp;brown</span>
-          <span className="text-ft-dim-2">&nbsp;fox&nbsp;jumps</span>
+          <span className="text-ft-paper">
+            the rhythm settles after the third line
+          </span>
         </span>
         <span style={lineStyle}>
-          <span className="text-ft-dim-2">over&nbsp;the&nbsp;</span>
-          <span
-            className="text-ft-ember"
-            style={{
-              textDecoration: "underline",
-              textDecorationColor: "#E1582C",
-              textDecorationThickness: 4,
-              textUnderlineOffset: 12,
-            }}
-          >
-            lazy
-          </span>
-          <span className="text-ft-dim-2">&nbsp;dog,&nbsp;cof</span>
-          <CaretInline px={HERO_PX} />
-          <span className="text-ft-dim-2">fee.</span>
+          <span className="text-ft-paper">and the cur</span>
+          <CaretInline px={PASSAGE_PX} />
+          <span className="text-ft-warm-4">sor moves like </span>
+          <NextWord text="weather" />
+        </span>
+        <span style={lineStyle}>
+          <span className="text-ft-warm-4">across an open page.</span>
         </span>
       </p>
     </div>
   );
 }
 
+/** Tall slim ember bar centered on the baseline — same proportions
+ *  as the line-style caret the real Passage renders in its default
+ *  caret settings. */
 function CaretInline({ px }: { px: number }) {
   return (
     <span
       aria-hidden
       className="inline-block bg-ft-ember align-baseline"
       style={{
-        width: 5,
-        height: px,
-        marginLeft: -2.5,
-        marginRight: -2.5,
-        transform: `translateY(${Math.round(px * 0.18)}px)`,
+        width: 4,
+        height: px * 0.95,
+        marginLeft: -2,
+        marginRight: -2,
+        transform: `translateY(${Math.round(px * 0.16)}px)`,
       }}
     />
   );
 }
 
-/* ─── Footer ───────────────────────────────────────────────────── */
+/** The "next word" tint — soft warm wash behind a single upcoming
+ *  word so the reader sees the next-letter / next-word highlight
+ *  feature without an extra explanatory label. Mirrors the real
+ *  Passage's `bg-foreground/10` next-word treatment, painted in
+ *  warm-ink terms. */
+function NextWord({ text }: { text: string }) {
+  return (
+    <span
+      className="text-ft-warm-1"
+      style={{
+        backgroundColor: "rgba(181, 175, 159, 0.08)",
+        padding: "0 0.18em",
+      }}
+    >
+      {text}
+    </span>
+  );
+}
 
-/** Dark-ink band that splits the card into two halves. Single-line
- *  feature trail at the top hints at the engineering depth without a
- *  separate inventory strip; tagline names the actual differentiator;
- *  WPM / ACC anchor the right edge. */
-/** Two-column layout with explicit widths so neither side reflows on
- *  copy edits. Left column carries eyebrow / tagline / URL (all on
- *  their own single line — content is sized to fit without wrapping
- *  at the chosen font sizes). Right column carries the two stats
- *  with a clean border-left divider. */
+/* ─── Footer ────────────────────────────────────────────────────── */
+
+/** Stat strip + baseline caption. The stat row is the only place WPM
+ *  paints ember — same single-accent rule as the caret above. Hairline
+ *  dividers between stats, no card chrome, values flush-bottom so the
+ *  numbers form one tabular row that reads as a live readout, not a
+ *  table. Caption row anchors the brand URL + product one-liner. */
 function Footer() {
   return (
-    <div
-      className="grid items-center gap-10 bg-ft-ink px-16 py-10 text-ft-paper"
-      style={{ gridTemplateColumns: "1fr 360px" }}
-    >
-      <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-7 border-t border-ft-ink-line px-14 pt-9 pb-8">
+      <div className="grid grid-cols-4">
+        <StatCell label="WPM" value="124" accent />
+        <StatCell label="ACC" value="98%" />
+        <StatCell label="BURST" value="148" />
+        <StatCell label="WORD" value="32/50" />
+      </div>
+      <div className="flex items-center justify-between border-t border-ft-ink-line pt-6">
         <span
-          className="whitespace-nowrap text-[14px] font-semibold uppercase tracking-[0.26em] text-ft-warm-2"
+          className="font-semibold uppercase text-ft-paper"
+          style={{ fontSize: 13, letterSpacing: "0.22em" }}
         >
-          Models · Drills · Races · Open source
-        </span>
-        <span
-          className="whitespace-nowrap font-semibold tracking-tight"
-          style={{ fontSize: 34, letterSpacing: "-0.02em" }}
-        >
-          Learns your weakest bigrams.
-        </span>
-        <span className="mt-1 whitespace-nowrap text-[15px] font-medium uppercase tracking-[0.22em] text-ft-ember">
           flinttype.app
         </span>
-      </div>
-      <div className="flex items-end justify-end gap-10 border-l border-white/15 pl-10">
-        <StatBlock label="WPM" value="124" />
-        <StatBlock label="ACC" value="98%" accent />
+        <span
+          className="font-medium uppercase text-ft-warm-3"
+          style={{ fontSize: 11, letterSpacing: "0.28em" }}
+        >
+          Learns your weakest bigrams · Open source
+        </span>
       </div>
     </div>
   );
 }
 
-function StatBlock({
+function StatCell({
   label,
   value,
   accent = false,
@@ -218,17 +223,23 @@ function StatBlock({
   accent?: boolean;
 }) {
   return (
-    <div className="flex flex-col items-end leading-none">
+    <div className="flex flex-col items-start gap-3 border-l border-ft-ink-line pl-6 first:border-l-0 first:pl-0">
       <span
-        className={`font-mono tabular-nums ${
-          accent ? "text-ft-ember" : "text-ft-paper"
-        }`}
-        style={{ fontSize: 64, fontWeight: 700, letterSpacing: "-0.045em" }}
+        className="font-semibold uppercase text-ft-warm-3"
+        style={{ fontSize: 11, letterSpacing: "0.28em" }}
+      >
+        {label}
+      </span>
+      <span
+        className={`tabular-nums ${accent ? "text-ft-ember" : "text-ft-warm-1"}`}
+        style={{
+          fontSize: 64,
+          fontWeight: 700,
+          letterSpacing: "-0.045em",
+          lineHeight: 1,
+        }}
       >
         {value}
-      </span>
-      <span className="mt-3 text-[12px] font-semibold uppercase tracking-[0.3em] text-ft-warm-2">
-        {label}
       </span>
     </div>
   );
