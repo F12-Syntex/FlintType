@@ -11,7 +11,6 @@ import { SettingsRow } from "../_components/row";
 import { SettingsSection } from "../_components/settings-section";
 import {
   InputHandlingPreview,
-  RestartPreview,
   WordListPreview,
 } from "./_components/section-previews";
 
@@ -115,21 +114,6 @@ export default function BehaviourPage() {
         onResetAll={reset}
         description="Tune how the test reacts while you type — restart shortcuts, error handling, and word-list shape. Live-signal styling moved to Appearance > Live stats; this page is purely about input behaviour."
       />
-
-      <SettingsSection
-        id="restart"
-        eyebrow="Flow"
-        title="Restart"
-        description="The shortcut that takes you back to a fresh passage without a mouse trip."
-        preview={<RestartPreview prefs={prefs} />}
-      >
-        <ToggleRow
-          label="Quick restart"
-          desc="Press Tab to restart instantly without losing focus"
-          value={prefs.quickRestart}
-          onChange={(v) => set("quickRestart", v)}
-        />
-      </SettingsSection>
 
       <SettingsSection
         id="input-handling"

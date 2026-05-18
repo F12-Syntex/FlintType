@@ -32,9 +32,11 @@ import type {
   EnumEntry,
 } from "@/lib/command-palette/types";
 
-/** Group order in the rendered list — keep the high-impact controls
- *  at the top, link-only fallbacks lower, navigation last. */
+/** Group order in the rendered list — Practice actions at the top
+ *  (Restart test is the highest-frequency command), then high-impact
+ *  controls, then navigation last. */
 const GROUP_ORDER: readonly CommandGroupId[] = [
+  "Practice",
   "Mode",
   "Theme",
   "Behaviour",
@@ -101,21 +103,17 @@ export function CommandPalette() {
     return () => cancelAnimationFrame(id);
   }, [open, view.kind]);
 
-  // Escape and Tab both handled explicitly, no reliance on Radix's
-  // default behaviour:
+  // Escape and Tab handled explicitly, no reliance on Radix's default:
   //   - Esc in a sub-view backs out to root (don't close the whole
   //     dialog from a value-picker — user expects step-by-step).
-  //   - Esc at root closes the dialog. We do this ourselves instead
-  //     of letting Radix's `onEscapeKeyDown` handle it, because some
+  //   - Esc at root closes the dialog. We own the close instead of
+  //     letting Radix's `onEscapeKeyDown` handle it because some
   //     report cases (varying focus state, nested portals) leave the
-  //     Radix close path silent. Owning it here is robust.
-  //   - Tab dispatches a global `ft:practice:restart` event then
-  //     closes the palette. Practice surfaces subscribe to that
-  //     event (see practice-state.tsx) so Tab inside the palette
-  //     does what Tab does everywhere else on /app: restart the
-  //     test. The event bus bypasses the Radix dialog modal check
-  //     in input-capture / practice-state's keydown listener, which
-  //     would otherwise see the open dialog and swallow Tab.
+  //     Radix close path silent.
+  //   - Tab is swallowed (preventDefault, no side effect) so Radix's
+  //     focus trap doesn't shift the highlight off the input.
+  //     Restart is now its own command — pick it from the list (or
+  //     type "restart") — Tab-as-restart shortcut was retired.
   const onKeyDownInside = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "Escape") {
@@ -132,11 +130,6 @@ export function CommandPalette() {
       if (e.key === "Tab") {
         e.preventDefault();
         e.stopPropagation();
-        setOpen(false);
-        // Fire-and-forget — the practice surface (when mounted)
-        // catches this and runs the restart. No-op on routes that
-        // don't render a practice surface.
-        window.dispatchEvent(new CustomEvent("ft:practice:restart"));
       }
     },
     [view.kind],

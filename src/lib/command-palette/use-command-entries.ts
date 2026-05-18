@@ -96,6 +96,23 @@ export function useCommandEntries(): readonly CommandEntry[] {
     const navigate = (href: string) => () => router.push(href);
 
     return [
+      /* ─── Practice actions ─────────────────────────────────────── */
+      {
+        id: "p.restart",
+        label: "Restart test",
+        hint: "Bail and start a fresh run with the same mode + length",
+        group: "Practice",
+        kind: "action",
+        // Dispatched on a global channel; the practice surface
+        // (when mounted on /app or anywhere TypingSurface mounts)
+        // subscribes and runs restart(). No-op on routes that
+        // don't render the practice surface — harmless.
+        run: () => {
+          window.dispatchEvent(new CustomEvent("ft:practice:restart"));
+        },
+        keywords: ["reset", "tab", "again", "retry", "redo"],
+      },
+
       /* ─── Mode (light / dark / system) ─────────────────────────── */
       enumEntry(
         "mode",
@@ -133,15 +150,6 @@ export function useCommandEntries(): readonly CommandEntry[] {
         bp.blindMode,
         (v) => setBp("blindMode", v),
         ["practice", "blind", "feedback"],
-      ),
-      toggle(
-        "b.quickRestart",
-        "Quick restart",
-        "Tab restarts the active test",
-        "Behaviour",
-        bp.quickRestart,
-        (v) => setBp("quickRestart", v),
-        ["practice", "restart", "tab"],
       ),
       toggle(
         "b.stopOnError",

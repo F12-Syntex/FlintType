@@ -1,7 +1,5 @@
 "use client";
 
-import { CornerDownLeft } from "lucide-react";
-import { Kbd } from "@/components/ft";
 import { Passage } from "@/app/_components/passage";
 import { decorate } from "@/app/_components/practice-state";
 import { type BehaviourPrefs } from "@/lib/behaviour-prefs";
@@ -12,35 +10,6 @@ import { PreviewPracticeProvider } from "../../_components/preview-practice";
  *  — wrapped in `<PreviewPracticeProvider>` so every behaviour toggle
  *  (stop-on-error, allow extras, strict space, blind mode, …) flows
  *  through to the same UI the test screen runs. */
-
-/* ─── Restart ──────────────────────────────────────────────────── */
-
-export function RestartPreview({ prefs }: { prefs: BehaviourPrefs }) {
-  // No real component to embed — this is a keystroke shortcut, not a
-  // visible piece of UI. The chip + arrow conveys the affordance and
-  // updates its label when the toggle flips.
-  return (
-    <div className="flex items-center justify-center gap-4 px-5 py-9 sm:gap-6 sm:py-11">
-      <Kbd className="px-3 py-1 text-sm">Tab</Kbd>
-      <CornerDownLeft
-        size={20}
-        aria-hidden
-        className={cn(
-          "shrink-0",
-          prefs.quickRestart ? "text-primary" : "text-muted-foreground/40",
-        )}
-      />
-      <span
-        className={cn(
-          "font-mono text-[12px] uppercase tracking-[0.16em]",
-          prefs.quickRestart ? "text-foreground" : "text-muted-foreground/60",
-        )}
-      >
-        {prefs.quickRestart ? "Instant restart, focus kept" : "Tab tabs out"}
-      </span>
-    </div>
-  );
-}
 
 /* ─── Input handling ──────────────────────────────────────────── */
 

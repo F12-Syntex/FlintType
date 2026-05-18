@@ -815,24 +815,11 @@ export function PracticeProvider({
       e.key === "Backspace" && (e.ctrlKey || e.altKey || e.metaKey);
     if (!wordWise && (e.ctrlKey || e.metaKey || e.altKey)) return;
 
-    const s = stateRef.current;
-    const p = prefsRef.current;
-
-    // Tab → restart runs BEFORE the dialog-modal / active-input gates
-    // below. Reason: Radix dialogs keep their Content mounted for
-    // ~150ms during the closing animation with aria-modal=true still
-    // set, and the active-element check would bail on any focused
-    // input including the test's own hidden input. Tab is also
-    // unambiguous — dialogs that legitimately want to own Tab (the
-    // command palette, value-picker sub-views) already preventDefault
-    // + stopPropagation on it, so the event never reaches this
-    // window listener in those cases.
-    if (e.key === "Tab") {
-      if (!p.quickRestart) return;
-      e.preventDefault();
-      restartRef.current();
-      return;
-    }
+    // Tab-as-restart was retired — the command palette (Cmd+K →
+    // "Restart test") owns restart now. See ft:practice:restart
+    // listener further down. Tab here falls through to the browser's
+    // native focus-shift behaviour, which is what users press it for
+    // when they're not in the test.
 
     // Suppress typing while a modal owns the screen — the modal opens
     // by clicking a button which moves focus off the hidden input, so
@@ -850,6 +837,9 @@ export function PracticeProvider({
     ) {
       return;
     }
+
+    const s = stateRef.current;
+    const p = prefsRef.current;
     if (e.key === "Escape") {
       restartRef.current();
       return;
@@ -893,59 +883,13 @@ export function PracticeProvider({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onKeyDown]);
 
-  // Dedicated capture-phase Tab → restart listener. This is the
-  // authoritative Tab handler while the practice surface is mounted;
-  // the Tab branches in the input element's onKeyDown and the regular
-  // window keydown above are now dead code for Tab (they remain only
-  // because they handle other keys — Backspace, letters, Escape).
-  //
-  // Why capture phase: it fires before ANY element-level listener and
-  // before Radix focus-trap handlers, so we can preventDefault before
-  // the browser shifts focus to the next focusable (the ModeBar chip,
-  // the topbar gear, etc.).
-  //
-  // Why stopImmediatePropagation: prevents the input's own onKeyDown
-  // Tab branch from also running and restarting a second time.
-  //
-  // Why target.closest('[role="dialog"]') instead of the global
-  // aria-modal query: the global query swallowed Tab during the
-  // ~150ms Radix dialog exit-animation window even when the user was
-  // typing in the test — the dialog was already invisible but its
-  // DOM lingered. Asking "did this event originate inside a dialog?"
-  // is the right question: dialogs that legitimately want Tab capture
-  // it on their own content before it bubbles, so reaching this
-  // handler means the user pressed Tab outside the dialog tree.
-  //
-  // quickRestart=false honours the user's pref but only short-circuits
-  // — never preventDefaults — so Tab does its native focus-shift in
-  // that mode, matching the historical behaviour.
-  useEffect(() => {
-    function onTab(e: KeyboardEvent) {
-      if (e.key !== "Tab") return;
-      if (e.ctrlKey || e.altKey || e.metaKey) return;
-      if (!prefsRef.current.quickRestart) return;
-      const target = e.target;
-      if (
-        target instanceof Element &&
-        target.closest('[role="dialog"]')
-      ) {
-        return;
-      }
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      restartRef.current();
-    }
-    window.addEventListener("keydown", onTab, true);
-    return () => window.removeEventListener("keydown", onTab, true);
-  }, []);
-
-  // Cross-component restart channel. The command palette's Tab key
-  // (see src/components/command-palette/command-palette.tsx) closes
-  // the dialog and dispatches this event so the user's Tab muscle-
-  // memory still restarts the test even when the palette was the
-  // last thing they interacted with. The event bus bypasses the
-  // dialog-modal check above, which would otherwise see the still-
-  // unmounting Radix dialog and swallow the key.
+  // Cross-component restart channel. The command palette's "Restart
+  // test" entry dispatches this event; the practice surface
+  // subscribes here and runs restart() on receipt. This is now the
+  // *only* keyboard path to restart from outside the test surface
+  // itself — Tab-as-restart was retired (it kept losing to dialog
+  // exit-animation gates and focus-trap edge cases). Esc inside the
+  // test (input-capture.tsx) still restarts as a fast in-test path.
   useEffect(() => {
     const onRestart = () => restartRef.current();
     window.addEventListener("ft:practice:restart", onRestart);

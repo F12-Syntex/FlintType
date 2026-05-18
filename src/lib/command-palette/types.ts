@@ -14,6 +14,7 @@
  *                   relevant anchor. */
 
 export type CommandGroup =
+  | "Practice"
   | "Theme"
   | "Mode"
   | "Appearance"

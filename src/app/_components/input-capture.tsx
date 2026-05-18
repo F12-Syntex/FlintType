@@ -138,21 +138,13 @@ export function InputCapture({ children }: { children: ReactNode }) {
           const wordWise =
             e.key === "Backspace" && (e.ctrlKey || e.altKey || e.metaKey);
           if (!wordWise && (e.ctrlKey || e.metaKey || e.altKey)) return;
-          const p = prefsRef.current;
-          // Tab → restart runs BEFORE the dialog-modal gate below.
-          // Reason: Radix dialogs keep their Content mounted for ~150ms
-          // during the closing animation with aria-modal=true still set,
-          // so a stale matchModal can swallow Tab right after the user
-          // closes the command palette / a popover dialog. Tab is also
-          // unambiguous — palette / sub-dialogs that legitimately want
-          // to own Tab already preventDefault + stopPropagation on it,
-          // so the event never reaches this handler in those cases.
-          if (e.key === "Tab") {
-            if (!p.quickRestart) return;
-            e.preventDefault();
-            restart();
-            return;
-          }
+          // Tab-as-restart was retired — it kept breaking under the
+          // dialog-modal gate and the focus-trap edge cases. The
+          // command palette (Cmd+K → "Restart test") owns restart
+          // now, with Esc as the in-test fast path. Letting Tab
+          // through to its native focus-shift here also stops it
+          // from being a silent no-op when the user expects standard
+          // browser tab traversal.
           // Suppress typing while a modal is open. preventDefault stops
           // Backspace / letters from doing anything page-level; the
           // modal's own window listener still receives the bubbled
@@ -163,6 +155,7 @@ export function InputCapture({ children }: { children: ReactNode }) {
             e.preventDefault();
             return;
           }
+          const p = prefsRef.current;
           if (e.key === "Escape") {
             e.preventDefault();
             restart();
