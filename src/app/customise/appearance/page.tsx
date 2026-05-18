@@ -24,6 +24,7 @@ import {
 import { ColorRow } from "./_components/color-row";
 import { KeyboardRow } from "./_components/keyboard-row";
 import { KeymapRows } from "./_components/keymap-rows";
+import { MistakesRows } from "./_components/mistakes-row";
 import { MultiplayerRows } from "./_components/multiplayer-rows";
 import { LiveStatsRows } from "./_components/live-stats-rows";
 import { PassageRows } from "./_components/passage-rows";
@@ -46,6 +47,7 @@ import {
   KeyboardLivePreview,
   KeymapLivePreview,
   LiveStatsPreview,
+  MistakesPreview,
   MultiplayerPreview,
   ResultLivePreview,
   SurfacePreview,
@@ -225,6 +227,16 @@ export default function AppearancePage() {
         preview={<CaretPreview />}
       >
         <CaretRow />
+      </SettingsSection>
+
+      <SettingsSection
+        id="mistakes"
+        eyebrow="Feedback"
+        title="Mistakes"
+        description="How a mistyped letter in the current word is shown. Every option paints the letter in your error colour — pick whether to stop there or stack a bold weight, underline, or background highlight on top. Past errored words are governed by 'Mark incomplete words' under Typing area."
+        preview={<MistakesPreview />}
+      >
+        <MistakesRows />
       </SettingsSection>
 
       <SettingsSection

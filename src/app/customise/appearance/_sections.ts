@@ -46,6 +46,11 @@ export const APPEARANCE_SECTIONS: readonly AppearanceSection[] = [
     blurb: "Style, thickness, blink — the marker that follows your typing.",
   },
   {
+    id: "mistakes",
+    name: "Mistakes",
+    blurb: "How mistyped letters in the current word are shown.",
+  },
+  {
     id: "typography",
     name: "Typography",
     blurb: "Font family, size, and word spacing of the practice passage.",

@@ -106,6 +106,43 @@ export function CaretPreview() {
   return <PreviewSurface />;
 }
 
+/* ─── Mistakes ─────────────────────────────────────────────────── */
+
+export function MistakesPreview() {
+  // Active word here is "jumps" (finishedWords=4). We inject a typed
+  // string with one mismatched glyph and one extra past the end so the
+  // user sees the full active-word error treatment — colour-only,
+  // bold, underline, or highlight — in the real Passage chain.
+  //   target:  j u m p s
+  //   typed:   j u y p s x
+  //              ^      ^
+  //              wrong  extra
+  return (
+    <div className="px-5 py-7 sm:px-7 sm:py-9">
+      <PreviewPracticeProvider
+        words={[
+          "the",
+          "quick",
+          "brown",
+          "fox",
+          "jumps",
+          "over",
+          "the",
+          "lazy",
+          "dog",
+        ]}
+        finishedWords={4}
+        activeWordTyped="juypsx"
+        errorWord={1}
+      >
+        <div className="relative h-[160px] w-full">
+          <Passage />
+        </div>
+      </PreviewPracticeProvider>
+    </div>
+  );
+}
+
 /* ─── Typography ───────────────────────────────────────────────── */
 
 export function TypographyPreview() {

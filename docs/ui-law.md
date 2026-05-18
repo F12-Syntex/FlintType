@@ -202,7 +202,7 @@ No proportional sans, no serif, no second face. The mono is the design.
 | Inline code           | `bg-ft-ink/10 px-1.5 py-0.5 text-xs text-ft-ink`                                       |
 | Error text (form)     | `text-sm text-ft-ember`                                                                |
 | Error word (passage)  | `text-ft-ember underline decoration-ft-ember underline-offset-[6px] decoration-1`      |
-| Error letter (active word, passage) | `text-[var(--ft-passage-error,var(--destructive))] rounded-sm font-bold` + inline `bg-[color-mix(in oklch, var(--ft-passage-error,var(--destructive)) 20%, transparent)]` — colour alone is too easy to miss on a single glyph at passage scale, so pair the error hue with a soft fill + weight bump. JetBrains Mono is width-stable across weights so the bold doesn't shift caret measurement. Past errored words use the underline row above; this is the equivalent non-colour cue for in-progress mistakes. |
+| Error letter (active word, passage) | `text-[var(--ft-passage-error,var(--destructive))]` plus one of four stacked cues, controlled by `appearance.mistakeStyle` (Customise → Appearance → Mistakes): `color` (hue only — quietest), `bold` (`font-bold` — default; mono is width-stable so caret unaffected), `underline` (`underline decoration-2 underline-offset-[6px]`), `highlight` (`rounded-sm font-bold` + inline `bg-[color-mix(in oklch, var(--ft-passage-error,var(--destructive)) 20%, transparent)]` — loudest, prior shipping default but read as too strong). Past errored words use the underline row above; this is the equivalent (configurable) cue for in-progress mistakes. |
 
 **Tracking conventions** (load-bearing — these signal mode):
 - `tracking-[0.18em]` uppercase = label / tag (smallest, most spaced).

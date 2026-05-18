@@ -45,6 +45,7 @@ function ActiveWord({
   registerTarget,
   blind,
   letterHighlight,
+  mistakeStyle,
 }: {
   word: string;
   typed: string;
@@ -55,6 +56,9 @@ function ActiveWord({
    *   - "letter": underline the cursor position (current letter)
    *   - "next-letter": ring the next letter the user will type */
   letterHighlight: "off" | "letter" | "next-letter";
+  /** Active-word mistake cue stacked on top of the error colour. See
+   *  `MistakeStyle` in appearance-prefs. */
+  mistakeStyle: "color" | "bold" | "underline" | "highlight";
 }) {
   const targetChars = [...word];
   const typedChars = [...typed];
@@ -85,25 +89,38 @@ function ActiveWord({
             ? "rounded-sm bg-primary/15 text-primary px-0.5"
             : "";
 
-        // Active-word mistake feedback. Colour alone is too easy to
-        // miss at passage scale on near-monochrome palettes; pair the
-        // error hue with a soft fill + bold weight so a mistyped or
-        // extra letter pops without competing with the caret. Tint
-        // tracks --ft-passage-error so user customisation flows through.
-        // JetBrains Mono is width-stable across weights so the bold
-        // bump doesn't shift the caret measurement. (Past errored
-        // words already get an underline via §4 — this is the
-        // equivalent non-colour cue for in-progress mistakes.)
+        // Active-word mistake feedback — user-configurable via the
+        // Mistakes appearance section (`mistakeStyle`). Every variant
+        // paints the error hue; the extra cue stacks per setting:
+        //   color     — colour only (quietest)
+        //   bold      — colour + bold weight (default; mono is
+        //               width-stable so caret measurement unaffected)
+        //   underline — colour + 2px underline
+        //   highlight — colour + soft fill behind the glyph (loudest)
+        // The fill tracks --ft-passage-error so user-customised passage
+        // error colour still flows through. Past errored words have
+        // their own underline gated by `markIncompleteWord`.
         const isError =
           !blind &&
           (isExtra || (got !== undefined && got !== expected));
-        const errorCls = isError ? "rounded-sm font-bold" : "";
-        const errorStyle: React.CSSProperties | undefined = isError
-          ? {
+        let errorCls = "";
+        let errorStyle: React.CSSProperties | undefined;
+        if (isError) {
+          if (mistakeStyle === "bold") {
+            errorCls = "font-bold";
+          } else if (mistakeStyle === "underline") {
+            errorCls =
+              "underline decoration-2 underline-offset-[6px] decoration-[var(--ft-passage-error,var(--destructive))]";
+          } else if (mistakeStyle === "highlight") {
+            errorCls = "rounded-sm font-bold";
+            errorStyle = {
               backgroundColor:
                 "color-mix(in oklch, var(--ft-passage-error, var(--destructive)) 20%, transparent)",
-            }
-          : undefined;
+            };
+          }
+          // "color" — colour only, no extra cue. ERROR_TEXT class
+          // already supplies the hue further down via `cls`.
+        }
 
         // Caret target:
         //   cursorChar < len  → left edge of char at cursorChar
@@ -567,6 +584,7 @@ function PassageBody({
                         ? "next-letter"
                         : "off"
                   }
+                  mistakeStyle={appearance.mistakeStyle}
                 />{" "}
               </span>
             );

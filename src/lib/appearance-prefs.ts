@@ -39,6 +39,12 @@ export type StatStripSurface = "card" | "plain" | "none";
 export type ResultChrome = "framed" | "spare";
 export type CaretIdle = "off" | "pulse";
 export type QuoteAttribution = "below" | "chip" | "hidden";
+/** How a mistyped (or extra) letter in the *active* word is marked.
+ *  Every variant paints the letter in --ft-passage-error; the extra
+ *  cue stacks on top so users can dial intensity from quiet (colour
+ *  only) to loud (background highlight). Past errored words are
+ *  governed separately by `markIncompleteWord`. */
+export type MistakeStyle = "color" | "bold" | "underline" | "highlight";
 
 // ─── shape ────────────────────────────────────────────────────────────
 
@@ -61,6 +67,10 @@ export type AppearancePrefs = {
    *  stay muted, no underline. The summary still counts the word as
    *  an error for accuracy purposes either way. */
   markIncompleteWord: boolean;
+  /** How a mistyped (or extra) letter in the currently-active word is
+   *  marked. See `MistakeStyle`. Defaults to `bold` — colour + weight
+   *  bump reads unmissable without competing with the caret. */
+  mistakeStyle: MistakeStyle;
 
   tapeMode: TapeMode;
   /** 0–100, percent from the left edge of the typing area. */
@@ -214,6 +224,12 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   // typing-test cue that you bailed without completing it. Power
   // users who prefer a quieter passage can flip it off.
   markIncompleteWord: true,
+  // Bold + error colour is the default — colour alone is too easy to
+  // miss at passage scale on near-monochrome palettes, and JetBrains
+  // Mono is width-stable across weights so bolding a mistyped glyph
+  // doesn't shift the caret. "highlight" was the prior shipping
+  // default; it reads as too loud for many users, hence the move.
+  mistakeStyle: "bold",
 
   // Tape mode opt-in. Multi-line is the friendlier default.
   tapeMode: "off",

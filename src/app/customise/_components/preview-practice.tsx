@@ -22,6 +22,7 @@ function buildState({
   errorWord,
   phase,
   events,
+  activeWordTyped,
 }: {
   words: readonly string[];
   finishedWords: number;
@@ -29,6 +30,12 @@ function buildState({
   errorWord?: number;
   phase: Phase;
   events: readonly KeyEvent[];
+  /** Optional override for the typed-string of the active word. Used
+   *  by the Mistakes preview to inject a mistyped + extra glyph so the
+   *  user sees the full active-word error treatment without typing.
+   *  When set, `cursorChar` is treated as the caret position past the
+   *  typed string (so the caret sits after the last typed char). */
+  activeWordTyped?: string;
 }): State {
   const typed: string[] = [];
   let totalChars = 0;
@@ -41,9 +48,14 @@ function buildState({
   }
   const activeWord = words[finishedWords] ?? "";
   if (phase !== "done") {
-    typed.push(activeWord.slice(0, cursorChar));
-    totalChars += cursorChar;
-    correctChars += cursorChar;
+    const activeTyped = activeWordTyped ?? activeWord.slice(0, cursorChar);
+    typed.push(activeTyped);
+    totalChars += activeTyped.length;
+    // Per-char correctness count — only chars where typed === expected
+    // are correct. With activeWordTyped we may have wrong / extra chars.
+    for (let i = 0; i < activeTyped.length; i++) {
+      if (activeTyped[i] === activeWord[i]) correctChars += 1;
+    }
   }
 
   const errorWords = new Set<number>();
@@ -166,6 +178,7 @@ export function PreviewPracticeProvider({
   cursorChar = 2,
   errorWord = 1,
   phase = "running",
+  activeWordTyped,
   wpm,
   accuracy,
   elapsedMs,
@@ -176,6 +189,10 @@ export function PreviewPracticeProvider({
   cursorChar?: number;
   errorWord?: number;
   phase?: Phase;
+  /** Override the active word's typed string — used by Mistakes preview
+   *  to show wrong / extra chars without simulated typing. When set,
+   *  `cursorChar` is overridden to sit after the typed string. */
+  activeWordTyped?: string;
   wpm?: number;
   accuracy?: number;
   elapsedMs?: number;
@@ -189,10 +206,12 @@ export function PreviewPracticeProvider({
     const state = buildState({
       words,
       finishedWords,
-      cursorChar,
+      cursorChar:
+        activeWordTyped !== undefined ? activeWordTyped.length : cursorChar,
       errorWord,
       phase,
       events: sample.events,
+      activeWordTyped,
     });
     return {
       state,
@@ -216,6 +235,7 @@ export function PreviewPracticeProvider({
     cursorChar,
     errorWord,
     phase,
+    activeWordTyped,
     wpm,
     accuracy,
     elapsedMs,
