@@ -178,7 +178,7 @@ function Footer() {
           className="font-semibold uppercase text-ft-paper"
           style={{ fontSize: 13, letterSpacing: "0.22em", lineHeight: 1 }}
         >
-          flinttype.app
+          flinttype.com
         </span>
         <span
           className="font-medium uppercase text-ft-warm-3"

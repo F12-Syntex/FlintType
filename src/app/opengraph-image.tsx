@@ -250,7 +250,7 @@ export default async function OpengraphImage() {
                 lineHeight: 1,
               }}
             >
-              flinttype.app
+              flinttype.com
             </span>
             <span
               style={{
