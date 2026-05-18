@@ -2,7 +2,7 @@
 
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { Info, Lock, X } from "lucide-react";
+import { Info, List, Lock, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { OptionSwitch } from "@/components/ui/option-switch";
@@ -209,21 +209,28 @@ function ModeControls() {
           {/* Visual parity with <OptionSwitch size="small">: same
               outer shell (bg-muted + p-1 + border + h-8 + rounded-md)
               and an inner pill that matches the active chip class.
-              The dropdown caret is omitted to stay consistent with
-              the other mode-bar controls — the underlying interaction
-              (click to open a picker) is shared with the language /
-              theme buttons elsewhere in the app. */}
+              A small list glyph sits before the label so the trigger
+              reads as a list-picker — flat text alone read as just
+              another selected chip and users didn't know it opened
+              anything. */}
           <div className="inline-flex h-8 items-center rounded-md border border-border bg-muted p-1">
             <button
               type="button"
               onClick={() => setWordlistOpen(true)}
+              aria-haspopup="dialog"
               className={cn(
-                "flex h-full items-center justify-center rounded-sm px-2.5",
+                "flex h-full items-center gap-1.5 rounded-sm px-2.5",
                 "text-xs font-medium font-sans duration-150",
                 "bg-primary text-primary-foreground",
                 "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
               )}
             >
+              <List
+                size={12}
+                strokeWidth={2.25}
+                className="shrink-0 opacity-80"
+                aria-hidden
+              />
               <span className="max-w-[180px] truncate">
                 {wordlistLabel(wordlist)}
               </span>
