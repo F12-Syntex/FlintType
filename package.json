@@ -1,6 +1,6 @@
 {
   "name": "flinttype",
-  "version": "6.50.0",
+  "version": "6.50.1",
   "private": true,
   "packageManager": "yarn@1.22.22",
   "scripts": {
@@ -18,7 +18,8 @@
     "themes:remove": "node scripts/themes-remove.mjs",
     "fonts:download": "tsx scripts/fonts-download.ts",
     "announce": "tsx scripts/send-announcement.ts",
-    "backfill-og": "tsx scripts/backfill-og.ts"
+    "backfill-og": "tsx scripts/backfill-og.ts",
+    "backfill-usernames": "tsx scripts/backfill-usernames.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
