@@ -206,19 +206,29 @@ function ModeControls() {
 
       {showWordlist ? (
         <Field label="wordlist">
-          <button
-            type="button"
-            onClick={() => setWordlistOpen(true)}
-            className={cn(
-              "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-card px-3",
-              "text-[11px] font-medium tracking-[0.14em] uppercase text-foreground",
-              "transition-colors hover:border-primary/40 hover:bg-accent/40",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-            )}
-          >
-            <span className="truncate max-w-[160px]">{wordlistLabel(wordlist)}</span>
-            <span aria-hidden className="text-muted-foreground">⌄</span>
-          </button>
+          {/* Visual parity with <OptionSwitch size="small">: same
+              outer shell (bg-muted + p-1 + border + h-8 + rounded-md)
+              and an inner pill that matches the active chip class.
+              The dropdown caret is omitted to stay consistent with
+              the other mode-bar controls — the underlying interaction
+              (click to open a picker) is shared with the language /
+              theme buttons elsewhere in the app. */}
+          <div className="inline-flex h-8 items-center rounded-md border border-border bg-muted p-1">
+            <button
+              type="button"
+              onClick={() => setWordlistOpen(true)}
+              className={cn(
+                "flex h-full items-center justify-center rounded-sm px-2.5",
+                "text-xs font-medium font-sans duration-150",
+                "bg-primary text-primary-foreground",
+                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+              )}
+            >
+              <span className="max-w-[180px] truncate">
+                {wordlistLabel(wordlist)}
+              </span>
+            </button>
+          </div>
           <WordlistPicker
             open={wordlistOpen}
             onOpenChange={setWordlistOpen}
