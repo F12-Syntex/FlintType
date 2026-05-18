@@ -506,6 +506,22 @@
     background-color: var(--input);
   }
 
+  /* ── Pre-paint banner suppression ───────────────────────────────
+     The inline bootstrap script in <head> reads the user's stored
+     banner-dismiss flags from localStorage and sets these attrs on
+     <html> BEFORE first paint. Banner components still render in
+     SSR / fresh-hydration paths (they don't know who you are yet);
+     these rules hide them instantly when the attr is present so
+     the user doesn't see the strip flash in then out on every
+     refresh. Live dismissal still goes through React state — the
+     attr is only the pre-hydration starting point. */
+  html[data-ft-banner-discord="dismissed"] [data-ft-banner="discord"] {
+    display: none !important;
+  }
+  html[data-ft-banner-monkeytype="dismissed"] [data-ft-banner="monkeytype"] {
+    display: none !important;
+  }
+
   /* ── Surface minimisation (see docs/ui-law.md §15) ───────────────
      Each rule below mirrors a single appearance pref onto a global
      CSS effect. Mounted by AppearanceApplier which mirrors

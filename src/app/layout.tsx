@@ -3,6 +3,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Lora, IBM_Plex_Mono } from "next/font/google";
+import { PREFS_BOOTSTRAP_SCRIPT } from "@/lib/bootstrap";
 import { VersionProvider } from "@/lib/version-context";
 import { siteConfig } from "@/server/seo";
 import { getAppVersion } from "@/server/version";
@@ -63,6 +64,15 @@ export default function RootLayout({
               whichever family the user picks — the @font-face rule is
               cheap, the binary is only pulled on first paint. */}
           <link rel="stylesheet" href="/fonts/fonts.css" />
+          {/* Synchronously apply the user's persisted appearance /
+              theme-override / banner-dismiss prefs to <html> BEFORE
+              first paint, so the page doesn't flash defaults (borders,
+              Discord banner, elevated topbar, etc.) for ~50ms while
+              React hydrates. The applier components inside <Providers>
+              still run for live updates. */}
+          <script
+            dangerouslySetInnerHTML={{ __html: PREFS_BOOTSTRAP_SCRIPT }}
+          />
         </head>
         <body className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased`}>
           <VersionProvider value={version}>

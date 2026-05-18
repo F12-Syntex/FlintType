@@ -41,6 +41,7 @@ export function MonkeytypeBanner({
     <section
       role="region"
       aria-label="MonkeyType import prompt"
+      data-ft-banner="monkeytype"
       className={cn(
         "flex items-center gap-3 rounded-md border border-primary/40 bg-primary/[0.06] px-4 py-3 sm:px-5",
       )}
