@@ -3,21 +3,21 @@ import type { CaretSettings } from "../caret-settings";
 import type { KeyboardSettings } from "../keyboard-settings";
 import type { ThemeVar } from "../theme-customization";
 
-/** Hand-curated full appearance bundle per shipped theme. Themes
- *  own the user's *whole* visual identity, not just colour — when a
- *  theme is applied, the palette provider clears the user's caret /
- *  appearance / keyboard / theme-override slices and writes these
- *  on top.
+/** Hand-curated bundle per shipped theme. Themes own the
+ *  *visual-identity* slices only — colours, geometry, typography
+ *  (via cssVars + themeOverrides) and the keyboard widget. Caret
+ *  and the rest of the appearance slice (live stats, tape, lines,
+ *  result, multiplayer, …) are user-owned and intentionally survive
+ *  a theme switch.
  *
- *  Every preset specifies a complete set of values for the four
- *  slices it touches so the theme reads coherently end-to-end:
- *  caret, the typing surface (highlight, typed-effect, lines, …),
- *  the keymap row, the live virtual keyboard's visual style, and
- *  any per-CSS-var passage overrides (font scale, word spacing).
- *  Background is intentionally excluded — the user's image is
- *  user content, not part of the theme. */
+ *  The `caret` and `appearance` fields on this type are kept for
+ *  legacy preset shape and are ignored at apply time
+ *  (see use-palette.tsx `apply`). New preset work should populate
+ *  `keyboard` + `themeOverrides` only. */
 export type ThemePreset = {
+  /** @deprecated — ignored at apply time. See file docstring. */
   appearance?: Partial<AppearancePrefs>;
+  /** @deprecated — ignored at apply time. See file docstring. */
   caret?: Partial<CaretSettings>;
   keyboard?: Partial<KeyboardSettings>;
   themeOverrides?: Partial<Record<ThemeVar, string>>;

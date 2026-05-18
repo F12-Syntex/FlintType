@@ -309,9 +309,9 @@ export function ThemesRow() {
     >
       <div className="flex flex-col gap-4 text-sm leading-relaxed">
         <p>
-          Switching the theme resets <strong>every appearance setting</strong>:
-          colours, caret style, font, line counts, smooth scroll — all of it.
-          Your current customisations will be discarded.
+          Switching the theme resets your <strong>colour, geometry, typography
+          and keyboard widget</strong> settings. Caret, live stats, typing
+          area, result screen and other appearance picks stay as they are.
         </p>
         <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border bg-muted/40 p-3 hover:bg-muted/60">
           <input

@@ -115,14 +115,16 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     (id: string) => {
       // Custom is the synthetic "user has per-var overrides" id —
       // picking it from the menu is a no-op (the overrides are already
-      // active on :root). For every other pick, themes own the whole
-      // visual identity: drop per-var overrides AND the caret +
-      // appearance slices so the new theme starts clean. Themes can
-      // overlay non-default values via `presets`; absent fields fall
-      // back to DEFAULT_CARET / DEFAULT_APPEARANCE.
+      // active on :root). For every other pick, themes own ONLY the
+      // sections explicitly tied to visual identity: colours,
+      // geometry, typography (all CSS-var driven, applied via
+      // cssVars + themeOverrides slice) and the keyboard widget
+      // settings. Caret, live stats, tape, lines, result, multiplayer
+      // and other appearance-slice prefs are user-owned and survive
+      // a theme switch — themes used to wipe them, which surprised
+      // users who'd carefully tuned those settings and didn't expect
+      // a colour pick to clear them.
       if (id !== CUSTOM_THEME_ID) {
-        clearSlice("caret");
-        clearSlice("appearance");
         clearSlice("keyboard");
         const theme = findTheme(id);
         // Theme overrides slice is the per-CSS-var customisations
@@ -130,12 +132,6 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
         // so the named theme paints unhindered; let the preset write
         // any values it cares about on top.
         writeSlice("theme", theme?.presets?.themeOverrides ?? {});
-        if (theme?.presets?.appearance) {
-          writeSlice("appearance", theme.presets.appearance);
-        }
-        if (theme?.presets?.caret) {
-          writeSlice("caret", theme.presets.caret);
-        }
         if (theme?.presets?.keyboard) {
           writeSlice("keyboard", theme.presets.keyboard);
         }
@@ -146,13 +142,10 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
   );
 
   const resetPalette = useCallback(() => {
-    // "Reset" = back to Default palette. Same scrubbing as applying
-    // a named theme — the user's caret / font / line picks are all
-    // tied to whatever theme they were under, and the Default theme
-    // expects a clean slice tree.
+    // "Reset" = back to Default palette. Mirrors apply(): wipes only
+    // the slices themes own (theme overrides + keyboard); the user's
+    // caret / appearance picks survive.
     writeSlice("theme", {});
-    clearSlice("caret");
-    clearSlice("appearance");
     clearSlice("keyboard");
     reset();
   }, [reset]);
