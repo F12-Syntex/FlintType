@@ -218,18 +218,28 @@ const topByLevel = defineRoute<TopByLevelInput, TopByLevelOutput>({
   input: topByLevelInputSchema,
   handler: async ({ input, db, log }) => {
     const limit = input.limit ?? 10;
-    const rows = await db.tests.topByLevel({ limit });
+    // Over-fetch from the local tests table so the MT-import overlay
+    // below has room to re-rank — a user with heavy MT history sits
+    // higher post-merge than they did before, and we don't want
+    // them clipped out of the top N by the local-only sort. 3x is a
+    // pragmatic margin; users who have ONLY MT history and zero
+    // local tests still won't appear (the repo query reads from the
+    // tests table), but the profile's level formula merges local +
+    // MT so we mirror that merge here.
+    const repoLimit = Math.max(limit * 3, 25);
+    const rows = await db.tests.topByLevel({ limit: repoLimit });
     if (rows.length === 0) {
       return { players: [], generatedAtMs: Date.now() };
     }
-    // Same Clerk + tag-resolution shape as topPlayers — kept inline
-    // for clarity rather than factored out, because the user-info
-    // map is the only shared bit and the two routes diverge in
-    // every other field.
     type UserInfo = {
       name: string;
       username: string | null;
       tags: UserTagId[];
+      /** MT-imported completed-test count (from
+       *  user_prefs.data.monkeytypeStats.completedTests). Profile's
+       *  level adds this to the local row count, so the leaderboard
+       *  has to do the same to match. */
+      mtCompleted: number;
     };
     let userInfoByUserId = new Map<string, UserInfo>();
     try {
@@ -252,12 +262,20 @@ const topByLevel = defineRoute<TopByLevelInput, TopByLevelOutput>({
           publicMetadataTags: (u.publicMetadata as { tags?: unknown } | null)
             ?.tags,
         });
-        const selection = readTagSelection(prefsByUserId.get(u.id));
+        const prefs = prefsByUserId.get(u.id);
+        const selection = readTagSelection(prefs);
         const tags = applyTagSelection(eligibleTags, selection);
+        // Read MT-imported test count from the same prefs blob the
+        // profile reads. Defaults to 0 when the user hasn't imported.
+        const mt = prefs?.monkeytypeStats as
+          | { completedTests?: number }
+          | undefined;
+        const mtCompleted = Number(mt?.completedTests ?? 0);
         userInfoByUserId.set(u.id, {
           name: display,
           username: u.username ?? null,
           tags,
+          mtCompleted: Number.isFinite(mtCompleted) ? mtCompleted : 0,
         });
       }
     } catch (err) {
@@ -266,16 +284,24 @@ const topByLevel = defineRoute<TopByLevelInput, TopByLevelOutput>({
       });
       userInfoByUserId = new Map();
     }
-    const named = rows.filter((r) => userInfoByUserId.has(r.userId));
-    const players: TopLevelPlayer[] = named.map((r, i) => {
-      const info = userInfoByUserId.get(r.userId)!;
-      // Level is the SAME number the profile hero shows for this
-      // user — derived from completed-test count via the shared
-      // src/lib/level.ts economy (100 xp per test, 1000 xp per
-      // level). The repo's `xp` field (SUM of net-WPM) is unused
-      // here now but kept on the response shape for future
-      // surfaces that want the wpm-weighted total.
-      const stats = levelFromTestsCompleted(r.testsCompleted);
+    // Combine local + MT counts per user, then re-sort by combined
+    // count so the ranking matches profile-shown levels.
+    const named = rows
+      .filter((r) => userInfoByUserId.has(r.userId))
+      .map((r) => {
+        const info = userInfoByUserId.get(r.userId)!;
+        const combined = r.testsCompleted + info.mtCompleted;
+        return { row: r, info, combined };
+      })
+      .sort((a, b) => b.combined - a.combined)
+      .slice(0, limit);
+    const players: TopLevelPlayer[] = named.map((entry, i) => {
+      const { row: r, info, combined } = entry;
+      // Level via the shared src/lib/level.ts economy on the COMBINED
+      // count — same merge the profile hero does in
+      // `mergeTotalsWithMt`. So the L<n> on the leaderboard matches
+      // the L<n> on the user's profile.
+      const stats = levelFromTestsCompleted(combined);
       return {
         rank: i + 1,
         userId: r.userId,
@@ -286,7 +312,7 @@ const topByLevel = defineRoute<TopByLevelInput, TopByLevelOutput>({
         level: stats.level,
         xpIntoLevel: stats.xpIntoLevel,
         levelProgress: stats.progress,
-        testsCompleted: r.testsCompleted,
+        testsCompleted: combined,
       };
     });
     return { players, generatedAtMs: Date.now() };
