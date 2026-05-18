@@ -34,6 +34,18 @@ export type TopPlayerRow = {
   testsCompleted: number;
 };
 
+/** Output row of `topByLevel` — one row per user with their
+ *  accumulated XP (sum of net-WPM across all completed runs) +
+ *  completed-test count. The client derives the level number from
+ *  XP via `levelForXp` so the formula lives in one place. */
+export type TopByLevelRow = {
+  userId: string;
+  /** Total XP — SUM(wpm * accuracy / 100.0) across every completed
+   *  run. Rewards both volume (more runs) and skill (faster runs). */
+  xp: number;
+  testsCompleted: number;
+};
+
 export function testsRepo(db: ServerDrizzle) {
   return {
     async insert(row: NewTestRow): Promise<TestRow> {
@@ -191,6 +203,34 @@ export function testsRepo(db: ServerDrizzle) {
       }
       return out;
     },
+    /** Top users by accumulated XP. One row per user, ordered by
+     *  XP descending (highest level first).
+     *
+     *  XP = SUM(wpm * accuracy / 100) across every completed run —
+     *  one server-side aggregate, one query. The client derives the
+     *  level number from XP via `levelForXp` (src/lib/skill-tier.ts)
+     *  so the formula lives in one place. */
+    async topByLevel(opts: { limit?: number }): Promise<TopByLevelRow[]> {
+      const limit = Math.max(1, Math.min(50, opts.limit ?? 10));
+      const xpExpr = sql<number>`SUM(${tests.wpm} * ${tests.accuracy} / 100.0)`;
+      const rows = await db
+        .select({
+          userId: tests.userId,
+          xp: xpExpr,
+          testsCompleted: sql<number>`count(*)::int`,
+        })
+        .from(tests)
+        .where(eq(tests.wasCompleted, true))
+        .groupBy(tests.userId)
+        .orderBy(desc(xpExpr))
+        .limit(limit);
+      return rows.map((r) => ({
+        userId: r.userId,
+        xp: Number(r.xp ?? 0),
+        testsCompleted: Number(r.testsCompleted ?? 0),
+      }));
+    },
+
     /** Top players by lifetime peak net-WPM. One row per user.
      *  Powers the leaderboard's "Top players" pinned section — a
      *  user-centric view alongside the existing run-centric table.

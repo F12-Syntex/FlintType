@@ -124,3 +124,30 @@ export type TopPlayersOutput = {
   players: readonly TopPlayer[];
   generatedAtMs: number;
 };
+
+/** Input for the top-by-level (user-centric) view — surfaces users
+ *  ordered by total accumulated XP. */
+export const topByLevelInputSchema = z.object({
+  limit: z.number().int().min(1).max(50).optional(),
+});
+export type TopByLevelInput = z.infer<typeof topByLevelInputSchema>;
+
+export type TopLevelPlayer = {
+  rank: number;
+  userId: string;
+  username: string | null;
+  name: string;
+  tags: UserTagId[];
+  /** Total XP accumulated across all completed runs. */
+  xp: number;
+  /** Level derived client-side from xp via levelForXp. Sent
+   *  pre-computed so the leaderboard table doesn't have to import
+   *  the derivation helper on a leaderboard render. */
+  level: number;
+  testsCompleted: number;
+};
+
+export type TopByLevelOutput = {
+  players: readonly TopLevelPlayer[];
+  generatedAtMs: number;
+};

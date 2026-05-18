@@ -18,6 +18,7 @@ import {
   SCOPES,
   WINDOWS,
 } from "./filters";
+import { TopLevels } from "./top-levels";
 import { TopPlayers } from "./top-players";
 import { useLeaderboard } from "./use-leaderboard";
 
@@ -92,6 +93,7 @@ export function LeaderboardView() {
       </header>
 
       <TopPlayers />
+      <TopLevels />
 
       <div className="pt-8 sm:pt-10">
         {loading && entries.length === 0 ? (

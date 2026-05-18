@@ -7,15 +7,20 @@ import {
   resolveEligibleTags,
 } from "@/server/resolve-tags";
 import type { UserTagId } from "@/types/user-tag";
+import { levelForXp } from "@/lib/skill-tier";
 import {
   leaderboardInputSchema,
   PRESET_AMOUNT,
+  topByLevelInputSchema,
   topPlayersInputSchema,
   type LeaderboardEntry,
   type LeaderboardInput,
   type LeaderboardOutput,
   type LeaderboardScope,
   type LeaderboardWindow,
+  type TopByLevelInput,
+  type TopByLevelOutput,
+  type TopLevelPlayer,
   type TopPlayer,
   type TopPlayersInput,
   type TopPlayersOutput,
@@ -209,11 +214,81 @@ const topPlayers = defineRoute<TopPlayersInput, TopPlayersOutput>({
   },
 });
 
+const topByLevel = defineRoute<TopByLevelInput, TopByLevelOutput>({
+  input: topByLevelInputSchema,
+  handler: async ({ input, db, log }) => {
+    const limit = input.limit ?? 10;
+    const rows = await db.tests.topByLevel({ limit });
+    if (rows.length === 0) {
+      return { players: [], generatedAtMs: Date.now() };
+    }
+    // Same Clerk + tag-resolution shape as topPlayers — kept inline
+    // for clarity rather than factored out, because the user-info
+    // map is the only shared bit and the two routes diverge in
+    // every other field.
+    type UserInfo = {
+      name: string;
+      username: string | null;
+      tags: UserTagId[];
+    };
+    let userInfoByUserId = new Map<string, UserInfo>();
+    try {
+      const client = await clerkClient();
+      const ids = [...new Set(rows.map((r) => r.userId))];
+      const { data } = await client.users.getUserList({
+        userId: ids,
+        limit: ids.length,
+      });
+      const prefsByUserId = await db.userPrefs.bulkGet(ids);
+      for (const u of data) {
+        const raw =
+          u.firstName ??
+          u.username ??
+          u.emailAddresses[0]?.emailAddress?.split("@")[0] ??
+          "racer";
+        const display = raw.startsWith("@") ? raw : `@${raw}`;
+        const eligibleTags = resolveEligibleTags({
+          email: u.emailAddresses[0]?.emailAddress,
+          publicMetadataTags: (u.publicMetadata as { tags?: unknown } | null)
+            ?.tags,
+        });
+        const selection = readTagSelection(prefsByUserId.get(u.id));
+        const tags = applyTagSelection(eligibleTags, selection);
+        userInfoByUserId.set(u.id, {
+          name: display,
+          username: u.username ?? null,
+          tags,
+        });
+      }
+    } catch (err) {
+      log.warn("leaderboard.topByLevel: clerk getUserList failed", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      userInfoByUserId = new Map();
+    }
+    const named = rows.filter((r) => userInfoByUserId.has(r.userId));
+    const players: TopLevelPlayer[] = named.map((r, i) => {
+      const info = userInfoByUserId.get(r.userId)!;
+      return {
+        rank: i + 1,
+        userId: r.userId,
+        username: info.username,
+        name: info.name,
+        tags: info.tags,
+        xp: Math.round(r.xp),
+        level: levelForXp(r.xp),
+        testsCompleted: r.testsCompleted,
+      };
+    });
+    return { players, generatedAtMs: Date.now() };
+  },
+});
+
 /** Public — no auth gate. Anyone (signed-in or anonymous) can read
  *  the leaderboard. Rate-limited per IP because the Clerk bulk
  *  lookup on cache miss is the expensive part; 60/min comfortably
  *  covers a human browsing different filters. */
 export const leaderboard = defineNamespace({
   middleware: [rateLimit({ limit: 60, windowMs: 60_000 })],
-  routes: { list, topPlayers },
+  routes: { list, topPlayers, topByLevel },
 });

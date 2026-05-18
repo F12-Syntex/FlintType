@@ -47,3 +47,28 @@ export function skillTierForNetWpm(netWpm: number): SkillTier {
   // non-negative — but TypeScript can't prove the loop returns.
   return SKILL_TIERS[SKILL_TIERS.length - 1]!;
 }
+
+/** XP-derived user level. XP itself is the sum of net-WPM across
+ *  every completed run — so a player ascends both by typing more
+ *  (volume) and by typing faster (skill). Level grows
+ *  ~sqrt(xp / SCALE) so the early grind is fast and the late grind
+ *  is satisfying. Floor at 1 so a fresh signup always reads as
+ *  L1, never L0.
+ *
+ *  Pure — input is the precomputed XP scalar (server aggregates
+ *  it once via SUM(wpm * accuracy / 100)). */
+const LEVEL_SCALE = 50;
+
+export function levelForXp(xp: number): number {
+  if (!Number.isFinite(xp) || xp <= 0) return 1;
+  return Math.max(1, Math.floor(Math.sqrt(xp / LEVEL_SCALE)) + 1);
+}
+
+/** Inverse — XP required to *just reach* the given level. Drives
+ *  the "next level in N XP" hint a future profile card could show.
+ *  Right now the level page just renders the level number; the
+ *  function is exported so the formula stays in one file. */
+export function xpForLevel(level: number): number {
+  const l = Math.max(1, Math.floor(level)) - 1;
+  return l * l * LEVEL_SCALE;
+}
