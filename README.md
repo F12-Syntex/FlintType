@@ -1,266 +1,144 @@
+<div align="center">
+
+<img src="public/flinttype-logo.svg" alt="flinttype" width="96" height="96" />
+
 # flinttype
 
-Open-source typing speed test. Built on Next.js + shadcn with a **hierarchical, Zod-validated backend** and a **typed `useBackend()` client** that mirrors the server tree.
+**Open-source typing speed test — editorial-mechanical, deeply customisable, adaptive.**
+
+[![Live site](https://img.shields.io/badge/live-flinttype.com-0a0a09?style=flat-square)](https://flinttype.com)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
+[![Next.js 16](https://img.shields.io/badge/Next.js-16-000?style=flat-square&logo=next.js)](https://nextjs.org)
+[![React 19](https://img.shields.io/badge/React-19-149eca?style=flat-square&logo=react)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript)](https://www.typescriptlang.org)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
+
+[**flinttype.com**](https://flinttype.com) · [Customise](https://flinttype.com/customise) · [Drills](https://flinttype.com/drills) · [Race](https://flinttype.com/race) · [Leaderboard](https://flinttype.com/leaderboard) · [Changelog](https://flinttype.com/changelog)
+
+</div>
+
+---
+
+flinttype is a typing speed test in the same product space as Monkeytype and 10fastfingers, with a different aesthetic and architectural bias. JetBrains Mono everywhere, hairline borders, a single coral accent against paper-and-ink. Every visual surface and behaviour is user-customisable; the practice surface can pull adaptive word lists biased toward your own weak spots.
+
+<p align="center">
+  <img src="screenshots/home.png" alt="flinttype home — practice surface with live readouts, virtual keyboard, and the editorial paper-and-ink palette" width="900" />
+</p>
+
+## Features
+
+- **Practice** — Words / Time / Quote modes with custom counts, live WPM/CPM/accuracy/burst readouts (each independently togglable), live virtual keyboard widget in four physical layouts × four logical layouts × five visual designs.
+- **Adaptive mode** — server-side engine scores you against your own bigram/trigram/word/motor-feature models and biases the next word list toward weak spots.
+- **Drills** ([`/drills`](https://flinttype.com/drills)) — burst (rep-based) and sudden-death (any-error-resets) drills over the top-1000 words, trigrams, pangrams, your worst words, your weakest bigrams.
+- **Races** ([`/race`](https://flinttype.com/race)) — 4-player real-time races backed by an in-memory room engine with SSE broadcasts. Public matchmaking with bot fill, or private challenge lobbies via shareable slug.
+- **Profiles, leaderboards, insights** — historical results, per-user analytics, mode/window-scoped global rankings.
+- **MonkeyType import** — pull your existing MonkeyType account via Ape Key; results + stats decrypt client-side before persisting.
+- **Deep customisation** ([`/customise`](https://flinttype.com/customise)) — 11+ palettes, font picker, caret style/thickness/blink/smooth, keymap, chrome density (Editorial / Minimal / Stripped presets), background images, line width, opacity controls. Everything persists as a JSON prefs blob.
+
+<p align="center">
+  <img src="screenshots/race-v52-desktop.png" alt="4-player race screen with live opponent lanes and per-racer WPM" width="900" />
+</p>
+
+## Quick start
+
+```bash
+git clone https://github.com/saifkhan2003/flinttype.git
+cd flinttype
+yarn install
+yarn dev          # http://localhost:3000
+```
+
+That's the full path to a working local install — Clerk runs in keyless mode and Postgres falls back to PGlite-Node (file-backed local Postgres in `./.data/pglite/`). No env vars required to boot.
+
+To wire real services, copy keys into `.env.local` (gitignored):
+
+```bash
+# Clerk (optional in dev — keyless mode auto-generates temporary keys)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+
+# Neon Postgres (optional in dev — defaults to PGlite-Node)
+DATABASE_URL=postgresql://...
+
+# OpenRouter (only needed for AI-backed routes)
+OPENROUTER_API_KEY=sk-or-v1-...
+```
+
+Full env table: [`docs/backend-rules.md`](docs/backend-rules.md#logging) (logging) · [`docs/auth.md`](docs/auth.md) (Clerk) · [`docs/database.md`](docs/database.md) (Neon / PGlite).
+
+## Scripts
+
+```bash
+yarn dev               # next dev (http://localhost:3000)
+yarn build             # production build
+yarn start             # serve the production build
+yarn lint              # eslint
+yarn test              # vitest run
+yarn test:watch        # vitest in watch mode
+
+# Database
+yarn db:generate       # drizzle-kit generate — writes migration SQL
+yarn db:migrate        # apply migrations to local DB
+yarn db:push           # push schema without migration files (dev only)
+yarn db:studio         # drizzle-kit studio (visual table browser)
+
+# Tooling
+yarn themes:add <url>  # add a tweakcn.com palette
+yarn fonts:download    # pull fonts into public/fonts
+```
 
 ## Stack
 
-- **Next.js 16** (App Router) + **React 19**
-- **Tailwind CSS v4** + **shadcn/ui** (`base-nova` style, neutral base)
-- **TypeScript 5** (strict)
-- **Zod 4** for server-side input validation
-- **Vitest 4** for unit tests
-- **Yarn** (classic) as the package manager
+| Layer       | What                                                                                  |
+|-------------|---------------------------------------------------------------------------------------|
+| Framework   | [Next.js 16](https://nextjs.org) (App Router) + [React 19](https://react.dev)         |
+| Styling     | [Tailwind CSS v4](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) (`base-nova`) |
+| Language    | TypeScript 5 (strict)                                                                 |
+| Validation  | [Zod 4](https://zod.dev) on every wire input                                          |
+| Database    | [Drizzle ORM](https://orm.drizzle.team) → [Neon Postgres](https://neon.tech) (prod) / [PGlite](https://pglite.dev) (dev) |
+| Auth        | [Clerk](https://clerk.com)                                                            |
+| Tests       | [Vitest 4](https://vitest.dev) (backend + isomorphic helpers; UI tested manually)     |
+| Package mgr | [Yarn classic](https://classic.yarnpkg.com) (1.x), pinned                             |
 
-## Getting started
+## Architecture in 30 seconds
 
-```bash
-yarn install
-yarn dev          # http://localhost:3000
-yarn test         # 22 unit tests
-yarn test:watch   # vitest in watch mode
-yarn build        # production build
-yarn lint
-```
-
-## Environment & logging
-
-Environment is controlled by `.env` (committed defaults). Override locally via `.env.local` (gitignored) — that's where secrets go.
-
-| Var            | Options                                | Default                                             |
-|----------------|----------------------------------------|-----------------------------------------------------|
-| `APP_ENV`      | `development` \| `production`          | `NODE_ENV` if set, else `development`               |
-| `LOG_ENABLED`  | `true` \| `false`                      | `true` (automatically `false` when `NODE_ENV=test`) |
-| `LOG_LEVEL`    | `debug` \| `info` \| `warn` \| `error` | `debug` in dev, `info` in prod                      |
-
-Logging is structured (JSON in prod, pretty single-line in dev) and request-scoped. Every handler has a `log` field on its context carrying `requestId`, `method`, `path`:
-
-```ts
-handler: ({ input, log }) => {
-  log.debug('fetching', { id: input.id });
-  // INFO  10:30:00 fetching {"requestId":"...","method":"POST","path":"/api/...","id":"u_1"}
-}
-```
-
-Full details and usage rules in `docs/backend-rules.md` → **Logging**.
-
-## Backend architecture
-
-A single catch-all dispatcher walks the route tree, collecting middleware at every level and running the onion:
+The backend is a typed route tree rooted at `src/server/router.ts`. A single catch-all dispatcher at `src/app/api/[...path]/route.ts` resolves the URL path, walks the tree, runs the middleware pipeline (global → namespace → route → `validate` → `handler`), and returns JSON. The frontend consumes it via `useBackend()` — a recursive `Proxy` typed from `typeof router`. Adding a route on the server immediately makes it available and typed on the client with no codegen.
 
 ```
-POST /api/users/admins/list
- └─ logging (global, from router)
-     └─ requireAuth (users namespace)
-         └─ requireAdmin (users/admins namespace)
-             └─ validate(input) via Zod   // no-op here since list takes no input
-                 └─ handler(ctx)
+backend.users.admins.list()
+  └─ POST /api/users/admins/list
+      └─ logging → requireAuth → requireAdmin → validate → handler
 ```
 
-### Directory layout
+Deep dive: [`docs/backend-rules.md`](docs/backend-rules.md). It's authoritative — read it before adding routes.
 
-```
-src/
-├── app/
-│   ├── api/[...path]/route.ts     # dispatcher: resolves path, runs pipeline
-│   └── page.tsx                   # demo UI
-├── server/
-│   ├── index.ts                   # barrel: defineRoute, defineNamespace, ...
-│   ├── types.ts                   # RouteDef, NamespaceDef, Middleware
-│   ├── errors.ts                  # BackendError, ErrorCode union
-│   ├── defineRoute.ts
-│   ├── defineNamespace.ts
-│   ├── resolve.ts                 # walks tree, collects middleware
-│   ├── pipeline.ts                # runs middleware + validate + handler
-│   ├── router.ts                  # root namespace (global middleware)
-│   ├── testing.ts                 # callRoute() test helper
-│   ├── db.ts                      # demo in-memory data
-│   ├── middleware/
-│   │   ├── logging.ts
-│   │   └── auth.ts                # requireAuth, requireAdmin
-│   └── routes/
-│       ├── health/index.ts        # no middleware
-│       ├── echo/index.ts          # zod-validated input
-│       └── users/
-│           ├── index.ts           # requireAuth
-│           └── admins/
-│               └── index.ts       # requireAuth + requireAdmin
-├── lib/
-│   ├── backend.ts                 # useBackend() — recursive Proxy
-│   └── safe.ts                    # optional Result-style wrapper
-└── types/
-    └── user.ts                    # shared domain type
-```
+## Project documentation
 
-## Authoring routes
+| Doc                                                  | Scope                                                          |
+|------------------------------------------------------|----------------------------------------------------------------|
+| [`docs/backend-rules.md`](docs/backend-rules.md)     | Backend architecture, 12 rules, middleware patterns, testing   |
+| [`docs/ui-law.md`](docs/ui-law.md)                   | Design system, colours, spacing, typography, mobile-first      |
+| [`docs/organization.md`](docs/organization.md)       | File length thresholds, where new files go, anti-patterns      |
+| [`docs/seo.md`](docs/seo.md)                         | Page metadata, semantic HTML, `llms.txt`, sitemap              |
+| [`docs/auth.md`](docs/auth.md)                       | Clerk integration, `requireAuth` / `requireAdmin`, testing     |
+| [`docs/database.md`](docs/database.md)               | Drizzle layer, schema, server + client tiers, migrations       |
+| [`specification.md`](specification.md)               | Full product specification — every feature, every surface      |
 
-**Types first.** All route I/O types and Zod schemas live in `src/types/<domain>.ts`. Routes import them — they never declare types inline.
+## Contributing
 
-### 1. Define the domain's contract
+Contributions of every size are welcome — typo fixes through to whole new drill modes. Start with [**CONTRIBUTING.md**](CONTRIBUTING.md) for the dev loop, code style, commit format, and PR process. Discussions happen in [GitHub Issues](https://github.com/saifkhan2003/flinttype/issues) and [Discussions](https://github.com/saifkhan2003/flinttype/discussions).
 
-```ts
-// src/types/widget.ts
-import { z } from 'zod';
+Before opening a PR, please read:
+- [**Code of Conduct**](CODE_OF_CONDUCT.md) — Contributor Covenant 2.1
+- [**Security Policy**](SECURITY.md) — how to report vulnerabilities privately
+- [**Support**](SUPPORT.md) — where to ask questions
 
-export type Widget = {
-  id: string;
-  label: string;
-};
+## License
 
-export const getWidgetInputSchema = z.object({ id: z.string() });
-export type GetWidgetInput = z.infer<typeof getWidgetInputSchema>;
-export type GetWidgetOutput = Widget;
-```
+[MIT](LICENSE) © 2025 Saif Khan and flinttype contributors.
 
-### 2. Create the namespace
+---
 
-```ts
-// src/server/routes/widgets/index.ts
-import { defineNamespace, defineRoute, BackendError } from '@/server';
-import {
-  getWidgetInputSchema,
-  type GetWidgetInput,
-  type GetWidgetOutput,
-} from '@/types/widget';
-
-const get = defineRoute<GetWidgetInput, GetWidgetOutput>({
-  input: getWidgetInputSchema,
-  handler: ({ input }) => {
-    if (input.id === 'missing') {
-      throw new BackendError(404, 'NOT_FOUND', `widget ${input.id} not found`);
-    }
-    return { id: input.id, label: `widget-${input.id}` };
-  },
-});
-
-export const widgets = defineNamespace({
-  routes: { get },
-});
-```
-
-Each route is a top-level `const`; `defineNamespace.routes` only references identifiers. Never inline a `defineRoute({...})` body inside the namespace block.
-
-### 2. Register in `router.ts`
-
-```ts
-import { widgets } from './routes/widgets';
-export const router = defineNamespace({
-  middleware: [logging],
-  routes: { health, echo, users, widgets },
-});
-```
-
-### 3. Unit test
-
-```ts
-// src/server/routes/widgets/index.test.ts
-import { describe, expect, it } from 'vitest';
-import { ZodError } from 'zod';
-import { BackendError } from '@/server/errors';
-import { callRoute } from '@/server/testing';
-import type { GetWidgetOutput } from '@/types/widget';
-
-describe('widgets.get', () => {
-  it('returns the widget', async () => {
-    const w = await callRoute<GetWidgetOutput>(['widgets', 'get'], { input: { id: '1' } });
-    expect(w.label).toBe('widget-1');
-  });
-  it('404 for unknown ids', async () => {
-    await expect(
-      callRoute(['widgets', 'get'], { input: { id: 'missing' } }),
-    ).rejects.toSatisfy(
-      (e: unknown) => e instanceof BackendError && e.code === 'NOT_FOUND',
-    );
-  });
-  it('rejects bad input via Zod', async () => {
-    await expect(
-      callRoute(['widgets', 'get'], { input: {} }),
-    ).rejects.toBeInstanceOf(ZodError);
-  });
-});
-```
-
-### 4. Call from the client
-
-```tsx
-'use client';
-import { useBackend, BackendError } from '@/lib/backend';
-
-function WidgetCard({ id }: { id: string }) {
-  const backend = useBackend();
-  // typed: (input: GetWidgetInput) => Promise<Widget>
-  const load = () => backend.widgets.get({ id });
-  // ...
-}
-```
-
-The client types come from `typeof router` — no codegen, no import of server code. Renaming a server route breaks the client at compile time.
-
-## Middleware
-
-- **Global** — attach to the root router: `defineNamespace({ middleware: [logging, ...], routes: {...} })`.
-- **Per-namespace** — attach at any folder's `defineNamespace`. Cascades to all descendants.
-- **Per-route** — pass `middleware: [...]` to `defineRoute`. Innermost.
-
-Middleware signature is Koa/Express style:
-
-```ts
-export const requireAuth: Middleware = async (ctx, next) => {
-  const userId = ctx.req.headers.get('x-user-id');
-  if (!userId) throw new BackendError(401, 'UNAUTHORIZED', 'missing x-user-id');
-  ctx.meta.userId = userId;
-  return next();
-};
-```
-
-`ctx.meta` is a shared bag — downstream middleware/handlers read it for auth context, trace IDs, etc.
-
-## Errors
-
-Throw `BackendError(status, code, message, details?)` anywhere in the pipeline. `code` is a typed union — add new codes to `src/server/errors.ts`.
-
-```ts
-export type ErrorCode =
-  | 'VALIDATION' | 'UNAUTHORIZED' | 'FORBIDDEN'
-  | 'NOT_FOUND'  | 'CONFLICT'     | 'INTERNAL';
-```
-
-The dispatcher serializes `BackendError` as JSON; the client reconstructs it and re-throws. `ZodError` is converted into `VALIDATION` with `details.issues`.
-
-Callers can handle errors two ways:
-
-```ts
-// throws (idiomatic)
-try {
-  const w = await backend.widgets.get({ id });
-} catch (err) {
-  if (err instanceof BackendError && err.code === 'NOT_FOUND') { /* typed */ }
-}
-
-// or explicit result — opt-in
-import { safe } from '@/lib/safe';
-const r = await safe(backend.widgets.get({ id }));
-if (!r.ok) return r.error.code;
-r.data.label;
-```
-
-## MCP servers
-
-`.mcp.json` wires three project-scoped MCP servers for Claude Code:
-
-| Server      | Purpose                                                         |
-|-------------|-----------------------------------------------------------------|
-| `shadcn`    | Component installs and registry queries                         |
-| `magic`     | 21st.dev component generation (needs `TWENTYFIRST_API_KEY`)     |
-| `context7`  | Authoritative docs for Next.js, Tailwind, shadcn, React, etc.   |
-| `clerk`     | Clerk dashboard + docs queries (HTTP transport, hosted by Clerk) |
-
-Restart Claude Code after cloning to pick up the servers.
-
-## Commit protocol
-
-- Conventional Commits: `type(scope): title`.
-- First line of the body is the version from `VERSION`.
-- `VERSION` bumps on every commit: patch default, minor for features, major for breaking.
-- No AI/Claude attribution in commit messages.
-
-See `CLAUDE.md` for the full protocol.
+<div align="center">
+<sub>Built with care in JetBrains Mono. ¶</sub>
+</div>
