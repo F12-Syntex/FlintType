@@ -1,6 +1,7 @@
 // For adding custom fonts with other frameworks, see:
 // https://tailwindcss.com/docs/font-family
 import { ClerkProvider } from "@clerk/nextjs";
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Lora, IBM_Plex_Mono } from "next/font/google";
 import { PREFS_BOOTSTRAP_SCRIPT } from "@/lib/bootstrap";
@@ -78,6 +79,10 @@ export default function RootLayout({
           <VersionProvider value={version}>
             <Providers>{children}</Providers>
           </VersionProvider>
+          {/* Vercel Web Analytics — anonymous page-view + visitor
+              counts. No-ops in dev unless `VERCEL_ENV` is set, so
+              local development doesn't pollute the dashboard. */}
+          <Analytics />
         </body>
       </html>
     </ClerkProvider>

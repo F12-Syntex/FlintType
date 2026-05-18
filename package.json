@@ -1,6 +1,6 @@
 {
   "name": "flinttype",
-  "version": "6.57.1",
+  "version": "6.57.2",
   "private": true,
   "packageManager": "yarn@1.22.22",
   "scripts": {
@@ -37,6 +37,7 @@
     "@uiw/color-convert": "^2.10.1",
     "@uiw/react-color-hue": "^2.10.1",
     "@uiw/react-color-saturation": "^2.10.1",
+    "@vercel/analytics": "^2.0.1",
     "ai": "^6.0.165",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
