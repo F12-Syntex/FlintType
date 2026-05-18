@@ -128,11 +128,6 @@ Deep dive: [`docs/backend-rules.md`](docs/backend-rules.md). It's authoritative 
 
 Contributions of every size are welcome — typo fixes through to whole new drill modes. Start with [**CONTRIBUTING.md**](CONTRIBUTING.md) for the dev loop, code style, commit format, and PR process. Discussions happen in [GitHub Issues](https://github.com/saifkhan2003/flinttype/issues) and [Discussions](https://github.com/saifkhan2003/flinttype/discussions).
 
-Before opening a PR, please read:
-- [**Code of Conduct**](CODE_OF_CONDUCT.md) — Contributor Covenant 2.1
-- [**Security Policy**](SECURITY.md) — how to report vulnerabilities privately
-- [**Support**](SUPPORT.md) — where to ask questions
-
 ## License
 
 [MIT](LICENSE) © 2025 Saif Khan and flinttype contributors.
