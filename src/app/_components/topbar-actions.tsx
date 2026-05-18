@@ -5,6 +5,7 @@ import { Check, LogOut, Plus, Settings, User as UserIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,6 +73,7 @@ function ProfileLink({ dark }: { dark: boolean }) {
   // changes. Mirror it into local state so the dropdown re-renders
   // when sign-in / sign-out / setActive runs.
   const [sessions, setSessions] = useState(() => clerk.client?.sessions ?? []);
+  const [comingSoonOpen, setComingSoonOpen] = useState(false);
   useEffect(() => {
     // Clerk's client emits a `client:update` event on session
     // mutations; we re-snapshot the array on every emission.
@@ -123,21 +125,12 @@ function ProfileLink({ dark }: { dark: boolean }) {
   };
 
   const handleAddAccount = () => {
-    // True multi-session add — the current session stays signed
-    // in, Clerk's embedded sign-in modal opens for a NEW session,
-    // and the user can flip between them via the Accounts list
-    // above.
-    //
-    // REQUIRES multi-session enabled in the Clerk dashboard:
-    //   User & Authentication → Multi-session applications → On
-    //
-    // When that toggle is OFF, Clerk hides the modal with the
-    // dev-only console warning "cannot_render_single_session_
-    // enabled" and the menu item appears to do nothing. The
-    // dashboard toggle is the load-bearing piece — there's no
-    // useful client-side workaround that preserves the current
-    // session.
-    clerk.openSignIn();
+    // Stub for now: real multi-session add requires flipping the
+    // Clerk dashboard toggle (User & Authentication → Multi-session
+    // applications → On) AND swapping this for clerk.openSignIn().
+    // Until that ships, surface a "coming soon" dialog so the menu
+    // item doesn't read as broken.
+    setComingSoonOpen(true);
   };
 
   const handleSignOut = () => {
@@ -202,7 +195,10 @@ function ProfileLink({ dark }: { dark: boolean }) {
 
         <DropdownMenuItem onSelect={handleAddAccount}>
           <Plus className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-          <span>Add another account</span>
+          <span className="flex-1">Add another account</span>
+          <span className="ml-auto rounded-md border border-border bg-muted/50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Soon
+          </span>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
@@ -214,6 +210,21 @@ function ProfileLink({ dark }: { dark: boolean }) {
           <span>Sign out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
+      <ConfirmDialog
+        open={comingSoonOpen}
+        onOpenChange={setComingSoonOpen}
+        title="Multi-account support is coming soon"
+        confirmLabel="Got it"
+        cancelLabel="Close"
+        onConfirm={() => setComingSoonOpen(false)}
+      >
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          We're wiring true multi-account so you can stay signed into more
+          than one flinttype account on the same device and flip between
+          them without re-auth. Until that ships, sign out and sign back in
+          with the other account to use it.
+        </p>
+      </ConfirmDialog>
     </DropdownMenu>
   );
 }
