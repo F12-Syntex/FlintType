@@ -1,9 +1,8 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
 import { writeSlice } from "./prefs-store";
-import { CUSTOM_THEME_ID, findThemeScopes } from "./themes/registry";
+import { CUSTOM_THEME_ID, getThemeRoot } from "./themes/registry";
 import { useRemotePrefs } from "./use-remote-prefs";
 
 /** Every CSS variable the user can override from the appearance page.
@@ -49,20 +48,14 @@ export type ThemeVar = (typeof THEME_VARS)[number];
 export type ThemeOverrides = Partial<Record<ThemeVar, string>>;
 
 function applyVar(name: ThemeVar, value: string | undefined) {
-  if (typeof document === "undefined") return;
-  // Per-var overrides live alongside named themes on every mounted
-  // scope element. On /customise that's every preview card, so a
-  // colour tweak instantly repaints all of them; on the typing
-  // surface it's the single race / practice wrapper. No scope
-  // mounted = no-op (the effect below re-applies the moment one
-  // mounts).
-  const scopes = findThemeScopes();
-  for (const root of scopes) {
-    if (value == null || value === "") {
-      root.style.removeProperty(name);
-    } else {
-      root.style.setProperty(name, value);
-    }
+  // Per-var overrides live alongside named themes on <html> so every
+  // surface picks them up via the CSS cascade.
+  const root = getThemeRoot();
+  if (!root) return;
+  if (value == null || value === "") {
+    root.style.removeProperty(name);
+  } else {
+    root.style.setProperty(name, value);
   }
 }
 
@@ -86,34 +79,23 @@ export function useThemeOverrides() {
   // hook has set and only remove the ones we wrote that no longer
   // appear in `overrides`.
   const appliedRef = useRef<Set<ThemeVar>>(new Set());
-  // Route changes swap the [data-ft-theme-scope] element under us —
-  // pathname is in the deps so the effect re-runs and finds the new
-  // scope when the user navigates onto a typing surface.
-  const pathname = usePathname();
   useEffect(() => {
-    const scopes = findThemeScopes();
-    if (scopes.length === 0) {
-      // No theme scope mounted — drop the tracking set so a future
-      // navigation onto a typed surface starts clean.
-      appliedRef.current.clear();
-      return;
-    }
+    const root = getThemeRoot();
+    if (!root) return;
     const prev = appliedRef.current;
     const next = new Set<ThemeVar>();
     for (const v of THEME_VARS) {
       const value = overrides[v];
       if (value != null && value !== "") {
-        for (const s of scopes) s.style.setProperty(v, value);
+        root.style.setProperty(v, value);
         next.add(v);
       }
     }
     for (const v of prev) {
-      if (!next.has(v)) {
-        for (const s of scopes) s.style.removeProperty(v);
-      }
+      if (!next.has(v)) root.style.removeProperty(v);
     }
     appliedRef.current = next;
-  }, [overrides, pathname]);
+  }, [overrides]);
 
   const setVar = useCallback(
     (name: ThemeVar, value: string) => {

@@ -100,13 +100,7 @@ function TypingSurfaceBody({
       ? nextExpectedKeyCode(layout, nextChar)
       : undefined;
   return (
-    // data-ft-theme-scope — the named-palette + per-var override
-    // layers (src/lib/themes/use-palette.tsx, theme-customization.ts)
-    // write inline CSS variables onto this element. Containing the
-    // scope to the typing surface keeps the user's chosen palette
-    // from changing chrome / non-typing pages (profile, leaderboard,
-    // customise) where it would only get in the way.
-    <div data-ft-theme-scope className="contents">
+    <>
       {showModeBar ? <ModeBar /> : null}
       <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pt-4 pb-3 sm:gap-6 sm:px-12 sm:py-8 lg:px-20">
         {showReadouts && !done ? (
@@ -137,6 +131,6 @@ function TypingSurfaceBody({
           </div>
         ) : null}
       </div>
-    </div>
+    </>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useTheme as useNextTheme } from "next-themes";
-import { usePathname } from "next/navigation";
 import {
   createContext,
   type ReactNode,
@@ -23,7 +22,7 @@ import {
   clearThemeVars,
   CUSTOM_THEME_ID,
   findTheme,
-  findThemeScopes,
+  getThemeRoot,
   THEMES,
   type Theme,
 } from "./registry";
@@ -61,28 +60,20 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
   );
   const activeId = value.activeId;
   const { effectiveImage } = useBackgroundPrefs();
-  // pathname is in the deps so a route change re-runs the apply —
-  // the [data-ft-theme-scope] element appears + disappears between
-  // pages (typing surfaces have it, other pages don't), and the
-  // effect would otherwise paint into a stale or null node.
-  const pathname = usePathname();
 
   useEffect(() => {
-    // Themes apply to every mounted [data-ft-theme-scope] element —
-    // typing surfaces (practice / race) carry the marker, and so do
-    // each preview card on /customise/appearance, so palette changes
-    // propagate to every preview at once. Non-scoped routes have
-    // zero matches and we no-op, leaving them on the chrome's :root
-    // defaults.
-    const scopes = findThemeScopes();
-    if (scopes.length === 0) return;
+    // Themes paint on <html> so every surface (chrome, typing area,
+    // customise previews) picks them up via the CSS cascade. SSR
+    // no-op.
+    const root = getThemeRoot();
+    if (!root) return;
 
     // "custom" — the user has per-var overrides applied via
     // useThemeOverrides. Don't touch the named-theme vars: the inline
-    // overrides on the scope from useThemeOverrides are the source of
-    // truth and would otherwise get clobbered by clearThemeVars below.
+    // overrides from useThemeOverrides are the source of truth and
+    // would otherwise get clobbered by clearThemeVars below.
     if (activeId === CUSTOM_THEME_ID) {
-      for (const s of scopes) clearReactivePalette(s);
+      clearReactivePalette(root);
       return;
     }
 
@@ -94,10 +85,8 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
       // in place and swap atomically inside the .then — clear +
       // apply in the same paint, no flash.
       if (!effectiveImage) {
-        for (const s of scopes) {
-          clearThemeVars(s);
-          clearReactivePalette(s);
-        }
+        clearThemeVars(root);
+        clearReactivePalette(root);
         return;
       }
       let cancelled = false;
@@ -105,10 +94,8 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
         resolvedTheme === "dark" ? "dark" : "light";
       void samplePalette(effectiveImage, sampleMode).then((palette) => {
         if (cancelled || !palette) return;
-        for (const s of scopes) {
-          clearThemeVars(s);
-          applyReactivePalette(s, palette);
-        }
+        clearThemeVars(root);
+        applyReactivePalette(root, palette);
       });
       return () => {
         cancelled = true;
@@ -116,16 +103,13 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     }
 
     // Non-reactive paths are synchronous — clear and apply in one
-    // pass per scope so every preview repaints alongside the active
-    // surface.
+    // pass so the swap repaints every surface at once.
     const theme = findTheme(activeId);
     const mode = resolvedTheme === "dark" ? "dark" : "light";
-    for (const s of scopes) {
-      clearThemeVars(s);
-      clearReactivePalette(s);
-      if (theme) applyTheme(s, theme, mode);
-    }
-  }, [activeId, resolvedTheme, effectiveImage, pathname]);
+    clearThemeVars(root);
+    clearReactivePalette(root);
+    if (theme) applyTheme(root, theme, mode);
+  }, [activeId, resolvedTheme, effectiveImage]);
 
   const apply = useCallback(
     (id: string) => {

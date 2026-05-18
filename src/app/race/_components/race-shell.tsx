@@ -255,14 +255,8 @@ export function RaceShell({
   // read-only context unmistakable.
   return (
     <PracticeProvider key={subtreeKey} lockedWords={words} raceMode={raceMode}>
-      {/* data-ft-theme-scope — themes + per-var overrides write into
-       *  this element only. Keeps the user's chosen palette from
-       *  bleeding onto chrome / non-typing pages. See use-palette.tsx
-       *  + theme-customization.ts. */}
-      <div data-ft-theme-scope className="contents">
-        {isSpectating ? <SpectatorBanner /> : null}
-        {isSpectating ? raceTree : <InputCapture>{raceTree}</InputCapture>}
-      </div>
+      {isSpectating ? <SpectatorBanner /> : null}
+      {isSpectating ? raceTree : <InputCapture>{raceTree}</InputCapture>}
     </PracticeProvider>
   );
 }

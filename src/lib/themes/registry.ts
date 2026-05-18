@@ -71,9 +71,8 @@ const ALL_VAR_NAMES: readonly string[] = (() => {
 
 /** Strip every var any installed theme can set — used when switching
  *  away from the active theme so its colors don't bleed into the next.
- *  No-op on null so callers can pipe `findThemeScope()` straight in
- *  without manual guards (themes are scoped to a marker element that
- *  only exists on typing surfaces — see `THEME_SCOPE_ATTR`). */
+ *  No-op on null so callers can hand in the resolved root without a
+ *  manual guard. */
 export function clearThemeVars(root: HTMLElement | null) {
   if (!root) return;
   for (const k of ALL_VAR_NAMES) root.style.removeProperty(`--${k}`);
@@ -97,29 +96,12 @@ export function findTheme(id: string | null | undefined): Theme | undefined {
   return THEMES.find((t) => t.id === id);
 }
 
-/** Marker attribute on the element that should receive theme CSS
- *  variables. Only typing-test surfaces (practice / race / future
- *  drills) carry this; other pages (profile, leaderboard, customise
- *  preview, …) intentionally don't — the user's chosen palette would
- *  drown the editorial chrome there, and on the customise page would
- *  change the very surface the user is using to pick the theme. */
-export const THEME_SCOPE_ATTR = "data-ft-theme-scope";
-
-/** Resolve every mounted theme-scope element. Returns an empty array
- *  when the active route has none — callers no-op cleanly. Multiple
- *  scopes are common on the customise page: each preview card wraps
- *  its content in its own scope so palette changes propagate to
- *  every preview at once. The typing-surface and race-surface scopes
- *  are single-instance. */
-export function findThemeScopes(): HTMLElement[] {
-  if (typeof document === "undefined") return [];
-  return Array.from(
-    document.querySelectorAll<HTMLElement>(`[${THEME_SCOPE_ATTR}]`),
-  );
-}
-
-/** Backwards-compat alias — returns the first scope or null. New
- *  callers should use `findThemeScopes` and iterate. */
-export function findThemeScope(): HTMLElement | null {
-  return findThemeScopes()[0] ?? null;
+/** The element themes + per-var overrides paint onto. Always
+ *  `document.documentElement` — themes apply globally so every
+ *  surface (chrome, typing area, customise previews, every page)
+ *  picks them up via the normal CSS cascade. SSR-safe: returns null
+ *  on the server so callers no-op without crashing. */
+export function getThemeRoot(): HTMLElement | null {
+  if (typeof document === "undefined") return null;
+  return document.documentElement;
 }
