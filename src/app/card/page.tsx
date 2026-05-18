@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/server/seo";
+import { ScreenshotButton } from "./_components/screenshot-button";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Card",
@@ -17,7 +18,8 @@ export const metadata: Metadata = buildPageMetadata({
  *  so every screenshot looks identical regardless of viewer theme. */
 export default function CardPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-200 p-6 dark:bg-zinc-900">
+    <main className="relative flex min-h-screen items-center justify-center bg-zinc-200 p-6 dark:bg-zinc-900">
+      <ScreenshotButton />
       <Card />
     </main>
   );
