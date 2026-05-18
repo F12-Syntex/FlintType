@@ -1,11 +1,11 @@
 {
   "name": "flinttype",
-  "version": "6.46.0",
+  "version": "6.46.1",
   "private": true,
   "packageManager": "yarn@1.22.22",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "yarn db:migrate && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",

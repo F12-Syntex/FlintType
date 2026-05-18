@@ -89,7 +89,7 @@ Handlers call `db.posts.list()`, not `db.$drizzle.select().from(posts)`. Keeps t
 (An escape hatch exists: `ctx.db.$drizzle` is the raw Drizzle client. Use only when a query genuinely doesn't fit a repo method, and add that method afterward.)
 
 ### D5. Server migrations are file-based; client migrations are programmatic
-- Server: `yarn db:generate` writes SQL files to `src/db/migrations/server/`. Apply with `yarn db:migrate` (dev) or in your Vercel build step. Never edit generated SQL by hand.
+- Server: `yarn db:generate` writes SQL files to `src/db/migrations/server/`. The `build` script runs `yarn db:migrate` before `next build` so every Vercel deploy (and every local `yarn build`) applies pending migrations idempotently against whatever DB the `DATABASE_URL` points at. Run `yarn db:migrate` directly only when you want to apply migrations without a build (e.g. `DATABASE_URL=<prod> yarn db:migrate` to recover from a deploy that bypassed the build, or to fix a forgotten migration). Never edit generated SQL by hand.
 - Client: no migration files. `ensureClientSchema()` in `src/db/client/init.ts` runs `CREATE TABLE IF NOT EXISTS` on first query. Idempotent, per-user isolated.
 
 ### D6. `DATABASE_URL` lives in `.env.local`, never in `.env`
