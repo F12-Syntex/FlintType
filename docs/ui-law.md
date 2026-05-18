@@ -691,12 +691,38 @@ Component self-markers that the CSS rules attach to:
 - **Don't** animate the auto-hide transition beyond the 240ms opacity tween already defined. The user is mid-keystroke; the chrome should disappear quickly enough that they don't notice, not slowly enough to distract.
 - **Don't** drop `pointer-events: none` from the `fade` autohide rule. Without it, a stray click on the invisible topbar mid-run can cancel the test.
 
-## 16. Amending this document
+## 16. Command palette
+
+A globally-mounted Cmd/Ctrl+K palette is the keyboard-first surface for every customisable preference. Mounted once in `src/app/providers.tsx` (`<CommandPalette />`) so it's available on every route. Don't mount it again — the shortcut already binds there.
+
+### 16.1 What it is
+
+- Built on shadcn's `Dialog` + `Command` primitives (`src/components/ui/dialog.tsx`, `src/components/ui/command.tsx`), which wrap `@radix-ui/react-dialog` and `cmdk` respectively. Use those primitives directly when you need a dialog or a searchable list anywhere else; don't fork.
+- Two-tier view: the root list shows every entry grouped by category (Mode, Theme, Behaviour, Caret, Keyboard, Appearance, Navigate). Selecting an enum entry swaps the list to a sub-view of its options, where Enter writes the value and returns to root. Escape backs out of a sub-view (and only closes the dialog when already on root).
+- Toggles flip on Enter and the dialog stays open (so you can flip several settings in one keystroke session). Actions and links close the dialog. Picking an enum option closes the sub-view.
+- The shortcut `Cmd/Ctrl+K` is the palette's. Don't rebind it. `F` (focus mode, §15) and `Esc` (focus mode clear / dialog close) remain orthogonal.
+
+### 16.2 Adding an entry
+
+Edit `src/lib/command-palette/use-command-entries.ts`. Every entry is one of four kinds — `action`, `toggle`, `enum`, `link` — described in `src/lib/command-palette/types.ts`. Discipline:
+
+- **One entry per user-facing setting.** Toggles and enums render inline; the user never leaves the palette to flip them.
+- **Sliders, colour pickers, and any control that needs a custom widget** ship as `link` entries that deep-link to `/customise/...#<section>` (the customise page's section anchor). The palette closes and the customise page opens at the right surface. Don't try to inline a slider — the keyboard flow degrades and the palette becomes its own form.
+- **Keep `hint` short** (one line, ≤ 80 chars). It renders under the label in muted text and is search-indexed alongside the label and `keywords`.
+- **Use `keywords`** for tokens a user might type but that don't appear in the label (e.g. `["monkeytype", "minimal"]` on surface entries). cmdk's filter sees them.
+
+### 16.3 Don't
+
+- **Don't** add an entry whose `set` callback opens another modal or navigates somewhere unrelated. The palette is "I know what I want, do it now" — every entry should resolve in zero or one Enter press.
+- **Don't** add ambient open/close animation beyond the standard Radix Dialog fade + zoom shadcn ships with (data-state classes from `tw-animate-css`). The palette is high-frequency keyboard chrome; a custom Framer transition would just add latency.
+- **Don't** mount a second palette anywhere. If a page needs its own searchable command surface (e.g. a per-page "pick a passage"), build it as a local `Command` instance — not a second Cmd+K palette.
+
+## 17. Amending this document
 
 When you introduce a new pattern:
 
 1. Open this file.
-2. Add a row to the matching table (§2 color, §3 spacing, §4 typography, §5 layout, §12 settings, §13 animation, §14 identity marks, §15 minimisation knobs) **or** a new section with the next sequential number.
+2. Add a row to the matching table (§2 color, §3 spacing, §4 typography, §5 layout, §12 settings, §13 animation, §14 identity marks, §15 minimisation knobs, §16 command palette) **or** a new section with the next sequential number.
 3. Include a one-line rationale — why this pattern, what problem it solves.
 4. Commit the doc change **in the same commit** as the code using it.
 5. From that commit forward, all UI must follow the new rule.

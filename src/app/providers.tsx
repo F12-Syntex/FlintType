@@ -2,6 +2,7 @@
 
 import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
+import { CommandPalette } from "@/components/command-palette/command-palette";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ApplyThemeOverrides } from "@/lib/apply-theme-overrides";
 import { PaletteProvider } from "@/lib/themes/use-palette";
@@ -30,6 +31,10 @@ export function Providers({ children }: { children: ReactNode }) {
             tooltip swaps instantly" behaviour. */}
         <TooltipProvider delayDuration={300} skipDelayDuration={100}>
           {children}
+          {/* Global Cmd+K palette — every settings + theme + nav
+              command in one searchable surface. Self-mounts; just
+              listens for the shortcut. */}
+          <CommandPalette />
         </TooltipProvider>
       </PaletteProvider>
     </ThemeProvider>
