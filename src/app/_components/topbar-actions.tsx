@@ -122,16 +122,19 @@ function ProfileLink({ dark }: { dark: boolean }) {
     });
   };
 
-  const handleAddAccount = () => {
-    // `openSignIn` opens Clerk's embedded sign-in modal in the
-    // "add session" flow when multi-session is enabled in the
-    // Clerk dashboard. When it isn't enabled, Clerk shows its
-    // standard "already signed in" surface inside the modal,
-    // which at least keeps the user on-page instead of routing
-    // to a /sign-in URL that can't satisfy the request (the
-    // ?session=add query we used to send was a guess Clerk
-    // doesn't honour).
-    clerk.openSignIn();
+  const handleAddAccount = async () => {
+    // Sign out, then route to /sign-in. This works in both
+    // single-session and multi-session Clerk apps.
+    //
+    // The previous openSignIn approach was hidden by Clerk in
+    // single-session mode (the default) with a console warning
+    // ("cannot_render_single_session_enabled") and the modal
+    // simply never appeared — user clicked the menu item and
+    // nothing happened. The sign-out-then-sign-in flow is one
+    // extra round-trip in multi-session apps but never fails
+    // open.
+    await clerk.signOut();
+    router.push("/sign-in");
   };
 
   const handleSignOut = () => {
@@ -196,7 +199,7 @@ function ProfileLink({ dark }: { dark: boolean }) {
 
         <DropdownMenuItem onSelect={handleAddAccount}>
           <Plus className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-          <span>Add another account</span>
+          <span>Sign in as different user</span>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
