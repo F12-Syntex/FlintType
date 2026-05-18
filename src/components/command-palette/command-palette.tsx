@@ -2,7 +2,7 @@
 
 import { ArrowRight, Check, ChevronRight, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   Command,
@@ -52,6 +52,12 @@ export function CommandPalette() {
   const [query, setQuery] = useState("");
   const router = useRouter();
   const entries = useCommandEntries();
+  // Direct ref to the search input so we can re-focus it on every
+  // open + on view switch — cmdk's Command primitive doesn't always
+  // surface a focusable as the first DOM-order element, so Radix's
+  // default `onOpenAutoFocus` can land on the dialog content shell
+  // instead of the input. Pinning focus here is more reliable.
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Cmd / Ctrl + K toggles the palette. Ignored when the user is
   // already typing into an input — accidental closes on input "k"
@@ -76,18 +82,28 @@ export function CommandPalette() {
     }
   }, [open]);
 
+  // Re-pin focus to the search input on every open and on every
+  // view switch. Radix Dialog runs `onOpenAutoFocus` once, after
+  // which a view switch (root ↔ enum sub-list) re-renders a new
+  // <CommandInput>; without this the new input mounts unfocused.
+  useEffect(() => {
+    if (!open) return;
+    // rAF so the input is in the DOM before we call .focus(); a
+    // sync focus right after setState lands before the layout
+    // effects that mount the new input.
+    const id = requestAnimationFrame(() => inputRef.current?.focus());
+    return () => cancelAnimationFrame(id);
+  }, [open, view.kind]);
+
   // Escape inside a sub-view backs out to the root rather than closing
   // the whole dialog. The Dialog's own Escape close still fires when
   // we're already on root, which is the right behaviour.
   //
-  // Tab + Shift+Tab close the palette outright instead of moving focus
-  // through Radix's focus trap. The trap visibly highlights whatever
-  // focusable element it lands on, which reads as if the palette had
-  // "selected" something for the user — when all they wanted was to
-  // press Tab. After close, focus returns to wherever it was before
-  // the palette opened (Radix handles this), so a second Tab does
-  // whatever Tab normally does in the underlying surface (e.g. on
-  // /app, restart the test when quickRestart is on).
+  // Tab + Shift+Tab are swallowed (preventDefault, no other action)
+  // so Radix's focus trap doesn't shift the highlight off the input.
+  // The earlier "tab closes the palette" rule was a step too far —
+  // the right behaviour is "tab does nothing visible", keeping focus
+  // pinned to the search field so the user can keep typing.
   const onKeyDownInside = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "Escape" && view.kind !== "root") {
@@ -100,7 +116,6 @@ export function CommandPalette() {
       if (e.key === "Tab") {
         e.preventDefault();
         e.stopPropagation();
-        setOpen(false);
       }
     },
     [view.kind],
@@ -178,6 +193,7 @@ export function CommandPalette() {
               query={query}
               setQuery={setQuery}
               runEntry={runEntry}
+              inputRef={inputRef}
             />
           ) : (
             <EnumView
@@ -193,6 +209,7 @@ export function CommandPalette() {
                 setView({ kind: "root" });
                 setQuery("");
               }}
+              inputRef={inputRef}
             />
           )}
 
@@ -210,18 +227,22 @@ function RootView({
   query,
   setQuery,
   runEntry,
+  inputRef,
 }: {
   groups: { group: CommandGroupId; items: CommandEntry[] }[];
   query: string;
   setQuery: (q: string) => void;
   runEntry: (e: CommandEntry) => void;
+  inputRef: React.RefObject<HTMLInputElement | null>;
 }) {
   return (
     <>
       <CommandInput
+        ref={inputRef}
         value={query}
         onValueChange={setQuery}
         placeholder="Search settings, themes, actions…"
+        autoFocus
       />
       <CommandList>
         <CommandEmpty>No matches.</CommandEmpty>
@@ -251,18 +272,24 @@ function EnumView({
   setQuery,
   onPick,
   onBack,
+  inputRef,
 }: {
   entry: EnumEntry;
   query: string;
   setQuery: (q: string) => void;
   onPick: (id: string) => void;
   onBack: () => void;
+  inputRef: React.RefObject<HTMLInputElement | null>;
 }) {
   return (
     <>
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <button
           type="button"
+          // tabIndex -1 so Radix's focus trap doesn't land here on
+          // Tab — the user reaches Back via mouse / Esc, not Tab,
+          // and we want focus to stay on the search input.
+          tabIndex={-1}
           onClick={onBack}
           className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground"
         >
@@ -274,9 +301,11 @@ function EnumView({
         </span>
       </div>
       <CommandInput
+        ref={inputRef}
         value={query}
         onValueChange={setQuery}
         placeholder={`Pick a value for ${entry.label.toLowerCase()}`}
+        autoFocus
       />
       <CommandList>
         <CommandEmpty>No matches.</CommandEmpty>
@@ -373,9 +402,6 @@ function Footer({ view }: { view: View }) {
         </span>
         <span>
           <Kbd>↵</Kbd> {view.kind === "root" ? "Act" : "Pick"}
-        </span>
-        <span>
-          <Kbd>Tab</Kbd> Dismiss
         </span>
         <span>
           <Kbd>Esc</Kbd> {view.kind === "root" ? "Close" : "Back"}
