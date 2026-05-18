@@ -20,22 +20,26 @@ export const revalidate = 86_400;
  *  colours — so this file repeats the layout rather than importing
  *  the JSX from /card. Both files together form the contract: edit
  *  /card for the human-screenshot story, edit this file for what
- *  social platforms see. Tagline + numbers + spark must stay in
- *  sync. */
+ *  social platforms see. Prose, stats, hairlines, and tokens must
+ *  stay in sync. */
 export default async function OpengraphImage() {
-  const [mono500, mono700] = await Promise.all([
+  const [mono500, mono600, mono700, mono800] = await Promise.all([
     loadFont("JetBrains+Mono", 500),
+    loadFont("JetBrains+Mono", 600),
     loadFont("JetBrains+Mono", 700),
+    loadFont("JetBrains+Mono", 800),
   ]);
 
+  // Warm-ink ramp (docs/ui-law.md §2.3) — fixed across themes so
+  // every screenshot is identical regardless of viewer palette.
+  const INK_DEEP = "#0A0A09";
+  const INK_LINE = "#221F1A";
   const PAPER = "#F2EDE2";
-  const INK = "#141414";
-  const LINE_SOFT = "#DDD6C5";
-  const DIM = "#8C8C8C";
-  const DIM_2 = "#595959";
+  const WARM_1 = "#B5AF9F";
+  const WARM_3 = "#6E695F";
+  const WARM_4 = "#5C5950";
   const EMBER = "#E1582C";
-  const WARM_2 = "#9C978A";
-  const HERO_PX = 88;
+  const PASSAGE_PX = 56;
 
   return new ImageResponse(
     (
@@ -45,173 +49,195 @@ export default async function OpengraphImage() {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          backgroundColor: PAPER,
-          color: INK,
+          backgroundColor: INK_DEEP,
+          color: PAPER,
           fontFamily: "JetBrains Mono",
           position: "relative",
         }}
       >
-        {/* 6px ember rule — brand spark visible even at thumb size */}
+        {/* 3px ember rule — brand spark visible even at thumb size */}
         <div
           style={{
             position: "absolute",
             top: 0,
             left: 0,
             right: 0,
-            height: 6,
+            height: 3,
             backgroundColor: EMBER,
           }}
         />
 
-        {/* Header */}
+        {/* Header — slim rail, run-metadata on the right */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            paddingTop: 56,
-            paddingBottom: 36,
-            paddingLeft: 64,
-            paddingRight: 64,
-            borderBottom: `1px solid ${LINE_SOFT}`,
+            paddingLeft: 56,
+            paddingRight: 56,
+            paddingTop: 32,
+            paddingBottom: 32,
+            borderBottom: `1px solid ${INK_LINE}`,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
             <img
               src={LOGO_DATA_URL}
               alt=""
-              width={48}
-              height={80}
+              width={26}
+              height={44}
               style={{ display: "block" }}
             />
             <span
               style={{
-                fontSize: 52,
-                fontWeight: 700,
-                letterSpacing: "-0.04em",
-                color: INK,
+                fontSize: 36,
+                fontWeight: 800,
+                letterSpacing: "-0.045em",
+                color: PAPER,
+                lineHeight: 1,
               }}
             >
               flinttype
             </span>
           </div>
 
-          {/* ADAPTIVE pill */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              backgroundColor: EMBER,
-              color: PAPER,
-              paddingTop: 12,
-              paddingBottom: 12,
-              paddingLeft: 24,
-              paddingRight: 24,
-              boxShadow: "0 12px 30px -10px rgba(225, 88, 44, 0.55)",
-            }}
-          >
-            {/* Sparkline */}
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 4 }}>
-              {[10, 16, 22, 18, 28].map((h, i) => (
-                <div
-                  key={i}
-                  style={{ width: 5, height: h, backgroundColor: PAPER }}
-                />
-              ))}
-            </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
             <span
               style={{
-                fontSize: 24,
-                fontWeight: 700,
+                fontSize: 13,
+                fontWeight: 600,
                 textTransform: "uppercase",
-                letterSpacing: "0.16em",
+                letterSpacing: "0.22em",
+                color: WARM_3,
+                lineHeight: 1,
               }}
             >
-              Adaptive
+              Words · 50
             </span>
+            <span
+              style={{
+                fontSize: 15,
+                fontWeight: 500,
+                letterSpacing: "0.04em",
+                color: WARM_1,
+                lineHeight: 1,
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              0:34
+            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{ width: 8, height: 8, backgroundColor: EMBER }}
+              />
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.26em",
+                  color: EMBER,
+                  lineHeight: 1,
+                }}
+              >
+                Live
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Hero passage — two forced single-line blocks */}
+        {/* Passage — three-line mid-run snapshot. Block is flush-left
+            but the block itself is centered horizontally inside the
+            card via outer flex justifyContent:center. */}
+        <div
+          style={{
+            display: "flex",
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            paddingLeft: 80,
+            paddingRight: 80,
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div
+              style={{
+                display: "flex",
+                fontSize: PASSAGE_PX,
+                lineHeight: 1.36,
+                letterSpacing: "-0.018em",
+                fontWeight: 500,
+                color: PAPER,
+              }}
+            >
+              your hands learn the keys you keep
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                fontSize: PASSAGE_PX,
+                lineHeight: 1.36,
+                letterSpacing: "-0.018em",
+                fontWeight: 500,
+              }}
+            >
+              <span style={{ color: PAPER }}>missing, the rhythm tigh</span>
+              <span
+                style={{
+                  display: "flex",
+                  width: 4,
+                  height: PASSAGE_PX * 0.78,
+                  backgroundColor: EMBER,
+                  marginLeft: 2,
+                  marginRight: 2,
+                }}
+              />
+              <span style={{ color: WARM_4 }}>tens, and</span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                fontSize: PASSAGE_PX,
+                lineHeight: 1.36,
+                letterSpacing: "-0.018em",
+                fontWeight: 500,
+                color: WARM_4,
+              }}
+            >
+              the slips quietly disappear.
+            </div>
+          </div>
+        </div>
+
+        {/* Footer — stat strip + baseline caption. Four equal columns
+            (flex with width:25%) and one ember accent (WPM) matching
+            the caret above. */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            justifyContent: "center",
-            flex: 1,
-            paddingLeft: 64,
-            paddingRight: 64,
-            gap: 12,
+            gap: 32,
+            borderTop: `1px solid ${INK_LINE}`,
+            paddingLeft: 56,
+            paddingRight: 56,
+            paddingTop: 36,
+            paddingBottom: 36,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              fontSize: HERO_PX,
-              letterSpacing: "-0.02em",
-              fontWeight: 500,
-            }}
-          >
-            <span style={{ color: EMBER }}>the quick brown</span>
-            <span style={{ color: DIM_2 }}>&nbsp;fox jumps</span>
+          <div style={{ display: "flex" }}>
+            <StatCell label="WPM" value="124" accent ember={EMBER} warm1={WARM_1} warm3={WARM_3} />
+            <StatCell label="ACC" value="98%" ember={EMBER} warm1={WARM_1} warm3={WARM_3} />
+            <StatCell label="BURST" value="148" ember={EMBER} warm1={WARM_1} warm3={WARM_3} />
+            <StatCell label="WORD" value="32/50" ember={EMBER} warm1={WARM_1} warm3={WARM_3} />
           </div>
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              fontSize: HERO_PX,
-              letterSpacing: "-0.02em",
-              fontWeight: 500,
-            }}
-          >
-            <span style={{ color: DIM_2 }}>over the&nbsp;</span>
-            <span
-              style={{
-                color: EMBER,
-                textDecoration: "underline",
-                textDecorationColor: EMBER,
-                textDecorationThickness: 4,
-                textUnderlineOffset: 12,
-              }}
-            >
-              lazy
-            </span>
-            <span style={{ color: DIM_2 }}>&nbsp;dog, cof</span>
-            <span
-              style={{
-                display: "flex",
-                width: 5,
-                height: HERO_PX * 0.85,
-                backgroundColor: EMBER,
-                marginLeft: -3,
-                marginRight: -3,
-              }}
-            />
-            <span style={{ color: DIM_2 }}>fee.</span>
-          </div>
-        </div>
-
-        {/* Footer — dark ink band */}
-        <div
-          style={{
-            display: "flex",
-            backgroundColor: INK,
-            color: PAPER,
-            paddingTop: 40,
-            paddingBottom: 40,
-            paddingLeft: 64,
-            paddingRight: 64,
-            gap: 40,
-            alignItems: "center",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-              flex: 1,
+              justifyContent: "space-between",
+              borderTop: `1px solid ${INK_LINE}`,
+              paddingTop: 28,
             }}
           >
             <span
@@ -219,50 +245,25 @@ export default async function OpengraphImage() {
                 fontSize: 14,
                 fontWeight: 600,
                 textTransform: "uppercase",
-                letterSpacing: "0.26em",
-                color: WARM_2,
-              }}
-            >
-              Models · Drills · Races · Open source
-            </span>
-            <span
-              style={{
-                fontSize: 34,
-                fontWeight: 600,
-                letterSpacing: "-0.02em",
-                color: PAPER,
-              }}
-            >
-              Learns your weakest bigrams.
-            </span>
-            <span
-              style={{
-                fontSize: 15,
-                fontWeight: 500,
-                textTransform: "uppercase",
                 letterSpacing: "0.22em",
-                color: EMBER,
-                marginTop: 4,
+                color: PAPER,
+                lineHeight: 1,
               }}
             >
               flinttype.app
             </span>
-          </div>
-
-          {/* Stats */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-end",
-              gap: 40,
-              borderLeft: "1px solid rgba(255,255,255,0.15)",
-              paddingLeft: 40,
-              width: 360,
-              justifyContent: "flex-end",
-            }}
-          >
-            <StatBlock label="WPM" value="124" color={PAPER} warm={WARM_2} />
-            <StatBlock label="ACC" value="98%" color={EMBER} warm={WARM_2} />
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                textTransform: "uppercase",
+                letterSpacing: "0.22em",
+                color: WARM_3,
+                lineHeight: 1,
+              }}
+            >
+              Learns the bigrams you keep missing
+            </span>
           </div>
         </div>
       </div>
@@ -270,65 +271,65 @@ export default async function OpengraphImage() {
     {
       ...size,
       fonts: [
-        {
-          name: "JetBrains Mono",
-          data: mono500,
-          weight: 500,
-          style: "normal",
-        },
-        {
-          name: "JetBrains Mono",
-          data: mono700,
-          weight: 700,
-          style: "normal",
-        },
+        { name: "JetBrains Mono", data: mono500, weight: 500, style: "normal" },
+        { name: "JetBrains Mono", data: mono600, weight: 600, style: "normal" },
+        { name: "JetBrains Mono", data: mono700, weight: 700, style: "normal" },
+        { name: "JetBrains Mono", data: mono800, weight: 800, style: "normal" },
       ],
     },
   );
 }
 
-/** Reusable stat block — flex-only because Satori. */
-function StatBlock({
+/** Equal-width stat column. WPM is the ember accent; the rest sit in
+ *  the warm-1 tone so the eye lands on WPM first. */
+function StatCell({
   label,
   value,
-  color,
-  warm,
+  accent = false,
+  ember,
+  warm1,
+  warm3,
 }: {
   label: string;
   value: string;
-  color: string;
-  warm: string;
+  accent?: boolean;
+  ember: string;
+  warm1: string;
+  warm3: string;
 }) {
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "column",
-        alignItems: "flex-end",
+        alignItems: "flex-start",
+        gap: 14,
+        width: "25%",
       }}
     >
-      <span
-        style={{
-          fontSize: 64,
-          fontWeight: 700,
-          letterSpacing: "-0.045em",
-          color,
-          fontVariantNumeric: "tabular-nums",
-        }}
-      >
-        {value}
-      </span>
       <span
         style={{
           fontSize: 12,
           fontWeight: 600,
           textTransform: "uppercase",
-          letterSpacing: "0.3em",
-          color: warm,
-          marginTop: 12,
+          letterSpacing: "0.28em",
+          color: warm3,
+          lineHeight: 1,
         }}
       >
         {label}
+      </span>
+      <span
+        style={{
+          fontSize: 72,
+          fontWeight: 700,
+          letterSpacing: "-0.045em",
+          color: accent ? ember : warm1,
+          lineHeight: 1,
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        {value}
       </span>
     </div>
   );
