@@ -9,19 +9,24 @@ export const metadata: Metadata = buildPageMetadata({
   noIndex: true,
 });
 
-/** A 1500 × 787 (Twitter / OG aspect 1.91 : 1) brand card. Renders at a
- *  fixed pixel size so a screenshot tool — Vercel OG, Puppeteer, manual
- *  Cmd-Shift-4 — produces an asset usable as og:image / twitter:image
- *  without further cropping. The card paints from the *fixed*
- *  paper-and-ink palette (`ft-*` tokens) rather than the user's chosen
- *  theme so every capture looks the same regardless of the viewer's
- *  current mode / palette — the card is brand-stable by design.
+/** A 1500 × 787 (Twitter / OG aspect 1.91 : 1) brand card.
  *
- *  Composition foregrounds three things the brand wants the social
- *  thumbnail to communicate, in order:
- *    1. flinttype is a typing test (massive hero passage)
- *    2. it's adaptive (loud ember badge, sparkline, tagline)
- *    3. open source + numbers earned (footer stat strip) */
+ *  Design intent — earn attention at three viewing sizes:
+ *
+ *    1. Thumb (200 × 100 in a timeline): the wordmark, the ember
+ *       ADAPTIVE pill, and the dark stat band must read. Hero
+ *       passage truncates to "the quick brown fox" and is still
+ *       recognisable.
+ *    2. Inline (600 × 315 LinkedIn/Facebook): the four-column
+ *       capability strip (Models / Drills / Customisation / Races)
+ *       comes into focus and communicates the engineering depth.
+ *    3. Full (1500 × 787 detail view): the bigram model preview,
+ *       the per-feature counts, and the WPM/ACC/GAIN stat strip
+ *       are all legible — the card reads as a substantive product
+ *       page, not a logo on a colour.
+ *
+ *  Painted from the fixed `ft-*` paper-and-ink palette so every
+ *  screenshot looks identical regardless of the viewer's theme. */
 export default function CardPage() {
   const version = getAppVersion();
   return (
@@ -37,22 +42,17 @@ const H = 787;
 function Card({ version }: { version: string }) {
   return (
     <div
-      // data-screenshot-target — automation can locate the card without
-      // grabbing the surrounding page chrome.
       data-screenshot-target="og-card"
       style={{ width: W, height: H }}
-      className="relative grid shrink-0 grid-rows-[auto_1fr_auto] overflow-hidden bg-ft-paper text-ft-ink shadow-2xl shadow-black/30 ring-1 ring-ft-line-soft"
+      className="relative grid shrink-0 grid-rows-[auto_1fr_auto_auto] overflow-hidden bg-ft-paper text-ft-ink shadow-2xl shadow-black/30 ring-1 ring-ft-line-soft"
     >
-      {/* A 6px ember rule pinned to the top edge — a single confident
-       *  brand spark visible even when the card is rendered at 200×100
-       *  in a Twitter timeline. Doesn't compete with the hero. */}
       <span
         aria-hidden
-        className="absolute inset-x-0 top-0 h-[6px] bg-ft-ember"
+        className="absolute inset-x-0 top-0 z-10 h-[6px] bg-ft-ember"
       />
-
       <Header version={version} />
       <Passage />
+      <CapabilityStrip />
       <Footer />
     </div>
   );
@@ -86,11 +86,9 @@ function Header({ version }: { version: string }) {
   );
 }
 
-/** Loud ember pill — the headline feature on the card. Renders the
- *  word ADAPTIVE big enough to read at thumb size, with a tiny
- *  three-bar sparkline that telegraphs "this thing tracks you over
- *  time". The pill is the second-largest typographic element on the
- *  card after the hero passage. */
+/** Loud ember pill — the headline feature. Sparkline + word "Adaptive"
+ *  + a small detail string ("tracks 4 models") so a viewer who reads
+ *  the pill gets the technical anchor too. */
 function AdaptiveBadge() {
   return (
     <div
@@ -98,19 +96,21 @@ function AdaptiveBadge() {
       style={{ boxShadow: "0 12px 30px -10px rgba(225, 88, 44, 0.55)" }}
     >
       <Sparkline />
-      <span
-        className="font-bold uppercase"
-        style={{ fontSize: 22, letterSpacing: "0.16em" }}
-      >
-        Adaptive
-      </span>
+      <div className="flex flex-col items-start leading-tight">
+        <span
+          className="font-bold uppercase"
+          style={{ fontSize: 22, letterSpacing: "0.16em" }}
+        >
+          Adaptive
+        </span>
+        <span className="text-[10px] uppercase tracking-[0.22em] opacity-90">
+          4 models · per-keystroke
+        </span>
+      </div>
     </div>
   );
 }
 
-/** Five-bar ascending sparkline drawn from primitive divs — no SVG so
- *  it can never miss a font-load or fail to render in OG-image
- *  screenshotters that don't ship full SVG support. */
 function Sparkline() {
   const heights = [10, 16, 22, 18, 28];
   return (
@@ -129,13 +129,8 @@ function Sparkline() {
 
 /* ─── Hero passage ─────────────────────────────────────────────── */
 
-/** The hero. Single passage, big, with the brand's signature visual
- *  vocabulary: typed letters in primary (ember), an inline live caret
- *  bar mid-word, untyped tail in muted ink, one error word
- *  underlined in ember. Sized so the second line still reads at
- *  thumbnail. */
 function Passage() {
-  const HERO_PX = 96;
+  const HERO_PX = 80;
   return (
     <div className="flex flex-col justify-center px-16">
       <p
@@ -154,8 +149,8 @@ function Passage() {
           style={{
             textDecoration: "underline",
             textDecorationColor: "#E1582C",
-            textDecorationThickness: 5,
-            textUnderlineOffset: 14,
+            textDecorationThickness: 4,
+            textUnderlineOffset: 12,
           }}
         >
           lazy
@@ -174,32 +169,98 @@ function CaretInline({ px }: { px: number }) {
       aria-hidden
       className="inline-block bg-ft-ember align-baseline"
       style={{
-        width: 6,
+        width: 5,
         height: px,
-        marginLeft: -3,
-        marginRight: -3,
+        marginLeft: -2.5,
+        marginRight: -2.5,
         transform: `translateY(${Math.round(px * 0.18)}px)`,
       }}
     />
   );
 }
 
+/* ─── Capability strip ─────────────────────────────────────────── */
+
+/** Four-column inventory band that answers "but what does it actually
+ *  do?" in the same glance as the hero. Each column = one capability
+ *  axis with a labelled count and the technical detail underneath.
+ *  Reads as a stat strip; communicates "this is engineered, not just
+ *  themed". */
+function CapabilityStrip() {
+  return (
+    <div className="grid grid-cols-4 border-y border-ft-line-soft bg-ft-paper-2">
+      <Cap
+        label="Models"
+        count="4"
+        detail="bigram · trigram · word · motor"
+      />
+      <Cap
+        label="Drills"
+        count="12"
+        detail="burst + sudden-death · model-fed"
+      />
+      <Cap
+        label="Customise"
+        count="47"
+        detail="prefs · 24 themes · focus mode"
+      />
+      <Cap
+        label="Races"
+        count="4P"
+        detail="real-time SSE · bots · challenges"
+        last
+      />
+    </div>
+  );
+}
+
+function Cap({
+  label,
+  count,
+  detail,
+  last = false,
+}: {
+  label: string;
+  count: string;
+  detail: string;
+  last?: boolean;
+}) {
+  return (
+    <div
+      className={`flex flex-col gap-2 px-10 py-7 ${
+        last ? "" : "border-r border-ft-line-soft"
+      }`}
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[12px] font-semibold uppercase tracking-[0.28em] text-ft-dim">
+          {label}
+        </span>
+        <span
+          className="font-mono tabular-nums text-ft-ink"
+          style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.04em" }}
+        >
+          {count}
+        </span>
+      </div>
+      <span className="text-[14px] font-medium leading-tight text-ft-ink/85">
+        {detail}
+      </span>
+    </div>
+  );
+}
+
 /* ─── Footer ───────────────────────────────────────────────────── */
 
-/** Footer band — kept on its own dark-ink surface so the page reads
- *  as two confident halves (paper passage on top, ink stat strip
- *  underneath). Carries the tagline that explains *why* adaptive
- *  matters and the stat block that proves the product works. */
 function Footer() {
   return (
-    <div className="grid grid-cols-[1fr_auto] items-center gap-12 bg-ft-ink px-16 py-10 text-ft-paper">
+    <div className="grid grid-cols-[1fr_auto] items-center gap-12 bg-ft-ink px-16 py-9 text-ft-paper">
       <div className="flex flex-col gap-3">
         <span className="text-[15px] font-semibold uppercase tracking-[0.26em] text-ft-warm-2">
-          Practice · Drills · Races
+          Open source · MIT
         </span>
         <span
           className="font-semibold tracking-tight"
-          style={{ fontSize: 34, letterSpacing: "-0.02em", lineHeight: 1.15 }}
+          style={{ fontSize: 30, letterSpacing: "-0.02em", lineHeight: 1.15 }}
         >
           A typing test that learns your weakest bigrams.
         </span>
@@ -207,7 +268,7 @@ function Footer() {
           flinttype.app
         </span>
       </div>
-      <div className="flex items-end gap-12 border-l border-white/15 pl-12">
+      <div className="flex items-end gap-10 border-l border-white/15 pl-10">
         <StatBlock label="WPM" value="124" />
         <StatBlock label="ACC" value="98%" accent />
         <StatBlock label="GAIN" value="+14%" />
@@ -231,7 +292,7 @@ function StatBlock({
         className={`font-mono tabular-nums ${
           accent ? "text-ft-ember" : "text-ft-paper"
         }`}
-        style={{ fontSize: 64, fontWeight: 700, letterSpacing: "-0.045em" }}
+        style={{ fontSize: 56, fontWeight: 700, letterSpacing: "-0.045em" }}
       >
         {value}
       </span>
