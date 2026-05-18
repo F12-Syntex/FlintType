@@ -8,15 +8,15 @@ import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../../_components/app-chrome";
 import { ShareCard } from "./_components/share-card";
 
-type Params = { testId: string };
+type Params = { slug: string };
 
 /** React `cache` dedupes between `generateMetadata` and the page render
  *  for the same request — without it, every share-link visit would hit
  *  Clerk + Postgres twice. NOT_FOUND is mapped to `null` so callers
  *  can branch on a value rather than catch BackendError. */
-const loadShare = cache(async (testId: string) => {
+const loadShare = cache(async (slug: string) => {
   try {
-    return await loadSharedTest(getDatabase(), testId, logger);
+    return await loadSharedTest(getDatabase(), slug, logger);
   } catch (err) {
     if (err instanceof BackendError && err.code === "NOT_FOUND") return null;
     throw err;
@@ -28,13 +28,13 @@ export async function generateMetadata({
 }: {
   params: Promise<Params>;
 }) {
-  const { testId } = await params;
-  const data = await loadShare(testId);
+  const { slug } = await params;
+  const data = await loadShare(slug);
   if (!data) {
     return buildPageMetadata({
       title: "Run not found",
       description: "This flinttype share link is invalid or has expired.",
-      path: `/r/${testId}`,
+      path: `/share/${slug}`,
       noIndex: true,
     });
   }
@@ -43,7 +43,7 @@ export async function generateMetadata({
   return buildPageMetadata({
     title: `${data.handle} · ${wpm} wpm · ${acc}% acc`,
     description: `${data.handle} hit ${wpm} wpm at ${acc}% accuracy on flinttype — open the run, then take the same test yourself.`,
-    path: `/r/${testId}`,
+    path: `/share/${slug}`,
     // Public link, but we don't want every shared run cluttering Google
     // — the homepage is the canonical entry point. The og:image is
     // still served from the file-based opengraph-image.tsx alongside
@@ -61,8 +61,8 @@ export default async function ShareTestPage({
 }: {
   params: Promise<Params>;
 }) {
-  const { testId } = await params;
-  const data = await loadShare(testId);
+  const { slug } = await params;
+  const data = await loadShare(slug);
   if (!data) notFound();
   return (
     <AppChrome>

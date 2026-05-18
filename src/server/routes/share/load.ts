@@ -94,5 +94,16 @@ export async function loadSharedTest(
     username,
     avatarUrl,
     tags,
+    rawWpm: row.rawWpm,
+    peakWpm: row.peakWpm,
+    avgWpm: row.avgWpm,
+    stallWpm: row.stallWpm,
+    consistency: row.consistency,
+    // JSONB columns deserialize as `unknown` — cast to the documented
+    // shape. Source is the validated wpmSampleSchema in submit, so the
+    // runtime shape matches; if a legacy row somehow has malformed
+    // JSON the renderer's null-handling will catch it (treats as no
+    // history available).
+    wpmHistory: row.wpmHistory as SharedTest["wpmHistory"],
   };
 }

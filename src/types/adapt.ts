@@ -61,6 +61,17 @@ export const testModeSchema = z.enum([
 ]);
 export type TestMode = z.infer<typeof testModeSchema>;
 
+/** One per-second WPM sample from the live chart, posted alongside
+ *  the test summary so the server can persist it for later rendering
+ *  on the share card. Bounded at 600 samples (10min of 1-sec ticks)
+ *  so payloads stay small even for absurd-length runs. */
+export const wpmSampleSchema = z.object({
+  t: z.number().nonnegative(),
+  wpm: z.number(),
+  raw: z.number(),
+});
+export type WpmSamplePayload = z.infer<typeof wpmSampleSchema>;
+
 export const submitTestInputSchema = z.object({
   startedAt: z.number().int().nonnegative(),
   completedAt: z.number().int().nonnegative(),
@@ -77,6 +88,16 @@ export const submitTestInputSchema = z.object({
   // emit and stops a malformed payload from inflating the array).
   words: z.array(z.string().max(64)).max(2000),
   timings: z.array(keystrokeTimingSchema).max(20000),
+  // Roll-up stats and per-second chart — all optional so older
+  // clients (and the race/drill submit paths that haven't been
+  // updated) still validate. Server persists them as-is for the
+  // share-card renderer.
+  rawWpm: z.number().nonnegative().optional(),
+  peakWpm: z.number().nonnegative().optional(),
+  avgWpm: z.number().nonnegative().optional(),
+  stallWpm: z.number().nonnegative().optional(),
+  consistency: z.number().min(0).max(100).optional(),
+  wpmHistory: z.array(wpmSampleSchema).max(600).optional(),
 });
 export type SubmitTestInput = z.infer<typeof submitTestInputSchema>;
 

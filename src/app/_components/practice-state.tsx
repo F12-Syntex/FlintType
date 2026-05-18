@@ -18,6 +18,12 @@ import { useIsMobile } from "@/lib/use-is-mobile";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { calcWpmAndRaw, countChars } from "@/lib/wpm";
 import {
+  avgWpm as computeAvgWpm,
+  consistencyScore as computeConsistency,
+  peakWpm as computePeakWpm,
+  stallWpm as computeStallWpm,
+} from "@/lib/wpm-stats";
+import {
   adaptPool,
   decorate,
   defaultLengthFor,
@@ -403,6 +409,14 @@ export function PracticeProvider({
     if (state.phase !== "done") setLastTestId(null);
   }, [state.phase]);
 
+  // Mirror wpmHistory in a ref so the submit effect can read the
+  // up-to-the-moment value without subscribing to it (subscribing
+  // would re-fire the effect every second and the lastSubmittedRef
+  // guard would just no-op, but the wasted closure churn isn't
+  // worth saving the ref).
+  const wpmHistoryRef = useRef<readonly WpmSample[]>(wpmHistory);
+  wpmHistoryRef.current = wpmHistory;
+
   // Submit completed runs to the adapt route. Fires once per
   // (startTime, endTime) tuple — guards against the effect re-running
   // when the user restarts (which keeps phase=done briefly).
@@ -417,7 +431,7 @@ export function PracticeProvider({
     if (lastSubmittedRef.current === key) return;
     lastSubmittedRef.current = key;
 
-    const { wpm } = calcWpmAndRaw(
+    const { wpm, raw } = calcWpmAndRaw(
       state.typed,
       state.words,
       endTime - startTime,
@@ -434,6 +448,17 @@ export function PracticeProvider({
       0,
       Math.min(state.cursorWord + 1, state.words.length),
     );
+
+    // Roll-up stats + per-second history, computed from the same
+    // wpmHistory buffer the live <ResultChart> reads. Persisted so
+    // the share image (and any future async render of the results
+    // screen) can show the same numbers and chart shape the user
+    // saw post-test, without storing keystroke timings.
+    const history = wpmHistoryRef.current;
+    const peakWpm = Math.round(computePeakWpm(history));
+    const avgWpm = Math.round(computeAvgWpm(history));
+    const stallWpm = Math.round(computeStallWpm(history));
+    const consistency = computeConsistency(history);
 
     const adaptOn = state.adapt;
     const wordsMode = state.mode === "WORDS";
@@ -456,6 +481,19 @@ export function PracticeProvider({
         wasCompleted: true,
         words: wordsActuallyTyped,
         timings: state.events,
+        rawWpm: raw,
+        peakWpm,
+        avgWpm,
+        stallWpm,
+        consistency,
+        // Cap to the schema max (600). For runs ≤10min this is a
+        // no-op; longer runs get the head-trimmed history, which
+        // is fine — the chart cares about overall shape.
+        wpmHistory: history.slice(-600).map((s) => ({
+          t: s.t,
+          wpm: s.wpm,
+          raw: s.raw,
+        })),
       });
       if (testId) setLastTestId(testId);
       // submitTest cleared the queue (model just changed). Top up

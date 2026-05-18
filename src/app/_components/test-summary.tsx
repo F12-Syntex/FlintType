@@ -9,6 +9,12 @@ import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { recordIfPb } from "@/lib/pb-cache";
 import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
 import { cn } from "@/lib/utils";
+import {
+  avgWpm,
+  consistencyScore,
+  peakWpm,
+  stallWpm,
+} from "@/lib/wpm-stats";
 import { type KeyEvent, usePractice } from "./practice-state";
 import { type Bucket, ResultChart } from "./result-chart";
 import {
@@ -16,33 +22,6 @@ import {
   HandBalance,
   PerLetterSlowness,
 } from "./result-insights";
-
-// ─── Stats ─────────────────────────────────────────────────────────
-
-function peakWpm(buckets: readonly Bucket[]): number {
-  return buckets.reduce((m, b) => (b.wpm > m ? b.wpm : m), 0);
-}
-
-function avgWpm(buckets: readonly Bucket[]): number {
-  if (buckets.length === 0) return 0;
-  return buckets.reduce((s, b) => s + b.wpm, 0) / buckets.length;
-}
-
-function stallWpm(buckets: readonly Bucket[]): number {
-  if (buckets.length === 0) return 0;
-  return buckets.reduce((m, b) => (b.wpm < m ? b.wpm : m), buckets[0]!.wpm);
-}
-
-function consistencyScore(buckets: readonly Bucket[]): number {
-  if (buckets.length < 2) return 100;
-  const avg = avgWpm(buckets);
-  if (avg === 0) return 0;
-  const variance =
-    buckets.reduce((s, b) => s + (b.wpm - avg) ** 2, 0) / buckets.length;
-  const stdDev = Math.sqrt(variance);
-  const cv = stdDev / avg;
-  return Math.max(0, Math.min(100, Math.round(100 * (1 - cv))));
-}
 
 // ─── Pieces ────────────────────────────────────────────────────────
 

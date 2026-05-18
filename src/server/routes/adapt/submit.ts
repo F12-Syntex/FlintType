@@ -140,6 +140,17 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
       errorCount: input.errorCount,
       resetCount: input.resetCount,
       wasCompleted: input.wasCompleted,
+      // Persist the live-chart payload so /share/<slug> can render
+      // the same results-screen layout the user saw post-test. All
+      // optional — older / non-practice submit paths (race, drills)
+      // may not include them, which is fine; the share renderer
+      // falls back when the columns are null.
+      rawWpm: input.rawWpm ?? null,
+      peakWpm: input.peakWpm ?? null,
+      avgWpm: input.avgWpm ?? null,
+      stallWpm: input.stallWpm ?? null,
+      consistency: input.consistency ?? null,
+      wpmHistory: input.wpmHistory ?? null,
     });
 
     // Personal-best notification — fires when a completed run beats

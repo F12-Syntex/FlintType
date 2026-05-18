@@ -50,4 +50,17 @@ export type SharedTest = {
    *  …). Already intersected with the runner's display selection by
    *  the server. */
   tags: UserTagId[];
+  /** Roll-up stats from the live test screen — null on legacy rows
+   *  submitted before the share feature shipped, populated for every
+   *  new run. The share-card renderer reads these to mirror the
+   *  seven-stat row the user saw post-test. */
+  rawWpm: number | null;
+  peakWpm: number | null;
+  avgWpm: number | null;
+  stallWpm: number | null;
+  consistency: number | null;
+  /** Per-second WPM samples from the run. Same source the live
+   *  <ResultChart> consumes; persisted so the share image can render
+   *  the same trace shape. Null on legacy rows. */
+  wpmHistory: { t: number; wpm: number; raw: number }[] | null;
 };

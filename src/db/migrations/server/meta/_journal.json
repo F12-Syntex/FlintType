@@ -43,6 +43,13 @@
       "when": 1778677031989,
       "tag": "0005_spooky_excalibur",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779100788416,
+      "tag": "0006_nifty_polaris",
+      "breakpoints": true
     }
   ]
 }

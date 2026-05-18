@@ -63,7 +63,13 @@ const SCHEMA_DDL = `
     accuracy                 double precision NOT NULL,
     error_count              integer NOT NULL,
     reset_count              integer NOT NULL,
-    was_completed            boolean NOT NULL
+    was_completed            boolean NOT NULL,
+    wpm_history              jsonb,
+    raw_wpm                  double precision,
+    peak_wpm                 double precision,
+    avg_wpm                  double precision,
+    stall_wpm                double precision,
+    consistency              double precision
   );
   CREATE INDEX IF NOT EXISTS tests_user_time_idx ON tests (user_id, started_at);
   CREATE TABLE IF NOT EXISTS notifications (

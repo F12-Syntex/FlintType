@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Loader2, Share2 } from "lucide-react";
+import { AlertCircle, Check, Loader2, Share2 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import {
   Tooltip,
@@ -12,11 +12,13 @@ import { cn } from "@/lib/utils";
 
 type Variant = "icon" | "labelled";
 
-/** Three terminal states the share action can land in. `shared`
- *  fires when the OS share sheet swallows the call (we don't get to
- *  read which app the user picked); `copied` and `saved` mark the
- *  desktop fallbacks. All three flash the same brief check tick. */
-type ShareResult = "shared" | "copied" | "saved";
+/** Terminal states the share action can land in. `shared` fires when
+ *  the OS share sheet swallowed the file (mobile primary path);
+ *  `copied` fires when an image landed on the clipboard; `saved`
+ *  fires when the file downloaded; `failed` flashes when every
+ *  transport gave up. The tooltip + icon track state so the user
+ *  always knows what just happened. */
+type ShareResult = "shared" | "copied" | "saved" | "failed";
 
 /** One-stop share affordance for a completed run.
  *
@@ -65,21 +67,32 @@ export function ShareRunButton({
   const onShare = useCallback(async () => {
     if (busy) return;
     setBusy(true);
+    const flashResult = (r: ShareResult) => {
+      setResult(r);
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = setTimeout(
+        () => setResult(null),
+        r === "failed" ? 3_000 : 2_000,
+      );
+    };
     try {
       const slug = buildShareSlug({ handle, wpm, testId });
-      const imageUrl = `${window.location.origin}/r/${slug}/opengraph-image`;
-      const blob = await fetch(imageUrl).then((r) => {
-        if (!r.ok) throw new Error(`OG fetch failed: ${r.status}`);
-        return r.blob();
-      });
+      const imageUrl = `${window.location.origin}/share/${slug}/opengraph-image`;
+      // Cache-bust on each click so a stale 24h OG cache (the render
+      // can take seconds on cold) doesn't leak between runs while
+      // the user is iterating during dev.
+      const res = await fetch(imageUrl, { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error(`OG fetch failed: ${res.status}`);
+      }
+      const blob = await res.blob();
       const file = new File([blob], `flinttype-${slug}.png`, {
         type: "image/png",
       });
 
-      // 1) OS share sheet with file payload. canShare gates because
-      //    `navigator.share` exists on desktop Chrome but rejects
-      //    files there — and the rejection promise leaks an unhandled
-      //    error if we don't check first.
+      // 1) Mobile / supporting desktop: OS share sheet with the file
+      //    attached. The user picks Messages / Twitter / Discord / …
+      //    and the PNG lands inline.
       const canShareFiles =
         typeof navigator !== "undefined" &&
         typeof navigator.canShare === "function" &&
@@ -90,16 +103,21 @@ export function ShareRunButton({
           flashResult("shared");
           return;
         } catch (err) {
-          // User dismissed the share sheet — that's a graceful exit,
-          // not an error. Anything else, fall through to clipboard.
-          if (err instanceof Error && err.name === "AbortError") return;
+          // User dismissed the share sheet — that's a graceful exit
+          // (no further fallback needed). Anything else, fall through.
+          if (err instanceof Error && err.name === "AbortError") {
+            setResult(null);
+            return;
+          }
         }
       }
 
-      // 2) Clipboard image — works on desktop Chromium / Edge / Safari
-      //    (Tech Preview). Pastes as an inline image into any target
-      //    that accepts an image clipboard payload (Slack, Discord,
-      //    Twitter composer, iMessage, …).
+      // 2) Desktop preferred: clipboard image. Pastes inline into any
+      //    composer that accepts an image (Slack, Discord, iMessage,
+      //    Twitter web). Browser support is uneven — wrapped so a
+      //    silent rejection falls through to the download path
+      //    instead of leaving the user without any artifact.
+      let clipboardOk = false;
       if (
         typeof navigator !== "undefined" &&
         navigator.clipboard &&
@@ -109,15 +127,19 @@ export function ShareRunButton({
           await navigator.clipboard.write([
             new ClipboardItem({ "image/png": blob }),
           ]);
-          flashResult("copied");
-          return;
+          clipboardOk = true;
         } catch {
-          // Fall through to download.
+          // Falls through to download.
         }
       }
+      if (clipboardOk) {
+        flashResult("copied");
+        return;
+      }
 
-      // 3) Download — final fallback. Same artifact, just hands it to
-      //    the user instead of staging it in the clipboard.
+      // 3) Reliable last resort: download the PNG. The user gets a
+      //    real file they can attach anywhere. Never silent — the
+      //    OS download bar is its own confirmation.
       const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = objectUrl;
@@ -129,14 +151,9 @@ export function ShareRunButton({
       flashResult("saved");
     } catch (err) {
       console.error("[share-run-button] failed", err);
+      flashResult("failed");
     } finally {
       setBusy(false);
-    }
-
-    function flashResult(r: ShareResult) {
-      setResult(r);
-      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-      resetTimerRef.current = setTimeout(() => setResult(null), 1_800);
     }
   }, [busy, handle, testId, wpm]);
 
@@ -144,11 +161,22 @@ export function ShareRunButton({
     shared: "shared",
     copied: "copied",
     saved: "saved",
+    failed: "failed",
   };
   const tooltipMap: Record<ShareResult, string> = {
     shared: "Shared",
     copied: "Image copied — paste anywhere",
-    saved: "Image saved",
+    saved: "Image saved to downloads",
+    failed: "Couldn't share — try again",
+  };
+
+  const StatusIcon = ({ size }: { size: number }) => {
+    if (busy) return <Loader2 size={size} className="shrink-0 animate-spin" aria-hidden />;
+    if (result === "failed")
+      return <AlertCircle size={size} className="shrink-0 text-destructive" aria-hidden />;
+    if (result)
+      return <Check size={size} className="shrink-0 text-primary" aria-hidden />;
+    return <Share2 size={size} className="shrink-0" aria-hidden />;
   };
 
   if (variant === "labelled") {
@@ -158,19 +186,15 @@ export function ShareRunButton({
         onClick={onShare}
         disabled={busy}
         aria-label="Share this run as an image"
+        aria-live="polite"
         className={cn(
           "inline-flex h-9 items-center gap-1.5 rounded-md px-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-60",
+          result === "failed" && "text-destructive hover:text-destructive",
           className,
         )}
       >
-        {busy ? (
-          <Loader2 size={13} className="shrink-0 animate-spin" aria-hidden />
-        ) : result ? (
-          <Check size={13} className="shrink-0 text-primary" aria-hidden />
-        ) : (
-          <Share2 size={13} className="shrink-0" aria-hidden />
-        )}
-        {result ? labelMap[result] : "share image"}
+        <StatusIcon size={13} />
+        {busy ? "preparing" : result ? labelMap[result] : "share image"}
       </button>
     );
   }
@@ -187,19 +211,15 @@ export function ShareRunButton({
           }}
           disabled={busy}
           aria-label="Share this run as an image"
+          aria-live="polite"
           className={cn(
             "inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:bg-accent focus-visible:text-foreground focus-visible:outline-none disabled:opacity-60",
-            result && "text-primary hover:text-primary",
+            result === "failed" && "text-destructive hover:text-destructive",
+            result && result !== "failed" && "text-primary hover:text-primary",
             className,
           )}
         >
-          {busy ? (
-            <Loader2 size={14} className="shrink-0 animate-spin" aria-hidden />
-          ) : result ? (
-            <Check size={14} className="shrink-0" aria-hidden />
-          ) : (
-            <Share2 size={14} className="shrink-0" aria-hidden />
-          )}
+          <StatusIcon size={14} />
         </button>
       </TooltipTrigger>
       <TooltipContent side="top" className="text-[11px]">

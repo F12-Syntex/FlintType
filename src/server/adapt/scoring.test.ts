@@ -41,6 +41,12 @@ function makeTestRow(over: Partial<TestRow>): TestRow {
     errorCount: 0,
     resetCount: 0,
     wasCompleted: true,
+    rawWpm: null,
+    peakWpm: null,
+    avgWpm: null,
+    stallWpm: null,
+    consistency: null,
+    wpmHistory: null,
     ...over,
   };
 }

@@ -3,6 +3,7 @@ import {
   doublePrecision,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -34,6 +35,23 @@ export const tests = pgTable(
     errorCount: integer("error_count").notNull(),
     resetCount: integer("reset_count").notNull(),
     wasCompleted: boolean("was_completed").notNull(),
+    /** Per-second WPM samples from the run, used to render the
+     *  results-screen-style WPM trace on the share card. JSONB so the
+     *  shape can evolve without a migration; client posts the data
+     *  it already computed for the live chart and the server trusts
+     *  it (same trust model as wpm / accuracy above — these are
+     *  presentation data, not algorithmic inputs). Capped client-side
+     *  to ~300 samples (5min of 1-sec ticks) so payloads stay small.
+     *  Null on legacy rows submitted before the share feature shipped. */
+    wpmHistory: jsonb("wpm_history"),
+    /** Roll-up stats also derived from the run; persisted so the
+     *  share card can show the same seven-stat row the user saw on
+     *  the post-test summary. Null on legacy rows. */
+    rawWpm: doublePrecision("raw_wpm"),
+    peakWpm: doublePrecision("peak_wpm"),
+    avgWpm: doublePrecision("avg_wpm"),
+    stallWpm: doublePrecision("stall_wpm"),
+    consistency: doublePrecision("consistency"),
   },
   (t) => ({
     userTimeIdx: index("tests_user_time_idx").on(t.userId, t.startedAt),

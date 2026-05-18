@@ -4,7 +4,7 @@
  *  test-id prefix with the runner's handle and WPM so the URL reads
  *  as the artifact:
  *
- *      /r/saif-92wpm-a3f9c0d1
+ *      /share/saif-92wpm-a3f9c0d1
  *
  *  The trailing 8-hex-char segment is the only piece the server cares
  *  about — everything left of the last `-` is decoration and can be
