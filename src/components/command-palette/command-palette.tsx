@@ -79,6 +79,15 @@ export function CommandPalette() {
   // Escape inside a sub-view backs out to the root rather than closing
   // the whole dialog. The Dialog's own Escape close still fires when
   // we're already on root, which is the right behaviour.
+  //
+  // Tab + Shift+Tab close the palette outright instead of moving focus
+  // through Radix's focus trap. The trap visibly highlights whatever
+  // focusable element it lands on, which reads as if the palette had
+  // "selected" something for the user — when all they wanted was to
+  // press Tab. After close, focus returns to wherever it was before
+  // the palette opened (Radix handles this), so a second Tab does
+  // whatever Tab normally does in the underlying surface (e.g. on
+  // /app, restart the test when quickRestart is on).
   const onKeyDownInside = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "Escape" && view.kind !== "root") {
@@ -86,6 +95,12 @@ export function CommandPalette() {
         e.stopPropagation();
         setView({ kind: "root" });
         setQuery("");
+        return;
+      }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        e.stopPropagation();
+        setOpen(false);
       }
     },
     [view.kind],
@@ -358,6 +373,9 @@ function Footer({ view }: { view: View }) {
         </span>
         <span>
           <Kbd>↵</Kbd> {view.kind === "root" ? "Act" : "Pick"}
+        </span>
+        <span>
+          <Kbd>Tab</Kbd> Dismiss
         </span>
         <span>
           <Kbd>Esc</Kbd> {view.kind === "root" ? "Close" : "Back"}

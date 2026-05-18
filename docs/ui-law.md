@@ -701,6 +701,7 @@ A globally-mounted Cmd/Ctrl+K palette is the keyboard-first surface for every cu
 - Two-tier view: the root list shows every entry grouped by category (Mode, Theme, Behaviour, Caret, Keyboard, Appearance, Navigate). Selecting an enum entry swaps the list to a sub-view of its options, where Enter writes the value and returns to root. Escape backs out of a sub-view (and only closes the dialog when already on root).
 - Toggles flip on Enter and the dialog stays open (so you can flip several settings in one keystroke session). Actions and links close the dialog. Picking an enum option closes the sub-view.
 - The shortcut `Cmd/Ctrl+K` is the palette's. Don't rebind it. `F` (focus mode, §15) and `Esc` (focus mode clear / dialog close) remain orthogonal.
+- `Tab` (and `Shift+Tab`) inside the palette close it instead of moving focus through Radix's trap. The trap visibly highlights focusable elements, which reads to the user as if the palette had "selected" something — but they were just trying to press Tab. After close, a second Tab does whatever Tab does in the underlying surface (e.g. on `/app`, restart the test when `quickRestart` is on).
 
 ### 16.2 Adding an entry
 
