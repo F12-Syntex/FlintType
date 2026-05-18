@@ -69,13 +69,15 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     if (!root) return;
 
     // "custom" — the user has per-var overrides applied via
-    // useThemeOverrides. Don't touch the named-theme vars: the inline
-    // overrides from useThemeOverrides are the source of truth and
-    // would otherwise get clobbered by clearThemeVars below.
-    if (activeId === CUSTOM_THEME_ID) {
-      clearReactivePalette(root);
-      return;
-    }
+    // useThemeOverrides. Don't touch ANY vars: the inline overrides
+    // from useThemeOverrides are the source of truth for the keys
+    // they cover, and the rest of whatever base palette the user
+    // forked from (reactive sample, named theme) should keep
+    // painting underneath. Earlier versions called
+    // clearReactivePalette() here, which wiped the sampled reactive
+    // colours the moment the user nudged a single colour / radius /
+    // font scale — read as "changing any value resets the colours".
+    if (activeId === CUSTOM_THEME_ID) return;
 
     if (activeId === BACKGROUND_REACTIVE_ID) {
       // Reactive is async — sampling takes a frame or two. If we
