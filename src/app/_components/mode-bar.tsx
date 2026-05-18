@@ -208,11 +208,12 @@ function ModeControls() {
         <Field label="wordlist">
           {/* Visual parity with <OptionSwitch size="small">: same
               outer shell (bg-muted + p-1 + border + h-8 + rounded-md)
-              and an inner pill that matches the active chip class.
-              A small list glyph sits before the label so the trigger
-              reads as a list-picker — flat text alone read as just
-              another selected chip and users didn't know it opened
-              anything. */}
+              and an inner pill styled to match the *inactive* chip —
+              muted text with a foreground hover. Painting it in the
+              active primary colour made it read as "already selected,
+              don't touch", and users walked past the trigger without
+              realising it opened a picker. The list glyph + hover
+              state now signal "click to change". */}
           <div className="inline-flex h-8 items-center rounded-md border border-border bg-muted p-1">
             <button
               type="button"
@@ -220,8 +221,8 @@ function ModeControls() {
               aria-haspopup="dialog"
               className={cn(
                 "flex h-full items-center gap-1.5 rounded-sm px-2.5",
-                "text-xs font-medium font-sans duration-150",
-                "bg-primary text-primary-foreground",
+                "text-xs font-medium font-sans duration-150 cursor-pointer",
+                "text-muted-foreground hover:bg-background hover:text-foreground",
                 "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
               )}
             >
