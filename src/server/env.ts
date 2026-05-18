@@ -16,6 +16,35 @@ const schema = z.object({
    *  generated secret — production must set this explicitly via
    *  `.env.local`. See `src/server/api-key-crypto.ts`. */
   API_KEY_ENC_SECRET: z.string().optional(),
+  /** When `true`, this instance owns the in-memory race-room store and
+   *  serves race POSTs + SSE directly. When `false`, race POST handlers
+   *  proxy to RACE_SERVICE_URL instead of touching the local store,
+   *  and the SSE route returns 410 (the browser is expected to connect
+   *  to the authority directly via NEXT_PUBLIC_RACE_SERVICE_URL).
+   *
+   *  Hybrid deployment shape: Vercel runs the main app with
+   *  RACE_AUTHORITY=false; a single Railway instance runs the same
+   *  repo with RACE_AUTHORITY=true so the race state lives in one
+   *  warm process and cross-instance matchmaking races disappear by
+   *  construction. Local dev and tests default to `true` so behaviour
+   *  is identical to today's single-process model. */
+  RACE_AUTHORITY: z.enum(['true', 'false']).default('true'),
+  /** Origin of the race authority instance, e.g.
+   *  `https://race.flinttype.com`. Required when RACE_AUTHORITY=false;
+   *  ignored otherwise. */
+  RACE_SERVICE_URL: z.string().url().optional(),
+  /** Shared secret carried in `x-flinttype-race-secret` on every
+   *  proxied request. When set on the authority, requests missing or
+   *  mismatching this header are rejected with 401 — this locks the
+   *  publicly-reachable Railway URL down to traffic that came through
+   *  Vercel. When unset (local dev), the authority accepts any
+   *  caller. Vercel's RACE_PROXY_SECRET must match Railway's. */
+  RACE_PROXY_SECRET: z.string().optional(),
+  /** Origin the browser EventSource should connect to for SSE. When
+   *  set, the client opens `${NEXT_PUBLIC_RACE_SERVICE_URL}/api/race/
+   *  stream/<id>` instead of a same-origin URL. NEXT_PUBLIC_ so it
+   *  ships in the client bundle. */
+  NEXT_PUBLIC_RACE_SERVICE_URL: z.string().optional(),
   /** Build-time snapshot of the VERSION file, injected via
    *  `next.config.ts`. Server-side reads use this as the fallback
    *  when reading the VERSION file from disk fails (e.g. on a
@@ -38,6 +67,10 @@ const parsed = schema.safeParse({
   PGLITE_DATA_DIR: process.env.PGLITE_DATA_DIR,
   OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
   API_KEY_ENC_SECRET: process.env.API_KEY_ENC_SECRET,
+  RACE_AUTHORITY: process.env.RACE_AUTHORITY,
+  RACE_SERVICE_URL: process.env.RACE_SERVICE_URL,
+  RACE_PROXY_SECRET: process.env.RACE_PROXY_SECRET,
+  NEXT_PUBLIC_RACE_SERVICE_URL: process.env.NEXT_PUBLIC_RACE_SERVICE_URL,
   NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION,
 });
 
@@ -75,6 +108,9 @@ export const IS_HOSTED_DEPLOY = isHostedDeploy;
 export const IS_DEV = env.APP_ENV === 'development';
 export const IS_PROD = env.APP_ENV === 'production';
 export const IS_TEST = process.env.NODE_ENV === 'test';
+/** True on the instance that owns the race-room store. False on
+ *  proxy instances that forward race POSTs to RACE_SERVICE_URL. */
+export const IS_RACE_AUTHORITY = env.RACE_AUTHORITY === 'true';
 
 export function logEnabled(): boolean {
   if (env.LOG_ENABLED === 'false') return false;

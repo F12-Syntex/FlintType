@@ -2,6 +2,7 @@ import { BackendError } from "@/lib/errors";
 import { defineNamespace, defineRoute } from "@/server";
 import { rateLimit } from "@/server/middleware/rate-limit";
 import { getRaceIdentity } from "@/server/race/identity";
+import { raceHandler } from "@/server/race/proxy";
 import { pickRaceQuote } from "@/server/race/quotes";
 import {
   createChallengeRoom,
@@ -26,7 +27,7 @@ import {
 
 const create = defineRoute<CreateChallengeInput, CreateChallengeOutput>({
   input: createChallengeInputSchema,
-  handler: async ({ input }) => {
+  handler: raceHandler<CreateChallengeInput, CreateChallengeOutput>(async ({ input }) => {
     const sessionToken = newSessionToken();
     const identity = await getRaceIdentity(sessionToken);
     const seed = Date.now() | 0;
@@ -58,12 +59,12 @@ const create = defineRoute<CreateChallengeInput, CreateChallengeOutput>({
       totalChars: room.totalChars,
       modeId: room.modeId,
     };
-  },
+  }),
 });
 
 const join = defineRoute<JoinChallengeInput, JoinChallengeOutput>({
   input: joinChallengeInputSchema,
-  handler: async ({ input }) => {
+  handler: raceHandler<JoinChallengeInput, JoinChallengeOutput>(async ({ input }) => {
     const room = getRoomBySlug(input.slug);
     if (!room) {
       throw new BackendError(
@@ -100,12 +101,12 @@ const join = defineRoute<JoinChallengeInput, JoinChallengeOutput>({
       totalChars: room.totalChars,
       modeId: room.modeId,
     };
-  },
+  }),
 });
 
 const start = defineRoute<StartChallengeInput, StartChallengeOutput>({
   input: startChallengeInputSchema,
-  handler: ({ input }) => {
+  handler: raceHandler<StartChallengeInput, StartChallengeOutput>(({ input }) => {
     const room = getRoom(input.roomId);
     if (!room) {
       throw new BackendError(404, "NOT_FOUND", "race room not found");
@@ -126,12 +127,12 @@ const start = defineRoute<StartChallengeInput, StartChallengeOutput>({
       );
     }
     return { ok: true };
-  },
+  }),
 });
 
 const cancel = defineRoute<CancelChallengeInput, CancelChallengeOutput>({
   input: cancelChallengeInputSchema,
-  handler: ({ input }) => {
+  handler: raceHandler<CancelChallengeInput, CancelChallengeOutput>(({ input }) => {
     const room = getRoom(input.roomId);
     if (!room) {
       throw new BackendError(404, "NOT_FOUND", "race room not found");
@@ -156,7 +157,7 @@ const cancel = defineRoute<CancelChallengeInput, CancelChallengeOutput>({
       );
     }
     return { ok: true };
-  },
+  }),
 });
 
 export const challenge = defineNamespace({

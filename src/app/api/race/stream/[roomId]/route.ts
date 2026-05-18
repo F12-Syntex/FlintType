@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { IS_RACE_AUTHORITY } from "@/server/env";
 import { getRoom } from "@/server/race/store";
 
 /** SSE stream of room snapshots. The dispatcher in
@@ -19,25 +20,57 @@ import { getRoom } from "@/server/race/store";
  *  cleaner on Node and the existing race-room module is Node-native
  *  (crypto.randomBytes, setTimeout).
  *
- *  Region pinning: must match the dispatcher's `preferredRegion` so
- *  that POST /race/queue (which creates the in-memory room via the
- *  dispatcher) and GET /api/race/stream/<id> (which reads it here)
- *  land on the same Vercel function pool. Cross-region requests
- *  would 404 against an empty store. */
+ *  Region pinning: only meaningful when this instance also hosts the
+ *  room store (i.e. RACE_AUTHORITY=true). On the Railway authority
+ *  there's a single warm process so region is moot; on a Vercel
+ *  non-authority deploy, the route 410s and the client connects to
+ *  NEXT_PUBLIC_RACE_SERVICE_URL directly. The pin is harmless in
+ *  either case so it stays declared. */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const preferredRegion = "iad1";
+
+/** Cross-origin CORS for the SSE handshake. The browser opens
+ *  EventSource against `${NEXT_PUBLIC_RACE_SERVICE_URL}/...` which is
+ *  a different origin from the main app on Vercel; without these the
+ *  fetch is blocked by the browser. SSE has no cookie auth in this
+ *  app (the (roomId, sessionToken) pair is the authority), so a
+ *  wildcard origin is safe — no `Allow-Credentials`. */
+const SSE_CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+} as const;
+
+export function OPTIONS(): Response {
+  return new Response(null, { status: 204, headers: SSE_CORS_HEADERS });
+}
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ roomId: string }> },
 ): Promise<Response> {
   const { roomId } = await params;
+  if (!IS_RACE_AUTHORITY) {
+    // Non-authority instance never holds rooms. Returning a clear 410
+    // (instead of 404) makes a misconfigured deploy obvious — the
+    // client must use NEXT_PUBLIC_RACE_SERVICE_URL to reach the
+    // authority directly.
+    return NextResponse.json(
+      {
+        error:
+          "this instance is not the race authority — connect EventSource to NEXT_PUBLIC_RACE_SERVICE_URL instead",
+        code: "INTERNAL",
+        status: 410,
+      },
+      { status: 410, headers: SSE_CORS_HEADERS },
+    );
+  }
   const room = getRoom(roomId);
   if (!room) {
     return NextResponse.json(
       { error: `race room "${roomId}" not found`, code: "NOT_FOUND", status: 404 },
-      { status: 404 },
+      { status: 404, headers: SSE_CORS_HEADERS },
     );
   }
 
@@ -81,6 +114,7 @@ export async function GET(
       Connection: "keep-alive",
       // Disable Vercel/proxy buffering for SSE.
       "X-Accel-Buffering": "no",
+      ...SSE_CORS_HEADERS,
     },
   });
 }

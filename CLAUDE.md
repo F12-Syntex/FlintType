@@ -5,6 +5,7 @@
 @docs/seo.md
 @docs/auth.md
 @docs/database.md
+@docs/multiplayer.md
 
 # Project rules (flinttype)
 

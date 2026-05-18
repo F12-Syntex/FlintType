@@ -2,6 +2,10 @@ import { BackendError } from "@/lib/errors";
 import { defineNamespace, defineRoute } from "@/server";
 import { rateLimit } from "@/server/middleware/rate-limit";
 import { getRaceIdentity } from "@/server/race/identity";
+import {
+  raceHandler,
+  requireRaceProxySecret,
+} from "@/server/race/proxy";
 import { pickRaceQuote } from "@/server/race/quotes";
 import {
   evictFromMatchmaking,
@@ -28,7 +32,7 @@ import { challenge } from "./challenge";
 const queue = defineRoute<QueueInput, QueueOutput>({
   input: queueInputSchema,
   middleware: [rateLimit({ limit: 120, windowMs: 60_000 })],
-  handler: async ({ input }) => {
+  handler: raceHandler<QueueInput, QueueOutput>(async ({ input }) => {
     const sessionToken = newSessionToken();
     const identity = await getRaceIdentity(sessionToken);
     // Seed off the wall clock — the room itself caches the seed so
@@ -79,7 +83,7 @@ const queue = defineRoute<QueueInput, QueueOutput>({
       totalChars: room.totalChars,
       modeId: room.modeId,
     };
-  },
+  }),
 });
 
 /** Keystroke firehose — the client batches at ~6 Hz over a 60s race
@@ -92,7 +96,7 @@ const queue = defineRoute<QueueInput, QueueOutput>({
 const keystroke = defineRoute<KeystrokeInput, KeystrokeOutput>({
   input: keystrokeInputSchema,
   middleware: [rateLimit({ limit: 600, windowMs: 60_000 })],
-  handler: ({ input }) => {
+  handler: raceHandler<KeystrokeInput, KeystrokeOutput>(({ input }) => {
     const room = getRoom(input.roomId);
     if (!room) {
       throw new BackendError(404, "NOT_FOUND", "race room not found");
@@ -113,17 +117,17 @@ const keystroke = defineRoute<KeystrokeInput, KeystrokeOutput>({
       return { ok: true };
     }
     return { ok: true };
-  },
+  }),
 });
 
 const leave = defineRoute<LeaveInput, LeaveOutput>({
   input: leaveInputSchema,
   middleware: [rateLimit({ limit: 120, windowMs: 60_000 })],
-  handler: ({ input }) => {
+  handler: raceHandler<LeaveInput, LeaveOutput>(({ input }) => {
     const room = getRoom(input.roomId);
     if (room) room.removeRacer(input.sessionToken);
     return { ok: true };
-  },
+  }),
 });
 
 /** Vote to rematch. Idempotent — clicking twice yields the same
@@ -138,7 +142,7 @@ const leave = defineRoute<LeaveInput, LeaveOutput>({
 const rematch = defineRoute<RematchInput, RematchOutput>({
   input: rematchInputSchema,
   middleware: [rateLimit({ limit: 60, windowMs: 60_000 })],
-  handler: ({ input }) => {
+  handler: raceHandler<RematchInput, RematchOutput>(({ input }) => {
     const room = getRoom(input.roomId);
     if (!room) {
       throw new BackendError(404, "NOT_FOUND", "race room not found");
@@ -152,7 +156,7 @@ const rematch = defineRoute<RematchInput, RematchOutput>({
       return { ok: true, started: false };
     }
     return { ok: true, started: result.started };
-  },
+  }),
 });
 
 /** Public race namespace. No `requireAuth` — anonymous users get
@@ -163,7 +167,14 @@ const rematch = defineRoute<RematchInput, RematchOutput>({
  *  `keystroke` firehose needs its own 600/min budget (~360/min real
  *  load) and a namespace-wide 120/min would compose with it and
  *  bottleneck the firehose after ~20s. Every other race route carries
- *  its own 120/min cap; `challenge.*` does the same internally. */
+ *  its own 120/min cap; `challenge.*` does the same internally.
+ *
+ *  `requireRaceProxySecret` runs first so that on the authority
+ *  instance (Railway) we reject any caller missing the shared
+ *  secret. On proxy instances (Vercel) it's a no-op — the
+ *  `raceHandler` wrapper short-circuits to the upstream fetch before
+ *  any local store touch. */
 export const race = defineNamespace({
+  middleware: [requireRaceProxySecret],
   routes: { queue, keystroke, leave, rematch, challenge },
 });

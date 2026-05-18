@@ -78,7 +78,12 @@ export function useRaceRoom({
       return;
     }
     setState("connecting");
-    const url = `/api/race/stream/${encodeURIComponent(roomId)}`;
+    // When NEXT_PUBLIC_RACE_SERVICE_URL is set (production hybrid:
+    // Vercel front, Railway race authority), the EventSource opens
+    // cross-origin against the authority. Unset in local dev →
+    // relative URL → same-origin same as today.
+    const base = process.env.NEXT_PUBLIC_RACE_SERVICE_URL?.replace(/\/$/, "") ?? "";
+    const url = `${base}/api/race/stream/${encodeURIComponent(roomId)}`;
     const es = new EventSource(url);
     es.onopen = () => setState("open");
     es.onerror = () => {
