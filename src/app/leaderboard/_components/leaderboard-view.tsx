@@ -18,8 +18,6 @@ import {
   SCOPES,
   WINDOWS,
 } from "./filters";
-import { TopLevels } from "./top-levels";
-import { TopPlayers } from "./top-players";
 import { useLeaderboard } from "./use-leaderboard";
 
 /** /leaderboard content area. Reads scope+window+preset from URL
@@ -91,9 +89,6 @@ export function LeaderboardView() {
           </div>
         </div>
       </header>
-
-      <TopPlayers />
-      <TopLevels />
 
       <div className="pt-8 sm:pt-10">
         {loading && entries.length === 0 ? (

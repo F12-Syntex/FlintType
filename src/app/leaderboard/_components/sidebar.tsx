@@ -19,6 +19,7 @@ import {
   SCOPES,
   WINDOWS,
 } from "./filters";
+import { SidebarTopLevels, SidebarTopPlayers } from "./sidebar-tops";
 
 function useLeaderboardParams() {
   const router = useRouter();
@@ -119,6 +120,17 @@ export function LeaderboardSidebar() {
             ))}
           </Group>
         ))}
+
+        {/* Top-player rails — independent of the filter params
+         *  above, so a Mode/Window swap doesn't refetch them. Each
+         *  rail is its own grouped list with a compact row per
+         *  player (rank + handle + secondary metric). */}
+        <div
+          className="my-3 mx-2 h-px bg-border"
+          aria-hidden
+        />
+        <SidebarTopPlayers />
+        <SidebarTopLevels />
       </div>
     </nav>
   );
@@ -260,6 +272,13 @@ export function MobileLeaderboardPicker() {
               />
             ))}
           </ul>
+          {/* Top-player rails inside the mobile sheet so the small-
+           *  screen experience still reaches the user-centric ranks.
+           *  Sit below the filter list, scrollable with the rest. */}
+          <div className="mt-2 border-t border-border pt-2">
+            <SidebarTopPlayers />
+            <SidebarTopLevels />
+          </div>
         </div>
       </MobileSheet>
     </>
