@@ -109,9 +109,13 @@ function useStatsProps(): StatsProps {
  *  inside <RestHint />'s footer row so the stats sit alongside the
  *  cancel control instead of taking a separate rail above the passage. */
 export function Readouts() {
+  // Hooks must run in the same order on every render — call
+  // useStatsProps() and useAppearancePrefs() unconditionally before
+  // any early return. Gating renders below.
   const { prefs } = useAppearancePrefs();
+  const statsProps = useStatsProps();
   if (prefs.statStripSurface === "none") return null;
-  const stats = <DesktopStats {...useStatsProps()} />;
+  const stats = <DesktopStats {...statsProps} />;
   if (prefs.statStripSurface === "card") {
     return (
       <div className="rounded-md border border-border bg-card px-4 py-3">
@@ -126,8 +130,9 @@ export function Readouts() {
  *  Consumer wraps it in whatever footer container makes sense. */
 export function MobileReadouts() {
   const { prefs } = useAppearancePrefs();
+  const statsProps = useStatsProps();
   if (prefs.statStripSurface === "none") return null;
-  return <MobileStrip {...useStatsProps()} />;
+  return <MobileStrip {...statsProps} />;
 }
 
 type StatsProps = {
