@@ -1,6 +1,12 @@
 "use client";
 
-import { ArrowRight, Check, ChevronRight, ExternalLink } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  ChevronRight,
+  ExternalLink,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -283,19 +289,19 @@ function EnumView({
 }) {
   return (
     <>
-      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+      <div className="flex items-center gap-2 border-b border-border px-2 py-1.5">
         <button
           type="button"
+          aria-label="Back to all commands"
           // tabIndex -1 so Radix's focus trap doesn't land here on
           // Tab — the user reaches Back via mouse / Esc, not Tab,
           // and we want focus to stay on the search input.
           tabIndex={-1}
           onClick={onBack}
-          className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
         >
-          ← Back
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
         </button>
-        <ChevronRight className="h-3 w-3 text-muted-foreground" />
         <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-foreground">
           {entry.label}
         </span>
