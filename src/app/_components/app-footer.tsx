@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { GITHUB_URL } from "@/lib/version";
+import { DISCORD_URL, GITHUB_URL } from "@/lib/version";
 
 /** Quiet end-of-page footer for every /app surface. Uses the same
  *  uppercase / tracked editorial voice as the landing footer but in a
@@ -38,6 +38,9 @@ export function AppFooter({
         aria-label="Footer"
         className="flex flex-wrap items-center gap-5"
       >
+        <FooterLink href={DISCORD_URL} external dark={dark}>
+          Discord
+        </FooterLink>
         <FooterLink href={GITHUB_URL} external dark={dark}>
           GitHub
         </FooterLink>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { GITHUB_URL } from "@/lib/version";
+import { DISCORD_URL, GITHUB_URL } from "@/lib/version";
 import { SignOutLink } from "./sign-out-link";
 
 type Item = { href: string; label: string; external?: boolean };
@@ -16,6 +16,7 @@ const ACCOUNT: Item[] = [
 ];
 
 const META: Item[] = [
+  { href: DISCORD_URL, label: "DISCORD", external: true },
   { href: GITHUB_URL, label: "GITHUB", external: true },
   { href: "#status", label: "STATUS" },
   { href: "#privacy", label: "PRIVACY" },
