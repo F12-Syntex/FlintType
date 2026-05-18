@@ -19,7 +19,7 @@ export const EN_COMMON_1000: readonly string[] = [
   "are",
   "with",
   "as",
-  "I",
+  "i",
   "his",
   "they",
   "be",
