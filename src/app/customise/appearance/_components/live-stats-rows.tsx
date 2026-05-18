@@ -3,6 +3,7 @@
 import {
   type AppearancePrefs,
   type LiveStatStyle,
+  type StatStripSurface,
   useAppearancePrefs,
 } from "@/lib/appearance-prefs";
 import {
@@ -12,6 +13,12 @@ import {
 } from "../../_components/controls";
 import { SettingsRow } from "../../_components/row";
 import { ColorRow } from "./color-row";
+
+const SURFACE_OPTIONS: readonly { id: StatStripSurface; label: string }[] = [
+  { id: "plain", label: "Plain" },
+  { id: "card", label: "Card" },
+  { id: "none", label: "Hidden" },
+];
 
 const STYLE_OPTIONS: readonly { id: LiveStatStyle; label: string }[] = [
   { id: "off", label: "Off" },
@@ -53,6 +60,21 @@ export function LiveStatsRows() {
 
   return (
     <div className="flex flex-col gap-3">
+      <SettingsRow
+        label={
+          <LabelWithDesc
+            title="Stats surface"
+            desc="Plain leaves the numbers floating on the page bg (Monkeytype-style); Card wraps the strip in a bordered panel; Hidden removes it entirely."
+          />
+        }
+        control={
+          <SelectChips
+            value={prefs.statStripSurface}
+            options={SURFACE_OPTIONS}
+            onChange={(v) => update("statStripSurface", v)}
+          />
+        }
+      />
       <StyleRow
         title="Live progress style"
         desc="Timer / word count style during a test. Flash briefly shows the timer every 15 seconds in timed modes."

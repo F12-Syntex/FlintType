@@ -284,7 +284,9 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   modeBarStyle: "chips",
 
   // ─── Sub-surface tweaks ───
-  statStripSurface: "card",
+  // `plain` preserves the historical no-chrome readouts strip; users
+  // who want a panel around it pick "card" from /customise.
+  statStripSurface: "plain",
   resultChrome: "framed",
   caretIdle: "off",
   quoteAttribution: "below",
