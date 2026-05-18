@@ -123,10 +123,15 @@ function ProfileLink({ dark }: { dark: boolean }) {
   };
 
   const handleAddAccount = () => {
-    // The sign-in route uses the catch-all [[...sign-in]] segment
-    // and accepts Clerk's session-add flow when called with this
-    // query — adds a NEW session instead of replacing the current.
-    router.push("/sign-in?session=add");
+    // `openSignIn` opens Clerk's embedded sign-in modal in the
+    // "add session" flow when multi-session is enabled in the
+    // Clerk dashboard. When it isn't enabled, Clerk shows its
+    // standard "already signed in" surface inside the modal,
+    // which at least keeps the user on-page instead of routing
+    // to a /sign-in URL that can't satisfy the request (the
+    // ?session=add query we used to send was a guess Clerk
+    // doesn't honour).
+    clerk.openSignIn();
   };
 
   const handleSignOut = () => {

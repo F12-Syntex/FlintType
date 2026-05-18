@@ -883,13 +883,39 @@ export function PracticeProvider({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onKeyDown]);
 
+  // Tab → restart. ONE handler, capture phase, no gates. Runs while
+  // the practice surface is mounted; for everything else (every
+  // settings page, leaderboard, profile, race screens, etc.) the
+  // PracticeProvider isn't mounted and this listener isn't attached,
+  // so Tab does its native focus-shift there.
+  //
+  // The only escape hatch is the command palette: its onKeyDownCapture
+  // on DialogContent runs at the target before this listener fires for
+  // its descendants, so Tab inside the palette is safely consumed by
+  // the palette itself and never reaches here.
+  //
+  // capture=true makes us run before any element listener (the input's
+  // own onKeyDown, etc.) and before any focus-trap. stopImmediate-
+  // Propagation kills the event so nothing downstream double-fires.
+  useEffect(() => {
+    function onTab(e: KeyboardEvent) {
+      if (e.key !== "Tab") return;
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      restartRef.current();
+    }
+    window.addEventListener("keydown", onTab, true);
+    return () => window.removeEventListener("keydown", onTab, true);
+  }, []);
+
   // Cross-component restart channel. The command palette's "Restart
   // test" entry dispatches this event; the practice surface
-  // subscribes here and runs restart() on receipt. This is now the
-  // *only* keyboard path to restart from outside the test surface
-  // itself — Tab-as-restart was retired (it kept losing to dialog
-  // exit-animation gates and focus-trap edge cases). Esc inside the
-  // test (input-capture.tsx) still restarts as a fast in-test path.
+  // subscribes here and runs restart() on receipt. Kept as a second
+  // path so the palette command works even when the user opens it
+  // from a non-test surface (where the Tab listener above isn't
+  // attached). Esc inside the test (input-capture.tsx) still
+  // restarts as a fast in-test path.
   useEffect(() => {
     const onRestart = () => restartRef.current();
     window.addEventListener("ft:practice:restart", onRestart);
