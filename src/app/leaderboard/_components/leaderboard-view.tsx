@@ -27,20 +27,26 @@ import { TopLevelsView, TopPlayersView } from "./user-views";
  *  which caches per (scope,window,preset) for 60s — instant paint
  *  on filter swaps, background refresh on stale, manual refresh on
  *  demand. No more network call per mount. */
+/** Outer dispatcher — picks the matching sub-component based on
+ *  ?view=. Splitting the per-run table body into its own component
+ *  is load-bearing: the table body owns `useLeaderboard`, and
+ *  swapping that hook in/out of the same component on every view
+ *  flip violated React's rule-of-hooks (hook count changed between
+ *  renders) and crashed the page. Now each branch is its own
+ *  component with a fixed hook order. */
 export function LeaderboardView() {
+  const params = useSearchParams();
+  const view = parseView(params.get("view"));
+  if (view === "players") return <TopPlayersView />;
+  if (view === "levels") return <TopLevelsView />;
+  return <TableView />;
+}
+
+function TableView() {
   const params = useSearchParams();
   const scope = parseScope(params.get("scope"));
   const window_ = parseWindow(params.get("window"));
   const preset = parsePreset(params.get("preset"));
-  const view = parseView(params.get("view"));
-
-  // Branch on view — `players` and `levels` mount their own
-  // self-contained article (header + ranked list); only the default
-  // `table` view threads through the per-run leaderboard data hook
-  // below. Done up here so we don't pay for the useLeaderboard
-  // fetch when the user is on a user-centric view.
-  if (view === "players") return <TopPlayersView />;
-  if (view === "levels") return <TopLevelsView />;
 
   const { data, error, loading, refreshing, refresh } = useLeaderboard(
     scope,

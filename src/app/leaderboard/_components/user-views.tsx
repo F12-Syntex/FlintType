@@ -1,5 +1,6 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -23,6 +24,8 @@ const FETCH_LIMIT = 50;
 
 export function TopPlayersView() {
   const backend = useBackend();
+  const { user } = useUser();
+  const youUserId = user?.id ?? null;
   const [data, setData] = useState<readonly TopPlayer[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,8 +62,10 @@ export function TopPlayersView() {
               key={p.userId}
               href={`/profile/${p.username ?? p.userId}`}
               rank={p.rank}
+              username={p.username}
               name={p.name}
               tags={p.tags}
+              isYou={p.userId === youUserId}
               headline={String(p.bestNetWpm)}
               headlineSuffix="wpm"
               badge={tier.label}
@@ -75,6 +80,8 @@ export function TopPlayersView() {
 
 export function TopLevelsView() {
   const backend = useBackend();
+  const { user } = useUser();
+  const youUserId = user?.id ?? null;
   const [data, setData] = useState<readonly TopLevelPlayer[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,8 +116,10 @@ export function TopLevelsView() {
             key={p.userId}
             href={`/profile/${p.username ?? p.userId}`}
             rank={p.rank}
+            username={p.username}
             name={p.name}
             tags={p.tags}
+            isYou={p.userId === youUserId}
             headline={`L${p.level}`}
             headlineSuffix=""
             badge={formatXp(p.xp) + " xp"}
@@ -183,8 +192,10 @@ function Wrapper({
 function Row({
   href,
   rank,
+  username,
   name,
   tags,
+  isYou,
   headline,
   headlineSuffix,
   badge,
@@ -192,15 +203,32 @@ function Row({
 }: {
   href: string;
   rank: number;
+  /** Raw Clerk username (no `@`). When present, we render `@<username>`
+   *  to match the per-run leaderboard's display rule exactly. */
+  username: string | null;
+  /** Fallback display name from Clerk — already `@`-prefixed by the
+   *  backend, so we render it as-is when no username is set. */
   name: string;
   tags: readonly string[];
+  isYou: boolean;
   headline: string;
   headlineSuffix: string;
   badge: string;
   hint: string;
 }) {
+  // Same handle logic as leaderboard-view.tsx → Row, so the two
+  // surfaces always render the same string for the same user.
+  const handle = username ? `@${username}` : name;
+  const leader = rank === 1;
   return (
-    <li className="border-b border-border/50 last:border-b-0">
+    <li
+      className={cn(
+        "border-b border-border/50 last:border-b-0",
+        // Own-row tint mirrors the per-run table so "find me" reads
+        // identical across leaderboard surfaces.
+        isYou && "bg-primary/[0.05]",
+      )}
+    >
       <Link
         href={href}
         className={cn(
@@ -208,16 +236,43 @@ function Row({
           "transition-colors hover:bg-accent/30",
         )}
       >
-        <span className="w-8 shrink-0 text-[11px] font-semibold uppercase tracking-[0.18em] tabular-nums text-muted-foreground">
+        <span
+          className={cn(
+            "w-8 shrink-0 text-[12px] font-semibold tabular-nums sm:text-[13px]",
+            leader ? "text-primary" : "text-muted-foreground",
+          )}
+        >
           {String(rank).padStart(2, "0")}
         </span>
         <span className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="truncate text-sm font-semibold text-foreground sm:text-base">
-            {name}
+          <span
+            className={cn(
+              "min-w-0 truncate text-[14px] sm:text-[15px]",
+              isYou
+                ? "font-semibold text-primary"
+                : leader
+                  ? "font-semibold text-foreground"
+                  : "text-foreground/90",
+            )}
+          >
+            {handle}
           </span>
           {tags.map((t) => (
-            <UserTag key={t} tag={t as never} size="sm" tooltip={false} />
+            <UserTag
+              key={t}
+              tag={t as never}
+              size="sm"
+              className="shrink-0"
+            />
           ))}
+          {isYou ? (
+            <span
+              aria-label="Your entry"
+              className="inline-flex h-5 shrink-0 items-center rounded-md border border-primary/40 bg-primary/[0.08] px-1.5 text-[9px] font-semibold uppercase leading-none tracking-[0.18em] text-primary"
+            >
+              You
+            </span>
+          ) : null}
         </span>
         <span className="hidden shrink-0 rounded-md border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-primary tabular-nums sm:inline-flex">
           {badge}
