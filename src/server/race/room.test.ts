@@ -293,7 +293,7 @@ describe("RaceRoom", () => {
     expect(room.hostCancel("s_unknown")).toBe(false);
   });
 
-  it("host leaving a challenge room cancels it (frees the slug)", () => {
+  it("host leaving promotes the next real racer to host (room stays alive)", () => {
     let idleFired = false;
     const room = new RaceRoom({
       id: "r_host_leave_1",
@@ -317,12 +317,125 @@ describe("RaceRoom", () => {
       name: "@guest",
       badge: "RACER",
     });
+    room.removeRacer("s_host");
+    const snap = room.snapshot();
+    // Guest inherits host. Room stays alive; no cancellation; slug
+    // hasn't been freed.
+    expect(snap.cancelled).toBeUndefined();
+    expect(idleFired).toBe(false);
+    expect(snap.racers.find((r) => r.id === "s_host")).toBeUndefined();
+    expect(snap.racers.find((r) => r.id === "s_guest")?.isHost).toBe(true);
+  });
+
+  it("host leaving with no other real racer disposes the challenge room", () => {
+    let idleFired = false;
+    const room = new RaceRoom({
+      id: "r_host_leave_solo",
+      slug: "warm-otter-99b",
+      kind: "challenge",
+      modeId: "1v1",
+      raceSeed: 1,
+      wordCount: 5,
+      onIdle: () => {
+        idleFired = true;
+      },
+    });
+    room.addRealRacer({
+      sessionToken: "s_host",
+      name: "@host",
+      badge: "RACER",
+      isHost: true,
+    });
     const received: Array<{ cancelled?: boolean }> = [];
     room.subscribe((snap) => received.push({ cancelled: snap.cancelled }));
     room.removeRacer("s_host");
-    // Host leaving must broadcast a cancelled snapshot (so the guest's
-    // SSE bounces them out) and fire onIdle (so the store frees the slug).
     expect(received.at(-1)?.cancelled).toBe(true);
+    expect(idleFired).toBe(true);
+  });
+
+  it("host migration uses longest-tenured remaining racer", () => {
+    const room = new RaceRoom({
+      id: "r_host_migrate_order",
+      slug: "warm-otter-99c",
+      kind: "challenge",
+      modeId: "1v1v1v1",
+      raceSeed: 1,
+      wordCount: 5,
+    });
+    room.addRealRacer({
+      sessionToken: "s_host",
+      name: "@host",
+      badge: "RACER",
+      isHost: true,
+    });
+    vi.advanceTimersByTime(10);
+    room.addRealRacer({ sessionToken: "s_b", name: "@b", badge: "RACER" });
+    vi.advanceTimersByTime(10);
+    room.addRealRacer({ sessionToken: "s_c", name: "@c", badge: "RACER" });
+    room.removeRacer("s_host");
+    const snap = room.snapshot();
+    // s_b joined before s_c → s_b inherits.
+    expect(snap.racers.find((r) => r.id === "s_b")?.isHost).toBe(true);
+    expect(snap.racers.find((r) => r.id === "s_c")?.isHost).toBe(false);
+  });
+
+  it("host migration mid-race marks the leaver disconnected and promotes successor", () => {
+    const room = new RaceRoom({
+      id: "r_host_leave_midrace",
+      slug: "warm-otter-99d",
+      kind: "challenge",
+      modeId: "1v1",
+      raceSeed: 1,
+      wordCount: 5,
+    });
+    room.addRealRacer({
+      sessionToken: "s_host",
+      name: "@host",
+      badge: "RACER",
+      isHost: true,
+    });
+    room.addRealRacer({ sessionToken: "s_guest", name: "@guest", badge: "RACER" });
+    expect(room.hostStart("s_host")).toBe(true);
+    vi.advanceTimersByTime(700 + 3_000); // lobby + countdown
+    expect(room.phase).toBe("racing");
+    room.removeRacer("s_host");
+    const snap = room.snapshot();
+    // Mid-race: host is kept in the snapshot (disconnected) but the
+    // host bit migrates to the guest — exactly one host at all times.
+    const host = snap.racers.find((r) => r.id === "s_host");
+    expect(host?.disconnected).toBe(true);
+    expect(host?.isHost).toBe(false);
+    expect(snap.racers.find((r) => r.id === "s_guest")?.isHost).toBe(true);
+  });
+
+  it("non-host leaving as the last real active racer disposes the challenge room", () => {
+    let idleFired = false;
+    const room = new RaceRoom({
+      id: "r_last_real_out",
+      slug: "warm-otter-99e",
+      kind: "challenge",
+      modeId: "1v1",
+      raceSeed: 1,
+      wordCount: 5,
+      onIdle: () => {
+        idleFired = true;
+      },
+    });
+    room.addRealRacer({
+      sessionToken: "s_host",
+      name: "@host",
+      badge: "RACER",
+      isHost: true,
+    });
+    room.addRealRacer({ sessionToken: "s_guest", name: "@guest", badge: "RACER" });
+    expect(room.hostStart("s_host")).toBe(true);
+    vi.advanceTimersByTime(700 + 3_000);
+    expect(room.phase).toBe("racing");
+    // Host disconnects → guest inherits.
+    room.removeRacer("s_host");
+    expect(idleFired).toBe(false);
+    // Guest leaves too → no real active racers, dispose fires.
+    room.removeRacer("s_guest");
     expect(idleFired).toBe(true);
   });
 

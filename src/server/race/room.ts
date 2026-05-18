@@ -505,33 +505,73 @@ export class RaceRoom {
       this.scheduleBroadcast();
       return;
     }
-    // Challenge host leaving the room kills the entire lobby.
-    // The slug is the user's invite link — when the host walks away
-    // there's no one with the authority to start a new race, so the
-    // honest signal to every other racer is "this room is over",
-    // same as if the host had hit Cancel. Without this, the slug
-    // would stay parked in the bySlug map until idle-GC fired, but
-    // any subsequent joiner would land in a leaderless lobby that
-    // can never start — worse than 404. Set `cancelled=true` then
-    // dispose so subscribers redirect and the slug is freed.
-    if (this.kind === "challenge" && r.isHost) {
+    const wasChallengeHost = this.kind === "challenge" && r.isHost;
+    // Pre-race we drop the seat outright — no UI value in showing a
+    // "(disconnected)" tag for someone who never entered the lobby.
+    // Mid/post-race we keep the racer in the snapshot but flag them
+    // disconnected so other racers see the slot didn't vanish.
+    if (this.phase === "matching" || this.phase === "lobby") {
+      this.racers.delete(token);
+    } else {
+      r.disconnected = true;
+    }
+    // Challenge host migration. When the host leaves we promote the
+    // next eligible real racer to host instead of cancelling the
+    // room — a lobby with a live invite link shouldn't die just
+    // because the original opener walked away. Only when no real
+    // active racer remains do we tear the room down (slug freed,
+    // subscribers redirected via `cancelled`).
+    //
+    // Eligibility: real player (not a bot) who is still connected.
+    // Order: by joinedAt, so the longest-tenured remaining racer
+    // becomes host — closest to "next in line."
+    if (wasChallengeHost) {
+      const successor = this.pickNewHost(token);
+      if (successor) {
+        // Exactly one host at any moment — clear the leaver's flag
+        // first so a mid-race disconnected ex-host doesn't render as
+        // a second host badge in the snapshot.
+        r.isHost = false;
+        successor.isHost = true;
+        this.lastTouchedAt = Date.now();
+      }
+    }
+    // Late-leave dispose: any leave that empties out a challenge
+    // room of real active racers (host migration found no successor,
+    // or a non-host's leave was the last one out) frees the slug
+    // now rather than waiting on the 30-min idle GC. Matchmaking
+    // rooms keep their existing GC path — they have no slug to
+    // reclaim and the 5-min idle sweep already handles them.
+    if (this.kind === "challenge" && !this.hasRealActiveRacer()) {
       this.cancelled = true;
       this.flushBroadcast();
       this.dispose();
       return;
     }
-    // Pre-race we just drop the seat — no UI value in showing a
-    // "(disconnected)" tag for someone who never entered the lobby.
-    if (this.phase === "matching" || this.phase === "lobby") {
-      this.racers.delete(token);
-      this.scheduleBroadcast();
-      return;
-    }
-    // Mid- / post-race: keep the racer in the snapshot, flagged
-    // disconnected, so other racers see the slot didn't just vanish.
-    // The 5-min idle GC eventually sweeps the room itself.
-    r.disconnected = true;
     this.scheduleBroadcast();
+  }
+
+  /** Pick the next real, still-connected racer to inherit the host
+   *  bit. Returns null when nobody qualifies — the caller treats
+   *  that as "the room is empty of real users, dispose it." */
+  private pickNewHost(excludingToken: string): InternalRacer | null {
+    let best: InternalRacer | null = null;
+    for (const r of this.racers.values()) {
+      if (r.id === excludingToken) continue;
+      if (r.isBot || r.disconnected) continue;
+      if (best == null || r.joinedAt < best.joinedAt) best = r;
+    }
+    return best;
+  }
+
+  /** True iff at least one real, connected racer is still in the
+   *  room. Used by `removeRacer` to decide whether a challenge room
+   *  is now empty enough to free its slug. */
+  private hasRealActiveRacer(): boolean {
+    for (const r of this.racers.values()) {
+      if (!r.isBot && !r.disconnected) return true;
+    }
+    return false;
   }
 
   private maybeFinishRace(now: number) {
