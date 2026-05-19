@@ -166,6 +166,22 @@ describe("RaceRoom", () => {
     expect(alice?.disconnected).toBe(true);
   });
 
+  it("mid-race disconnect lets the race finish once remaining racers cross the line", () => {
+    const room = makeRoom();
+    room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
+    vi.advanceTimersByTime(5_000 + 700 + 3_000);
+    expect(room.phase).toBe("racing");
+    // Alice disconnects mid-race. Bots keep ticking; without the
+    // disconnect-counts-as-done fix, `allDone` would stay false forever
+    // because Alice's finishedAt is null, the bot tick interval would
+    // run indefinitely, and the room would never GC.
+    room.removeRacer("s_alice");
+    // Advance long enough for every bot to chew through the 5-word
+    // passage. 30s is comfortable headroom at any tick speed.
+    vi.advanceTimersByTime(30_000);
+    expect(room.phase).toBe("finished");
+  });
+
   it("re-joining with the same sessionToken clears the disconnected flag", () => {
     const room = makeRoom();
     room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });

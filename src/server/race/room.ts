@@ -576,7 +576,14 @@ export class RaceRoom {
 
   private maybeFinishRace(now: number) {
     if (this.phase !== "racing") return;
-    const allDone = [...this.racers.values()].every((r) => r.finishedAt != null);
+    // Disconnected racers count as done — they're not coming back to
+    // type more keys, and they already sort to the back of the result
+    // ranking. Without this, a matchmaking 1v1 where the human leaves
+    // mid-race would pin the room in "racing" forever (bot tick keeps
+    // firing, GC never schedules) until the process restart.
+    const allDone = [...this.racers.values()].every(
+      (r) => r.finishedAt != null || r.disconnected,
+    );
     if (!allDone) return;
     this.phase = "finished";
     this.raceEndedAt = now;
