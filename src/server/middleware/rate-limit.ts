@@ -11,9 +11,43 @@ type Bucket = { count: number; resetAt: number };
 
 const buckets = new Map<string, Bucket>();
 
+// Background sweep. Without this, every distinct (limit, windowMs, ip)
+// tuple ever seen accumulates an entry that lives for the lifetime of
+// the process — a steady leak on warm Node runtimes (the Railway race
+// authority, long-lived dev servers). Sweeping every minute keeps the
+// map bounded by the count of currently-active rate-limited clients,
+// not the lifetime-unique-clients total. The interval is unref'd so it
+// never keeps a process or vitest worker alive past its useful life.
+const SWEEP_INTERVAL_MS = 60_000;
+
+function sweep(now: number = Date.now()): void {
+  for (const [k, v] of buckets) {
+    if (v.resetAt <= now) buckets.delete(k);
+  }
+}
+
+if (typeof setInterval === 'function') {
+  const t = setInterval(() => sweep(), SWEEP_INTERVAL_MS);
+  if (typeof (t as { unref?: () => void }).unref === 'function') {
+    (t as { unref: () => void }).unref();
+  }
+}
+
 // Exposed for tests.
 export function _resetRateLimitStore(): void {
   buckets.clear();
+}
+
+/** Exposed for tests — runs the sweep synchronously instead of waiting
+ *  on the 60s interval. */
+export function _sweepRateLimitStore(now?: number): void {
+  sweep(now);
+}
+
+/** Exposed for tests — count of live buckets (post-sweep, if you call
+ *  _sweepRateLimitStore first). Lets us assert the leak is sealed. */
+export function _rateLimitStoreSize(): number {
+  return buckets.size;
 }
 
 function defaultKey(ctx: RouteContext): string {

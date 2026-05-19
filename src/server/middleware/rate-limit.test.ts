@@ -4,7 +4,12 @@ import type { Database } from '@/db/server';
 import { BackendError } from '@/lib/errors';
 import { logger } from '../logger';
 import type { RouteContext } from '../types';
-import { _resetRateLimitStore, rateLimit } from './rate-limit';
+import {
+  _rateLimitStoreSize,
+  _resetRateLimitStore,
+  _sweepRateLimitStore,
+  rateLimit,
+} from './rate-limit';
 
 const fakeDb = {} as Database;
 
@@ -128,5 +133,23 @@ describe('rateLimit', () => {
   it('rejects invalid options', () => {
     expect(() => rateLimit({ limit: 0, windowMs: 1 })).toThrow();
     expect(() => rateLimit({ limit: 1, windowMs: 0 })).toThrow();
+  });
+
+  it('sweep removes expired buckets and keeps active ones', async () => {
+    const mw = rateLimit({ limit: 1, windowMs: 1_000 });
+    await mw(ctx({ headers: { 'x-forwarded-for': '1.1.1.1' } }), async () => 'ok');
+    await mw(ctx({ headers: { 'x-forwarded-for': '2.2.2.2' } }), async () => 'ok');
+    expect(_rateLimitStoreSize()).toBe(2);
+
+    // Advance past the window of the first bucket only.
+    vi.advanceTimersByTime(1_500);
+    await mw(ctx({ headers: { 'x-forwarded-for': '2.2.2.2' } }), async () => 'ok');
+    // 2.2.2.2's bucket auto-resets via the in-line lazy path; 1.1.1.1's
+    // expired bucket is still sitting in the map until sweep runs.
+    expect(_rateLimitStoreSize()).toBe(2);
+
+    _sweepRateLimitStore();
+    // 1.1.1.1's expired entry gone; 2.2.2.2 still active.
+    expect(_rateLimitStoreSize()).toBe(1);
   });
 });
