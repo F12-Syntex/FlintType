@@ -72,59 +72,80 @@ const BG_PRESETS: ReadonlyArray<{ id: BackgroundFillMode; label: string }> = [
 
 /** Surface presets bundle several rows in one click. Editorial keeps
  *  the current defaults; Minimal lands Monkeytype-leaning but still
- *  has chrome; Stripped is the maximum aggressive minimisation. */
+ *  has chrome; Stripped is the maximum aggressive minimisation. The
+ *  bundles live at module scope so `applySurfacePreset` and
+ *  `detectSurfacePreset` (used to drive the active-chip state) read
+ *  from the same source — drift between the two would mean a chip
+ *  never lights up even when a preset is fully applied. */
 type SurfacePreset = "editorial" | "minimal" | "stripped";
+
+const SURFACE_PRESETS = {
+  editorial: {
+    cardSurfaces: "solid",
+    dividers: "hairline",
+    pagePadding: "comfortable",
+    backgroundFill: "paper",
+    borders: "soft",
+    topbarStyle: "elevated",
+    footerStyle: "visible",
+    autoHide: "off",
+    modeBarStyle: "chips",
+    monochromeChrome: false,
+  },
+  minimal: {
+    cardSurfaces: "subtle",
+    dividers: "hidden",
+    pagePadding: "comfortable",
+    backgroundFill: "paper",
+    borders: "soft",
+    topbarStyle: "flat",
+    footerStyle: "compact",
+    autoHide: "dim",
+    modeBarStyle: "inline",
+    monochromeChrome: false,
+  },
+  stripped: {
+    cardSurfaces: "transparent",
+    dividers: "hidden",
+    pagePadding: "tight",
+    backgroundFill: "bare",
+    borders: "hidden",
+    topbarStyle: "text-only",
+    footerStyle: "hidden",
+    autoHide: "fade",
+    modeBarStyle: "hidden",
+    monochromeChrome: true,
+  },
+} as const;
 
 function applySurfacePreset(
   preset: SurfacePreset,
   update: ReturnType<typeof useAppearancePrefs>["update"],
 ) {
-  const bundles = {
-    editorial: {
-      cardSurfaces: "solid" as const,
-      dividers: "hairline" as const,
-      pagePadding: "comfortable" as const,
-      backgroundFill: "paper" as const,
-      borders: "soft" as const,
-      topbarStyle: "elevated" as const,
-      footerStyle: "visible" as const,
-      autoHide: "off" as const,
-      modeBarStyle: "chips" as const,
-      monochromeChrome: false,
-    },
-    minimal: {
-      cardSurfaces: "subtle" as const,
-      dividers: "hidden" as const,
-      pagePadding: "comfortable" as const,
-      backgroundFill: "paper" as const,
-      borders: "soft" as const,
-      topbarStyle: "flat" as const,
-      footerStyle: "compact" as const,
-      autoHide: "dim" as const,
-      modeBarStyle: "inline" as const,
-      monochromeChrome: false,
-    },
-    stripped: {
-      cardSurfaces: "transparent" as const,
-      dividers: "hidden" as const,
-      pagePadding: "tight" as const,
-      backgroundFill: "bare" as const,
-      borders: "hidden" as const,
-      topbarStyle: "text-only" as const,
-      footerStyle: "hidden" as const,
-      autoHide: "fade" as const,
-      modeBarStyle: "hidden" as const,
-      monochromeChrome: true,
-    },
-  };
-  const b = bundles[preset];
-  for (const [k, v] of Object.entries(b)) {
+  for (const [k, v] of Object.entries(SURFACE_PRESETS[preset])) {
     update(k as Parameters<typeof update>[0], v as never);
   }
 }
 
+/** Return the preset id whose every key matches the current prefs, or
+ *  null when the state is mixed (the user has nudged one row off a
+ *  preset). */
+function detectSurfacePreset(
+  prefs: ReturnType<typeof useAppearancePrefs>["prefs"],
+): SurfacePreset | null {
+  for (const id of Object.keys(SURFACE_PRESETS) as SurfacePreset[]) {
+    const bundle = SURFACE_PRESETS[id];
+    const matches = (Object.entries(bundle) as [string, unknown][]).every(
+      ([k, v]) => (prefs as Record<string, unknown>)[k] === v,
+    );
+    if (matches) return id;
+  }
+  return null;
+}
+
 export function SurfacePresetRow() {
-  const { update } = useAppearancePrefs();
+  const { prefs, update } = useAppearancePrefs();
+  const active = detectSurfacePreset(prefs);
   return (
     <SettingsRow
       label="Preset"
@@ -132,17 +153,17 @@ export function SurfacePresetRow() {
         <ChipGroup>
           <Chip
             label="Editorial"
-            active={false}
+            active={active === "editorial"}
             onClick={() => applySurfacePreset("editorial", update)}
           />
           <Chip
             label="Minimal"
-            active={false}
+            active={active === "minimal"}
             onClick={() => applySurfacePreset("minimal", update)}
           />
           <Chip
             label="Stripped"
-            active={false}
+            active={active === "stripped"}
             onClick={() => applySurfacePreset("stripped", update)}
           />
         </ChipGroup>
