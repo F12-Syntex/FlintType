@@ -1,19 +1,26 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import {
   type TaperMode,
   type TaperStrength,
   useAppearancePrefs,
 } from "@/lib/appearance-prefs";
 import { taperStyle } from "@/lib/taper";
-import { cn } from "@/lib/utils";
 import { LabelWithDesc, SelectChips } from "../../_components/controls";
 import { SettingsRow } from "../../_components/row";
 
-/** Per-mode chip preview — a tiny three-word strip painted with the
- *  chosen taper applied at the current strength. The middle word is
- *  the "active" one (distance 0); the outer two are at distance 2 so
- *  the falloff is clearly visible without a long row of glyphs. */
+/** Visual cue inside each Render-mode chip. Three short words:
+ *  the middle one is the "active" word (no taper), the outer two
+ *  sit at distance 3 from the cursor so the falloff is loud enough
+ *  to read at chip-sized text. Every word starts at
+ *  `color: var(--foreground)` so the mute variant has a concrete
+ *  currentColor to blend toward muted-foreground; without that
+ *  baseline, mute's color-mix has nothing to do and the chip
+ *  reads identical to "off".
+ *
+ *  For "off" the chip skips the taper entirely so it reads as a
+ *  flat trio — exactly the look the rest of the passage will get. */
 function ModeChipPreview({
   mode,
   strength,
@@ -21,21 +28,24 @@ function ModeChipPreview({
   mode: TaperMode;
   strength: TaperStrength;
 }) {
-  const left = taperStyle(2, mode, strength);
-  const right = taperStyle(2, mode, strength);
+  const farStyle =
+    mode === "off" ? undefined : taperStyle(3, mode, strength);
+  const baseColor: CSSProperties = { color: "var(--foreground)" };
+  const dim: CSSProperties = farStyle ? { ...baseColor, ...farStyle } : baseColor;
   return (
-    <span className="flex items-center gap-1 font-mono text-[11px] leading-none">
-      <span className="text-muted-foreground" style={left}>
-        the
-      </span>
-      <span className="text-foreground">word</span>
-      <span className="text-muted-foreground" style={right}>
-        for
-      </span>
+    <span className="inline-flex items-baseline gap-1 font-mono text-[12px] leading-none">
+      <span style={dim}>one</span>
+      <span style={{ ...baseColor, fontWeight: 600 }}>word</span>
+      <span style={dim}>two</span>
     </span>
   );
 }
 
+/** Strength chip preview — show the user's chosen mode at each
+ *  strength so they can compare falloff curves. Two words: the
+ *  middle "active" one (flat) and a distance-3 word with the taper
+ *  applied at the chip's own strength. Same colour baseline trick
+ *  as the mode preview so mute renders honestly. */
 function StrengthChipPreview({
   mode,
   strength,
@@ -43,12 +53,12 @@ function StrengthChipPreview({
   mode: TaperMode;
   strength: TaperStrength;
 }) {
-  const s = taperStyle(2, mode, strength);
+  const farStyle = taperStyle(3, mode, strength);
+  const baseColor: CSSProperties = { color: "var(--foreground)" };
   return (
-    <span className="block text-[11px] leading-none">
-      <span className={cn("text-muted-foreground")} style={s}>
-        word
-      </span>
+    <span className="inline-flex items-baseline gap-1 font-mono text-[12px] leading-none">
+      <span style={{ ...baseColor, fontWeight: 600 }}>word</span>
+      <span style={{ ...baseColor, ...farStyle }}>far</span>
     </span>
   );
 }
@@ -70,11 +80,11 @@ const STRENGTH_OPTIONS: readonly { id: TaperStrength; label: string }[] = [
 export function TaperRows() {
   const { prefs, update } = useAppearancePrefs();
 
-  // Per-chip mode preview uses the user's CURRENT strength so the
-  // chip row reads as "here's what each variant would look like at
-  // my chosen intensity". The strength row's chips use the user's
-  // current mode for the same reason (defaults to "opacity" when
-  // taper is off so the chip still renders a visible cue).
+  // Strength chips render the user's CURRENT mode at each strength
+  // so the chip row reads "here's what soft/medium/strong looks like
+  // with my chosen variant". When taperMode is off the strength
+  // setting has no live effect — pick opacity as the demo so the
+  // chips still illustrate the falloff curve.
   const previewModeForStrengthRow: TaperMode =
     prefs.taperMode === "off" ? "opacity" : prefs.taperMode;
 
@@ -92,14 +102,9 @@ export function TaperRows() {
             value={prefs.taperMode}
             options={MODE_OPTIONS.map((o) => ({
               ...o,
-              preview:
-                o.id === "off" ? (
-                  <span className="block text-[11px] leading-none text-muted-foreground">
-                    off
-                  </span>
-                ) : (
-                  <ModeChipPreview mode={o.id} strength={prefs.taperStrength} />
-                ),
+              preview: (
+                <ModeChipPreview mode={o.id} strength={prefs.taperStrength} />
+              ),
             }))}
             onChange={(v) => update("taperMode", v)}
           />
