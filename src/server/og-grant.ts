@@ -2,6 +2,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import type { Database } from "@/db/server";
 import { OG_MILESTONE_LIMIT } from "@/db/server/repositories/users";
 import { parseUserTags, withUserTag } from "@/lib/user-tags";
+import { invalidateCachedClerkUser } from "./clerk-user-cache";
 import type { Logger } from "./logger";
 
 export type OgGrantContext = {
@@ -43,6 +44,9 @@ export async function grantOg(
       await client.users.updateUserMetadata(userId, {
         publicMetadata: { ...meta, tags: nextTags },
       });
+      // The cached user.publicMetadata.tags would otherwise miss the
+      // new OG entry until the TTL elapses.
+      invalidateCachedClerkUser(userId);
     }
     await ctx.db.notifications.createIfAbsent({
       userId,

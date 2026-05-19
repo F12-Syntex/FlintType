@@ -10,6 +10,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { ZodError } from "zod";
 import { createTestDatabase } from "@/db/server/testing";
 import { BackendError } from "@/lib/errors";
+import { _resetClerkUserCache } from "@/server/clerk-user-cache";
 import { callRoute } from "@/server/testing";
 import type { NewTestRow } from "@/types/adapt";
 import type { SharedTest } from "@/types/share";
@@ -72,6 +73,7 @@ describe("share.get", () => {
     await ctx.reset();
     mockClerkClient.mockReset();
     mockClerkUser();
+    _resetClerkUserCache();
   });
 
   afterAll(async () => {

@@ -1,5 +1,6 @@
 import type { clerkClient } from "@clerk/nextjs/server";
 
+import { invalidateCachedClerkUser } from "./clerk-user-cache";
 import type { Logger } from "./logger";
 
 const MIN_LEN = 4;
@@ -85,6 +86,10 @@ export async function ensureUsername(
       const updated = await client.users.updateUser(userId, {
         username: candidate,
       });
+      // Symmetric with profile.updateUsername — if anything cached the
+      // pre-write Clerk user (no username), drop it so the next read
+      // re-fetches the assigned value.
+      invalidateCachedClerkUser(userId);
       log.info("auto-username: assigned", { userId, username: candidate });
       return updated.username ?? candidate;
     } catch {

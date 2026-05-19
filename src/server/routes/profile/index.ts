@@ -1,6 +1,7 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { defineNamespace, defineRoute } from "@/server";
 import { BackendError } from "@/lib/errors";
+import { invalidateCachedClerkUser } from "@/server/clerk-user-cache";
 import { requireAuth } from "@/server/middleware/auth";
 import { rateLimit } from "@/server/middleware/rate-limit";
 import { resolveEligibleTags } from "@/server/resolve-tags";
@@ -141,6 +142,9 @@ const updateUsername = defineRoute<UpdateUsernameInput, UpdateUsernameOutput>({
     try {
       const updated = await client.users.updateUser(userId, { username: next });
       lastUpdateAtMs.set(userId, Date.now());
+      // Stale cached read would surface the old handle on share /
+      // profile surfaces until the TTL elapses — invalidate now.
+      invalidateCachedClerkUser(userId);
       log.info("username updated", { userId, username: next });
       return { username: updated.username ?? next };
     } catch (err) {

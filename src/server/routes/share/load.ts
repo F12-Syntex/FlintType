@@ -1,7 +1,7 @@
-import { clerkClient } from "@clerk/nextjs/server";
 import type { Database } from "@/db/server";
 import { BackendError } from "@/lib/errors";
 import { parseShareSlug } from "@/lib/share-slug";
+import { getCachedClerkUser } from "@/server/clerk-user-cache";
 import type { Logger } from "@/server/logger";
 import {
   applyTagSelection,
@@ -49,9 +49,12 @@ export async function loadSharedTest(
   let username: string | null = null;
   let avatarUrl: string | null = null;
   let eligibleTags: UserTagId[] = [];
-  try {
-    const client = await clerkClient();
-    const user = await client.users.getUser(row.userId);
+  // Cached read — public share URLs are hit by social-preview crawlers
+  // on every embed expansion, and the user's profile fields are
+  // stable for the cache TTL. Writes (username change, og grant)
+  // invalidate the entry so post-rename reads aren't stale.
+  const user = await getCachedClerkUser(row.userId);
+  if (user) {
     const raw =
       user.firstName ??
       user.username ??
@@ -65,11 +68,10 @@ export async function loadSharedTest(
       publicMetadataTags: (user.publicMetadata as { tags?: unknown } | null)
         ?.tags,
     });
-  } catch (err) {
-    log.warn("share.load: clerk getUser failed", {
+  } else {
+    log.warn("share.load: clerk getUser unavailable", {
       testId: row.id,
       userId: row.userId,
-      error: err instanceof Error ? err.message : String(err),
     });
   }
   const prefs = await db.userPrefs.get(row.userId);
