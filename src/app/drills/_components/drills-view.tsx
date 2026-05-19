@@ -113,12 +113,12 @@ function EmptyFilterState() {
   );
 }
 
-/** Hairline bento. Columns auto-fit on a 300px minmax so the last
- *  row's cells stretch to fill the available width — avoids the
- *  empty-slot bg-border artifact you'd see with a fixed grid-cols-3
- *  when a row isn't full. Cells share borders via `gap-px` over a
- *  `bg-border` wrapper; each cell paints `bg-background` so only the
- *  1px margins between cells remain visible. */
+/** Consistent-size card grid. Three discrete cards per row on lg+
+ *  (one on mobile, two on sm), each carrying its own border on the
+ *  page background. Partial last rows leave page-bg, not the hairline
+ *  bg-border the prior wrapper bento showed through. Every card has
+ *  the same width and `min-h-[14rem]` so the grid rhythm stays even
+ *  when titles or descriptions vary. */
 function DrillBento({
   drills,
   recommendedId,
@@ -129,11 +129,8 @@ function DrillBento({
   return (
     <div
       className={cn(
-        "grid gap-px overflow-hidden rounded-md border border-border bg-border",
+        "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3",
       )}
-      style={{
-        gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-      }}
     >
       {drills.map((d) => (
         <DrillCell

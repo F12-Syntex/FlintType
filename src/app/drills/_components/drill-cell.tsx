@@ -1,15 +1,19 @@
 "use client";
 
-import { ChevronRight, Lock, Skull, Zap } from "lucide-react";
+import { ArrowUpRight, Lock, Skull, Zap } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { DrillSpec } from "./drills-data";
 
-/** One drill rendered as a bento cell. Sits inside <DrillBento> on
- *  a hairline grid. No card chrome — the cell paints with
- *  bg-background and the grid wrapper paints the borders via a 1px
- *  gap. Ready drills are <Link>s with a soft hover tint; locked
- *  drills are inert <div>s in the same geometry so the rhythm holds. */
+/** A single drill rendered as a discrete card. Same width across the
+ *  grid, same `min-h-[14rem]` floor so the rhythm is even regardless
+ *  of how long any individual title or description runs. Ready drills
+ *  are `<Link>`s with a subtle hover lift; locked drills are inert
+ *  containers in the same geometry so the grid stays uniform.
+ *
+ *  Recommended drills get a primary-tinted border and a small primary
+ *  pip in the top-right; locked drills get a muted border and a lock
+ *  glyph. Everything else reads as a neutral card on bg-card. */
 export function DrillCell({
   drill,
   recommended,
@@ -19,20 +23,40 @@ export function DrillCell({
 }) {
   const isSuddenDeath = drill.kind === "sudden-death";
   const isLocked = !drill.ready;
+
+  const surfaceClass = cn(
+    "group flex h-full min-h-[14rem] flex-col gap-4 rounded-md border p-5 transition-all sm:p-6",
+    isLocked
+      ? "border-border/80 bg-card/60"
+      : recommended
+        ? "border-primary/40 bg-card hover:-translate-y-px hover:border-primary/60 hover:bg-card"
+        : "border-border bg-card hover:-translate-y-px hover:border-foreground/25",
+  );
+
   const body = (
-    <div className="flex h-full min-h-[180px] flex-col gap-3 p-6 sm:p-7">
-      <Eyebrow drill={drill} isLocked={isLocked} recommended={recommended} />
+    <>
       <div className="flex items-start justify-between gap-3">
-        <h3
-          className={cn(
-            "text-[22px] font-bold tracking-[-0.015em] leading-[1.15] sm:text-[26px]",
-            isLocked ? "text-muted-foreground" : "text-foreground",
-          )}
-        >
-          {drill.title}
-        </h3>
-        <KindGlyph isSuddenDeath={isSuddenDeath} isLocked={isLocked} recommended={recommended} />
+        <KindBadge
+          isSuddenDeath={isSuddenDeath}
+          isLocked={isLocked}
+          recommended={recommended}
+          label={drill.contextLabel}
+        />
+        <StatusPip
+          isLocked={isLocked}
+          recommended={recommended}
+        />
       </div>
+
+      <h3
+        className={cn(
+          "text-[20px] font-semibold leading-[1.2] tracking-[-0.01em] sm:text-[22px]",
+          isLocked ? "text-muted-foreground" : "text-foreground",
+        )}
+      >
+        {drill.title}
+      </h3>
+
       <p
         className={cn(
           "flex-1 text-[13px] leading-relaxed",
@@ -41,19 +65,18 @@ export function DrillCell({
       >
         {cellDescription(drill)}
       </p>
-      <CellFooter drill={drill} isLocked={isLocked} recommended={recommended} />
-    </div>
+
+      <CellFooter
+        drill={drill}
+        isLocked={isLocked}
+        recommended={recommended}
+      />
+    </>
   );
 
   if (isLocked) {
     return (
-      <div
-        aria-disabled
-        className={cn(
-          "bg-background",
-          recommended && "bg-primary/[0.04]",
-        )}
-      >
+      <div aria-disabled className={surfaceClass}>
         {body}
       </div>
     );
@@ -62,111 +85,69 @@ export function DrillCell({
   return (
     <Link
       href={`/drills/${drill.id}`}
-      className={cn(
-        "group block bg-background transition-colors hover:bg-accent/40 focus-visible:bg-accent/40 focus-visible:outline-none",
-        recommended && "bg-primary/[0.05] hover:bg-primary/[0.08]",
-      )}
+      className={cn(surfaceClass, "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40")}
     >
       {body}
     </Link>
   );
 }
 
-function Eyebrow({
-  drill,
-  isLocked,
-  recommended,
-}: {
-  drill: DrillSpec;
-  isLocked: boolean;
-  recommended: boolean;
-}) {
-  const isSuddenDeath = drill.kind === "sudden-death";
-  return (
-    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-      <span
-        aria-hidden
-        className={cn(
-          "inline-block h-px w-4",
-          isLocked
-            ? "bg-foreground/20"
-            : isSuddenDeath
-              ? "bg-destructive"
-              : recommended
-                ? "bg-primary"
-                : "bg-foreground/30",
-        )}
-      />
-      <span
-        className={cn(
-          "font-mono text-[10px] font-semibold uppercase tracking-[0.22em]",
-          isLocked
-            ? "text-muted-foreground/70"
-            : isSuddenDeath
-              ? "text-destructive"
-              : recommended
-                ? "text-primary"
-                : "text-muted-foreground",
-        )}
-      >
-        {drill.contextLabel}
-      </span>
-      {recommended && !isLocked ? (
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">
-          · Recommended
-        </span>
-      ) : null}
-      {isLocked ? (
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/70">
-          · Locked
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
-function KindGlyph({
+/** Top-left kind badge: tinted icon + short label. Replaces the
+ *  hairline-tick eyebrow — this reads cleaner and gives the kind
+ *  identity a visual anchor instead of a typographic one. */
+function KindBadge({
   isSuddenDeath,
   isLocked,
   recommended,
+  label,
 }: {
   isSuddenDeath: boolean;
   isLocked: boolean;
   recommended: boolean;
+  label: string;
 }) {
-  const base =
-    "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border";
-  if (isLocked) {
-    return (
-      <span
-        aria-hidden
-        className={cn(base, "border-foreground/10 text-muted-foreground/55")}
-      >
-        <Lock size={14} strokeWidth={1.6} />
-      </span>
-    );
-  }
-  if (isSuddenDeath) {
-    return (
-      <span
-        aria-hidden
-        className={cn(base, "border-destructive/30 text-destructive")}
-      >
-        <Skull size={15} strokeWidth={1.6} />
-      </span>
-    );
-  }
+  const Glyph = isLocked ? Lock : isSuddenDeath ? Skull : Zap;
   return (
     <span
-      aria-hidden
       className={cn(
-        base,
-        recommended
-          ? "border-primary/35 bg-primary/10 text-primary"
-          : "border-foreground/15 text-foreground/70",
+        "inline-flex items-center gap-2 rounded-md px-2 py-1 text-[10.5px] font-semibold uppercase tracking-[0.16em]",
+        isLocked
+          ? "bg-muted text-muted-foreground"
+          : isSuddenDeath
+            ? "bg-destructive/10 text-destructive"
+            : recommended
+              ? "bg-primary/12 text-primary"
+              : "bg-muted text-muted-foreground",
       )}
     >
-      <Zap size={15} strokeWidth={1.6} />
+      <Glyph size={13} strokeWidth={2} aria-hidden />
+      {label}
+    </span>
+  );
+}
+
+/** Tiny status pip in the top-right — primary dot when this is the
+ *  recommended drill, nothing otherwise (locked already reads as
+ *  locked via the muted treatment everywhere else). */
+function StatusPip({
+  isLocked,
+  recommended,
+}: {
+  isLocked: boolean;
+  recommended: boolean;
+}) {
+  if (isLocked) {
+    return (
+      <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/70">
+        Locked
+      </span>
+    );
+  }
+  if (!recommended) return null;
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/12 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">
+      <span aria-hidden className="size-1.5 rounded-full bg-primary" />
+      Recommended
     </span>
   );
 }
@@ -181,32 +162,32 @@ function CellFooter({
   recommended: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 pt-1">
+    <div className="flex items-end justify-between gap-3 pt-1">
       <p
         className={cn(
-          "truncate font-mono text-[10.5px] uppercase tracking-[0.18em] tabular-nums",
+          "truncate text-[11px] tabular-nums",
           isLocked ? "text-muted-foreground/55" : "text-muted-foreground/85",
         )}
       >
         {cellSpec(drill)}
       </p>
       {isLocked ? (
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/55">
+        <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground/55">
           Waiting on data
         </span>
       ) : (
         <span
           aria-hidden
           className={cn(
-            "inline-flex items-center gap-1 font-mono text-[10.5px] font-semibold uppercase tracking-[0.22em]",
-            "transition-transform group-hover:translate-x-0.5",
+            "inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.18em] transition-transform",
+            "group-hover:translate-x-0.5",
             recommended
               ? "text-primary"
               : "text-foreground/70 group-hover:text-foreground",
           )}
         >
           Start
-          <ChevronRight size={13} />
+          <ArrowUpRight size={13} strokeWidth={2.25} />
         </span>
       )}
     </div>
