@@ -557,6 +557,43 @@ describe("RaceRoom", () => {
     return room;
   }
 
+  it("places racers by net WPM, not by finish order", () => {
+    // Two real racers + bots filled. Alice crosses the line first
+    // but with low accuracy; Bob crosses after with a cleaner run
+    // and a much higher net. Bob should win even though Alice
+    // crossed first.
+    const room = new RaceRoom({
+      id: "r_netwpm",
+      slug: null,
+      kind: "matchmaking",
+      modeId: "1v1",
+      raceSeed: 1,
+      wordCount: 5,
+    });
+    room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
+    room.addRealRacer({ sessionToken: "s_bob", name: "@bob", badge: "RACER" });
+    vi.advanceTimersByTime(5_000 + 700 + 3_000);
+    expect(room.phase).toBe("racing");
+
+    // Alice crosses first at 100 raw wpm and 50% accuracy → net 50.
+    room.setProgress("s_alice", room.totalChars, 100, true, undefined, 50);
+    // Bob crosses second at 142 raw wpm and 95% accuracy → net 135.
+    vi.advanceTimersByTime(1_000);
+    room.setProgress("s_bob", room.totalChars, 142, true, undefined, 95);
+    // Drive bots over the line too so phase flips to finished.
+    vi.advanceTimersByTime(60_000);
+    expect(room.phase).toBe("finished");
+
+    const racers = room.snapshot().racers;
+    const alice = racers.find((r) => r.id === "s_alice");
+    const bob = racers.find((r) => r.id === "s_bob");
+    expect(bob?.place).toBeLessThan(alice?.place ?? 99);
+    // First place must belong to Bob (highest net), regardless of
+    // whether bots placed in between.
+    const top = racers.find((r) => r.place === 1);
+    expect(top?.id).toBe("s_bob");
+  });
+
   it("markRematchReady starts a new round instantly in a 1-real room", () => {
     const room = makeFinished1v1();
     const beforeRound = room.roundNumber;

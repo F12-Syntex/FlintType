@@ -584,7 +584,44 @@ export class RaceRoom {
       clearInterval(this.botTickInterval);
       this.botTickInterval = null;
     }
+    this.rankByNetWpm();
     this.scheduleGc();
+  }
+
+  /** Re-rank every racer's `place` by net WPM (raw_wpm × accuracy /
+   *  100) descending. Finish order alone is a misleading winner — a
+   *  cracked typist who finished cleanly at 177 net deserves first
+   *  even if a sloppier 100-wpm racer crossed the line a second
+   *  earlier with half their typing being backspaces. Ties (rare —
+   *  two racers at the same integer net) break on `finishedAt`
+   *  ascending so the earlier finisher edges out. Bots and real
+   *  players rank against each other the same way; disconnected
+   *  racers slot to the back. Called once from `maybeFinishRace` so
+   *  the place is final by the time the result panel mounts. */
+  private rankByNetWpm() {
+    const racers = [...this.racers.values()];
+    const score = (r: (typeof racers)[number]) => {
+      const wpm = Math.max(0, r.wpm);
+      const acc = Math.max(0, Math.min(100, r.accuracy));
+      return Math.round(wpm * (acc / 100));
+    };
+    racers.sort((a, b) => {
+      if (a.disconnected !== b.disconnected) {
+        return a.disconnected ? 1 : -1;
+      }
+      const diff = score(b) - score(a);
+      if (diff !== 0) return diff;
+      const ta = a.finishedAt ?? Number.POSITIVE_INFINITY;
+      const tb = b.finishedAt ?? Number.POSITIVE_INFINITY;
+      return ta - tb;
+    });
+    racers.forEach((r, i) => {
+      r.place = i + 1;
+    });
+    // Keep nextPlace aligned with the new high-water mark so any
+    // late-cycle finish (e.g. a re-entry between finished + lobby)
+    // assigns places past the final rank instead of overlapping.
+    this.nextPlace = racers.length + 1;
   }
 
   /* ─── Rematch ────────────────────────────────────────────── */
