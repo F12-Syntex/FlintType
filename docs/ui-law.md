@@ -228,6 +228,7 @@ All recipes are **mobile-first**: base classes target ≤ 375px viewports, `sm:`
 | Topbar inner row          | `mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-3 sm:px-8 sm:py-4`          |
 | List row (long text + action) | `flex flex-col gap-2 rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900 sm:flex-row sm:items-center sm:justify-between` |
 | App shell with sidebar    | `grid h-full grid-cols-1 lg:grid-cols-[var(--app-rail-width)_1fr] lg:gap-3` — used by `/customise` and `/leaderboard`. `--app-rail-width` lives in `globals.css`; the `<TopBar>` reuses the same grid template (`[var(--app-rail-width)_1fr_auto]` with matching `lg:px-6`) so the logo column aligns with the sidebar and the nav aligns with the content card. |
+| Auth split shell          | `grid min-h-screen grid-cols-1 md:grid-cols-2` — used by `<AuthShell>` (`/sign-in`, `/sign-up`). Left column is mode-independent `bg-ft-ink-deep` with a coral glow (`bg-primary/40 blur-3xl`) as the only atmospheric element; right column is theme-aware `bg-card` and hosts the form. Stacks on mobile (dark hero content-fitted on top, form below); splits 50/50 on md+. Apply `safe-pt` to the dark panel and `safe-pb` to the form panel — both touch viewport edges in fullscreen chrome. |
 
 ---
 

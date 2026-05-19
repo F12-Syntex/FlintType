@@ -1,15 +1,26 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Tag } from "@/components/ft";
+import { Logo, Tag } from "@/components/ft";
 
-/** Shared editorial wrapper around the custom sign-in / sign-up
- *  forms. The flame mark sits at the top of a centred card; title
- *  and description read centre-aligned underneath. The form's own
- *  visual surface (Discord button, divider, email/password fields)
- *  renders as `children`; the alt-link footer (No account? / Sign
- *  in?) sits below the card. */
+/** Fullscreen split shell for /sign-in and /sign-up.
+ *
+ *  Left panel — always-dark warm-ink surface (bg-ft-ink-deep from the
+ *  §2.3 ramp) carrying the brand: flame wordmark top-left, an editorial
+ *  brand line filling the middle, and a coral glow anchored bottom-left
+ *  as the only atmospheric element. Mode-independent on purpose: the
+ *  brand reads the same whether the user is on light or dark.
+ *
+ *  Right panel — semantic `bg-card`, follows the user's chosen palette
+ *  + mode. Holds the actual form: optional eyebrow Tag, h1 title,
+ *  description, the page's form `children`, and an alt-link footer
+ *  ("No account yet? Create one").
+ *
+ *  Mobile stacks the two as content-fitted bands (dark hero on top,
+ *  form below). Desktop (md+) splits 50/50, both at min-h-screen so
+ *  the form vertically centers nicely on a 27" monitor. */
 export function AuthShell({
   eyebrow,
+  brandLine = "Practice is the only shortcut.",
   title,
   description,
   children,
@@ -17,10 +28,11 @@ export function AuthShell({
   altHref,
   altLinkText,
 }: {
-  /** Optional eyebrow above the title. Pass undefined to omit
-   *  entirely (the sign-in page does this — the title alone reads
-   *  cleaner than "Welcome back / Sign in"). */
+  /** Small uppercase tag above the title on the form side (e.g. "Sign in"). */
   eyebrow?: string;
+  /** Editorial brand line on the dark panel. Defaults to the flinttype
+   *  maxim so consumers can ignore it; pass to override per surface. */
+  brandLine?: ReactNode;
   title: string;
   description?: ReactNode;
   children: ReactNode;
@@ -29,33 +41,54 @@ export function AuthShell({
   altLinkText: string;
 }) {
   return (
-    <main className="relative min-h-screen bg-background text-foreground">
-      <div className="flex min-h-screen items-center justify-center px-4 py-12 sm:py-16">
-        <div className="flex w-full max-w-md flex-col items-center gap-6">
-          {/* Card — logo at top, centred title + description, form
-           *  body. Hairline border + bg-card so it lifts off the page
-           *  background regardless of light / dark mode. */}
-          <div className="flex w-full flex-col gap-7 rounded-md border border-border bg-card px-6 py-9 shadow-sm sm:px-8 sm:py-10">
-            <header className="flex flex-col items-center gap-4 text-center">
-              <Link
-                href="/"
-                aria-label="flinttype"
-                className="inline-flex items-center justify-center"
-              >
-                <img
-                  src="/flinttype-logo.svg"
-                  alt=""
-                  className="size-12 shrink-0"
-                />
-              </Link>
+    <main className="grid min-h-screen grid-cols-1 bg-background text-foreground md:grid-cols-2">
+      {/* LEFT — brand panel. Always dark, mode-independent. */}
+      <aside className="safe-pt relative flex flex-col justify-between overflow-hidden bg-ft-ink-deep px-6 py-8 text-ft-warm-1 sm:px-10 sm:py-10 md:min-h-screen md:px-12 md:py-12">
+        <Logo dark className="relative z-10 text-ft-warm-1" />
+
+        <div className="relative z-10 max-w-md py-8 md:py-12">
+          <p className="text-3xl font-bold leading-[1.05] tracking-tight text-ft-warm-1 sm:text-4xl md:text-5xl lg:text-[3.5rem]">
+            {brandLine}
+          </p>
+        </div>
+
+        <div className="relative z-10 hidden items-center gap-3 md:flex">
+          <span aria-hidden className="h-px w-6 bg-ft-warm-4" />
+          <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-ft-warm-3">
+            flinttype
+          </span>
+        </div>
+
+        {/* Coral glow — the only atmospheric element on the panel.
+            Sized with aspect-square + percent width so it scales with
+            the panel and stays inside the spacing scale (ui-law §3
+            forbids arbitrary `size-[15rem]` etc). Two layered glows:
+            the outer halo carries reach, the inner core gives the
+            "spark" some density. Both sit behind text (z-0); the
+            panel's content gets z-10. */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -bottom-20 -left-12 z-0 block aspect-square w-3/4 max-w-md rounded-full bg-primary/40 blur-3xl"
+        />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -bottom-8 -left-2 z-0 block aspect-square w-1/3 max-w-xs rounded-full bg-primary/60 blur-2xl"
+        />
+      </aside>
+
+      {/* RIGHT — form panel. Theme-aware. */}
+      <section className="safe-pb flex flex-col bg-card text-card-foreground md:min-h-screen">
+        <div className="flex flex-1 items-center justify-center px-6 py-10 sm:px-10 md:px-12 md:py-16">
+          <div className="flex w-full max-w-md flex-col gap-8">
+            <header className="flex flex-col gap-4">
               {eyebrow ? (
                 <div className="flex items-center gap-3">
-                  <span aria-hidden className="inline-block h-px w-5 bg-primary" />
+                  <span aria-hidden className="h-px w-6 bg-primary" />
                   <Tag>{eyebrow}</Tag>
                 </div>
               ) : null}
-              <div className="flex flex-col gap-2">
-                <h1 className="text-2xl font-bold tracking-[-0.02em] text-foreground sm:text-3xl">
+              <div className="flex flex-col gap-3">
+                <h1 className="text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl">
                   {title}
                 </h1>
                 {description ? (
@@ -67,33 +100,19 @@ export function AuthShell({
             </header>
 
             {children}
-          </div>
 
-          {/* Footer lockup — eyebrow Tag flanked by hairlines, then the
-           *  alt-route link on its own row. Editorial rhythm (§12.1 eyebrow
-           *  pattern, adapted to centred) so it reads as deliberate utility,
-           *  not leftover text. */}
-          <div className="flex flex-col items-center gap-3">
-            <div className="flex items-center gap-3">
-              <span aria-hidden className="h-px w-8 bg-border" />
-              <Tag>{altLabel}</Tag>
-              <span aria-hidden className="h-px w-8 bg-border" />
-            </div>
-            <Link
-              href={altHref}
-              className="group inline-flex items-center gap-1.5 text-sm font-semibold text-foreground transition-colors hover:text-primary"
-            >
-              {altLinkText}
-              <span
-                aria-hidden
-                className="transition-transform group-hover:translate-x-0.5"
+            <footer className="border-t border-border pt-6 text-sm text-muted-foreground">
+              {altLabel}{" "}
+              <Link
+                href={altHref}
+                className="font-semibold text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
               >
-                →
-              </span>
-            </Link>
+                {altLinkText}
+              </Link>
+            </footer>
           </div>
         </div>
-      </div>
+      </section>
     </main>
   );
 }

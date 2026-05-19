@@ -13,8 +13,9 @@ export const metadata = buildPageMetadata({
 export default function SignInPage() {
   return (
     <AuthShell
-      title="Sign in to flinttype"
-      description="Pick up where you left off — your typing model, drills, and personal bests are waiting."
+      eyebrow="Sign in"
+      title="Welcome back."
+      description="Your typing model, drills, and personal bests are waiting."
       altLabel="No account yet?"
       altHref="/sign-up"
       altLinkText="Create one"
