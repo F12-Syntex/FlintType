@@ -73,7 +73,12 @@ export const APPEARANCE_SECTIONS: readonly AppearanceSection[] = [
   {
     id: "typing-area",
     name: "Typing area",
-    blurb: "Line count, max width, tape vs free-flow, margin.",
+    blurb: "Line count, max width, and how the passage fills its column.",
+  },
+  {
+    id: "tape",
+    name: "Tape mode",
+    blurb: "Collapse the passage into one scrolling line — word or letter granularity.",
   },
   {
     id: "taper",

@@ -4,7 +4,6 @@ import { useRef } from "react";
 import { Input } from "@/components/ui/input";
 import {
   type HighlightMode,
-  type TapeMode,
   type TypedEffect,
   useAppearancePrefs,
 } from "@/lib/appearance-prefs";
@@ -64,43 +63,6 @@ function TypedEffectChipPreview({ effect }: { effect: TypedEffect }) {
   );
 }
 
-function TapeChipPreview({ mode }: { mode: TapeMode }) {
-  // Mode is "where the cursor sits" — off = stacked block, word =
-  // single line scrolled per-word, letter = single line scrolled per
-  // keystroke. We show stacked dashes (off) vs a single dash row.
-  if (mode === "off") {
-    return (
-      <span className="flex flex-col items-center gap-0.5">
-        <span className="block h-0.5 w-6 bg-foreground/40" />
-        <span className="block h-0.5 w-5 bg-foreground/40" />
-        <span className="block h-0.5 w-4 bg-foreground/40" />
-      </span>
-    );
-  }
-  if (mode === "word") {
-    return (
-      <span className="flex items-center gap-0.5">
-        <span className="block h-0.5 w-2.5 bg-primary/60" />
-        <span className="block h-0.5 w-2.5 bg-foreground/40" />
-        <span className="block h-0.5 w-2.5 bg-foreground/40" />
-      </span>
-    );
-  }
-  return (
-    <span className="flex items-center gap-px">
-      {[0, 1, 2, 3, 4, 5].map((i) => (
-        <span
-          key={i}
-          className={cn(
-            "block h-0.5 w-1",
-            i === 2 ? "bg-primary/80" : "bg-foreground/35",
-          )}
-        />
-      ))}
-    </span>
-  );
-}
-
 const HIGHLIGHT_OPTIONS: readonly {
   id: HighlightMode;
   label: string;
@@ -140,20 +102,6 @@ const TYPED_EFFECT_OPTIONS: readonly {
     id: "strike",
     label: "Strike",
     preview: <TypedEffectChipPreview effect="strike" />,
-  },
-];
-
-const TAPE_OPTIONS: readonly {
-  id: TapeMode;
-  label: string;
-  preview: React.ReactNode;
-}[] = [
-  { id: "off", label: "Off", preview: <TapeChipPreview mode="off" /> },
-  { id: "word", label: "Word", preview: <TapeChipPreview mode="word" /> },
-  {
-    id: "letter",
-    label: "Letter",
-    preview: <TapeChipPreview mode="letter" />,
   },
 ];
 
@@ -257,56 +205,6 @@ export function PassageRows() {
             onChange={(v) => update("markIncompleteWord", v)}
             offPreview={<IncompleteChipPreview on={false} />}
             onPreview={<IncompleteChipPreview on={true} />}
-          />
-        }
-      />
-
-      <SettingsRow
-        label={
-          <LabelWithDesc
-            title="Tape mode"
-            desc="One scrolling line. Word scrolls per word, Letter scrolls per keypress. Best with smooth scroll + a mono font."
-          />
-        }
-        control={
-          <SelectChips
-            value={prefs.tapeMode}
-            options={TAPE_OPTIONS}
-            onChange={(v) => update("tapeMode", v)}
-          />
-        }
-      />
-
-      <SettingsRow
-        label={
-          <LabelWithDesc
-            title="Tape margin"
-            desc="Caret position from the left edge of the typing test (50% centers it)."
-          />
-        }
-        control={
-          <SliderRow
-            value={prefs.tapeMargin}
-            min={0}
-            max={100}
-            step={1}
-            format={(v) => `${v}%`}
-            onChange={(v) => update("tapeMargin", v)}
-          />
-        }
-      />
-
-      <SettingsRow
-        label={
-          <LabelWithDesc
-            title="Smooth line scroll"
-            desc="Animate line transitions instead of jumping."
-          />
-        }
-        control={
-          <ToggleChips
-            value={prefs.smoothLineScroll}
-            onChange={(v) => update("smoothLineScroll", v)}
           />
         }
       />

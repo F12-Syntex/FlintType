@@ -30,6 +30,7 @@ import { LiveStatsRows } from "./_components/live-stats-rows";
 import { PassageRows } from "./_components/passage-rows";
 import { RadiusRow } from "./_components/radius-row";
 import { ResultRows } from "./_components/result-rows";
+import { TapeRows } from "./_components/tape-row";
 import { TaperRows } from "./_components/taper-row";
 import {
   BackgroundFillRow,
@@ -52,6 +53,7 @@ import {
   MultiplayerPreview,
   ResultLivePreview,
   SurfacePreview,
+  TapePreview,
   TaperPreview,
   ThemePreview,
   TypingAreaPreview,
@@ -285,10 +287,20 @@ export default function AppearancePage() {
         id="typing-area"
         eyebrow="Surface"
         title="Typing area"
-        description="Line count, max width, tape vs free-flow, smooth scroll. The passage above is the same component the test screen runs — every toggle moves it live."
+        description="Line count and max width of the passage. The preview above is the same component the test screen runs — every toggle moves it live."
         preview={<TypingAreaPreview />}
       >
         <PassageRows />
+      </SettingsSection>
+
+      <SettingsSection
+        id="tape"
+        eyebrow="Layout"
+        title="Tape mode"
+        description="One scrolling line. Word scrolls per word, Letter scrolls per keypress. Best with smooth scroll + a mono font."
+        preview={<TapePreview />}
+      >
+        <TapeRows />
       </SettingsSection>
 
       <SettingsSection

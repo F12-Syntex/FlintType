@@ -213,6 +213,15 @@ export function LiveStatsPreview() {
 
 /* ─── Typing area ──────────────────────────────────────────────── */
 
+/* ─── Tape ──────────────────────────────────────────────────────── */
+
+export function TapePreview() {
+  // Real Passage — tape mode hijacks its layout to single-line +
+  // horizontal scroll, so the preview reads exactly like the live
+  // test surface under the user's pick.
+  return <PreviewSurface height="h-[180px]" />;
+}
+
 /* ─── Taper ─────────────────────────────────────────────────────── */
 
 export function TaperPreview() {
