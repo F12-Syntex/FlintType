@@ -64,11 +64,20 @@ function applyVar(name: ThemeVar, value: string | undefined) {
  *  = "custom"` in `themes/use-palette.tsx` so the picker reads "Custom"
  *  on first load and these inline vars are applied. The pre-reset
  *  default (empty record) is preserved in
- *  docs/defaults-previous-2026-05-19.json. */
+ *  docs/defaults-previous-2026-05-19.json.
+ *
+ *  --accent / --accent-foreground are deliberately NOT pinned here.
+ *  These inline vars are applied to <html> in BOTH light and dark mode
+ *  (the override layer is mode-agnostic — a single value can't be a
+ *  quiet tint in both modes). A pinned peach (`#fed7aa` + `#000000`)
+ *  painted a strong, bright hover block on every interactive list/menu
+ *  surface, especially on dark dropdowns, competing with --primary.
+ *  Leaving them unset lets --accent inherit the mode-aware quiet
+ *  neutral from globals.css :root / .dark (see ui-law §2: accent is the
+ *  quiet hover tint, never a second spark). The brand baseline only
+ *  needs --primary / --ring to carry the orange. */
 const EMPTY_OVERRIDES: ThemeOverrides = {
   "--primary": "#f97316",
-  "--accent": "#fed7aa",
-  "--accent-foreground": "#000000",
   "--ring": "#fb923c",
   "--radius": "0.5rem",
   "--ft-word-spacing": "0.25em",

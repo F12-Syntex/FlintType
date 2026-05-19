@@ -30,7 +30,7 @@ const DEFAULT_SWATCHES: readonly string[] = [
   "oklch(0.6551 0.2312 34.7438)",
   "oklch(0.9450 0.0180 85)",
   "oklch(0.9650 0.0150 85)",
-  "oklch(0.9656 0.0176 39.4009)",
+  "oklch(0.9050 0.0140 85)",
 ];
 
 function PaletteSwatches({ colors }: { colors: readonly string[] }) {
