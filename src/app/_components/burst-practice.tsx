@@ -225,15 +225,17 @@ export function BurstReadouts() {
           size="lg"
           align="right"
         />
-        {lastWpm != null ? (
-          <Stat
-            label="LAST WPM"
-            value={String(lastWpm)}
-            size="lg"
-            align="right"
-            accent={outcome === "win"}
-          />
-        ) : null}
+        {/* LAST WPM is always rendered (placeholder em-dash until the
+         *  first commit) so its column doesn't appear mid-run and
+         *  reflow the row — which would change the available height
+         *  for the centred word below and visibly shift it. */}
+        <Stat
+          label="LAST WPM"
+          value={lastWpm != null ? String(lastWpm) : "—"}
+          size="lg"
+          align="right"
+          accent={outcome === "win"}
+        />
       </div>
     </div>
   );
@@ -259,13 +261,11 @@ export function BurstMobileReadouts() {
         label={thresholdAuto ? "thr·auto" : "thr"}
         value={String(threshold)}
       />
-      {lastWpm != null ? (
-        <Pip
-          label="last"
-          value={String(lastWpm)}
-          tone={outcome === "win" ? "primary" : "ink"}
-        />
-      ) : null}
+      <Pip
+        label="last"
+        value={lastWpm != null ? String(lastWpm) : "—"}
+        tone={outcome === "win" ? "primary" : "ink"}
+      />
     </div>
   );
 }
@@ -323,7 +323,12 @@ export function BurstWordView() {
         showCaret={caret.style !== "off" && state.phase !== "done"}
         caretStyle={caret.style}
       />
-      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+      {/* Hint line — always rendered, with a non-breaking space
+       *  fallback ( ) when there's nothing to say so the
+       *  paragraph reserves real line height. Without this the
+       *  column re-centers mid-attempt when the hint goes empty
+       *  and the word visibly jumps. */}
+      <p className="min-h-[1.25em] text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
         {outcome === "wrong"
           ? "wrong — try again"
           : outcome === "slow"
@@ -332,7 +337,7 @@ export function BurstWordView() {
               ? "press space to commit"
               : typedHere.length === 0
                 ? "type the word, then space"
-                : ""}
+                : " "}
       </p>
     </div>
   );
