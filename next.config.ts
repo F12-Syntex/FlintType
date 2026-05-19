@@ -17,13 +17,6 @@ const nextConfig: NextConfig = {
   // `Failed to execute 'releasePointerCapture'` errors from its own
   // pointer-event handlers (next-devtools/index_*.js). Pure dev-only.
   devIndicators: false,
-  // Pin turbopack's root resolution to this project's directory.
-  // Without this, Next walks up looking for the nearest lockfile;
-  // a sibling lockfile (e.g. one in C:\Users\synte\Programming) makes
-  // it warn about "additional lockfiles" and ambiguous root selection.
-  turbopack: {
-    root: process.cwd(),
-  },
   env: {
     NEXT_PUBLIC_APP_VERSION: appVersion,
   },
