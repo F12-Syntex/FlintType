@@ -61,7 +61,15 @@ function ChartContainer({
         {...props}
       >
         <ChartStyle id={chartId} config={config} />
-        <RechartsPrimitive.ResponsiveContainer>
+        {/* width="99%" + minHeight={1} dodge recharts' transient -1
+         *  dimensions warning during the first paint inside the
+         *  appearance preview, where the parent's aspect-video hasn't
+         *  finished resolving yet. The container still fills the box. */}
+        <RechartsPrimitive.ResponsiveContainer
+          width="99%"
+          height="100%"
+          minHeight={1}
+        >
           {children}
         </RechartsPrimitive.ResponsiveContainer>
       </div>
