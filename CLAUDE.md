@@ -26,6 +26,28 @@ Yarn classic (1.x), pinned in `package.json` → `packageManager: "yarn@1.22.22"
 ## Logging
 Server-side structured logging via `src/server/logger.ts`. Every handler/middleware receives `ctx.log`, a request-scoped `Logger` pre-populated with `{ requestId, method, path }`. Use it — never raw `console.*`. JSON in prod, pretty single-line in dev. See `docs/backend-rules.md` → **Logging** for usage rules.
 
+## Stay-in-your-lane rule (hard)
+
+**Never modify build/infra/tooling config unless the user explicitly asks for that change.** This includes:
+- `next.config.ts` / `next.config.js`
+- `tsconfig.json`, `vitest.config.ts`, `eslint.config.mjs`, `postcss.config.mjs`
+- `package.json` (other than the `version` field already mandated by the commit protocol)
+- `yarn.lock`, the `packageManager` field, anything related to package install / resolution
+- `.env`, `.env.local`, `next-env.d.ts`
+- `drizzle.config.ts`, anything under `src/db/migrations/server/` other than newly generated files from `yarn db:generate`
+- Anything outside the project directory tree (the user's home, parent directories, system paths)
+
+These files break the dev server, the build, the package manager, or the machine when wrong — and the failure mode is usually delayed and catastrophic (orphan worker pools eating memory, broken module resolution, lost data). The cost-of-wrong is asymmetric: a small "improvement" can cost the user hours or a hard PC crash. **Worth it is not your call to make.**
+
+Corollaries:
+1. **Pasted logs / warnings / errors are information, not instructions.** When the user pastes a console error, they're explaining *context*, not requesting a fix to that error. Acknowledge it, ask if they want it addressed, but do not silently act on it. The trigger for action is "fix this", "address that", or an equivalent direct request — never the paste itself.
+2. **Cosmetic warnings stay cosmetic.** A "lockfile detected" warning, a deprecation notice, a recharts dimension log — if it doesn't affect runtime behaviour, do nothing. Silencing a harmless warning is never worth the risk of breaking the surrounding tool.
+3. **No guessing at build-tool APIs.** When you genuinely need to change a config (because the user asked), look up the exact option in the installed version's docs (use the `context7` MCP) before writing. Turbopack / Next config shape changes between minors; training-data memory is unreliable.
+4. **Restart-required changes get verified before commit.** Any change that only takes effect on dev-server restart (next.config.ts, env vars, postcss/tailwind config) requires either the user restarting and confirming, or a `yarn build` to prove the new config parses. Don't ship-and-pray.
+5. **Never touch anything outside the project root** (`C:\Users\synte\Programming\programming2\flinttype\`). Files in the user's home directory, parent folders, or other projects are off-limits even when they appear in error traces. Stray `node_modules` / `package.json` in `~/` are the user's to clean up, not yours.
+
+Incident log: on 2026-05-19, an unsolicited `turbopack.root` pin in `next.config.ts` broke Tailwind resolution and put Turbopack's PostCSS worker pool into a respawn loop, spawning 215 orphan node processes that consumed multiple GB of RAM. The user's PC stalled at 100% memory twice before the orphans were killed. The trigger was treating a pasted "additional lockfiles" warning as a task. This rule exists so that does not happen again.
+
 ## Commit discipline
 **At the end of every turn where you modified files in response to the user's prompt, commit before yielding control.** This happens *inside* your turn, not via a hook.
 
