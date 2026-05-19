@@ -1,27 +1,26 @@
-1: change lines shown
-2: fix shop apperanacemove 
-3: experience points for completing drills 
-4: improve new PB effect 
+# FlintType — TODO
 
-(paid features)
+## Bugs
+- [x] Rematch doesn't work properly
+- [x] Progress doesn't update properly
+- [x] WPM doesn't reference properly
+- [x] Accuracy is not actually accuracy
+- [x] Back-to-back duplicate words need to be fixed
 
-custom stuff on the profile page
-custom racing aesthetics
+## Improvements
+- [x] Change lines shown
+- [ ] Fix shop appearance / move
+- [x] Experience points for completing drills
+- [x] Improve new PB effect
+- [x] Add audio
+- [ ] Previews in settings
+- [x] Multiplayer should use the English wordset
 
+## Features
+- [ ] Friends
+- [ ] Taper mode
+- [x] Wordlist
 
-rematch doesnt work properly
-progress doesnt update properly
-wpm doesnt reference properly
-accuracy is not accuracy
-
-add audio
-
-add to cv
-
-
-wordlist [done]
-friends
-previews in settings 
-having back to back words need to be fixed
-taper mode 
-multiplayer shouold use the english wordset
+## Paid Features
+- [ ] Custom stuff on the profile page
+- [ ] Custom racing aesthetics

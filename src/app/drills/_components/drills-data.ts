@@ -205,6 +205,24 @@ function pickBurstWords(count: number, seed: number): string[] {
   return pool.slice(0, count);
 }
 
+/** Pull words from MonkeyType's `english.json` pool — the same pool
+ *  the single-player English mode and multiplayer races draw from.
+ *  No length filter (it's already a tight frequency-ranked list);
+ *  shuffled by seed so the drill yields a fresh selection per
+ *  visit while staying reproducible per (seed, count). */
+function pickEnglishBurstWords(count: number, seed: number): string[] {
+  const pool = [...POOL];
+  shuffleInPlace(pool, seededRng(seed));
+  if (count <= pool.length) return pool.slice(0, count);
+  const out: string[] = [];
+  let i = 0;
+  while (out.length < count) {
+    out.push(pool[i % pool.length]!);
+    i++;
+  }
+  return out;
+}
+
 /** Top-N user weakness trigrams worth drilling, falling back to the
  *  HIGH_VALUE_TRIGRAMS curated list when we don't have enough user
  *  signal. */
@@ -415,6 +433,22 @@ export function buildDrills({
     ready: true,
     items: pickBurstWords(SPRINT_BURST_LENGTH, seed + 3),
     thresholdWpm: SPRINT_BURST_THRESHOLD_WPM,
+    repsPerItem: DEFAULT_BURST_REPS,
+    repsConfigurable: true,
+  });
+
+  drills.push({
+    id: "english-burst",
+    kind: "burst",
+    category: "generic",
+    title: "English burst",
+    contextLabel: "Burst minigame",
+    description: `Forty random words from the English pool single-player and multiplayer both draw from. ${DEFAULT_BURST_REPS} clean bursts above ${DEFAULT_BURST_THRESHOLD_WPM} WPM advance to the next.`,
+    payoff:
+      "Practices the same vocabulary you'll see in everyday tests and races — at burst pace rather than long-form, so the cadence stays sharp.",
+    ready: true,
+    items: pickEnglishBurstWords(SPRINT_BURST_LENGTH, seed + 4),
+    thresholdWpm: DEFAULT_BURST_THRESHOLD_WPM,
     repsPerItem: DEFAULT_BURST_REPS,
     repsConfigurable: true,
   });
