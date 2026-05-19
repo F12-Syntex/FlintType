@@ -1,11 +1,13 @@
 "use client";
 
+import { useAudioPrefs } from "@/lib/audio-prefs";
 import {
   type BehaviourPrefs,
   type Confidence,
   useBehaviourPrefs,
 } from "@/lib/behaviour-prefs";
 import { Chip, ChipGroup } from "../_components/chip";
+import { SliderRow } from "../_components/controls";
 import { SettingsPageHeader } from "../_components/page-header";
 import { SettingsRow } from "../_components/row";
 import { SettingsSection } from "../_components/settings-section";
@@ -99,6 +101,11 @@ function ToggleRow({
 
 export default function BehaviourPage() {
   const { prefs, update, reset, customizedCount } = useBehaviourPrefs();
+  const {
+    prefs: audio,
+    update: updateAudio,
+    customizedCount: audioCustomized,
+  } = useAudioPrefs();
 
   const set = <K extends keyof BehaviourPrefs>(
     key: K,
@@ -110,7 +117,7 @@ export default function BehaviourPage() {
       <SettingsPageHeader
         eyebrow="Customise · Behaviour"
         title="Make it act the way you think"
-        customizedCount={customizedCount}
+        customizedCount={customizedCount + audioCustomized}
         onResetAll={reset}
         description="Tune how the test reacts while you type — restart shortcuts, error handling, and word-list shape. Live-signal styling moved to Appearance > Live stats; this page is purely about input behaviour."
       />
@@ -194,6 +201,40 @@ export default function BehaviourPage() {
           desc="Sprinkle numbers and punctuation into word mode"
           value={prefs.showSecondary}
           onChange={(v) => set("showSecondary", v)}
+        />
+      </SettingsSection>
+
+      <SettingsSection
+        id="audio"
+        eyebrow="Sound"
+        title="Audio"
+        description="Per-keystroke click feedback. Synthesized live (no asset payload); plays through the page's audio context on every printable key + space + backspace."
+      >
+        <ToggleRow
+          label="Keypress click"
+          desc="Fires a short click on each keystroke"
+          value={audio.keypressClickEnabled}
+          onChange={(v) => updateAudio("keypressClickEnabled", v)}
+        />
+        <SettingsRow
+          label={
+            <span className="flex flex-col gap-0.5">
+              <span>Click volume</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                0 mutes; 100 is the loudest the synthesis will run
+              </span>
+            </span>
+          }
+          control={
+            <SliderRow
+              value={audio.keypressClickVolume}
+              min={0}
+              max={100}
+              step={5}
+              format={(v) => `${v}%`}
+              onChange={(v) => updateAudio("keypressClickVolume", v)}
+            />
+          }
         />
       </SettingsSection>
 

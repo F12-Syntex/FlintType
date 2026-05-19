@@ -2,6 +2,7 @@
 
 import { type ReactNode, useCallback, useEffect, useRef } from "react";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
+import { useKeyClickSound } from "@/lib/use-key-click-sound";
 import { usePractice } from "./practice-state";
 
 const INTERACTIVE_SELECTOR =
@@ -24,6 +25,7 @@ const INTERACTIVE_SELECTOR =
 export function InputCapture({ children }: { children: ReactNode }) {
   const { state, dispatch, restart } = usePractice();
   const { prefs } = useBehaviourPrefs();
+  const playClick = useKeyClickSound();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const phaseRef = useRef(state.phase);
@@ -104,6 +106,7 @@ export function InputCapture({ children }: { children: ReactNode }) {
             dispatch({
               type: t === "deleteContentBackward" ? "BACKSPACE" : "BACKSPACE_WORD",
             });
+            playClick();
             return;
           }
           if (t === "insertText" || t === "insertCompositionText") {
@@ -127,6 +130,7 @@ export function InputCapture({ children }: { children: ReactNode }) {
                   allowExtras,
                 });
               }
+              playClick();
             }
           }
         }}
@@ -169,6 +173,7 @@ export function InputCapture({ children }: { children: ReactNode }) {
             if (p.confidence === "word" && cursorCharRef.current === 0) return;
             lastBackspaceAtRef.current = Date.now();
             dispatch({ type: wordWise ? "BACKSPACE_WORD" : "BACKSPACE" });
+            playClick();
             return;
           }
           if (e.key === " ") {
@@ -179,6 +184,7 @@ export function InputCapture({ children }: { children: ReactNode }) {
               now: Date.now(),
               strictSpace: p.strictSpace,
             });
+            playClick();
             return;
           }
           if (e.key.length === 1) {
@@ -190,6 +196,7 @@ export function InputCapture({ children }: { children: ReactNode }) {
               stopOnError: p.stopOnError,
               allowExtras: p.allowExtras,
             });
+            playClick();
           }
         }}
       />
