@@ -43,36 +43,31 @@ export function AuthShell({
   return (
     <main className="grid min-h-screen grid-cols-1 bg-background text-foreground md:grid-cols-2">
       {/* LEFT — brand panel. Always dark, mode-independent. */}
-      <aside className="safe-pt relative flex flex-col justify-between overflow-hidden bg-ft-ink-deep px-6 py-8 text-ft-warm-1 sm:px-10 sm:py-10 md:min-h-screen md:px-12 md:py-12">
+      <aside className="safe-pt relative flex flex-col overflow-hidden bg-ft-ink-deep px-6 py-8 text-ft-warm-1 sm:px-10 sm:py-10 md:min-h-screen md:px-12 md:py-12">
         <Logo dark className="relative z-10 text-ft-warm-1" />
 
-        <div className="relative z-10 max-w-md py-8 md:py-12">
+        <div className="relative z-10 mt-8 max-w-md md:mb-8 md:mt-auto">
           <p className="text-3xl font-bold leading-[1.05] tracking-tight text-ft-warm-1 sm:text-4xl md:text-5xl lg:text-[3.5rem]">
             {brandLine}
           </p>
         </div>
 
-        <div className="relative z-10 hidden items-center gap-3 md:flex">
-          <span aria-hidden className="h-px w-6 bg-ft-warm-4" />
-          <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-ft-warm-3">
-            flinttype
-          </span>
-        </div>
-
         {/* Coral glow — the only atmospheric element on the panel.
-            Sized with aspect-square + percent width so it scales with
-            the panel and stays inside the spacing scale (ui-law §3
-            forbids arbitrary `size-[15rem]` etc). Two layered glows:
-            the outer halo carries reach, the inner core gives the
-            "spark" some density. Both sit behind text (z-0); the
-            panel's content gets z-10. */}
+            Sized to roughly match the user-supplied reference (15rem
+            circle anchored bottom-left), not the panel width — so it
+            stays compact on a 1920 viewport instead of blooming to
+            half the screen. The size-60 / size-32 values land outside
+            ui-law §3's narrow hot scale but are motivated decorative
+            atmospherics; documented here so future-me doesn't reflex
+            to `w-3/4`. Both glows sit behind text (z-0); the panel's
+            content gets z-10. */}
         <span
           aria-hidden
-          className="pointer-events-none absolute -bottom-20 -left-12 z-0 block aspect-square w-3/4 max-w-md rounded-full bg-primary/40 blur-3xl"
+          className="pointer-events-none absolute -bottom-16 -left-12 z-0 block size-60 rounded-full bg-primary/40 blur-3xl"
         />
         <span
           aria-hidden
-          className="pointer-events-none absolute -bottom-8 -left-2 z-0 block aspect-square w-1/3 max-w-xs rounded-full bg-primary/60 blur-2xl"
+          className="pointer-events-none absolute -bottom-6 -left-2 z-0 block size-32 rounded-full bg-primary/60 blur-2xl"
         />
       </aside>
 
