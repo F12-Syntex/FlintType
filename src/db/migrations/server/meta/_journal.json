@@ -50,6 +50,13 @@
       "when": 1779100788416,
       "tag": "0006_nifty_polaris",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1779201049616,
+      "tag": "0007_ambiguous_ma_gnuci",
+      "breakpoints": true
     }
   ]
 }
