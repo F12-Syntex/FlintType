@@ -1,6 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { Stat } from "@/components/ft";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { resolveBurstThreshold } from "@/lib/avg-wpm-cache";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
@@ -9,42 +19,54 @@ import { useLifetimeStats } from "@/lib/use-lifetime-stats";
 import { cn } from "@/lib/utils";
 import { usePractice } from "./practice-state";
 
-/** Same per-letter colour tokens the Passage uses. Re-declared here
- *  rather than imported so this file stays standalone — there's no
- *  drift risk because both surfaces read the same CSS variables.
- *  When the appearance / colour-picker UI updates `--ft-passage-*`,
- *  BURST and WORDS pick up the change identically. */
+/** Per-letter colour tokens, mirrored from Passage. Both surfaces
+ *  read the same CSS variables so the user's colour customisation
+ *  applies to BURST identically. */
 const TYPED_TEXT = "text-[var(--ft-passage-typed,var(--primary))]";
 const UNTYPED_TEXT =
   "text-[var(--ft-passage-untyped,var(--muted-foreground))]";
 const ERROR_TEXT = "text-[var(--ft-passage-error,var(--destructive))]";
 
-/** BURST mode surface.
- *
- *  Replaces Passage entirely when mode === BURST. Renders the
- *  *current* word centred + large, the way the drills page bursts
- *  feel — but pulls every visual through the practice settings
- *  (font family, font scale, mistake style, blind mode, caret
- *  colour token) so customisation flows through 1:1.
- *
- *  Behaviour layer (same as before):
- *    - TYPE_CHAR + BACKSPACE flow through the standard reducer.
- *    - SPACE is intercepted here. Computes attempt WPM, decides
- *      advance vs retry against threshold + reps.
- *    - Natural `phase=done` on the final rep grants
- *      `XP_PER_DRILL` via lifetimeStats.drillsCompleted. */
-export function BurstPractice() {
+/* ─── Shared state ───────────────────────────────────────────── */
+
+type BurstOutcome = "win" | "slow" | "wrong" | null;
+
+type BurstContextValue = {
+  reps: number;
+  repsRequired: number;
+  threshold: number;
+  thresholdAuto: boolean;
+  lastWpm: number | null;
+  outcome: BurstOutcome;
+};
+
+const BurstContext = createContext<BurstContextValue | null>(null);
+
+function useBurstView(): BurstContextValue {
+  const v = useContext(BurstContext);
+  if (!v) {
+    throw new Error("BurstReadouts / BurstWordView must mount inside BurstProvider");
+  }
+  return v;
+}
+
+/** Mount once at TypingSurface root when mode === BURST. Owns the
+ *  per-attempt timer, the rep counter, the SPACE intercept, and the
+ *  XP grant. Exposes the read-only slice (reps / lastWpm / outcome /
+ *  threshold) via context so the readouts row and the word view can
+ *  both render without recomputing. */
+export function BurstProvider({ children }: { children: ReactNode }) {
   const { state, dispatch } = usePractice();
   const { prefs: behaviour } = useBehaviourPrefs();
   const { prefs: appearance } = useAppearancePrefs();
-  const { settings: caret } = useCaretSettings();
   const { incrementDrillsCompleted } = useLifetimeStats();
 
-  const thresholdWpm = useMemo(
+  const threshold = useMemo(
     () => resolveBurstThreshold(behaviour.burstThreshold),
     [behaviour.burstThreshold],
   );
-  const repsPerItem = Math.max(1, appearance.burstReps);
+  const thresholdAuto = behaviour.burstThreshold === 0;
+  const repsRequired = Math.max(1, appearance.burstReps);
 
   const attemptStartRef = useRef<number | null>(null);
   const prevTypedLenRef = useRef(0);
@@ -52,16 +74,11 @@ export function BurstPractice() {
   const repsRef = useRef(reps);
   repsRef.current = reps;
   const [lastWpm, setLastWpm] = useState<number | null>(null);
-  const [outcome, setOutcome] = useState<"win" | "slow" | "wrong" | null>(
-    null,
-  );
+  const [outcome, setOutcome] = useState<BurstOutcome>(null);
 
   const cursorWord = state.cursorWord;
   const typedHere = state.typed[cursorWord] ?? "";
-  const target = state.words[cursorWord] ?? "";
 
-  // Track attempt start on the 0→1 typed-length transition. Drops back
-  // to null on a BURST_RESET (typed → "").
   useEffect(() => {
     const len = typedHere.length;
     if (len === 1 && prevTypedLenRef.current === 0) {
@@ -102,12 +119,11 @@ export function BurstPractice() {
       dispatch({ type: "BURST_RESET" });
       return;
     }
-    const charCount = tgt.length;
     const ms = Math.max(1, now - startedAt);
-    const wpm = (charCount / 5) * (60_000 / ms);
+    const wpm = (tgt.length / 5) * (60_000 / ms);
     const wpmRounded = Math.round(wpm);
     setLastWpm(wpmRounded);
-    if (wpm < thresholdWpm) {
+    if (wpm < threshold) {
       setOutcome("slow");
       setReps(0);
       dispatch({ type: "BURST_RESET" });
@@ -115,7 +131,7 @@ export function BurstPractice() {
     }
     setOutcome("win");
     const nextReps = repsRef.current + 1;
-    if (nextReps < repsPerItem) {
+    if (nextReps < repsRequired) {
       setReps(nextReps);
       dispatch({ type: "BURST_RESET" });
       return;
@@ -127,8 +143,8 @@ export function BurstPractice() {
     state.cursorWord,
     state.typed,
     state.words,
-    thresholdWpm,
-    repsPerItem,
+    threshold,
+    repsRequired,
     dispatch,
   ]);
 
@@ -168,41 +184,137 @@ export function BurstPractice() {
     incrementDrillsCompleted();
   }, [state.phase, incrementDrillsCompleted]);
 
+  const value: BurstContextValue = {
+    reps,
+    repsRequired,
+    threshold,
+    thresholdAuto,
+    lastWpm,
+    outcome,
+  };
+  return <BurstContext.Provider value={value}>{children}</BurstContext.Provider>;
+}
+
+/* ─── Readouts (replaces <Readouts /> in BURST) ─────────────── */
+
+/** Desktop readouts row for BURST. Same `<Stat>` primitive + two-
+ *  column layout as the WORDS readouts so the visual rhythm above
+ *  the typing area stays consistent. */
+export function BurstReadouts() {
+  const { state } = usePractice();
+  const { reps, repsRequired, threshold, thresholdAuto, lastWpm, outcome } =
+    useBurstView();
   const itemsLength = state.words.length;
-  const progress = `${Math.min(state.cursorWord, itemsLength)}/${itemsLength}`;
-  const repStr = `${reps}/${repsPerItem}`;
+  const itemIdx = Math.min(state.cursorWord + 1, itemsLength);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-10 sm:gap-14">
-      {/* Status strip — eyebrow + value pairs, same tracking / weight
-       *  as the live readouts so it reads as part of the practice
-       *  chrome, not a separate widget. */}
-      <div className="flex items-center justify-center gap-8 px-4 text-center">
-        <Cell label="item" value={progress} />
-        <Cell label="reps" value={repStr} accent={reps > 0} />
-        <Cell
-          label="threshold"
-          value={`${thresholdWpm} wpm`}
-          hint={behaviour.burstThreshold === 0 ? "auto" : undefined}
+    <div className="hidden flex-wrap items-end justify-between gap-4 select-none md:flex">
+      <div className="flex flex-wrap gap-x-12 gap-y-3">
+        <Stat label="ITEM" value={`${itemIdx}/${itemsLength}`} size="lg" />
+        <Stat
+          label="REPS"
+          value={`${reps}/${repsRequired}`}
+          size="lg"
+          accent={reps > 0}
+        />
+      </div>
+      <div className="flex flex-wrap gap-x-12 gap-y-3">
+        <Stat
+          label={thresholdAuto ? "THRESHOLD · AUTO" : "THRESHOLD"}
+          value={`${threshold}`}
+          size="lg"
+          align="right"
         />
         {lastWpm != null ? (
-          <Cell
-            label="last"
-            value={`${lastWpm} wpm`}
-            tone={
-              outcome === "win"
-                ? "ok"
-                : outcome === "slow" || outcome === "wrong"
-                  ? "warn"
-                  : undefined
-            }
+          <Stat
+            label="LAST WPM"
+            value={String(lastWpm)}
+            size="lg"
+            align="right"
+            accent={outcome === "win"}
           />
         ) : null}
       </div>
+    </div>
+  );
+}
 
-      {/* The single word — large, centred, painted through the same
-       *  per-letter tokens Passage uses so font / colour overrides
-       *  carry through. */}
+/** Mobile readouts pip row for BURST — drops in where <MobileReadouts />
+ *  would otherwise render. */
+export function BurstMobileReadouts() {
+  const { state } = usePractice();
+  const { reps, repsRequired, threshold, thresholdAuto, lastWpm, outcome } =
+    useBurstView();
+  const itemsLength = state.words.length;
+  const itemIdx = Math.min(state.cursorWord + 1, itemsLength);
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 tabular-nums">
+      <Pip label="item" value={`${itemIdx}/${itemsLength}`} />
+      <Pip
+        label="reps"
+        value={`${reps}/${repsRequired}`}
+        tone={reps > 0 ? "primary" : "ink"}
+      />
+      <Pip
+        label={thresholdAuto ? "thr·auto" : "thr"}
+        value={String(threshold)}
+      />
+      {lastWpm != null ? (
+        <Pip
+          label="last"
+          value={String(lastWpm)}
+          tone={outcome === "win" ? "primary" : "ink"}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function Pip({
+  label,
+  value,
+  tone = "ink",
+}: {
+  label: string;
+  value: string;
+  tone?: "ink" | "primary";
+}) {
+  return (
+    <div className="flex items-baseline gap-1">
+      <span
+        className={cn(
+          "text-sm font-semibold tracking-tight",
+          tone === "primary" ? "text-primary" : "text-foreground",
+        )}
+      >
+        {value}
+      </span>
+      <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+/* ─── Word view (replaces <Passage /> in BURST) ─────────────── */
+
+/** The centred, large single word the user is currently typing.
+ *  Pure renderer — all the BURST behaviour lives in BurstProvider.
+ *  Paints each character through the same tokens Passage uses
+ *  (TYPED_TEXT / UNTYPED_TEXT / ERROR_TEXT) plus the mistakeStyle
+ *  pref so customisation flows through 1:1 with WORDS. */
+export function BurstWordView() {
+  const { state } = usePractice();
+  const { prefs: behaviour } = useBehaviourPrefs();
+  const { prefs: appearance } = useAppearancePrefs();
+  const { settings: caret } = useCaretSettings();
+  const { outcome } = useBurstView();
+  const cursorWord = state.cursorWord;
+  const typedHere = state.typed[cursorWord] ?? "";
+  const target = state.words[cursorWord] ?? "";
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 sm:gap-12">
       <BurstWord
         word={target}
         typed={typedHere}
@@ -211,7 +323,6 @@ export function BurstPractice() {
         showCaret={caret.style !== "off" && state.phase !== "done"}
         caretStyle={caret.style}
       />
-
       <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
         {outcome === "wrong"
           ? "wrong — try again"
@@ -242,18 +353,13 @@ function BurstWord({
   showCaret: boolean;
   caretStyle: "line" | "block" | "underline" | "outline" | "off";
 }) {
-  // Use --ft-font-family / --ft-font-scale (the same tokens Passage's
-  // scrolling area reads) so the user's typography customisation
-  // applies. Word size sits between practice body and the editorial
-  // display ramp — large enough to read at a glance, not so big it
-  // forces a line break on long words.
   const targetChars = [...word];
   const typedChars = [...typed];
   const len = Math.max(targetChars.length, typedChars.length);
   const cursorChar = Math.min(typedChars.length, targetChars.length);
   return (
     <div
-      className="font-mono tracking-tight"
+      className="tracking-tight"
       style={{
         fontFamily: "var(--ft-font-family, inherit)",
         fontSize: "clamp(2.5rem, 7vw, 5rem)",
@@ -292,11 +398,7 @@ function BurstWord({
             }
           }
 
-          // Inline caret: paint the same colour token Passage's
-          // CaretGlyph uses (--primary) and only on the cursor position.
-          // Skip when caret is off or word is fully typed.
           const isCursor = showCaret && ci === cursorChar && !isExtra;
-
           return (
             <span key={ci} className="relative inline-block">
               <span className={cn(cls, errorCls)} style={errorStyle}>
@@ -306,9 +408,6 @@ function BurstWord({
             </span>
           );
         })}
-        {/* End-of-word caret: when typed is complete and waiting for
-         *  the space commit, show the caret hugging the trailing edge
-         *  of the last character so the user knows the run is ready. */}
         {showCaret && cursorChar === targetChars.length && typed === word ? (
           <span className="relative inline-block">
             <InlineCaret style={caretStyle} trailing />
@@ -326,9 +425,6 @@ function InlineCaret({
   style: "line" | "block" | "underline" | "outline" | "off";
   trailing?: boolean;
 }) {
-  // Inline caret — no absolute positioning, no per-char measurement;
-  // each variant renders relative to its sibling glyph. Inherits the
-  // practice surface's caret token (`var(--primary)`).
   const base = "pointer-events-none absolute ft-caret-blink";
   if (style === "line") {
     return (
@@ -378,40 +474,4 @@ function InlineCaret({
     );
   }
   return null;
-}
-
-function Cell({
-  label,
-  value,
-  hint,
-  accent,
-  tone,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  accent?: boolean;
-  tone?: "ok" | "warn";
-}) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-        {label}
-        {hint ? (
-          <span className="ml-1 text-muted-foreground/60">· {hint}</span>
-        ) : null}
-      </span>
-      <span
-        className={cn(
-          "text-sm font-semibold tabular-nums",
-          tone === "ok" && "text-primary",
-          tone === "warn" && "text-destructive",
-          accent && !tone && "text-primary",
-          !accent && !tone && "text-foreground",
-        )}
-      >
-        {value}
-      </span>
-    </div>
-  );
 }

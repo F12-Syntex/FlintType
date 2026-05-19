@@ -2,7 +2,12 @@
 
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { AutoHideApplier } from "./autohide-applier";
-import { BurstPractice } from "./burst-practice";
+import {
+  BurstMobileReadouts,
+  BurstProvider,
+  BurstReadouts,
+  BurstWordView,
+} from "./burst-practice";
 import { InputCapture } from "./input-capture";
 import { Keyboard } from "./keyboard";
 import type { LayoutId } from "./keyboard/layouts";
@@ -102,6 +107,44 @@ function TypingSurfaceBody({
     appearance.keymap === "next"
       ? nextExpectedKeyCode(layout, nextChar)
       : undefined;
+  const isBurst = state.mode === "BURST" && !done;
+  const body = (
+    <>
+      {showReadouts && !done ? (
+        <div className="hidden md:block">
+          {isBurst ? <BurstReadouts /> : <Readouts />}
+        </div>
+      ) : null}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {done ? (
+          <TestSummary />
+        ) : isBurst ? (
+          // BURST shows the current item as a single centred word —
+          // the drills-page burst feel — but paints through the same
+          // --ft-passage-* tokens + caret settings so typography /
+          // colour customisation flows through 1:1 with WORDS. Stats
+          // (item / reps / threshold / last) render in the readouts
+          // slot above; the BurstProvider wrap is what shares those
+          // values between the two surfaces.
+          <BurstWordView />
+        ) : (
+          <Passage />
+        )}
+      </div>
+      {showRestHint && !done ? (
+        <div className="md:hidden">
+          {isBurst ? (
+            <div className="px-4 py-2">
+              <BurstMobileReadouts />
+            </div>
+          ) : (
+            <RestHint showReadouts={showReadouts} />
+          )}
+        </div>
+      ) : null}
+      {!done ? belowHint : null}
+    </>
+  );
   return (
     <>
       {showModeBar ? <ModeBar /> : null}
@@ -112,30 +155,7 @@ function TypingSurfaceBody({
        *  restores the editorial sm:py-8 only when there's actually
        *  room. Same trick for the gap. */}
       <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pt-3 pb-3 sm:gap-4 sm:px-12 sm:py-4 [@media(min-height:900px)]:sm:gap-6 [@media(min-height:900px)]:sm:py-8 lg:px-20">
-        {showReadouts && !done ? (
-          <div className="hidden md:block">
-            <Readouts />
-          </div>
-        ) : null}
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {done ? (
-            <TestSummary />
-          ) : state.mode === "BURST" ? (
-            // BURST shows the current item as a single centred word —
-            // the drills-page burst feel — but paints through the same
-            // --ft-passage-* tokens + caret settings so typography /
-            // colour customisation flows through 1:1 with WORDS.
-            <BurstPractice />
-          ) : (
-            <Passage />
-          )}
-        </div>
-        {showRestHint && !done ? (
-          <div className="md:hidden">
-            <RestHint showReadouts={showReadouts} />
-          </div>
-        ) : null}
-        {!done ? belowHint : null}
+        {isBurst ? <BurstProvider>{body}</BurstProvider> : body}
         {renderKeyboard ? (
           // Auto-hide the keyboard widget at short viewports — its
           // intrinsic height (6 rows × ~h-10 + gaps ≈ 260 px) was
