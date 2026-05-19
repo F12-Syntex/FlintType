@@ -2,6 +2,7 @@
 
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { AutoHideApplier } from "./autohide-applier";
+import { BurstPractice } from "./burst-practice";
 import { InputCapture } from "./input-capture";
 import { Keyboard } from "./keyboard";
 import type { LayoutId } from "./keyboard/layouts";
@@ -117,7 +118,18 @@ function TypingSurfaceBody({
           </div>
         ) : null}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {done ? <TestSummary /> : <Passage />}
+          {done ? (
+            <TestSummary />
+          ) : state.mode === "BURST" ? (
+            // BURST runs through its own surface — single word, threshold
+            // commit. The reducer's TYPE_CHAR / SPACE flow doesn't apply
+            // (BurstPractice owns its own key handler). It dispatches
+            // FINISH_BURST when complete; the standard <TestSummary />
+            // renders the result screen unchanged.
+            <BurstPractice />
+          ) : (
+            <Passage />
+          )}
         </div>
         {showRestHint && !done ? (
           <div className="md:hidden">

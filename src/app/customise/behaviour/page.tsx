@@ -205,6 +205,34 @@ export default function BehaviourPage() {
       </SettingsSection>
 
       <SettingsSection
+        id="burst"
+        eyebrow="Burst"
+        title="Burst mode threshold"
+        description="The WPM floor each word has to clear in BURST mode. Auto uses your rolling average so the bar moves with you; a custom number freezes it at that pace until you change it."
+      >
+        <SettingsRow
+          label={
+            <span className="flex flex-col gap-0.5">
+              <span>Threshold WPM</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                0 (auto) = your rolling average across recent runs
+              </span>
+            </span>
+          }
+          control={
+            <SliderRow
+              value={prefs.burstThreshold}
+              min={0}
+              max={200}
+              step={5}
+              format={(v) => (v === 0 ? "auto" : `${v} wpm`)}
+              onChange={(v) => set("burstThreshold", v)}
+            />
+          }
+        />
+      </SettingsSection>
+
+      <SettingsSection
         id="audio"
         eyebrow="Sound"
         title="Audio"

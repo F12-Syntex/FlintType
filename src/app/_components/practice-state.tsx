@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { recordWpmSample } from "@/lib/avg-wpm-cache";
 import { DEFAULT_BEHAVIOUR, useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { loadQuotes, pickQuote, type QuoteGroup } from "@/lib/quotes";
 import { useAdapt } from "@/lib/use-adapt";
@@ -486,12 +487,23 @@ export function PracticeProvider({
     if (lastSubmittedRef.current === key) return;
     lastSubmittedRef.current = key;
 
+    // BURST runs do not feed the adapt model and do not record a
+    // test row (per the user's spec — BURST grants XP_PER_DRILL via
+    // lifetimeStats.drillsCompleted instead, wired in BurstPractice).
+    // Skip the submit + skip the avg-wpm sample (its own threshold
+    // would otherwise feedback-loop).
+    if (state.mode === "BURST") return;
+
     const { wpm, raw } = calcWpmAndRaw(
       state.typed,
       state.words,
       endTime - startTime,
       true,
     );
+    // Feed the rolling-mean cache that backs BURST mode's auto-
+    // threshold (behaviour.burstThreshold = 0). Pure localStorage,
+    // capped to the last 20 samples; see src/lib/avg-wpm-cache.ts.
+    recordWpmSample(wpm);
     const counts = countChars(state.typed, state.words, true);
     const correctChars = counts.allCorrectChars;
     const incorrectChars = counts.incorrectChars + counts.extraChars;

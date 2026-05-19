@@ -12,7 +12,7 @@ import { type BehaviourPrefs, DEFAULT_BEHAVIOUR } from "@/lib/behaviour-prefs";
 
 export type WpmSample = { t: number; wpm: number; raw: number };
 
-export type Mode = "WORDS" | "TIME" | "QUOTE";
+export type Mode = "WORDS" | "TIME" | "QUOTE" | "BURST";
 
 /** Numeric value whose meaning depends on `mode`:
  *    WORDS — words to type (25 / 50 / 100 / 200)
@@ -89,7 +89,20 @@ export type Action =
   | { type: "SPACE"; now: number; strictSpace: boolean }
   | { type: "RESTART"; words: string[]; quoteSource: string | null }
   | { type: "REGENERATE"; cfg: WordCfg }
-  | { type: "FINISH_TIME"; now: number };
+  | { type: "FINISH_TIME"; now: number }
+  /** Burst-mode completion. The burst engine drives its own flow
+   *  (one item at a time, WPM-threshold + reps), so when it finishes
+   *  it hands the reducer a finalized summary the way TIME does on
+   *  expiration. Stats fields fill in the slots TestSummary reads. */
+  | {
+      type: "FINISH_BURST";
+      startMs: number;
+      endMs: number;
+      typed: string[];
+      events: KeyEvent[];
+      totalChars: number;
+      correctChars: number;
+    };
 
 // ─── Word lists ─────────────────────────────────────────────────────
 
@@ -183,6 +196,13 @@ export function generateForMode(
 ): string[] {
   if (mode === "TIME") return generateWords(TIME_BUFFER, Date.now(), cfg);
   if (mode === "WORDS") return generateWords(length, Date.now(), cfg);
+  if (mode === "BURST") {
+    // BURST is "type N words at threshold WPM, one at a time" — the
+    // burst engine reads `state.words` directly as its item list.
+    // No `decorate` pass: numbers + punctuation are noisy when each
+    // item has to clear a WPM threshold on its own.
+    return generateWords(length, Date.now(), { ...cfg, showSecondary: false });
+  }
   // QUOTE — words come from an async fetch; placeholder until SET_QUOTE.
   return [];
 }
@@ -199,6 +219,7 @@ const INITIAL_LENGTH: Length = 50;
 export function defaultLengthFor(mode: Mode): Length {
   if (mode === "TIME") return 30;
   if (mode === "QUOTE") return 1; // medium
+  if (mode === "BURST") return 40;
   return INITIAL_LENGTH;
 }
 
@@ -290,6 +311,24 @@ export function reducer(s: State, a: Action): State {
     case "FINISH_TIME":
       if (s.phase !== "running") return s;
       return { ...s, phase: "done", endTime: a.now };
+    case "FINISH_BURST":
+      // BURST drives its own state inside the burst surface; the
+      // reducer's role is just to mark the run done with the totals
+      // TestSummary will read. We don't gate on `phase === "running"`
+      // because the burst surface starts the timer locally without
+      // dispatching TYPE_CHAR through this reducer.
+      return {
+        ...s,
+        phase: "done",
+        startTime: a.startMs,
+        endTime: a.endMs,
+        typed: a.typed,
+        events: a.events,
+        totalChars: a.totalChars,
+        correctChars: a.correctChars,
+        cursorWord: s.words.length,
+        cursorChar: 0,
+      };
     case "TYPE_CHAR": {
       if (s.phase === "done") return s;
       const word = s.words[s.cursorWord];

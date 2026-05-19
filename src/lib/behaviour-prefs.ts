@@ -26,6 +26,11 @@ export type BehaviourPrefs = {
    *  keystrokes. Default false (casual contributes), since the
    *  more data the model has the better its weakness picks get. */
   excludeCasualFromAdapt: boolean;
+  /** Threshold WPM each item must clear in BURST mode. 0 = "auto":
+   *  use the user's rolling average WPM (or a sensible 50 WPM
+   *  fallback when there's no signal yet). Any positive value
+   *  overrides auto with the user's explicit pick. */
+  burstThreshold: number;
 };
 
 export const DEFAULT_BEHAVIOUR: BehaviourPrefs = {
@@ -38,6 +43,7 @@ export const DEFAULT_BEHAVIOUR: BehaviourPrefs = {
   minWordLength: 1,
   showSecondary: false,
   excludeCasualFromAdapt: false,
+  burstThreshold: 0,
 };
 
 export function useBehaviourPrefs() {

@@ -14,25 +14,29 @@ import { HandLayoutEditor } from "./keyboard/hands";
 import { type Mode, usePractice } from "./practice-state";
 import { WordlistPicker } from "./wordlist-picker";
 
-const MODES: readonly Mode[] = ["WORDS", "TIME", "QUOTE"];
+const MODES: readonly Mode[] = ["WORDS", "TIME", "QUOTE", "BURST"];
 
 type Preset = { value: number; label: string };
 
 /** Length picker presets per mode. WORDS counts words, TIME counts
- *  seconds, QUOTE picks a length bracket from monkeytype's groups. */
+ *  seconds, QUOTE picks a length bracket from monkeytype's groups,
+ *  BURST counts how many items to clear at threshold. */
 const LENGTH_PRESETS: Record<Mode, ReadonlyArray<Preset>> = {
   WORDS: [10, 25, 50, 100, 200].map((n) => ({ value: n, label: String(n) })),
   TIME: [15, 30, 60, 120].map((n) => ({ value: n, label: String(n) })),
   QUOTE: QUOTE_GROUPS.map((g) => ({ value: g.id, label: g.label })),
+  BURST: [10, 20, 40, 80].map((n) => ({ value: n, label: String(n) })),
 };
 
 /** Modes that expose a free-form custom length input next to the preset
  *  pills. WORDS supports any positive count; TIME any positive seconds.
- *  QUOTE doesn't (group brackets are discrete). */
+ *  QUOTE doesn't (group brackets are discrete). BURST does — the user
+ *  can dial in any positive item count. */
 const CUSTOM_ALLOWED: Record<Mode, boolean> = {
   WORDS: true,
   TIME: false,
   QUOTE: false,
+  BURST: true,
 };
 
 const CUSTOM_LIMITS = { min: 1, max: 1000 };
@@ -41,6 +45,7 @@ const LENGTH_FIELD_LABEL: Record<Mode, string> = {
   WORDS: "length",
   TIME: "duration",
   QUOTE: "length",
+  BURST: "items",
 };
 
 /** Label-on-top wrapper used for each control group. The pill row
@@ -178,8 +183,12 @@ function ModeControls() {
   const lengthLabel = LENGTH_FIELD_LABEL[state.mode];
   const [wordlistOpen, setWordlistOpen] = useState(false);
   // Wordlist chip only makes sense for word-pool modes — QUOTE pulls
-  // from the curated quote pool, not the wordlist catalog.
-  const showWordlist = state.mode === "WORDS" || state.mode === "TIME";
+  // from the curated quote pool, not the wordlist catalog. BURST also
+  // draws from the wordlist, so it gets the picker too.
+  const showWordlist =
+    state.mode === "WORDS" ||
+    state.mode === "TIME" ||
+    state.mode === "BURST";
   return (
     <div className="flex flex-col items-stretch gap-3 md:flex-row md:flex-wrap md:items-end md:justify-center md:gap-x-8 md:gap-y-4">
       <Field label="mode">
@@ -513,7 +522,9 @@ function MobileBar() {
       ? (QUOTE_GROUPS[state.length as 0 | 1 | 2 | 3]?.label ?? "")
       : state.mode === "TIME"
         ? `${state.length}s`
-        : String(state.length);
+        : state.mode === "BURST"
+          ? `${state.length} items`
+          : String(state.length);
   return (
     <div className="border-b border-border bg-background md:hidden">
       <button

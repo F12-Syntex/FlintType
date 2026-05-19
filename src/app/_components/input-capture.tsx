@@ -34,6 +34,13 @@ export function InputCapture({ children }: { children: ReactNode }) {
   cursorCharRef.current = state.cursorChar;
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;
+  // BURST mode owns its own keyboard handler inside `<BurstPractice />`
+  // — the practice reducer's TYPE_CHAR / SPACE / BACKSPACE actions are
+  // a no-op for it. Suppress this surface's dispatches in BURST so
+  // they don't flip phase to "running" or accumulate ghost events,
+  // but keep playClick wired so the audio toggle still works.
+  const modeRef = useRef(state.mode);
+  modeRef.current = state.mode;
   // When a Backspace fired through onKeyDown, a paired beforeinput event
   // (deleteContentBackward / deleteWordBackward / deleteSoftLineBackward)
   // is also dispatched by the OS for the same physical key on most
@@ -85,6 +92,8 @@ export function InputCapture({ children }: { children: ReactNode }) {
             document.querySelector('[role="dialog"][aria-modal="true"]')
           )
             return;
+          // BURST mode has its own handler — see modeRef comment.
+          if (modeRef.current === "BURST") return;
           const ne = e.nativeEvent as InputEvent;
           const t = ne.inputType;
           if (
@@ -166,6 +175,10 @@ export function InputCapture({ children }: { children: ReactNode }) {
             return;
           }
           if (phaseRef.current === "done") return;
+          // BURST mode owns the keystroke loop — bail before dispatching
+          // any practice-reducer actions. `<BurstPractice />` has its own
+          // window-level handler that picks up the same keys.
+          if (modeRef.current === "BURST") return;
 
           if (e.key === "Backspace") {
             e.preventDefault();

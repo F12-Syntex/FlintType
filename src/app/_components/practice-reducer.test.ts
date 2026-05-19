@@ -213,6 +213,52 @@ describe("practice reducer — BACKSPACE (single char) still respects error gate
   });
 });
 
+describe("practice reducer — FINISH_BURST", () => {
+  it("marks the run done with the supplied totals + events", () => {
+    const s = seed({ phase: "running", words: ["the", "cat"] });
+    const next = reducer(s, {
+      type: "FINISH_BURST",
+      startMs: 1000,
+      endMs: 5000,
+      typed: ["the", "cat"],
+      events: [
+        { t: 0, expected: "t", typed: "t", correct: true, wordIndex: 0 },
+        { t: 0, expected: "h", typed: "h", correct: true, wordIndex: 0 },
+        { t: 0, expected: "e", typed: "e", correct: true, wordIndex: 0 },
+        { t: 2000, expected: "c", typed: "c", correct: true, wordIndex: 1 },
+        { t: 2000, expected: "a", typed: "a", correct: true, wordIndex: 1 },
+        { t: 2000, expected: "t", typed: "t", correct: true, wordIndex: 1 },
+      ],
+      totalChars: 8,
+      correctChars: 6,
+    });
+    expect(next.phase).toBe("done");
+    expect(next.startTime).toBe(1000);
+    expect(next.endTime).toBe(5000);
+    expect(next.typed).toEqual(["the", "cat"]);
+    expect(next.totalChars).toBe(8);
+    expect(next.correctChars).toBe(6);
+    expect(next.events).toHaveLength(6);
+    expect(next.cursorWord).toBe(2);
+  });
+
+  it("works from rest phase (burst surface drives its own timer)", () => {
+    const s = seed({ phase: "rest", words: ["a"] });
+    const next = reducer(s, {
+      type: "FINISH_BURST",
+      startMs: 100,
+      endMs: 200,
+      typed: ["a"],
+      events: [],
+      totalChars: 1,
+      correctChars: 1,
+    });
+    // The BURST runner starts the test outside this reducer; FINISH_BURST
+    // must accept a rest→done transition for that reason.
+    expect(next.phase).toBe("done");
+  });
+});
+
 describe("practice reducer — generateWords adjacency", () => {
   it("never emits the same word twice in a row", () => {
     // Seed loop a handful of seeds to catch the rare back-to-back roll.
