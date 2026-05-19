@@ -118,19 +118,16 @@ function TypingSurfaceBody({
           </div>
         ) : null}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {done ? (
-            <TestSummary />
-          ) : state.mode === "BURST" ? (
-            // BURST runs through its own surface — single word, threshold
-            // commit. The reducer's TYPE_CHAR / SPACE flow doesn't apply
-            // (BurstPractice owns its own key handler). It dispatches
-            // FINISH_BURST when complete; the standard <TestSummary />
-            // renders the result screen unchanged.
-            <BurstPractice />
-          ) : (
-            <Passage />
-          )}
+          {done ? <TestSummary /> : <Passage />}
         </div>
+        {!done && state.mode === "BURST" ? (
+          // BURST piggybacks on the standard Passage rendering so
+          // typography / caret / colour overrides apply uniformly.
+          // The controller below adds the burst-only behaviour
+          // (threshold + reps + advance/retry) and a small status
+          // strip showing progress + rep streak.
+          <BurstPractice />
+        ) : null}
         {showRestHint && !done ? (
           <div className="md:hidden">
             <RestHint showReadouts={showReadouts} />

@@ -213,49 +213,42 @@ describe("practice reducer — BACKSPACE (single char) still respects error gate
   });
 });
 
-describe("practice reducer — FINISH_BURST", () => {
-  it("marks the run done with the supplied totals + events", () => {
-    const s = seed({ phase: "running", words: ["the", "cat"] });
-    const next = reducer(s, {
-      type: "FINISH_BURST",
-      startMs: 1000,
-      endMs: 5000,
-      typed: ["the", "cat"],
-      events: [
-        { t: 0, expected: "t", typed: "t", correct: true, wordIndex: 0 },
-        { t: 0, expected: "h", typed: "h", correct: true, wordIndex: 0 },
-        { t: 0, expected: "e", typed: "e", correct: true, wordIndex: 0 },
-        { t: 2000, expected: "c", typed: "c", correct: true, wordIndex: 1 },
-        { t: 2000, expected: "a", typed: "a", correct: true, wordIndex: 1 },
-        { t: 2000, expected: "t", typed: "t", correct: true, wordIndex: 1 },
-      ],
-      totalChars: 8,
-      correctChars: 6,
+describe("practice reducer — BURST_RESET", () => {
+  it("clears typed[cursorWord] and resets cursorChar without moving cursor", () => {
+    const s = seed({
+      phase: "running",
+      words: ["the", "cat"],
+      typed: ["the", "ca"],
+      cursorWord: 1,
+      cursorChar: 2,
     });
-    expect(next.phase).toBe("done");
-    expect(next.startTime).toBe(1000);
-    expect(next.endTime).toBe(5000);
-    expect(next.typed).toEqual(["the", "cat"]);
-    expect(next.totalChars).toBe(8);
-    expect(next.correctChars).toBe(6);
-    expect(next.events).toHaveLength(6);
-    expect(next.cursorWord).toBe(2);
+    const next = reducer(s, { type: "BURST_RESET" });
+    expect(next.cursorWord).toBe(1);
+    expect(next.cursorChar).toBe(0);
+    expect(next.typed).toEqual(["the", ""]);
   });
 
-  it("works from rest phase (burst surface drives its own timer)", () => {
-    const s = seed({ phase: "rest", words: ["a"] });
-    const next = reducer(s, {
-      type: "FINISH_BURST",
-      startMs: 100,
-      endMs: 200,
-      typed: ["a"],
-      events: [],
-      totalChars: 1,
-      correctChars: 1,
+  it("does not modify errorWords / totalChars / correctChars", () => {
+    const s = seed({
+      phase: "running",
+      words: ["the", "cat"],
+      typed: ["the", "cot"],
+      cursorWord: 1,
+      cursorChar: 3,
+      errorWords: new Set([0]),
+      totalChars: 6,
+      correctChars: 5,
     });
-    // The BURST runner starts the test outside this reducer; FINISH_BURST
-    // must accept a rest→done transition for that reason.
-    expect(next.phase).toBe("done");
+    const next = reducer(s, { type: "BURST_RESET" });
+    expect(next.errorWords).toBe(s.errorWords);
+    expect(next.totalChars).toBe(6);
+    expect(next.correctChars).toBe(5);
+  });
+
+  it("is a no-op when the run is done", () => {
+    const s = seed({ phase: "done", words: ["the"], typed: ["the"] });
+    const next = reducer(s, { type: "BURST_RESET" });
+    expect(next).toBe(s);
   });
 });
 

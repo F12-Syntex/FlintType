@@ -34,11 +34,13 @@ export function InputCapture({ children }: { children: ReactNode }) {
   cursorCharRef.current = state.cursorChar;
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;
-  // BURST mode owns its own keyboard handler inside `<BurstPractice />`
-  // — the practice reducer's TYPE_CHAR / SPACE / BACKSPACE actions are
-  // a no-op for it. Suppress this surface's dispatches in BURST so
-  // they don't flip phase to "running" or accumulate ghost events,
-  // but keep playClick wired so the audio toggle still works.
+  // BURST mode lets TYPE_CHAR / BACKSPACE flow through the normal
+  // practice reducer so Passage renders the same typing UX as WORDS.
+  // SPACE is intercepted: <BurstPractice /> owns a window-level
+  // listener that runs the threshold + reps check before deciding
+  // whether to advance the cursor (dispatch SPACE) or reset the
+  // current word (dispatch BURST_RESET). Suppressing SPACE here
+  // stops it from bypassing that check.
   const modeRef = useRef(state.mode);
   modeRef.current = state.mode;
   // When a Backspace fired through onKeyDown, a paired beforeinput event
@@ -92,8 +94,6 @@ export function InputCapture({ children }: { children: ReactNode }) {
             document.querySelector('[role="dialog"][aria-modal="true"]')
           )
             return;
-          // BURST mode has its own handler — see modeRef comment.
-          if (modeRef.current === "BURST") return;
           const ne = e.nativeEvent as InputEvent;
           const t = ne.inputType;
           if (
@@ -125,8 +125,17 @@ export function InputCapture({ children }: { children: ReactNode }) {
             const stopOnError = p.stopOnError;
             const allowExtras = p.allowExtras;
             const strictSpace = p.strictSpace;
+            const isBurst = modeRef.current === "BURST";
             for (const ch of data) {
               if (ch === " " || ch === "\n") {
+                // SPACE: in WORDS / TIME / QUOTE this advances the cursor.
+                // BURST has a controller that runs the threshold + reps
+                // check before deciding what to do — suppress here so it
+                // owns the call.
+                if (isBurst) {
+                  playClick();
+                  continue;
+                }
                 if (phaseRef.current !== "rest") {
                   dispatch({ type: "SPACE", now, strictSpace });
                 }
@@ -175,10 +184,6 @@ export function InputCapture({ children }: { children: ReactNode }) {
             return;
           }
           if (phaseRef.current === "done") return;
-          // BURST mode owns the keystroke loop — bail before dispatching
-          // any practice-reducer actions. `<BurstPractice />` has its own
-          // window-level handler that picks up the same keys.
-          if (modeRef.current === "BURST") return;
 
           if (e.key === "Backspace") {
             e.preventDefault();
@@ -192,6 +197,12 @@ export function InputCapture({ children }: { children: ReactNode }) {
           if (e.key === " ") {
             e.preventDefault();
             if (phaseRef.current === "rest") return;
+            // BURST owns SPACE via its own controller — playClick still
+            // fires so the audio toggle works the same on every key.
+            if (modeRef.current === "BURST") {
+              playClick();
+              return;
+            }
             dispatch({
               type: "SPACE",
               now: Date.now(),

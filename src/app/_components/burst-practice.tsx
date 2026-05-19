@@ -1,476 +1,265 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
-import { resolveBurstThreshold } from "@/lib/avg-wpm-cache";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
+import { resolveBurstThreshold } from "@/lib/avg-wpm-cache";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { useLifetimeStats } from "@/lib/use-lifetime-stats";
 import { cn } from "@/lib/utils";
-import type { KeyEvent } from "./practice-reducer";
 import { usePractice } from "./practice-state";
 
-/** Practice-side BURST runner. Renders one item at a time; user types
- *  the word, hits SPACE to commit; cleared `repsPerItem` times above
- *  `thresholdWpm` and the cursor advances. Wrong char or below
- *  threshold resets the rep counter on the current item.
+/** BURST mode controller.
  *
- *  This is a thinner sibling of `src/app/drills/_components/burst-surface.tsx`
- *  — same engine semantics, but without the drill chrome (no header,
- *  no DrillComplete overlay). When the run finishes, we dispatch
- *  `FINISH_BURST` into the shared practice reducer so the normal
- *  `<TestSummary />` renders the result screen the user expects.
+ *  Visually, BURST renders through the same `<Passage />` component
+ *  WORDS uses — same typography, caret, colour tokens, settings. The
+ *  controller below owns the *behaviour* on top of that:
+ *    - Tracks per-word attempt start time
+ *    - Intercepts SPACE (InputCapture skips its dispatch in BURST)
+ *    - Computes WPM for the just-typed attempt
+ *    - Decides: advance (dispatch SPACE), retry (BURST_RESET),
+ *      or fail-and-reset (BURST_RESET + clear rep counter)
+ *    - Grants `XP_PER_DRILL` via lifetimeStats.drillsCompleted on
+ *      the natural phase=done transition (last word, final rep
+ *      → standard reducer SPACE flow sets phase=done; no special
+ *      finish action needed).
  *
- *  XP: grants `XP_PER_DRILL` via `lifetimeStats.drillsCompleted` on
- *  completion, NOT `XP_PER_TEST` — BURST runs don't feed adapt and
- *  shouldn't compound with WORDS/TIME XP. */
-
-type AttemptOutcome = "win" | "slow" | "wrong";
-
-type State = {
-  itemIdx: number;
-  reps: number;
-  typed: string;
-  attemptStartedAt: number | null;
-  lastOutcome: AttemptOutcome | null;
-  totalAttempts: number;
-  totalWins: number;
-  finished: boolean;
-  /** Most recent attempt's WPM, surfaced under the word. */
-  lastWpm: number | null;
-  /** When the user pressed their first key. Used as `startTime` on
-   *  the synthesized FINISH_BURST so the test summary's duration is
-   *  honest. Null until the first keystroke. */
-  runStartedAt: number | null;
-  /** Per-successful-attempt samples — fed into TestSummary's chart
-   *  as the WPM trace. Built lazily so the engine state stays small. */
-  winSamples: { t: number; wpm: number }[];
-  /** Cleared words, in order, for the synthesized `typed[]` on
-   *  FINISH_BURST. Mirrors the WORDS-mode `state.typed` shape so the
-   *  result-screen accuracy / WPM calc reuses the same code path. */
-  clearedTyped: string[];
-};
-
-type Action =
-  | { type: "TYPE_CHAR"; char: string; now: number; targetWord: string }
-  | {
-      type: "CONFIRM";
-      now: number;
-      thresholdWpm: number;
-      repsPerItem: number;
-      itemsLength: number;
-      targetWord: string;
-    }
-  | { type: "BACKSPACE" }
-  | { type: "BACKSPACE_WORD" }
-  | { type: "RESET_FLASH" }
-  | { type: "RESET" };
-
-const initialState: State = {
-  itemIdx: 0,
-  reps: 0,
-  typed: "",
-  attemptStartedAt: null,
-  lastOutcome: null,
-  totalAttempts: 0,
-  totalWins: 0,
-  finished: false,
-  lastWpm: null,
-  runStartedAt: null,
-  winSamples: [],
-  clearedTyped: [],
-};
-
-/** Standard 5-chars-per-word convention. Floor the duration so a 0ms
- *  attempt doesn't divide-by-zero. */
-function burstWpm(charCount: number, durationMs: number): number {
-  const ms = Math.max(1, durationMs);
-  return (charCount / 5) * (60_000 / ms);
-}
-
-function reducer(state: State, action: Action): State {
-  switch (action.type) {
-    case "RESET":
-      return initialState;
-    case "RESET_FLASH":
-      return { ...state, lastOutcome: null };
-    case "BACKSPACE":
-      if (state.typed.length === 0) return state;
-      return { ...state, typed: state.typed.slice(0, -1) };
-    case "BACKSPACE_WORD":
-      if (state.typed.length === 0) return state;
-      return { ...state, typed: "", attemptStartedAt: null };
-    case "TYPE_CHAR": {
-      if (state.finished) return state;
-      const target = action.targetWord;
-      const nextTyped = state.typed + action.char;
-      const idx = nextTyped.length - 1;
-      const expected = target[idx];
-      const startedAt = state.attemptStartedAt ?? action.now;
-      const runStartedAt = state.runStartedAt ?? action.now;
-
-      if (expected === undefined || action.char !== expected) {
-        return {
-          ...state,
-          typed: "",
-          attemptStartedAt: null,
-          reps: 0,
-          lastOutcome: "wrong",
-          totalAttempts: state.totalAttempts + 1,
-          runStartedAt,
-        };
-      }
-      return {
-        ...state,
-        typed: nextTyped,
-        attemptStartedAt: startedAt,
-        runStartedAt,
-      };
-    }
-    case "CONFIRM": {
-      if (state.finished) return state;
-      const target = action.targetWord;
-      if (state.typed.length !== target.length) return state;
-      if (state.typed !== target) return state;
-      if (state.attemptStartedAt == null) return state;
-
-      const wpm = burstWpm(target.length, action.now - state.attemptStartedAt);
-      const wpmRounded = Math.round(wpm);
-      const fast = wpm >= action.thresholdWpm;
-      const runStartedAt = state.runStartedAt ?? action.now;
-      if (!fast) {
-        return {
-          ...state,
-          typed: "",
-          attemptStartedAt: null,
-          reps: 0,
-          lastOutcome: "slow",
-          totalAttempts: state.totalAttempts + 1,
-          lastWpm: wpmRounded,
-          runStartedAt,
-        };
-      }
-      const nextReps = state.reps + 1;
-      const justFinishedItem = nextReps >= action.repsPerItem;
-      const finishedRun =
-        justFinishedItem && state.itemIdx >= action.itemsLength - 1;
-      return {
-        ...state,
-        typed: "",
-        attemptStartedAt: null,
-        reps: justFinishedItem ? 0 : nextReps,
-        itemIdx: justFinishedItem ? state.itemIdx + 1 : state.itemIdx,
-        lastOutcome: "win",
-        totalAttempts: state.totalAttempts + 1,
-        totalWins: state.totalWins + 1,
-        finished: finishedRun,
-        lastWpm: wpmRounded,
-        runStartedAt,
-        winSamples: [
-          ...state.winSamples,
-          { t: action.now - runStartedAt, wpm: wpmRounded },
-        ],
-        clearedTyped: justFinishedItem
-          ? [...state.clearedTyped, target]
-          : state.clearedTyped,
-      };
-    }
-  }
-}
-
+ *  Renders a small below-passage strip showing item progress and the
+ *  current rep streak so the user can read "where am I" without
+ *  guessing. */
 export function BurstPractice() {
-  const { state: practice, dispatch: practiceDispatch, restart } = usePractice();
-  const items = practice.words;
-  const itemsLength = items.length;
+  const { state, dispatch, restart: _restart } = usePractice();
+  void _restart;
   const { prefs: behaviour } = useBehaviourPrefs();
   const { prefs: appearance } = useAppearancePrefs();
   const { incrementDrillsCompleted } = useLifetimeStats();
 
-  // Threshold and reps reads — auto-WPM resolution happens once at
-  // mount; the user can edit the pref to bypass.
   const thresholdWpm = useMemo(
     () => resolveBurstThreshold(behaviour.burstThreshold),
     [behaviour.burstThreshold],
   );
   const repsPerItem = Math.max(1, appearance.burstReps);
 
-  const [state, dispatch] = useReducer(reducer, initialState);
-  const stateRef = useRef(state);
-  stateRef.current = state;
-  const targetWord = items[state.itemIdx] ?? "";
+  // Per-attempt start time. Updated when typed[cursorWord] goes
+  // 0 → 1 (first keystroke of an attempt). null between attempts.
+  const attemptStartRef = useRef<number | null>(null);
+  const prevTypedLenRef = useRef(0);
+  // Per-word rep counter. Resets on cursorWord change OR on a fail
+  // (wrong word / slow attempt).
+  const [reps, setReps] = useState(0);
+  const repsRef = useRef(reps);
+  repsRef.current = reps;
+  // Most recent attempt's WPM, surfaced in the strip.
+  const [lastWpm, setLastWpm] = useState<number | null>(null);
+  // Brief outcome flash (win / slow / wrong) — clears after 350ms.
+  const [outcome, setOutcome] = useState<"win" | "slow" | "wrong" | null>(
+    null,
+  );
 
-  // Reset the engine whenever the practice words change (mode/length
-  // pick, restart). The practice provider regenerates state.words on
-  // those transitions; reset on identity change keeps the local
-  // engine state in sync.
-  useEffect(() => {
-    dispatch({ type: "RESET" });
-  }, [items]);
+  const cursorWord = state.cursorWord;
+  const typedHere = state.typed[cursorWord] ?? "";
+  const target = state.words[cursorWord] ?? "";
 
-  // Brief outcome flash so the win/slow/wrong feedback is visible
-  // without lingering.
+  // Track attempt start. The first character of an attempt is the
+  // 0→1 transition; subsequent characters keep the same start time.
+  // A BURST_RESET drops typed[cursor] back to "" — we observe the
+  // length flip and clear the start.
   useEffect(() => {
-    if (state.lastOutcome == null) return;
-    const id = setTimeout(() => dispatch({ type: "RESET_FLASH" }), 350);
-    return () => clearTimeout(id);
-  }, [state.lastOutcome, state.itemIdx]);
-
-  // On finish: synthesize the result-screen stats + drop them into the
-  // practice reducer so <TestSummary /> renders the standard view.
-  // Ref guard so the grant + finish dispatch fire exactly once per
-  // mounted run.
-  const finishedRef = useRef(false);
-  useEffect(() => {
-    if (!state.finished || finishedRef.current) return;
-    finishedRef.current = true;
-    const endMs = Date.now();
-    const startMs = state.runStartedAt ?? endMs;
-    // Synthesize KeyEvent[]: one "correct" event per char of every
-    // cleared word. The result-screen WPM math reads through this; we
-    // don't have per-char timings inside a burst, so each char shares
-    // the attempt's commit timestamp relative to startMs.
-    const events: KeyEvent[] = [];
-    let charCount = 0;
-    for (let wIdx = 0; wIdx < state.clearedTyped.length; wIdx++) {
-      const w = state.clearedTyped[wIdx]!;
-      const sample = state.winSamples[wIdx];
-      const t = sample?.t ?? 0;
-      for (let i = 0; i < w.length; i++) {
-        events.push({
-          t,
-          expected: w[i]!,
-          typed: w[i]!,
-          correct: true,
-          wordIndex: wIdx,
-        });
-        charCount++;
-      }
+    const len = typedHere.length;
+    if (len === 1 && prevTypedLenRef.current === 0) {
+      attemptStartRef.current = Date.now();
+    } else if (len === 0) {
+      attemptStartRef.current = null;
     }
-    // totalChars also counts the chars from failed attempts so the
-    // accuracy reflects honest miss rate (totalAttempts vs totalWins
-    // is the per-attempt accuracy, but TestSummary's accuracy column
-    // wants char-level). One word's worth of failed chars per
-    // non-winning attempt is a fair approximation given we don't
-    // record key-level failures here.
-    const failedAttempts = Math.max(
-      0,
-      state.totalAttempts - state.totalWins,
-    );
-    const avgWordLen =
-      state.clearedTyped.length > 0
-        ? charCount / state.clearedTyped.length
-        : 0;
-    const failedChars = Math.round(failedAttempts * avgWordLen);
-    practiceDispatch({
-      type: "FINISH_BURST",
-      startMs,
-      endMs,
-      typed: [...state.clearedTyped],
-      events,
-      totalChars: charCount + failedChars,
-      correctChars: charCount,
+    prevTypedLenRef.current = len;
+  }, [typedHere]);
+
+  // Reset the rep counter whenever the cursor moves to a new word.
+  useEffect(() => {
+    setReps(0);
+  }, [cursorWord]);
+
+  // Reset everything (reps, attempt, flash) on RESTART — state.words
+  // identity change is the cleanest signal for "fresh run".
+  useEffect(() => {
+    setReps(0);
+    setOutcome(null);
+    setLastWpm(null);
+    attemptStartRef.current = null;
+    prevTypedLenRef.current = 0;
+  }, [state.words]);
+
+  // SPACE handler — the controller's entire job condensed into one
+  // function. InputCapture skips its own SPACE dispatch in BURST.
+  const handleSpace = useCallback(() => {
+    if (state.phase === "done" || state.phase === "rest") return;
+    const tgt = state.words[state.cursorWord] ?? "";
+    const typed = state.typed[state.cursorWord] ?? "";
+    // Wrong attempt: any deviation from the target is a reset, regardless
+    // of how many chars they have. Length mismatch also counts.
+    if (typed !== tgt) {
+      setOutcome("wrong");
+      setReps(0);
+      dispatch({ type: "BURST_RESET" });
+      return;
+    }
+    // Compute WPM for this attempt.
+    const startedAt = attemptStartRef.current;
+    const now = Date.now();
+    if (startedAt == null) {
+      // Impossible-state: typed === target with no attempt start. Treat
+      // as a slow attempt rather than crashing.
+      setOutcome("slow");
+      setReps(0);
+      dispatch({ type: "BURST_RESET" });
+      return;
+    }
+    const charCount = tgt.length;
+    const ms = Math.max(1, now - startedAt);
+    const wpm = (charCount / 5) * (60_000 / ms);
+    const wpmRounded = Math.round(wpm);
+    setLastWpm(wpmRounded);
+    if (wpm < thresholdWpm) {
+      setOutcome("slow");
+      setReps(0);
+      dispatch({ type: "BURST_RESET" });
+      return;
+    }
+    // Successful attempt at threshold.
+    setOutcome("win");
+    const nextReps = repsRef.current + 1;
+    if (nextReps < repsPerItem) {
+      // Same word, fresh attempt.
+      setReps(nextReps);
+      dispatch({ type: "BURST_RESET" });
+      return;
+    }
+    // Rep complete — advance via the standard SPACE action. The
+    // reducer handles the cursorWord increment + (if last word)
+    // phase=done transition for us.
+    setReps(0);
+    dispatch({
+      type: "SPACE",
+      now,
+      // strictSpace=false: the typed buffer matches target exactly,
+      // so the gate is always satisfied; this argument is irrelevant
+      // here but defined for shape.
+      strictSpace: false,
     });
-    incrementDrillsCompleted();
   }, [
-    state.finished,
-    state.runStartedAt,
-    state.clearedTyped,
-    state.winSamples,
-    state.totalAttempts,
-    state.totalWins,
-    practiceDispatch,
-    incrementDrillsCompleted,
+    state.phase,
+    state.cursorWord,
+    state.typed,
+    state.words,
+    thresholdWpm,
+    repsPerItem,
+    dispatch,
   ]);
 
-  // Reset the finish guard when the practice words swap (restart).
+  // Outcome flash — fades the badge after a brief tick so wins / slow
+  // / wrong feedback is visible but doesn't linger.
   useEffect(() => {
-    finishedRef.current = false;
-  }, [items]);
+    if (outcome == null) return;
+    const id = setTimeout(() => setOutcome(null), 400);
+    return () => clearTimeout(id);
+  }, [outcome]);
 
-  // Keyboard handler. Owns its own listener (separate from the
-  // shared InputCapture) because the burst flow is space-confirms-
-  // attempt rather than space-advances-word.
-  const onKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      const wordWise =
-        e.key === "Backspace" && (e.ctrlKey || e.altKey || e.metaKey);
-      if (!wordWise && (e.ctrlKey || e.metaKey || e.altKey)) return;
+  // Wire the SPACE listener at the window level. We listen on keydown
+  // (matching InputCapture's keydown path) and only react to the
+  // space key. Modifier keys, modal dialogs, and focused inputs are
+  // already filtered by InputCapture before SPACE would reach this
+  // controller; the duplicate guards here cover the case where the
+  // user is focused outside the hidden typing input.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== " ") return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
       const active = document.activeElement;
       if (
         active &&
-        (active.tagName === "INPUT" ||
-          active.tagName === "TEXTAREA" ||
-          active.tagName === "SELECT")
+        (active.tagName === "TEXTAREA" || active.tagName === "SELECT")
       ) {
         return;
       }
-      if (e.key === "Backspace") {
-        e.preventDefault();
-        dispatch({ type: wordWise ? "BACKSPACE_WORD" : "BACKSPACE" });
-        return;
-      }
-      // Esc → restart the run via the practice provider, which
-      // regenerates state.words and bounces the local engine via the
-      // items-dep effect above.
-      if (e.key === "Escape") {
-        e.preventDefault();
-        restart();
-        return;
-      }
-      if (e.key.length === 1) {
-        const cur = stateRef.current;
-        const target = items[cur.itemIdx] ?? "";
-        if (e.key === " ") {
-          if (
-            cur.typed.length === target.length &&
-            cur.typed === target &&
-            cur.attemptStartedAt != null
-          ) {
-            e.preventDefault();
-            dispatch({
-              type: "CONFIRM",
-              now: Date.now(),
-              thresholdWpm,
-              repsPerItem,
-              itemsLength,
-              targetWord: target,
-            });
-            return;
-          }
-          // Mid-attempt accidental space — swallow.
-          return;
-        }
-        e.preventDefault();
-        dispatch({
-          type: "TYPE_CHAR",
-          char: e.key,
-          now: Date.now(),
-          targetWord: target,
-        });
-      }
-    },
-    [items, itemsLength, thresholdWpm, repsPerItem, restart],
-  );
+      e.preventDefault();
+      handleSpace();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [handleSpace]);
 
+  // XP grant: when phase transitions to done in BURST, increment
+  // lifetimeStats.drillsCompleted. The standard test-submit effect
+  // already short-circuits on BURST (no test row, no adapt feed).
+  const grantedRef = useRef(false);
   useEffect(() => {
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onKeyDown]);
+    if (state.phase !== "done") {
+      grantedRef.current = false;
+      return;
+    }
+    if (grantedRef.current) return;
+    grantedRef.current = true;
+    incrementDrillsCompleted();
+  }, [state.phase, incrementDrillsCompleted]);
 
-  const ready =
-    state.typed.length === targetWord.length &&
-    state.typed === targetWord &&
-    state.attemptStartedAt != null &&
-    state.lastOutcome == null;
-
+  // Status strip. Sits under the passage; same eyebrow / mono / tight-
+  // tracking style as the live readouts so it reads as part of the
+  // practice chrome, not a separate widget.
+  const itemsLength = state.words.length;
+  const progress = `${Math.min(state.cursorWord, itemsLength)}/${itemsLength}`;
+  const repStr = `${reps}/${repsPerItem}`;
   return (
-    <section className="flex min-h-0 flex-1 flex-col items-stretch gap-8 sm:gap-12">
-      {/* Top stat strip — sparse, two values: item progress + reps streak */}
-      <div className="flex items-center justify-center gap-8 text-center font-mono">
-        <Stat label="item" value={`${state.itemIdx}/${itemsLength}`} />
-        <Stat label="streak" value={`${state.reps}/${repsPerItem}`} />
-        <Stat label="threshold" value={`${thresholdWpm} wpm`} />
-        {state.lastWpm != null ? (
-          <Stat label="last" value={`${state.lastWpm} wpm`} accent />
-        ) : null}
-      </div>
-
-      {/* Centred word — the burst target. Tints by lastOutcome. */}
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6">
-        <BurstWord
-          word={targetWord}
-          typed={state.typed}
-          outcome={state.lastOutcome}
-          ready={ready}
+    <div className="flex items-center justify-center gap-8 px-4 pb-2 text-center font-mono">
+      <Cell label="item" value={progress} />
+      <Cell label="reps" value={repStr} accent={reps > 0} />
+      <Cell
+        label="threshold"
+        value={`${thresholdWpm} wpm`}
+        hint={behaviour.burstThreshold === 0 ? "auto" : undefined}
+      />
+      {lastWpm != null ? (
+        <Cell
+          label="last"
+          value={`${lastWpm} wpm`}
+          tone={outcome === "win" ? "ok" : outcome === "slow" ? "warn" : undefined}
         />
-        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          {ready
-            ? "press space to commit"
-            : state.lastOutcome === "wrong"
-              ? "wrong char — try again"
-              : state.lastOutcome === "slow"
-                ? "too slow — reset"
-                : state.typed.length === 0
-                  ? "type the word, then space"
-                  : ""}
-        </p>
-      </div>
-    </section>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-        {label}
-      </span>
-      <span
-        className={cn(
-          "text-base font-semibold tabular-nums",
-          accent ? "text-primary" : "text-foreground",
-        )}
-      >
-        {value}
-      </span>
+      ) : null}
     </div>
   );
 }
 
-function BurstWord({
-  word,
-  typed,
-  outcome,
-  ready,
+function Cell({
+  label,
+  value,
+  hint,
+  accent,
+  tone,
 }: {
-  word: string;
-  typed: string;
-  outcome: AttemptOutcome | null;
-  ready: boolean;
+  label: string;
+  value: string;
+  hint?: string;
+  accent?: boolean;
+  tone?: "ok" | "warn";
 }) {
-  const tint =
-    outcome === "win"
-      ? "text-primary"
-      : outcome === "wrong" || outcome === "slow"
-        ? "text-destructive"
-        : ready
-          ? "text-primary"
-          : "text-foreground";
   return (
-    <div
-      className={cn(
-        "text-5xl font-bold tracking-tight transition-colors sm:text-7xl",
-        tint,
-      )}
-    >
-      {word.split("").map((ch, i) => {
-        const typedCh = typed[i];
-        const state =
-          typedCh === undefined
-            ? "untyped"
-            : typedCh === ch
-              ? "typed"
-              : "wrong";
-        return (
-          <span
-            key={i}
-            className={cn(
-              state === "untyped" && "text-muted-foreground/60",
-              state === "wrong" && "text-destructive",
-            )}
-          >
-            {ch}
-          </span>
-        );
-      })}
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+        {label}
+        {hint ? (
+          <span className="ml-1 text-muted-foreground/60">· {hint}</span>
+        ) : null}
+      </span>
+      <span
+        className={cn(
+          "text-sm font-semibold tabular-nums",
+          tone === "ok" && "text-primary",
+          tone === "warn" && "text-destructive",
+          accent && !tone && "text-primary",
+          !accent && !tone && "text-foreground",
+        )}
+      >
+        {value}
+      </span>
     </div>
   );
 }

@@ -90,19 +90,14 @@ export type Action =
   | { type: "RESTART"; words: string[]; quoteSource: string | null }
   | { type: "REGENERATE"; cfg: WordCfg }
   | { type: "FINISH_TIME"; now: number }
-  /** Burst-mode completion. The burst engine drives its own flow
-   *  (one item at a time, WPM-threshold + reps), so when it finishes
-   *  it hands the reducer a finalized summary the way TIME does on
-   *  expiration. Stats fields fill in the slots TestSummary reads. */
-  | {
-      type: "FINISH_BURST";
-      startMs: number;
-      endMs: number;
-      typed: string[];
-      events: KeyEvent[];
-      totalChars: number;
-      correctChars: number;
-    };
+  /** Burst-mode mid-run retry. The burst controller dispatches this
+   *  on every failed attempt (wrong word OR below threshold WPM) and
+   *  on every successful-but-rep-incomplete attempt: clears the
+   *  user's typed buffer for the current word, drops cursorChar to
+   *  0, leaves cursorWord put so they re-attempt the same item.
+   *  Does not mark errorWords — burst retries aren't typing mistakes,
+   *  they're rep regressions. */
+  | { type: "BURST_RESET" };
 
 // ─── Word lists ─────────────────────────────────────────────────────
 
@@ -311,24 +306,16 @@ export function reducer(s: State, a: Action): State {
     case "FINISH_TIME":
       if (s.phase !== "running") return s;
       return { ...s, phase: "done", endTime: a.now };
-    case "FINISH_BURST":
-      // BURST drives its own state inside the burst surface; the
-      // reducer's role is just to mark the run done with the totals
-      // TestSummary will read. We don't gate on `phase === "running"`
-      // because the burst surface starts the timer locally without
-      // dispatching TYPE_CHAR through this reducer.
-      return {
-        ...s,
-        phase: "done",
-        startTime: a.startMs,
-        endTime: a.endMs,
-        typed: a.typed,
-        events: a.events,
-        totalChars: a.totalChars,
-        correctChars: a.correctChars,
-        cursorWord: s.words.length,
-        cursorChar: 0,
-      };
+    case "BURST_RESET": {
+      // Reset the user's typed buffer for the current word so they
+      // can re-attempt it. Don't touch errorWords (burst retries
+      // aren't typing mistakes), don't touch totalChars/correctChars
+      // (the retry's characters are already counted toward accuracy).
+      if (s.phase === "done") return s;
+      const cleared = [...s.typed];
+      cleared[s.cursorWord] = "";
+      return { ...s, cursorChar: 0, typed: cleared };
+    }
     case "TYPE_CHAR": {
       if (s.phase === "done") return s;
       const word = s.words[s.cursorWord];
