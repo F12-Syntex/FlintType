@@ -1,8 +1,13 @@
 import {
   XP_PER_LEVEL,
   XP_PER_TEST,
-  levelFromTestsCompleted,
+  levelFromXp,
 } from "@/lib/level";
+import {
+  DEFAULT_LIFETIME_STATS,
+  type LifetimeStats,
+} from "@/lib/lifetime-stats";
+import { computeTotalXp } from "@/lib/xp-rewards";
 import type { HistoryTest, PublicMonkeytypeStats } from "@/types/history";
 
 /** Either flavour of MT slice the merge layer accepts — the private
@@ -44,7 +49,10 @@ export type ProfileTotals = {
  *  always equals their leaderboard rank's level. */
 export { XP_PER_TEST, XP_PER_LEVEL };
 
-export function deriveTotals(tests: readonly HistoryTest[]): ProfileTotals {
+export function deriveTotals(
+  tests: readonly HistoryTest[],
+  lifetime: LifetimeStats = DEFAULT_LIFETIME_STATS,
+): ProfileTotals {
   const testsStarted = tests.length;
   const completed = tests.filter((t) => t.wasCompleted);
   const testsCompleted = completed.length;
@@ -71,8 +79,9 @@ export function deriveTotals(tests: readonly HistoryTest[]): ProfileTotals {
     completed.length > 0
       ? completed.reduce((s, t) => s + t.accuracy, 0) / completed.length
       : 0;
-  const { level, totalXp, xpIntoLevel, progress } =
-    levelFromTestsCompleted(testsCompleted);
+  const { level, totalXp, xpIntoLevel, progress } = levelFromXp(
+    computeTotalXp({ testsCompleted, ...lifetime }),
+  );
   return {
     testsStarted,
     testsCompleted,
@@ -260,13 +269,16 @@ export function mergeTotalsWithMt(
     ...Object.values(mt.pbs.words).map((p) => p.wpm),
   );
   // Recompute the combined level from the merged completed-test
-  // count so a fresh MT import nudges the level bar forward. Routed
-  // through the same `levelFromTestsCompleted` helper as the local-only path
-  // so the two never drift — bug bait when one curve is tweaked and
-  // the other is forgotten.
+  // count so a fresh MT import nudges the level bar forward. Drills
+  // / races XP already lives inside `local.totalXp` (test XP component
+  // is recomputed from the combined count below); we add MT's
+  // contribution as additional test XP. Same `levelFromXp` helper as
+  // the local-only path so the two never drift.
   const combinedCompleted = local.testsCompleted + mtCompleted;
-  const { level, totalXp, xpIntoLevel, progress } =
-    levelFromTestsCompleted(combinedCompleted);
+  const nonTestXp = local.totalXp - local.testsCompleted * XP_PER_TEST;
+  const { level, totalXp, xpIntoLevel, progress } = levelFromXp(
+    combinedCompleted * XP_PER_TEST + nonTestXp,
+  );
   return {
     ...local,
     testsStarted: local.testsStarted + mtStarted,

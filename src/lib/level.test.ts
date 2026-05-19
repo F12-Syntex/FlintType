@@ -4,6 +4,7 @@ import {
   XP_PER_LEVEL,
   XP_PER_TEST,
   levelFromTestsCompleted,
+  levelFromXp,
 } from "./level";
 
 describe("levelFromTestsCompleted", () => {
@@ -41,5 +42,34 @@ describe("levelFromTestsCompleted", () => {
 
   it("XP_PER_LEVEL stays 1000 (10× XP_PER_TEST = one level)", () => {
     expect(XP_PER_LEVEL).toBe(10 * XP_PER_TEST);
+  });
+});
+
+describe("levelFromXp", () => {
+  it("zero xp → level 1", () => {
+    const s = levelFromXp(0);
+    expect(s.level).toBe(1);
+    expect(s.totalXp).toBe(0);
+    expect(s.xpIntoLevel).toBe(0);
+  });
+
+  it("one level boundary lands cleanly", () => {
+    expect(levelFromXp(1000).level).toBe(2);
+    expect(levelFromXp(1500).level).toBe(2);
+    expect(levelFromXp(1500).xpIntoLevel).toBe(500);
+    expect(levelFromXp(1500).progress).toBe(0.5);
+  });
+
+  it("agrees with the test-only shim", () => {
+    for (const n of [0, 1, 7, 13, 100, 999]) {
+      expect(levelFromXp(n * XP_PER_TEST)).toEqual(
+        levelFromTestsCompleted(n),
+      );
+    }
+  });
+
+  it("treats negative + fractional inputs defensively", () => {
+    expect(levelFromXp(-100).level).toBe(1);
+    expect(levelFromXp(150.7).totalXp).toBe(150);
   });
 });

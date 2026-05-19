@@ -12,6 +12,7 @@ import {
 } from "react";
 import { Tag } from "@/components/ft";
 import { useCaretSettings, type CaretStyle } from "@/lib/caret-settings";
+import { useLifetimeStats } from "@/lib/use-lifetime-stats";
 import { cn } from "@/lib/utils";
 import { DrillHeader } from "./drill-header";
 
@@ -214,6 +215,18 @@ export function BurstSurface({
     const word = itemRef.current[cleared];
     if (word) onItemCleared(word);
   }, [state.itemIdx, onItemCleared]);
+
+  // Drill completion → +XP via lifetime-stats. Fires exactly once
+  // per mount when state.finished flips true; mounting at /drills/<id>
+  // and unmounting on back-link nav means a single run = a single
+  // grant, even if React effects double-invoke in dev StrictMode.
+  const { incrementDrillsCompleted } = useLifetimeStats();
+  const xpGrantedRef = useRef(false);
+  useEffect(() => {
+    if (!state.finished || xpGrantedRef.current) return;
+    xpGrantedRef.current = true;
+    incrementDrillsCompleted();
+  }, [state.finished, incrementDrillsCompleted]);
 
   const targetWord = items[state.itemIdx] ?? "";
   // True the moment the user has typed the whole target correctly —

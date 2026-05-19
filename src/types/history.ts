@@ -85,6 +85,16 @@ export type HistorySummaryOutput = {
    *  `publicProfile` (subject avatar visible to visitors) so the hero
    *  doesn't have to round-trip Clerk for someone else's photo. */
   subjectAvatarUrl: string | null;
+  /** Subject's lifetime counters that contribute to the XP/level
+   *  total beyond the test-row count — drills completed, races
+   *  finished + won. Read from the user-prefs blob. Returned for
+   *  both own + visitor views so the level number rendered on the
+   *  hero matches reality. */
+  lifetimeStats: {
+    drillsCompleted: number;
+    racesFinished: number;
+    racesWon: number;
+  };
 };
 
 /** Subset of MonkeytypeStatsSlice safe to expose over the public

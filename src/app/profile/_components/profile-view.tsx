@@ -113,7 +113,10 @@ export function ProfileView({ username }: { username?: string }) {
     };
   }, [hasStoredKey, backend, updateMtSlice]);
 
-  const localTotals = useMemo(() => deriveTotals(tests), [tests]);
+  const localTotals = useMemo(
+    () => deriveTotals(tests, snapshot?.lifetimeStats),
+    [tests, snapshot?.lifetimeStats],
+  );
   const totals = useMemo(
     () => mergeTotalsWithMt(localTotals, subjectMtSlice),
     [localTotals, subjectMtSlice],

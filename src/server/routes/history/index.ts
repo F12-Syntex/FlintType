@@ -26,6 +26,7 @@ import {
 } from "@/server/adapt/scoring";
 import { COLD_BIGRAM_THRESHOLD } from "@/server/adapt/select";
 import { ensureHandLayout } from "@/lib/hand-layout";
+import { readLifetimeStats } from "@/lib/lifetime-stats";
 import {
   publicProfileInputSchema,
   type HistorySummaryOutput,
@@ -177,6 +178,7 @@ async function loadHistorySummary(
     tags,
     eligibleTags,
     subjectAvatarUrl,
+    lifetimeStats: readLifetimeStats(prefsBlob),
   };
 }
 

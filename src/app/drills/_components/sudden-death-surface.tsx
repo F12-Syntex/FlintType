@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { Tag } from "@/components/ft";
 import { Button } from "@/components/ui/button";
 import { Passage } from "@/app/_components/passage";
@@ -8,6 +9,7 @@ import {
   PracticeProvider,
   usePractice,
 } from "@/app/_components/practice-state";
+import { useLifetimeStats } from "@/lib/use-lifetime-stats";
 import { DrillHeader } from "./drill-header";
 
 /** Sudden-death runner that piggybacks on the practice surface.
@@ -46,6 +48,17 @@ function Body() {
   const { state, suddenDeathRestarts, restart } = usePractice();
   const totalWords = state.words.length;
   const done = state.phase === "done";
+
+  // Drill completion → +XP via lifetime-stats. One grant per mount;
+  // restart re-runs the same `Body` instance without unmounting so
+  // the ref blocks a second grant until the next visit.
+  const { incrementDrillsCompleted } = useLifetimeStats();
+  const xpGrantedRef = useRef(false);
+  useEffect(() => {
+    if (!done || xpGrantedRef.current) return;
+    xpGrantedRef.current = true;
+    incrementDrillsCompleted();
+  }, [done, incrementDrillsCompleted]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pt-6 pb-3 sm:gap-6 sm:px-12 sm:py-8 lg:px-20">

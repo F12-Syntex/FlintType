@@ -3,11 +3,14 @@
  *  Top-by-Level view, on notifications, anywhere.
  *
  *  Economy is deliberately simple + visible:
- *    - Every completed test grants XP_PER_TEST.
  *    - Every level costs XP_PER_LEVEL.
- *    - 10 tests = exactly one level. The progress bar moves the
- *      same amount every test; the level number is one ahead of
- *      the floor (level 1 at zero tests, level 2 at 10 tests, …).
+ *    - XP rewards per action live in `src/lib/xp-rewards.ts`. Today:
+ *        completed test  = 100 XP    (10 tests / level)
+ *        completed drill = 250 XP    (~4 drills / level)
+ *        race finish     = 50 XP
+ *        race win        = +150 XP   (5 wins / level on top of finish)
+ *    - The progress bar moves a fixed amount per action; the level
+ *      number is one ahead of the floor (level 1 at zero XP).
  *
  *  Pure — no I/O, no React. Used by:
  *    src/app/profile/_components/derive-stats.ts
@@ -21,7 +24,7 @@ export const XP_PER_LEVEL = 1000;
 
 export type LevelStats = {
   level: number;
-  /** Lifetime XP across every completed test (= testsCompleted × XP_PER_TEST). */
+  /** Lifetime XP across every reward event. */
   totalXp: number;
   /** XP earned inside the current level, 0..XP_PER_LEVEL-1. */
   xpIntoLevel: number;
@@ -29,13 +32,19 @@ export type LevelStats = {
   progress: number;
 };
 
+export function levelFromXp(totalXp: number): LevelStats {
+  const safe = Math.max(0, Math.floor(totalXp));
+  const level = Math.floor(safe / XP_PER_LEVEL) + 1;
+  const xpIntoLevel = safe % XP_PER_LEVEL;
+  const progress = xpIntoLevel / XP_PER_LEVEL;
+  return { level, totalXp: safe, xpIntoLevel, progress };
+}
+
+/** Backwards-compat shim — every call site that only knows about
+ *  tests can use this. Callers that need drill / race XP route
+ *  through `computeTotalXp` + `levelFromXp` directly. */
 export function levelFromTestsCompleted(
   testsCompleted: number,
 ): LevelStats {
-  const safe = Math.max(0, Math.floor(testsCompleted));
-  const totalXp = safe * XP_PER_TEST;
-  const level = Math.floor(totalXp / XP_PER_LEVEL) + 1;
-  const xpIntoLevel = totalXp % XP_PER_LEVEL;
-  const progress = xpIntoLevel / XP_PER_LEVEL;
-  return { level, totalXp, xpIntoLevel, progress };
+  return levelFromXp(Math.max(0, Math.floor(testsCompleted)) * XP_PER_TEST);
 }

@@ -7,7 +7,12 @@ import {
   resolveEligibleTags,
 } from "@/server/resolve-tags";
 import type { UserTagId } from "@/types/user-tag";
-import { levelFromTestsCompleted } from "@/lib/level";
+import { XP_PER_TEST, levelFromXp } from "@/lib/level";
+import {
+  type LifetimeStats,
+  readLifetimeStats,
+} from "@/lib/lifetime-stats";
+import { computeTotalXp } from "@/lib/xp-rewards";
 import {
   leaderboardInputSchema,
   PRESET_AMOUNT,
@@ -240,6 +245,11 @@ const topByLevel = defineRoute<TopByLevelInput, TopByLevelOutput>({
        *  level adds this to the local row count, so the leaderboard
        *  has to do the same to match. */
       mtCompleted: number;
+      /** Drill / race counters from the same prefs blob — folded into
+       *  the user's total XP via `computeTotalXp` so the leaderboard
+       *  level matches the profile hero level when drills are part of
+       *  the user's grind. */
+      lifetime: LifetimeStats;
     };
     let userInfoByUserId = new Map<string, UserInfo>();
     try {
@@ -276,6 +286,7 @@ const topByLevel = defineRoute<TopByLevelInput, TopByLevelOutput>({
           username: u.username ?? null,
           tags,
           mtCompleted: Number.isFinite(mtCompleted) ? mtCompleted : 0,
+          lifetime: readLifetimeStats(prefs ?? null),
         });
       }
     } catch (err) {
@@ -284,24 +295,29 @@ const topByLevel = defineRoute<TopByLevelInput, TopByLevelOutput>({
       });
       userInfoByUserId = new Map();
     }
-    // Combine local + MT counts per user, then re-sort by combined
-    // count so the ranking matches profile-shown levels.
+    // Combine local + MT + lifetime counters into a single total-XP
+    // figure per user, then re-sort by that total so the ranking
+    // matches profile-shown levels. Tests + MT-imported tests share
+    // the XP_PER_TEST weight; drills/races contribute via
+    // `computeTotalXp`.
     const named = rows
       .filter((r) => userInfoByUserId.has(r.userId))
       .map((r) => {
         const info = userInfoByUserId.get(r.userId)!;
         const combined = r.testsCompleted + info.mtCompleted;
-        return { row: r, info, combined };
+        const totalXp =
+          combined * XP_PER_TEST + computeTotalXp(info.lifetime);
+        return { row: r, info, combined, totalXp };
       })
-      .sort((a, b) => b.combined - a.combined)
+      .sort((a, b) => b.totalXp - a.totalXp)
       .slice(0, limit);
     const players: TopLevelPlayer[] = named.map((entry, i) => {
-      const { row: r, info, combined } = entry;
+      const { row: r, info, combined, totalXp } = entry;
       // Level via the shared src/lib/level.ts economy on the COMBINED
-      // count — same merge the profile hero does in
-      // `mergeTotalsWithMt`. So the L<n> on the leaderboard matches
+      // XP — same merge the profile hero does in `mergeTotalsWithMt`
+      // + drill XP folded in. So the L<n> on the leaderboard matches
       // the L<n> on the user's profile.
-      const stats = levelFromTestsCompleted(combined);
+      const stats = levelFromXp(totalXp);
       return {
         rank: i + 1,
         userId: r.userId,
