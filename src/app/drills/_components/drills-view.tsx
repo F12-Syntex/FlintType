@@ -6,20 +6,26 @@ import { cn } from "@/lib/utils";
 import type { HistorySummaryOutput } from "@/types/history";
 import { DrillCell } from "./drill-cell";
 import { buildDrills, type DrillSpec } from "./drills-data";
+import {
+  type DrillFilterId,
+  DrillsFilters,
+  matchesFilter,
+} from "./drills-filters";
 import { DrillsHero } from "./drills-hero";
 import { DrillsSection } from "./drills-section";
 
-/** /drills orchestrator. Loads the history snapshot once, then lays
- *  out two hairline bento sections (Tailored / Generic). Reads as a
- *  twin of /insights — same hero shape, same section primitive, same
- *  bento mechanics — so the user moves between the two pages without
- *  re-orienting. The recommended drill is one cell in the Tailored
- *  bento, tinted primary; everything else stays neutral. */
+/** /drills orchestrator. Loads the history snapshot once, builds the
+ *  drill list via `buildDrills`, then renders a single chip-filtered
+ *  bento. Adding a new drill is one push to `buildDrills`; adding a
+ *  new filter axis is one row in `DRILL_FILTERS`. The two halves stay
+ *  independent — the data layer doesn't know about filters, the filter
+ *  layer doesn't care how drills are built. */
 export function DrillsView() {
   const backend = useBackend();
   const [snap, setSnap] = useState<HistorySummaryOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<DrillFilterId>("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -57,11 +63,10 @@ export function DrillsView() {
     });
   }, [snap]);
 
-  const tailored = drills.filter((d) => d.category === "tailored");
-  const generic = drills.filter((d) => d.category === "generic");
   const ready = drills.filter((d) => d.ready).length;
   const locked = drills.length - ready;
-  const recommended = tailored.find((d) => d.ready) ?? null;
+  const recommended = drills.find((d) => d.category === "tailored" && d.ready) ?? null;
+  const visible = drills.filter((d) => matchesFilter(d, filter));
 
   return (
     <>
@@ -78,24 +83,33 @@ export function DrillsView() {
           <p className="text-sm text-muted-foreground">Reading your model…</p>
         </section>
       ) : (
-        <>
-          <DrillsSection
-            label="Tailored"
-            subtitle="Built from your slowest pairs, trigrams, and words. Locked entries surface as soon as the model has enough signal."
-          >
-            <DrillBento drills={tailored} recommendedId={recommended?.id ?? null} />
-          </DrillsSection>
-
-          <DrillsSection
-            label="Generic"
-            subtitle="Curated drills that always work — pangrams, tongue-twisters, the top-100 sprint, the long-running 1000-word burst."
-            noBorder
-          >
-            <DrillBento drills={generic} recommendedId={null} />
-          </DrillsSection>
-        </>
+        <DrillsSection
+          label="Drills"
+          subtitle="Filter to find the drill you want. Tailored drills come from your typing model and unlock as it warms up. Generic drills work for everyone."
+          noBorder
+        >
+          <div className="flex flex-col gap-6">
+            <DrillsFilters drills={drills} active={filter} onChange={setFilter} />
+            {visible.length === 0 ? (
+              <EmptyFilterState />
+            ) : (
+              <DrillBento drills={visible} recommendedId={recommended?.id ?? null} />
+            )}
+          </div>
+        </DrillsSection>
       )}
     </>
+  );
+}
+
+function EmptyFilterState() {
+  return (
+    <div className="flex flex-col items-start gap-2 rounded-md border border-dashed border-border bg-card px-5 py-6">
+      <p className="text-sm text-foreground">No drills match that filter yet.</p>
+      <p className="text-[12.5px] text-muted-foreground">
+        Try another chip, or come back once your model has warmed up.
+      </p>
+    </div>
   );
 }
 
