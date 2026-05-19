@@ -161,7 +161,9 @@ export function PasswordStage({
   onPasswordChange,
   onSubmit,
   onBack,
+  onForgot,
   busy,
+  forgotBusy,
   error,
 }: {
   email: string;
@@ -169,7 +171,9 @@ export function PasswordStage({
   onPasswordChange: (next: string) => void;
   onSubmit: () => void;
   onBack: () => void;
+  onForgot: () => void;
   busy: boolean;
+  forgotBusy: boolean;
   error: string | null;
 }) {
   return (
@@ -198,12 +202,22 @@ export function PasswordStage({
         type="submit"
         variant="default"
         size="default"
-        disabled={busy}
+        disabled={busy || forgotBusy}
         className="w-full"
       >
         {busy ? "Signing in…" : "Sign in"}
       </Button>
-      <BackLink onClick={onBack}>Choose a different method</BackLink>
+      <div className="flex items-center justify-between gap-3">
+        <BackLink onClick={onBack}>Choose a different method</BackLink>
+        <button
+          type="button"
+          onClick={onForgot}
+          disabled={forgotBusy || busy}
+          className="text-[12px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {forgotBusy ? "Sending…" : "Forgot password?"}
+        </button>
+      </div>
     </form>
   );
 }
@@ -328,5 +342,156 @@ export function LinkStage({
       {error ? <ErrorLine message={error} /> : null}
       <BackLink onClick={onBack}>Choose a different method</BackLink>
     </div>
+  );
+}
+
+export function ResetCodeStage({
+  email,
+  code,
+  onCodeChange,
+  onSubmit,
+  onResend,
+  onBack,
+  busy,
+  resending,
+  resentAt,
+  error,
+}: {
+  email: string;
+  code: string;
+  onCodeChange: (next: string) => void;
+  onSubmit: () => void;
+  onResend: () => void;
+  onBack: () => void;
+  busy: boolean;
+  resending: boolean;
+  resentAt: number | null;
+  error: string | null;
+}) {
+  return (
+    <form
+      className="flex flex-col gap-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit();
+      }}
+    >
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        We sent a password-reset code to{" "}
+        <span className="text-foreground">{email}</span>. Enter it to choose
+        a new password.
+      </p>
+      <div className="flex flex-col items-center gap-3">
+        <label htmlFor="sign-in-reset-code" className="sr-only">
+          Reset code
+        </label>
+        <InputOTP
+          id="sign-in-reset-code"
+          maxLength={6}
+          value={code}
+          onChange={onCodeChange}
+          onComplete={onSubmit}
+          autoFocus
+          pattern={REGEXP_ONLY_DIGITS}
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          aria-label="Password-reset code"
+        >
+          <InputOTPGroup className="gap-2 sm:gap-3">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <InputOTPSlot
+                key={i}
+                index={i}
+                className="size-10 rounded-md border font-mono text-base sm:size-12 sm:text-lg"
+              />
+            ))}
+          </InputOTPGroup>
+        </InputOTP>
+      </div>
+      {error ? <ErrorLine message={error} /> : null}
+      <Button
+        type="submit"
+        variant="default"
+        size="default"
+        disabled={busy}
+        className="w-full"
+      >
+        {busy ? "Verifying…" : "Continue"}
+      </Button>
+      <div className="flex items-center justify-between gap-3">
+        <BackLink onClick={onBack}>Back to sign in</BackLink>
+        <button
+          type="button"
+          onClick={onResend}
+          disabled={resending || busy}
+          className="text-[12px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {resending ? "Resending…" : resentAt ? "Sent" : "Resend code"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function ResetPasswordStage({
+  password,
+  confirm,
+  onPasswordChange,
+  onConfirmChange,
+  onSubmit,
+  onCancel,
+  busy,
+  error,
+}: {
+  password: string;
+  confirm: string;
+  onPasswordChange: (next: string) => void;
+  onConfirmChange: (next: string) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+  busy: boolean;
+  error: string | null;
+}) {
+  return (
+    <form
+      className="flex flex-col gap-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit();
+      }}
+    >
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        Pick a new password. We'll sign you in once it's saved.
+      </p>
+      <Field
+        label="New password"
+        type="password"
+        autoComplete="new-password"
+        value={password}
+        onChange={onPasswordChange}
+        required
+        autoFocus
+        hint="At least 8 characters."
+      />
+      <Field
+        label="Confirm new password"
+        type="password"
+        autoComplete="new-password"
+        value={confirm}
+        onChange={onConfirmChange}
+        required
+      />
+      {error ? <ErrorLine message={error} /> : null}
+      <Button
+        type="submit"
+        variant="default"
+        size="default"
+        disabled={busy}
+        className="w-full"
+      >
+        {busy ? "Saving…" : "Set new password"}
+      </Button>
+      <BackLink onClick={onCancel}>Cancel and start over</BackLink>
+    </form>
   );
 }

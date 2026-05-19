@@ -17,6 +17,8 @@ import {
   LinkStage,
   MethodStage,
   PasswordStage,
+  ResetCodeStage,
+  ResetPasswordStage,
 } from "./stages";
 
 type Stage =
@@ -28,22 +30,33 @@ type Stage =
     }
   | { kind: "password"; emailAddressId: string | null }
   | { kind: "code"; emailAddressId: string }
-  | { kind: "link"; emailAddressId: string; cancelled: boolean };
+  | { kind: "link"; emailAddressId: string; cancelled: boolean }
+  | { kind: "reset-code" }
+  | { kind: "reset-password" };
 
 /** Custom sign-in form — Clerk hooks under the hood, our design surface
- *  on top. Discord shortcut up top, then a 5-stage email funnel:
+ *  on top. Discord shortcut up top, then a multi-stage email funnel:
  *
- *    1. email     →  signIn.create({ identifier }) and read
- *                    supportedFirstFactors
- *    2. method    →  user picks password / email code / magic link
- *                    (only the methods Clerk reports as available
- *                    render — toggle the rest in the Clerk Dashboard)
- *    3a password  →  attemptFirstFactor with the password
- *    3b code      →  prepareFirstFactor(email_code), enter 6-digit code,
- *                    attemptFirstFactor(email_code)
- *    3c link      →  createEmailLinkFlow + startEmailLinkFlow, poll
- *                    until the magic link is tapped (the /sign-in/verify
- *                    page completes the verification on the other tab)
+ *    1. email          →  signIn.create({ identifier }) and read
+ *                         supportedFirstFactors
+ *    2. method         →  user picks password / email code / magic link
+ *                         (only the methods Clerk reports as available
+ *                         render — toggle the rest in the Clerk Dashboard)
+ *    3a password       →  attemptFirstFactor with the password.
+ *                         "Forgot password?" branches off to the reset
+ *                         flow (4a → 4b below).
+ *    3b code           →  prepareFirstFactor(email_code), enter 6-digit
+ *                         code, attemptFirstFactor(email_code)
+ *    3c link           →  createEmailLinkFlow + startEmailLinkFlow, poll
+ *                         until the magic link is tapped (the
+ *                         /sign-in/verify page completes the verification
+ *                         on the other tab)
+ *    4a reset-code     →  signIn.create({ strategy:
+ *                         'reset_password_email_code', identifier }) sends
+ *                         a code, attemptFirstFactor verifies it (status
+ *                         flips to needs_new_password)
+ *    4b reset-password →  signIn.resetPassword({ password }) saves the new
+ *                         password and returns a complete session
  *
  *  Errors render inline (Clerk returns err.errors[].longMessage which
  *  is already human-readable). */
@@ -54,12 +67,26 @@ export function SignInForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
+  const [resetCode, setResetCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [busy, setBusy] = useState<
-    "email" | "discord" | "method" | "password" | "code" | "resend" | null
+    | "email"
+    | "discord"
+    | "method"
+    | "password"
+    | "code"
+    | "resend"
+    | "forgot"
+    | "reset-code"
+    | "reset-password"
+    | "reset-resend"
+    | null
   >(null);
   const [busyMethod, setBusyMethod] = useState<FactorKind | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [resentAt, setResentAt] = useState<number | null>(null);
+  const [resetResentAt, setResetResentAt] = useState<number | null>(null);
   const cancelLinkFlow = useRef<(() => void) | null>(null);
 
   // Cancel any in-flight email-link polling on unmount / stage change.
@@ -248,6 +275,99 @@ export function SignInForm() {
     }
   }
 
+  // Forgot-password flow ----------------------------------------------------
+  // signIn.create() with strategy: 'reset_password_email_code' both creates
+  // (or refreshes) the SignIn resource and sends the reset code, so this
+  // single call also doubles as the resend.
+  async function handleForgotPassword() {
+    if (!isLoaded || !signIn || busy) return;
+    setBusy("forgot");
+    setError(null);
+    try {
+      await signIn.create({
+        strategy: "reset_password_email_code",
+        identifier: email.trim(),
+      });
+      setResetCode("");
+      setResetResentAt(null);
+      setStage({ kind: "reset-code" });
+    } catch (err) {
+      setError(extractError(err) ?? "Couldn't start password reset.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleResendResetCode() {
+    if (!isLoaded || !signIn || busy) return;
+    setBusy("reset-resend");
+    setError(null);
+    try {
+      await signIn.create({
+        strategy: "reset_password_email_code",
+        identifier: email.trim(),
+      });
+      setResetResentAt(Date.now());
+    } catch (err) {
+      setError(extractError(err) ?? "Couldn't resend the code.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleSubmitResetCode() {
+    if (!isLoaded || !signIn || busy) return;
+    setBusy("reset-code");
+    setError(null);
+    try {
+      const attempt = await signIn.attemptFirstFactor({
+        strategy: "reset_password_email_code",
+        code: resetCode.trim(),
+      });
+      if (attempt.status === "needs_new_password") {
+        setNewPassword("");
+        setConfirmPassword("");
+        setStage({ kind: "reset-password" });
+      } else if (attempt.status === "complete" && attempt.createdSessionId) {
+        // Edge case: account had no password to begin with — Clerk
+        // completes immediately. Just sign them in.
+        await setActive({ session: attempt.createdSessionId });
+        router.push("/");
+        router.refresh();
+      } else {
+        setError("That code didn't work. Try again or resend.");
+      }
+    } catch (err) {
+      setError(extractError(err) ?? "Verification failed.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleSubmitResetPassword() {
+    if (!isLoaded || !signIn || busy) return;
+    if (newPassword !== confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
+    setBusy("reset-password");
+    setError(null);
+    try {
+      const attempt = await signIn.resetPassword({ password: newPassword });
+      if (attempt.status === "complete" && attempt.createdSessionId) {
+        await setActive({ session: attempt.createdSessionId });
+        router.push("/");
+        router.refresh();
+      } else {
+        setError("Password saved, but sign-in didn't complete. Try signing in.");
+      }
+    } catch (err) {
+      setError(extractError(err) ?? "Couldn't save the new password.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function handleDiscord() {
     if (!isLoaded || busy) return;
     setBusy("discord");
@@ -305,7 +425,9 @@ export function SignInForm() {
           onPasswordChange={setPassword}
           onSubmit={handleSubmitPassword}
           onBack={() => reset(methodStageFrom(stage))}
+          onForgot={handleForgotPassword}
           busy={busy === "password"}
+          forgotBusy={busy === "forgot"}
           error={error}
         />
       </div>
@@ -324,6 +446,38 @@ export function SignInForm() {
         busy={busy === "code"}
         resending={busy === "resend"}
         resentAt={resentAt}
+        error={error}
+      />
+    );
+  }
+
+  if (stage.kind === "reset-code") {
+    return (
+      <ResetCodeStage
+        email={email}
+        code={resetCode}
+        onCodeChange={setResetCode}
+        onSubmit={handleSubmitResetCode}
+        onResend={handleResendResetCode}
+        onBack={() => reset({ kind: "email" })}
+        busy={busy === "reset-code"}
+        resending={busy === "reset-resend"}
+        resentAt={resetResentAt}
+        error={error}
+      />
+    );
+  }
+
+  if (stage.kind === "reset-password") {
+    return (
+      <ResetPasswordStage
+        password={newPassword}
+        confirm={confirmPassword}
+        onPasswordChange={setNewPassword}
+        onConfirmChange={setConfirmPassword}
+        onSubmit={handleSubmitResetPassword}
+        onCancel={() => reset({ kind: "email" })}
+        busy={busy === "reset-password"}
         error={error}
       />
     );
