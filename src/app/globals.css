@@ -269,6 +269,11 @@
      §2.3. Don't reach for these for generic accents. */
   --color-ft-brand-discord: #5865f2;
   --color-ft-brand-discord-hover: #4752c4;
+
+  /* shadcn InputOTP caret blink — registered as a Tailwind v4 animate
+     token so the primitive's `animate-caret-blink` utility resolves
+     without an arbitrary value. */
+  --animate-caret-blink: caret-blink 1.25s ease-out infinite;
 }
 
 /* Half cycle at the element's natural opacity (1 multiplied with whatever
@@ -291,6 +296,23 @@
    can change without resetting the animation either. */
 .ft-caret-blink {
   animation: ft-blink var(--ft-blink-speed, 1000ms) infinite;
+}
+
+/* shadcn InputOTP fake-caret keyframe — paired with the
+   --animate-caret-blink theme token above. The four-stop curve holds
+   the caret visible for 70% of the cycle and dims it briefly at 20-50%,
+   matching the shadcn-default registry shape so the primitive renders
+   as designed without us forking its className. */
+@keyframes caret-blink {
+  0%,
+  70%,
+  100% {
+    opacity: 1;
+  }
+  20%,
+  50% {
+    opacity: 0;
+  }
 }
 
 /* Race-start countdown pop — each digit (3 / 2 / 1 / GO) animates in

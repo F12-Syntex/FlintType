@@ -1,7 +1,13 @@
 "use client";
 
+import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { KeyRound, Link2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { BackLink, ErrorLine, Field } from "./shared";
 
 /** Each stage is a pure presentational component — the orchestrator in
@@ -237,17 +243,36 @@ export function CodeStage({
         We sent a 6-digit code to{" "}
         <span className="text-foreground">{email}</span>.
       </p>
-      <Field
-        label="Verification code"
-        type="text"
-        autoComplete="one-time-code"
-        inputMode="numeric"
-        value={code}
-        onChange={onCodeChange}
-        required
-        mono
-        autoFocus
-      />
+      <div className="flex flex-col items-center gap-3">
+        <label
+          htmlFor="sign-in-code"
+          className="sr-only"
+        >
+          Verification code
+        </label>
+        <InputOTP
+          id="sign-in-code"
+          maxLength={6}
+          value={code}
+          onChange={onCodeChange}
+          onComplete={onSubmit}
+          autoFocus
+          pattern={REGEXP_ONLY_DIGITS}
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          aria-label="Verification code"
+        >
+          <InputOTPGroup className="gap-2 sm:gap-3">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <InputOTPSlot
+                key={i}
+                index={i}
+                className="size-10 rounded-md border font-mono text-base sm:size-12 sm:text-lg"
+              />
+            ))}
+          </InputOTPGroup>
+        </InputOTP>
+      </div>
       {error ? <ErrorLine message={error} /> : null}
       <Button
         type="submit"
