@@ -76,6 +76,11 @@ export const APPEARANCE_SECTIONS: readonly AppearanceSection[] = [
     blurb: "Line count, max width, tape vs free-flow, margin.",
   },
   {
+    id: "taper",
+    name: "Taper",
+    blurb: "Fade surrounding words to focus on the one you're typing.",
+  },
+  {
     id: "result",
     name: "Result",
     blurb: "What the post-test screen shows — chart, highlights, tips.",

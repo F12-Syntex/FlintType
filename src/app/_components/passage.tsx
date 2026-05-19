@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { useCaretSettings } from "@/lib/caret-settings";
+import { taperStyle } from "@/lib/taper";
 import { cn } from "@/lib/utils";
 import { usePractice } from "./practice-state";
 
@@ -532,6 +533,15 @@ function PassageBody({
                 boxShadow: `0 0 0 2px ${tint}`,
               }
             : undefined;
+          // Taper effect — per-word style based on distance from the
+          // cursor. Returns undefined for the active word and for
+          // taperMode === "off", so the merged-style object stays
+          // identity-stable when taper isn't engaged.
+          const taper = taperStyle(
+            Math.abs(wi - cursorWord),
+            appearance.taperMode,
+            appearance.taperStrength,
+          );
           if (wi < cursorWord) {
             const isErr = errorWords.has(wi);
             // Appearance: markIncompleteWord gates the visible error
@@ -544,7 +554,7 @@ function PassageBody({
             return (
               <span
                 key={wi}
-                style={tintStyle}
+                style={{ ...tintStyle, ...taper }}
                 className={cn(
                   blind ? UNTYPED_TEXT : TYPED_TEXT,
                   showErr &&
@@ -571,7 +581,9 @@ function PassageBody({
               <span
                 key={wi}
                 ref={activeWordRef}
-                style={tintStyle}
+                // taper is undefined at distance 0, so the active word
+                // always paints at full opacity / size / focus.
+                style={{ ...tintStyle, ...taper }}
                 className={cn(
                   highlightCurrentWord &&
                     cn(
@@ -614,7 +626,7 @@ function PassageBody({
           return (
             <span
               key={wi}
-              style={{ ...tintStyle, ...colorStyle }}
+              style={{ ...tintStyle, ...colorStyle, ...taper }}
               className={cn(
                 opponentColor ? "" : UNTYPED_TEXT,
                 isNextWord &&
