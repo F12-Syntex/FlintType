@@ -4,33 +4,40 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { resolveBurstThreshold } from "@/lib/avg-wpm-cache";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
+import { useCaretSettings } from "@/lib/caret-settings";
 import { useLifetimeStats } from "@/lib/use-lifetime-stats";
 import { cn } from "@/lib/utils";
 import { usePractice } from "./practice-state";
 
-/** BURST mode controller.
+/** Same per-letter colour tokens the Passage uses. Re-declared here
+ *  rather than imported so this file stays standalone — there's no
+ *  drift risk because both surfaces read the same CSS variables.
+ *  When the appearance / colour-picker UI updates `--ft-passage-*`,
+ *  BURST and WORDS pick up the change identically. */
+const TYPED_TEXT = "text-[var(--ft-passage-typed,var(--primary))]";
+const UNTYPED_TEXT =
+  "text-[var(--ft-passage-untyped,var(--muted-foreground))]";
+const ERROR_TEXT = "text-[var(--ft-passage-error,var(--destructive))]";
+
+/** BURST mode surface.
  *
- *  Visually, BURST renders through the same `<Passage />` component
- *  WORDS uses — same typography, caret, colour tokens, settings. The
- *  controller below owns the *behaviour* on top of that:
- *    - Tracks per-word attempt start time
- *    - Intercepts SPACE (InputCapture skips its dispatch in BURST)
- *    - Computes WPM for the just-typed attempt
- *    - Decides: advance (dispatch SPACE), retry (BURST_RESET),
- *      or fail-and-reset (BURST_RESET + clear rep counter)
- *    - Grants `XP_PER_DRILL` via lifetimeStats.drillsCompleted on
- *      the natural phase=done transition (last word, final rep
- *      → standard reducer SPACE flow sets phase=done; no special
- *      finish action needed).
+ *  Replaces Passage entirely when mode === BURST. Renders the
+ *  *current* word centred + large, the way the drills page bursts
+ *  feel — but pulls every visual through the practice settings
+ *  (font family, font scale, mistake style, blind mode, caret
+ *  colour token) so customisation flows through 1:1.
  *
- *  Renders a small below-passage strip showing item progress and the
- *  current rep streak so the user can read "where am I" without
- *  guessing. */
+ *  Behaviour layer (same as before):
+ *    - TYPE_CHAR + BACKSPACE flow through the standard reducer.
+ *    - SPACE is intercepted here. Computes attempt WPM, decides
+ *      advance vs retry against threshold + reps.
+ *    - Natural `phase=done` on the final rep grants
+ *      `XP_PER_DRILL` via lifetimeStats.drillsCompleted. */
 export function BurstPractice() {
-  const { state, dispatch, restart: _restart } = usePractice();
-  void _restart;
+  const { state, dispatch } = usePractice();
   const { prefs: behaviour } = useBehaviourPrefs();
   const { prefs: appearance } = useAppearancePrefs();
+  const { settings: caret } = useCaretSettings();
   const { incrementDrillsCompleted } = useLifetimeStats();
 
   const thresholdWpm = useMemo(
@@ -39,18 +46,12 @@ export function BurstPractice() {
   );
   const repsPerItem = Math.max(1, appearance.burstReps);
 
-  // Per-attempt start time. Updated when typed[cursorWord] goes
-  // 0 → 1 (first keystroke of an attempt). null between attempts.
   const attemptStartRef = useRef<number | null>(null);
   const prevTypedLenRef = useRef(0);
-  // Per-word rep counter. Resets on cursorWord change OR on a fail
-  // (wrong word / slow attempt).
   const [reps, setReps] = useState(0);
   const repsRef = useRef(reps);
   repsRef.current = reps;
-  // Most recent attempt's WPM, surfaced in the strip.
   const [lastWpm, setLastWpm] = useState<number | null>(null);
-  // Brief outcome flash (win / slow / wrong) — clears after 350ms.
   const [outcome, setOutcome] = useState<"win" | "slow" | "wrong" | null>(
     null,
   );
@@ -59,10 +60,8 @@ export function BurstPractice() {
   const typedHere = state.typed[cursorWord] ?? "";
   const target = state.words[cursorWord] ?? "";
 
-  // Track attempt start. The first character of an attempt is the
-  // 0→1 transition; subsequent characters keep the same start time.
-  // A BURST_RESET drops typed[cursor] back to "" — we observe the
-  // length flip and clear the start.
+  // Track attempt start on the 0→1 typed-length transition. Drops back
+  // to null on a BURST_RESET (typed → "").
   useEffect(() => {
     const len = typedHere.length;
     if (len === 1 && prevTypedLenRef.current === 0) {
@@ -73,13 +72,10 @@ export function BurstPractice() {
     prevTypedLenRef.current = len;
   }, [typedHere]);
 
-  // Reset the rep counter whenever the cursor moves to a new word.
   useEffect(() => {
     setReps(0);
   }, [cursorWord]);
 
-  // Reset everything (reps, attempt, flash) on RESTART — state.words
-  // identity change is the cleanest signal for "fresh run".
   useEffect(() => {
     setReps(0);
     setOutcome(null);
@@ -88,26 +84,19 @@ export function BurstPractice() {
     prevTypedLenRef.current = 0;
   }, [state.words]);
 
-  // SPACE handler — the controller's entire job condensed into one
-  // function. InputCapture skips its own SPACE dispatch in BURST.
   const handleSpace = useCallback(() => {
     if (state.phase === "done" || state.phase === "rest") return;
     const tgt = state.words[state.cursorWord] ?? "";
     const typed = state.typed[state.cursorWord] ?? "";
-    // Wrong attempt: any deviation from the target is a reset, regardless
-    // of how many chars they have. Length mismatch also counts.
     if (typed !== tgt) {
       setOutcome("wrong");
       setReps(0);
       dispatch({ type: "BURST_RESET" });
       return;
     }
-    // Compute WPM for this attempt.
     const startedAt = attemptStartRef.current;
     const now = Date.now();
     if (startedAt == null) {
-      // Impossible-state: typed === target with no attempt start. Treat
-      // as a slow attempt rather than crashing.
       setOutcome("slow");
       setReps(0);
       dispatch({ type: "BURST_RESET" });
@@ -124,27 +113,15 @@ export function BurstPractice() {
       dispatch({ type: "BURST_RESET" });
       return;
     }
-    // Successful attempt at threshold.
     setOutcome("win");
     const nextReps = repsRef.current + 1;
     if (nextReps < repsPerItem) {
-      // Same word, fresh attempt.
       setReps(nextReps);
       dispatch({ type: "BURST_RESET" });
       return;
     }
-    // Rep complete — advance via the standard SPACE action. The
-    // reducer handles the cursorWord increment + (if last word)
-    // phase=done transition for us.
     setReps(0);
-    dispatch({
-      type: "SPACE",
-      now,
-      // strictSpace=false: the typed buffer matches target exactly,
-      // so the gate is always satisfied; this argument is irrelevant
-      // here but defined for shape.
-      strictSpace: false,
-    });
+    dispatch({ type: "SPACE", now, strictSpace: false });
   }, [
     state.phase,
     state.cursorWord,
@@ -155,20 +132,12 @@ export function BurstPractice() {
     dispatch,
   ]);
 
-  // Outcome flash — fades the badge after a brief tick so wins / slow
-  // / wrong feedback is visible but doesn't linger.
   useEffect(() => {
     if (outcome == null) return;
     const id = setTimeout(() => setOutcome(null), 400);
     return () => clearTimeout(id);
   }, [outcome]);
 
-  // Wire the SPACE listener at the window level. We listen on keydown
-  // (matching InputCapture's keydown path) and only react to the
-  // space key. Modifier keys, modal dialogs, and focused inputs are
-  // already filtered by InputCapture before SPACE would reach this
-  // controller; the duplicate guards here cover the case where the
-  // user is focused outside the hidden typing input.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== " ") return;
@@ -188,9 +157,6 @@ export function BurstPractice() {
     return () => window.removeEventListener("keydown", onKey);
   }, [handleSpace]);
 
-  // XP grant: when phase transitions to done in BURST, increment
-  // lifetimeStats.drillsCompleted. The standard test-submit effect
-  // already short-circuits on BURST (no test row, no adapt feed).
   const grantedRef = useRef(false);
   useEffect(() => {
     if (state.phase !== "done") {
@@ -202,30 +168,216 @@ export function BurstPractice() {
     incrementDrillsCompleted();
   }, [state.phase, incrementDrillsCompleted]);
 
-  // Status strip. Sits under the passage; same eyebrow / mono / tight-
-  // tracking style as the live readouts so it reads as part of the
-  // practice chrome, not a separate widget.
   const itemsLength = state.words.length;
   const progress = `${Math.min(state.cursorWord, itemsLength)}/${itemsLength}`;
   const repStr = `${reps}/${repsPerItem}`;
+
   return (
-    <div className="flex items-center justify-center gap-8 px-4 pb-2 text-center font-mono">
-      <Cell label="item" value={progress} />
-      <Cell label="reps" value={repStr} accent={reps > 0} />
-      <Cell
-        label="threshold"
-        value={`${thresholdWpm} wpm`}
-        hint={behaviour.burstThreshold === 0 ? "auto" : undefined}
-      />
-      {lastWpm != null ? (
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-10 sm:gap-14">
+      {/* Status strip — eyebrow + value pairs, same tracking / weight
+       *  as the live readouts so it reads as part of the practice
+       *  chrome, not a separate widget. */}
+      <div className="flex items-center justify-center gap-8 px-4 text-center">
+        <Cell label="item" value={progress} />
+        <Cell label="reps" value={repStr} accent={reps > 0} />
         <Cell
-          label="last"
-          value={`${lastWpm} wpm`}
-          tone={outcome === "win" ? "ok" : outcome === "slow" ? "warn" : undefined}
+          label="threshold"
+          value={`${thresholdWpm} wpm`}
+          hint={behaviour.burstThreshold === 0 ? "auto" : undefined}
         />
-      ) : null}
+        {lastWpm != null ? (
+          <Cell
+            label="last"
+            value={`${lastWpm} wpm`}
+            tone={
+              outcome === "win"
+                ? "ok"
+                : outcome === "slow" || outcome === "wrong"
+                  ? "warn"
+                  : undefined
+            }
+          />
+        ) : null}
+      </div>
+
+      {/* The single word — large, centred, painted through the same
+       *  per-letter tokens Passage uses so font / colour overrides
+       *  carry through. */}
+      <BurstWord
+        word={target}
+        typed={typedHere}
+        blind={behaviour.blindMode}
+        mistakeStyle={appearance.mistakeStyle}
+        showCaret={caret.style !== "off" && state.phase !== "done"}
+        caretStyle={caret.style}
+      />
+
+      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+        {outcome === "wrong"
+          ? "wrong — try again"
+          : outcome === "slow"
+            ? "too slow — reset"
+            : typedHere === target && target.length > 0
+              ? "press space to commit"
+              : typedHere.length === 0
+                ? "type the word, then space"
+                : ""}
+      </p>
     </div>
   );
+}
+
+function BurstWord({
+  word,
+  typed,
+  blind,
+  mistakeStyle,
+  showCaret,
+  caretStyle,
+}: {
+  word: string;
+  typed: string;
+  blind: boolean;
+  mistakeStyle: "color" | "bold" | "underline" | "highlight";
+  showCaret: boolean;
+  caretStyle: "line" | "block" | "underline" | "outline" | "off";
+}) {
+  // Use --ft-font-family / --ft-font-scale (the same tokens Passage's
+  // scrolling area reads) so the user's typography customisation
+  // applies. Word size sits between practice body and the editorial
+  // display ramp — large enough to read at a glance, not so big it
+  // forces a line break on long words.
+  const targetChars = [...word];
+  const typedChars = [...typed];
+  const len = Math.max(targetChars.length, typedChars.length);
+  const cursorChar = Math.min(typedChars.length, targetChars.length);
+  return (
+    <div
+      className="font-mono tracking-tight"
+      style={{
+        fontFamily: "var(--ft-font-family, inherit)",
+        fontSize: "clamp(2.5rem, 7vw, 5rem)",
+      }}
+    >
+      <span className="inline-block whitespace-nowrap">
+        {Array.from({ length: len }, (_, ci) => {
+          const expected = targetChars[ci];
+          const got = typedChars[ci];
+          const isExtra = ci >= targetChars.length;
+          const glyph = got ?? expected ?? "";
+
+          let cls: string;
+          if (blind) cls = UNTYPED_TEXT;
+          else if (isExtra) cls = ERROR_TEXT;
+          else if (got === undefined) cls = UNTYPED_TEXT;
+          else if (got === expected) cls = TYPED_TEXT;
+          else cls = ERROR_TEXT;
+
+          const isError =
+            !blind && (isExtra || (got !== undefined && got !== expected));
+          let errorCls = "";
+          let errorStyle: React.CSSProperties | undefined;
+          if (isError) {
+            if (mistakeStyle === "bold") {
+              errorCls = "font-bold";
+            } else if (mistakeStyle === "underline") {
+              errorCls =
+                "underline decoration-2 underline-offset-[6px] decoration-[var(--ft-passage-error,var(--destructive))]";
+            } else if (mistakeStyle === "highlight") {
+              errorCls = "rounded-sm font-bold";
+              errorStyle = {
+                backgroundColor:
+                  "color-mix(in oklch, var(--ft-passage-error, var(--destructive)) 20%, transparent)",
+              };
+            }
+          }
+
+          // Inline caret: paint the same colour token Passage's
+          // CaretGlyph uses (--primary) and only on the cursor position.
+          // Skip when caret is off or word is fully typed.
+          const isCursor = showCaret && ci === cursorChar && !isExtra;
+
+          return (
+            <span key={ci} className="relative inline-block">
+              <span className={cn(cls, errorCls)} style={errorStyle}>
+                {glyph}
+              </span>
+              {isCursor ? <InlineCaret style={caretStyle} /> : null}
+            </span>
+          );
+        })}
+        {/* End-of-word caret: when typed is complete and waiting for
+         *  the space commit, show the caret hugging the trailing edge
+         *  of the last character so the user knows the run is ready. */}
+        {showCaret && cursorChar === targetChars.length && typed === word ? (
+          <span className="relative inline-block">
+            <InlineCaret style={caretStyle} trailing />
+          </span>
+        ) : null}
+      </span>
+    </div>
+  );
+}
+
+function InlineCaret({
+  style,
+  trailing,
+}: {
+  style: "line" | "block" | "underline" | "outline" | "off";
+  trailing?: boolean;
+}) {
+  // Inline caret — no absolute positioning, no per-char measurement;
+  // each variant renders relative to its sibling glyph. Inherits the
+  // practice surface's caret token (`var(--primary)`).
+  const base = "pointer-events-none absolute ft-caret-blink";
+  if (style === "line") {
+    return (
+      <span
+        aria-hidden
+        className={cn(base, "top-0 bottom-[0.1em] w-[0.08em]")}
+        style={{
+          left: trailing ? "100%" : "-0.04em",
+          backgroundColor: "var(--primary)",
+          borderRadius: "2px",
+        }}
+      />
+    );
+  }
+  if (style === "block") {
+    return (
+      <span
+        aria-hidden
+        className={cn(base, "inset-0")}
+        style={{
+          backgroundColor:
+            "color-mix(in oklch, var(--primary) 35%, transparent)",
+          borderRadius: "2px",
+        }}
+      />
+    );
+  }
+  if (style === "underline") {
+    return (
+      <span
+        aria-hidden
+        className={cn(base, "right-0 bottom-0 left-0 h-[0.08em]")}
+        style={{ backgroundColor: "var(--primary)" }}
+      />
+    );
+  }
+  if (style === "outline") {
+    return (
+      <span
+        aria-hidden
+        className={cn(base, "inset-0 border")}
+        style={{
+          borderColor: "var(--primary)",
+          borderRadius: "2px",
+        }}
+      />
+    );
+  }
+  return null;
 }
 
 function Cell({

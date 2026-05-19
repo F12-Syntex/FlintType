@@ -118,16 +118,18 @@ function TypingSurfaceBody({
           </div>
         ) : null}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {done ? <TestSummary /> : <Passage />}
+          {done ? (
+            <TestSummary />
+          ) : state.mode === "BURST" ? (
+            // BURST shows the current item as a single centred word —
+            // the drills-page burst feel — but paints through the same
+            // --ft-passage-* tokens + caret settings so typography /
+            // colour customisation flows through 1:1 with WORDS.
+            <BurstPractice />
+          ) : (
+            <Passage />
+          )}
         </div>
-        {!done && state.mode === "BURST" ? (
-          // BURST piggybacks on the standard Passage rendering so
-          // typography / caret / colour overrides apply uniformly.
-          // The controller below adds the burst-only behaviour
-          // (threshold + reps + advance/retry) and a small status
-          // strip showing progress + rep streak.
-          <BurstPractice />
-        ) : null}
         {showRestHint && !done ? (
           <div className="md:hidden">
             <RestHint showReadouts={showReadouts} />
