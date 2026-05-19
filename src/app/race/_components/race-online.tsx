@@ -304,8 +304,23 @@ function useYouLocalSnapshot(raceStartedAt: number | null) {
       totalKeystrokes === 0
         ? 100
         : Math.round((correctKeystrokes / totalKeystrokes) * 1000) / 10;
+    // Elapsed is anchored on the local `state.startTime` (the practice
+    // reducer sets it on the first keystroke), NOT on the server's
+    // `raceStartedAt`. Same-clock subtraction means a client whose
+    // wall clock is even slightly behind the server's still measures
+    // its own typing duration correctly — the previous Date.now() vs
+    // raceStartedAt math clamped elapsedMs to 0 on any sub-250ms
+    // skew, so the cold-start guard fired forever and the client
+    // published wpm=0 for the entire race. Opponents then saw that
+    // client at 0 wpm in the lineup + result panel.
+    //
+    // `raceStartedAt` stays in the dep array so the memo recomputes
+    // when the new round begins (state.startTime alone wouldn't
+    // change between rounds until the user types).
+    void raceStartedAt;
+    const startTime = state.startTime;
     const elapsedMs =
-      raceStartedAt != null ? Math.max(0, Date.now() - raceStartedAt) : 0;
+      startTime != null ? Math.max(0, Date.now() - startTime) : 0;
     const wpm =
       elapsedMs > 250
         ? calcWpmAndRaw(state.typed, state.words, elapsedMs, true).wpm
@@ -323,6 +338,7 @@ function useYouLocalSnapshot(raceStartedAt: number | null) {
     state.phase,
     state.totalChars,
     state.correctChars,
+    state.startTime,
     raceStartedAt,
   ]);
 }
