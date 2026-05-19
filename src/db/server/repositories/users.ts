@@ -67,12 +67,12 @@ export function usersRepo(db: ServerDrizzle) {
       return { row, created: false };
     },
 
-    /** Total materialised users — used in tests and admin surfaces.
-     *  Indexed scan over the table; cheap for the row counts a typing
-     *  product will see. */
+    /** Total materialised users — used in tests and admin surfaces. */
     async count(): Promise<number> {
-      const rows = await db.select({ id: users.id }).from(users);
-      return rows.length;
+      const rows = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(users);
+      return rows[0]?.n ?? 0;
     },
 
     /** Stamp `og_granted_at` to now after a successful grant pipeline
