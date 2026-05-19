@@ -23,9 +23,41 @@ import type { UserTagId } from "@/types/user-tag";
 const lastUpdateAtMs = new Map<string, number>();
 const ONE_HOUR_MS = 60 * 60 * 1_000;
 
+/** Background sweep so the Map doesn't accumulate every user who has
+ *  ever changed their username for the lifetime of the process. An
+ *  entry stops being useful the moment its timestamp falls outside
+ *  the 1-hour gate — at which point the in-line check would treat it
+ *  the same as "no entry." Sweep every 10 minutes (well under the
+ *  hour-long TTL) so the map's working set is bounded by "users who
+ *  renamed in the last hour," not "ever-renamed." */
+const SWEEP_INTERVAL_MS = 10 * 60 * 1_000;
+
+function sweep(now: number = Date.now()): void {
+  for (const [k, ts] of lastUpdateAtMs) {
+    if (now - ts >= ONE_HOUR_MS) lastUpdateAtMs.delete(k);
+  }
+}
+
+if (typeof setInterval === "function") {
+  const t = setInterval(() => sweep(), SWEEP_INTERVAL_MS);
+  if (typeof (t as { unref?: () => void }).unref === "function") {
+    (t as { unref: () => void }).unref();
+  }
+}
+
 // Exposed for tests.
 export function _resetUsernameWindow(): void {
   lastUpdateAtMs.clear();
+}
+
+/** Exposed for tests — runs the sweep synchronously. */
+export function _sweepUsernameWindow(now?: number): void {
+  sweep(now);
+}
+
+/** Exposed for tests — count of live entries. */
+export function _usernameWindowSize(): number {
+  return lastUpdateAtMs.size;
 }
 
 /** Update the caller's Clerk username.

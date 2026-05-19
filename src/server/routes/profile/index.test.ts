@@ -16,7 +16,11 @@ vi.mock("@clerk/nextjs/server", () => ({
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { callRoute } from "@/server/testing";
 import type { UpdateUsernameOutput } from "@/types/profile";
-import { _resetUsernameWindow } from "./index";
+import {
+  _resetUsernameWindow,
+  _sweepUsernameWindow,
+  _usernameWindowSize,
+} from "./index";
 
 const mockAuth = vi.mocked(auth);
 const mockClerkClient = vi.mocked(clerkClient);
@@ -189,6 +193,19 @@ describe("profile.updateUsername", () => {
         input: { username: "second" },
       }),
     ).rejects.toMatchObject({ code: "CONFLICT" });
+  });
+
+  it("sweep evicts entries older than the 1-hour window", async () => {
+    signedInAs("u_old");
+    mockClerk({ me: { id: "u_old", username: "before" } });
+    await callRoute<UpdateUsernameOutput>(["profile", "updateUsername"], {
+      input: { username: "after_one" },
+    });
+    expect(_usernameWindowSize()).toBe(1);
+    // Pretend the entry was written more than an hour ago and run the
+    // sweep — the user is no longer rate-limited and the map shrinks.
+    _sweepUsernameWindow(Date.now() + 60 * 60 * 1_000 + 1);
+    expect(_usernameWindowSize()).toBe(0);
   });
 });
 
