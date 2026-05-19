@@ -38,7 +38,8 @@ const queue = defineRoute<QueueInput, QueueOutput>({
     // Seed off the wall clock — the room itself caches the seed so
     // every joiner of this room sees the same passage / bot motion.
     const seed = Date.now() | 0;
-    // Every race draws from the EN_COMMON_1000 word list — quote
+    // Every race draws from the MonkeyType english.json word list
+    // — the same pool the single-player English mode uses. Quote
     // racing was retired so passages are always lowercase, no
     // punctuation. The server-side `pickRaceQuote` + quote pool
     // stays intact for when / if quote racing returns.

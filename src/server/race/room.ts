@@ -1,4 +1,4 @@
-import { EN_COMMON_1000 } from "@/data/en-common-1000";
+import englishWords from "@/data/english.json";
 import type {
   RaceModeId,
   RacePhase,
@@ -838,7 +838,11 @@ function mulberry32(seed: number): () => number {
 
 function generateRacePassage(count: number, seed: number): string[] {
   const rng = mulberry32(seed);
-  const pool = EN_COMMON_1000.slice(0, 300);
+  // Multiplayer pulls from the same MonkeyType `english.json` word
+  // pool the single-player English mode uses — the words a racer
+  // sees in a public room are the words they practice against in
+  // their own tests.
+  const pool: readonly string[] = englishWords.words;
   const out: string[] = [];
   let prev = "";
   while (out.length < count) {
