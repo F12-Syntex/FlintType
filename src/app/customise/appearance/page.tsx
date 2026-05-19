@@ -31,7 +31,6 @@ import { PassageRows } from "./_components/passage-rows";
 import { RadiusRow } from "./_components/radius-row";
 import { ResultRows } from "./_components/result-rows";
 import { TapeRows } from "./_components/tape-row";
-import { TaperRows } from "./_components/taper-row";
 import {
   BackgroundFillRow,
   CardSurfacesRow,
@@ -54,7 +53,6 @@ import {
   ResultLivePreview,
   SurfacePreview,
   TapePreview,
-  TaperPreview,
   ThemePreview,
   TypingAreaPreview,
   TypographyPreview,
@@ -301,16 +299,6 @@ export default function AppearancePage() {
         preview={<TapePreview />}
       >
         <TapeRows />
-      </SettingsSection>
-
-      <SettingsSection
-        id="taper"
-        eyebrow="Focus"
-        title="Taper"
-        description="Fade surrounding words so the eye locks onto the one you're typing. Composes with tape mode — both can be on. Toggle Off any time to read the full passage flat."
-        preview={<TaperPreview />}
-      >
-        <TaperRows />
       </SettingsSection>
 
       <SettingsSection

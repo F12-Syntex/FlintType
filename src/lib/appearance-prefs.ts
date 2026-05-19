@@ -45,18 +45,6 @@ export type QuoteAttribution = "below" | "chip" | "hidden";
  *  only) to loud (background highlight). Past errored words are
  *  governed separately by `markIncompleteWord`. */
 export type MistakeStyle = "color" | "bold" | "underline" | "highlight";
-/** Taper mode — words in the passage progressively de-emphasise as
- *  they get further from the active word, drawing the eye to where
- *  the user is typing. Variants pick which CSS property carries the
- *  fade:
- *    off       — no taper (default)
- *    opacity   — opacity 1 → lower as distance grows
- *    size      — font-size 1em → smaller as distance grows
- *    blur      — filter: blur(0) → blur(N px) as distance grows
- *    mute      — color shifts toward muted-foreground as distance grows
- *  Pairs with `taperStrength` (soft/medium/strong) to dial intensity. */
-export type TaperMode = "off" | "opacity" | "size" | "blur" | "mute";
-export type TaperStrength = "soft" | "medium" | "strong";
 
 // ─── shape ────────────────────────────────────────────────────────────
 
@@ -87,9 +75,6 @@ export type AppearancePrefs = {
   tapeMode: TapeMode;
   /** 0–100, percent from the left edge of the typing area. */
   tapeMargin: number;
-
-  taperMode: TaperMode;
-  taperStrength: TaperStrength;
   smoothLineScroll: boolean;
   /** Maximum lines rendered in the passage. `0` means unbounded —
    *  show every line that fits in the available height. Otherwise
@@ -249,11 +234,6 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   // Tape mode opt-in. Multi-line is the friendlier default.
   tapeMode: "off",
   tapeMargin: 50,
-  // Taper off by default — the editorial passage reads the same as
-  // every other mode until the user opts in. Strength "medium" is
-  // the centred default the chip preview shows.
-  taperMode: "off",
-  taperStrength: "medium",
   // Line-scroll animation on by default — the snap-to-next-line
   // feels jarring for first-time users.
   smoothLineScroll: true,

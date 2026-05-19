@@ -222,15 +222,6 @@ export function TapePreview() {
   return <PreviewSurface height="h-[180px]" />;
 }
 
-/* ─── Taper ─────────────────────────────────────────────────────── */
-
-export function TaperPreview() {
-  // Same Passage instance every other section uses, so toggling the
-  // taper mode + strength chips in the section below this preview
-  // reflects live on the real component.
-  return <PreviewSurface height="h-[180px]" />;
-}
-
 export function TypingAreaPreview() {
   // maxLineWidth, linesRendered, tape mode, smoothLineScroll,
   // typedEffect, highlightMode all live in Passage and reflect

@@ -81,11 +81,6 @@ export const APPEARANCE_SECTIONS: readonly AppearanceSection[] = [
     blurb: "Collapse the passage into one scrolling line — word or letter granularity.",
   },
   {
-    id: "taper",
-    name: "Taper",
-    blurb: "Fade surrounding words to focus on the one you're typing.",
-  },
-  {
     id: "result",
     name: "Result",
     blurb: "What the post-test screen shows — chart, highlights, tips.",
