@@ -1,11 +1,11 @@
 import { AuthShell } from "@/components/auth/auth-shell";
-import { SignInForm } from "@/components/auth/sign-in-form";
+import { SignInForm } from "@/components/auth/sign-in";
 import { buildPageMetadata } from "@/server/seo";
 
 export const metadata = buildPageMetadata({
   title: "Sign in",
   description:
-    "Sign in to your flinttype account. Email + password or one-tap Discord.",
+    "Sign in to your flinttype account. Use a password, an emailed code, a magic link, or one-tap Discord.",
   path: "/sign-in",
   noIndex: true,
 });
