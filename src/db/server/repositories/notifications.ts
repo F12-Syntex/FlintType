@@ -82,10 +82,32 @@ export function notificationsRepo(db: ServerDrizzle) {
      *  Returns the existing row if one is already there (so the
      *  caller can still log the absorbed dedupe), or the freshly
      *  inserted row. `dedupeKey` is required — for unconditional
-     *  inserts call `create` directly. */
+     *  inserts call `create` directly.
+     *
+     *  Idempotency is enforced by the partial unique index
+     *  `notifications_dedupe_uidx` (see schema). Concurrent writers
+     *  collide at the index; one wins, the other sees an empty
+     *  RETURNING and falls through to the SELECT to recover the
+     *  winner's row. */
     async createIfAbsent(
       input: CreateInput & { dedupeKey: string },
     ): Promise<{ row: NotificationRow; created: boolean }> {
+      const id = randomUUID();
+      const payload = mergeDedupe(input.data, input.dedupeKey);
+      const inserted = await db
+        .insert(notifications)
+        .values({
+          id,
+          userId: input.userId,
+          kind: input.kind,
+          title: input.title,
+          body: input.body,
+          data: payload,
+        })
+        .onConflictDoNothing()
+        .returning();
+      if (inserted[0]) return { row: inserted[0], created: true };
+      // Conflict path — fetch the winning row.
       const existing = await db
         .select()
         .from(notifications)
@@ -94,15 +116,17 @@ export function notificationsRepo(db: ServerDrizzle) {
             eq(notifications.userId, input.userId),
             eq(notifications.kind, input.kind),
             // Inline jsonb key match — Postgres `->>` extracts the
-            // text value at the `__dedupe` key. NULL-safe: rows
-            // without the key compare unequal as expected.
+            // text value at the `__dedupe` key.
             sql`${notifications.data} ->> '__dedupe' = ${input.dedupeKey}`,
           ),
         )
         .limit(1);
-      if (existing[0]) return { row: existing[0], created: false };
-      const row = await this.create(input);
-      return { row, created: true };
+      if (!existing[0]) {
+        throw new Error(
+          "notifications.createIfAbsent: conflict reported but no matching row",
+        );
+      }
+      return { row: existing[0], created: false };
     },
 
     /** Mark one row read. No-op if the id doesn't belong to the

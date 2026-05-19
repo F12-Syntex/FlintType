@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "notifications_dedupe_uidx" ON "notifications" USING btree ("user_id","kind",("data" ->> '__dedupe')) WHERE "notifications"."data" ? '__dedupe';

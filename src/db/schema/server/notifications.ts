@@ -1,9 +1,11 @@
+import { sql } from "drizzle-orm";
 import {
   index,
   jsonb,
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 /** In-app notification feed per user. Two kinds today (`announcement`
@@ -45,6 +47,15 @@ export const notifications = pgTable(
       t.userId,
       t.createdAt,
     ),
+    // Partial unique index on the dedupe key. Lets `createIfAbsent`
+    // rely on the database for idempotency instead of the racy
+    // SELECT-then-INSERT pattern: concurrent writers will collide
+    // here and the second writer's ON CONFLICT DO NOTHING absorbs
+    // the duplicate. Partial (only rows that actually carry the
+    // __dedupe field) so non-dedupable inserts don't unique-check.
+    dedupeUidx: uniqueIndex("notifications_dedupe_uidx")
+      .on(t.userId, t.kind, sql`(${t.data} ->> '__dedupe')`)
+      .where(sql`${t.data} ? '__dedupe'`),
   }),
 );
 

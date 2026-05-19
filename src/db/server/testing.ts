@@ -83,6 +83,7 @@ const SCHEMA_DDL = `
     read_at     timestamp
   );
   CREATE INDEX IF NOT EXISTS notifications_user_time_idx ON notifications (user_id, created_at);
+  CREATE UNIQUE INDEX IF NOT EXISTS notifications_dedupe_uidx ON notifications (user_id, kind, ((data->>'__dedupe'))) WHERE data ? '__dedupe';
   CREATE TABLE IF NOT EXISTS users (
     id              text PRIMARY KEY,
     seq             serial NOT NULL,

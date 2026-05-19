@@ -86,6 +86,34 @@ describe("notifications repo", () => {
     expect(await ctx.db.notifications.unreadCountForUser("u1")).toBe(1);
   });
 
+  it("createIfAbsent collapses concurrent writers to one row (TOCTOU guard)", async () => {
+    // Two calls fired in parallel with the same dedupe key — without the
+    // partial unique index this used to race past the SELECT and
+    // double-insert. The index makes the second insert collide; the
+    // ON CONFLICT path then recovers the winning row.
+    const [a, b] = await Promise.all([
+      ctx.db.notifications.createIfAbsent({
+        userId: "u_race",
+        kind: "personal_best",
+        title: "PB!",
+        body: "x",
+        dedupeKey: "pb:race:1",
+      }),
+      ctx.db.notifications.createIfAbsent({
+        userId: "u_race",
+        kind: "personal_best",
+        title: "PB!",
+        body: "x",
+        dedupeKey: "pb:race:1",
+      }),
+    ]);
+    // Exactly one writer reports `created: true`; both see the same id.
+    expect([a.created, b.created].sort()).toEqual([false, true]);
+    expect(a.row.id).toBe(b.row.id);
+    const list = await ctx.db.notifications.listForUser("u_race");
+    expect(list.length).toBe(1);
+  });
+
   it("createIfAbsent dedupes by (userId, kind, dedupeKey)", async () => {
     const first = await ctx.db.notifications.createIfAbsent({
       userId: "u1",
