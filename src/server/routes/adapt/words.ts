@@ -41,6 +41,7 @@ export const words = defineRoute<RequestWordsInput, RequestWordsOutput>({
     // the multi-batch parameter.
     const batches: string[][] = [];
     let cold = false;
+    let prevLast = "";
     for (let i = 0; i < batchCount; i++) {
       const r = selectWords({
         count: input.count,
@@ -53,7 +54,22 @@ export const words = defineRoute<RequestWordsInput, RequestWordsOutput>({
         recentTests,
         recentlyShown: prefs.adaptRecency,
       });
-      batches.push(r.words);
+      // `selectWords` samples without replacement so a batch is already
+      // adjacent-dup free internally. The only remaining seam is the
+      // first word of this batch matching the last word of the
+      // previous batch — swap it forward with the next non-matching
+      // word so the stitched stream never repeats back-to-back.
+      const w = [...r.words];
+      if (prevLast && w.length > 1 && w[0] === prevLast) {
+        for (let j = 1; j < w.length; j++) {
+          if (w[j] !== prevLast) {
+            [w[0], w[j]] = [w[j]!, w[0]!];
+            break;
+          }
+        }
+      }
+      batches.push(w);
+      prevLast = w[w.length - 1] ?? prevLast;
       if (r.cold) cold = true;
     }
 

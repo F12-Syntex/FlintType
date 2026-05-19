@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 // import from here too. Per UI law §1.3 (the pure-reducer exception),
 // this is the canonical home for the unit suite.
 import {
+  generateWords,
   initialState,
   reducer,
   type Action,
@@ -209,5 +210,29 @@ describe("practice reducer — BACKSPACE (single char) still respects error gate
     const next = reducer(s, { type: "BACKSPACE" });
     expect(next.cursorWord).toBe(0);
     expect(next.cursorChar).toBe(3);
+  });
+});
+
+describe("practice reducer — generateWords adjacency", () => {
+  it("never emits the same word twice in a row", () => {
+    // Seed loop a handful of seeds to catch the rare back-to-back roll.
+    for (let seed = 1; seed < 50; seed++) {
+      const words = generateWords(80, seed, {
+        minWordLength: 1,
+        showSecondary: false,
+      });
+      for (let i = 1; i < words.length; i++) {
+        expect(words[i]).not.toBe(words[i - 1]);
+      }
+    }
+  });
+
+  it("tolerates a single-word pool without infinite looping", () => {
+    const words = generateWords(5, 1, {
+      minWordLength: 1,
+      showSecondary: false,
+      wordPool: ["only"],
+    });
+    expect(words).toEqual(["only", "only", "only", "only", "only"]);
   });
 });

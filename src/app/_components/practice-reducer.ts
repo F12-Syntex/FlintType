@@ -129,10 +129,19 @@ export function generateWords(
 ): string[] {
   const list = filteredList(cfg);
   const rand = seededRandom(seed);
-  const base = Array.from(
-    { length: count },
-    () => list[Math.floor(rand() * list.length)]!,
-  );
+  // Reject back-to-back duplicates — re-roll up to a few times per slot
+  // before giving up. With a single-word pool the user has nothing to
+  // do but see the same word; we don't infinite-loop on that.
+  const base: string[] = [];
+  let prev = "";
+  for (let i = 0; i < count; i++) {
+    let pick = list[Math.floor(rand() * list.length)]!;
+    for (let tries = 0; tries < 4 && pick === prev && list.length > 1; tries++) {
+      pick = list[Math.floor(rand() * list.length)]!;
+    }
+    base.push(pick);
+    prev = pick;
+  }
   return decorate(base, cfg, seed + 1);
 }
 

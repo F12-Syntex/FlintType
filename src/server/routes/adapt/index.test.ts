@@ -202,6 +202,21 @@ describe("adapt routes", () => {
     }
   });
 
+  it("words never emits the same word back-to-back across batches", async () => {
+    signedInAs("u1");
+    // Larger pool, multiple batches — gives the seam plenty of chances
+    // to surface a duplicate if the dedup wasn't running.
+    const pool = ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta"];
+    const out = await callRoute<RequestWordsOutput>(["adapt", "words"], {
+      db: ctx.db,
+      input: { count: 3, pool, batches: 5 },
+    });
+    const flat = out.batches.flat();
+    for (let i = 1; i < flat.length; i++) {
+      expect(flat[i]).not.toBe(flat[i - 1]);
+    }
+  });
+
   it("two submits in a row both persist", async () => {
     signedInAs("u1");
     await callRoute<SubmitTestOutput>(["adapt", "submit"], {
