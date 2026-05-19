@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 /** Shared form primitives used across every sign-in stage. Kept
@@ -71,21 +72,31 @@ export function ErrorLine({ message }: { message: string }) {
   );
 }
 
-export function BackLink({
+/** Low-emphasis utility button — used for back / cancel / forgot
+ *  password / resend across every sign-in stage. Wraps shadcn
+ *  `Button` with `ghost` variant + small size so every utility action
+ *  in the form reads as the same affordance (instead of some being
+ *  bare text and some being inline buttons). */
+export function UtilityButton({
   onClick,
+  disabled,
   children,
 }: {
   onClick: () => void;
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="sm"
       onClick={onClick}
-      className="self-start text-[12px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground"
+      disabled={disabled}
+      className="h-8 self-start px-2 text-[12px] font-medium uppercase tracking-[0.14em] text-muted-foreground hover:bg-accent hover:text-foreground"
     >
       {children}
-    </button>
+    </Button>
   );
 }
 

@@ -1,14 +1,14 @@
 "use client";
 
 import { REGEXP_ONLY_DIGITS } from "input-otp";
-import { KeyRound, Link2, Lock } from "lucide-react";
+import { ChevronRight, KeyRound, Link2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { BackLink, ErrorLine, Field } from "./shared";
+import { ErrorLine, Field, UtilityButton } from "./shared";
 
 /** Each stage is a pure presentational component — the orchestrator in
  *  `./index` owns the state and async work. Stages receive what they
@@ -87,8 +87,7 @@ export function MethodStage({
         {available.includes("password") ? (
           <MethodButton
             icon={<Lock size={16} aria-hidden />}
-            title="Use your password"
-            subtitle="Sign in the usual way."
+            label="Use your password"
             onClick={() => onPick("password")}
             disabled={busy}
             busy={busyKind === "password"}
@@ -97,8 +96,7 @@ export function MethodStage({
         {available.includes("code") ? (
           <MethodButton
             icon={<KeyRound size={16} aria-hidden />}
-            title="Email me a code"
-            subtitle="6-digit code, no password needed."
+            label="Email me a code"
             onClick={() => onPick("code")}
             disabled={busy}
             busy={busyKind === "code"}
@@ -107,51 +105,50 @@ export function MethodStage({
         {available.includes("link") ? (
           <MethodButton
             icon={<Link2 size={16} aria-hidden />}
-            title="Email me a sign-in link"
-            subtitle="Tap the link from your inbox."
+            label="Email me a sign-in link"
             onClick={() => onPick("link")}
             disabled={busy}
             busy={busyKind === "link"}
           />
         ) : null}
       </div>
-      <BackLink onClick={onBack}>Use a different email</BackLink>
+      <UtilityButton onClick={onBack}>Use a different email</UtilityButton>
     </div>
   );
 }
 
+/** One row in the method picker. Outline button, icon on the left, label
+ *  in the middle, chevron on the right. Reads as a "choose one" affordance
+ *  rather than three lookalike cards. */
 function MethodButton({
   icon,
-  title,
-  subtitle,
+  label,
   onClick,
   disabled,
   busy,
 }: {
   icon: React.ReactNode;
-  title: string;
-  subtitle: string;
+  label: string;
   onClick: () => void;
   disabled: boolean;
   busy: boolean;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="outline"
       onClick={onClick}
       disabled={disabled}
-      className="flex items-center gap-3 rounded-md border border-border bg-card px-4 py-3 text-left transition-colors hover:border-foreground/30 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+      className="h-12 w-full justify-between gap-3 px-4 text-left"
     >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background text-foreground">
-        {icon}
-      </span>
-      <span className="flex flex-1 flex-col gap-0.5">
-        <span className="text-sm font-semibold text-foreground">
-          {busy ? "Sending…" : title}
+      <span className="flex items-center gap-3">
+        <span className="text-foreground">{icon}</span>
+        <span className="text-sm font-medium text-foreground">
+          {busy ? "Sending…" : label}
         </span>
-        <span className="text-[12px] text-muted-foreground">{subtitle}</span>
       </span>
-    </button>
+      <ChevronRight size={14} className="text-muted-foreground" aria-hidden />
+    </Button>
   );
 }
 
@@ -207,16 +204,13 @@ export function PasswordStage({
       >
         {busy ? "Signing in…" : "Sign in"}
       </Button>
-      <div className="flex items-center justify-between gap-3">
-        <BackLink onClick={onBack}>Choose a different method</BackLink>
-        <button
-          type="button"
-          onClick={onForgot}
-          disabled={forgotBusy || busy}
-          className="text-[12px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
-        >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <UtilityButton onClick={onBack} disabled={forgotBusy || busy}>
+          Different method
+        </UtilityButton>
+        <UtilityButton onClick={onForgot} disabled={forgotBusy || busy}>
           {forgotBusy ? "Sending…" : "Forgot password?"}
-        </button>
+        </UtilityButton>
       </div>
     </form>
   );
@@ -297,16 +291,13 @@ export function CodeStage({
       >
         {busy ? "Verifying…" : "Sign in"}
       </Button>
-      <div className="flex items-center justify-between gap-3">
-        <BackLink onClick={onBack}>Choose a different method</BackLink>
-        <button
-          type="button"
-          onClick={onResend}
-          disabled={resending}
-          className="text-[12px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
-        >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <UtilityButton onClick={onBack} disabled={busy || resending}>
+          Different method
+        </UtilityButton>
+        <UtilityButton onClick={onResend} disabled={resending || busy}>
           {resending ? "Resending…" : resentAt ? "Sent" : "Resend code"}
-        </button>
+        </UtilityButton>
       </div>
     </form>
   );
@@ -340,7 +331,7 @@ export function LinkStage({
           : "Waiting for you to tap the link…"}
       </div>
       {error ? <ErrorLine message={error} /> : null}
-      <BackLink onClick={onBack}>Choose a different method</BackLink>
+      <UtilityButton onClick={onBack}>Different method</UtilityButton>
     </div>
   );
 }
@@ -418,16 +409,13 @@ export function ResetCodeStage({
       >
         {busy ? "Verifying…" : "Continue"}
       </Button>
-      <div className="flex items-center justify-between gap-3">
-        <BackLink onClick={onBack}>Back to sign in</BackLink>
-        <button
-          type="button"
-          onClick={onResend}
-          disabled={resending || busy}
-          className="text-[12px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
-        >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <UtilityButton onClick={onBack} disabled={busy || resending}>
+          Back to sign in
+        </UtilityButton>
+        <UtilityButton onClick={onResend} disabled={resending || busy}>
           {resending ? "Resending…" : resentAt ? "Sent" : "Resend code"}
-        </button>
+        </UtilityButton>
       </div>
     </form>
   );
@@ -491,7 +479,7 @@ export function ResetPasswordStage({
       >
         {busy ? "Saving…" : "Set new password"}
       </Button>
-      <BackLink onClick={onCancel}>Cancel and start over</BackLink>
+      <UtilityButton onClick={onCancel}>Cancel and start over</UtilityButton>
     </form>
   );
 }
