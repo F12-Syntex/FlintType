@@ -41,9 +41,11 @@ export const DEFAULT_BACKGROUND: BackgroundPrefs = {
   opacity: 1,
   blur: 0,
   // Photos almost always need taking down a notch under typing copy;
-  // 70% is the default sweet spot. The applier zeroes this when no
-  // image is set so the bare app doesn't go black.
-  darken: 0.7,
+  // 60% is the default sweet spot — a little brighter than the prior
+  // 70%, so a chosen image reads more clearly behind the passage.
+  // The applier zeroes this when no image is set so the bare app
+  // doesn't go black.
+  darken: 0.6,
 };
 
 // ─── Local-only image (browser storage, never sent to the server) ────

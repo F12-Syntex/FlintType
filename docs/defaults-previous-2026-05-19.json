@@ -1,0 +1,100 @@
+{
+  "savedAt": "2026-05-19",
+  "reason": "Snapshot of every DEFAULT_* prefs slice constant immediately before the reset to the user-supplied flinttype-settings-2026-05-19 (2).json export. Keep this file as the rollback reference; if a default ever needs to be reverted, copy the value back from here.",
+  "slices": {
+    "caret": {
+      "style": "line",
+      "width": 2,
+      "radius": 1,
+      "blinkSpeed": 0,
+      "smoothSpeed": 220
+    },
+    "appearance": {
+      "liveProgressStyle": "text",
+      "liveSpeedStyle": "text",
+      "liveAccuracyStyle": "text",
+      "liveBurstStyle": "off",
+      "liveStatsColor": "",
+      "liveStatsOpacity": 1,
+      "highlightMode": "letter",
+      "typedEffect": "off",
+      "markIncompleteWord": true,
+      "mistakeStyle": "bold",
+      "tapeMode": "off",
+      "tapeMargin": 50,
+      "smoothLineScroll": true,
+      "linesRendered": 3,
+      "maxLineWidth": 80,
+      "alwaysShowDecimal": false,
+      "typingSpeedUnit": "wpm",
+      "startGraphsAtZero": false,
+      "resultShowHeatmap": false,
+      "resultShowExtras": false,
+      "resultShowPerLetter": false,
+      "resultShowHandBalance": false,
+      "keymap": "react",
+      "keymapLayout": "qwerty",
+      "keymapStyle": "staggered",
+      "keymapLegend": "lowercase",
+      "keymapTopRow": "layout",
+      "keymapSize": 1.0,
+      "keymapCompact": false,
+      "borders": "soft",
+      "burstReps": 5,
+      "multiplayerPlayerColors": false,
+      "multiplayerOpponentMarker": "text",
+      "multiplayerRaceFeed": true,
+      "multiplayerShowOpponentWpm": true,
+      "cardSurfaces": "solid",
+      "dividers": "hairline",
+      "pagePadding": "comfortable",
+      "backgroundFill": "paper",
+      "topbarStyle": "elevated",
+      "footerStyle": "visible",
+      "autoHide": "off",
+      "modeBarStyle": "chips",
+      "statStripSurface": "plain",
+      "resultChrome": "framed",
+      "caretIdle": "off",
+      "quoteAttribution": "below",
+      "monochromeChrome": false
+    },
+    "behaviour": {
+      "quickRestart": true,
+      "stopOnError": false,
+      "confidence": "off",
+      "allowExtras": true,
+      "strictSpace": false,
+      "blindMode": false,
+      "minWordLength": 1,
+      "showSecondary": false,
+      "excludeCasualFromAdapt": false,
+      "burstThreshold": 0
+    },
+    "background": {
+      "imageUrl": "",
+      "fit": "cover",
+      "scope": "page",
+      "opacity": 1,
+      "blur": 0,
+      "darken": 0.7
+    },
+    "keyboard": {
+      "design": "outline",
+      "shape": "rounded",
+      "compact": false,
+      "highlightHomeRow": true,
+      "showShiftLabels": true
+    },
+    "theme": {},
+    "palette": {
+      "activeId": null
+    },
+    "practice": {
+      "mode": "WORDS",
+      "length": 50,
+      "adapt": true,
+      "wordlist": "english"
+    }
+  }
+}

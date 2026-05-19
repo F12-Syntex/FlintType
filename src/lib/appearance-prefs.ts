@@ -205,31 +205,30 @@ export type AppearancePrefs = {
 };
 
 export const DEFAULT_APPEARANCE: AppearancePrefs = {
-  // Three live-stat columns visible by default — progress, speed,
-  // accuracy. Burst stays off; it's a power-user metric and crowds
-  // a fresh user's HUD.
-  liveProgressStyle: "text",
-  liveSpeedStyle: "text",
-  liveAccuracyStyle: "text",
-  liveBurstStyle: "off",
-  liveStatsColor: "",
+  // Mini stat columns visible by default — pip + value reads as
+  // quieter HUD than the full text column. Burst included so all
+  // four readouts have a consistent low-emphasis treatment.
+  liveProgressStyle: "mini",
+  liveSpeedStyle: "mini",
+  liveAccuracyStyle: "mini",
+  liveBurstStyle: "mini",
+  // Live stats paint in the brand orange by default; users can swap
+  // via customise → live stats. Empty string means "use --primary".
+  liveStatsColor: "#f97316",
   liveStatsOpacity: 1,
 
-  // Letter-by-letter cursor underline. Typed effect stays off by
-  // default — leaving past words untouched reads as the cleanest
-  // baseline; fade / strike are opt-in flavour.
-  highlightMode: "letter",
+  // Highlight off — past words stay untouched; the caret position is
+  // the only "you are here" cue. Quieter passage, less visual noise.
+  highlightMode: "off",
   typedEffect: "off",
   // Default ON — the underline on a skipped word is the standard
   // typing-test cue that you bailed without completing it. Power
   // users who prefer a quieter passage can flip it off.
   markIncompleteWord: true,
-  // Bold + error colour is the default — colour alone is too easy to
-  // miss at passage scale on near-monochrome palettes, and JetBrains
-  // Mono is width-stable across weights so bolding a mistyped glyph
-  // doesn't shift the caret. "highlight" was the prior shipping
-  // default; it reads as too loud for many users, hence the move.
-  mistakeStyle: "bold",
+  // Underline mistakes — quieter than "bold" or "highlight" but still
+  // unmissable against JetBrains Mono. The colour-only "color"
+  // variant reads too subtle on near-monochrome palettes.
+  mistakeStyle: "underline",
 
   // Tape mode opt-in. Multi-line is the friendlier default.
   tapeMode: "off",
@@ -237,17 +236,23 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   // Line-scroll animation on by default — the snap-to-next-line
   // feels jarring for first-time users.
   smoothLineScroll: true,
-  linesRendered: 3,
+  // Four lines of context — three on top + the active line — gives
+  // the eye room to plan ahead without making the passage feel
+  // distant from the caret.
+  linesRendered: 4,
   // 80 chars is the prose-readable column. Past that the eye has
   // to track too far per line.
   maxLineWidth: 80,
 
   alwaysShowDecimal: false,
   typingSpeedUnit: "wpm",
+  // Graphs start at zero by default — keeps the WPM curve honest
+  // for first-time viewers; users who prefer auto-scaled focus
+  // ranges flip it off.
+  startGraphsAtZero: true,
   // Result-screen sections default off — the chart + stat strip
   // already carry the headline read; users opt every extra
   // visualisation back in via customise > Result.
-  startGraphsAtZero: false,
   resultShowHeatmap: false,
   resultShowExtras: false,
   resultShowPerLetter: false,
@@ -285,18 +290,22 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   multiplayerShowOpponentWpm: true,
 
   // ─── Surface ───
-  // Defaults preserve the current editorial chrome: solid cards,
-  // hairline dividers, comfortable padding, paper bg. The Monkeytype
-  // bundle flips these via the Stripped preset.
-  cardSurfaces: "solid",
-  dividers: "hairline",
+  // Monkeytype-leaning baseline: subtle card surfaces, no dividers
+  // between sections, paper bg, comfortable padding. Editorial
+  // preset (solid cards + hairline dividers) is one click away from
+  // /customise/appearance#surface.
+  cardSurfaces: "subtle",
+  dividers: "hidden",
   pagePadding: "comfortable",
   backgroundFill: "paper",
 
   // ─── Chrome ───
-  topbarStyle: "elevated",
+  // Flat topbar (no shadow), footer visible, fade chrome on the
+  // practice surface while a run is active so it doesn't compete
+  // with the passage. Mode-bar chips stay as the test-mode picker.
+  topbarStyle: "flat",
   footerStyle: "visible",
-  autoHide: "off",
+  autoHide: "fade",
   modeBarStyle: "chips",
 
   // ─── Sub-surface tweaks ───

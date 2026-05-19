@@ -44,7 +44,11 @@ type Ctx = {
 };
 
 type PaletteSlice = { activeId: string | null };
-const DEFAULT_PALETTE: PaletteSlice = { activeId: null };
+// Fresh accounts land on the "custom" palette id by default — the
+// matching theme-override defaults in `theme-customization.ts` paint
+// the orange-leaning baseline. Setting null here would mean a brief
+// flash of the OKLCH :root coral before the overrides apply.
+const DEFAULT_PALETTE: PaletteSlice = { activeId: CUSTOM_THEME_ID };
 
 const PaletteContext = createContext<Ctx | null>(null);
 

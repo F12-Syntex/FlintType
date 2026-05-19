@@ -29,10 +29,10 @@ export type KeyboardSettings = {
 };
 
 export const DEFAULT_KEYBOARD: KeyboardSettings = {
-  // Outline keys read as quiet chrome — solid keys compete with
-  // the passage for visual weight, especially on a fresh user's
-  // first session. Outline lets the colour palette breathe.
-  design: "outline",
+  // Glass keys — semi-transparent surface with a subtle backdrop
+  // blur. Reads as quiet chrome that still feels tactile when a key
+  // lights up; outline (the prior default) was a touch too flat.
+  design: "glass",
   shape: "rounded",
   compact: false,
   // F + J pegs lit by default — finds-your-hands cue is worth the

@@ -19,18 +19,19 @@ export type CaretSettings = {
 
 export const DEFAULT_CARET: CaretSettings = {
   style: "line",
-  width: 2,
-  // 1px corner softens the bar without rounding it into a stick;
-  // sharp 0px reads as a pixel-art tally mark.
-  radius: 1,
+  // Heftier 3px bar over a 6px-rounded radius — the bar reads more
+  // like a thumb-flag against the passage type, easier to track when
+  // scanning. See docs/defaults-previous-2026-05-19.json for the
+  // prior thinner shipping defaults.
+  width: 3,
+  radius: 6,
   // No blink by default — a still caret reads as part of the text,
   // a blinking one demands attention while the user is typing.
   blinkSpeed: 0,
-  // Snappy enough to feel responsive, slow enough to read as a
-  // glide rather than a teleport. 220ms lands between the `Smooth`
-  // and `Flow` presets — a conservative middle that doesn't lag
-  // behind a fast typist.
-  smoothSpeed: 220,
+  // 450ms — a softer, more visible glide than the prior 220ms; the
+  // longer transition makes the caret read as a deliberate ribbon
+  // following the typist rather than a snapping marker.
+  smoothSpeed: 450,
 };
 
 export function useCaretSettings() {

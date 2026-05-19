@@ -59,7 +59,20 @@ function applyVar(name: ThemeVar, value: string | undefined) {
   }
 }
 
-const EMPTY_OVERRIDES: ThemeOverrides = {};
+/** Theme-override defaults — paint the orange-leaning brand baseline
+ *  every fresh account starts on. Paired with `DEFAULT_PALETTE.activeId
+ *  = "custom"` in `themes/use-palette.tsx` so the picker reads "Custom"
+ *  on first load and these inline vars are applied. The pre-reset
+ *  default (empty record) is preserved in
+ *  docs/defaults-previous-2026-05-19.json. */
+const EMPTY_OVERRIDES: ThemeOverrides = {
+  "--primary": "#f97316",
+  "--accent": "#fed7aa",
+  "--accent-foreground": "#000000",
+  "--ring": "#fb923c",
+  "--radius": "0.5rem",
+  "--ft-word-spacing": "0.25em",
+};
 
 export function useThemeOverrides() {
   // The slice itself is the ThemeOverrides record. We deliberately use

@@ -208,7 +208,7 @@ export function quoteToWords(text: string): string[] {
 
 // ─── Initial state ──────────────────────────────────────────────────
 
-const INITIAL_LENGTH: Length = 50;
+const INITIAL_LENGTH: Length = 25;
 
 /** Per-mode default for `length` when the user switches modes. */
 export function defaultLengthFor(mode: Mode): Length {
