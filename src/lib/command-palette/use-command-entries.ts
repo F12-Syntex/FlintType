@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
+import { useAudioPrefs } from "@/lib/audio-prefs";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { useCaretSettings } from "@/lib/caret-settings";
 import { useKeyboardSettings } from "@/lib/keyboard-settings";
@@ -86,6 +87,7 @@ function link(
 export function useCommandEntries(): readonly CommandEntry[] {
   const router = useRouter();
   const { prefs: ap, update: setAp } = useAppearancePrefs();
+  const { prefs: audio, update: setAudio } = useAudioPrefs();
   const { prefs: bp, update: setBp } = useBehaviourPrefs();
   const { settings: cs, update: setCs } = useCaretSettings();
   const { settings: ks, update: setKs } = useKeyboardSettings();
@@ -209,6 +211,26 @@ export function useCommandEntries(): readonly CommandEntry[] {
         ] as const,
         (v) => setBp("confidence", v),
         ["backspace", "lock"],
+      ),
+
+      /* ─── Audio ────────────────────────────────────────────────── */
+      toggle(
+        "a.keypressClickEnabled",
+        "Keypress click sound",
+        "Short synthesized click on every keystroke",
+        "Behaviour",
+        audio.keypressClickEnabled,
+        (v) => setAudio("keypressClickEnabled", v),
+        ["audio", "sound", "click", "key", "typing"],
+      ),
+      link(
+        "a.keypressClickVolume",
+        "Click volume",
+        "Adjust the click volume slider",
+        "Behaviour",
+        "/customise/behaviour#audio",
+        "Slider on Customise → Audio",
+        ["audio", "sound", "click", "volume"],
       ),
 
       /* ─── Caret ────────────────────────────────────────────────── */
@@ -862,6 +884,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
     applyPalette,
     ap,
     setAp,
+    audio,
+    setAudio,
     bp,
     setBp,
     cs,
