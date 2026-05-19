@@ -15,8 +15,16 @@
   --secondary-foreground: oklch(0.1344 0 0);
   --muted: oklch(0.8800 0.0220 85);
   --muted-foreground: oklch(0.4386 0 0);
-  --accent: oklch(0.9656 0.0176 39.4009);
-  --accent-foreground: oklch(0.5657 0.1994 34.7994);
+  /* Hover / highlight tint (ui-law §2). Deliberately a low-chroma warm
+     neutral in the paper family (hue 85), a hair darker than --background
+     /--card so a hover reads as a gentle surface dim — never as the brand
+     spark. --primary stays the only saturated colour on the page. The
+     prior value was a saturated coral (chroma 0.18–0.20), which made
+     every hover:bg-accent / text-accent-foreground surface compete with
+     the accent. See the data-ft-monochrome / data-ft-focus overrides
+     below, which already collapse accent to muted for the same reason. */
+  --accent: oklch(0.9050 0.0140 85);
+  --accent-foreground: oklch(0 0 0);
   --destructive: oklch(0.6479 0.2379 26.1222);
   --destructive-foreground: oklch(1.0000 0 0);
   --border: oklch(0.9276 0.0121 286.1616);
@@ -113,8 +121,13 @@
   --secondary-foreground: oklch(0.9551 0 0);
   --muted: oklch(0.2570 0.0037 286.1360);
   --muted-foreground: oklch(0.6731 0 0);
-  --accent: oklch(0.3760 0.1279 36.2948);
-  --accent-foreground: oklch(0.9970 0 0);
+  /* Hover / highlight tint — quiet neutral lift above --card/--popover,
+     de-saturated to the muted hue family. Prior value was a saturated
+     coral-brown (chroma 0.13) that painted a strong fill on every
+     hover:bg-accent surface (dropdown, command palette, ghost buttons).
+     See the matching :root note. */
+  --accent: oklch(0.2820 0.0040 286.1360);
+  --accent-foreground: oklch(0.9551 0 0);
   --destructive: oklch(0.7044 0.1872 23.1858);
   --destructive-foreground: oklch(1.0000 0 0);
   --border: oklch(0.2393 0 0);

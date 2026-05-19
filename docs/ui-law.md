@@ -67,7 +67,7 @@ The semantic classes (`bg-background`, `bg-card`, `text-foreground`, `border-bor
 | `text-muted-foreground`                            | `--muted-foreground`                     | De-emphasised text — captions, secondary metadata, shift-glyph on a key. |
 | `bg-primary`, `text-primary-foreground`, `border-primary` | `--primary`, `--primary-foreground` | **The brand spark.** Pressed key, active CTA, peak marker, error word. The brand coral in the default palette; remains the active-state colour under community palettes. |
 | `bg-secondary`, `text-secondary-foreground`        | `--secondary`, `--secondary-foreground`  | Secondary surface (the dark quote band in the default palette). |
-| `bg-accent`, `text-accent-foreground`              | `--accent`, `--accent-foreground`        | Hover / highlight tint.                                        |
+| `bg-accent`, `text-accent-foreground`              | `--accent`, `--accent-foreground`        | **The canonical hover / highlight tint.** A low-chroma *neutral* lift (dark) / dim (light) — never a saturated colour. Hover must read as a quiet surface shift, not the brand spark; if the accent looks like a second coral, the surface fights `--primary`. This is the one token every interactive list/row/item hover should route through (dropdown, command palette, ghost buttons, pickers, nav). |
 | `bg-destructive`, `text-destructive-foreground`    | `--destructive`, `--destructive-foreground` | Destructive action.                                         |
 | `border-border`                                    | `--border`                               | Default shadcn hairline (used by Button, Input, etc.).         |
 | `border-foreground/10`                             | `--foreground` @ 10%                     | **Soft** hairline that swaps with theme — the right default for keycap-style affordances and most panel borders. |
@@ -84,6 +84,7 @@ The semantic classes (`bg-background`, `bg-card`, `text-foreground`, `border-bor
 | A panel that should melt into the page (e.g. the Keyboard widget surround) | `bg-background border border-foreground/10`        |
 | A soft hairline that swaps with theme                                      | `border-foreground/10`                              |
 | The crisp shadcn outline border (Button, Input)                            | `border-border`                                     |
+| A hover state on a list row / nav link / menu item / picker option         | `hover:bg-accent` (+ `hover:text-accent-foreground` when text needs the pairing) — the quiet neutral tint, never `hover:bg-primary` / `hover:text-primary`. `hover:bg-foreground/[0.03]` is the equivalent fixed-opacity tint already used on some dark editorial chrome; prefer `bg-accent` on theme-aware surfaces so one token governs every hover. |
 
 ### 2.3 `ft-*` tokens — fixed-palette layer (use sparingly)
 
@@ -386,7 +387,8 @@ Ships with a selection of community palettes sourced from [tweakcn.com](https://
 1. Fetch `https://tweakcn.com/r/themes/<slug>.json`.
 2. Copy `cssVars.light` into `html.theme-<slug> { ... }` and `cssVars.dark` into `html.dark.theme-<slug> { ... }` in `src/app/themes.css`. Keep the `html` prefix — it wins the specificity tie against `:root`.
 3. Register the id + label in `src/lib/themes.ts` `THEMES`.
-4. All three changes land in one commit — same commit that introduces any UI using the new theme.
+4. **De-saturate the accent.** tweakcn frequently ships a saturated `--accent`/`--accent-foreground` (a second loud colour). Per §2.1, `--accent` is the quiet hover tint, never a spark — if the palette's accent has meaningful chroma, drop it to a low-chroma neutral lift/dim before pasting (or alias it to `--muted`). A loud accent makes every list/menu hover fight `--primary`.
+5. All four changes land in one commit — same commit that introduces any UI using the new theme.
 
 ### 9.3 FOUC prevention
 `src/app/layout.tsx` injects `THEME_BOOTSTRAP_SCRIPT` from `@/lib/themes` into `<head>` so **both** the theme class and the `dark` class are applied synchronously before React hydrates. Never skip this — the flash of default-then-themed or light-then-dark is visibly ugly. `<html>` has `suppressHydrationWarning` because the server renders without these classes and the bootstrap script adds them client-side.
