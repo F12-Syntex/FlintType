@@ -57,11 +57,15 @@ export async function fetchWordlist(id: WordlistId): Promise<WordlistFile> {
   if (pending) return pending;
 
   const promise = (async () => {
-    // Try localStorage first — cheap and cross-session.
+    // Try localStorage first — cheap and cross-session. Normalise on
+    // the way back so previously-cached English entries with stray
+    // capitals (legacy / pre-fix data) come out lowercase on next
+    // hit without needing the user to clear storage.
     const stored = readFromLocalStorage(id);
     if (stored) {
-      memCache.set(id, stored);
-      return stored;
+      const safe = normaliseWordlist(id, stored);
+      memCache.set(id, safe);
+      return safe;
     }
     const res = await fetch(`${CDN_BASE}/${id}.json`, {
       cache: "force-cache",
@@ -71,7 +75,7 @@ export async function fetchWordlist(id: WordlistId): Promise<WordlistFile> {
         `wordlist fetch failed (${id}): ${res.status} ${res.statusText}`,
       );
     }
-    const body = (await res.json()) as WordlistFile;
+    const body = normaliseWordlist(id, (await res.json()) as WordlistFile);
     memCache.set(id, body);
     writeToLocalStorage(id, body);
     return body;
@@ -90,6 +94,31 @@ export async function fetchWordlist(id: WordlistId): Promise<WordlistFile> {
  *  the English-1k embedded set while the real one loads. */
 export function getCachedWordlist(id: WordlistId): WordlistFile | null {
   return memCache.get(id) ?? null;
+}
+
+/** Lowercase every word for English-family wordlists. Practice / race
+ *  passages are conventionally all-lowercase in this product — the
+ *  pronoun "I" rendering as "i" matches MonkeyType's default English
+ *  behaviour and means the user never reaches for shift mid-test.
+ *  Non-English lists (German nouns, proper-noun lists, etc.) keep
+ *  their case so intentional capitals survive. */
+export function normaliseWordlist(
+  id: WordlistId,
+  body: WordlistFile,
+): WordlistFile {
+  if (!isEnglishFamily(id)) return body;
+  let mutated = false;
+  const next = body.words.map((w) => {
+    const lower = w.toLowerCase();
+    if (lower !== w) mutated = true;
+    return lower;
+  });
+  if (!mutated) return body;
+  return { ...body, words: next };
+}
+
+function isEnglishFamily(id: WordlistId): boolean {
+  return id === "english" || id.startsWith("english_");
 }
 
 function readFromLocalStorage(id: WordlistId): WordlistFile | null {
