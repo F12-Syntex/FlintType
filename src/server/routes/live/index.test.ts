@@ -27,6 +27,7 @@ import { callRoute } from "@/server/testing";
 import type {
   FriendsLiveOutput,
   LiveProgressOutput,
+  SpectatorsOutput,
   StopLiveOutput,
   WatchOutput,
 } from "@/types/live";
@@ -111,13 +112,27 @@ describe("live routes", () => {
     ).rejects.toBeInstanceOf(BackendError);
   });
 
-  it("progress is rejected unless the user opted in to being spectated", async () => {
+  it("progress is accepted by default (sharing on), rejected only when explicitly off", async () => {
     signedInAs("alice");
-    const out = await callRoute<LiveProgressOutput>(["live", "progress"], {
-      db: ctx.db,
-      input: SNAP,
-    });
-    expect(out.accepted).toBe(false);
+    // No pref set → sharing on by default → accepted.
+    expect(
+      (
+        await callRoute<LiveProgressOutput>(["live", "progress"], {
+          db: ctx.db,
+          input: SNAP,
+        })
+      ).accepted,
+    ).toBe(true);
+    // Explicitly turned off → rejected.
+    await ctx.db.userPrefs.merge("alice", { spectate: { enabled: false } });
+    expect(
+      (
+        await callRoute<LiveProgressOutput>(["live", "progress"], {
+          db: ctx.db,
+          input: SNAP,
+        })
+      ).accepted,
+    ).toBe(false);
   });
 
   it("a mutual friend can watch an opted-in, currently-live user", async () => {
@@ -187,15 +202,13 @@ describe("live routes", () => {
     expect(u.totalChars).toBe(15);
   });
 
-  it("friendsLive excludes friends who haven't opted in, and non-friends", async () => {
-    await befriend(ctx); // me <-> alice
-    // alice is live but did NOT opt in.
+  it("friendsLive includes live mutual friends by default; excludes non-friends", async () => {
+    await befriend(ctx); // me <-> alice (no spectate pref → on by default)
     signedInAs("alice");
     await callRoute(["live", "progress"], { db: ctx.db, input: SNAP });
 
-    // bob opted in + live but is only a one-way follow (not mutual).
+    // bob is live + opted in but only a one-way follow (not mutual).
     await ctx.db.follows.follow("me", "bob");
-    await ctx.db.userPrefs.merge("bob", { spectate: { enabled: true } });
     signedInAs("bob");
     await callRoute(["live", "progress"], { db: ctx.db, input: SNAP });
 
@@ -203,7 +216,60 @@ describe("live routes", () => {
     const out = await callRoute<FriendsLiveOutput>(["live", "friendsLive"], {
       db: ctx.db,
     });
-    expect(out.users).toHaveLength(0);
+    expect(out.users.map((u) => u.userId)).toEqual(["alice"]);
+  });
+
+  it("friendsLive drops a friend who turned sharing off or denied me", async () => {
+    await befriend(ctx); // me <-> alice
+    // alice is live (default on), then denies me specifically.
+    signedInAs("alice");
+    await callRoute(["live", "progress"], { db: ctx.db, input: SNAP });
+    await ctx.db.userPrefs.merge("alice", { spectate: { blocked: ["me"] } });
+    signedInAs("me");
+    expect(
+      (
+        await callRoute<FriendsLiveOutput>(["live", "friendsLive"], {
+          db: ctx.db,
+        })
+      ).users,
+    ).toHaveLength(0);
+  });
+
+  it("a per-friend denylist blocks watch even between mutual friends", async () => {
+    await befriend(ctx);
+    await ctx.db.userPrefs.merge("alice", { spectate: { blocked: ["me"] } });
+    signedInAs("alice");
+    await callRoute(["live", "progress"], { db: ctx.db, input: SNAP });
+    signedInAs("me");
+    expect(
+      (
+        await callRoute<WatchOutput>(["live", "watch"], {
+          db: ctx.db,
+          input: { userId: "alice" },
+        })
+      ).live,
+    ).toBe(false);
+  });
+
+  it("spectators lists the fresh watchers of a broadcaster", async () => {
+    await befriend(ctx); // me <-> alice
+    signedInAs("alice");
+    await callRoute(["live", "progress"], { db: ctx.db, input: SNAP });
+    // me watches alice → records me as alice's spectator.
+    signedInAs("me");
+    const w = await callRoute<WatchOutput>(["live", "watch"], {
+      db: ctx.db,
+      input: { userId: "alice" },
+    });
+    expect(w.live).toBe(true);
+    // alice sees who's watching.
+    signedInAs("alice");
+    const s = await callRoute<SpectatorsOutput>(["live", "spectators"], {
+      db: ctx.db,
+    });
+    expect(s.watchers).toHaveLength(1);
+    expect(s.watchers[0].userId).toBe("me");
+    expect(s.watchers[0].name).toBe("@Me");
   });
 
   it("friendsLive is empty when the caller has no friends", async () => {

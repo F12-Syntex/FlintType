@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.87.0 — 20 May 2026
+- Live spectating is now on by default, so mutual friends can watch you practise without you flipping a switch. While you type, your screen now shows who's currently watching ("ada is spectating", "3 people are spectating") instead of a static badge. You can still turn it off entirely, or keep specific friends out, in Customise → Behaviour → Live spectating.
+
 ## 6.86.3 — 20 May 2026
 - Internal changes only.
 

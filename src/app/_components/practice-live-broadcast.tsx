@@ -9,8 +9,9 @@ import { liveSnapshotWindow } from "./practice-progress";
 import type { State } from "./practice-state";
 
 const POST_THROTTLE_MS = 700;
-/** Module-level stable default — useRemotePrefs captures it once. */
-const SPECTATE_DEFAULT = { enabled: false };
+/** Module-level stable default — useRemotePrefs captures it once.
+ *  Sharing is ON by default; only an explicit `false` turns it off. */
+const SPECTATE_DEFAULT: { enabled?: boolean } = { enabled: true };
 
 /** Invisible. Mounted once inside every real <PracticeProvider>, so any
  *  passage-based surface (home practice, sudden-death drills) streams
@@ -40,12 +41,12 @@ export function PracticeLiveBroadcast({
 }) {
   const backend = useBackend();
   const { isSignedIn } = useUser();
-  const { value: spectate } = useRemotePrefs<{ enabled: boolean }>(
+  const { value: spectate } = useRemotePrefs<{ enabled?: boolean }>(
     "spectate",
     SPECTATE_DEFAULT,
   );
 
-  const enabled = active && !!isSignedIn && spectate.enabled;
+  const enabled = active && !!isSignedIn && spectate.enabled !== false;
   const running = state.phase === "running";
 
   // Latest values the interval reads without re-subscribing each tick.

@@ -78,3 +78,14 @@ export type WatchOutput =
     };
 
 export type StopLiveOutput = { ok: true };
+
+/** One person currently watching the caller's live run. */
+export type LiveSpectator = {
+  userId: string;
+  /** `@handle` display name. */
+  name: string;
+};
+
+/** Who is watching the caller right now — drives the broadcaster's
+ *  "N people are spectating" readout. */
+export type SpectatorsOutput = { watchers: LiveSpectator[] };

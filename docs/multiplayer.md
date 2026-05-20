@@ -82,7 +82,7 @@ Redeploy Vercel after setting `NEXT_PUBLIC_RACE_SERVICE_URL` — it's a build-ti
 Watching a friend type live (`/live` broadcaster, `/live/<userId>` spectator) is **separate from the race rooms** and, in v1, does **not** run on the authority:
 
 - **Live-session store is DB-backed** (`live_sessions` table, migration `0011`; `liveSessionsRepo`), exactly like presence — one row per broadcaster, upserted ~every 700ms. Chosen over an in-memory authority map because a live session keys on the authenticated Clerk userId (which the authority can't see) and a shared table is **correct across Vercel instances**: a spectator poll routed to a different instance than the broadcaster's push still finds the snapshot. A snapshot is "live" only while fresh (`LIVE_TTL_MS`, 6s); a broadcaster that stops pushing ages out at read time with no goodbye.
-- **Consent + gating** — broadcasting requires the user-prefs `spectate.enabled` flag (default off); spectating requires the viewer be a **mutual friend**, unblocked, and the target opted in. `live.watch` returns `{ live: false }` for every disallowed case so nothing leaks. Backend-enforced, not just client-gated.
+- **Consent + gating** — sharing is **on by default** (`spectate.enabled !== false`); a global Off stops all broadcasting and a per-friend `spectate.blocked` denylist excludes named viewers. Spectating requires the viewer be a **mutual friend**, unblocked, sharing not off, and not on the denylist. `live.watch` returns `{ live: false }` for every disallowed case so nothing leaks. Backend-enforced, not just client-gated. `live_spectators` (migration `0012`) records who's watching so the broadcaster sees a live spectator count.
 
 ### Transport: v1 polling, SSE + direct-write is the planned upgrade
 

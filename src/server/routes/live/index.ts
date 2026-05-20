@@ -11,6 +11,8 @@ import {
   type LiveFriend,
   type LiveProgressInput,
   type LiveProgressOutput,
+  type LiveSpectator,
+  type SpectatorsOutput,
   type StopLiveOutput,
   type WatchInput,
   type WatchOutput,
@@ -22,14 +24,33 @@ import {
  *  so a couple of dropped pushes don't blink them offline. */
 export const LIVE_TTL_MS = 6_000;
 
-/** Consent gate: a user is spectatable only if they've explicitly
- *  opted in (user-prefs `spectate.enabled === true`). Default off. The
- *  pref is an object slice because the client writes it through
- *  `useRemotePrefs`, which stores slices (objects), not scalars. */
+/** A spectator is "currently watching" while their `watch` poll is this
+ *  fresh — ~5.7× the 700ms poll cadence. */
+export const SPECTATOR_TTL_MS = 4_000;
+
+/** The spectate consent slice on user-prefs. Sharing is **on by
+ *  default** — only an explicit `enabled: false` turns it off — with an
+ *  optional per-friend `blocked` denylist of viewers who may not watch. */
+type SpectateSlice = { enabled?: boolean; blocked?: string[] };
+
+function spectateSlice(prefs: { spectate?: unknown }): SpectateSlice | undefined {
+  return prefs.spectate as SpectateSlice | undefined;
+}
+
+/** Global consent — on unless the user explicitly turned sharing off.
+ *  Gates whether a broadcaster's pushes are stored at all. */
 async function isSpectatable(db: Database, userId: string): Promise<boolean> {
-  const prefs = await db.userPrefs.get(userId);
-  const slice = prefs.spectate as { enabled?: boolean } | undefined;
-  return slice?.enabled === true;
+  return spectateSlice(await db.userPrefs.get(userId))?.enabled !== false;
+}
+
+/** Whether `viewer` is allowed to watch `slice`'s owner: sharing on AND
+ *  the viewer isn't on the per-friend denylist. */
+function consentAllows(slice: SpectateSlice | undefined, viewer: string): boolean {
+  if (slice?.enabled === false) return false;
+  if (Array.isArray(slice?.blocked) && slice.blocked.includes(viewer)) {
+    return false;
+  }
+  return true;
 }
 
 /** Broadcaster pushes its latest live state (~every 700ms while
@@ -68,12 +89,19 @@ const watch = defineRoute<WatchInput, WatchOutput>({
       if (await db.blocks.eitherBlocks(me, target)) return { live: false };
       if (!(await db.follows.isMutual(me, target))) return { live: false };
     }
-    if (!(await isSpectatable(db, target))) return { live: false };
+    // Sharing on (default) AND the viewer isn't on the target's denylist.
+    if (!consentAllows(spectateSlice(await db.userPrefs.get(target)), me)) {
+      return { live: false };
+    }
 
     const entry = await db.liveSessions.get(target);
     if (!entry || Date.now() - entry.updatedAt.getTime() >= LIVE_TTL_MS) {
       return { live: false };
     }
+
+    // Record that we're watching, so the broadcaster's spectator count
+    // sees us (self-watch is a no-op in the repo).
+    await db.liveSpectators.touch(target, me);
 
     const displays = await resolveUserDisplays(db, [target]);
     const d = displays.get(target);
@@ -117,10 +145,8 @@ const friendsLive = defineRoute<void, FriendsLiveOutput>({
     const liveIds = ids.filter((id) => {
       const entry = sessions.get(id);
       if (!entry || now - entry.updatedAt.getTime() >= LIVE_TTL_MS) return false;
-      const slice = prefsById.get(id)?.spectate as
-        | { enabled?: boolean }
-        | undefined;
-      return slice?.enabled === true;
+      // Sharing on (default) and I'm not on their per-friend denylist.
+      return consentAllows(spectateSlice(prefsById.get(id) ?? {}), me);
     });
     if (liveIds.length === 0) return { users: [] };
 
@@ -153,6 +179,24 @@ const friendsLive = defineRoute<void, FriendsLiveOutput>({
   },
 });
 
+/** Who is watching me right now — drives the broadcaster's "N people
+ *  are spectating" readout. Fresh spectators (within SPECTATOR_TTL_MS)
+ *  resolved to display handles. */
+const spectators = defineRoute<void, SpectatorsOutput>({
+  handler: async ({ db, meta }) => {
+    const me = meta.userId as string;
+    const ids = await db.liveSpectators.listFor(me, SPECTATOR_TTL_MS);
+    if (ids.length === 0) return { watchers: [] };
+    const displays = await resolveUserDisplays(db, ids);
+    const watchers: LiveSpectator[] = [];
+    for (const id of ids) {
+      const d = displays.get(id);
+      if (d) watchers.push({ userId: id, name: d.name });
+    }
+    return { watchers };
+  },
+});
+
 /** Broadcaster stops broadcasting (left the live surface). */
 const stop = defineRoute<void, StopLiveOutput>({
   handler: async ({ db, meta }) => {
@@ -165,5 +209,5 @@ const stop = defineRoute<void, StopLiveOutput>({
  *  ~1.4/s spectator poll comfortably (240/min per user). */
 export const live = defineNamespace({
   middleware: [requireAuth, rateLimit({ limit: 240, windowMs: 60_000 })],
-  routes: { progress, watch, friendsLive, stop },
+  routes: { progress, watch, friendsLive, spectators, stop },
 });

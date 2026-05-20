@@ -131,10 +131,16 @@ const SCHEMA_DDL = `
     snapshot    jsonb NOT NULL,
     updated_at  timestamp NOT NULL DEFAULT now()
   );
+  CREATE TABLE IF NOT EXISTS live_spectators (
+    broadcaster_id  text NOT NULL,
+    spectator_id    text NOT NULL,
+    updated_at      timestamp NOT NULL DEFAULT now(),
+    PRIMARY KEY (broadcaster_id, spectator_id)
+  );
 `;
 
 const TRUNCATE_ALL = `
-  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, word_models, tests, notifications, users, follows, blocks, duels, presence, live_sessions RESTART IDENTITY;
+  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, word_models, tests, notifications, users, follows, blocks, duels, presence, live_sessions, live_spectators RESTART IDENTITY;
 `;
 
 /** PGlite's parse-message path rejects multi-statement queries, so we

@@ -11,3 +11,4 @@ export * from "./blocks";
 export * from "./duels";
 export * from "./presence";
 export * from "./live-sessions";
+export * from "./live-spectators";

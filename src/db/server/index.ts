@@ -27,6 +27,10 @@ import {
   liveSessionsRepo,
   type LiveSessionsRepo,
 } from './repositories/live-sessions';
+import {
+  liveSpectatorsRepo,
+  type LiveSpectatorsRepo,
+} from './repositories/live-spectators';
 
 export type Database = {
   userPrefs: UserPrefsRepo;
@@ -42,6 +46,7 @@ export type Database = {
   duels: DuelsRepo;
   presence: PresenceRepo;
   liveSessions: LiveSessionsRepo;
+  liveSpectators: LiveSpectatorsRepo;
   $drizzle: ServerDrizzle;
 };
 
@@ -60,6 +65,7 @@ export function createDatabase(drizzle: ServerDrizzle): Database {
     duels: duelsRepo(drizzle),
     presence: presenceRepo(drizzle),
     liveSessions: liveSessionsRepo(drizzle),
+    liveSpectators: liveSpectatorsRepo(drizzle),
     $drizzle: drizzle,
   };
 }
