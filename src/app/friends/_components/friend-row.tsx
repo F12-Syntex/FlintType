@@ -16,10 +16,13 @@ const SINCE_FMT = new Intl.DateTimeFormat(undefined, {
 export function FriendRow({
   user,
   relationship,
+  online = false,
   onChange,
 }: {
   user: FriendUser;
   relationship: FriendRelationship;
+  /** Show the green online dot beside the handle. */
+  online?: boolean;
   onChange?: (rel: FriendRelationship) => void;
 }) {
   const href = `/profile/${user.username ?? user.userId}`;
@@ -30,6 +33,13 @@ export function FriendRow({
         className="group flex min-w-0 flex-col gap-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       >
         <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          {online ? (
+            <span
+              className="size-2 shrink-0 rounded-full bg-ft-ok"
+              aria-label="Online"
+              title="Online"
+            />
+          ) : null}
           <span className="truncate text-sm font-semibold text-foreground group-hover:text-primary">
             {user.name}
           </span>

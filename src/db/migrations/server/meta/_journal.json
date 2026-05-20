@@ -71,6 +71,13 @@
       "when": 1779261793842,
       "tag": "0009_chubby_zombie",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779262831837,
+      "tag": "0010_luxuriant_orphan",
+      "breakpoints": true
     }
   ]
 }

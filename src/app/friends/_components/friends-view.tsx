@@ -40,6 +40,7 @@ export function FriendsView() {
   const backend = useBackend();
   const [tab, setTab] = useState<TabId>("friends");
   const [lists, setLists] = useState<Lists | null>(null);
+  const [onlineIds, setOnlineIds] = useState<Set<string>>(() => new Set());
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -57,6 +58,15 @@ export function FriendsView() {
         following: following.users,
         followers: followers.users,
       });
+      // Presence is best-effort — never fail the list over it.
+      backend.presence
+        .list()
+        .then((p) =>
+          setOnlineIds(
+            new Set(p.entries.filter((e) => e.online).map((e) => e.userId)),
+          ),
+        )
+        .catch(() => {});
     } catch (err) {
       if (err instanceof BackendError && err.code === "UNAUTHORIZED") {
         setError("Sign in to see your friends.");
@@ -140,6 +150,7 @@ export function FriendsView() {
             loading={loading}
             error={error}
             relationshipFor={relationshipFor}
+            onlineIds={onlineIds}
             onChange={() => void load()}
           />
         </>
@@ -198,6 +209,7 @@ function ListBody({
   loading,
   error,
   relationshipFor,
+  onlineIds,
   onChange,
 }: {
   tab: TabId;
@@ -205,6 +217,7 @@ function ListBody({
   loading: boolean;
   error: string | null;
   relationshipFor: (userId: string) => FriendRelationship;
+  onlineIds: Set<string>;
   onChange: () => void;
 }) {
   if (error) {
@@ -236,6 +249,7 @@ function ListBody({
           <FriendRow
             user={u}
             relationship={relationshipFor(u.userId)}
+            online={onlineIds.has(u.userId)}
             onChange={onChange}
           />
         </li>

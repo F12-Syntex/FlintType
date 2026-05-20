@@ -121,10 +121,15 @@ const SCHEMA_DDL = `
   );
   CREATE INDEX IF NOT EXISTS duels_opponent_idx ON duels (opponent_id, created_at);
   CREATE INDEX IF NOT EXISTS duels_challenger_idx ON duels (challenger_id, created_at);
+  CREATE TABLE IF NOT EXISTS presence (
+    user_id       text PRIMARY KEY,
+    last_seen_at  timestamp NOT NULL DEFAULT now(),
+    status        text NOT NULL DEFAULT 'online'
+  );
 `;
 
 const TRUNCATE_ALL = `
-  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, word_models, tests, notifications, users, follows, blocks, duels RESTART IDENTITY;
+  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, word_models, tests, notifications, users, follows, blocks, duels, presence RESTART IDENTITY;
 `;
 
 /** PGlite's parse-message path rejects multi-statement queries, so we

@@ -10,6 +10,7 @@ import { leaderboard } from './routes/leaderboard';
 import { monkeytype } from './routes/monkeytype';
 import { notifications } from './routes/notifications';
 import { prefs } from './routes/prefs';
+import { presence } from './routes/presence';
 import { profile } from './routes/profile';
 import { race } from './routes/race';
 import { share } from './routes/share';
@@ -27,6 +28,7 @@ export const router = defineNamespace({
     leaderboard,
     monkeytype,
     notifications,
+    presence,
     profile,
     race,
     share,

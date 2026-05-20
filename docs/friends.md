@@ -39,7 +39,7 @@ _(Later steps add: duel/run-snapshot tables (Step 7); presence + live-session st
 | 5 | Head-to-head profile compare | ✅ done |
 | 6 | Activity feed (PB fan-out to followers) | ✅ done |
 | 7 | Async ghost duels ("beat my run") | ✅ done |
-| 8 | Presence (online / rich status) | ⬜ |
+| 8 | Presence (online / rich status) | ✅ done |
 | 9 | Live solo-practice spectate | ⬜ |
 
 Each step: tests-first, `yarn test` + `yarn tsc --noEmit` green, a dedicated agentic verification pass, then commit.
@@ -92,3 +92,8 @@ Each step: tests-first, `yarn test` + `yarn tsc --noEmit` green, a dedicated age
 - **No live infra:** a duel is pure request/response. The opponent races a ghost cursor integrated from the challenger's trace.
 - **`DuelTyper`** (`app/duel/_components/`) — self-contained typing surface (decoupled from the adaptive engine): hidden-input capture, gross WPM/accuracy, per-second sampling, ghost pacing. The cumulative-char math is a pure, tested helper (`ghost.ts` + `ghost.test.ts`) — samples are cumulative averages, mapped (not re-integrated) to char positions.
 - **Flow:** challenger sets the run at `/duel/new?opponent=<id>` (Duel button on a mutual friend's profile) → opponent races at `/duel/<id>` → `<DuelOutcome>` scoreboard (winner by weight, net WPM). `/duels` lists incoming/outgoing; linked from `/friends`; notifications deep-link to the duel.
+
+### Step 8 — Presence (who's online)
+- **DB-backed**, not in-memory on the race authority: presence keys on the authenticated Clerk userId (which the authority can't see), and a shared `presence` table (migration `0010`) is correct across Vercel instances. "Online" is derived at read time (lastSeenAt within `ONLINE_WINDOW_MS` = 60s, 2× the heartbeat), so a closed tab needs no goodbye.
+- **Routes:** `presence` namespace (auth) — `heartbeat({status?})` upsert; `list()` returns presence for the people the caller **follows** only (privacy: you don't see strangers' status). Repo `presenceRepo` (heartbeat upsert / getForUsers).
+- **Client:** `<PresenceHeartbeat>` mounted once in `providers.tsx` posts a heartbeat every 30s while a signed-in tab is visible (paused when hidden, errors swallowed). The friends list shows a green `bg-ft-ok` online dot (with `aria-label`) on followed users currently online.

@@ -11,6 +11,7 @@ import { AppearanceApplier } from "./appearance-applier";
 import { BackgroundApplier } from "./background-applier";
 import { BordersApplier } from "./borders-applier";
 import { FocusShortcut } from "./focus-shortcut";
+import { PresenceHeartbeat } from "./_components/presence-heartbeat";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -26,6 +27,9 @@ export function Providers({ children }: { children: ReactNode }) {
         <BordersApplier />
         <AppearanceApplier />
         <FocusShortcut />
+        {/* Global presence heartbeat — marks the signed-in user online
+            for their friends. Self-mounting, renders nothing. */}
+        <PresenceHeartbeat />
         {/* delayDuration 300ms feels responsive without firing on
             casual mouse-overs; skipDelayDuration 100ms gives the
             Monkeytype-style "fly between adjacent chips and the
