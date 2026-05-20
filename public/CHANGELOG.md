@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.77.9 — 20 May 2026
+- Internal groundwork for an upcoming friends system (nothing user-facing yet).
+
 ## 6.77.8 — 20 May 2026
 - The changelog page has a cleaner timeline layout, with each version's number and date pinned beside its changes as you scroll.
 

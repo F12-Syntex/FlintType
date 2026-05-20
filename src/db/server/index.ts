@@ -19,6 +19,8 @@ import {
 import { testsRepo, type TestsRepo } from './repositories/tests';
 import { userPrefsRepo, type UserPrefsRepo } from './repositories/user-prefs';
 import { usersRepo, type UsersRepo } from './repositories/users';
+import { followsRepo, type FollowsRepo } from './repositories/follows';
+import { blocksRepo, type BlocksRepo } from './repositories/blocks';
 
 export type Database = {
   userPrefs: UserPrefsRepo;
@@ -29,6 +31,8 @@ export type Database = {
   wordModels: WordModelsRepo;
   tests: TestsRepo;
   notifications: NotificationsRepo;
+  follows: FollowsRepo;
+  blocks: BlocksRepo;
   $drizzle: ServerDrizzle;
 };
 
@@ -42,6 +46,8 @@ export function createDatabase(drizzle: ServerDrizzle): Database {
     wordModels: wordModelsRepo(drizzle),
     tests: testsRepo(drizzle),
     notifications: notificationsRepo(drizzle),
+    follows: followsRepo(drizzle),
+    blocks: blocksRepo(drizzle),
     $drizzle: drizzle,
   };
 }

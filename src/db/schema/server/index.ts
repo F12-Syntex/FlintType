@@ -6,3 +6,5 @@ export * from "./tests";
 export * from "./word-models";
 export * from "./notifications";
 export * from "./users";
+export * from "./follows";
+export * from "./blocks";

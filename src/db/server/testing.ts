@@ -90,10 +90,23 @@ const SCHEMA_DDL = `
     created_at      timestamp NOT NULL DEFAULT now(),
     og_granted_at   timestamp
   );
+  CREATE TABLE IF NOT EXISTS follows (
+    follower_id   text NOT NULL,
+    followee_id   text NOT NULL,
+    created_at    timestamp NOT NULL DEFAULT now(),
+    PRIMARY KEY (follower_id, followee_id)
+  );
+  CREATE INDEX IF NOT EXISTS follows_followee_idx ON follows (followee_id);
+  CREATE TABLE IF NOT EXISTS blocks (
+    blocker_id    text NOT NULL,
+    blocked_id    text NOT NULL,
+    created_at    timestamp NOT NULL DEFAULT now(),
+    PRIMARY KEY (blocker_id, blocked_id)
+  );
 `;
 
 const TRUNCATE_ALL = `
-  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, word_models, tests, notifications, users RESTART IDENTITY;
+  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, word_models, tests, notifications, users, follows, blocks RESTART IDENTITY;
 `;
 
 /** PGlite's parse-message path rejects multi-statement queries, so we
