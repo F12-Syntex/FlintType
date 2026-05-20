@@ -141,6 +141,9 @@ describe("history routes", () => {
       { db: ctx.db },
     );
     expect(out.recentTests).toEqual([]);
+    // The summary identifies its subject so the profile hero can
+    // resolve the follow relationship for a visitor.
+    expect(out.subjectUserId).toBe("u2");
   });
 
   it("returns the subject's MT slice on summary, stripped of the encrypted Ape Key", async () => {

@@ -4,6 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BackendError, useBackend } from "@/lib/backend";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
+import type { FriendRelationship, FriendStats } from "@/types/friends";
 import type { HistorySummaryOutput } from "@/types/history";
 import type { MonkeytypeStatsSlice } from "@/types/monkeytype";
 import { ActivityHeatmap } from "./activity-heatmap";
@@ -45,6 +46,10 @@ export function ProfileView({ username }: { username?: string }) {
   const [loading, setLoading] = useState(true);
   const [importOpen, setImportOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
+  const [friendStats, setFriendStats] = useState<FriendStats | null>(null);
+  const [relationship, setRelationship] = useState<FriendRelationship | null>(
+    null,
+  );
 
   useEffect(() => {
     if (isOwner == null) return;
@@ -78,6 +83,38 @@ export function ProfileView({ username }: { username?: string }) {
       cancelled = true;
     };
   }, [backend, isOwner, username]);
+
+  // Friend data — counts for everyone, relationship only for visitors.
+  // The friends routes require auth, so anonymous viewers get neither
+  // (they see the profile without follow chrome).
+  const subjectUserId = snapshot?.subjectUserId ?? null;
+  useEffect(() => {
+    if (!subjectUserId || !user) {
+      setFriendStats(null);
+      setRelationship(null);
+      return;
+    }
+    let cancelled = false;
+    backend.friends
+      .stats({ userId: subjectUserId })
+      .then((s) => {
+        if (!cancelled) setFriendStats(s);
+      })
+      .catch(() => {});
+    if (isOwner === false) {
+      backend.friends
+        .relationship({ userId: subjectUserId })
+        .then((r) => {
+          if (!cancelled) setRelationship(r);
+        })
+        .catch(() => {});
+    } else {
+      setRelationship(null);
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [backend, subjectUserId, isOwner, user]);
 
   const tests = snapshot?.recentTests ?? [];
   const subjectMtSlice = snapshot?.monkeytype ?? null;
@@ -163,6 +200,9 @@ export function ProfileView({ username }: { username?: string }) {
         isMtConnected={isMtConnected}
         onOpenMt={heroIsOwner ? onOpenMt : undefined}
         subjectAvatarUrl={snapshot?.subjectAvatarUrl ?? null}
+        subjectUserId={subjectUserId}
+        friendStats={friendStats}
+        relationship={relationship}
       />
 
       {error ? (

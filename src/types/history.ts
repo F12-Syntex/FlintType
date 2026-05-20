@@ -85,6 +85,11 @@ export type HistorySummaryOutput = {
    *  `publicProfile` (subject avatar visible to visitors) so the hero
    *  doesn't have to round-trip Clerk for someone else's photo. */
   subjectAvatarUrl: string | null;
+  /** Subject's Clerk user id (`user_…`). Exposed so the profile hero
+   *  can resolve the follow relationship + friend counts for a
+   *  visitor without a username→id round-trip. Safe to ship — it's
+   *  already the public profile-link fallback slug. */
+  subjectUserId: string;
   /** Subject's lifetime counters that contribute to the XP/level
    *  total beyond the test-row count — drills completed, races
    *  finished + won. Read from the user-prefs blob. Returned for

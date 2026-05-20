@@ -9,8 +9,10 @@ import {
   Pencil,
   User as UserIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
-import { UserTag } from "@/components/ft";
+import { Tag, UserTag } from "@/components/ft";
+import { FollowButton } from "@/components/follow-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import type { FriendRelationship, FriendStats } from "@/types/friends";
 import type { UserTagId } from "@/types/user-tag";
 import type { ProfileTotals, StreakStats } from "./derive-stats";
 import { EditProfileDialog } from "./edit-profile-dialog";
@@ -43,6 +46,9 @@ export function ProfileHero({
   isMtConnected = false,
   onOpenMt,
   subjectAvatarUrl = null,
+  subjectUserId = null,
+  friendStats = null,
+  relationship = null,
 }: {
   username?: string;
   isOwner: boolean;
@@ -51,6 +57,15 @@ export function ProfileHero({
   onTagsChanged?: (next: UserTagId[]) => void;
   totals: ProfileTotals;
   streak: StreakStats;
+  /** Subject's Clerk id — drives the follow button + friend counts. */
+  subjectUserId?: string | null;
+  /** Follower / following / friend counts for the subject. Null until
+   *  resolved or for anonymous viewers (the friends routes need auth). */
+  friendStats?: FriendStats | null;
+  /** The viewer↔subject relationship — present only when a signed-in
+   *  visitor views someone else's profile. Drives the follow button +
+   *  "follows you" badge. */
+  relationship?: FriendRelationship | null;
   /** True when the owner has a stored MonkeyType Ape Key. Drives the
    *  kebab item's label ("MonkeyType" → manage / "Import" → connect). */
   isMtConnected?: boolean;
@@ -120,6 +135,7 @@ export function ProfileHero({
               {tags.map((t) => (
                 <UserTag key={t} tag={t} size="sm" />
               ))}
+              {relationship?.followedBy ? <Tag tone="dim">Follows you</Tag> : null}
             </div>
             {handle || joined ? (
               <p className="truncate text-[11px] tracking-[0.04em] text-muted-foreground">
@@ -127,6 +143,9 @@ export function ProfileHero({
                   .filter(Boolean)
                   .join(" · ")}
               </p>
+            ) : null}
+            {friendStats ? (
+              <FriendCounts stats={friendStats} isOwner={isOwner} />
             ) : null}
             <LevelLockup totals={totals} />
           </div>
@@ -136,10 +155,14 @@ export function ProfileHero({
          *  a 2×2 grid; md+ keeps them on one row separated only by
          *  generous gap so each cell reads as its own column. */}
         <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4 sm:gap-x-6 md:flex md:flex-none md:items-baseline md:gap-x-10">
+          {/* On a visitor's view the Follow CTA is the single coral
+           *  spark (§2), so the stat values drop to ink — coral accents
+           *  here are reserved for the owner's own profile, which has
+           *  no follow button to compete with. */}
           <StatCell
             label="Tests"
             value={NUM_FMT.format(totals.testsCompleted)}
-            accent
+            accent={isOwner}
           />
           <StatCell
             label="Time typing"
@@ -153,13 +176,13 @@ export function ProfileHero({
                 ? `${totals.bestWpmAccuracy.toFixed(1)}%`
                 : undefined
             }
-            accent
+            accent={isOwner}
           />
           <StatCell
             label="Streak"
             value={`${streak.current}`}
             suffix="d"
-            accent={streak.current > 0}
+            accent={isOwner && streak.current > 0}
             sub={streak.longest > 0 ? `${streak.longest}d best` : undefined}
           />
         </div>
@@ -171,6 +194,15 @@ export function ProfileHero({
             onOpenMt={onOpenMt ?? (() => undefined)}
             onSignOut={() => void signOut({ redirectUrl: "/" })}
           />
+        ) : relationship && subjectUserId ? (
+          <div className="md:self-start">
+            <FollowButton
+              userId={subjectUserId}
+              initial={relationship}
+              menu
+              handle={handle}
+            />
+          </div>
         ) : null}
       </div>
 
@@ -225,6 +257,46 @@ function StatCell({
       ) : null}
     </div>
   );
+}
+
+/** Compact follower / following / friend line under the handle.
+ *  Tabular-nums counts in ink, labels muted. For the owner the whole
+ *  line links to /friends; visitors see it as static text. */
+function FriendCounts({
+  stats,
+  isOwner,
+}: {
+  stats: FriendStats;
+  isOwner: boolean;
+}) {
+  const parts: { n: number; label: string }[] = [
+    { n: stats.friends, label: stats.friends === 1 ? "friend" : "friends" },
+    { n: stats.followers, label: "followers" },
+    { n: stats.following, label: "following" },
+  ];
+  const inner = (
+    <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+      {parts.map((p) => (
+        <span key={p.label} className="text-[11px] text-muted-foreground">
+          <span className="font-semibold tabular-nums text-foreground">
+            {NUM_FMT.format(p.n)}
+          </span>{" "}
+          {p.label}
+        </span>
+      ))}
+    </span>
+  );
+  if (isOwner) {
+    return (
+      <Link
+        href="/friends"
+        className="w-fit rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
+        {inner}
+      </Link>
+    );
+  }
+  return inner;
 }
 
 function LevelLockup({ totals }: { totals: ProfileTotals }) {

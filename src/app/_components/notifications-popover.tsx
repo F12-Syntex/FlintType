@@ -1,6 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
+import { Check } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBackend } from "@/lib/backend";
@@ -10,6 +11,8 @@ import type {
   Notification,
   PersonalBestData,
   AnnouncementData,
+  FollowNotificationData,
+  MutualNotificationData,
 } from "@/types/notification";
 
 /** Bell + popover. Reads the live feed from
@@ -226,9 +229,15 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
 }
 
 function Row({ item, dark }: { item: Notification; dark: boolean }) {
-  const accent = item.kind === "personal_best";
+  const accent = item.kind === "personal_best" || item.kind === "mutual";
   const unread = item.readAtMs == null;
-  const href = isAnnouncement(item) ? item.data?.href : undefined;
+  const href = isAnnouncement(item)
+    ? item.data?.href
+    : isFollowNotification(item)
+      ? `/profile/${item.data.followerUsername ?? item.data.followerId}`
+      : isMutualNotification(item)
+        ? `/profile/${item.data.friendUsername ?? item.data.friendId}`
+        : undefined;
   const body = (
     <div className="flex items-start gap-3 px-4 py-3">
       <span
@@ -277,6 +286,11 @@ function Row({ item, dark }: { item: Notification; dark: boolean }) {
         {item.kind === "og_granted" ? (
           <span className="mt-1.5 inline-flex">
             <UserTag tag="og" size="sm" />
+          </span>
+        ) : null}
+        {item.kind === "mutual" ? (
+          <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
+            <Check size={12} aria-hidden /> Friends
           </span>
         ) : null}
       </div>
@@ -346,6 +360,22 @@ function isPersonalBest(n: Notification): n is Notification & {
   if (n.kind !== "personal_best") return false;
   if (n.data == null || typeof n.data !== "object") return false;
   return "wpm" in (n.data as Record<string, unknown>);
+}
+
+function isFollowNotification(n: Notification): n is Notification & {
+  data: FollowNotificationData;
+} {
+  if (n.kind !== "follow") return false;
+  if (n.data == null || typeof n.data !== "object") return false;
+  return "followerId" in (n.data as Record<string, unknown>);
+}
+
+function isMutualNotification(n: Notification): n is Notification & {
+  data: MutualNotificationData;
+} {
+  if (n.kind !== "mutual") return false;
+  if (n.data == null || typeof n.data !== "object") return false;
+  return "friendId" in (n.data as Record<string, unknown>);
 }
 
 function formatRelative(ms: number): string {

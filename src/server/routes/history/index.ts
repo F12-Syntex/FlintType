@@ -178,6 +178,7 @@ async function loadHistorySummary(
     tags,
     eligibleTags,
     subjectAvatarUrl,
+    subjectUserId: userId,
     lifetimeStats: readLifetimeStats(prefsBlob),
   };
 }

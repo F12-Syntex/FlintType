@@ -34,7 +34,7 @@ _(Later steps add: duel/run-snapshot tables (Step 7); presence + live-session st
 |---|---|---|
 | 1 | Friend-graph data layer (schema, repos, repo tests, wiring, migration) | ✅ done |
 | 2 | Friend-graph backend routes (`friends` namespace + notification kinds) | ✅ done |
-| 3 | Friend-graph UI (follow button, friends page, profile/leaderboard integration) | ⬜ |
+| 3 | Friend-graph UI (follow button, friends page, profile/leaderboard integration) | ✅ done |
 | 4 | Friends-scoped leaderboard | ⬜ |
 | 5 | Head-to-head profile compare | ⬜ |
 | 6 | Activity feed (PB fan-out to followers) | ⬜ |
@@ -61,3 +61,11 @@ Each step: tests-first, `yarn test` + `yarn tsc --noEmit` green, a dedicated age
 - **Notifications:** new `follow` (dedupe `follow:<me>`) and `mutual` (dedupe `mutual:<sorted-pair>`, fired to both users) kinds added to `src/types/notification.ts`. Side-effects fire only on a newly-created edge — idempotent re-follows are silent. Renderers for these kinds land in Step 3.
 - **Shared helper:** `src/server/user-display.ts` `resolveUserDisplays(db, ids)` — bulk Clerk fetch + tag resolution (the leaderboard's inline block, extracted for reuse; hardened against partial Clerk shapes). `relationship.ts` holds `relationshipOf` / `toFriendUsers` read-model builders.
 - **Tests:** `friends/index.test.ts` (R8 matrix: happy/validation/auth/domain + fan-out idempotency, block invariant, list filtering) and `user-display.test.ts` (fallback chain, unresolved-id omission, tag selection).
+
+### Step 3 — Friend-graph UI
+- **`<FollowButton>`** (`src/components/follow-button.tsx`) — the one reusable relationship control. State→treatment + the single-coral-spark rule documented in `docs/ui-law.md` §17. Self-contained optimistic state via `useAsyncAction`; Block/Unblock in an adjacent kebab.
+- **`/friends`** (`src/app/friends/`) — segmented Friends / Following / Followers tabs; loads all three lists once and computes follow-back state locally (no per-row relationship call). Editorial empty states; `noIndex` (signed-in-only, off sitemap/llms).
+- **Profile hero** — non-owners get the Follow button + "Follows you" badge + a follower/following/friend count line (links to /friends for the owner). Needed `subjectUserId` on the history payload (`src/types/history.ts` + handler); visitor stat cells drop to ink so the Follow CTA is the lone spark.
+- **Notifications** — `follow` / `mutual` renderer arms + profile links in `notifications-popover.tsx`; `mutual` carries the same quiet coral check as the button.
+- **Nav** — "Friends" added to the app nav (`app-chrome.tsx`).
+- Verified: `yarn tsc` clean, `yarn build` compiles `/friends`, full suite green. Components are browser-tested per ui-law §1.3 (no unit tests).

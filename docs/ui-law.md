@@ -760,12 +760,39 @@ Edit `src/lib/command-palette/use-command-entries.ts`. Every entry is one of fou
 - **Don't** add ambient open/close animation beyond the standard Radix Dialog fade + zoom shadcn ships with (data-state classes from `tw-animate-css`). The palette is high-frequency keyboard chrome; a custom Framer transition would just add latency.
 - **Don't** mount a second palette anywhere. If a page needs its own searchable command surface (e.g. a per-page "pick a passage"), build it as a local `Command` instance — not a second Cmd+K palette.
 
-## 17. Amending this document
+## 17. Social & friend controls
+
+The friends system introduces reusable relationship affordances. They reuse existing semantic tokens (§2.1) — the only new convention is *which state maps to which treatment*, so the one coral spark rule (§2) holds across every surface a follow control appears on.
+
+### 17.1 `<FollowButton>` (`src/components/follow-button.tsx`)
+
+The single relationship control, reused on profile heroes and friends-list rows. State → treatment:
+
+| State | Treatment | Rationale |
+|---|---|---|
+| not following | shadcn `Button` default (`bg-primary`) — "Follow" | The one coral CTA: the move we want the viewer to make. |
+| `followedBy && !following` | default (`bg-primary`) — "Follow back" | Still the action we want; still coral. |
+| `following && !mutual` | `variant="outline"` — "Following", hover swaps to "Unfollow" in `text-destructive` | Established; drops out of coral so it stops competing with any live CTA. |
+| `mutual` (friends) | `variant="outline"` — coral `Check` glyph + "Friends", hover swaps to "Unfollow" | The friendship is marked by a *small* coral check only, never a filled coral surface. |
+| `blocking` | `variant="outline"`, `text-muted-foreground` — "Blocked" → click unblocks | Quiet; a block is not a brand moment. |
+| `blockedBy` | renders nothing | No affordance toward someone who blocked you. |
+
+Rules: **at most one filled `bg-primary` follow control per view** (the Follow / Follow back CTA). Once connected, the control is always `outline`. Block / Unblock lives in an adjacent `⋯` `DropdownMenu` (set `menu`), never a modal. Loading disables the trigger and relabels it ("Following…"); errors render as a `text-destructive` line below (§6.3). `size="default"` on profile (the stacked CTA), `size="sm"` in dense rows.
+
+### 17.2 Segmented list tabs
+
+Friend lists (Friends / Following / Followers) switch via a segmented control built from the existing `rounded-md` + `bg-muted/40` track idiom: active segment is `bg-background text-foreground shadow-sm`, inactive is `text-muted-foreground hover:text-foreground`. Counts ride inline in `tabular-nums text-muted-foreground`. Same visual family as the mode-bar — don't invent a second tab style.
+
+### 17.3 Empty-state copy
+
+List empty states use a single dashed-border card (`border-dashed border-border bg-card/40`) with one plain sentence that names the next action ("You're not following anyone yet. Find people on the leaderboard and follow them."). No em dashes, no restated headings.
+
+## 18. Amending this document
 
 When you introduce a new pattern:
 
 1. Open this file.
-2. Add a row to the matching table (§2 color, §3 spacing, §4 typography, §5 layout, §12 settings, §13 animation, §14 identity marks, §15 minimisation knobs, §16 command palette) **or** a new section with the next sequential number.
+2. Add a row to the matching table (§2 color, §3 spacing, §4 typography, §5 layout, §12 settings, §13 animation, §14 identity marks, §15 minimisation knobs, §16 command palette, §17 social controls) **or** a new section with the next sequential number.
 3. Include a one-line rationale — why this pattern, what problem it solves.
 4. Commit the doc change **in the same commit** as the code using it.
 5. From that commit forward, all UI must follow the new rule.
