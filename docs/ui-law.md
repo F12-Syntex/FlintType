@@ -799,15 +799,18 @@ List empty states use a single dashed-border card (`border-dashed border-border 
 
 Don't invent a second "live"/"recording" badge for the broadcaster. A *spectatable friend who is currently broadcasting* is marked separately in the friends hub (§17.5); this chip is strictly the broadcaster's own consent state.
 
-### 17.5 Friends hub — presence-first, full-fidelity (`/friends`)
+### 17.5 Friends hub — a social activity page (`/friends`)
 
-The friends hub (`src/app/friends/_components/`) is a **presence-first** surface and the one place flinttype runs avatars + motion at full fidelity (an explicit product call, sanctioned here so the rest of the app stays avatar-free and still). Information hierarchy, top to bottom:
+The friends hub (`src/app/friends/_components/`) is a **social page**: an activity feed is the spine, relationship management sits beside it. It's the one place flinttype runs avatars at full fidelity (an explicit product call, so the rest of the app stays avatar-free). Layout: a full-width header, then a two-column grid on `lg:` (`grid-cols-[1fr_340px]`) — **feed left, People rail right**; on mobile a segmented **Activity / People** toggle swaps the two. Everything is **inline — no popups** (the earlier docked bottom-sheet was wrong on desktop and is gone; do not reintroduce a sheet for the people list).
 
-1. **`Live now`** (`presence-sections.tsx` → `LiveNow`) — mutual friends currently broadcasting (from `live.friendsLive`). The eyebrow dot is the pulsing coral spark. Each row is the **watch trigger** (the whole row links to `/live/<userId>`, hover `bg-accent`), carrying the avatar (`status="live"`), handle + tags, a coral mini progress bar + live WPM, and an `Eye`+"Watch" affordance. The CTA is the row itself, not a filled button, so N live friends don't paint N coral buttons (honours §17.1's one-filled-spark rule). Always shown; a slim muted sentence stands in when nobody's live (never a big empty card).
-2. **`Online`** (`OnlineNow`) — people you follow who are online but not live (`presence.list` ∩ following, minus the live set). Compact chips (avatar `status="online"` + handle + tags) linking to the profile, glance-only. Hidden entirely when none, so the hub never stacks two empty cards.
-3. **`Directory`** (`directory.tsx`) — the full graph, tucked into an in-flow docked bar (avatar stack + count + chevron) that springs open into a portalled bottom sheet (mirrors `<MobileSheet>` chrome: grab handle, `bg-foreground/45` backdrop, `rounded-t-2xl`) with the Friends / Following / Followers segmented control (§17.2), a search field, and `FriendListRow`s carrying the full `<FollowButton menu>` management. The sheet shows on every viewport (not just mobile) and uses the §13 motion exception.
+Feed column, top to bottom:
+1. **`Live now`** (`presence-sections.tsx` → `LiveNow`) — mutual friends currently broadcasting (`live.friendsLive`). Eyebrow dot is the pulsing coral spark. Each row is the **watch trigger** (whole row links to `/live/<userId>`, hover `bg-accent`): avatar (`status="live"`), handle + tags, a coral mini progress bar + live WPM, and an `Eye`+"Watch" affordance. The CTA is the row, not a filled button, so N live friends don't paint N coral sparks (§17.1). Always shown; a slim muted sentence stands in when nobody's live.
+2. **`Online`** (`OnlineNow`) — people you follow who are online but not live. Compact avatar chips linking to the profile. Hidden when none.
+3. **`Activity`** (`feed.tsx` → `ActivityFeed`) — the timeline, newest first, built from `notifications.list` (friends' PBs, duels, follows, your milestones). A **divided list** (hairline `border-b`, not a card grid — avoids the identical-card-grid ban): kind icon (lucide) + the baked `title`/`body` + relative time; rows with a destination are links; unread carry a quiet coral dot. Skeleton rows while loading; dashed-border empty (§17.3).
 
-Rows: directory rows (`friend-list-row.tsx`) and presence rows are the avatar-`group` that livens the avatar on hover. Empty/loading: a skeleton (avatar circle + text bars, not a spinner) on first load; a single dashed-border CTA card (§17.3) when the whole graph is empty. Don't reintroduce a dedicated `/live` broadcast page — broadcasting is ambient (§17.4) and watching is reached from this hub.
+People rail (`people-panel.tsx`) — Friends / Following / Followers segmented control (§17.2) + search + `FriendListRow`s with the full `<FollowButton menu>` management. Rendered inline (sticky rail on desktop, the "People" tab on mobile).
+
+Rows (`friend-list-row.tsx`) + presence rows are the avatar-`group` that livens the avatar on hover. Don't reintroduce a dedicated `/live` broadcast page — broadcasting is ambient (§17.4) and watching is reached from this hub.
 
 ## 18. Amending this document
 

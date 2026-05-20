@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.88.0 — 20 May 2026
+- The Friends page is now a social feed. A timeline shows what your friends are up to, who's typing live, their personal bests, duels, and new friendships, with your friends, following, and followers list right beside it. On desktop the list sits inline next to the feed instead of behind a pop-up panel.
+
 ## 6.87.0 — 20 May 2026
 - Live spectating is now on by default, so mutual friends can watch you practise without you flipping a switch. While you type, your screen now shows who's currently watching ("ada is spectating", "3 people are spectating") instead of a static badge. You can still turn it off entirely, or keep specific friends out, in Customise → Behaviour → Live spectating.
 

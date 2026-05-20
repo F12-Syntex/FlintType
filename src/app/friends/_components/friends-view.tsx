@@ -5,14 +5,15 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Tag } from "@/components/ft";
 import { BackendError, useBackend } from "@/lib/backend";
+import { cn } from "@/lib/utils";
 import type { FriendRelationship, FriendUser } from "@/types/friends";
 import type { LiveFriend } from "@/types/live";
-import { Directory } from "./directory";
+import type { Notification } from "@/types/notification";
+import { ActivityFeed } from "./feed";
+import { PeoplePanel } from "./people-panel";
 import { LiveNow, OnlineNow } from "./presence-sections";
 
-/** How often "who's live / online" refreshes. Live snapshots age out at
- *  6s server-side, so a 5s poll keeps the section honest; the friend
- *  lists themselves change rarely and load once (and on follow change). */
+/** Who's-live / online refresh cadence (live snapshots age out at 6s). */
 const POLL_MS = 5_000;
 
 type Lists = {
@@ -20,19 +21,22 @@ type Lists = {
   following: FriendUser[];
   followers: FriendUser[];
 };
+type MobileView = "activity" | "people";
 
-/** /friends — a presence-first hub. "Live now" (watch a friend type) and
- *  "Online" sit up top; the full graph lives in a docked Directory that
- *  springs open. Lists load once and follow-back state is computed
- *  locally from set membership (no per-row relationship call). */
+/** /friends — a social page. The spine is an activity feed (who's live,
+ *  friends' PBs, duels, new friendships); relationship management lives
+ *  in an inline People panel (a desktop rail, a mobile tab). No popups. */
 export function FriendsView() {
   const { isSignedIn, isLoaded } = useUser();
   const backend = useBackend();
   const [lists, setLists] = useState<Lists | null>(null);
+  const [feed, setFeed] = useState<Notification[]>([]);
+  const [feedLoading, setFeedLoading] = useState(true);
   const [live, setLive] = useState<LiveFriend[]>([]);
   const [onlineIds, setOnlineIds] = useState<Set<string>>(() => new Set());
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<MobileView>("activity");
 
   const loadLists = useCallback(async () => {
     setError(null);
@@ -58,7 +62,14 @@ export function FriendsView() {
     }
   }, [backend]);
 
-  // Presence + live poll — best-effort, never surfaces an error.
+  const loadFeed = useCallback(() => {
+    backend.notifications
+      .list()
+      .then((r) => setFeed(r.items))
+      .catch(() => {})
+      .finally(() => setFeedLoading(false));
+  }, [backend]);
+
   const pollPresence = useCallback(() => {
     backend.live
       .friendsLive()
@@ -81,13 +92,15 @@ export function FriendsView() {
     if (!isLoaded) return;
     if (!isSignedIn) {
       setLoading(false);
+      setFeedLoading(false);
       return;
     }
     void loadLists();
+    loadFeed();
     pollRef.current();
     const id = window.setInterval(() => pollRef.current(), POLL_MS);
     return () => window.clearInterval(id);
-  }, [isLoaded, isSignedIn, loadLists]);
+  }, [isLoaded, isSignedIn, loadLists, loadFeed]);
 
   const followingIds = useMemo(
     () => new Set((lists?.following ?? []).map((u) => u.userId)),
@@ -97,7 +110,6 @@ export function FriendsView() {
     () => new Set((lists?.followers ?? []).map((u) => u.userId)),
     [lists],
   );
-
   const relationshipFor = useCallback(
     (userId: string): FriendRelationship => {
       const following = followingIds.has(userId);
@@ -114,8 +126,6 @@ export function FriendsView() {
     [followingIds, followerIds],
   );
 
-  // Online = followed + online, minus anyone already shown as live, so a
-  // friend never appears in both presence rows.
   const liveIds = useMemo(() => new Set(live.map((u) => u.userId)), [live]);
   const onlineUsers = useMemo(
     () =>
@@ -125,22 +135,17 @@ export function FriendsView() {
     [lists, onlineIds, liveIds],
   );
 
-  const emptyGraph =
-    lists != null &&
-    lists.friends.length === 0 &&
-    lists.following.length === 0 &&
-    lists.followers.length === 0;
-
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-7 px-1 py-6 sm:gap-9 sm:py-10">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-7 px-1 py-6 sm:gap-8 sm:py-10">
       <header className="flex flex-col gap-2">
         <Tag tone="dim">Friends</Tag>
         <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           People you type with
         </h1>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          Follow anyone to keep tabs on their runs. Follow each other to become
-          friends and unlock duels and live spectating.
+        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          Who's typing right now, your friends' personal bests and duels, and
+          everyone you follow. Follow each other to become friends and unlock
+          duels and live spectating.
         </p>
         <Link
           href="/duels"
@@ -158,31 +163,92 @@ export function FriendsView() {
         </p>
       ) : loading && !lists ? (
         <LoadingSkeleton />
-      ) : emptyGraph ? (
-        <EmptyGraph />
       ) : (
         <>
-          <LiveNow users={live} />
-          <OnlineNow users={onlineUsers} />
-          {lists ? (
-            <Directory
-              lists={lists}
-              relationshipFor={relationshipFor}
-              onlineIds={onlineIds}
-              onChange={() => void loadLists()}
-            />
-          ) : null}
+          <MobileTabs view={view} onView={setView} />
+          <div className="lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-8">
+            <div
+              className={cn(
+                "flex flex-col gap-7",
+                view === "people" && "hidden lg:flex",
+              )}
+            >
+              <LiveNow users={live} />
+              <OnlineNow users={onlineUsers} />
+              <section className="flex flex-col gap-3">
+                <Eyebrow>Activity</Eyebrow>
+                <ActivityFeed items={feed} loading={feedLoading} />
+              </section>
+            </div>
+            <aside
+              className={cn(
+                "mt-7 lg:mt-0",
+                view === "activity" && "hidden lg:block",
+              )}
+            >
+              <div className="flex flex-col gap-3 lg:sticky lg:top-6">
+                <Eyebrow>People</Eyebrow>
+                {lists ? (
+                  <PeoplePanel
+                    lists={lists}
+                    relationshipFor={relationshipFor}
+                    onlineIds={onlineIds}
+                    onChange={() => void loadLists()}
+                  />
+                ) : null}
+              </div>
+            </aside>
+          </div>
         </>
       )}
     </main>
   );
 }
 
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+      {children}
+    </span>
+  );
+}
+
+function MobileTabs({
+  view,
+  onView,
+}: {
+  view: MobileView;
+  onView: (v: MobileView) => void;
+}) {
+  return (
+    <div className="flex gap-1 rounded-md border border-border bg-muted/40 p-1 lg:hidden">
+      {(["activity", "people"] as const).map((v) => {
+        const active = v === view;
+        return (
+          <button
+            key={v}
+            type="button"
+            onClick={() => onView(v)}
+            aria-pressed={active}
+            className={cn(
+              "flex-1 rounded-md px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors",
+              active
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {v === "activity" ? "Activity" : "People"}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function LoadingSkeleton() {
   return (
     <div className="flex flex-col gap-3" aria-hidden>
-      <span className="h-2.5 w-20 rounded-full bg-muted" />
-      {[0, 1, 2].map((i) => (
+      {[0, 1, 2, 3].map((i) => (
         <div
           key={i}
           className="flex items-center gap-3 rounded-md border border-border bg-card px-3 py-2.5"
@@ -194,23 +260,6 @@ function LoadingSkeleton() {
           </span>
         </div>
       ))}
-    </div>
-  );
-}
-
-function EmptyGraph() {
-  return (
-    <div className="flex flex-col items-start gap-3 rounded-md border border-dashed border-border bg-card/40 px-4 py-10">
-      <p className="text-sm text-muted-foreground">
-        You're not following anyone yet. Find fast typists on the leaderboard
-        and follow them. Follow each other to unlock duels and live spectating.
-      </p>
-      <Link
-        href="/leaderboard"
-        className="rounded-md border border-border bg-background px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground transition-colors hover:bg-accent"
-      >
-        Browse the leaderboard →
-      </Link>
     </div>
   );
 }
