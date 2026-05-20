@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.92.0 — 20 May 2026
+- Watching a friend now plays back smoothly, character by character, instead of jumping every second. The caret glides through their text as they type, with about a one-and-a-half-second delay to keep it fluid, and when they finish you watch the run complete before their results appear.
+
 ## 6.91.5 — 20 May 2026
 - Fixed: when a friend you're watching finishes their run, you now see their results screen, instead of it dropping to "not live". Broadcasting now keeps going on the results screen too.
 

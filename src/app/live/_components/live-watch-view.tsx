@@ -6,8 +6,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Avatar, UserTag } from "@/components/ft";
 import type { LiveSubject } from "@/types/live";
-import { LiveClone } from "./live-clone";
 import { LivePassage } from "./live-passage";
+import { LiveStage } from "./live-stage";
 import { useBufferedWatch } from "./use-buffered-watch";
 
 /** /live/[userId] — a fullscreen, immersive mirror of a friend's practice
@@ -38,7 +38,7 @@ export function LiveWatchView({ userId }: { userId: string }) {
             <NotLive />
           </Centered>
         ) : state.snapshot.screen ? (
-          <LiveClone
+          <LiveStage
             words={state.snapshot.words}
             screen={state.snapshot.screen}
             wpm={state.snapshot.wpm}
