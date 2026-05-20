@@ -13,11 +13,13 @@ import {
   RECENCY_RECOVERY_TESTS,
 } from "@/server/adapt/scoring";
 import { advanceRecency, COLD_BIGRAM_THRESHOLD } from "@/server/adapt/select";
+import { resolveUserDisplays } from "@/server/user-display";
 import {
   submitTestInputSchema,
   type SubmitTestInput,
   type SubmitTestOutput,
 } from "@/types/adapt";
+import type { FriendPbNotificationData } from "@/types/notification";
 import { loadAdaptPrefs, persistAdaptPrefs } from "./prefs";
 
 export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
@@ -180,6 +182,47 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
         });
       } catch (err) {
         log.warn("personal-best notification create failed", {
+          userId,
+          testId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+
+      // Fan the PB out to the user's followers — "a friend hit a PB",
+      // the social half of the activity feed. Its own try so a Clerk
+      // hiccup, zero followers, or anything else here can never turn a
+      // good submit into a 5xx. Deduped on the run id so a follower
+      // gets at most one row per PB.
+      try {
+        const followers = await db.follows.listFollowers(userId);
+        if (followers.length > 0) {
+          const displays = await resolveUserDisplays(db, [userId]);
+          const me = displays.get(userId);
+          const name = me?.name ?? "A friend";
+          const where = formatLength(input.mode, input.durationOrWordCount);
+          await Promise.all(
+            followers.map((f) =>
+              db.notifications.createIfAbsent({
+                userId: f.userId,
+                kind: "friend_pb",
+                title: "A friend hit a personal best",
+                body: `${name} hit ${Math.round(input.wpm)} wpm on ${where}.`,
+                data: {
+                  friendId: userId,
+                  friendName: name,
+                  friendUsername: me?.username ?? null,
+                  mode: input.mode,
+                  durationOrWordCount: input.durationOrWordCount,
+                  wpm: input.wpm,
+                  accuracy: input.accuracy,
+                } satisfies FriendPbNotificationData,
+                dedupeKey: `friend_pb:${testId}`,
+              }),
+            ),
+          );
+        }
+      } catch (err) {
+        log.warn("friend-pb fan-out failed", {
           userId,
           testId,
           error: err instanceof Error ? err.message : String(err),

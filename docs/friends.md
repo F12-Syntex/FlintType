@@ -37,7 +37,7 @@ _(Later steps add: duel/run-snapshot tables (Step 7); presence + live-session st
 | 3 | Friend-graph UI (follow button, friends page, profile/leaderboard integration) | ✅ done |
 | 4 | Friends-scoped leaderboard | ✅ done |
 | 5 | Head-to-head profile compare | ✅ done |
-| 6 | Activity feed (PB fan-out to followers) | ⬜ |
+| 6 | Activity feed (PB fan-out to followers) | ✅ done |
 | 7 | Async ghost duels ("beat my run") | ⬜ |
 | 8 | Presence (online / rich status) | ⬜ |
 | 9 | Live solo-practice spectate | ⬜ |
@@ -80,3 +80,8 @@ Each step: tests-first, `yarn test` + `yarn tsc --noEmit` green, a dedicated age
 - **Repo:** `tests.userStats(userId)` — completed-run aggregates (tests, best WPM, best net WPM, best accuracy), zeros when none.
 - **Route:** `friends.compare({ userId })` (auth-gated) returns both sides (`me` vs `them`) with display + stats; 400 self-compare, 404 unknown target.
 - **UI:** `<HeadToHead>` panel on a visitor's profile — winner per metric marked by weight/ink vs muted (no coral, so the hero Follow CTA stays the single spark). Shown only to signed-in non-owners.
+
+### Step 6 — Activity feed (PB fan-out)
+- When a user sets a PB (`adapt.submit`), a `friend_pb` notification fans out to their **followers** (`listFollowers`), deduped per run (`friend_pb:<testId>`). The fan-out sits in its own try/catch inside the existing PB block — it only runs on a real PB, only calls Clerk when there's ≥1 follower, and can never turn a submit into a 5xx.
+- New `friend_pb` notification kind + `FriendPbNotificationData` (friend handle + run stats); popover renders it (neutral, not coral) linking to the friend's profile.
+- The notification feed (bell popover) is the activity feed — no separate page.

@@ -2,10 +2,13 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 
 vi.mock("@clerk/nextjs/server", () => ({
   auth: vi.fn(async () => ({ userId: null, sessionClaims: null })),
+  // Only the friend-pb fan-out reaches for this, and only when the
+  // actor actually has a follower — every other test leaves it unset.
+  clerkClient: vi.fn(),
 }));
 
 import { ZodError } from "zod";
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { BackendError } from "@/lib/errors";
 import { createTestDatabase } from "@/db/server/testing";
 import { callRoute } from "@/server/testing";
@@ -19,6 +22,7 @@ import type {
 } from "@/types/adapt";
 
 const mockAuth = vi.mocked(auth);
+const mockClerkClient = vi.mocked(clerkClient);
 
 function signedInAs(userId: string) {
   mockAuth.mockResolvedValue({
@@ -81,6 +85,7 @@ describe("adapt routes", () => {
 
   beforeEach(async () => {
     mockAuth.mockReset();
+    mockClerkClient.mockReset();
     await ctx.reset();
   });
 
@@ -341,6 +346,34 @@ describe("adapt routes", () => {
     const data = list[0]!.data as { previousWpm: number | null; wpm: number };
     expect(data.previousWpm).toBeNull();
     expect(data.wpm).toBe(100);
+  });
+
+  it("fans a PB out to the actor's followers as a friend_pb notification", async () => {
+    // u2 follows u1; u1 sets a PB.
+    await ctx.db.follows.follow("u2", "u1");
+    mockClerkClient.mockResolvedValue({
+      users: {
+        getUserList: vi.fn(async () => ({
+          data: [
+            { id: "u1", firstName: "Ace", username: "ace", emailAddresses: [] },
+          ],
+          totalCount: 1,
+        })),
+      },
+    } as unknown as Awaited<ReturnType<typeof clerkClient>>);
+    signedInAs("u1");
+    await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({ mode: "casual" }),
+    });
+    // The follower (u2) sees a friend_pb; the actor (u1) sees their own PB.
+    const followerFeed = await ctx.db.notifications.listForUser("u2");
+    const pb = followerFeed.find((n) => n.kind === "friend_pb");
+    expect(pb).toBeTruthy();
+    expect(pb?.body).toContain("@Ace");
+    // Non-followers get nothing.
+    const actorFeed = await ctx.db.notifications.listForUser("u1");
+    expect(actorFeed.some((n) => n.kind === "friend_pb")).toBe(false);
   });
 
   it("beating a prior best in the same bucket fires a fresh PB; slower run does not", async () => {

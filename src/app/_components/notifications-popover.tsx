@@ -13,6 +13,7 @@ import type {
   AnnouncementData,
   FollowNotificationData,
   MutualNotificationData,
+  FriendPbNotificationData,
 } from "@/types/notification";
 
 /** Bell + popover. Reads the live feed from
@@ -237,7 +238,9 @@ function Row({ item, dark }: { item: Notification; dark: boolean }) {
       ? `/profile/${item.data.followerUsername ?? item.data.followerId}`
       : isMutualNotification(item)
         ? `/profile/${item.data.friendUsername ?? item.data.friendId}`
-        : undefined;
+        : isFriendPb(item)
+          ? `/profile/${item.data.friendUsername ?? item.data.friendId}`
+          : undefined;
   const body = (
     <div className="flex items-start gap-3 px-4 py-3">
       <span
@@ -374,6 +377,14 @@ function isMutualNotification(n: Notification): n is Notification & {
   data: MutualNotificationData;
 } {
   if (n.kind !== "mutual") return false;
+  if (n.data == null || typeof n.data !== "object") return false;
+  return "friendId" in (n.data as Record<string, unknown>);
+}
+
+function isFriendPb(n: Notification): n is Notification & {
+  data: FriendPbNotificationData;
+} {
+  if (n.kind !== "friend_pb") return false;
   if (n.data == null || typeof n.data !== "object") return false;
   return "friendId" in (n.data as Record<string, unknown>);
 }

@@ -9,7 +9,8 @@ export type NotificationKind =
   | "personal_best"
   | "og_granted"
   | "follow"
-  | "mutual";
+  | "mutual"
+  | "friend_pb";
 
 export type AnnouncementData = {
   /** Optional CTA URL — when present the row becomes a link. */
@@ -61,12 +62,26 @@ export type MutualNotificationData = {
   friendUsername: string | null;
 };
 
+/** A user you follow set a personal best. Fanned out to their
+ *  followers, deduped on the run (`friend_pb:<testId>`). Carries the
+ *  friend's `@handle` + the run so the feed row links + reads richly. */
+export type FriendPbNotificationData = {
+  friendId: string;
+  friendName: string;
+  friendUsername: string | null;
+  mode: string;
+  durationOrWordCount: number;
+  wpm: number;
+  accuracy: number;
+};
+
 export type NotificationData =
   | AnnouncementData
   | PersonalBestData
   | OgGrantedData
   | FollowNotificationData
   | MutualNotificationData
+  | FriendPbNotificationData
   | null;
 
 export type Notification = {

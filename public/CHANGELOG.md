@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.81.0 — 20 May 2026
+- When someone you follow sets a personal best, you'll now get a notification about it, so your bell doubles as a feed of your friends' wins.
+
 ## 6.80.0 — 20 May 2026
 - Visiting someone else's profile now shows a head-to-head card comparing your best WPM, accuracy, and test count against theirs.
 

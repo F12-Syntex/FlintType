@@ -10,8 +10,8 @@ import {
 
 /** In-app notification feed per user. Several kinds today
  *  (`announcement`, `personal_best`, `og_granted`, `follow`,
- *  `mutual`), more later — the `kind` field is open so new kinds
- *  don't need a migration. `data` is the kind-specific payload
+ *  `mutual`, `friend_pb`), more later — the `kind` field is open so
+ *  new kinds don't need a migration. `data` is the kind-specific payload
  *  (e.g. `{ wpm, prevWpm, mode, durationOrWordCount }` for a PB) so
  *  the renderer can show a richer row than the title/body alone.
  *
