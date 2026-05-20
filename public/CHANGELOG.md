@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.91.3 — 20 May 2026
+- More live-spectating efficiency: watching a friend who isn't live now polls slowly in the background instead of every second, and both watching and broadcasting pause completely while the tab is hidden.
+
 ## 6.91.2 — 20 May 2026
 - Live spectating is much lighter now: your practice screen only streams while a friend is actually watching, or while you're actively typing, instead of constantly in the background. No change to what watchers see.
 

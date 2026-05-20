@@ -6,18 +6,12 @@ import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { useBackend } from "@/lib/backend";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { useCaretSettings } from "@/lib/caret-settings";
+import { broadcastPlan } from "@/lib/live-cadence";
 import { setWatcherCount } from "@/lib/live-watchers";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { LIVE_MAX_WORDS } from "@/types/live";
 import { liveSnapshotWindow } from "./practice-progress";
 import type { State } from "./practice-state";
-
-/** Full-fidelity cadence while someone is watching. */
-const WATCHED_MS = 700;
-/** Slow heartbeat while typing but unwatched — just enough to stay in
- *  friends' "live now" so someone can choose to watch. No `screen`
- *  payload, so it's cheap. Idle + unwatched pushes nothing at all. */
-const HEARTBEAT_MS = 2_000;
 /** Module-level stable default — useRemotePrefs captures it once.
  *  Sharing is ON by default; only an explicit `false` turns it off. */
 const SPECTATE_DEFAULT: { enabled?: boolean } = { enabled: true };
@@ -176,26 +170,29 @@ export function PracticeLiveBroadcast({
       };
     };
 
-    const schedule = () => {
+    // Reschedule on the plan's cadence (reads the freshest watcher count
+    // + phase). Idle + unwatched yields a null delay → the loop stops and
+    // resumes only when the phase changes (the effect dep below).
+    const reschedule = () => {
       if (stopped) return;
-      const w = watchersRef.current;
-      const ph = snapRef.current.state.phase;
-      // Watched → full rate. Typing but unwatched → slow heartbeat for
-      // discoverability. Idle + unwatched → stop (the effect re-runs and
-      // resumes when the phase changes to running).
-      const delay = w > 0 ? WATCHED_MS : ph === "running" ? HEARTBEAT_MS : null;
-      if (delay == null) return;
-      timer = window.setTimeout(tick, delay);
+      const { nextDelayMs } = broadcastPlan(
+        watchersRef.current > 0,
+        snapRef.current.state.phase,
+      );
+      if (nextDelayMs != null) timer = window.setTimeout(tick, nextDelayMs);
     };
 
     const tick = () => {
       if (stopped) return;
       const s = snapRef.current;
       const st = s.state;
-      const watched = watchersRef.current > 0;
-      // Push when watched (any phase) or while actively typing.
-      if (st.words.length === 0 || !(watched || st.phase === "running")) {
-        schedule();
+      const plan = broadcastPlan(watchersRef.current > 0, st.phase);
+      if (plan.nextDelayMs == null) return; // idle + unwatched → stop
+      // Skip the push (but keep the cadence) while the tab is hidden, or
+      // when there's nothing to send yet — no request goes out.
+      const hidden = typeof document !== "undefined" && document.hidden;
+      if (hidden || !plan.push || st.words.length === 0) {
+        timer = window.setTimeout(tick, plan.nextDelayMs);
         return;
       }
       const win = liveSnapshotWindow(st, LIVE_MAX_WORDS);
@@ -207,7 +204,7 @@ export function PracticeLiveBroadcast({
           wpm: s.wpm,
           accuracy: s.accuracy,
           // Heavy clone payload only when someone's watching.
-          ...(watched ? { screen: buildScreen(s, win) } : {}),
+          ...(plan.includeScreen ? { screen: buildScreen(s, win) } : {}),
         })
         .then((r) => {
           if (!r.accepted) {
@@ -217,9 +214,9 @@ export function PracticeLiveBroadcast({
           }
           watchersRef.current = r.watchers;
           setWatcherCount(r.watchers);
-          schedule();
+          reschedule();
         })
-        .catch(() => schedule());
+        .catch(() => reschedule());
     };
 
     tick();

@@ -2,22 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useBackend } from "@/lib/backend";
+import { watchPollDelay } from "@/lib/live-cadence";
 import type { WatchOutput } from "@/types/live";
 
-const POLL_MS = 600;
-/** Hold incoming snapshots ~1s before showing them. Polls are jittery
- *  and a hair apart; replaying them a beat behind, in arrival order, on
- *  a steady ticker makes the spectated screen advance smoothly instead
- *  of stuttering whenever a poll lands late. Latency we trade for calm. */
+/** Hold incoming snapshots ~1s before showing them, so the mirrored
+ *  screen advances smoothly instead of stuttering with network jitter. */
 const BUFFER_MS = 1_000;
-const TICK_MS = 120;
+const TICK_MS = 150;
 
 type Queued = { out: WatchOutput; at: number };
 
-/** Polls `live.watch` and plays the results through a ~1s buffer, so the
- *  spectated screen updates in a smooth, consistent cadence rather than
- *  in time with raw network jitter. Returns the buffered snapshot to
- *  render (null until the first one clears the buffer). */
+/** Polls `live.watch` and plays results through a ~1s buffer for smooth
+ *  playback. Self-throttling + tab-aware: fast while the target is live,
+ *  a slow backoff when they're not, and **paused entirely while the tab
+ *  is hidden** — a backgrounded watch tab makes zero requests. */
 export function useBufferedWatch(
   userId: string,
   enabled: boolean,
@@ -31,30 +29,41 @@ export function useBufferedWatch(
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
+    let pollTimer = 0;
+    let live = false;
     queueRef.current = [];
     seenRef.current = 0;
     lastKindRef.current = null;
 
     const poll = () => {
+      if (cancelled) return;
+      // Don't poll a backgrounded tab — re-check cheaply until it's
+      // foregrounded again (the visibilitychange listener wakes it sooner).
+      if (typeof document !== "undefined" && document.hidden) {
+        pollTimer = window.setTimeout(poll, 1_000);
+        return;
+      }
       backend.live
         .watch({ userId })
         .then((s) => {
           if (cancelled) return;
+          live = s.live;
           if (s.live) {
-            // Enqueue only genuinely new frames (dedupe by push time).
             if (s.updatedAtMs > seenRef.current) {
               seenRef.current = s.updatedAtMs;
               queueRef.current.push({ out: s, at: Date.now() });
               lastKindRef.current = "live";
             }
           } else if (lastKindRef.current !== "off") {
-            // Buffer the live → not-live transition too, so it lands a
-            // beat later in step with everything else.
             queueRef.current.push({ out: s, at: Date.now() });
             lastKindRef.current = "off";
           }
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => {
+          if (cancelled) return;
+          pollTimer = window.setTimeout(poll, watchPollDelay(live));
+        });
     };
 
     const tick = () => {
@@ -66,13 +75,21 @@ export function useBufferedWatch(
       if (picked) setDisplay(picked.out);
     };
 
+    const onVisible = () => {
+      if (!cancelled && !document.hidden) {
+        window.clearTimeout(pollTimer);
+        poll();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
     poll();
-    const pollId = window.setInterval(poll, POLL_MS);
     const tickId = window.setInterval(tick, TICK_MS);
     return () => {
       cancelled = true;
-      window.clearInterval(pollId);
+      window.clearTimeout(pollTimer);
       window.clearInterval(tickId);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [backend, userId, enabled]);
 
