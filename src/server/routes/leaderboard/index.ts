@@ -1,5 +1,6 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { defineNamespace, defineRoute } from "@/server";
+import { modeFor, sinceFor } from "@/server/leaderboard-window";
 import { rateLimit } from "@/server/middleware/rate-limit";
 import {
   applyTagSelection,
@@ -31,20 +32,7 @@ import {
   type TopPlayersOutput,
 } from "@/types/leaderboard";
 
-const DAY_MS = 24 * 60 * 60 * 1_000;
 const DEFAULT_LIMIT = 25;
-
-function sinceFor(window: LeaderboardWindow): number {
-  if (window === "all_time") return 0;
-  const now = Date.now();
-  if (window === "month") return now - 30 * DAY_MS;
-  if (window === "week") return now - 7 * DAY_MS;
-  return now - DAY_MS;
-}
-
-function modeFor(scope: LeaderboardScope): string {
-  return scope === "all" ? "all" : scope;
-}
 
 const list = defineRoute<LeaderboardInput, LeaderboardOutput>({
   input: leaderboardInputSchema,

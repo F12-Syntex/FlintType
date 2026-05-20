@@ -112,3 +112,14 @@ export function parseView(s: string | null): LeaderboardView {
   if (s === "players" || s === "levels") return s;
   return "table";
 }
+
+/** Whose runs the table ranks.
+ *    `global`  — everyone (default; the public board)
+ *    `friends` — only the people you follow, plus you
+ *  Friends requires a signed-in caller; the toggle is hidden for
+ *  anonymous viewers, and `parseAudience` falls back to global. */
+export type LeaderboardAudience = "global" | "friends";
+
+export function parseAudience(s: string | null): LeaderboardAudience {
+  return s === "friends" ? "friends" : "global";
+}

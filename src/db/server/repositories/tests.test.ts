@@ -123,6 +123,30 @@ describe("testsRepo", () => {
     expect(rows[0]?.testId).toBe("t_u1_b");
   });
 
+  it("topLeaderboard restricts to a userIds allowlist (friends board)", async () => {
+    await ctx.db.tests.insert(
+      row({ id: "t_u1", userId: "u1", wpm: 120, accuracy: 100 }),
+    );
+    await ctx.db.tests.insert(
+      row({ id: "t_u2", userId: "u2", wpm: 80, accuracy: 100 }),
+    );
+    await ctx.db.tests.insert(
+      row({ id: "t_u3", userId: "u3", wpm: 60, accuracy: 100 }),
+    );
+    // Only u2 + u3 are in scope; u1 (the fastest) is excluded.
+    const rows = await ctx.db.tests.topLeaderboard({ userIds: ["u2", "u3"] });
+    expect(rows.map((r) => r.userId).sort()).toEqual(["u2", "u3"]);
+    expect(rows.some((r) => r.userId === "u1")).toBe(false);
+  });
+
+  it("topLeaderboard returns nothing for an empty userIds set", async () => {
+    await ctx.db.tests.insert(
+      row({ id: "t_u1", userId: "u1", wpm: 120, accuracy: 100 }),
+    );
+    const rows = await ctx.db.tests.topLeaderboard({ userIds: [] });
+    expect(rows).toEqual([]);
+  });
+
   it("topLeaderboard filters out incomplete runs", async () => {
     await ctx.db.tests.insert(
       row({ id: "t_partial", wpm: 150, accuracy: 100, wasCompleted: false }),

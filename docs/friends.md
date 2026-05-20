@@ -35,7 +35,7 @@ _(Later steps add: duel/run-snapshot tables (Step 7); presence + live-session st
 | 1 | Friend-graph data layer (schema, repos, repo tests, wiring, migration) | ✅ done |
 | 2 | Friend-graph backend routes (`friends` namespace + notification kinds) | ✅ done |
 | 3 | Friend-graph UI (follow button, friends page, profile/leaderboard integration) | ✅ done |
-| 4 | Friends-scoped leaderboard | ⬜ |
+| 4 | Friends-scoped leaderboard | ✅ done |
 | 5 | Head-to-head profile compare | ⬜ |
 | 6 | Activity feed (PB fan-out to followers) | ⬜ |
 | 7 | Async ghost duels ("beat my run") | ⬜ |
@@ -69,3 +69,9 @@ Each step: tests-first, `yarn test` + `yarn tsc --noEmit` green, a dedicated age
 - **Notifications** — `follow` / `mutual` renderer arms + profile links in `notifications-popover.tsx`; `mutual` carries the same quiet coral check as the button.
 - **Nav** — "Friends" added to the app nav (`app-chrome.tsx`).
 - Verified: `yarn tsc` clean, `yarn build` compiles `/friends`, full suite green. Components are browser-tested per ui-law §1.3 (no unit tests).
+
+### Step 4 — Friends-scoped leaderboard
+- **Repo:** `tests.topLeaderboard` gains an optional `userIds` allowlist — `undefined` = global, `[]` = empty board, `[…]` = restrict to that set.
+- **Route:** `friends.leaderboard` (auth-gated via the namespace) ranks the caller + everyone they follow, same `LeaderboardInput`/`LeaderboardOutput` as the public board so the client renders it through the identical table.
+- **Shared helper:** `sinceFor` / `modeFor` extracted to `src/server/leaderboard-window.ts` (+ test) and consumed by both the public and friends boards so their window/mode semantics can't drift.
+- **UI:** a Global / Friends `AudienceToggle` on the leaderboard (URL-driven `?audience=friends`, signed-in only, full-inversion active pill — not coral); `useLeaderboard` branches the backend call and keys its SWR cache on audience.

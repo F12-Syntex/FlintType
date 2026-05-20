@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.79.0 — 20 May 2026
+- The leaderboard has a new Global / Friends toggle, so you can rank yourself against just the people you follow instead of the whole world.
+
 ## 6.78.0 — 20 May 2026
 - Friends are here. Follow anyone from their profile, and a new Friends page lists who you follow, who follows you, and who you're mutual friends with. When you follow each other you become friends. You'll get a notification when someone follows you, your profile now shows follower and friend counts, and you can block people you'd rather not hear from.
 

@@ -148,11 +148,18 @@ export function testsRepo(db: ServerDrizzle) {
       sinceMs?: number;
       amount?: number | null;
       limit?: number;
+      /** When provided, restrict the ranking to this set of user ids
+       *  (the friends-scoped leaderboard). An empty array means "no
+       *  one to rank" and short-circuits to an empty result — distinct
+       *  from `undefined`, which means "everyone" (the global board). */
+      userIds?: readonly string[];
     }): Promise<LeaderboardRow[]> {
       const mode = opts.mode;
       const since = opts.sinceMs ?? 0;
       const amount = opts.amount ?? null;
       const limit = Math.max(1, Math.min(100, opts.limit ?? 25));
+      // A friends board scoped to an empty set has nothing to rank.
+      if (opts.userIds != null && opts.userIds.length === 0) return [];
       // Net WPM expressed in SQL so we can sort + cap in one query
       // rather than pulling everything and sorting in JS. Drizzle's
       // `sql<number>` template gives us a typed projection.
@@ -162,6 +169,9 @@ export function testsRepo(db: ServerDrizzle) {
       if (since > 0) filters.push(gte(tests.completedAt, new Date(since)));
       if (amount != null && amount > 0) {
         filters.push(eq(tests.durationOrWordCount, amount));
+      }
+      if (opts.userIds != null) {
+        filters.push(inArray(tests.userId, [...opts.userIds]));
       }
       const rows = await db
         .select({

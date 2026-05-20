@@ -23,6 +23,7 @@ import type {
   FriendRelationship,
   FriendStats,
 } from "@/types/friends";
+import type { LeaderboardOutput } from "@/types/leaderboard";
 import type { ListNotificationsOutput } from "@/types/notification";
 
 const mockAuth = vi.mocked(auth);
@@ -307,5 +308,73 @@ describe("friends routes", () => {
       { db: ctx.db },
     );
     expect(following.users.map((u) => u.userId)).toEqual(["alice"]);
+  });
+
+  /* ── friends leaderboard ───────────────────────────────────── */
+
+  async function insertRun(userId: string, wpm: number) {
+    await ctx.db.tests.insert({
+      id: `t_${userId}_${wpm}`,
+      userId,
+      startedAt: new Date(),
+      completedAt: new Date(),
+      mode: "casual",
+      durationOrWordCount: 60,
+      wpm,
+      accuracy: 100,
+      errorCount: 0,
+      resetCount: 0,
+      wasCompleted: true,
+    });
+  }
+
+  it("leaderboard ranks me + people I follow, excluding everyone else", async () => {
+    await ctx.db.follows.follow("me", "alice"); // I follow alice
+    await insertRun("me", 100);
+    await insertRun("alice", 120);
+    await insertRun("bob", 200); // bob is faster but not followed
+    signedInAs("me");
+    const out = await callRoute<LeaderboardOutput>(["friends", "leaderboard"], {
+      db: ctx.db,
+      input: {},
+    });
+    const ids = out.entries.map((e) => e.userId);
+    expect(ids).toContain("me");
+    expect(ids).toContain("alice");
+    expect(ids).not.toContain("bob");
+  });
+
+  it("leaderboard honours the scope (mode) filter", async () => {
+    await ctx.db.follows.follow("me", "alice");
+    await ctx.db.tests.insert({
+      id: "t_alice_casual",
+      userId: "alice",
+      startedAt: new Date(),
+      completedAt: new Date(),
+      mode: "casual",
+      durationOrWordCount: 60,
+      wpm: 90,
+      accuracy: 100,
+      errorCount: 0,
+      resetCount: 0,
+      wasCompleted: true,
+    });
+    signedInAs("me");
+    // Filtering to the "race" scope excludes alice's casual run.
+    const out = await callRoute<LeaderboardOutput>(["friends", "leaderboard"], {
+      db: ctx.db,
+      input: { scope: "race" },
+    });
+    expect(out.entries.some((e) => e.userId === "alice")).toBe(false);
+  });
+
+  it("leaderboard requires auth", async () => {
+    mockAuth.mockResolvedValue({
+      userId: null,
+      sessionClaims: null,
+    } as unknown as Awaited<ReturnType<typeof auth>>);
+    await expect(
+      callRoute(["friends", "leaderboard"], { db: ctx.db, input: {} }),
+    ).rejects.toBeInstanceOf(BackendError);
   });
 });

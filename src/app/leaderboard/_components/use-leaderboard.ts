@@ -8,6 +8,7 @@ import type {
   LeaderboardScope,
   LeaderboardWindow,
 } from "@/types/leaderboard";
+import type { LeaderboardAudience } from "./filters";
 
 type Key = string;
 type CacheEntry = {
@@ -31,34 +32,42 @@ const inflight = new Map<Key, Promise<LeaderboardOutput>>();
 const FRESH_WINDOW_MS = 60_000;
 
 function keyFor(
+  audience: LeaderboardAudience,
   scope: LeaderboardScope,
   window_: LeaderboardWindow,
   preset: LeaderboardPreset,
 ): Key {
-  return `${scope}|${window_}|${preset}`;
+  return `${audience}|${scope}|${window_}|${preset}`;
 }
 
+type SliceInput = {
+  scope: LeaderboardScope;
+  window: LeaderboardWindow;
+  preset: LeaderboardPreset;
+};
 type BackendShape = {
-  leaderboard: {
-    list: (input: {
-      scope: LeaderboardScope;
-      window: LeaderboardWindow;
-      preset: LeaderboardPreset;
-    }) => Promise<LeaderboardOutput>;
-  };
+  leaderboard: { list: (input: SliceInput) => Promise<LeaderboardOutput> };
+  friends: { leaderboard: (input: SliceInput) => Promise<LeaderboardOutput> };
 };
 
 async function fetchSlice(
   backend: BackendShape,
+  audience: LeaderboardAudience,
   scope: LeaderboardScope,
   window_: LeaderboardWindow,
   preset: LeaderboardPreset,
 ): Promise<LeaderboardOutput> {
-  const key = keyFor(scope, window_, preset);
+  const key = keyFor(audience, scope, window_, preset);
   const existing = inflight.get(key);
   if (existing) return existing;
-  const p = backend.leaderboard
-    .list({ scope, window: window_, preset })
+  const input: SliceInput = { scope, window: window_, preset };
+  // Friends board hits the auth-gated friends namespace; global hits
+  // the public leaderboard route. Same output shape either way.
+  const call =
+    audience === "friends"
+      ? backend.friends.leaderboard(input)
+      : backend.leaderboard.list(input);
+  const p = call
     .then((res) => {
       cache.set(key, { data: res, fetchedAtMs: Date.now() });
       return res;
@@ -100,9 +109,10 @@ export function useLeaderboard(
   scope: LeaderboardScope,
   window_: LeaderboardWindow,
   preset: LeaderboardPreset,
+  audience: LeaderboardAudience = "global",
 ): LeaderboardState {
   const backend = useBackend() as unknown as BackendShape;
-  const key = keyFor(scope, window_, preset);
+  const key = keyFor(audience, scope, window_, preset);
   const cached = cache.get(key) ?? null;
 
   const [data, setData] = useState<LeaderboardOutput | null>(
@@ -139,7 +149,7 @@ export function useLeaderboard(
       setError(null);
     }
 
-    fetchSlice(backend, scope, window_, preset)
+    fetchSlice(backend, audience, scope, window_, preset)
       .then((res) => {
         if (cancelled) return;
         setData(res);
@@ -162,7 +172,7 @@ export function useLeaderboard(
     return () => {
       cancelled = true;
     };
-  }, [backend, key, refreshTick, scope, window_, preset]);
+  }, [backend, key, refreshTick, audience, scope, window_, preset]);
 
   function refresh() {
     setRefreshTick((n) => n + 1);

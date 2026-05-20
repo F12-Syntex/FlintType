@@ -10,6 +10,7 @@ import {
   type FriendTargetInput,
 } from "@/types/friends";
 import { follow } from "./follow";
+import { leaderboard } from "./leaderboard";
 import { relationshipOf, toFriendUsers } from "./relationship";
 
 /** Stop following `input.userId`. Idempotent — unfollowing someone you
@@ -113,5 +114,6 @@ export const friends = defineNamespace({
     listFollowing,
     listFollowers,
     listFriends,
+    leaderboard,
   },
 });

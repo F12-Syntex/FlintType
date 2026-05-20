@@ -2,12 +2,14 @@
 
 import { useUser } from "@clerk/nextjs";
 import { Download, RefreshCw } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 import { type LeaderboardEntry } from "@/types/leaderboard";
 import {
+  type LeaderboardAudience,
   MODE_LABEL,
+  parseAudience,
   parsePreset,
   parseScope,
   parseView,
@@ -41,16 +43,25 @@ export function LeaderboardView() {
 
 function TableView() {
   const params = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const scope = parseScope(params.get("scope"));
   const window_ = parseWindow(params.get("window"));
   const preset = parsePreset(params.get("preset"));
   const { user } = useUser();
   const youUserId = user?.id ?? null;
+  const signedIn = !!user;
+  // Friends audience needs a signed-in caller — fall back to global
+  // for anonymous viewers (the toggle is hidden for them too).
+  const audience: LeaderboardAudience = signedIn
+    ? parseAudience(params.get("audience"))
+    : "global";
 
   const { data, error, loading, refreshing, refresh } = useLeaderboard(
     scope,
     window_,
     preset,
+    audience,
   );
 
   const entries = data?.entries ?? [];
@@ -63,6 +74,7 @@ function TableView() {
   const blurb = (
     <>
       Ranked by net WPM (raw × accuracy). Showing{" "}
+      <Pill>{audience === "friends" ? "Friends" : "Global"}</Pill> ·{" "}
       <Pill>{scopeLabel}</Pill> · <Pill>{windowLabelText}</Pill>
       {presetText ? (
         <>
@@ -83,6 +95,20 @@ function TableView() {
       error={error && entries.length === 0 ? error : null}
       actions={
         <span data-no-export="true" className="flex flex-wrap items-center gap-2">
+          {signedIn ? (
+            <AudienceToggle
+              audience={audience}
+              onSelect={(next) => {
+                const sp = new URLSearchParams(params.toString());
+                if (next === "global") sp.delete("audience");
+                else sp.set("audience", next);
+                const qs = sp.toString();
+                router.replace(qs ? `${pathname}?${qs}` : pathname, {
+                  scroll: false,
+                });
+              }}
+            />
+          ) : null}
           <RefreshButton
             onClick={refresh}
             refreshing={refreshing || loading}
@@ -121,6 +147,48 @@ function badgeFor(entry: LeaderboardEntry): string {
   const mode = (MODE_LABEL[entry.mode] ?? entry.mode).toUpperCase();
   const suffix = TIME_AMOUNTS.has(entry.durationOrWordCount) ? "s" : "";
   return `${mode} · ${entry.durationOrWordCount}${suffix}`;
+}
+
+/* ─── Audience toggle (Global / Friends) ─────────────────────── */
+
+function AudienceToggle({
+  audience,
+  onSelect,
+}: {
+  audience: LeaderboardAudience;
+  onSelect: (next: LeaderboardAudience) => void;
+}) {
+  const options: { id: LeaderboardAudience; label: string }[] = [
+    { id: "global", label: "Global" },
+    { id: "friends", label: "Friends" },
+  ];
+  return (
+    <span
+      role="group"
+      aria-label="Leaderboard audience"
+      className="inline-flex rounded-md border border-border bg-background/40 p-0.5"
+    >
+      {options.map((o) => {
+        const active = o.id === audience;
+        return (
+          <button
+            key={o.id}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onSelect(o.id)}
+            className={cn(
+              "rounded-[5px] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors",
+              active
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </span>
+  );
 }
 
 /* ─── Blurb pill ─────────────────────────────────────────────── */
