@@ -38,10 +38,14 @@ export type LiveScreen = {
   quoteSource: string | null;
   elapsedMs: number;
   raw: number;
-  appearance: Record<string, unknown>;
-  caret: Record<string, unknown>;
-  behaviour: { blindMode?: boolean };
-  themeVars: Record<string, string>;
+  /** The static "meta" block. Optional because the broadcaster sends it
+   *  only every ~8th frame; the server backfills lean frames from the
+   *  last stored value, and consumers merge over client defaults, so a
+   *  rare gap degrades to defaults rather than breaking. */
+  appearance?: Record<string, unknown>;
+  caret?: Record<string, unknown>;
+  behaviour?: { blindMode?: boolean };
+  themeVars?: Record<string, string>;
   /** Sent on the `done` frame so the spectator's results report (chart,
    *  heatmap, per-letter) renders from the broadcaster's real run. */
   wpmHistory?: LiveWpmSample[];
@@ -78,13 +82,15 @@ const liveScreenSchema = z.object({
   quoteSource: z.string().max(400).nullable(),
   elapsedMs: z.number().min(0).max(86_400_000),
   raw: z.number().min(0).max(1000),
-  // Opaque pref blobs + resolved theme vars — bounded but not shape-
-  // validated (they're the user's own settings, merged over defaults
-  // defensively on the spectator side).
-  appearance: z.record(z.string(), z.unknown()),
-  caret: z.record(z.string(), z.unknown()),
-  behaviour: z.object({ blindMode: z.boolean().optional() }),
-  themeVars: z.record(z.string().max(64), z.string().max(200)),
+  // The static "meta" block (appearance, caret, behaviour, resolved
+  // theme vars). Opaque pref blobs, bounded but not shape-validated.
+  // OPTIONAL on the wire: the broadcaster only sends them every ~8th
+  // frame, and the server backfills the lean frames in between from the
+  // last stored value — so the steady-state push is tiny.
+  appearance: z.record(z.string(), z.unknown()).optional(),
+  caret: z.record(z.string(), z.unknown()).optional(),
+  behaviour: z.object({ blindMode: z.boolean().optional() }).optional(),
+  themeVars: z.record(z.string().max(64), z.string().max(200)).optional(),
   wpmHistory: z
     .array(
       z.object({

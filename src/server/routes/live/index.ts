@@ -61,13 +61,28 @@ const progress = defineRoute<LiveProgressInput, LiveProgressOutput>({
   handler: async ({ input, db, meta }) => {
     const me = meta.userId as string;
     if (!(await isSpectatable(db, me))) return { accepted: false, watchers: 0 };
+    // The broadcaster sends the static meta block (appearance/caret/
+    // behaviour/theme vars) only every Nth frame to keep pushes lean. On a
+    // lean frame, backfill it from the last stored snapshot so spectators
+    // (and late joiners) always read a complete screen.
+    let screen = input.screen;
+    if (screen && screen.appearance === undefined) {
+      const prev = (await db.liveSessions.get(me))?.snapshot.screen;
+      screen = {
+        ...screen,
+        appearance: prev?.appearance ?? {},
+        caret: prev?.caret ?? {},
+        behaviour: prev?.behaviour ?? {},
+        themeVars: prev?.themeVars ?? {},
+      };
+    }
     await db.liveSessions.set(me, {
       words: input.words,
       progressChars: input.progressChars,
       totalChars: input.totalChars,
       wpm: input.wpm,
       accuracy: input.accuracy,
-      screen: input.screen,
+      screen,
     });
     // Tell the broadcaster how many people are watching, so it can stream
     // lazily — one indexed read, free on the push it already makes.

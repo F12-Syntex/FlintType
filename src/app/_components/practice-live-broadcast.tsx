@@ -75,6 +75,12 @@ function readThemeVars(): Record<string, string> {
  *  bounded so a marathon TIME run can't push a huge payload. */
 const MAX_EVENTS = 3_000;
 
+/** Send the static meta block (appearance, caret, theme vars) on every
+ *  Nth screen push; the server backfills the lean frames in between. At
+ *  the watched 700ms rate that's a full refresh ~every 5.6s — fast
+ *  enough to catch a theme/setting change, lean the rest of the time. */
+const META_EVERY = 8;
+
 export function PracticeLiveBroadcast({
   active = true,
   state,
@@ -113,6 +119,8 @@ export function PracticeLiveBroadcast({
   // phase changes trigger, so a watched run doesn't blink to "unwatched"
   // when it transitions running → done.
   const watchersRef = useRef(0);
+  // Counts screen pushes, to send the meta block every META_EVERY frames.
+  const frameRef = useRef(0);
 
   useEffect(() => {
     if (!enabled) {
@@ -121,12 +129,19 @@ export function PracticeLiveBroadcast({
     }
     let stopped = false;
     let timer = 0;
+    // Re-send meta on the first push after a (re)start so the stored row
+    // always has it (phase changes restart this effect).
+    frameRef.current = 0;
 
-    // Build the full clone payload — only when actually watched (it's the
-    // expensive part: getComputedStyle + the done events).
+    // Build the clone payload. `includeMeta` carries the static block
+    // (appearance, caret, behaviour, resolved theme vars) — sent only
+    // every Nth frame; the server backfills the lean frames in between,
+    // so the steady-state push is tiny and skips the getComputedStyle
+    // read. The per-frame fields (cursor, typed, etc.) always go.
     const buildScreen = (
       s: typeof snapRef.current,
       win: ReturnType<typeof liveSnapshotWindow>,
+      includeMeta: boolean,
     ) => {
       const st = s.state;
       const start = win.start;
@@ -142,10 +157,14 @@ export function PracticeLiveBroadcast({
         quoteSource: st.quoteSource,
         elapsedMs: s.elapsedMs,
         raw: s.raw,
-        appearance: s.appearance as unknown as Record<string, unknown>,
-        caret: s.caret as unknown as Record<string, unknown>,
-        behaviour: { blindMode: s.behaviour.blindMode },
-        themeVars: readThemeVars(),
+        ...(includeMeta
+          ? {
+              appearance: s.appearance as unknown as Record<string, unknown>,
+              caret: s.caret as unknown as Record<string, unknown>,
+              behaviour: { blindMode: s.behaviour.blindMode },
+              themeVars: readThemeVars(),
+            }
+          : {}),
         ...(done
           ? {
               wpmHistory: s.wpmHistory.map((h) => ({
@@ -196,6 +215,10 @@ export function PracticeLiveBroadcast({
         return;
       }
       const win = liveSnapshotWindow(st, LIVE_MAX_WORDS);
+      // Carry the static meta block only every Nth frame (server backfills
+      // the rest). frameRef counts only frames that actually push a screen.
+      const includeMeta = frameRef.current % META_EVERY === 0;
+      if (plan.includeScreen) frameRef.current += 1;
       backend.live
         .progress({
           words: win.words,
@@ -204,7 +227,9 @@ export function PracticeLiveBroadcast({
           wpm: s.wpm,
           accuracy: s.accuracy,
           // Heavy clone payload only when someone's watching.
-          ...(plan.includeScreen ? { screen: buildScreen(s, win) } : {}),
+          ...(plan.includeScreen
+            ? { screen: buildScreen(s, win, includeMeta) }
+            : {}),
         })
         .then((r) => {
           if (!r.accepted) {

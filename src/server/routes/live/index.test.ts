@@ -357,7 +357,41 @@ describe("live routes", () => {
       expect(w.snapshot.screen?.cursorWord).toBe(1);
       expect(w.snapshot.screen?.typed).toEqual(["the", "qu"]);
       expect(w.snapshot.screen?.caret).toEqual({ style: "block" });
-      expect(w.snapshot.screen?.themeVars["--primary"]).toBe(
+      expect(w.snapshot.screen?.themeVars?.["--primary"]).toBe(
+        "oklch(0.6 0.2 30)",
+      );
+    }
+  });
+
+  it("backfills the meta block on a lean frame from the last full frame", async () => {
+    await befriend(ctx);
+    signedInAs("alice");
+    // Full frame carrying the meta block.
+    await callRoute(["live", "progress"], {
+      db: ctx.db,
+      input: { ...SNAP, screen: SCREEN },
+    });
+    // Lean frame: the broadcaster omitted the meta block entirely.
+    const { appearance, caret, behaviour, themeVars, ...leanScreen } = SCREEN;
+    void appearance;
+    void caret;
+    void behaviour;
+    void themeVars;
+    await callRoute(["live", "progress"], {
+      db: ctx.db,
+      input: { ...SNAP, progressChars: 7, screen: leanScreen },
+    });
+    // The watcher still gets the full meta, backfilled server-side.
+    signedInAs("me");
+    const w = await callRoute<WatchOutput>(["live", "watch"], {
+      db: ctx.db,
+      input: { userId: "alice" },
+    });
+    expect(w.live).toBe(true);
+    if (w.live) {
+      expect(w.snapshot.progressChars).toBe(7); // the lean frame's value
+      expect(w.snapshot.screen?.caret).toEqual({ style: "block" }); // backfilled
+      expect(w.snapshot.screen?.themeVars?.["--primary"]).toBe(
         "oklch(0.6 0.2 30)",
       );
     }
