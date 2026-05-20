@@ -14,6 +14,7 @@ import {
 import { recordWpmSample } from "@/lib/avg-wpm-cache";
 import { DEFAULT_BEHAVIOUR, useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { loadQuotes, pickQuote, type QuoteGroup } from "@/lib/quotes";
+import { useTypingSurfaceMarker } from "@/lib/typing-surface";
 import { useAdapt } from "@/lib/use-adapt";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
@@ -880,6 +881,12 @@ export function PracticeProvider({
       },
     };
   }, [state, elapsedMs, wpmHistory, liveStats, isMobile, adaptAuthAllowed, adaptLoading, suddenDeathRestarts, lastTestId]);
+
+  // Flag the global `F` focus-mode shortcut to stand down while a run
+  // is in progress (rest or running) — keystrokes here are typed
+  // characters, not chrome toggles. Released at "done" so `F` works
+  // again on the results screen. See @/lib/typing-surface.
+  useTypingSurfaceMarker(state.phase !== "done");
 
   // Keyboard listener — only when user isn't typing into another input.
   const stateRef = useRef(state);

@@ -12,6 +12,7 @@ import {
 } from "react";
 import { Tag } from "@/components/ft";
 import { useCaretSettings, type CaretStyle } from "@/lib/caret-settings";
+import { useTypingSurfaceMarker } from "@/lib/typing-surface";
 import { useLifetimeStats } from "@/lib/use-lifetime-stats";
 import { cn } from "@/lib/utils";
 import { DrillHeader } from "./drill-header";
@@ -200,6 +201,12 @@ export function BurstSurface({
   const [state, dispatch] = useReducer(reducer, initialState);
   const itemRef = useRef(items);
   itemRef.current = items;
+
+  // While the burst is live, the global `F` focus-mode shortcut stands
+  // down — this surface captures every keystroke at the window level
+  // (no focused input), so `f` is a typed character, not a chrome
+  // toggle. Released once finished so `F` works on the clear screen.
+  useTypingSurfaceMarker(!state.finished);
 
   // Watch the item cursor: every time it advances we know the previous
   // item was cleared (burst engine only steps the cursor on a win that
