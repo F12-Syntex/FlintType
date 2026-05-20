@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.80.0 — 20 May 2026
+- Visiting someone else's profile now shows a head-to-head card comparing your best WPM, accuracy, and test count against theirs.
+
 ## 6.79.0 — 20 May 2026
 - The leaderboard has a new Global / Friends toggle, so you can rank yourself against just the people you follow instead of the whole world.
 

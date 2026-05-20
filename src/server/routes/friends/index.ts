@@ -9,6 +9,7 @@ import {
   type FriendStats,
   type FriendTargetInput,
 } from "@/types/friends";
+import { compare } from "./compare";
 import { follow } from "./follow";
 import { leaderboard } from "./leaderboard";
 import { relationshipOf, toFriendUsers } from "./relationship";
@@ -115,5 +116,6 @@ export const friends = defineNamespace({
     listFollowers,
     listFriends,
     leaderboard,
+    compare,
   },
 });

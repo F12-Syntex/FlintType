@@ -4,8 +4,13 @@ import { useUser } from "@clerk/nextjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BackendError, useBackend } from "@/lib/backend";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
-import type { FriendRelationship, FriendStats } from "@/types/friends";
+import type {
+  CompareOutput,
+  FriendRelationship,
+  FriendStats,
+} from "@/types/friends";
 import type { HistorySummaryOutput } from "@/types/history";
+import { HeadToHead } from "./head-to-head";
 import type { MonkeytypeStatsSlice } from "@/types/monkeytype";
 import { ActivityHeatmap } from "./activity-heatmap";
 import {
@@ -50,6 +55,7 @@ export function ProfileView({ username }: { username?: string }) {
   const [relationship, setRelationship] = useState<FriendRelationship | null>(
     null,
   );
+  const [compare, setCompare] = useState<CompareOutput | null>(null);
 
   useEffect(() => {
     if (isOwner == null) return;
@@ -92,6 +98,7 @@ export function ProfileView({ username }: { username?: string }) {
     if (!subjectUserId || !user) {
       setFriendStats(null);
       setRelationship(null);
+      setCompare(null);
       return;
     }
     let cancelled = false;
@@ -108,8 +115,15 @@ export function ProfileView({ username }: { username?: string }) {
           if (!cancelled) setRelationship(r);
         })
         .catch(() => {});
+      backend.friends
+        .compare({ userId: subjectUserId })
+        .then((c) => {
+          if (!cancelled) setCompare(c);
+        })
+        .catch(() => {});
     } else {
       setRelationship(null);
+      setCompare(null);
     }
     return () => {
       cancelled = true;
@@ -204,6 +218,8 @@ export function ProfileView({ username }: { username?: string }) {
         friendStats={friendStats}
         relationship={relationship}
       />
+
+      {compare ? <HeadToHead compare={compare} /> : null}
 
       {error ? (
         <div className="rounded-md border border-border bg-card px-4 py-3 text-sm text-primary">

@@ -36,7 +36,7 @@ _(Later steps add: duel/run-snapshot tables (Step 7); presence + live-session st
 | 2 | Friend-graph backend routes (`friends` namespace + notification kinds) | ✅ done |
 | 3 | Friend-graph UI (follow button, friends page, profile/leaderboard integration) | ✅ done |
 | 4 | Friends-scoped leaderboard | ✅ done |
-| 5 | Head-to-head profile compare | ⬜ |
+| 5 | Head-to-head profile compare | ✅ done |
 | 6 | Activity feed (PB fan-out to followers) | ⬜ |
 | 7 | Async ghost duels ("beat my run") | ⬜ |
 | 8 | Presence (online / rich status) | ⬜ |
@@ -75,3 +75,8 @@ Each step: tests-first, `yarn test` + `yarn tsc --noEmit` green, a dedicated age
 - **Route:** `friends.leaderboard` (auth-gated via the namespace) ranks the caller + everyone they follow, same `LeaderboardInput`/`LeaderboardOutput` as the public board so the client renders it through the identical table.
 - **Shared helper:** `sinceFor` / `modeFor` extracted to `src/server/leaderboard-window.ts` (+ test) and consumed by both the public and friends boards so their window/mode semantics can't drift.
 - **UI:** a Global / Friends `AudienceToggle` on the leaderboard (URL-driven `?audience=friends`, signed-in only, full-inversion active pill — not coral); `useLeaderboard` branches the backend call and keys its SWR cache on audience.
+
+### Step 5 — Head-to-head profile compare
+- **Repo:** `tests.userStats(userId)` — completed-run aggregates (tests, best WPM, best net WPM, best accuracy), zeros when none.
+- **Route:** `friends.compare({ userId })` (auth-gated) returns both sides (`me` vs `them`) with display + stats; 400 self-compare, 404 unknown target.
+- **UI:** `<HeadToHead>` panel on a visitor's profile — winner per metric marked by weight/ink vs muted (no coral, so the hero Follow CTA stays the single spark). Shown only to signed-in non-owners.

@@ -147,6 +147,34 @@ describe("testsRepo", () => {
     expect(rows).toEqual([]);
   });
 
+  it("userStats aggregates a user's completed runs (zeros when none)", async () => {
+    expect(await ctx.db.tests.userStats("nobody")).toEqual({
+      testsCompleted: 0,
+      bestWpm: 0,
+      bestNetWpm: 0,
+      bestAccuracy: 0,
+    });
+    await ctx.db.tests.insert(
+      row({ id: "t1", userId: "u1", wpm: 100, accuracy: 90 }),
+    );
+    await ctx.db.tests.insert(
+      row({ id: "t2", userId: "u1", wpm: 120, accuracy: 80 }),
+    );
+    // Incomplete + other users don't count.
+    await ctx.db.tests.insert(
+      row({ id: "t3", userId: "u1", wpm: 200, accuracy: 100, wasCompleted: false }),
+    );
+    await ctx.db.tests.insert(
+      row({ id: "t4", userId: "u2", wpm: 300, accuracy: 100 }),
+    );
+    const s = await ctx.db.tests.userStats("u1");
+    expect(s.testsCompleted).toBe(2);
+    expect(s.bestWpm).toBe(120);
+    expect(s.bestAccuracy).toBe(90);
+    // best net = max(100*0.9=90, 120*0.8=96) = 96
+    expect(s.bestNetWpm).toBe(96);
+  });
+
   it("topLeaderboard filters out incomplete runs", async () => {
     await ctx.db.tests.insert(
       row({ id: "t_partial", wpm: 150, accuracy: 100, wasCompleted: false }),

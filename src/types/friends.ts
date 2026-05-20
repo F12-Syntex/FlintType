@@ -57,3 +57,25 @@ export type FriendStats = {
   following: number;
   friends: number;
 };
+
+/** Headline aggregates for one side of a head-to-head compare. All
+ *  computed from completed flinttype runs (not MonkeyType-merged). */
+export type UserCompareStats = {
+  testsCompleted: number;
+  bestWpm: number;
+  bestNetWpm: number;
+  bestAccuracy: number;
+};
+
+/** One side of the compare — display info + stats. */
+export type CompareSide = {
+  userId: string;
+  username: string | null;
+  name: string;
+  tags: UserTagId[];
+  stats: UserCompareStats;
+};
+
+/** Head-to-head: the caller (`me`) against `them` (the profile being
+ *  viewed). */
+export type CompareOutput = { me: CompareSide; them: CompareSide };

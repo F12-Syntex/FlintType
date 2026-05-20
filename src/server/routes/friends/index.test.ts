@@ -19,6 +19,7 @@ import { BackendError } from "@/lib/errors";
 import { createTestDatabase } from "@/db/server/testing";
 import { callRoute } from "@/server/testing";
 import type {
+  CompareOutput,
   FriendListOutput,
   FriendRelationship,
   FriendStats,
@@ -366,6 +367,33 @@ describe("friends routes", () => {
       input: { scope: "race" },
     });
     expect(out.entries.some((e) => e.userId === "alice")).toBe(false);
+  });
+
+  /* ── compare ───────────────────────────────────────────────── */
+
+  it("compare returns both sides' aggregates", async () => {
+    await insertRun("me", 90);
+    await insertRun("alice", 130);
+    signedInAs("me");
+    const out = await callRoute<CompareOutput>(["friends", "compare"], {
+      db: ctx.db,
+      input: { userId: "alice" },
+    });
+    expect(out.me.userId).toBe("me");
+    expect(out.them.userId).toBe("alice");
+    expect(out.me.stats.bestWpm).toBe(90);
+    expect(out.them.stats.bestWpm).toBe(130);
+    expect(out.them.name).toBe("@Alice");
+  });
+
+  it("compare 404s an unknown target and 400s a self-compare", async () => {
+    signedInAs("me");
+    await expect(
+      callRoute(["friends", "compare"], { db: ctx.db, input: { userId: "ghost" } }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(
+      callRoute(["friends", "compare"], { db: ctx.db, input: { userId: "me" } }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
   });
 
   it("leaderboard requires auth", async () => {

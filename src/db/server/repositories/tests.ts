@@ -217,6 +217,34 @@ export function testsRepo(db: ServerDrizzle) {
       }
       return out;
     },
+
+    /** Headline aggregates for one user's completed runs — the
+     *  head-to-head compare card reads these for both sides. Returns
+     *  zeros (not null) for a user with no completed runs so the
+     *  caller never branches on absence. */
+    async userStats(userId: string): Promise<{
+      testsCompleted: number;
+      bestWpm: number;
+      bestNetWpm: number;
+      bestAccuracy: number;
+    }> {
+      const rows = await db
+        .select({
+          n: sql<number>`count(*)::int`,
+          bestWpm: sql<number>`coalesce(max(${tests.wpm}), 0)`,
+          bestNet: sql<number>`coalesce(max(${tests.wpm} * ${tests.accuracy} / 100.0), 0)`,
+          bestAcc: sql<number>`coalesce(max(${tests.accuracy}), 0)`,
+        })
+        .from(tests)
+        .where(and(eq(tests.userId, userId), eq(tests.wasCompleted, true)));
+      const r = rows[0];
+      return {
+        testsCompleted: Number(r?.n ?? 0),
+        bestWpm: Math.round(Number(r?.bestWpm ?? 0)),
+        bestNetWpm: Math.round(Number(r?.bestNet ?? 0)),
+        bestAccuracy: Math.round(Number(r?.bestAcc ?? 0) * 10) / 10,
+      };
+    },
     /** Top users by completed-test count. One row per user, ordered
      *  by COUNT(*) descending so the highest-level user lands at
      *  rank 1 — same level economy the profile hero uses (see
