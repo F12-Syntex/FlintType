@@ -1,5 +1,6 @@
 import { defineNamespace, defineRoute } from "@/server";
 import type { Database } from "@/db/server";
+import { selfSpectateAllowed } from "@/server/live-self-spectate";
 import { requireAuth } from "@/server/middleware/auth";
 import { rateLimit } from "@/server/middleware/rate-limit";
 import { resolveUserDisplays } from "@/server/user-display";
@@ -59,9 +60,14 @@ const watch = defineRoute<WatchInput, WatchOutput>({
   handler: async ({ input, db, meta }) => {
     const me = meta.userId as string;
     const target = input.userId;
-    if (target === me) return { live: false };
-    if (await db.blocks.eitherBlocks(me, target)) return { live: false };
-    if (!(await db.follows.isMutual(me, target))) return { live: false };
+    // Dev-only: you may watch your own session (single-browser testing).
+    // Everyone else still needs to be an unblocked mutual friend.
+    const isSelf = target === me;
+    if (isSelf && !selfSpectateAllowed()) return { live: false };
+    if (!isSelf) {
+      if (await db.blocks.eitherBlocks(me, target)) return { live: false };
+      if (!(await db.follows.isMutual(me, target))) return { live: false };
+    }
     if (!(await isSpectatable(db, target))) return { live: false };
 
     const entry = await db.liveSessions.get(target);
@@ -97,6 +103,9 @@ const friendsLive = defineRoute<void, FriendsLiveOutput>({
     const me = meta.userId as string;
     const friends = await db.follows.listFriends(me);
     const ids = friends.map((e) => e.userId);
+    // Dev-only: surface your own live session in your "Live now" so the
+    // hub → watch flow is clickable without a second account.
+    if (selfSpectateAllowed() && !ids.includes(me)) ids.push(me);
     if (ids.length === 0) return { users: [] };
 
     const [sessions, prefsById] = await Promise.all([

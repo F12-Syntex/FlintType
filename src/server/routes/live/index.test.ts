@@ -13,7 +13,14 @@ vi.mock("@clerk/nextjs/server", () => ({
   clerkClient: vi.fn(),
 }));
 
+// Default off so the suite exercises the real prod self-deny; individual
+// dev-bypass tests flip it on.
+vi.mock("@/server/live-self-spectate", () => ({
+  selfSpectateAllowed: vi.fn(() => false),
+}));
+
 import { auth, clerkClient } from "@clerk/nextjs/server";
+import { selfSpectateAllowed } from "@/server/live-self-spectate";
 import { BackendError } from "@/lib/errors";
 import { createTestDatabase } from "@/db/server/testing";
 import { callRoute } from "@/server/testing";
@@ -26,6 +33,7 @@ import type {
 
 const mockAuth = vi.mocked(auth);
 const mockClerkClient = vi.mocked(clerkClient);
+const mockSelfSpectate = vi.mocked(selfSpectateAllowed);
 
 function signedInAs(userId: string) {
   mockAuth.mockResolvedValue({
@@ -76,6 +84,7 @@ describe("live routes", () => {
   beforeEach(async () => {
     mockAuth.mockReset();
     mockClerkClient.mockReset();
+    mockSelfSpectate.mockReturnValue(false);
     await ctx.reset();
     mockKnownUsers([
       { id: "me", username: "me_handle", firstName: "Me" },
@@ -203,6 +212,42 @@ describe("live routes", () => {
       db: ctx.db,
     });
     expect(out.users).toEqual([]);
+  });
+
+  it("dev self-spectate: a user can watch their own opted-in live session", async () => {
+    mockSelfSpectate.mockReturnValue(true);
+    await ctx.db.userPrefs.merge("me", { spectate: { enabled: true } });
+    signedInAs("me");
+    await callRoute(["live", "progress"], { db: ctx.db, input: SNAP });
+    const w = await callRoute<WatchOutput>(["live", "watch"], {
+      db: ctx.db,
+      input: { userId: "me" },
+    });
+    expect(w.live).toBe(true);
+    if (w.live) expect(w.subject.userId).toBe("me");
+  });
+
+  it("dev self-spectate: friendsLive surfaces yourself when live + opted in", async () => {
+    mockSelfSpectate.mockReturnValue(true);
+    await ctx.db.userPrefs.merge("me", { spectate: { enabled: true } });
+    signedInAs("me");
+    await callRoute(["live", "progress"], { db: ctx.db, input: SNAP });
+    const out = await callRoute<FriendsLiveOutput>(["live", "friendsLive"], {
+      db: ctx.db,
+    });
+    expect(out.users.map((u) => u.userId)).toContain("me");
+  });
+
+  it("self-spectate stays denied when the dev bypass is off", async () => {
+    // mockSelfSpectate defaults to false in beforeEach.
+    await ctx.db.userPrefs.merge("me", { spectate: { enabled: true } });
+    signedInAs("me");
+    await callRoute(["live", "progress"], { db: ctx.db, input: SNAP });
+    const w = await callRoute<WatchOutput>(["live", "watch"], {
+      db: ctx.db,
+      input: { userId: "me" },
+    });
+    expect(w.live).toBe(false);
   });
 
   it("stop clears the broadcaster's live snapshot", async () => {

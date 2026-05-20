@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.86.3 — 20 May 2026
+- Internal changes only.
+
 ## 6.86.2 — 20 May 2026
 - Live spectating no longer cuts out partway through long timed runs, and the friends directory is now fully keyboard-accessible.
 
