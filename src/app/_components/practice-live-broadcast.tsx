@@ -6,12 +6,18 @@ import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { useBackend } from "@/lib/backend";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { useCaretSettings } from "@/lib/caret-settings";
+import { setWatcherCount } from "@/lib/live-watchers";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { LIVE_MAX_WORDS } from "@/types/live";
 import { liveSnapshotWindow } from "./practice-progress";
 import type { State } from "./practice-state";
 
-const POST_THROTTLE_MS = 700;
+/** Full-fidelity cadence while someone is watching. */
+const WATCHED_MS = 700;
+/** Slow heartbeat while typing but unwatched — just enough to stay in
+ *  friends' "live now" so someone can choose to watch. No `screen`
+ *  payload, so it's cheap. Idle + unwatched pushes nothing at all. */
+const HEARTBEAT_MS = 2_000;
 /** Module-level stable default — useRemotePrefs captures it once.
  *  Sharing is ON by default; only an explicit `false` turns it off. */
 const SPECTATE_DEFAULT: { enabled?: boolean } = { enabled: true };
@@ -104,24 +110,95 @@ export function PracticeLiveBroadcast({
   const { prefs: behaviour } = useBehaviourPrefs();
 
   const enabled = active && !!isSignedIn && spectate.enabled !== false;
+  const phase = state.phase;
 
-  // Latest values the interval reads without re-subscribing it each tick.
+  // Latest values the loop reads without re-subscribing each tick.
   const snapRef = useRef({ state, wpm, raw, accuracy, elapsedMs, wpmHistory, appearance, caret, behaviour });
   snapRef.current = { state, wpm, raw, accuracy, elapsedMs, wpmHistory, appearance, caret, behaviour };
+  // Last known watcher count — persists across the effect restarts that
+  // phase changes trigger, so a watched run doesn't blink to "unwatched"
+  // when it transitions running → done.
+  const watchersRef = useRef(0);
 
   useEffect(() => {
-    if (!enabled) return;
-    let id = 0;
-    const post = () => {
-      const s = snapRef.current;
+    if (!enabled) {
+      setWatcherCount(0);
+      return;
+    }
+    let stopped = false;
+    let timer = 0;
+
+    // Build the full clone payload — only when actually watched (it's the
+    // expensive part: getComputedStyle + the done events).
+    const buildScreen = (
+      s: typeof snapRef.current,
+      win: ReturnType<typeof liveSnapshotWindow>,
+    ) => {
       const st = s.state;
-      if (st.words.length === 0) return;
-      // Window the passage so a runaway TIME buffer never blows the wire
-      // cap; window `typed` + the cursor + events by the same offset.
-      const win = liveSnapshotWindow(st, LIVE_MAX_WORDS);
       const start = win.start;
       const len = win.words.length;
       const done = st.phase === "done";
+      return {
+        phase: st.phase,
+        typed: st.typed.slice(start, start + len),
+        cursorWord: Math.max(0, st.cursorWord - start),
+        cursorChar: st.cursorChar,
+        mode: st.mode,
+        length: st.length,
+        quoteSource: st.quoteSource,
+        elapsedMs: s.elapsedMs,
+        raw: s.raw,
+        appearance: s.appearance as unknown as Record<string, unknown>,
+        caret: s.caret as unknown as Record<string, unknown>,
+        behaviour: { blindMode: s.behaviour.blindMode },
+        themeVars: readThemeVars(),
+        ...(done
+          ? {
+              wpmHistory: s.wpmHistory.map((h) => ({
+                t: h.t,
+                wpm: h.wpm,
+                raw: h.raw,
+              })),
+              events: st.events
+                .filter(
+                  (e) => e.wordIndex >= start && e.wordIndex < start + len,
+                )
+                .slice(0, MAX_EVENTS)
+                .map((e) => ({
+                  t: e.t,
+                  expected: e.expected,
+                  typed: e.typed,
+                  correct: e.correct,
+                  wordIndex: e.wordIndex - start,
+                })),
+            }
+          : {}),
+      };
+    };
+
+    const schedule = () => {
+      if (stopped) return;
+      const w = watchersRef.current;
+      const ph = snapRef.current.state.phase;
+      // Watched → full rate. Typing but unwatched → slow heartbeat for
+      // discoverability. Idle + unwatched → stop (the effect re-runs and
+      // resumes when the phase changes to running).
+      const delay = w > 0 ? WATCHED_MS : ph === "running" ? HEARTBEAT_MS : null;
+      if (delay == null) return;
+      timer = window.setTimeout(tick, delay);
+    };
+
+    const tick = () => {
+      if (stopped) return;
+      const s = snapRef.current;
+      const st = s.state;
+      const watched = watchersRef.current > 0;
+      // Push when watched (any phase) or while actively typing.
+      if (st.words.length === 0 || !(watched || st.phase === "running")) {
+        schedule();
+        return;
+      }
+      const win = liveSnapshotWindow(st, LIVE_MAX_WORDS);
       backend.live
         .progress({
           words: win.words,
@@ -129,53 +206,29 @@ export function PracticeLiveBroadcast({
           totalChars: win.totalChars,
           wpm: s.wpm,
           accuracy: s.accuracy,
-          screen: {
-            phase: st.phase,
-            typed: st.typed.slice(start, start + len),
-            cursorWord: Math.max(0, st.cursorWord - start),
-            cursorChar: st.cursorChar,
-            mode: st.mode,
-            length: st.length,
-            quoteSource: st.quoteSource,
-            elapsedMs: s.elapsedMs,
-            raw: s.raw,
-            appearance: s.appearance as unknown as Record<string, unknown>,
-            caret: s.caret as unknown as Record<string, unknown>,
-            behaviour: { blindMode: s.behaviour.blindMode },
-            themeVars: readThemeVars(),
-            // Results data only on the done frame, aligned to the window.
-            ...(done
-              ? {
-                  wpmHistory: s.wpmHistory.map((h) => ({
-                    t: h.t,
-                    wpm: h.wpm,
-                    raw: h.raw,
-                  })),
-                  events: st.events
-                    .filter(
-                      (e) => e.wordIndex >= start && e.wordIndex < start + len,
-                    )
-                    .slice(0, MAX_EVENTS)
-                    .map((e) => ({
-                      t: e.t,
-                      expected: e.expected,
-                      typed: e.typed,
-                      correct: e.correct,
-                      wordIndex: e.wordIndex - start,
-                    })),
-                }
-              : {}),
-          },
+          // Heavy clone payload only when someone's watching.
+          ...(watched ? { screen: buildScreen(s, win) } : {}),
         })
         .then((r) => {
-          if (!r.accepted) window.clearInterval(id); // server says opted-out
+          if (!r.accepted) {
+            stopped = true;
+            setWatcherCount(0);
+            return;
+          }
+          watchersRef.current = r.watchers;
+          setWatcherCount(r.watchers);
+          schedule();
         })
-        .catch(() => {});
+        .catch(() => schedule());
     };
-    post(); // push the first frame immediately, don't wait a tick
-    id = window.setInterval(post, POST_THROTTLE_MS);
-    return () => window.clearInterval(id);
-  }, [enabled, backend]);
+
+    tick();
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+      setWatcherCount(0);
+    };
+  }, [enabled, phase, backend]);
 
   // Clear our snapshot when the surface unmounts so a spectator doesn't
   // linger on a stale frame for the full freshness window.

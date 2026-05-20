@@ -60,7 +60,7 @@ const progress = defineRoute<LiveProgressInput, LiveProgressOutput>({
   input: liveProgressInputSchema,
   handler: async ({ input, db, meta }) => {
     const me = meta.userId as string;
-    if (!(await isSpectatable(db, me))) return { accepted: false };
+    if (!(await isSpectatable(db, me))) return { accepted: false, watchers: 0 };
     await db.liveSessions.set(me, {
       words: input.words,
       progressChars: input.progressChars,
@@ -69,7 +69,11 @@ const progress = defineRoute<LiveProgressInput, LiveProgressOutput>({
       accuracy: input.accuracy,
       screen: input.screen,
     });
-    return { accepted: true };
+    // Tell the broadcaster how many people are watching, so it can stream
+    // lazily — one indexed read, free on the push it already makes.
+    const watchers = (await db.liveSpectators.listFor(me, SPECTATOR_TTL_MS))
+      .length;
+    return { accepted: true, watchers };
   },
 });
 

@@ -286,6 +286,14 @@ describe("live routes", () => {
     expect(s.watchers).toHaveLength(1);
     expect(s.watchers[0].userId).toBe("me");
     expect(s.watchers[0].name).toBe("@Me");
+
+    // ...and the watcher count rides back on alice's next progress push,
+    // so the broadcaster can stream lazily without a separate request.
+    const pushed = await callRoute<LiveProgressOutput>(["live", "progress"], {
+      db: ctx.db,
+      input: SNAP,
+    });
+    expect(pushed.watchers).toBe(1);
   });
 
   it("friendsLive is empty when the caller has no friends", async () => {

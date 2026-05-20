@@ -118,9 +118,11 @@ export const liveProgressInputSchema = z.object({
   screen: liveScreenSchema.optional(),
 });
 export type LiveProgressInput = z.infer<typeof liveProgressInputSchema>;
-/** `accepted` is false when the user hasn't opted in to being
- *  spectated — the broadcaster client stops pushing on a false. */
-export type LiveProgressOutput = { accepted: boolean };
+/** `accepted` is false when sharing is off — the broadcaster stops
+ *  pushing. `watchers` is how many people are currently watching, so the
+ *  broadcaster can stream lazily: full rate when watched, a slow
+ *  heartbeat while typing-but-unwatched, and stop when idle + unwatched. */
+export type LiveProgressOutput = { accepted: boolean; watchers: number };
 
 export const watchInputSchema = z.object({
   userId: z.string().min(1).max(64),

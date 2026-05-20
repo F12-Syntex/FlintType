@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.91.2 — 20 May 2026
+- Live spectating is much lighter now: your practice screen only streams while a friend is actually watching, or while you're actively typing, instead of constantly in the background. No change to what watchers see.
+
 ## 6.91.1 — 20 May 2026
 - Cleaned up the live-watch screen: a slim header with a clear "Spectating" indicator, and the friend's screen now fills the whole view edge to edge instead of sitting in a small framed box.
 

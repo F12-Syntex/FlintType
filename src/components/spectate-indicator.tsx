@@ -4,20 +4,11 @@ import { useUser } from "@clerk/nextjs";
 import { Eye } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useBackend } from "@/lib/backend";
-import { useRemotePrefs } from "@/lib/use-remote-prefs";
+import { useWatcherCount } from "@/lib/live-watchers";
 import { cn } from "@/lib/utils";
 import type { LiveSpectator } from "@/types/live";
 
-/** Module-level stable default — useRemotePrefs captures it once.
- *  Sharing is ON by default; only an explicit `false` turns it off. */
-const SPECTATE_DEFAULT: { enabled?: boolean; blocked?: string[] } = {
-  enabled: true,
-};
-const POLL_MS = 2_000;
-
-function isSharing(enabled: boolean | undefined): boolean {
-  return enabled !== false;
-}
+const NAME_POLL_MS = 2_500;
 
 /** The on/off chip — presentational + pure, used by the Behaviour
  *  settings preview to show the sharing state at a forced value. */
@@ -51,9 +42,8 @@ export function SpectatePill({
   );
 }
 
-/** Phrasing the watcher list the way the user reads it: "ada is
- *  spectating" / "ada, lin are spectating" / "3 people are spectating".
- *  Handles drop their leading `@` so the sentence reads naturally. */
+/** "ada is spectating" / "ada, lin are spectating" / "3 people are
+ *  spectating". Handles drop their leading `@` so it reads naturally. */
 function watcherSentence(watchers: LiveSpectator[]): string {
   const names = watchers.map((w) => w.name.replace(/^@/, ""));
   if (names.length === 1) return `${names[0]} is spectating`;
@@ -61,22 +51,24 @@ function watcherSentence(watchers: LiveSpectator[]): string {
   return `${watchers.length} people are spectating`;
 }
 
-/** Live "who's watching" readout on practice surfaces. While sharing is
- *  on and signed in, it polls `live.spectators`; it renders ONLY when at
- *  least one person is currently watching (so an idle run shows nothing
- *  and never reflows the typing area). The coral dot is the live spark. */
+function countSentence(n: number): string {
+  return n === 1 ? "1 person is spectating" : `${n} people are spectating`;
+}
+
+/** Live "who's watching" readout on practice surfaces. It renders only
+ *  while someone's actually watching — driven by the shared watcher
+ *  count the broadcaster learns from its own `live.progress` responses
+ *  (no idle polling). When a watcher is present it fetches their handles
+ *  to name them; until those resolve, the count carries the message. */
 export function SpectateIndicator({ className }: { className?: string }) {
   const { isSignedIn } = useUser();
   const backend = useBackend();
-  const { value } = useRemotePrefs<{ enabled?: boolean; blocked?: string[] }>(
-    "spectate",
-    SPECTATE_DEFAULT,
-  );
-  const sharing = !!isSignedIn && isSharing(value.enabled);
+  const count = useWatcherCount();
   const [watchers, setWatchers] = useState<LiveSpectator[]>([]);
+  const active = !!isSignedIn && count > 0;
 
   useEffect(() => {
-    if (!sharing) {
+    if (!active) {
       setWatchers([]);
       return;
     }
@@ -90,14 +82,14 @@ export function SpectateIndicator({ className }: { className?: string }) {
         .catch(() => {});
     };
     poll();
-    const id = window.setInterval(poll, POLL_MS);
+    const id = window.setInterval(poll, NAME_POLL_MS);
     return () => {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [sharing, backend]);
+  }, [active, backend]);
 
-  if (!sharing || watchers.length === 0) return null;
+  if (!active) return null;
   return (
     <div className={cn("flex justify-end", className)} aria-live="polite">
       <span className="inline-flex items-center gap-2 rounded-md border border-primary/50 bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-foreground shadow-sm">
@@ -106,7 +98,7 @@ export function SpectateIndicator({ className }: { className?: string }) {
           className="size-2 rounded-full bg-primary motion-safe:animate-pulse"
         />
         <Eye size={14} className="shrink-0 text-primary" aria-hidden />
-        {watcherSentence(watchers)}
+        {watchers.length > 0 ? watcherSentence(watchers) : countSentence(count)}
       </span>
     </div>
   );
