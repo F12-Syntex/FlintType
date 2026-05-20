@@ -10,7 +10,9 @@ export type NotificationKind =
   | "og_granted"
   | "follow"
   | "mutual"
-  | "friend_pb";
+  | "friend_pb"
+  | "duel_challenge"
+  | "duel_result";
 
 export type AnnouncementData = {
   /** Optional CTA URL — when present the row becomes a link. */
@@ -75,6 +77,30 @@ export type FriendPbNotificationData = {
   accuracy: number;
 };
 
+/** A friend challenged the recipient to beat a recorded run. Links to
+ *  `/duel/<duelId>` where the recipient races the ghost. */
+export type DuelChallengeData = {
+  duelId: string;
+  challengerId: string;
+  challengerName: string;
+  challengerUsername: string | null;
+  challengerWpm: number;
+  mode: string;
+  durationOrWordCount: number;
+};
+
+/** The opponent finished a duel the recipient issued. `won` is from
+ *  the opponent's perspective (true = they beat the recipient's run). */
+export type DuelResultData = {
+  duelId: string;
+  opponentId: string;
+  opponentName: string;
+  opponentUsername: string | null;
+  opponentWpm: number;
+  challengerWpm: number;
+  won: boolean;
+};
+
 export type NotificationData =
   | AnnouncementData
   | PersonalBestData
@@ -82,6 +108,8 @@ export type NotificationData =
   | FollowNotificationData
   | MutualNotificationData
   | FriendPbNotificationData
+  | DuelChallengeData
+  | DuelResultData
   | null;
 
 export type Notification = {

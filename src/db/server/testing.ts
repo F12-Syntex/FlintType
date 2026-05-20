@@ -103,10 +103,28 @@ const SCHEMA_DDL = `
     created_at    timestamp NOT NULL DEFAULT now(),
     PRIMARY KEY (blocker_id, blocked_id)
   );
+  CREATE TABLE IF NOT EXISTS duels (
+    id                       text PRIMARY KEY,
+    challenger_id            text NOT NULL,
+    opponent_id              text NOT NULL,
+    words                    jsonb NOT NULL,
+    mode                     text NOT NULL,
+    duration_or_word_count   integer NOT NULL,
+    challenger_wpm           double precision NOT NULL,
+    challenger_accuracy      double precision NOT NULL,
+    challenger_wpm_history   jsonb,
+    status                   text NOT NULL DEFAULT 'pending',
+    opponent_wpm             double precision,
+    opponent_accuracy        double precision,
+    created_at               timestamp NOT NULL DEFAULT now(),
+    completed_at             timestamp
+  );
+  CREATE INDEX IF NOT EXISTS duels_opponent_idx ON duels (opponent_id, created_at);
+  CREATE INDEX IF NOT EXISTS duels_challenger_idx ON duels (challenger_id, created_at);
 `;
 
 const TRUNCATE_ALL = `
-  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, word_models, tests, notifications, users, follows, blocks RESTART IDENTITY;
+  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, word_models, tests, notifications, users, follows, blocks, duels RESTART IDENTITY;
 `;
 
 /** PGlite's parse-message path rejects multi-statement queries, so we

@@ -38,7 +38,7 @@ _(Later steps add: duel/run-snapshot tables (Step 7); presence + live-session st
 | 4 | Friends-scoped leaderboard | ✅ done |
 | 5 | Head-to-head profile compare | ✅ done |
 | 6 | Activity feed (PB fan-out to followers) | ✅ done |
-| 7 | Async ghost duels ("beat my run") | ⬜ |
+| 7 | Async ghost duels ("beat my run") | ✅ done |
 | 8 | Presence (online / rich status) | ⬜ |
 | 9 | Live solo-practice spectate | ⬜ |
 
@@ -85,3 +85,10 @@ Each step: tests-first, `yarn test` + `yarn tsc --noEmit` green, a dedicated age
 - When a user sets a PB (`adapt.submit`), a `friend_pb` notification fans out to their **followers** (`listFollowers`), deduped per run (`friend_pb:<testId>`). The fan-out sits in its own try/catch inside the existing PB block — it only runs on a real PB, only calls Clerk when there's ≥1 follower, and can never turn a submit into a 5xx.
 - New `friend_pb` notification kind + `FriendPbNotificationData` (friend handle + run stats); popover renders it (neutral, not coral) linking to the friend's profile.
 - The notification feed (bell popover) is the activity feed — no separate page.
+
+### Step 7 — Async ghost duels ("beat my run")
+- **Schema:** `duels` (snapshot of passage + challenger run + per-second WPM trace, status pending→completed, opponent result). Migration `0009`; test DDL mirrored. Repo `duelsRepo` (create/findById/listIncoming/listOutgoing/guarded recordResult).
+- **Routes:** `duels` namespace (auth) — `create` (mutual-friend gate, snapshots run, notifies opponent), `get` (participants only), `submitResult` (opponent-only, guarded, notifies challenger, win = net WPM), `list`. Notification kinds `duel_challenge` / `duel_result`.
+- **No live infra:** a duel is pure request/response. The opponent races a ghost cursor integrated from the challenger's trace.
+- **`DuelTyper`** (`app/duel/_components/`) — self-contained typing surface (decoupled from the adaptive engine): hidden-input capture, gross WPM/accuracy, per-second sampling, ghost pacing. The cumulative-char math is a pure, tested helper (`ghost.ts` + `ghost.test.ts`) — samples are cumulative averages, mapped (not re-integrated) to char positions.
+- **Flow:** challenger sets the run at `/duel/new?opponent=<id>` (Duel button on a mutual friend's profile) → opponent races at `/duel/<id>` → `<DuelOutcome>` scoreboard (winner by weight, net WPM). `/duels` lists incoming/outgoing; linked from `/friends`; notifications deep-link to the duel.

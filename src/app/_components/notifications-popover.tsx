@@ -14,6 +14,8 @@ import type {
   FollowNotificationData,
   MutualNotificationData,
   FriendPbNotificationData,
+  DuelChallengeData,
+  DuelResultData,
 } from "@/types/notification";
 
 /** Bell + popover. Reads the live feed from
@@ -240,7 +242,9 @@ function Row({ item, dark }: { item: Notification; dark: boolean }) {
         ? `/profile/${item.data.friendUsername ?? item.data.friendId}`
         : isFriendPb(item)
           ? `/profile/${item.data.friendUsername ?? item.data.friendId}`
-          : undefined;
+          : isDuelNotification(item)
+            ? `/duel/${item.data.duelId}`
+            : undefined;
   const body = (
     <div className="flex items-start gap-3 px-4 py-3">
       <span
@@ -387,6 +391,15 @@ function isFriendPb(n: Notification): n is Notification & {
   if (n.kind !== "friend_pb") return false;
   if (n.data == null || typeof n.data !== "object") return false;
   return "friendId" in (n.data as Record<string, unknown>);
+}
+
+/** Both duel kinds carry a `duelId` and link to the duel page. */
+function isDuelNotification(n: Notification): n is Notification & {
+  data: DuelChallengeData | DuelResultData;
+} {
+  if (n.kind !== "duel_challenge" && n.kind !== "duel_result") return false;
+  if (n.data == null || typeof n.data !== "object") return false;
+  return "duelId" in (n.data as Record<string, unknown>);
 }
 
 function formatRelative(ms: number): string {

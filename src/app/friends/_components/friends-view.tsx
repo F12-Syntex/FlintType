@@ -121,6 +121,12 @@ export function FriendsView() {
           Follow anyone to keep tabs on their runs. When you follow each other,
           you become friends and unlock duels and live spectating.
         </p>
+        <Link
+          href="/duels"
+          className="mt-1 w-fit text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+        >
+          Your duels →
+        </Link>
       </header>
 
       {isLoaded && !isSignedIn ? (

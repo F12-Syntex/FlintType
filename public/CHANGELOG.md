@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.82.0 — 20 May 2026
+- Duels are here. Challenge a friend from their profile to beat one of your runs: you type a passage to set the pace, and they race a ghost of your speed to try to top it. See your challenges, sent and received, on the new Duels page, and get a notification when someone takes you on or beats your run.
+
 ## 6.81.0 — 20 May 2026
 - When someone you follow sets a personal best, you'll now get a notification about it, so your bell doubles as a feed of your friends' wins.
 

@@ -195,13 +195,21 @@ export function ProfileHero({
             onSignOut={() => void signOut({ redirectUrl: "/" })}
           />
         ) : relationship && subjectUserId ? (
-          <div className="md:self-start">
+          <div className="flex flex-col items-start gap-2 md:self-start">
             <FollowButton
               userId={subjectUserId}
               initial={relationship}
               menu
               handle={handle}
             />
+            {relationship.mutual ? (
+              <Link
+                href={`/duel/new?opponent=${subjectUserId}`}
+                className="inline-flex h-9 items-center rounded-md border border-border bg-background px-3 text-[12px] font-medium text-foreground transition-colors hover:bg-accent"
+              >
+                Duel
+              </Link>
+            ) : null}
           </div>
         ) : null}
       </div>
