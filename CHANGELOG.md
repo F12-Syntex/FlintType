@@ -1,0 +1,57 @@
+# Changelog
+
+User-facing changes to flinttype, newest first — one section per version.
+
+- Write each line in plain language: what the user now **sees** or **can do**. No jargon, no file / function / symbol names.
+- Versions whose changes don't concern the user (refactors, tests, tooling, internal fixes) get a single brief line, e.g. `- Internal changes only.`
+- Updated on every version bump — see `CLAUDE.md` → **Commit discipline**.
+
+---
+
+## 6.77.5 — 20 May 2026
+- Internal changes only. (Added this changelog.)
+
+## 6.77.3 — 20 May 2026
+- Pressing "f" while typing no longer switches on focus mode — it just types the letter, during practice, drills, and races.
+
+## 6.77.2 — 19 May 2026
+- Dark-mode menus and dropdowns no longer flash a bright orange block on hover; highlights are quiet again by default.
+
+## 6.77.1 — 19 May 2026
+- Hover highlights on menus and pickers are now a soft neutral tint instead of bright coral, so the brand colour only marks genuinely active items.
+
+## 6.77.0 — 19 May 2026
+- New visitors start with a more refined default setup — a calmer typing area, tuned caret and live stats, and a shorter 25-word default test.
+
+## 6.76.2 — 19 May 2026
+- The Editorial / Minimal / Stripped preset buttons on the customise page now highlight the one you're using and clear the moment you change a single setting.
+
+## 6.76.1 — 19 May 2026
+- Drills cards are now all the same size with a cleaner hover lift, and the last row no longer shows odd gray gaps.
+
+## 6.76.0 — 19 May 2026
+- The drills page gained filter chips — All, Tailored, Generic, Sudden death, Burst, Available now — each with a live count, replacing the old two-section split.
+
+## 6.75.1 — 19 May 2026
+- The sign-in and sign-up screens now use one consistent button style for method choices and small links like "Forgot password?" and "Resend code".
+
+## 6.75.0 — 19 May 2026
+- Sign-in and sign-up moved to a single centered card that gently fades in on load.
+
+## 6.74.2 — 19 May 2026
+- Polished the sign-in screen so its dark brand side and form side feel balanced — bigger brand text, a brighter glow, and a wider form.
+
+## 6.74.1 — 19 May 2026
+- Cleaned up the sign-in screen's dark panel with a smaller, better-placed glow and no duplicate logo.
+
+## 6.74.0 — 19 May 2026
+- Sign-in and sign-up were redesigned into a full-screen two-panel layout: a dark branded side and a form side that follows your theme (stacked on mobile).
+
+## 6.73.0 — 19 May 2026
+- You can now reset a forgotten password straight from the sign-in form — get a code by email, enter it, and set a new one.
+
+## 6.72.1 — 19 May 2026
+- Signing in with an email code now uses six clean single-digit boxes that submit automatically once filled.
+
+## 6.72.0 — 19 May 2026
+- You can now sign in without a password — using a one-time code emailed to you, or a magic link you click from your inbox.
