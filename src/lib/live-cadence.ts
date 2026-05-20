@@ -28,16 +28,17 @@ export type BroadcastPlan = {
  *  run phase. Efficiency is purely about *cadence*, never about stripping
  *  the payload:
  *  - watched (any phase) → full rate, full clone payload
- *  - typing, unwatched   → slow heartbeat, still the full clone payload
- *    (so a watcher who joins sees the 1:1 screen immediately)
- *  - idle, unwatched     → stop (no push, no reschedule) */
+ *  - typing OR on the results screen, unwatched → slow heartbeat, still
+ *    the full clone payload (so a watcher who joins sees the 1:1 screen
+ *    AND the results when they finish — `done` is not "idle")
+ *  - resting + unwatched (sitting at the start, not begun) → stop */
 export function broadcastPlan(watched: boolean, phase: string): BroadcastPlan {
-  const running = phase === "running";
-  const push = watched || running;
+  const active = phase === "running" || phase === "done";
+  const push = watched || active;
   return {
     push,
     includeScreen: push,
-    nextDelayMs: watched ? WATCHED_MS : running ? HEARTBEAT_MS : null,
+    nextDelayMs: watched ? WATCHED_MS : active ? HEARTBEAT_MS : null,
   };
 }
 

@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.91.5 — 20 May 2026
+- Fixed: when a friend you're watching finishes their run, you now see their results screen, instead of it dropping to "not live". Broadcasting now keeps going on the results screen too.
+
 ## 6.91.4 — 20 May 2026
 - Fixed: watching a friend live again shows their full 1:1 screen. A recent efficiency change had briefly stripped the stream down to a basic mirror when they weren't being watched yet; the full screen is always sent now, and the streaming-only-when-needed efficiency stays.
 

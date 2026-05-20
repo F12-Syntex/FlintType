@@ -9,25 +9,22 @@ import {
 } from "./live-cadence";
 
 describe("broadcastPlan", () => {
-  it("STOPS entirely when idle and unwatched (the flood we're killing)", () => {
+  it("STOPS entirely when resting (not begun) and unwatched (the flood we're killing)", () => {
     expect(broadcastPlan(false, "rest")).toEqual({
-      push: false,
-      includeScreen: false,
-      nextDelayMs: null,
-    });
-    expect(broadcastPlan(false, "done")).toEqual({
       push: false,
       includeScreen: false,
       nextDelayMs: null,
     });
   });
 
-  it("heartbeats slowly while typing-unwatched but STILL sends the full clone payload", () => {
-    expect(broadcastPlan(false, "running")).toEqual({
-      push: true,
-      includeScreen: true,
-      nextDelayMs: HEARTBEAT_MS,
-    });
+  it("heartbeats (full payload) while typing OR on the results screen, unwatched", () => {
+    for (const phase of ["running", "done"]) {
+      expect(broadcastPlan(false, phase)).toEqual({
+        push: true,
+        includeScreen: true,
+        nextDelayMs: HEARTBEAT_MS,
+      });
+    }
   });
 
   it("streams at full rate with the clone payload whenever watched, any phase", () => {
