@@ -1,9 +1,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseChangelog } from "@/lib/changelog";
+import { cn } from "@/lib/utils";
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../_components/app-chrome";
-import { EditorialPage, EditorialSection } from "../_components/editorial-page";
+import { EditorialPage } from "../_components/editorial-page";
 
 export const metadata = buildPageMetadata({
   title: "Changelog — what's new on flinttype",
@@ -27,33 +28,60 @@ export default function ChangelogPage() {
       <EditorialPage
         eyebrow="Releases"
         title="Changelog."
-        subtitle="What changed, when — in plain language. Per-commit detail lives on GitHub; this is the curated user-facing summary."
+        subtitle="What changed and when, in plain language. Per-commit detail lives on GitHub; this is the curated user-facing summary."
+        footer={
+          <>
+            Prefer plain text? The raw changelog lives at{" "}
+            <a
+              href="/changelog.md"
+              className="text-foreground underline-offset-4 hover:underline"
+            >
+              /changelog.md
+            </a>
+            .
+          </>
+        }
       >
-        {entries.map((e) => (
-          <EditorialSection key={e.version}>
-            <header className="flex items-baseline justify-between gap-3 border-b border-border pb-2">
-              <h2 className="text-[18px] font-semibold tracking-tight text-foreground sm:text-[20px]">
-                {e.version}
-              </h2>
-              <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                {e.date}
-              </span>
-            </header>
-            <ul className="flex flex-col gap-2 pt-2">
-              {e.lines.map((line, i) => (
-                <li key={i} className="flex items-baseline gap-3">
-                  <span
-                    aria-hidden
-                    className="mt-[0.5em] size-1 shrink-0 rounded-[1px] bg-primary/60"
-                  />
-                  <span className="text-[14px] leading-relaxed text-foreground/85">
-                    {line}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </EditorialSection>
-        ))}
+        <div className="flex flex-col">
+          {entries.map((entry, i) => (
+            <article
+              key={entry.version}
+              className="flex flex-col gap-3 border-t border-border/60 pt-7 pb-1 first:border-t-0 first:pt-0 md:grid md:grid-cols-[8rem_minmax(0,1fr)] md:gap-10 md:pt-9"
+            >
+              {/* Version + date rail — a justified row on mobile, a
+                  sticky stacked column from md up so it stays beside a
+                  long change list as the reader scrolls. The newest
+                  release carries the single coral spark. */}
+              <div className="flex items-baseline justify-between gap-3 md:sticky md:top-24 md:block md:self-start">
+                <h2
+                  className={cn(
+                    "text-lg font-bold tracking-tight tabular-nums",
+                    i === 0 ? "text-primary" : "text-foreground",
+                  )}
+                >
+                  {entry.version}
+                </h2>
+                <time className="shrink-0 text-[10px] font-medium uppercase tracking-[0.18em] tabular-nums text-muted-foreground md:mt-2 md:block">
+                  {entry.date}
+                </time>
+              </div>
+
+              <ul className="flex flex-col gap-2.5">
+                {entry.lines.map((line, lineIndex) => (
+                  <li key={lineIndex} className="flex items-baseline gap-3">
+                    <span
+                      aria-hidden
+                      className="mt-[0.55em] size-1 shrink-0 rounded-[1px] bg-foreground/25"
+                    />
+                    <span className="text-[14px] leading-relaxed text-foreground/85">
+                      {line}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
       </EditorialPage>
     </AppChrome>
   );
