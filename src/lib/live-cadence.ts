@@ -15,22 +15,28 @@ export const WATCH_POLL_IDLE_MS = 4_000;
 export type BroadcastPlan = {
   /** Push a frame now? */
   push: boolean;
-  /** Does the push carry the heavy clone `screen` payload? */
+  /** Does the push carry the full clone `screen` payload? Always true
+   *  when pushing — a spectator must ALWAYS get the 1:1 screen, never a
+   *  stripped fallback. (Efficiency comes from pushing less often when
+   *  unwatched, not from sending less.) */
   includeScreen: boolean;
   /** Delay to the next attempt, or null to stop (idle + unwatched). */
   nextDelayMs: number | null;
 };
 
 /** What the practice broadcaster should do given who's watching and the
- *  run phase:
- *  - watched (any phase) → full rate + clone payload
- *  - typing, unwatched   → light heartbeat (no screen) for discoverability
+ *  run phase. Efficiency is purely about *cadence*, never about stripping
+ *  the payload:
+ *  - watched (any phase) → full rate, full clone payload
+ *  - typing, unwatched   → slow heartbeat, still the full clone payload
+ *    (so a watcher who joins sees the 1:1 screen immediately)
  *  - idle, unwatched     → stop (no push, no reschedule) */
 export function broadcastPlan(watched: boolean, phase: string): BroadcastPlan {
   const running = phase === "running";
+  const push = watched || running;
   return {
-    push: watched || running,
-    includeScreen: watched,
+    push,
+    includeScreen: push,
     nextDelayMs: watched ? WATCHED_MS : running ? HEARTBEAT_MS : null,
   };
 }

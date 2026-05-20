@@ -22,10 +22,10 @@ describe("broadcastPlan", () => {
     });
   });
 
-  it("sends a light heartbeat (no clone payload) while typing but unwatched", () => {
+  it("heartbeats slowly while typing-unwatched but STILL sends the full clone payload", () => {
     expect(broadcastPlan(false, "running")).toEqual({
       push: true,
-      includeScreen: false,
+      includeScreen: true,
       nextDelayMs: HEARTBEAT_MS,
     });
   });

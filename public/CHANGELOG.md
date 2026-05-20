@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.91.4 — 20 May 2026
+- Fixed: watching a friend live again shows their full 1:1 screen. A recent efficiency change had briefly stripped the stream down to a basic mirror when they weren't being watched yet; the full screen is always sent now, and the streaming-only-when-needed efficiency stays.
+
 ## 6.91.3 — 20 May 2026
 - More live-spectating efficiency: watching a friend who isn't live now polls slowly in the background instead of every second, and both watching and broadcasting pause completely while the tab is hidden.
 
