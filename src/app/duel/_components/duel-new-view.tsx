@@ -4,8 +4,8 @@ import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { TypingSurface, type TypingResult } from "@/components/typing-surface";
 import { useBackend } from "@/lib/backend";
-import { DuelTyper, type DuelRunResult } from "./duel-typer";
 import { generateDuelWords } from "./words";
 
 const WORD_COUNT = 25;
@@ -26,7 +26,7 @@ export function DuelNewView() {
   const [error, setError] = useState("");
   const [sentId, setSentId] = useState<string | null>(null);
 
-  async function handleFinish(result: DuelRunResult) {
+  async function handleFinish(result: TypingResult) {
     if (!opponentId) return;
     setPhase("sending");
     try {
@@ -101,7 +101,7 @@ export function DuelNewView() {
           {phase === "sending" ? (
             <Notice>Sending your challenge…</Notice>
           ) : (
-            <DuelTyper words={words} onFinish={handleFinish} />
+            <TypingSurface words={words} onFinish={handleFinish} />
           )}
           {phase === "error" ? (
             <p className="text-sm text-destructive">{error}</p>

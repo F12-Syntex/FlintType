@@ -131,12 +131,20 @@ export function FriendsView() {
           Follow anyone to keep tabs on their runs. When you follow each other,
           you become friends and unlock duels and live spectating.
         </p>
-        <Link
-          href="/duels"
-          className="mt-1 w-fit text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
-        >
-          Your duels →
-        </Link>
+        <span className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+          <Link
+            href="/duels"
+            className="w-fit text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+          >
+            Your duels →
+          </Link>
+          <Link
+            href="/live"
+            className="w-fit text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+          >
+            Practise live →
+          </Link>
+        </span>
       </header>
 
       {isLoaded && !isSignedIn ? (
@@ -250,6 +258,7 @@ function ListBody({
             user={u}
             relationship={relationshipFor(u.userId)}
             online={onlineIds.has(u.userId)}
+            canWatch={tab === "friends"}
             onChange={onChange}
           />
         </li>

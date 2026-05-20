@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 import { UserTag } from "@/components/ft";
 import { BackendError, useBackend } from "@/lib/backend";
 import type { Duel } from "@/types/duel";
+import { TypingSurface, type TypingResult } from "@/components/typing-surface";
 import { DuelOutcome } from "./duel-outcome";
-import { DuelTyper, type DuelRunResult } from "./duel-typer";
 
 /** /duel/[id]. Loads the duel, then branches by viewer + status:
  *    - completed → the outcome scoreboard;
@@ -51,7 +51,7 @@ export function DuelView({ id }: { id: string }) {
     };
   }, [backend, id, isLoaded, isSignedIn]);
 
-  async function handleFinish(result: DuelRunResult) {
+  async function handleFinish(result: TypingResult) {
     if (!duel) return;
     setSubmitting(true);
     try {
@@ -112,7 +112,7 @@ export function DuelView({ id }: { id: string }) {
         {submitting ? (
           <Muted>Saving your result…</Muted>
         ) : (
-          <DuelTyper
+          <TypingSurface
             words={duel.words}
             ghost={duel.challengerWpmHistory}
             onFinish={handleFinish}

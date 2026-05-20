@@ -40,7 +40,7 @@ _(Later steps add: duel/run-snapshot tables (Step 7); presence + live-session st
 | 6 | Activity feed (PB fan-out to followers) | ✅ done |
 | 7 | Async ghost duels ("beat my run") | ✅ done |
 | 8 | Presence (online / rich status) | ✅ done |
-| 9 | Live solo-practice spectate | ⬜ |
+| 9 | Live solo-practice spectate | ✅ done |
 
 Each step: tests-first, `yarn test` + `yarn tsc --noEmit` green, a dedicated agentic verification pass, then commit.
 
@@ -97,3 +97,11 @@ Each step: tests-first, `yarn test` + `yarn tsc --noEmit` green, a dedicated age
 - **DB-backed**, not in-memory on the race authority: presence keys on the authenticated Clerk userId (which the authority can't see), and a shared `presence` table (migration `0010`) is correct across Vercel instances. "Online" is derived at read time (lastSeenAt within `ONLINE_WINDOW_MS` = 60s, 2× the heartbeat), so a closed tab needs no goodbye.
 - **Routes:** `presence` namespace (auth) — `heartbeat({status?})` upsert; `list()` returns presence for the people the caller **follows** only (privacy: you don't see strangers' status). Repo `presenceRepo` (heartbeat upsert / getForUsers).
 - **Client:** `<PresenceHeartbeat>` mounted once in `providers.tsx` posts a heartbeat every 30s while a signed-in tab is visible (paused when hidden, errors swallowed). The friends list shows a green `bg-ft-ok` online dot (with `aria-label`) on followed users currently online.
+
+### Step 9 — Live solo-practice spectate
+- **Consent-first, mutual-only.** Broadcasting requires opting in (`spectate.enabled` user-pref, default off); spectating requires the viewer be a **mutual friend**, unblocked, and the target opted in + currently live. `live.watch` returns `{ live: false }` for every disallowed case so nothing leaks — every denial path is tested.
+- **DB-backed store** (`live_sessions`, migration `0011`; `liveSessionsRepo`), not in-memory on the authority — keyed on the authenticated Clerk userId and correct across Vercel instances. "Live" is freshness of the last push (`LIVE_TTL_MS` = 6s).
+- **Routes:** `live` namespace (auth) — `progress` (broadcaster push, only stored if opted in), `watch` (gated poll), `stop`.
+- **Transport:** v1 polls `live.progress` / `live.watch` every ~700ms through the normal backend (sub-second "live-ish"). The designed end-state — direct browser→authority writes + a capability-token SSE stream — is documented in `docs/multiplayer.md` as the upgrade behind the same `live.*` surface.
+- **UI:** `<TypingSurface>` (promoted from the duel typer to `src/components/`, now shared by duels + live) streams progress via its `onProgress` hook on the `/live` broadcaster surface (with the consent toggle); `/live/<userId>` polls + renders the friend's passage read-only (`<LivePassage>`). Discovery: a "Watch" link on mutual friend rows + a "Practise live" link on `/friends`.
+- The duel typer was promoted (not copied) per `docs/organization.md` — a component used by two routes belongs in `src/components/`.

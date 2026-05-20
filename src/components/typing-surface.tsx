@@ -2,33 +2,47 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { ghostCumulativeChars } from "./ghost";
+import { ghostCumulativeChars } from "./typing-ghost";
 
-export type DuelRunResult = {
+export type TypingResult = {
   wpm: number;
   accuracy: number;
   /** Per-second WPM samples, for replaying this run as a ghost later. */
   wpmHistory: number[];
 };
 
-/** A focused, self-contained typing surface for duels — deliberately
- *  decoupled from the adaptive practice engine. Renders the passage,
- *  captures keystrokes through a hidden input (so mobile keyboards
- *  work), tracks gross WPM + accuracy, samples WPM each second, and —
- *  when a `ghost` trace is supplied — paces a marker down the progress
- *  bar at the challenger's recorded speed. Calls `onFinish` once the
- *  passage is fully typed. */
-export function DuelTyper({
+export type TypingProgress = {
+  progressChars: number;
+  totalChars: number;
+  wpm: number;
+  accuracy: number;
+};
+
+/** A focused, self-contained typing surface — deliberately decoupled
+ *  from the adaptive practice engine. Renders the passage, captures
+ *  keystrokes through a hidden input (so mobile keyboards work), tracks
+ *  gross WPM + accuracy, samples WPM each second, and — when a `ghost`
+ *  trace is supplied — paces a marker down the progress bar at a
+ *  recorded speed. Reused by duels (race a ghost) and live broadcast
+ *  (stream `onProgress`). Calls `onFinish` once the passage is fully
+ *  typed. */
+export function TypingSurface({
   words,
   ghost = null,
   onFinish,
+  onProgress,
 }: {
   words: string[];
   ghost?: number[] | null;
-  onFinish: (result: DuelRunResult) => void;
+  onFinish: (result: TypingResult) => void;
+  /** Fires on every tick (~200ms) with the live cursor + speed, so a
+   *  broadcast surface can stream it. */
+  onProgress?: (p: TypingProgress) => void;
 }) {
   const target = useMemo(() => words.join(" "), [words]);
   const total = target.length;
+  const onProgressRef = useRef(onProgress);
+  onProgressRef.current = onProgress;
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [typed, setTyped] = useState("");
@@ -41,9 +55,9 @@ export function DuelTyper({
   const [done, setDone] = useState(false);
 
   // Cumulative ghost char position per whole second, precomputed from
-  // the challenger's cumulative-average WPM trace. See ghost.ts — the
-  // samples are NOT instantaneous rates, so this is a direct map, not
-  // an integration.
+  // the recorded cumulative-average WPM trace. See typing-ghost.ts —
+  // the samples are NOT instantaneous rates, so this is a direct map,
+  // not an integration.
   const ghostCumChars = useMemo(
     () => (ghost && ghost.length > 0 ? ghostCumulativeChars(ghost) : null),
     [ghost],
@@ -80,9 +94,23 @@ export function DuelTyper({
         const mins = Math.max((samplesRef.current.length + 1) / 60, 1 / 60_000);
         samplesRef.current.push(Math.round(correctRef.current / 5 / mins));
       }
+      if (onProgressRef.current) {
+        const mins = Math.max(ms / 60_000, 1 / 60_000);
+        const wpm = Math.round(correctRef.current / 5 / mins);
+        const acc =
+          keystrokesRef.current > 0
+            ? Math.round((correctRef.current / keystrokesRef.current) * 1000) / 10
+            : 100;
+        onProgressRef.current({
+          progressChars: prevRef.current.length,
+          totalChars: total,
+          wpm,
+          accuracy: Math.max(0, Math.min(100, acc)),
+        });
+      }
     }, 200);
     return () => window.clearInterval(id);
-  }, [done, typed]);
+  }, [done, typed, total]);
 
   const onChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

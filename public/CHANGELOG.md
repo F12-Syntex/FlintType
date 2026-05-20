@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.84.0 — 20 May 2026
+- You can now watch friends type live. Turn on sharing on the new Practise live page, and any mutual friend can watch your words appear in real time from your profile or the Friends page. It's off by default and only mutual friends can ever watch.
+
 ## 6.83.0 — 20 May 2026
 - Your Friends page now shows a green dot next to friends who are online right now.
 

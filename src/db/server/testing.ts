@@ -126,10 +126,15 @@ const SCHEMA_DDL = `
     last_seen_at  timestamp NOT NULL DEFAULT now(),
     status        text NOT NULL DEFAULT 'online'
   );
+  CREATE TABLE IF NOT EXISTS live_sessions (
+    user_id     text PRIMARY KEY,
+    snapshot    jsonb NOT NULL,
+    updated_at  timestamp NOT NULL DEFAULT now()
+  );
 `;
 
 const TRUNCATE_ALL = `
-  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, word_models, tests, notifications, users, follows, blocks, duels, presence RESTART IDENTITY;
+  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, word_models, tests, notifications, users, follows, blocks, duels, presence, live_sessions RESTART IDENTITY;
 `;
 
 /** PGlite's parse-message path rejects multi-statement queries, so we

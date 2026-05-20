@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ghostCumulativeChars } from "./ghost";
+import { ghostCumulativeChars } from "./typing-ghost";
 
 describe("ghostCumulativeChars", () => {
   it("maps a steady cumulative-average trace to linear char growth", () => {
@@ -13,7 +13,7 @@ describe("ghostCumulativeChars", () => {
   it("recovers the true final position on an accelerating run", () => {
     // Idle 5s, then 50 chars typed by second 10. The cumulative-average
     // WPM at second 10 is (50/5) / (10/60) = 60. The final cumulative
-    // char count must be the real 50 — NOT the ~17.7 the old
+    // char count must be the real 50 — NOT the ~17.7 a naive
     // re-integration produced.
     const samples = [0, 0, 0, 0, 0, 12, 24, 36, 48, 60];
     const cum = ghostCumulativeChars(samples);

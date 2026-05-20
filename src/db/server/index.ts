@@ -23,6 +23,10 @@ import { followsRepo, type FollowsRepo } from './repositories/follows';
 import { blocksRepo, type BlocksRepo } from './repositories/blocks';
 import { duelsRepo, type DuelsRepo } from './repositories/duels';
 import { presenceRepo, type PresenceRepo } from './repositories/presence';
+import {
+  liveSessionsRepo,
+  type LiveSessionsRepo,
+} from './repositories/live-sessions';
 
 export type Database = {
   userPrefs: UserPrefsRepo;
@@ -37,6 +41,7 @@ export type Database = {
   blocks: BlocksRepo;
   duels: DuelsRepo;
   presence: PresenceRepo;
+  liveSessions: LiveSessionsRepo;
   $drizzle: ServerDrizzle;
 };
 
@@ -54,6 +59,7 @@ export function createDatabase(drizzle: ServerDrizzle): Database {
     blocks: blocksRepo(drizzle),
     duels: duelsRepo(drizzle),
     presence: presenceRepo(drizzle),
+    liveSessions: liveSessionsRepo(drizzle),
     $drizzle: drizzle,
   };
 }

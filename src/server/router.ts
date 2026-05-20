@@ -7,6 +7,7 @@ import { friends } from './routes/friends';
 import { health } from './routes/health';
 import { history } from './routes/history';
 import { leaderboard } from './routes/leaderboard';
+import { live } from './routes/live';
 import { monkeytype } from './routes/monkeytype';
 import { notifications } from './routes/notifications';
 import { prefs } from './routes/prefs';
@@ -26,6 +27,7 @@ export const router = defineNamespace({
     friends,
     history,
     leaderboard,
+    live,
     monkeytype,
     notifications,
     presence,

@@ -17,12 +17,15 @@ export function FriendRow({
   user,
   relationship,
   online = false,
+  canWatch = false,
   onChange,
 }: {
   user: FriendUser;
   relationship: FriendRelationship;
   /** Show the green online dot beside the handle. */
   online?: boolean;
+  /** Show a "Watch" link (mutual friends can spectate). */
+  canWatch?: boolean;
   onChange?: (rel: FriendRelationship) => void;
 }) {
   const href = `/profile/${user.username ?? user.userId}`;
@@ -51,13 +54,22 @@ export function FriendRow({
           since {SINCE_FMT.format(user.sinceMs)}
         </span>
       </Link>
-      <FollowButton
-        userId={user.userId}
-        initial={relationship}
-        size="sm"
-        onChange={onChange}
-        className="shrink-0"
-      />
+      <span className="flex shrink-0 items-center gap-2">
+        {canWatch ? (
+          <Link
+            href={`/live/${user.userId}`}
+            className="rounded-md border border-border bg-background px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            Watch
+          </Link>
+        ) : null}
+        <FollowButton
+          userId={user.userId}
+          initial={relationship}
+          size="sm"
+          onChange={onChange}
+        />
+      </span>
     </div>
   );
 }

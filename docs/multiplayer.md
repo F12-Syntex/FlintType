@@ -76,3 +76,18 @@ Redeploy Vercel after setting `NEXT_PUBLIC_RACE_SERVICE_URL` — it's a build-ti
 - **Race state still vanishes on Railway restart.** A deploy or crash wipes every live room. Acceptable: race rooms are ephemeral and clients reconnect/requeue.
 - **Single point of failure.** Railway down = no multiplayer. Rest of the app keeps serving from Vercel.
 - **No horizontal scaling of the authority.** One instance is the whole point. If race traffic grows past one process, the next step is per-mode sharding (room-id-prefix → instance) or moving to Cloudflare Durable Objects.
+
+## Live solo-practice spectate
+
+Watching a friend type live (`/live` broadcaster, `/live/<userId>` spectator) is **separate from the race rooms** and, in v1, does **not** run on the authority:
+
+- **Live-session store is DB-backed** (`live_sessions` table, migration `0011`; `liveSessionsRepo`), exactly like presence — one row per broadcaster, upserted ~every 700ms. Chosen over an in-memory authority map because a live session keys on the authenticated Clerk userId (which the authority can't see) and a shared table is **correct across Vercel instances**: a spectator poll routed to a different instance than the broadcaster's push still finds the snapshot. A snapshot is "live" only while fresh (`LIVE_TTL_MS`, 6s); a broadcaster that stops pushing ages out at read time with no goodbye.
+- **Consent + gating** — broadcasting requires the user-prefs `spectate.enabled` flag (default off); spectating requires the viewer be a **mutual friend**, unblocked, and the target opted in. `live.watch` returns `{ live: false }` for every disallowed case so nothing leaks. Backend-enforced, not just client-gated.
+
+### Transport: v1 polling, SSE + direct-write is the planned upgrade
+
+The agreed end-state is **direct browser→authority** streaming: the broadcaster POSTs progress straight to the Railway origin (`NEXT_PUBLIC_RACE_SERVICE_URL`) at ~10 Hz authed by a per-session **capability token** (issued on session start, like the race `sessionToken`, CORS-enabled — *not* the server-only `RACE_PROXY_SECRET`), and the spectator subscribes via an SSE route (`/api/live/stream/<userId>`) browser→authority direct, mirroring `/api/race/stream/[roomId]`. The live state would then move from the `live_sessions` table to an in-process map on the authority. This keeps the high-frequency stream off Vercel function-invocation/CPU meters and minimises latency. It also wants a **lazy** control channel so the broadcaster only streams while a spectator is attached.
+
+**v1 ships polling instead**, deliberately: the broadcaster pushes `live.progress` and the spectator polls `live.watch` every ~700ms through the normal backend (≈1.4 req/s each — modest), against the DB-backed store. This gives sub-second "live-ish" spectating with zero new transport surface (no bespoke SSE route, no CORS, no capability tokens) and is correct on a multi-instance deploy. The consent model + UI are transport-agnostic, so the SSE + direct-write upgrade is a swap behind the same `live.*` surface when the traffic justifies it. When that lands, document the capability-token issuance, the `/api/live/stream/<userId>` SSE route, the lazy control channel, and the direct-write CORS posture (mirror the SSE route's `Access-Control-Allow-Origin: *`) here.
+
+- **Cost of v1:** the ~700ms upsert is one row write per active broadcaster (rare — only opted-in users on `/live`), and the spectator poll is one indexed read per active viewer. Fine at the current scale; the SSE upgrade removes both meters when it's worth it.

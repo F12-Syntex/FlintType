@@ -1,8 +1,8 @@
-/** Convert a challenger's per-second WPM trace into cumulative
- *  typed-char positions per second, for pacing the ghost marker.
+/** Convert a recorded per-second WPM trace into cumulative typed-char
+ *  positions per second, for pacing a ghost marker.
  *
  *  Each sample is the *cumulative-average* WPM at that second (the
- *  DuelTyper sampler stores `correctChars / 5 / totalElapsedMinutes`),
+ *  TypingSurface sampler stores `correctChars / 5 / totalElapsedMinutes`),
  *  so the cumulative char count at sample `i` (which is second `i + 1`)
  *  is exactly `wpm * 5 * (i + 1) / 60`.
  *
