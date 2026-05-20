@@ -120,24 +120,27 @@ export function LiveClone({
         // The broadcaster's resolved theme vars cascade to the real
         // components inside, so colours + fonts match their screen.
         // pointer-events-none: this is a spectator view, not controls.
+        // Full-bleed: fills the entire body under the header and lays out
+        // exactly like the real practice surface — it IS their screen, not
+        // a framed card.
         style={screen.themeVars as CSSProperties}
-        className="pointer-events-none overflow-hidden rounded-md border border-border bg-background"
+        className="pointer-events-none flex min-h-0 flex-1 flex-col overflow-hidden bg-background"
       >
         <PracticeContext.Provider value={value}>
-          <div className="flex flex-col gap-4 px-4 py-5 sm:px-6 sm:py-6">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pb-3 pt-4 sm:gap-5 sm:px-12 sm:py-6 lg:px-20">
             <ModeBar />
-            {done ? (
-              <div className="min-h-[60vh]">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              {done ? (
                 <TestSummary preview />
-              </div>
-            ) : (
-              <>
-                <div className="hidden md:block">
-                  <Readouts />
-                </div>
-                <Passage />
-              </>
-            )}
+              ) : (
+                <>
+                  <div className="mb-4 hidden md:block">
+                    <Readouts />
+                  </div>
+                  <Passage />
+                </>
+              )}
+            </div>
           </div>
         </PracticeContext.Provider>
       </div>

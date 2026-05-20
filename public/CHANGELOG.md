@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.91.1 — 20 May 2026
+- Cleaned up the live-watch screen: a slim header with a clear "Spectating" indicator, and the friend's screen now fills the whole view edge to edge instead of sitting in a small framed box.
+
 ## 6.91.0 — 20 May 2026
 - Watching a friend is now fullscreen and immersive, with a slim header and a button to go truly fullscreen. And whenever someone is watching you, your practice screen shows a clear "ada is spectating" badge so you always know you're being watched.
 

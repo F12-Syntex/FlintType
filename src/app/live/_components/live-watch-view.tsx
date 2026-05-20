@@ -20,16 +20,23 @@ export function LiveWatchView({ userId }: { userId: string }) {
   const state = useBufferedWatch(userId, isLoaded && !!isSignedIn);
   const subject = state?.live ? state.subject : null;
 
+  const watchable = state != null && state.live;
   return (
     <main className="safe-pt safe-pb flex min-h-dvh w-full flex-col bg-background text-foreground">
       <WatchHeader subject={subject} />
-      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-3 py-4 sm:px-6 sm:py-6">
+      <div className="flex min-h-0 w-full flex-1 flex-col">
         {isLoaded && !isSignedIn ? (
-          <Notice>Sign in to watch friends practise.</Notice>
+          <Centered>
+            <Notice>Sign in to watch friends practise.</Notice>
+          </Centered>
         ) : state == null ? (
-          <Notice>Connecting…</Notice>
-        ) : !state.live ? (
-          <NotLive />
+          <Centered>
+            <Notice>Connecting…</Notice>
+          </Centered>
+        ) : !watchable ? (
+          <Centered>
+            <NotLive />
+          </Centered>
         ) : state.snapshot.screen ? (
           <LiveClone
             words={state.snapshot.words}
@@ -38,59 +45,73 @@ export function LiveWatchView({ userId }: { userId: string }) {
             accuracy={state.snapshot.accuracy}
           />
         ) : (
-          <LivePassage snapshot={state.snapshot} />
+          <div className="flex min-h-0 flex-1 flex-col justify-center px-5 py-8 sm:px-10">
+            <LivePassage snapshot={state.snapshot} />
+          </div>
         )}
       </div>
     </main>
   );
 }
 
+function Centered({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex flex-1 items-center justify-center">{children}</div>
+  );
+}
+
+/** Slim, editorial header. Identity sits on the left under a single coral
+ *  "Spectating" eyebrow (the one spark + the live signal — no competing
+ *  pills or dots); back + fullscreen are quiet icon affordances. */
 function WatchHeader({ subject }: { subject: LiveSubject | null }) {
   return (
-    <header className="safe-pt sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-background/80 px-3 py-2.5 backdrop-blur sm:px-5">
-      <Link
-        href="/friends"
-        aria-label="Back to friends"
-        className="inline-flex h-9 items-center gap-1.5 rounded-md px-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-      >
-        <ArrowLeft size={16} aria-hidden />
-        <span className="hidden sm:inline">Friends</span>
-      </Link>
+    <header className="safe-pt sticky top-0 z-10 border-b border-border bg-background/85 backdrop-blur">
+      <div className="flex w-full items-center gap-3 px-3 py-2.5 sm:px-6 sm:py-3">
+        <Link
+          href="/friends"
+          aria-label="Back to friends"
+          className="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          <ArrowLeft size={18} aria-hidden />
+        </Link>
 
-      {subject ? (
-        <div className="flex min-w-0 items-center gap-2.5">
-          <Avatar
-            src={subject.imageUrl}
-            alt={subject.name}
-            size="sm"
-            status="live"
-            liven={false}
-            dotRing="ring-background"
-          />
-          <Link
-            href={`/profile/${subject.username ?? subject.userId}`}
-            className="truncate text-sm font-semibold text-foreground hover:text-primary"
-          >
-            {subject.name}
-          </Link>
-          {subject.tags.map((t) => (
-            <UserTag key={t} tag={t} size="sm" />
-          ))}
-          <span className="ml-1 inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/[0.06] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground">
-            <span
-              aria-hidden
-              className="size-1.5 rounded-full bg-primary motion-safe:animate-pulse"
+        {subject ? (
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
+            <Avatar
+              src={subject.imageUrl}
+              alt={subject.name}
+              size="sm"
+              liven={false}
             />
-            Live
+            <span className="flex min-w-0 flex-col leading-tight">
+              <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
+                <span
+                  aria-hidden
+                  className="size-1.5 rounded-full bg-primary motion-safe:animate-pulse"
+                />
+                Spectating
+              </span>
+              <span className="flex min-w-0 items-center gap-1.5">
+                <Link
+                  href={`/profile/${subject.username ?? subject.userId}`}
+                  className="truncate text-sm font-semibold text-foreground hover:text-primary"
+                >
+                  {subject.name}
+                </Link>
+                {subject.tags.map((t) => (
+                  <UserTag key={t} tag={t} size="sm" />
+                ))}
+              </span>
+            </span>
+          </div>
+        ) : (
+          <span className="flex-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Watching live
           </span>
-        </div>
-      ) : (
-        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Watching live
-        </span>
-      )}
+        )}
 
-      <FullscreenButton />
+        <FullscreenButton />
+      </div>
     </header>
   );
 }

@@ -814,7 +814,7 @@ Rows (`friend-list-row.tsx`) + presence rows are the avatar-`group` that livens 
 
 ### 17.6 Live watch = a fullscreen clone of their screen (`/live/[userId]`)
 
-The watch page is **fullscreen + immersive** — no `<AppChrome>`. It's a `min-h-dvh` surface with a slim sticky header (back to Friends · the broadcaster's avatar/handle + a LIVE pulse · a Fullscreen-API toggle) over the cloned screen, which fills the viewport. The broadcaster, meanwhile, always sees who's watching via the prominent §17.4 spectator-count chip on their own practice screen.
+The watch page is **fullscreen + immersive** — no `<AppChrome>`. It's a `min-h-dvh` surface with a slim sticky header (back to Friends · the broadcaster's avatar/handle under a single coral "Spectating" eyebrow · a Fullscreen-API toggle). The cloned screen is **full-bleed** — no frame, no max-width, no card — filling the entire body under the header and laid out exactly like the real practice surface, so it reads as their screen, not a preview tile. The broadcaster, meanwhile, always sees who's watching via the prominent §17.4 spectator-count chip on their own practice screen.
 
 
 Spectating is **not a bespoke read-only view** — it reproduces the broadcaster's actual practice screen, **every phase**: the real `<ModeBar>` + `<Readouts>` + `<Passage>` while they type, and the real `<TestSummary preview>` on their results screen. `<LiveClone>` (`src/app/live/_components/live-clone.tsx`) mounts those real components (never a fork — same rule as settings previews, §12.5) against a frozen `PracticeContext` rebuilt from the live snapshot, the whole surface `pointer-events-none` (it's a view, not controls), wrapped in:
