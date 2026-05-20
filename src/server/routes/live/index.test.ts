@@ -72,10 +72,12 @@ const SNAP = {
 };
 
 const SCREEN = {
+  phase: "running",
   typed: ["the", "qu"],
   cursorWord: 1,
   cursorChar: 2,
   mode: "WORDS",
+  length: 50,
   quoteSource: null,
   elapsedMs: 5_000,
   raw: 95,

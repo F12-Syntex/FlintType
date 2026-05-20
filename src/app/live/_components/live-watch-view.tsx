@@ -2,45 +2,22 @@
 
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { Avatar, UserTag } from "@/components/ft";
-import { useBackend } from "@/lib/backend";
-import type { WatchOutput } from "@/types/live";
 import { LiveClone } from "./live-clone";
 import { LivePassage } from "./live-passage";
+import { useBufferedWatch } from "./use-buffered-watch";
 
-const POLL_MS = 700;
-
-/** /live/[userId] — watch a friend practise in near-real-time. Polls
- *  `live.watch` every 700ms; the route returns `live: false` for any
- *  not-allowed / not-currently-practising case, which renders as a
- *  calm "not live right now" state. */
+/** /live/[userId] — watch a friend's practice screen, mirrored. Polls
+ *  `live.watch` through a ~1s buffer (see useBufferedWatch) so the screen
+ *  advances smoothly; the route returns `live: false` for any
+ *  not-allowed / not-currently-practising case, which renders as a calm
+ *  "not live right now" state. */
 export function LiveWatchView({ userId }: { userId: string }) {
-  const backend = useBackend();
   const { isLoaded, isSignedIn } = useUser();
-  const [state, setState] = useState<WatchOutput | null>(null);
-
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
-    let cancelled = false;
-    const poll = () => {
-      backend.live
-        .watch({ userId })
-        .then((s) => {
-          if (!cancelled) setState(s);
-        })
-        .catch(() => {});
-    };
-    poll();
-    const id = window.setInterval(poll, POLL_MS);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
-  }, [backend, userId, isLoaded, isSignedIn]);
+  const state = useBufferedWatch(userId, isLoaded && !!isSignedIn);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-1 py-8 sm:py-12">
+    <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-1 py-8 sm:py-12">
       {isLoaded && !isSignedIn ? (
         <Notice>Sign in to watch friends practise.</Notice>
       ) : state == null ? (

@@ -11,12 +11,30 @@ import type { UserTagId } from "./user-tag";
  *  defaults on render); `themeVars` is a map of resolved CSS custom
  *  properties (e.g. `--background`, `--ft-passage-typed`) applied to the
  *  clone container so colours + fonts match. */
+/** One keystroke in a finished run's event log — drives the results
+ *  chart + heatmap. `wordIndex` is rebased to the windowed `words`. */
+export type LiveKeyEvent = {
+  t: number;
+  expected: string;
+  typed: string;
+  correct: boolean;
+  wordIndex: number;
+};
+
+/** Per-second WPM sample for the results chart. */
+export type LiveWpmSample = { t: number; wpm: number; raw: number };
+
 export type LiveScreen = {
+  /** Practice phase — the spectator renders the matching surface:
+   *  rest/running → passage, done → the results report. */
+  phase: string;
   /** Per-word typed text, aligned with `words` (windowed identically). */
   typed: string[];
   cursorWord: number;
   cursorChar: number;
   mode: string;
+  /** Word count / seconds / quote-group, for the mode bar + results. */
+  length: number;
   quoteSource: string | null;
   elapsedMs: number;
   raw: number;
@@ -24,6 +42,10 @@ export type LiveScreen = {
   caret: Record<string, unknown>;
   behaviour: { blindMode?: boolean };
   themeVars: Record<string, string>;
+  /** Sent on the `done` frame so the spectator's results report (chart,
+   *  heatmap, per-letter) renders from the broadcaster's real run. */
+  wpmHistory?: LiveWpmSample[];
+  events?: LiveKeyEvent[];
 };
 
 /** A broadcaster's latest live-practice state. Snapshotted ~every
@@ -47,10 +69,12 @@ export type LiveSnapshot = {
 export const LIVE_MAX_WORDS = 300;
 
 const liveScreenSchema = z.object({
+  phase: z.string().max(12),
   typed: z.array(z.string().max(160)).max(LIVE_MAX_WORDS),
   cursorWord: z.number().int().min(0).max(100_000),
   cursorChar: z.number().int().min(0).max(2_000),
   mode: z.string().max(16),
+  length: z.number().int().min(0).max(100_000),
   quoteSource: z.string().max(400).nullable(),
   elapsedMs: z.number().min(0).max(86_400_000),
   raw: z.number().min(0).max(1000),
@@ -61,6 +85,28 @@ const liveScreenSchema = z.object({
   caret: z.record(z.string(), z.unknown()),
   behaviour: z.object({ blindMode: z.boolean().optional() }),
   themeVars: z.record(z.string().max(64), z.string().max(200)),
+  wpmHistory: z
+    .array(
+      z.object({
+        t: z.number(),
+        wpm: z.number(),
+        raw: z.number(),
+      }),
+    )
+    .max(3_600)
+    .optional(),
+  events: z
+    .array(
+      z.object({
+        t: z.number(),
+        expected: z.string().max(4),
+        typed: z.string().max(4),
+        correct: z.boolean(),
+        wordIndex: z.number().int().min(0).max(100_000),
+      }),
+    )
+    .max(3_000)
+    .optional(),
 });
 
 export const liveProgressInputSchema = z.object({

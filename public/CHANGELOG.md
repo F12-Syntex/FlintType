@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.90.0 — 20 May 2026
+- Watching a friend now mirrors their whole practice screen: the mode they're on, the live passage as they type, and their full results page when they finish, themed exactly as they see it. It plays back with a smooth one-second buffer so it doesn't stutter.
+
 ## 6.89.0 — 20 May 2026
 - Watching a friend practise now shows a faithful clone of their actual screen, with their theme, font, caret, and colours, and the same live passage and readouts they're looking at, instead of a stripped-down view.
 

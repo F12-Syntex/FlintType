@@ -814,12 +814,12 @@ Rows (`friend-list-row.tsx`) + presence rows are the avatar-`group` that livens 
 
 ### 17.6 Live watch = a clone of their screen (`/live/[userId]`)
 
-Spectating is **not a bespoke read-only view** — it reproduces the broadcaster's actual practice screen. `<LiveClone>` (`src/app/live/_components/live-clone.tsx`) mounts the **real** `<Readouts>` + `<Passage>` (never a fork — same rule as settings previews, §12.5) against a frozen `PracticeContext` rebuilt from the live snapshot, wrapped in:
+Spectating is **not a bespoke read-only view** — it reproduces the broadcaster's actual practice screen, **every phase**: the real `<ModeBar>` + `<Readouts>` + `<Passage>` while they type, and the real `<TestSummary preview>` on their results screen. `<LiveClone>` (`src/app/live/_components/live-clone.tsx`) mounts those real components (never a fork — same rule as settings previews, §12.5) against a frozen `PracticeContext` rebuilt from the live snapshot, the whole surface `pointer-events-none` (it's a view, not controls), wrapped in:
 
 - **`<PrefsOverrideProvider>`** (`src/lib/prefs-override.tsx`) — feeds the broadcaster's appearance / caret / behaviour prefs to the real components. The `useAppearancePrefs` / `useCaretSettings` / `useBehaviourPrefs` hooks consult this context first and return the override read-only (their `update`/`reset` no-op), so the viewer's own stored prefs are never touched. This is the **only** sanctioned way to render practice components with someone else's settings; don't mutate the global prefs store to theme a subtree.
 - **The broadcaster's resolved theme CSS vars** on the clone container (`style={screen.themeVars}`) — `--background`, `--primary`, `--ft-passage-*`, `--ft-font-*`, … cascade to the real components so colours + fonts match exactly, scoped to the container (not `<html>`, so it never fights the viewer's own theme).
 
-The broadcaster sends this `screen` payload (windowed `typed` + cursor + appearance + caret + behaviour + theme vars) in `live.progress`; an absent payload falls back to the plain `<LivePassage>` mirror. Don't add a "spectator skin" — if the clone looks wrong, the broadcaster's real component is the bug.
+The broadcaster sends this `screen` payload (phase + windowed `typed` + cursor + mode/length + appearance + caret + behaviour + theme vars, plus the run's `wpmHistory` + `events` on the `done` frame) in `live.progress` **in every phase** while on a practice surface — so "live now" reflects whoever's on their typing screen, and the spectator sees mode changes and results, not just typing. An absent payload falls back to the plain `<LivePassage>` mirror. The watch view replays snapshots through a **~1s jitter buffer** (`useBufferedWatch`) so the mirrored screen advances smoothly instead of stuttering with network jitter. Don't add a "spectator skin" — if the clone looks wrong, the broadcaster's real component is the bug.
 
 ## 18. Amending this document
 

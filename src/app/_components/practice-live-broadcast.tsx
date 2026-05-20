@@ -60,15 +60,21 @@ function readThemeVars(): Record<string, string> {
 
 /** Invisible. Mounted once inside every real <PracticeProvider>, so any
  *  passage-based surface (home practice, sudden-death drills) streams
- *  automatically. While sharing is on and a run is active, it pushes a
- *  full clone payload to `live.progress` ~every 700ms: the windowed
- *  passage + the broadcaster's appearance, caret, behaviour, and resolved
- *  theme vars, so a spectator reconstructs the exact screen.
+ *  automatically. While sharing is on, it pushes a full clone payload to
+ *  `live.progress` ~every 700ms in EVERY phase (rest / running / done):
+ *  the windowed passage + the broadcaster's appearance, caret, behaviour,
+ *  resolved theme vars, and (on done) the results data, so a spectator
+ *  reconstructs the exact screen — passage, mode, and results alike.
  *
  *  State/stats arrive as props (the provider passes them) so this file
  *  never imports `usePractice` (that would close an import cycle with
  *  practice-state). Appearance/caret/behaviour come from the pref hooks
  *  — never overridden here (the override only wraps the watch clone). */
+/** Cap on the per-keystroke event log sent on the `done` frame (drives
+ *  the spectator's results chart/heatmap). Big enough for any normal run,
+ *  bounded so a marathon TIME run can't push a huge payload. */
+const MAX_EVENTS = 3_000;
+
 export function PracticeLiveBroadcast({
   active = true,
   state,
@@ -76,6 +82,7 @@ export function PracticeLiveBroadcast({
   raw,
   accuracy,
   elapsedMs,
+  wpmHistory,
 }: {
   /** False during a race (the race subsystem owns its own broadcast). */
   active?: boolean;
@@ -84,6 +91,7 @@ export function PracticeLiveBroadcast({
   raw: number;
   accuracy: number;
   elapsedMs: number;
+  wpmHistory: readonly { t: number; wpm: number; raw: number }[];
 }) {
   const backend = useBackend();
   const { isSignedIn } = useUser();
@@ -96,22 +104,24 @@ export function PracticeLiveBroadcast({
   const { prefs: behaviour } = useBehaviourPrefs();
 
   const enabled = active && !!isSignedIn && spectate.enabled !== false;
-  const running = state.phase === "running";
 
   // Latest values the interval reads without re-subscribing it each tick.
-  const snapRef = useRef({ state, wpm, raw, accuracy, elapsedMs, appearance, caret, behaviour });
-  snapRef.current = { state, wpm, raw, accuracy, elapsedMs, appearance, caret, behaviour };
+  const snapRef = useRef({ state, wpm, raw, accuracy, elapsedMs, wpmHistory, appearance, caret, behaviour });
+  snapRef.current = { state, wpm, raw, accuracy, elapsedMs, wpmHistory, appearance, caret, behaviour };
 
   useEffect(() => {
-    if (!enabled || !running) return;
+    if (!enabled) return;
     let id = 0;
     const post = () => {
       const s = snapRef.current;
       const st = s.state;
       if (st.words.length === 0) return;
       // Window the passage so a runaway TIME buffer never blows the wire
-      // cap; window `typed` + the cursor by the same offset.
+      // cap; window `typed` + the cursor + events by the same offset.
       const win = liveSnapshotWindow(st, LIVE_MAX_WORDS);
+      const start = win.start;
+      const len = win.words.length;
+      const done = st.phase === "done";
       backend.live
         .progress({
           words: win.words,
@@ -120,10 +130,12 @@ export function PracticeLiveBroadcast({
           wpm: s.wpm,
           accuracy: s.accuracy,
           screen: {
-            typed: st.typed.slice(win.start, win.start + win.words.length),
-            cursorWord: Math.max(0, st.cursorWord - win.start),
+            phase: st.phase,
+            typed: st.typed.slice(start, start + len),
+            cursorWord: Math.max(0, st.cursorWord - start),
             cursorChar: st.cursorChar,
             mode: st.mode,
+            length: st.length,
             quoteSource: st.quoteSource,
             elapsedMs: s.elapsedMs,
             raw: s.raw,
@@ -131,6 +143,28 @@ export function PracticeLiveBroadcast({
             caret: s.caret as unknown as Record<string, unknown>,
             behaviour: { blindMode: s.behaviour.blindMode },
             themeVars: readThemeVars(),
+            // Results data only on the done frame, aligned to the window.
+            ...(done
+              ? {
+                  wpmHistory: s.wpmHistory.map((h) => ({
+                    t: h.t,
+                    wpm: h.wpm,
+                    raw: h.raw,
+                  })),
+                  events: st.events
+                    .filter(
+                      (e) => e.wordIndex >= start && e.wordIndex < start + len,
+                    )
+                    .slice(0, MAX_EVENTS)
+                    .map((e) => ({
+                      t: e.t,
+                      expected: e.expected,
+                      typed: e.typed,
+                      correct: e.correct,
+                      wordIndex: e.wordIndex - start,
+                    })),
+                }
+              : {}),
           },
         })
         .then((r) => {
@@ -141,7 +175,7 @@ export function PracticeLiveBroadcast({
     post(); // push the first frame immediately, don't wait a tick
     id = window.setInterval(post, POST_THROTTLE_MS);
     return () => window.clearInterval(id);
-  }, [enabled, running, backend]);
+  }, [enabled, backend]);
 
   // Clear our snapshot when the surface unmounts so a spectator doesn't
   // linger on a stale frame for the full freshness window.

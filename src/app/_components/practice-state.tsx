@@ -1025,6 +1025,7 @@ export function PracticeProvider({
         raw={value.raw}
         accuracy={value.accuracy}
         elapsedMs={value.elapsedMs}
+        wpmHistory={value.wpmHistory}
       />
       {children}
     </Ctx.Provider>
