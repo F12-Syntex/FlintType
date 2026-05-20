@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.86.1 — 20 May 2026
+- Watching a friend type live now shows their avatar and a clearer live readout, with their words, speed, and accuracy front and centre.
+
 ## 6.86.0 — 20 May 2026
 - The Friends page is rebuilt around who's around right now. A "Live now" section shows friends typing live so you can jump straight in and watch them, an "Online" row shows who else is around, and your full friends, following, and followers lists live in a directory that slides up when you want it. Everyone shows their avatar now, and you can search the directory by handle.
 

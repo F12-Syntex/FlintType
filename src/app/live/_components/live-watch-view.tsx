@@ -3,7 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { UserTag } from "@/components/ft";
+import { Avatar, UserTag } from "@/components/ft";
 import { useBackend } from "@/lib/backend";
 import type { WatchOutput } from "@/types/live";
 import { LivePassage } from "./live-passage";
@@ -48,23 +48,48 @@ export function LiveWatchView({ userId }: { userId: string }) {
         <NotLive />
       ) : (
         <>
-          <header className="flex flex-col gap-2">
-            <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          <header className="flex flex-col gap-4">
+            <span className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              <span
+                aria-hidden
+                className="size-2 rounded-full bg-primary motion-safe:animate-pulse"
+              />
               Watching live
             </span>
-            <h1 className="flex flex-wrap items-center gap-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-              <Link
-                href={`/profile/${state.subject.username ?? state.subject.userId}`}
-                className="hover:text-primary"
-              >
-                {state.subject.name}
-              </Link>
-              {state.subject.tags.map((t) => (
-                <UserTag key={t} tag={t} size="sm" />
-              ))}
-            </h1>
+            <div className="flex items-center gap-3">
+              <Avatar
+                src={state.subject.imageUrl}
+                alt={state.subject.name}
+                size="lg"
+                status="live"
+                liven={false}
+                dotRing="ring-background"
+              />
+              <div className="flex min-w-0 flex-col gap-1">
+                <h1 className="flex flex-wrap items-center gap-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                  <Link
+                    href={`/profile/${state.subject.username ?? state.subject.userId}`}
+                    className="hover:text-primary"
+                  >
+                    {state.subject.name}
+                  </Link>
+                  {state.subject.tags.map((t) => (
+                    <UserTag key={t} tag={t} size="sm" />
+                  ))}
+                </h1>
+                <span className="text-[11px] text-muted-foreground">
+                  practising right now
+                </span>
+              </div>
+            </div>
           </header>
           <LivePassage snapshot={state.snapshot} />
+          <Link
+            href="/friends"
+            className="w-fit text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+          >
+            ← Back to friends
+          </Link>
         </>
       )}
     </main>
