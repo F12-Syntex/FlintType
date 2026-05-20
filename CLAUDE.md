@@ -58,7 +58,7 @@ Protocol:
    - Minor (`0.X.0`) — new user-facing feature
    - Major (`X.0.0`) — breaking change
 3. Write the new version back to `VERSION` **and** update the `version` field in `package.json` to the same value. Both must match every commit — `package.json` is what npm / Vercel / GitHub Releases / Sentry / any registry tooling sees, `VERSION` is the canonical plain-text source that the rest of the app reads. Stage both files. Never let them drift.
-4. **Update `CHANGELOG.md`** — add a section for the new version at the top (newest first) describing the change in plain, user-facing language: what the user now sees or can do, no jargon. Changes that don't concern the user (refactors, tests, tooling, internal fixes) get a single brief line (e.g. `- Internal changes only.`). Stage `CHANGELOG.md`. See the file's own header for the exact format.
+4. **Update `public/CHANGELOG.md`** — add a section for the new version at the top (newest first) describing the change in plain, user-facing language: what the user now sees or can do, no jargon. Changes that don't concern the user (refactors, tests, tooling, internal fixes) get a single brief line (e.g. `- Internal changes only.`). Stage it. The `/changelog` page renders this file (and it's served raw at `/changelog.md`), so the format is load-bearing — see the file's own header.
 5. Commit with Conventional Commits format:
    - Subject: `type(scope): short title` where type ∈ {feat, fix, chore, docs, refactor, test, build, style}
    - Body line 1: the new version (e.g. `0.0.2`)

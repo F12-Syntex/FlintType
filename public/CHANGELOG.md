@@ -1,12 +1,15 @@
 # Changelog
 
-User-facing changes to flinttype, newest first — one section per version.
+User-facing changes to flinttype, newest first — one section per version. Also served raw at `/changelog.md`; the `/changelog` page renders it.
 
 - Write each line in plain language: what the user now **sees** or **can do**. No jargon, no file / function / symbol names.
 - Versions whose changes don't concern the user (refactors, tests, tooling, internal fixes) get a single brief line, e.g. `- Internal changes only.`
 - Updated on every version bump — see `CLAUDE.md` → **Commit discipline**.
 
 ---
+
+## 6.77.6 — 20 May 2026
+- The changelog page now shows the full, up-to-date release history, kept in sync with this file.
 
 ## 6.77.5 — 20 May 2026
 - Internal changes only. (Added this changelog.)
@@ -55,3 +58,26 @@ User-facing changes to flinttype, newest first — one section per version.
 
 ## 6.72.0 — 19 May 2026
 - You can now sign in without a password — using a one-time code emailed to you, or a magic link you click from your inbox.
+
+## 6.8.0 — 12 May 2026
+- Leaderboard rebuilt with a sidebar filter rail, full-width table, and a simpler ranked layout.
+- New /blog, /changelog, and /faq pages launched alongside /privacy and /terms.
+- Sitemap and crawler index updated to cover every public page.
+
+## 6.7.0 — 12 May 2026
+- New /privacy and /terms pages with a shared editorial layout.
+
+## 6.6.0 — 11 May 2026
+- The global leaderboard now ranks real net-WPM with mode and time-window filters.
+- New /about page and richer homepage metadata for search.
+- Top bar redesigned — calmer nav, a consolidated lineup panel, and a race podium.
+
+## 6.5.0 — 10 May 2026
+- Multiplayer race surface — friendly challenge links, real-time progress, and bot fillers.
+- Race runs now roll into your history and your weakness profile.
+- Race rooms stay alive across reconnects.
+
+## 6.0.0 — May 2026
+- Full /customise surface — palette, mode, geometry, caret, typography, keyboard, background, live stats, typing area, result, and keymap.
+- Mobile-first pass across every surface, with bottom-sheet pickers in settings.
+- Insights and drills pages with per-bigram weakness ranking, a WPM trend, and targeted drills.
