@@ -36,3 +36,35 @@ export function parseChangelog(md: string): ChangelogEntry[] {
 
   return entries;
 }
+
+/** Compare two dotted version strings numerically, segment by segment.
+ *  Returns <0 if `a` is older, 0 if equal, >0 if `a` is newer. Tolerant
+ *  of a leading `v`, missing segments (treated as 0), and non-numeric
+ *  junk (treated as 0) so a malformed cache value can never throw. */
+export function compareVersions(a: string, b: string): number {
+  const parse = (v: string) =>
+    v.replace(/^v/i, "").split(".").map((n) => Number.parseInt(n, 10) || 0);
+  const pa = parse(a);
+  const pb = parse(b);
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+/** The changelog entries released after `since` and no later than
+ *  `current` — i.e. everything new to a user whose last-seen version was
+ *  `since`. Input order (newest first) is preserved. */
+export function changesSince(
+  entries: ChangelogEntry[],
+  since: string,
+  current: string,
+): ChangelogEntry[] {
+  return entries.filter(
+    (e) =>
+      compareVersions(e.version, since) > 0 &&
+      compareVersions(e.version, current) <= 0,
+  );
+}

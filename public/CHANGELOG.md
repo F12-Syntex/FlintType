@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.77.7 — 20 May 2026
+- After an update, a "What's new" popup now shows you exactly what changed since your last visit.
+
 ## 6.77.6 — 20 May 2026
 - The changelog page now shows the full, up-to-date release history, kept in sync with this file.
 

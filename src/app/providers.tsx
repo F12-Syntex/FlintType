@@ -6,6 +6,7 @@ import { CommandPalette } from "@/components/command-palette/command-palette";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ApplyThemeOverrides } from "@/lib/apply-theme-overrides";
 import { PaletteProvider } from "@/lib/themes/use-palette";
+import { WhatsNewDialog } from "./_components/whats-new-dialog";
 import { AppearanceApplier } from "./appearance-applier";
 import { BackgroundApplier } from "./background-applier";
 import { BordersApplier } from "./borders-applier";
@@ -35,6 +36,11 @@ export function Providers({ children }: { children: ReactNode }) {
               command in one searchable surface. Self-mounts; just
               listens for the shortcut. */}
           <CommandPalette />
+          {/* "What's new" popup — self-mounts, compares the cached
+              app version against the running one and surfaces the
+              changelog entries in between on the first load after an
+              update. No-op when already up to date. */}
+          <WhatsNewDialog />
         </TooltipProvider>
       </PaletteProvider>
     </ThemeProvider>
