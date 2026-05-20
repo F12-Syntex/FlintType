@@ -4,7 +4,8 @@ import { useUser } from "@clerk/nextjs";
 import { useEffect, useRef } from "react";
 import { useBackend } from "@/lib/backend";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
-import { practiceProgressChars } from "./practice-progress";
+import { LIVE_MAX_WORDS } from "@/types/live";
+import { liveSnapshotWindow } from "./practice-progress";
 import type { State } from "./practice-state";
 
 const POST_THROTTLE_MS = 700;
@@ -53,27 +54,29 @@ export function PracticeLiveBroadcast({
 
   useEffect(() => {
     if (!enabled || !running) return;
-    let stopped = false;
+    let id = 0;
     const post = () => {
       const { state: s, wpm: w, accuracy: a } = snapRef.current;
       if (s.words.length === 0) return;
+      // Window the passage so a runaway TIME buffer never blows the wire
+      // cap (which would 400 and silently kill the stream).
+      const win = liveSnapshotWindow(s, LIVE_MAX_WORDS);
       backend.live
         .progress({
-          words: s.words,
-          progressChars: practiceProgressChars(s),
-          totalChars: s.words.join(" ").length,
+          words: win.words,
+          progressChars: win.progressChars,
+          totalChars: win.totalChars,
           wpm: w,
           accuracy: a,
         })
         .then((r) => {
-          if (!r.accepted) stopped = true; // server says opted-out
+          // Server says opted-out — stop pushing for the rest of the run.
+          if (!r.accepted) window.clearInterval(id);
         })
         .catch(() => {});
     };
     post(); // push the first frame immediately, don't wait a tick
-    const id = window.setInterval(() => {
-      if (!stopped) post();
-    }, POST_THROTTLE_MS);
+    id = window.setInterval(post, POST_THROTTLE_MS);
     return () => window.clearInterval(id);
   }, [enabled, running, backend]);
 

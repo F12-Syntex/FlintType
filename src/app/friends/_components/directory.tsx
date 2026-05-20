@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronUp, Search, Users, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Avatar } from "@/components/ft";
 import { cn } from "@/lib/utils";
@@ -54,6 +54,8 @@ export function Directory({
   const [tab, setTab] = useState<TabId>("friends");
   const [q, setQ] = useState("");
   const reduce = useReducedMotion();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => setMounted(true), []);
 
@@ -65,11 +67,33 @@ export function Directory({
     window.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    // Move focus off the (now-hidden) trigger and into the sheet.
+    const raf = requestAnimationFrame(() => searchRef.current?.focus());
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
+      cancelAnimationFrame(raf);
     };
   }, [open]);
+
+  // Keep Tab within the open sheet — it's an aria-modal surface, so focus
+  // must not escape to the page behind it.
+  const trapTab = (e: React.KeyboardEvent) => {
+    if (e.key !== "Tab" || !panelRef.current) return;
+    const f = panelRef.current.querySelectorAll<HTMLElement>(
+      'a[href],button:not([disabled]),input,[tabindex]:not([tabindex="-1"])',
+    );
+    if (f.length === 0) return;
+    const first = f[0];
+    const last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
 
   // Unique people across all three lists — drives the bar's avatar stack
   // and count. Following order first (most representative), then any
@@ -182,6 +206,8 @@ export function Directory({
                     transition={{ duration: reduce ? 0 : 0.2 }}
                   />
                   <motion.div
+                    ref={panelRef}
+                    onKeyDown={trapTab}
                     role="dialog"
                     aria-modal="true"
                     aria-label="Friend directory"
@@ -191,17 +217,15 @@ export function Directory({
                     exit={reduce ? { opacity: 0 } : { y: "100%" }}
                     transition={spring}
                   >
-                    <button
-                      type="button"
-                      aria-label="Close"
-                      onClick={() => setOpen(false)}
+                    {/* Decorative grab handle — the X button + backdrop are
+                     *  the real close affordances; this is too small to be a
+                     *  tap target and shouldn't take a tab stop. */}
+                    <div
+                      aria-hidden
                       className="flex h-5 items-center justify-center pt-2"
                     >
-                      <span
-                        aria-hidden
-                        className="h-1 w-9 rounded-full bg-foreground/20"
-                      />
-                    </button>
+                      <span className="h-1 w-9 rounded-full bg-foreground/20" />
+                    </div>
                     <header className="flex items-center justify-between gap-3 px-4 pt-1 pb-3">
                       <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground">
                         <Users size={18} aria-hidden /> Directory
@@ -253,6 +277,7 @@ export function Directory({
                           className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                         />
                         <input
+                          ref={searchRef}
                           value={q}
                           onChange={(e) => setQ(e.target.value)}
                           placeholder="Search by handle"

@@ -14,8 +14,15 @@ export type LiveSnapshot = {
   accuracy: number;
 };
 
+/** Max words a single live snapshot may carry. The broadcaster windows
+ *  the passage to this many words around the caret before pushing, so an
+ *  unbounded TIME run (whose word buffer grows past this) never blows the
+ *  cap and 400s. Shared by the schema and the windowing helper so the two
+ *  can't drift. */
+export const LIVE_MAX_WORDS = 300;
+
 export const liveProgressInputSchema = z.object({
-  words: z.array(z.string().min(1).max(80)).min(1).max(300),
+  words: z.array(z.string().min(1).max(80)).min(1).max(LIVE_MAX_WORDS),
   progressChars: z.number().int().min(0).max(100_000),
   totalChars: z.number().int().min(0).max(100_000),
   wpm: z.number().min(0).max(500),

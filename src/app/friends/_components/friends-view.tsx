@@ -153,7 +153,7 @@ export function FriendsView() {
       {isLoaded && !isSignedIn ? (
         <SignInPrompt />
       ) : error ? (
-        <p className="rounded-md border border-border bg-card px-4 py-3 text-sm text-primary">
+        <p className="rounded-md border border-border bg-card px-4 py-3 text-sm text-destructive">
           {error}
         </p>
       ) : loading && !lists ? (

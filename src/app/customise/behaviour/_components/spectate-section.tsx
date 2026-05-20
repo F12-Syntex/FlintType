@@ -40,7 +40,7 @@ export function SpectateSection() {
       id="spectate"
       eyebrow="Social"
       title="Live spectating"
-      description="Let mutual friends watch you practise live. They see your passage, caret, and live WPM in near real time — only while you're typing, and only people you're friends with. Off by default."
+      description="Let mutual friends watch you practise live. They see your passage, caret, and live WPM in near real time, only while you're typing, and only people you're friends with. Off by default."
       preview={<SpectatePreview enabled={enabled} />}
     >
       <SettingsRow
