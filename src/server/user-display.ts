@@ -20,6 +20,10 @@ export type UserDisplay = {
    *  part, in that order, prefixed with `@`). */
   name: string;
   tags: UserTagId[];
+  /** Clerk avatar URL. Clerk always returns one (a generated initials
+   *  default when the user has no upload), so this is reliably present;
+   *  null only when Clerk couldn't resolve the user at all. */
+  imageUrl: string | null;
 };
 
 /** Resolve display info for a batch of Clerk user ids in a single
@@ -66,6 +70,7 @@ export async function resolveUserDisplays(
       username: u.username ?? null,
       name: display,
       tags: applyTagSelection(eligibleTags, selection),
+      imageUrl: u.imageUrl ?? null,
     });
   }
   return out;

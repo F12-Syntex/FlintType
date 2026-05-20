@@ -50,6 +50,7 @@ export async function toFriendUsers(
       username: d.username,
       name: d.name,
       tags: d.tags,
+      imageUrl: d.imageUrl,
       sinceMs: edge.createdAt.getTime(),
     });
   }

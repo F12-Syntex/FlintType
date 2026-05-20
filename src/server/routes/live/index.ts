@@ -6,6 +6,8 @@ import { resolveUserDisplays } from "@/server/user-display";
 import {
   liveProgressInputSchema,
   watchInputSchema,
+  type FriendsLiveOutput,
+  type LiveFriend,
   type LiveProgressInput,
   type LiveProgressOutput,
   type StopLiveOutput,
@@ -76,10 +78,69 @@ const watch = defineRoute<WatchInput, WatchOutput>({
         username: d?.username ?? null,
         name: d?.name ?? target,
         tags: d?.tags ?? [],
+        imageUrl: d?.imageUrl ?? null,
       },
       snapshot: entry.snapshot,
       updatedAtMs: entry.updatedAt.getTime(),
     };
+  },
+});
+
+/** Which of the caller's mutual friends are broadcasting right now —
+ *  the friends-hub "live now" section. One pass over the friend set:
+ *  batch-fetch their live rows + their spectate prefs, keep the ones
+ *  that are fresh AND opted in, then resolve display + avatar for that
+ *  (usually small) subset. No per-friend block check is needed: a block
+ *  severs the follow edges, so a blocked user can't be mutual. */
+const friendsLive = defineRoute<void, FriendsLiveOutput>({
+  handler: async ({ db, meta }) => {
+    const me = meta.userId as string;
+    const friends = await db.follows.listFriends(me);
+    const ids = friends.map((e) => e.userId);
+    if (ids.length === 0) return { users: [] };
+
+    const [sessions, prefsById] = await Promise.all([
+      db.liveSessions.getForUsers(ids),
+      db.userPrefs.bulkGet(ids),
+    ]);
+
+    const now = Date.now();
+    const liveIds = ids.filter((id) => {
+      const entry = sessions.get(id);
+      if (!entry || now - entry.updatedAt.getTime() >= LIVE_TTL_MS) return false;
+      const slice = prefsById.get(id)?.spectate as
+        | { enabled?: boolean }
+        | undefined;
+      return slice?.enabled === true;
+    });
+    if (liveIds.length === 0) return { users: [] };
+
+    const displays = await resolveUserDisplays(db, liveIds);
+    const users: LiveFriend[] = [];
+    for (const id of liveIds) {
+      const d = displays.get(id);
+      const entry = sessions.get(id);
+      if (!d || !entry) continue;
+      const s = entry.snapshot;
+      users.push({
+        userId: id,
+        username: d.username,
+        name: d.name,
+        tags: d.tags,
+        imageUrl: d.imageUrl,
+        wpm: s.wpm,
+        accuracy: s.accuracy,
+        progressChars: s.progressChars,
+        totalChars: s.totalChars,
+      });
+    }
+    // Most-recently-active first — the freshest run reads as "most live".
+    users.sort(
+      (a, b) =>
+        (sessions.get(b.userId)?.updatedAt.getTime() ?? 0) -
+        (sessions.get(a.userId)?.updatedAt.getTime() ?? 0),
+    );
+    return { users };
   },
 });
 
@@ -95,5 +156,5 @@ const stop = defineRoute<void, StopLiveOutput>({
  *  ~1.4/s spectator poll comfortably (240/min per user). */
 export const live = defineNamespace({
   middleware: [requireAuth, rateLimit({ limit: 240, windowMs: 60_000 })],
-  routes: { progress, watch, stop },
+  routes: { progress, watch, friendsLive, stop },
 });

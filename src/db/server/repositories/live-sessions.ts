@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { liveSessions } from "@/db/schema/server/live-sessions";
 import type { LiveSnapshot } from "@/types/live";
 import type { ServerDrizzle } from "../driver";
@@ -30,6 +30,32 @@ export function liveSessionsRepo(db: ServerDrizzle) {
       const row = rows[0];
       if (!row) return null;
       return { snapshot: row.snapshot as LiveSnapshot, updatedAt: row.updatedAt };
+    },
+
+    /** Snapshots for a batch of users in one round-trip — the friends
+     *  hub resolves "who's live now" across the caller's whole friend
+     *  set. Absent users (no row) are simply missing from the map;
+     *  freshness is the caller's call against each `updatedAt`. */
+    async getForUsers(
+      userIds: readonly string[],
+    ): Promise<Map<string, { snapshot: LiveSnapshot; updatedAt: Date }>> {
+      const out = new Map<string, { snapshot: LiveSnapshot; updatedAt: Date }>();
+      if (userIds.length === 0) return out;
+      const rows = await db
+        .select({
+          userId: liveSessions.userId,
+          snapshot: liveSessions.snapshot,
+          updatedAt: liveSessions.updatedAt,
+        })
+        .from(liveSessions)
+        .where(inArray(liveSessions.userId, [...userIds]));
+      for (const row of rows) {
+        out.set(row.userId, {
+          snapshot: row.snapshot as LiveSnapshot,
+          updatedAt: row.updatedAt,
+        });
+      }
+      return out;
     },
 
     /** Drop a user's live row — when a broadcaster stops. */

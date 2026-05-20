@@ -48,4 +48,19 @@ describe("liveSessionsRepo", () => {
     await ctx.db.liveSessions.clear("u1");
     expect(await ctx.db.liveSessions.get("u1")).toBeNull();
   });
+
+  it("getForUsers batches present rows and omits absent ones", async () => {
+    await ctx.db.liveSessions.set("u1", SNAP);
+    await ctx.db.liveSessions.set("u2", { ...SNAP, wpm: 120 });
+    const map = await ctx.db.liveSessions.getForUsers(["u1", "u2", "ghost"]);
+    expect(map.size).toBe(2);
+    expect(map.get("u1")?.snapshot.wpm).toBe(80);
+    expect(map.get("u2")?.snapshot.wpm).toBe(120);
+    expect(map.get("u1")?.updatedAt).toBeInstanceOf(Date);
+    expect(map.has("ghost")).toBe(false);
+  });
+
+  it("getForUsers returns an empty map for no ids", async () => {
+    expect((await ctx.db.liveSessions.getForUsers([])).size).toBe(0);
+  });
 });

@@ -36,7 +36,27 @@ export type LiveSubject = {
   username: string | null;
   name: string;
   tags: UserTagId[];
+  /** Clerk avatar URL; null when unresolved. */
+  imageUrl: string | null;
 };
+
+/** A mutual friend who is currently broadcasting a live practice run.
+ *  Surfaced in the friends hub's "live now" section: display + avatar
+ *  plus a snapshot of how the run is going, so a row can show live WPM
+ *  and a progress bar without a per-friend `watch` poll. */
+export type LiveFriend = {
+  userId: string;
+  username: string | null;
+  name: string;
+  tags: UserTagId[];
+  imageUrl: string | null;
+  wpm: number;
+  accuracy: number;
+  progressChars: number;
+  totalChars: number;
+};
+
+export type FriendsLiveOutput = { users: LiveFriend[] };
 
 /** A poll result. `live: false` covers every "can't watch right now"
  *  case — not mutual friends, blocked, not opted in, or simply not

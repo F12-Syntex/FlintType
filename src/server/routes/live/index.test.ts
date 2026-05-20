@@ -18,6 +18,7 @@ import { BackendError } from "@/lib/errors";
 import { createTestDatabase } from "@/db/server/testing";
 import { callRoute } from "@/server/testing";
 import type {
+  FriendsLiveOutput,
   LiveProgressOutput,
   StopLiveOutput,
   WatchOutput,
@@ -33,7 +34,14 @@ function signedInAs(userId: string) {
   } as unknown as Awaited<ReturnType<typeof auth>>);
 }
 
-function mockKnownUsers(known: { id: string; username?: string; firstName?: string }[]) {
+function mockKnownUsers(
+  known: {
+    id: string;
+    username?: string;
+    firstName?: string;
+    imageUrl?: string;
+  }[],
+) {
   const byId = new Map(known.map((u) => [u.id, u]));
   mockClerkClient.mockResolvedValue({
     users: {
@@ -71,7 +79,12 @@ describe("live routes", () => {
     await ctx.reset();
     mockKnownUsers([
       { id: "me", username: "me_handle", firstName: "Me" },
-      { id: "alice", username: "alice", firstName: "Alice" },
+      {
+        id: "alice",
+        username: "alice",
+        firstName: "Alice",
+        imageUrl: "https://img.clerk/alice.png",
+      },
       { id: "bob", username: "bob", firstName: "Bob" },
     ]);
   });
@@ -116,6 +129,7 @@ describe("live routes", () => {
     expect(w.live).toBe(true);
     if (w.live) {
       expect(w.subject.name).toBe("@Alice");
+      expect(w.subject.imageUrl).toBe("https://img.clerk/alice.png");
       expect(w.snapshot.wpm).toBe(90);
       expect(w.snapshot.progressChars).toBe(5);
     }
@@ -142,6 +156,53 @@ describe("live routes", () => {
 
     // Self → denied.
     expect((await callRoute<WatchOutput>(["live", "watch"], { db: ctx.db, input: { userId: "me" } })).live).toBe(false);
+  });
+
+  it("friendsLive returns mutual friends who are opted in and currently live", async () => {
+    await befriend(ctx); // me <-> alice mutual
+    await ctx.db.userPrefs.merge("alice", { spectate: { enabled: true } });
+    signedInAs("alice");
+    await callRoute(["live", "progress"], { db: ctx.db, input: SNAP });
+
+    signedInAs("me");
+    const out = await callRoute<FriendsLiveOutput>(["live", "friendsLive"], {
+      db: ctx.db,
+    });
+    expect(out.users).toHaveLength(1);
+    const u = out.users[0];
+    expect(u.userId).toBe("alice");
+    expect(u.name).toBe("@Alice");
+    expect(u.imageUrl).toBe("https://img.clerk/alice.png");
+    expect(u.wpm).toBe(90);
+    expect(u.progressChars).toBe(5);
+    expect(u.totalChars).toBe(15);
+  });
+
+  it("friendsLive excludes friends who haven't opted in, and non-friends", async () => {
+    await befriend(ctx); // me <-> alice
+    // alice is live but did NOT opt in.
+    signedInAs("alice");
+    await callRoute(["live", "progress"], { db: ctx.db, input: SNAP });
+
+    // bob opted in + live but is only a one-way follow (not mutual).
+    await ctx.db.follows.follow("me", "bob");
+    await ctx.db.userPrefs.merge("bob", { spectate: { enabled: true } });
+    signedInAs("bob");
+    await callRoute(["live", "progress"], { db: ctx.db, input: SNAP });
+
+    signedInAs("me");
+    const out = await callRoute<FriendsLiveOutput>(["live", "friendsLive"], {
+      db: ctx.db,
+    });
+    expect(out.users).toHaveLength(0);
+  });
+
+  it("friendsLive is empty when the caller has no friends", async () => {
+    signedInAs("me");
+    const out = await callRoute<FriendsLiveOutput>(["live", "friendsLive"], {
+      db: ctx.db,
+    });
+    expect(out.users).toEqual([]);
   });
 
   it("stop clears the broadcaster's live snapshot", async () => {

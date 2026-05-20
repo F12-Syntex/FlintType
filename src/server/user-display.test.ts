@@ -16,6 +16,7 @@ type ClerkUserLike = {
   firstName?: string | null;
   emailAddresses?: { emailAddress: string }[];
   publicMetadata?: Record<string, unknown> | null;
+  imageUrl?: string | null;
 };
 
 function mockUsers(users: ClerkUserLike[]) {
@@ -59,6 +60,16 @@ describe("resolveUserDisplays", () => {
     expect(out.get("u2")?.name).toBe("@bytes");
     expect(out.get("u3")?.name).toBe("@carol");
     expect(out.get("u1")?.username).toBe("ada99");
+  });
+
+  it("passes the Clerk avatar through, null when absent", async () => {
+    mockUsers([
+      { id: "u1", username: "ada", imageUrl: "https://img.clerk/ada.png" },
+      { id: "u2", username: "bo" },
+    ]);
+    const out = await resolveUserDisplays(ctx.db, ["u1", "u2"]);
+    expect(out.get("u1")?.imageUrl).toBe("https://img.clerk/ada.png");
+    expect(out.get("u2")?.imageUrl).toBeNull();
   });
 
   it("omits ids Clerk can't resolve", async () => {

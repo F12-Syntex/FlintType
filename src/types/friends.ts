@@ -42,6 +42,8 @@ export type FriendUser = {
   /** `@handle` display name. */
   name: string;
   tags: UserTagId[];
+  /** Clerk avatar URL; null when unresolved. */
+  imageUrl: string | null;
   /** ms epoch — when the (outgoing, for following/friends; incoming,
    *  for followers) edge was created. Drives newest-first order. */
   sinceMs: number;
