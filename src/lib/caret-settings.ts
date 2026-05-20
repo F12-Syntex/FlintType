@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { usePrefsOverride } from "./prefs-override";
 import { useRemotePrefs } from "./use-remote-prefs";
 
 export type CaretStyle = "line" | "block" | "underline" | "outline" | "off";
@@ -34,11 +35,15 @@ export const DEFAULT_CARET: CaretSettings = {
   smoothSpeed: 450,
 };
 
+const NOOP = () => {};
+
 export function useCaretSettings() {
-  const { value: settings, update, reset } = useRemotePrefs(
+  const override = usePrefsOverride()?.caret;
+  const { value: storeSettings, update, reset } = useRemotePrefs(
     "caret",
     DEFAULT_CARET,
   );
+  const settings = override ?? storeSettings;
 
   const isCustomised = useMemo(
     () =>
@@ -52,8 +57,10 @@ export function useCaretSettings() {
 
   return {
     settings,
-    update: (patch: Partial<CaretSettings>) => update(patch),
-    reset,
+    // Read-only when overridden (the spectate clone) — never write the
+    // broadcaster's caret onto the viewer's stored prefs.
+    update: override ? NOOP : (patch: Partial<CaretSettings>) => update(patch),
+    reset: override ? NOOP : reset,
     isCustomised,
   } as const;
 }

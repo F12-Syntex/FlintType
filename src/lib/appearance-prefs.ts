@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
+import { usePrefsOverride } from "./prefs-override";
 import { useRemotePrefs } from "./use-remote-prefs";
 
 // ─── enums ────────────────────────────────────────────────────────────
@@ -319,17 +320,22 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
 };
 
 export function useAppearancePrefs() {
-  const { value: prefs, update: updateRaw, reset } = useRemotePrefs(
-    "appearance",
-    DEFAULT_APPEARANCE,
-  );
+  const override = usePrefsOverride()?.appearance;
+  const { value: storePrefs, update: updateRaw, reset: resetRaw } =
+    useRemotePrefs("appearance", DEFAULT_APPEARANCE);
+  const prefs = override ?? storePrefs;
+  const overridden = override != null;
 
   const update = useCallback(
     <K extends keyof AppearancePrefs>(key: K, value: AppearancePrefs[K]) => {
+      if (overridden) return; // read-only under a prefs override
       updateRaw({ [key]: value } as Partial<AppearancePrefs>);
     },
-    [updateRaw],
+    [updateRaw, overridden],
   );
+  const reset = useCallback(() => {
+    if (!overridden) resetRaw();
+  }, [resetRaw, overridden]);
 
   const customizedCount = useMemo(
     () =>

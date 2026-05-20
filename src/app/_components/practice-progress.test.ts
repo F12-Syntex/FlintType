@@ -32,6 +32,7 @@ describe("liveSnapshotWindow", () => {
     expect(out.words).toEqual(words);
     expect(out.totalChars).toBe(15);
     expect(out.progressChars).toBe(4);
+    expect(out.start).toBe(0);
   });
 
   it("windows an over-cap passage to maxWords around the caret, re-basing the cursor", () => {
@@ -45,6 +46,7 @@ describe("liveSnapshotWindow", () => {
     // The caret's word must be inside the window.
     const lead = Math.floor(300 * 0.7); // 210
     const start = 400 - lead; // 190
+    expect(out.start).toBe(start);
     expect(out.words[0]).toBe(`w${start}`);
     expect(out.words[lead]).toBe("w400");
     // progressChars is re-based into the window and within its total.

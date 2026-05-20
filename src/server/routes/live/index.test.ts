@@ -71,6 +71,20 @@ const SNAP = {
   accuracy: 97,
 };
 
+const SCREEN = {
+  typed: ["the", "qu"],
+  cursorWord: 1,
+  cursorChar: 2,
+  mode: "WORDS",
+  quoteSource: null,
+  elapsedMs: 5_000,
+  raw: 95,
+  appearance: { tapeMode: "off" },
+  caret: { style: "block" },
+  behaviour: { blindMode: false },
+  themeVars: { "--primary": "oklch(0.6 0.2 30)" },
+};
+
 async function befriend(ctx: Awaited<ReturnType<typeof createTestDatabase>>) {
   await ctx.db.follows.follow("me", "alice");
   await ctx.db.follows.follow("alice", "me");
@@ -314,6 +328,29 @@ describe("live routes", () => {
       input: { userId: "me" },
     });
     expect(w.live).toBe(false);
+  });
+
+  it("watch round-trips the screen clone payload when present", async () => {
+    await befriend(ctx);
+    signedInAs("alice");
+    await callRoute(["live", "progress"], {
+      db: ctx.db,
+      input: { ...SNAP, screen: SCREEN },
+    });
+    signedInAs("me");
+    const w = await callRoute<WatchOutput>(["live", "watch"], {
+      db: ctx.db,
+      input: { userId: "alice" },
+    });
+    expect(w.live).toBe(true);
+    if (w.live) {
+      expect(w.snapshot.screen?.cursorWord).toBe(1);
+      expect(w.snapshot.screen?.typed).toEqual(["the", "qu"]);
+      expect(w.snapshot.screen?.caret).toEqual({ style: "block" });
+      expect(w.snapshot.screen?.themeVars["--primary"]).toBe(
+        "oklch(0.6 0.2 30)",
+      );
+    }
   });
 
   it("stop clears the broadcaster's live snapshot", async () => {

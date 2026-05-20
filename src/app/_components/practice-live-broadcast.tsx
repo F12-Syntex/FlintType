@@ -2,7 +2,10 @@
 
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useRef } from "react";
+import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { useBackend } from "@/lib/backend";
+import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
+import { useCaretSettings } from "@/lib/caret-settings";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { LIVE_MAX_WORDS } from "@/types/live";
 import { liveSnapshotWindow } from "./practice-progress";
@@ -13,31 +16,74 @@ const POST_THROTTLE_MS = 700;
  *  Sharing is ON by default; only an explicit `false` turns it off. */
 const SPECTATE_DEFAULT: { enabled?: boolean } = { enabled: true };
 
+/** Resolved CSS custom properties sent so the spectator's clone matches
+ *  the broadcaster's colours + typography exactly. Read from <html> at
+ *  push time so a theme switch mid-session flows through. */
+const CLONE_THEME_VARS = [
+  "--background",
+  "--foreground",
+  "--card",
+  "--card-foreground",
+  "--popover",
+  "--popover-foreground",
+  "--primary",
+  "--primary-foreground",
+  "--secondary",
+  "--secondary-foreground",
+  "--accent",
+  "--accent-foreground",
+  "--muted",
+  "--muted-foreground",
+  "--border",
+  "--input",
+  "--ring",
+  "--radius",
+  "--destructive",
+  "--destructive-foreground",
+  "--ft-font-family",
+  "--ft-font-scale",
+  "--ft-word-spacing",
+  "--ft-passage-typed",
+  "--ft-passage-untyped",
+  "--ft-passage-error",
+] as const;
+
+function readThemeVars(): Record<string, string> {
+  const cs = getComputedStyle(document.documentElement);
+  const out: Record<string, string> = {};
+  for (const v of CLONE_THEME_VARS) {
+    const val = cs.getPropertyValue(v).trim();
+    if (val) out[v] = val;
+  }
+  return out;
+}
+
 /** Invisible. Mounted once inside every real <PracticeProvider>, so any
  *  passage-based surface (home practice, sudden-death drills) streams
- *  automatically — no per-surface wiring. While the signed-in user has
- *  opted in (Customise > Behaviour > Live spectating) and a run is
- *  active, it pushes the live passage + caret + wpm/accuracy to
- *  `live.progress` ~every 700ms so mutual friends can watch from the
- *  friends hub.
+ *  automatically. While sharing is on and a run is active, it pushes a
+ *  full clone payload to `live.progress` ~every 700ms: the windowed
+ *  passage + the broadcaster's appearance, caret, behaviour, and resolved
+ *  theme vars, so a spectator reconstructs the exact screen.
  *
- *  State/wpm/accuracy arrive as props (the provider passes them in) so
- *  this file never imports `usePractice` — that would close a runtime
- *  import cycle with practice-state. The server re-checks the consent
- *  gate on every push; a rejected push means the user opted out and we
- *  stop. Broadcasting clears on unmount and otherwise ages out
- *  server-side ~6s after the last push. */
+ *  State/stats arrive as props (the provider passes them) so this file
+ *  never imports `usePractice` (that would close an import cycle with
+ *  practice-state). Appearance/caret/behaviour come from the pref hooks
+ *  — never overridden here (the override only wraps the watch clone). */
 export function PracticeLiveBroadcast({
   active = true,
   state,
   wpm,
+  raw,
   accuracy,
+  elapsedMs,
 }: {
   /** False during a race (the race subsystem owns its own broadcast). */
   active?: boolean;
   state: State;
   wpm: number;
+  raw: number;
   accuracy: number;
+  elapsedMs: number;
 }) {
   const backend = useBackend();
   const { isSignedIn } = useUser();
@@ -45,34 +91,50 @@ export function PracticeLiveBroadcast({
     "spectate",
     SPECTATE_DEFAULT,
   );
+  const { prefs: appearance } = useAppearancePrefs();
+  const { settings: caret } = useCaretSettings();
+  const { prefs: behaviour } = useBehaviourPrefs();
 
   const enabled = active && !!isSignedIn && spectate.enabled !== false;
   const running = state.phase === "running";
 
-  // Latest values the interval reads without re-subscribing each tick.
-  const snapRef = useRef({ state, wpm, accuracy });
-  snapRef.current = { state, wpm, accuracy };
+  // Latest values the interval reads without re-subscribing it each tick.
+  const snapRef = useRef({ state, wpm, raw, accuracy, elapsedMs, appearance, caret, behaviour });
+  snapRef.current = { state, wpm, raw, accuracy, elapsedMs, appearance, caret, behaviour };
 
   useEffect(() => {
     if (!enabled || !running) return;
     let id = 0;
     const post = () => {
-      const { state: s, wpm: w, accuracy: a } = snapRef.current;
-      if (s.words.length === 0) return;
+      const s = snapRef.current;
+      const st = s.state;
+      if (st.words.length === 0) return;
       // Window the passage so a runaway TIME buffer never blows the wire
-      // cap (which would 400 and silently kill the stream).
-      const win = liveSnapshotWindow(s, LIVE_MAX_WORDS);
+      // cap; window `typed` + the cursor by the same offset.
+      const win = liveSnapshotWindow(st, LIVE_MAX_WORDS);
       backend.live
         .progress({
           words: win.words,
           progressChars: win.progressChars,
           totalChars: win.totalChars,
-          wpm: w,
-          accuracy: a,
+          wpm: s.wpm,
+          accuracy: s.accuracy,
+          screen: {
+            typed: st.typed.slice(win.start, win.start + win.words.length),
+            cursorWord: Math.max(0, st.cursorWord - win.start),
+            cursorChar: st.cursorChar,
+            mode: st.mode,
+            quoteSource: st.quoteSource,
+            elapsedMs: s.elapsedMs,
+            raw: s.raw,
+            appearance: s.appearance as unknown as Record<string, unknown>,
+            caret: s.caret as unknown as Record<string, unknown>,
+            behaviour: { blindMode: s.behaviour.blindMode },
+            themeVars: readThemeVars(),
+          },
         })
         .then((r) => {
-          // Server says opted-out — stop pushing for the rest of the run.
-          if (!r.accepted) window.clearInterval(id);
+          if (!r.accepted) window.clearInterval(id); // server says opted-out
         })
         .catch(() => {});
     };

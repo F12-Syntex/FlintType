@@ -67,6 +67,7 @@ const progress = defineRoute<LiveProgressInput, LiveProgressOutput>({
       totalChars: input.totalChars,
       wpm: input.wpm,
       accuracy: input.accuracy,
+      screen: input.screen,
     });
     return { accepted: true };
   },

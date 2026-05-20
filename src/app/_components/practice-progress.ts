@@ -25,6 +25,10 @@ export type LiveSnapshotShape = {
   words: string[];
   progressChars: number;
   totalChars: number;
+  /** Index of the first windowed word in the original passage — the
+   *  broadcaster slices its `typed` array and re-bases the cursor by the
+   *  same amount so the clone payload stays aligned. 0 when not windowed. */
+  start: number;
 };
 
 /** Map a practice run to the wire shape a spectator renders, windowed so
@@ -44,6 +48,7 @@ export function liveSnapshotWindow(
       words: [...words],
       progressChars: practiceProgressChars(state),
       totalChars: words.join(" ").length,
+      start: 0,
     };
   }
   // Keep the caret ~70% of the way into the window so the typist's recent
@@ -60,5 +65,6 @@ export function liveSnapshotWindow(
       cursorChar,
     }),
     totalChars: win.join(" ").length,
+    start,
   };
 }

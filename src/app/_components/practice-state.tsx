@@ -1022,7 +1022,9 @@ export function PracticeProvider({
         active={!raceMode}
         state={value.state}
         wpm={value.wpm}
+        raw={value.raw}
         accuracy={value.accuracy}
+        elapsedMs={value.elapsedMs}
       />
       {children}
     </Ctx.Provider>

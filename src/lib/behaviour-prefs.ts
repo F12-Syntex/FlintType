@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
+import { usePrefsOverride } from "./prefs-override";
 import { useRemotePrefs } from "./use-remote-prefs";
 
 export type Confidence = "off" | "word" | "all";
@@ -50,17 +51,24 @@ export const DEFAULT_BEHAVIOUR: BehaviourPrefs = {
 };
 
 export function useBehaviourPrefs() {
-  const { value: prefs, update: updateRaw, reset } = useRemotePrefs(
+  const override = usePrefsOverride()?.behaviour;
+  const { value: storePrefs, update: updateRaw, reset: resetRaw } = useRemotePrefs(
     "behaviour",
     DEFAULT_BEHAVIOUR,
   );
+  const prefs = override ?? storePrefs;
+  const overridden = override != null;
 
   const update = useCallback(
     <K extends keyof BehaviourPrefs>(key: K, value: BehaviourPrefs[K]) => {
+      if (overridden) return; // read-only under a prefs override
       updateRaw({ [key]: value } as Partial<BehaviourPrefs>);
     },
-    [updateRaw],
+    [updateRaw, overridden],
   );
+  const reset = useCallback(() => {
+    if (!overridden) resetRaw();
+  }, [resetRaw, overridden]);
 
   const customizedCount = useMemo(
     () =>

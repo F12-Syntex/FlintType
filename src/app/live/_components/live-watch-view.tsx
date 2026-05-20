@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Avatar, UserTag } from "@/components/ft";
 import { useBackend } from "@/lib/backend";
 import type { WatchOutput } from "@/types/live";
+import { LiveClone } from "./live-clone";
 import { LivePassage } from "./live-passage";
 
 const POLL_MS = 700;
@@ -83,7 +84,16 @@ export function LiveWatchView({ userId }: { userId: string }) {
               </div>
             </div>
           </header>
-          <LivePassage snapshot={state.snapshot} />
+          {state.snapshot.screen ? (
+            <LiveClone
+              words={state.snapshot.words}
+              screen={state.snapshot.screen}
+              wpm={state.snapshot.wpm}
+              accuracy={state.snapshot.accuracy}
+            />
+          ) : (
+            <LivePassage snapshot={state.snapshot} />
+          )}
           <Link
             href="/friends"
             className="w-fit text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"

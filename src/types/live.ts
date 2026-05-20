@@ -1,10 +1,34 @@
 import { z } from "zod";
 import type { UserTagId } from "./user-tag";
 
+/** The extra payload that lets a spectator render a faithful CLONE of
+ *  the broadcaster's practice screen — the same passage state plus the
+ *  broadcaster's appearance, caret, behaviour, and resolved theme CSS
+ *  vars. Optional: an old client (or a future lighter mode) can omit it,
+ *  and the spectator falls back to the read-only progress mirror.
+ *
+ *  `appearance` / `caret` are opaque pref blobs (merged over the client
+ *  defaults on render); `themeVars` is a map of resolved CSS custom
+ *  properties (e.g. `--background`, `--ft-passage-typed`) applied to the
+ *  clone container so colours + fonts match. */
+export type LiveScreen = {
+  /** Per-word typed text, aligned with `words` (windowed identically). */
+  typed: string[];
+  cursorWord: number;
+  cursorChar: number;
+  mode: string;
+  quoteSource: string | null;
+  elapsedMs: number;
+  raw: number;
+  appearance: Record<string, unknown>;
+  caret: Record<string, unknown>;
+  behaviour: { blindMode?: boolean };
+  themeVars: Record<string, string>;
+};
+
 /** A broadcaster's latest live-practice state. Snapshotted ~every
- *  700ms while they practice on the live surface (if they've opted in
- *  to being spectated). Carries the passage so a spectator can render
- *  it read-only. */
+ *  700ms while they practice (if sharing is on). Carries the passage so
+ *  a spectator can render it, plus the optional `screen` clone payload. */
 export type LiveSnapshot = {
   words: string[];
   /** Cursor position (chars typed). */
@@ -12,6 +36,7 @@ export type LiveSnapshot = {
   totalChars: number;
   wpm: number;
   accuracy: number;
+  screen?: LiveScreen;
 };
 
 /** Max words a single live snapshot may carry. The broadcaster windows
@@ -21,12 +46,30 @@ export type LiveSnapshot = {
  *  can't drift. */
 export const LIVE_MAX_WORDS = 300;
 
+const liveScreenSchema = z.object({
+  typed: z.array(z.string().max(160)).max(LIVE_MAX_WORDS),
+  cursorWord: z.number().int().min(0).max(100_000),
+  cursorChar: z.number().int().min(0).max(2_000),
+  mode: z.string().max(16),
+  quoteSource: z.string().max(400).nullable(),
+  elapsedMs: z.number().min(0).max(86_400_000),
+  raw: z.number().min(0).max(1000),
+  // Opaque pref blobs + resolved theme vars — bounded but not shape-
+  // validated (they're the user's own settings, merged over defaults
+  // defensively on the spectator side).
+  appearance: z.record(z.string(), z.unknown()),
+  caret: z.record(z.string(), z.unknown()),
+  behaviour: z.object({ blindMode: z.boolean().optional() }),
+  themeVars: z.record(z.string().max(64), z.string().max(200)),
+});
+
 export const liveProgressInputSchema = z.object({
   words: z.array(z.string().min(1).max(80)).min(1).max(LIVE_MAX_WORDS),
   progressChars: z.number().int().min(0).max(100_000),
   totalChars: z.number().int().min(0).max(100_000),
   wpm: z.number().min(0).max(500),
   accuracy: z.number().min(0).max(100),
+  screen: liveScreenSchema.optional(),
 });
 export type LiveProgressInput = z.infer<typeof liveProgressInputSchema>;
 /** `accepted` is false when the user hasn't opted in to being
