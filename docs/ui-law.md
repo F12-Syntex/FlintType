@@ -812,7 +812,10 @@ People rail (`people-panel.tsx`) — Friends / Following / Followers segmented c
 
 Rows (`friend-list-row.tsx`) + presence rows are the avatar-`group` that livens the avatar on hover. Don't reintroduce a dedicated `/live` broadcast page — broadcasting is ambient (§17.4) and watching is reached from this hub.
 
-### 17.6 Live watch = a clone of their screen (`/live/[userId]`)
+### 17.6 Live watch = a fullscreen clone of their screen (`/live/[userId]`)
+
+The watch page is **fullscreen + immersive** — no `<AppChrome>`. It's a `min-h-dvh` surface with a slim sticky header (back to Friends · the broadcaster's avatar/handle + a LIVE pulse · a Fullscreen-API toggle) over the cloned screen, which fills the viewport. The broadcaster, meanwhile, always sees who's watching via the prominent §17.4 spectator-count chip on their own practice screen.
+
 
 Spectating is **not a bespoke read-only view** — it reproduces the broadcaster's actual practice screen, **every phase**: the real `<ModeBar>` + `<Readouts>` + `<Passage>` while they type, and the real `<TestSummary preview>` on their results screen. `<LiveClone>` (`src/app/live/_components/live-clone.tsx`) mounts those real components (never a fork — same rule as settings previews, §12.5) against a frozen `PracticeContext` rebuilt from the live snapshot, the whole surface `pointer-events-none` (it's a view, not controls), wrapped in:
 

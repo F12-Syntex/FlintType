@@ -1,5 +1,4 @@
 import { buildPageMetadata } from "@/server/seo";
-import { AppChrome } from "../../_components/app-chrome";
 import { LiveWatchView } from "../_components/live-watch-view";
 
 // Static canonical `/live` for every spectated user is fine only
@@ -17,9 +16,7 @@ export default async function LiveWatchPage({
   params: Promise<{ userId: string }>;
 }) {
   const { userId } = await params;
-  return (
-    <AppChrome>
-      <LiveWatchView userId={userId} />
-    </AppChrome>
-  );
+  // No AppChrome — the watch view is a fullscreen, immersive mirror of
+  // the broadcaster's screen with its own slim header.
+  return <LiveWatchView userId={userId} />;
 }

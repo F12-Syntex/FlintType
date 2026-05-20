@@ -99,13 +99,13 @@ export function SpectateIndicator({ className }: { className?: string }) {
 
   if (!sharing || watchers.length === 0) return null;
   return (
-    <div className={cn("flex justify-end", className)}>
-      <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/[0.06] px-2 py-1 text-[11px] font-medium text-foreground">
+    <div className={cn("flex justify-end", className)} aria-live="polite">
+      <span className="inline-flex items-center gap-2 rounded-md border border-primary/50 bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-foreground shadow-sm">
         <span
           aria-hidden
-          className="size-1.5 rounded-full bg-primary motion-safe:animate-pulse"
+          className="size-2 rounded-full bg-primary motion-safe:animate-pulse"
         />
-        <Eye size={12} className="shrink-0" aria-hidden />
+        <Eye size={14} className="shrink-0 text-primary" aria-hidden />
         {watcherSentence(watchers)}
       </span>
     </div>

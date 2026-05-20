@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.91.0 — 20 May 2026
+- Watching a friend is now fullscreen and immersive, with a slim header and a button to go truly fullscreen. And whenever someone is watching you, your practice screen shows a clear "ada is spectating" badge so you always know you're being watched.
+
 ## 6.90.0 — 20 May 2026
 - Watching a friend now mirrors their whole practice screen: the mode they're on, the live passage as they type, and their full results page when they finish, themed exactly as they see it. It plays back with a smooth one-second buffer so it doesn't stutter.
 
