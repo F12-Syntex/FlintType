@@ -60,10 +60,12 @@ Protocol:
 3. Write the new version back to `VERSION` **and** update the `version` field in `package.json` to the same value. Both must match every commit — `package.json` is what npm / Vercel / GitHub Releases / Sentry / any registry tooling sees, `VERSION` is the canonical plain-text source that the rest of the app reads. Stage both files. Never let them drift.
 4. Commit with Conventional Commits format:
    - Subject: `type(scope): short title` where type ∈ {feat, fix, chore, docs, refactor, test, build, style}
-   - Body line 1: the new version (e.g. `0.0.2`)
-   - Body: terse bullet list of what changed and why
-5. **Never** add `Co-Authored-By: Claude`, `Generated with Claude Code`, emoji signatures, or any AI attribution. No HEREDOC footer. Subject + body only.
-6. One logical change per commit. Don't bundle unrelated work.
+   - **Body line 1 — the plain-English explanation.** *The first thing in the body is always one short, non-technical sentence — this is changelog copy.* Frame it as what the user now sees or can do, from their point of view. No jargon, no symbol / file / function names, no implementation detail. Keep it to a single sentence where you can. **If the change has no user-visible effect** (internal refactor, test-only, tooling), say so plainly — e.g. *"Internal change, nothing visible."* — so the changelog generator can skip it. This line leads the body, before the version and the bullets.
+   - Then a blank line and the new version (e.g. `0.0.2`).
+   - Then a terse bullet list of the technical what-and-why (this is where symbols, files, and implementation notes go).
+5. **Mirror the commit into `COMMITS.md`** in the same commit — *this file is the source the changelog is generated from.* Prepend one entry at the top (newest first) in the exact shape its header documents: the `type(scope): title` subject as the heading, a `` `version` · date `` line, the same plain-English sentence as body line 1, then an optional short `_Technical:_` note. Stage `COMMITS.md` alongside your other files. `git log` stays the exhaustive source; `COMMITS.md` is the curated, changelog-feeding layer.
+6. **Never** add `Co-Authored-By: Claude`, `Generated with Claude Code`, emoji signatures, or any AI attribution. No HEREDOC footer. Subject + body only.
+7. One logical change per commit. Don't bundle unrelated work.
 
 ## MCP servers (see `.mcp.json`)
 - **shadcn** — use for component installs and registry lookups. Prefer `mcp__shadcn__*` tools over raw `npx shadcn add`.
