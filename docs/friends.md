@@ -32,8 +32,8 @@ _(Later steps add: duel/run-snapshot tables (Step 7); presence + live-session st
 
 | # | Step | Status |
 |---|---|---|
-| 1 | Friend-graph data layer (schema, repos, repo tests, wiring, migration) | ✅ in progress |
-| 2 | Friend-graph backend routes (`friends` namespace + notification kinds) | ⬜ |
+| 1 | Friend-graph data layer (schema, repos, repo tests, wiring, migration) | ✅ done |
+| 2 | Friend-graph backend routes (`friends` namespace + notification kinds) | ✅ done |
 | 3 | Friend-graph UI (follow button, friends page, profile/leaderboard integration) | ⬜ |
 | 4 | Friends-scoped leaderboard | ⬜ |
 | 5 | Head-to-head profile compare | ⬜ |
@@ -52,3 +52,12 @@ Each step: tests-first, `yarn test` + `yarn tsc --noEmit` green, a dedicated age
 - **Tests:** `follows.test.ts`, `blocks.test.ts` — direction, idempotency, self-edge refusal, mutual detection, list sides, ordering, counts (D3/R12).
 - **Migration:** generated via `yarn db:generate`; test DDL in `src/db/server/testing.ts` kept as a 1:1 mirror.
 - Repos are pure data access — the follow→unfollow-both-ways-on-block invariant and all auth/notification side-effects are the route layer's job (Step 2).
+
+### Step 2 — Friend-graph backend routes
+- **Namespace:** `src/server/routes/friends/` — `follow`, `unfollow`, `block`, `unblock`, `relationship`, `stats`, `listFollowing`, `listFollowers`, `listFriends`. Gated by `[requireAuth, rateLimit(60/min)]`; registered in `router.ts`. Available on the client as `useBackend().friends.*`.
+- **Types:** `src/types/friends.ts` — `friendTargetSchema` + `FriendRelationship` (the pairwise state every mutation returns), `FriendUser`, `FriendListOutput`, `FriendStats`.
+- **Mutations return the fresh `FriendRelationship`** so the follow button re-renders from the response (no follow-up read).
+- **Invariants in the route layer:** can't follow yourself / across a block (either direction); `block` severs both follow edges; non-existent target → 404 (validated via Clerk).
+- **Notifications:** new `follow` (dedupe `follow:<me>`) and `mutual` (dedupe `mutual:<sorted-pair>`, fired to both users) kinds added to `src/types/notification.ts`. Side-effects fire only on a newly-created edge — idempotent re-follows are silent. Renderers for these kinds land in Step 3.
+- **Shared helper:** `src/server/user-display.ts` `resolveUserDisplays(db, ids)` — bulk Clerk fetch + tag resolution (the leaderboard's inline block, extracted for reuse; hardened against partial Clerk shapes). `relationship.ts` holds `relationshipOf` / `toFriendUsers` read-model builders.
+- **Tests:** `friends/index.test.ts` (R8 matrix: happy/validation/auth/domain + fan-out idempotency, block invariant, list filtering) and `user-display.test.ts` (fallback chain, unresolved-id omission, tag selection).

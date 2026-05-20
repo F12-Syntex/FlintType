@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.77.10 — 20 May 2026
+- More groundwork for the friends system — following, friends, and blocking now work behind the scenes (no visible UI yet).
+
 ## 6.77.9 — 20 May 2026
 - Internal groundwork for an upcoming friends system (nothing user-facing yet).
 

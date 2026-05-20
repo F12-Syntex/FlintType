@@ -4,7 +4,12 @@ import { z } from "zod";
  *  Adding a new kind = add a new variant here + a renderer arm in the
  *  popover. No DB migration needed — the `kind` column is `text` and
  *  the `data` column is `jsonb`. */
-export type NotificationKind = "announcement" | "personal_best" | "og_granted";
+export type NotificationKind =
+  | "announcement"
+  | "personal_best"
+  | "og_granted"
+  | "follow"
+  | "mutual";
 
 export type AnnouncementData = {
   /** Optional CTA URL — when present the row becomes a link. */
@@ -36,10 +41,32 @@ export type OgGrantedData = {
   milestoneLimit: number;
 };
 
+/** Someone started following the recipient. Dedupes on the follower
+ *  (`follow:<followerId>`) so an unfollow→refollow loop can't spam the
+ *  bell. The renderer paints the follower's `@handle` and links to
+ *  their profile. */
+export type FollowNotificationData = {
+  followerId: string;
+  /** `@handle` of the follower, baked at creation. */
+  followerName: string;
+  followerUsername: string | null;
+};
+
+/** A reciprocal follow completed — the recipient and `friendId` are
+ *  now friends. Dedupes on the sorted pair (`mutual:<a>:<b>`) so it
+ *  fires once per friendship, ever. */
+export type MutualNotificationData = {
+  friendId: string;
+  friendName: string;
+  friendUsername: string | null;
+};
+
 export type NotificationData =
   | AnnouncementData
   | PersonalBestData
   | OgGrantedData
+  | FollowNotificationData
+  | MutualNotificationData
   | null;
 
 export type Notification = {
