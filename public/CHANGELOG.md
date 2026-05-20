@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.86.0 — 20 May 2026
+- The Friends page is rebuilt around who's around right now. A "Live now" section shows friends typing live so you can jump straight in and watch them, an "Online" row shows who else is around, and your full friends, following, and followers lists live in a directory that slides up when you want it. Everyone shows their avatar now, and you can search the directory by handle.
+
 ## 6.85.0 — 20 May 2026
 - You can now let friends watch you practise from wherever you type, not a separate page. Turn on Live spectating in Customise → Behaviour, and any practice run or drill becomes watchable by your mutual friends in real time. A small "Friends can watch" badge shows on screen while it's on, and it's off by default.
 

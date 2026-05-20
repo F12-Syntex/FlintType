@@ -1,3 +1,4 @@
+export { Avatar, type AvatarSize } from "./avatar";
 export { FtButton, ftButtonVariants } from "./ft-button";
 export { Kbd } from "./kbd";
 export { Logo } from "./logo";

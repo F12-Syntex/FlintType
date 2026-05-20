@@ -492,6 +492,7 @@ Reusable building blocks live in `src/components/ft/`. Use these — don't repro
 | `<Panel>`    | `from "@/components/ft"`        | Bordered surface with `title` + `subtitle` header (both via `<Tag>`), background `bg-[#FAF7F0]`. Used for every dashboard widget.                                                                                                                                  |
 | `<Kbd>`      | `from "@/components/ft"`        | Inline keycap chip: white bg, double-bottom border, mono small caps.                                                                                                                                                                                               |
 | `<FtButton>` | `from "@/components/ft"`        | Square-cornered, uppercase, mono, tracked button. Variants: `ink`, `ember`, `ghost`, `ghostDark`. Sizes `sm \| md \| lg`.                                                                                                                                          |
+| `<Avatar>`   | `from "@/components/ft"`        | A user's Clerk avatar — circular, hairline `ring-foreground/10`, sizes `sm \| md \| lg \| xl`. **Desaturated at rest, full colour on hover** of an ancestor `.group` (`liven={false}` opts out). Optional presence dot: `status="live"` (the lone coral spark, `motion-safe:animate-pulse`) / `"online"` (`bg-ft-ok`). Plain `<img>` (Clerk's CDN isn't in `next.config` remotePatterns and that file is off-limits). **Avatars are a sanctioned departure from the no-avatars bias — only the friends/live surfaces (§17.5) use them; do not sprinkle avatars onto other product chrome.** |
 | `<UserTag>`  | `from "@/components/ft"`        | Identity tag chip — lucide icon + uppercase label with per-tag colour/border/fill/glow tokens. Variants: `tag ∈ { og, owner }`. Sizes `sm` (leaderboard row, h-5/text-[10px]) / `md` (profile hero, h-[26px]/text-[11px]). Hover (and focus) shows a Monkeytype-style two-line tooltip with the tag's name + one-line description; opt out with `tooltip={false}` only when the chip is itself inside an outer button whose own affordance already describes it. Icons use lucide-react with `strokeWidth={2.25}` so the glyph reads at 12–14px against the saturated fill. Static glow, no animation. Tokens are fixed across palettes (§2.3 User-tag tokens). Requires the root `<TooltipProvider>` in `src/app/providers.tsx`. |
 
 The shadcn `<Button>` is still preferred when the form/dialog already uses shadcn primitives — but flinttype-themed CTAs (the editorial buttons in screen designs) use `<FtButton>`.
@@ -648,6 +649,7 @@ Animation in flinttype is the **exception**, not a default. The product is edito
 
 - A control's effect is genuinely **temporal** and a static preview cannot represent it (the live caret blink in the running practice surface, where blink speed is itself the setting).
 - A user-initiated transition (route change, modal entrance) where the motion provides spatial continuity.
+- **The friends hub directory (§17.5)** is a deliberate, user-mandated full-fidelity exception: a spring slide-up sheet + list stagger. It earns motion because it's a user-initiated reveal of a tucked-away surface (spatial continuity), uses transform-based animation (not animated layout properties), and tunes its spring damping high enough to ease-out without bounce (shared law). It still collapses to a static reveal under `prefers-reduced-motion` via `useReducedMotion()`. This is the *only* place a list staggers in; don't generalise it to other lists.
 
 ### 13.1 Don't
 
@@ -796,6 +798,16 @@ List empty states use a single dashed-border card (`border-dashed border-border 
 - Reused as the Behaviour page's bespoke section preview (§12.5): the same pill, flipped by the toggle, so the user previews the exact indicator they're enabling.
 
 Don't invent a second "live"/"recording" badge for the broadcaster. A *spectatable friend who is currently broadcasting* is marked separately in the friends hub (§17.5); this chip is strictly the broadcaster's own consent state.
+
+### 17.5 Friends hub — presence-first, full-fidelity (`/friends`)
+
+The friends hub (`src/app/friends/_components/`) is a **presence-first** surface and the one place flinttype runs avatars + motion at full fidelity (an explicit product call, sanctioned here so the rest of the app stays avatar-free and still). Information hierarchy, top to bottom:
+
+1. **`Live now`** (`presence-sections.tsx` → `LiveNow`) — mutual friends currently broadcasting (from `live.friendsLive`). The eyebrow dot is the pulsing coral spark. Each row is the **watch trigger** (the whole row links to `/live/<userId>`, hover `bg-accent`), carrying the avatar (`status="live"`), handle + tags, a coral mini progress bar + live WPM, and an `Eye`+"Watch" affordance. The CTA is the row itself, not a filled button, so N live friends don't paint N coral buttons (honours §17.1's one-filled-spark rule). Always shown; a slim muted sentence stands in when nobody's live (never a big empty card).
+2. **`Online`** (`OnlineNow`) — people you follow who are online but not live (`presence.list` ∩ following, minus the live set). Compact chips (avatar `status="online"` + handle + tags) linking to the profile, glance-only. Hidden entirely when none, so the hub never stacks two empty cards.
+3. **`Directory`** (`directory.tsx`) — the full graph, tucked into an in-flow docked bar (avatar stack + count + chevron) that springs open into a portalled bottom sheet (mirrors `<MobileSheet>` chrome: grab handle, `bg-foreground/45` backdrop, `rounded-t-2xl`) with the Friends / Following / Followers segmented control (§17.2), a search field, and `FriendListRow`s carrying the full `<FollowButton menu>` management. The sheet shows on every viewport (not just mobile) and uses the §13 motion exception.
+
+Rows: directory rows (`friend-list-row.tsx`) and presence rows are the avatar-`group` that livens the avatar on hover. Empty/loading: a skeleton (avatar circle + text bars, not a spinner) on first load; a single dashed-border CTA card (§17.3) when the whole graph is empty. Don't reintroduce a dedicated `/live` broadcast page — broadcasting is ambient (§17.4) and watching is reached from this hub.
 
 ## 18. Amending this document
 
