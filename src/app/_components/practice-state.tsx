@@ -45,6 +45,7 @@ import {
   type WordCfg,
   type WpmSample,
 } from "./practice-reducer";
+import { PracticeLiveBroadcast } from "./practice-live-broadcast";
 
 // Re-export the practice-test types so existing consumers
 // (`@/app/_components/practice-state` is imported in ~15 places) keep
@@ -1012,5 +1013,18 @@ export function PracticeProvider({
     return () => window.removeEventListener("ft:practice:restart", onRestart);
   }, []);
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={value}>
+      {/* Streams this run to mutual friends when the user has opted in
+       *  (invisible, gated server-side). Off during races — the race
+       *  subsystem owns its own broadcast. */}
+      <PracticeLiveBroadcast
+        active={!raceMode}
+        state={value.state}
+        wpm={value.wpm}
+        accuracy={value.accuracy}
+      />
+      {children}
+    </Ctx.Provider>
+  );
 }

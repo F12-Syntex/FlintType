@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.85.0 — 20 May 2026
+- You can now let friends watch you practise from wherever you type, not a separate page. Turn on Live spectating in Customise → Behaviour, and any practice run or drill becomes watchable by your mutual friends in real time. A small "Friends can watch" badge shows on screen while it's on, and it's off by default.
+
 ## 6.84.1 — 20 May 2026
 - Internal changes only.
 

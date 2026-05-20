@@ -15,6 +15,7 @@ import {
   InputHandlingPreview,
   WordListPreview,
 } from "./_components/section-previews";
+import { SpectateSection } from "./_components/spectate-section";
 
 function ToggleChips({
   value,
@@ -279,6 +280,8 @@ export default function BehaviourPage() {
           onChange={(v) => set("excludeCasualFromAdapt", v)}
         />
       </SettingsSection>
+
+      <SpectateSection />
     </section>
   );
 }

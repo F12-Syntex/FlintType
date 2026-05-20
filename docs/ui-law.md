@@ -787,6 +787,16 @@ Friend lists (Friends / Following / Followers) switch via a segmented control bu
 
 List empty states use a single dashed-border card (`border-dashed border-border bg-card/40`) with one plain sentence that names the next action ("You're not following anyone yet. Find people on the leaderboard and follow them."). No em dashes, no restated headings.
 
+### 17.4 Live-spectate consent chip (`<SpectatePill>` / `<SpectateIndicator>`)
+
+`src/components/spectate-indicator.tsx`. Broadcasting a live practice run is **ambient** — there is no dedicated broadcast page. Once a user opts in (Customise → Behaviour → Live spectating), any passage-based surface streams via the invisible `<PracticeLiveBroadcast>` mounted inside `PracticeProvider`. The only visible trace is a small chip:
+
+- **`<SpectatePill enabled>`** — presentational. `rounded-md` hairline chip, mono `text-[10px]` uppercase tracked, with a leading status dot + an `Eye` glyph (lucide). The single coral spark is the dot in the **on** state (`bg-primary` with `motion-safe:animate-pulse`); the off state is quiet ink (`text-muted-foreground`, `bg-card`). This is the **only** sanctioned pulsing dot on a product surface: it conveys live state, not decoration (§13), and the pulse is gated behind `motion-safe:` so reduced-motion users get a static dot.
+- **`<SpectateIndicator>`** — the hooked wrapper mounted on practice/drill surfaces. Renders the pill (linking to the toggle) **only** while signed-in and opted-in, so it never reflows the typing area in the common off case, and doubles as the persistent "your runs are visible" consent reminder.
+- Reused as the Behaviour page's bespoke section preview (§12.5): the same pill, flipped by the toggle, so the user previews the exact indicator they're enabling.
+
+Don't invent a second "live"/"recording" badge for the broadcaster. A *spectatable friend who is currently broadcasting* is marked separately in the friends hub (§17.5); this chip is strictly the broadcaster's own consent state.
+
 ## 18. Amending this document
 
 When you introduce a new pattern:

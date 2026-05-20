@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { Tag } from "@/components/ft";
+import { SpectateIndicator } from "@/components/spectate-indicator";
 import { Button } from "@/components/ui/button";
 import { Passage } from "@/app/_components/passage";
 import {
@@ -62,6 +63,7 @@ function Body() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pt-6 pb-3 sm:gap-6 sm:px-12 sm:py-8 lg:px-20">
+      {!done ? <SpectateIndicator /> : null}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {done ? (
           <DrillCleared

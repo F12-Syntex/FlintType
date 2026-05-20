@@ -17,6 +17,7 @@ import { Passage } from "./passage";
 import { PracticeProvider, usePractice } from "./practice-state";
 import { Readouts } from "./readouts";
 import { RestHint } from "./rest-hint";
+import { SpectateIndicator } from "@/components/spectate-indicator";
 import { TestSummary } from "./test-summary";
 
 export type TypingSurfaceProps = {
@@ -110,6 +111,7 @@ function TypingSurfaceBody({
   const isBurst = state.mode === "BURST" && !done;
   const body = (
     <>
+      {!done ? <SpectateIndicator className="-mt-1 mb-1" /> : null}
       {showReadouts && !done ? (
         <div className="hidden md:block">
           {isBurst ? <BurstReadouts /> : <Readouts />}
