@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.98.5 — 21 May 2026
+- Races are fairer: your speed is now measured from the moment the race starts, not from your first keystroke, and the winner is whoever has the highest real typing speed — not just whoever crosses the line first.
+- Challenge lobbies are now real players only — no bots are added when you start a challenge you've shared.
+
 ## 6.98.4 — 21 May 2026
 - Fixed: you can now scroll the race results screen on smaller windows — the placement, stats, and leaderboard no longer get cut off at the bottom.
 

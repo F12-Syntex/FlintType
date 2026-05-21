@@ -61,7 +61,9 @@ describe("race routes", () => {
     expect(res.ok).toBe(true);
     const me = room.snapshot().racers.find((r) => r.id === join.sessionToken);
     expect(me?.progressChars).toBe(5);
-    expect(me?.wpm).toBe(60);
+    // WPM is computed server-side from race-start elapsed (the client's
+    // reported value is ignored), so we assert progress landed, not a
+    // specific wpm — the room module's own test covers the formula.
   });
 
   it("keystroke is a graceful no-op outside racing (no error)", async () => {

@@ -135,7 +135,38 @@ describe("RaceRoom", () => {
     expect(ok).toBe(true);
     const alice = room.snapshot().racers.find((r) => r.id === "s_alice");
     expect(alice?.progressChars).toBe(7);
-    expect(alice?.wpm).toBe(65);
+  });
+
+  it("computes WPM server-side from race-start elapsed, ignoring the client value", () => {
+    // The client reports WPM measured from its first keystroke; the
+    // authority must instead measure from the gun (raceStartedAt) so a
+    // racer who hesitates can't post a deceptively high speed and the
+    // net-WPM winner ranking stays honest.
+    const room = new RaceRoom({
+      id: "r_wpm",
+      slug: "swift-wolf-12",
+      kind: "challenge",
+      modeId: "1v1",
+      raceSeed: 1,
+      wordCount: 50,
+    });
+    room.addRealRacer({
+      sessionToken: "s_alice",
+      name: "@alice",
+      badge: "RACER",
+      isHost: true,
+    });
+    expect(room.hostStart("s_alice")).toBe(true);
+    vi.advanceTimersByTime(700 + 3_000); // lobby hold + countdown → racing
+    expect(room.phase).toBe("racing");
+    vi.advanceTimersByTime(10_000); // 10s into the race
+    const prog = Math.min(50, room.totalChars);
+    // Client claims an absurd 999 wpm — it must be ignored.
+    room.setProgress("s_alice", prog, 999, false, 0);
+    const alice = room.snapshot().racers.find((r) => r.id === "s_alice");
+    // prog/5 words over 10s (1/6 min) → words × 6 wpm.
+    expect(alice?.wpm).toBe(Math.round((prog / 5) * (60 / 10)));
+    expect(alice?.wpm).not.toBe(999);
   });
 
   it("setProgress accepts an errors count and surfaces it on the snapshot", () => {
@@ -225,7 +256,7 @@ describe("RaceRoom", () => {
     expect(room.phase).toBe("lobby");
   });
 
-  it("hostStart on a challenge room fills with bots and runs the countdown", () => {
+  it("hostStart on a challenge room runs the countdown without adding bots", () => {
     const room = new RaceRoom({
       id: "r_challenge2",
       slug: "bold-fox-71",
@@ -242,10 +273,13 @@ describe("RaceRoom", () => {
     });
     expect(host).not.toBeNull();
     expect(room.hostStart("s_host")).toBe(true);
+    // Challenge lobbies are real-players-only — no bot fill on start.
+    expect(room.snapshot().racers.filter((r) => r.isBot).length).toBe(0);
     vi.advanceTimersByTime(700);
     expect(room.phase).toBe("countdown");
     vi.advanceTimersByTime(3_000);
     expect(room.phase).toBe("racing");
+    expect(room.snapshot().racers.filter((r) => r.isBot).length).toBe(0);
   });
 
   it("hostStart fails if the caller is not the host", () => {
@@ -574,10 +608,10 @@ describe("RaceRoom", () => {
   }
 
   it("places racers by net WPM, not by finish order", () => {
-    // Two real racers + bots filled. Alice crosses the line first
-    // but with low accuracy; Bob crosses after with a cleaner run
-    // and a much higher net. Bob should win even though Alice
-    // crossed first.
+    // Two real racers cross at a similar server-computed raw WPM, so the
+    // WINNER is decided by net (raw × accuracy). Alice crosses the line
+    // FIRST but at low accuracy; Bob crosses after with a cleaner run.
+    // Bob's higher net must win despite finishing second.
     const room = new RaceRoom({
       id: "r_netwpm",
       slug: null,
@@ -591,9 +625,9 @@ describe("RaceRoom", () => {
     vi.advanceTimersByTime(5_000 + 700 + 3_000);
     expect(room.phase).toBe("racing");
 
-    // Alice crosses first at 100 raw wpm and 50% accuracy → net 50.
+    // Alice crosses first at 50% accuracy (client-reported wpm ignored).
     room.setProgress("s_alice", room.totalChars, 100, true, undefined, 50);
-    // Bob crosses second at 142 raw wpm and 95% accuracy → net 135.
+    // Bob crosses second at 95% accuracy → higher net.
     vi.advanceTimersByTime(1_000);
     room.setProgress("s_bob", room.totalChars, 142, true, undefined, 95);
     // Drive bots over the line too so phase flips to finished.

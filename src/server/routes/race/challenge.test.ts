@@ -82,7 +82,7 @@ describe("race.challenge routes", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("start as host fills bots and kicks off the lobby→countdown→racing sequence", async () => {
+  it("start as host kicks off the lobby→countdown→racing sequence (real players only, no bots)", async () => {
     const host = await callRoute<CreateChallengeOutput>(
       ["race", "challenge", "create"],
       { input: { modeId: "1v1" } },

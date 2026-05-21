@@ -325,18 +325,24 @@ export class RaceRoom {
     return true;
   }
 
-  /** Challenge host triggered start. Fills with bots to capacity then
-   *  kicks off the lobby-hold → countdown → race sequence. Idempotent
-   *  per host call: subsequent calls in lobby are no-ops because the
-   *  pending lobby-hold timer is already queued. */
+  /** Host triggered start, then kicks off the lobby-hold → countdown →
+   *  race sequence. Idempotent per host call: subsequent calls in lobby
+   *  are no-ops because the pending lobby-hold timer is already queued.
+   *
+   *  Bots: ONLY matchmaking rooms fill with bots (their whole premise is
+   *  an instant race against deterministic opponents). Challenge / FFA
+   *  lobbies are real-players-only — starting solo just races alone, and
+   *  the shareable link is how real opponents join. */
   hostStart(token: string): boolean {
     if (this.phase !== "lobby" && this.phase !== "matching") return false;
     const host = this.racers.get(token);
     if (!host || !host.isHost) return false;
-    const fill = BOT_LINEUP[this.modeId] ?? ["selan"];
-    for (const botId of fill) {
-      if (this.racers.size >= this.capacity) break;
-      if (!this.botRacerByBotId(botId)) this.addBot(botId);
+    if (this.kind === "matchmaking") {
+      const fill = BOT_LINEUP[this.modeId] ?? ["selan"];
+      for (const botId of fill) {
+        if (this.racers.size >= this.capacity) break;
+        if (!this.botRacerByBotId(botId)) this.addBot(botId);
+      }
     }
     this.cancelTimers();
     if (this.phase === "matching") {
@@ -455,7 +461,9 @@ export class RaceRoom {
   setProgress(
     token: string,
     progressChars: number,
-    wpm: number,
+    // The client reports its own WPM, but we IGNORE it for ranking and
+    // recompute server-side below — see the comment on the wpm block.
+    _clientWpm: number,
     finished: boolean,
     errors?: number,
     accuracy?: number,
@@ -465,7 +473,6 @@ export class RaceRoom {
     if (this.phase !== "racing" && this.phase !== "finished") return false;
     const next = Math.min(this.totalChars, Math.max(0, Math.floor(progressChars)));
     if (next !== r.progressChars) r.progressChars = next;
-    if (wpm !== r.wpm) r.wpm = wpm;
     if (errors != null) {
       const e = Math.max(0, Math.floor(errors));
       if (e !== r.errors) r.errors = e;
@@ -473,6 +480,19 @@ export class RaceRoom {
     if (accuracy != null) {
       const a = Math.max(0, Math.min(100, accuracy));
       if (a !== r.accuracy) r.accuracy = a;
+    }
+    // WPM is computed SERVER-SIDE from progress over time-since-race-
+    // start — NOT the client-reported value, which the practice engine
+    // measures from the racer's first keystroke. Anchoring to
+    // `raceStartedAt` means every racer's speed is measured from the
+    // same t=0 (the gun), so a racer who hesitates 3s before their first
+    // key doesn't get a deceptively high WPM, and the net-WPM winner
+    // ranking stays honest and tamper-resistant. Same formula as bots
+    // (tickBots): correct chars / 5 / elapsed-minutes.
+    if (this.raceStartedAt != null) {
+      const elapsedSec = Math.max(1, (Date.now() - this.raceStartedAt) / 1000);
+      const correct = Math.max(0, r.progressChars - r.errors);
+      r.wpm = Math.round((correct / 5) * (60 / elapsedSec));
     }
     // A real player publishing progress is implicitly here — clear
     // any prior disconnected flag set by a stale leave / strict-mode
