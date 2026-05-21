@@ -1,9 +1,8 @@
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../_components/app-chrome";
+import { RaceBody } from "./_components/race-body";
 import { RaceControls } from "./_components/race-controls";
-import { RaceResults } from "./_components/race-results";
 import { RaceShell } from "./_components/race-shell";
-import { RaceSurface } from "./_components/race-surface";
 
 export const metadata = buildPageMetadata({
   title: "Race",
@@ -29,12 +28,7 @@ export default function RacePage() {
     <AppChrome compact>
       <RaceShell>
         <RaceControls />
-        <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pt-4 pb-3 sm:gap-6 sm:px-12 sm:py-8 lg:px-20">
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <RaceSurface />
-          </div>
-          <RaceResults />
-        </div>
+        <RaceBody />
       </RaceShell>
     </AppChrome>
   );
