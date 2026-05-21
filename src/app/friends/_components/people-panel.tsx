@@ -71,49 +71,53 @@ export function PeoplePanel({
 
   return (
     <section className="flex flex-col gap-3">
-      <div
-        role="tablist"
-        aria-label="People"
-        className="flex w-full items-center gap-0.5 rounded-md border border-border bg-card p-0.5 sm:inline-flex sm:w-fit sm:self-start"
-      >
-        {VIEWS.map((v) => {
-          const active = v === view;
-          return (
-            <button
-              key={v}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => setView(v)}
-              className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded-[5px] px-3 py-1.5 text-[13px] tracking-tight outline-none transition-colors sm:flex-initial sm:justify-start",
-                active
-                  ? "bg-foreground/[0.06] font-semibold text-foreground"
-                  : "font-normal text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground focus-visible:text-foreground",
-              )}
-            >
-              {LABEL[v]}
-              <span className="text-[11px] tabular-nums text-muted-foreground">
-                {counts[v]}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Switch + search share one row from sm+ (stacked on mobile so
+       *  neither cramps a 375px viewport). */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+        <div
+          role="tablist"
+          aria-label="People"
+          className="flex w-full items-center gap-0.5 rounded-md border border-border bg-card p-0.5 sm:w-fit sm:shrink-0"
+        >
+          {VIEWS.map((v) => {
+            const active = v === view;
+            return (
+              <button
+                key={v}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setView(v)}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-[5px] px-3 py-1.5 text-[13px] tracking-tight outline-none transition-colors sm:flex-initial sm:justify-start",
+                  active
+                    ? "bg-foreground/[0.06] font-semibold text-foreground"
+                    : "font-normal text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground focus-visible:text-foreground",
+                )}
+              >
+                {LABEL[v]}
+                <span className="text-[11px] tabular-nums text-muted-foreground">
+                  {counts[v]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-      <div className="relative">
-        <Search
-          size={15}
-          aria-hidden
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-        />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search by handle"
-          aria-label="Search people"
-          className="h-10 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-        />
+        <div className="relative w-full sm:flex-1">
+          <Search
+            size={15}
+            aria-hidden
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search by handle"
+            aria-label="Search people"
+            className="h-10 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          />
+        </div>
       </div>
 
       {filtered.length === 0 ? (

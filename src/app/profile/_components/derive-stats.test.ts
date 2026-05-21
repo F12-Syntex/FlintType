@@ -19,26 +19,22 @@ const axis = (tests: HistoryTest[], key: string) =>
   deriveSkills(tests, deriveTotals(tests)).find((s) => s.key === key)!;
 
 describe("deriveSkills", () => {
-  it("returns five axes in a stable order", () => {
+  it("returns four axes in a stable order (no Experience)", () => {
     expect(deriveSkills([], deriveTotals([])).map((s) => s.key)).toEqual([
       "speed",
       "accuracy",
       "consistency",
       "endurance",
-      "experience",
     ]);
   });
 
-  it("is all-zero with an em-dash display on no data", () => {
-    const skills = deriveSkills([], deriveTotals([]));
-    for (const s of skills) expect(s.value).toBe(0);
-    expect(axis([], "speed").display).toBe("—");
+  it("is all-zero on no data", () => {
+    for (const s of deriveSkills([], deriveTotals([]))) expect(s.value).toBe(0);
   });
 
-  it("normalises speed against the 180 wpm ceiling", () => {
-    const speed = axis([mk({ wpm: 90 })], "speed");
-    expect(speed.value).toBe(50);
-    expect(speed.display).toBe("90 wpm");
+  it("normalises speed against the 300 wpm ceiling", () => {
+    expect(axis([mk({ wpm: 150 })], "speed").value).toBe(50);
+    expect(axis([mk({ wpm: 90 })], "speed").value).toBe(30);
   });
 
   it("rescales accuracy into the 80–100 band", () => {
@@ -52,12 +48,10 @@ describe("deriveSkills", () => {
     expect(axis(swingy, "consistency").value).toBeLessThan(100);
   });
 
-  it("scores endurance only from long (>=45s elapsed) tests", () => {
-    const short = [mk({ wpm: 150, completedAtMs: 30_000 })];
-    const long = [mk({ wpm: 120, completedAtMs: 60_000 })];
+  it("scores endurance from ~30s+ runs against a 250 ceiling", () => {
+    const short = [mk({ wpm: 200, completedAtMs: 15_000 })];
+    const long = [mk({ wpm: 125, completedAtMs: 60_000 })];
     expect(axis(short, "endurance").value).toBe(0);
-    const e = axis(long, "endurance");
-    expect(e.value).toBeGreaterThan(0);
-    expect(e.display).toBe("120 wpm");
+    expect(axis(long, "endurance").value).toBe(50); // 125 / 250
   });
 });

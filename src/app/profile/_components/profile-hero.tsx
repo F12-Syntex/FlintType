@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import type { FriendRelationship, FriendStats } from "@/types/friends";
 import type { RankId } from "@/types/rank";
 import type { UserTagId } from "@/types/user-tag";
-import type { ProfileTotals, StreakStats } from "./derive-stats";
+import { XP_PER_LEVEL, type ProfileTotals, type StreakStats } from "./derive-stats";
 import { EditProfileDialog } from "./edit-profile-dialog";
 import { RankBadge } from "./rank-badge";
 
@@ -198,10 +198,11 @@ export function ProfileHero({
       </div>
 
       {/* Headline stats — a full-width strip (2×2 on mobile, four
-       *  columns from sm+). On a visitor's view the Follow CTA is the
-       *  single coral spark (§2), so the stat values stay ink; coral
-       *  accents are reserved for the owner's own profile. */}
-      <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border/60 pt-4 sm:grid-cols-4 sm:gap-x-6">
+       *  columns from sm+). The level bar above already reads as the
+       *  divider, so no separate rule here. On a visitor's view the
+       *  Follow CTA is the single coral spark (§2), so the stat values
+       *  stay ink; coral accents are reserved for the owner's profile. */}
+      <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4 sm:gap-x-6">
         <StatCell
           label="Tests"
           value={NUM_FMT.format(totals.testsCompleted)}
@@ -326,35 +327,54 @@ function FriendCounts({
   return inner;
 }
 
+/** The experience bar — the hero's full-width progress block. Doubles
+ *  as the divider between identity and the stats strip, so the card
+ *  needs no separate rule. Bigger + more detailed than a thin meter: a
+ *  prominent level number, a 2px-tall track, and the total / to-next-
+ *  level breakdown beneath. */
 function LevelLockup({ totals }: { totals: ProfileTotals }) {
+  const toNext = Math.max(0, XP_PER_LEVEL - totals.xpIntoLevel);
   return (
-    <div className="flex flex-col gap-1.5 pt-1">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          Level{" "}
-          <span className="text-foreground tabular-nums">{totals.level}</span>
-          <span className="mx-1.5 text-foreground/30">·</span>
-          <span className="text-foreground tabular-nums">
-            {NUM_FMT.format(totals.totalXp)}
-          </span>{" "}
-          xp
+    <div className="flex flex-col gap-2">
+      <div className="flex items-end justify-between gap-3">
+        <span className="flex items-baseline gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Level
+          </span>
+          <span className="text-xl font-bold leading-none tracking-[-0.02em] tabular-nums text-foreground sm:text-2xl">
+            {totals.level}
+          </span>
         </span>
-        <span className="text-[10px] tabular-nums text-muted-foreground/80">
-          {NUM_FMT.format(totals.xpIntoLevel)} / 1,000
+        <span className="text-[11px] tabular-nums text-muted-foreground">
+          <span className="font-semibold text-foreground">
+            {NUM_FMT.format(totals.xpIntoLevel)}
+          </span>{" "}
+          / {NUM_FMT.format(XP_PER_LEVEL)} xp
         </span>
       </div>
       <span
         aria-hidden
-        className="relative block h-[3px] w-full overflow-hidden rounded-full bg-foreground/[0.08]"
+        className="relative block h-2 w-full overflow-hidden rounded-full bg-foreground/[0.08]"
       >
         <span
-          className={cn("absolute inset-y-0 left-0 origin-left rounded-full bg-primary")}
-          style={{
-            transform: `scaleX(${totals.levelProgress})`,
-            width: "100%",
-          }}
+          className="absolute inset-y-0 left-0 rounded-full bg-primary"
+          style={{ width: `${Math.round(totals.levelProgress * 100)}%` }}
         />
       </span>
+      <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/80">
+        <span>
+          <span className="tabular-nums text-muted-foreground">
+            {NUM_FMT.format(totals.totalXp)}
+          </span>{" "}
+          total xp
+        </span>
+        <span>
+          <span className="tabular-nums text-muted-foreground">
+            {NUM_FMT.format(toNext)}
+          </span>{" "}
+          to level {totals.level + 1}
+        </span>
+      </div>
     </div>
   );
 }

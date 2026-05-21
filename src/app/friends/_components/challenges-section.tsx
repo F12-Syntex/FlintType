@@ -7,7 +7,7 @@ import type { Duel } from "@/types/duel";
 
 /** Incoming challenges, surfaced **inline** on the hub (not a link out to
  *  a separate page). Each row is the trigger — the whole row links to the
- *  duel screen where you actually race the ghost — with a quiet "Take it"
+ *  duel screen where you actually race the ghost — with a quiet "Accept"
  *  text affordance rather than a filled coral button, so N challenges don't
  *  paint N coral sparks (one-spark rule, same pattern as LiveNow §17.1).
  *  Hidden entirely when nothing's waiting. */
@@ -63,7 +63,7 @@ function ChallengeRow({ duel }: { duel: Duel }) {
         </span>
       </span>
       <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition-colors group-hover:text-foreground">
-        Take it
+        Accept
       </span>
     </Link>
   );

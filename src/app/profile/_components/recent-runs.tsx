@@ -65,12 +65,13 @@ export function RecentRuns({
               type="button"
               onClick={() => setShown((s) => s + PAGE_SIZE)}
               className={cn(
-                "mt-2 self-start text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground",
-                "transition-colors hover:text-foreground",
+                "mt-2 inline-flex h-7 items-center gap-2 self-start rounded-md border border-border px-2.5",
+                "text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
+                "transition-colors hover:border-foreground/30 hover:text-foreground",
               )}
             >
               Load {Math.min(PAGE_SIZE, remaining)} more
-              <span className="ml-2 text-muted-foreground/60 tabular-nums">
+              <span className="text-muted-foreground/60 tabular-nums">
                 {visible.length} / {completed.length}
               </span>
             </button>

@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.96.1 — 21 May 2026
+- Friends: the Friends / Following / Followers switch now sits on the same row as the search box, and an incoming challenge's button reads "Accept".
+- Profile: the skill chart is now a cleaner standalone graphic (Speed, Accuracy, Consistency, Endurance; Experience removed). Speed is scaled to 300 wpm and Endurance is your best run of 30 seconds or longer (up to 250 wpm). Fixed the chart labels overflowing and a stray box appearing when you clicked it. The experience bar in the header is bigger and now shows your total XP and how far you are from the next level, and the "Load more" runs button matches the rest of the buttons.
+
 ## 6.96.0 — 21 May 2026
 - Redesigned the profile page to be something you'll want to share, even with people who don't use flinttype. A new skill chart shows your typing at a glance across Speed, Accuracy, Consistency, Endurance, and Experience, and you can pick a flame rank (Ember through Solar Flare) to wear beside your name. The header is cleaner, with your headline stats given full width to breathe, and the sparse "head to head" box is gone.
 
