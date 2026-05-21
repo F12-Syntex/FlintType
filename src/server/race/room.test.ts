@@ -667,6 +667,23 @@ describe("RaceRoom", () => {
     expect(room.snapshot().racers.filter((r) => r.isBot).length).toBe(0);
   });
 
+  it("generates the passage from a host-supplied word pool", () => {
+    const pool = ["zebra", "quokka", "narwhal", "axolotl", "ibex"];
+    const room = new RaceRoom({
+      id: "r_pool",
+      slug: "pool-otter-3",
+      kind: "challenge",
+      modeId: "1v1",
+      raceSeed: 7,
+      wordCount: 10,
+      wordPool: pool,
+    });
+    expect(room.words.length).toBe(10);
+    // Every generated word must come from the supplied pool, not the
+    // default English pool.
+    for (const w of room.words) expect(pool).toContain(w);
+  });
+
   it("a timed challenge ends at the buzzer, ranking by net WPM over the whole race", () => {
     const room = new RaceRoom({
       id: "r_timed",

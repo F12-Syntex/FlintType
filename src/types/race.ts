@@ -19,12 +19,13 @@ export const RACE_MODE_IDS = [
 ] as const;
 export type RaceModeId = (typeof RACE_MODE_IDS)[number];
 
-/** Word pools a challenge host can pick. Both are embedded server-side
- *  (no fetch): `english` is the full MonkeyType english.json pool (wide
- *  vocabulary, same as single-player English), `common` is the
- *  common-1000 list (simpler, high-frequency words). */
-export const RACE_WORD_LISTS = ["english", "common"] as const;
-export type RaceWordList = (typeof RACE_WORD_LISTS)[number];
+/** Cap on the word pool a host can attach to a challenge. The host
+ *  picks any MonkeyType wordlist (same catalog as single-player
+ *  practice); the client fetches it and sends a capped pool the server
+ *  generates + re-rolls the passage from. Capped so a 450k-word list
+ *  can't blow the request body — the head/sample is plenty of variety
+ *  for a race passage. */
+export const RACE_WORD_POOL_MAX = 2000;
 
 /** Allowed word-count presets for a configurable challenge. */
 export const RACE_WORD_COUNTS = [10, 25, 50, 100] as const;
@@ -208,8 +209,17 @@ export const createChallengeInputSchema = z.object({
       message: "unsupported duration",
     })
     .optional(),
-  /** Word pool for the passage. Defaults to `english`. */
-  wordList: z.enum(RACE_WORD_LISTS).optional(),
+  /** Id of the chosen MonkeyType wordlist (display only — the words
+   *  themselves arrive in `wordPool`). */
+  wordListId: z.string().min(1).max(64).optional(),
+  /** Capped word pool from the chosen wordlist. The server generates
+   *  (and re-rolls on rematch) the passage from this pool. Omit to use
+   *  the default embedded English pool. */
+  wordPool: z
+    .array(z.string().min(1).max(60))
+    .min(1)
+    .max(RACE_WORD_POOL_MAX)
+    .optional(),
 });
 export type CreateChallengeInput = z.infer<typeof createChallengeInputSchema>;
 

@@ -38,7 +38,7 @@ const create = defineRoute<CreateChallengeInput, CreateChallengeOutput>({
       modeId: input.modeId,
       raceSeed: seed,
       wordCount: input.wordCount,
-      wordList: input.wordList,
+      wordPool: input.wordPool,
       durationSec: input.durationSec,
     });
     const racer = room.addRealRacer({

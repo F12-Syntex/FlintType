@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
@@ -11,37 +12,59 @@ import {
 import { useBackend } from "@/lib/backend";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { cn } from "@/lib/utils";
+import { fetchWordlist } from "@/lib/wordlists/fetch";
+import {
+  DEFAULT_WORDLIST,
+  wordlistLabel,
+  type WordlistId,
+} from "@/lib/wordlists/use-wordlist";
+import { RACE_WORD_POOL_MAX } from "@/types/race";
+import { WordlistPicker } from "../../_components/wordlist-picker";
 import { writeHostStorage } from "../c/[slug]/_components/challenge-shell";
 import type { RaceModeId } from "./race-data";
 
 const WORD_COUNTS = [10, 25, 50, 100] as const;
 const DURATIONS = [15, 30, 60] as const;
-type WordList = "english" | "common";
 
 /** Create-a-lobby control with host settings. Opens a small panel
  *  (popover on desktop, bottom sheet on mobile per ui-law §10.5) where
- *  the host picks the word list, a word-count or timed race, and the
- *  length — then creates the challenge and navigates to the lobby.
- *  The mode (incl. Free-for-all) is chosen in the mode picker; this
- *  panel configures the passage. */
+ *  the host picks the wordlist (the SAME searchable MonkeyType catalog
+ *  single-player practice uses), a word-count or timed race, and the
+ *  length — then creates the challenge and navigates to the lobby. The
+ *  chosen wordlist is fetched client-side and a capped word pool is
+ *  sent to the server, which generates + re-rolls the passage from it.
+ *  The mode (incl. Free-for-all) is chosen in the mode picker. */
 export function CreateChallengePanel({ modeId }: { modeId: RaceModeId }) {
   const isMobile = useIsMobile();
   const backend = useBackend();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [timed, setTimed] = useState(false);
   const [wordCount, setWordCount] = useState<number>(25);
   const [durationSec, setDurationSec] = useState<number>(30);
-  const [wordList, setWordList] = useState<WordList>("english");
+  const [wordlistId, setWordlistId] = useState<WordlistId>(DEFAULT_WORDLIST);
   const [pending, setPending] = useState(false);
 
   async function create() {
     if (pending) return;
     setPending(true);
     try {
+      // Fetch the chosen list (cached after first use, same path as the
+      // practice picker) and cap it to a sane pool the server samples
+      // from. A fetch failure falls back to the server's English pool.
+      let wordPool: string[] | undefined;
+      try {
+        const file = await fetchWordlist(wordlistId);
+        const pool = file.words.filter((w) => w.length <= 60).slice(0, RACE_WORD_POOL_MAX);
+        if (pool.length > 0) wordPool = pool;
+      } catch {
+        wordPool = undefined;
+      }
       const res = await backend.race.challenge.create({
         modeId,
-        wordList,
+        wordListId: wordlistId,
+        ...(wordPool ? { wordPool } : {}),
         ...(timed ? { durationSec } : { wordCount }),
       });
       writeHostStorage(res.slug, {
@@ -61,12 +84,19 @@ export function CreateChallengePanel({ modeId }: { modeId: RaceModeId }) {
   const body = (
     <div className="flex flex-col gap-4 p-1">
       <Row label="Word list">
-        <Chip active={wordList === "english"} onClick={() => setWordList("english")}>
-          English
-        </Chip>
-        <Chip active={wordList === "common"} onClick={() => setWordList("common")}>
-          Common
-        </Chip>
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          className={cn(
+            "inline-flex h-8 w-full items-center justify-between gap-2 rounded-md border border-border bg-background px-3",
+            "text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground",
+            "transition-colors duration-150 hover:border-foreground/40 hover:bg-accent/40",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+          )}
+        >
+          <span className="truncate">{wordlistLabel(wordlistId)}</span>
+          <ChevronDown size={12} className="shrink-0 text-muted-foreground" aria-hidden />
+        </button>
       </Row>
       <Row label="Race type">
         <Chip active={!timed} onClick={() => setTimed(false)}>
@@ -106,6 +136,21 @@ export function CreateChallengePanel({ modeId }: { modeId: RaceModeId }) {
     </div>
   );
 
+  // The wordlist picker (a modal Dialog) is shared by both the desktop
+  // popover and the mobile sheet. Rendered once here so opening it from
+  // either surface works identically.
+  const picker = (
+    <WordlistPicker
+      open={pickerOpen}
+      onOpenChange={setPickerOpen}
+      value={wordlistId}
+      onPick={(id) => {
+        setWordlistId(id);
+        setPickerOpen(false);
+      }}
+    />
+  );
+
   const trigger = (
     <button
       type="button"
@@ -129,17 +174,34 @@ export function CreateChallengePanel({ modeId }: { modeId: RaceModeId }) {
         <MobileSheet open={open} onOpenChange={setOpen} title="Create a lobby">
           {body}
         </MobileSheet>
+        {picker}
       </>
     );
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent align="start" sideOffset={6} className="w-64">
-        {body}
-      </PopoverContent>
-    </Popover>
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+        <PopoverContent
+          align="start"
+          sideOffset={6}
+          className="w-64"
+          // Keep the panel open while the wordlist dialog is up — the
+          // dialog portals outside the popover, so without this its
+          // overlay click would dismiss the panel underneath.
+          onInteractOutside={(e) => {
+            if (pickerOpen) e.preventDefault();
+          }}
+          onFocusOutside={(e) => {
+            if (pickerOpen) e.preventDefault();
+          }}
+        >
+          {body}
+        </PopoverContent>
+      </Popover>
+      {picker}
+    </>
   );
 }
 

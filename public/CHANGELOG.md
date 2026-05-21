@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.101.0 — 21 May 2026
+- When you create a race lobby you can now pick from the full wordlist catalogue — the same searchable list of 440+ wordlists you use in practice (every language, code, and themed list), not just English. Everyone in the lobby races words from the list you chose.
+
 ## 6.100.1 — 21 May 2026
 - Internal changes only.
 

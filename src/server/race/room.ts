@@ -1,10 +1,8 @@
-import { EN_COMMON_1000 } from "@/data/en-common-1000";
 import englishWords from "@/data/english.json";
 import type {
   RaceModeId,
   RacePhase,
   RaceRoomKind,
-  RaceWordList,
   RoomRacer,
   RoomSnapshot,
 } from "@/types/race";
@@ -72,9 +70,10 @@ export type RoomOptions = {
    *  the quote determines the passage — or when `durationSec` is set
    *  (a timed race generates its own long passage). */
   wordCount?: number;
-  /** Word pool for the passage. Defaults to the full english.json
-   *  pool; `common` uses the high-frequency common-1000 list. */
-  wordList?: RaceWordList;
+  /** Word pool for the passage, from a host-chosen wordlist. When set,
+   *  the passage (and every rematch re-roll) is generated from this
+   *  pool. Defaults to the embedded english.json pool when omitted. */
+  wordPool?: readonly string[];
   /** When set, the race is TIMED: it runs for this many seconds and is
    *  ranked by net WPM at the buzzer, instead of ending when a racer
    *  completes a fixed passage. */
@@ -152,7 +151,7 @@ export class RaceRoom {
       this.words = generateRacePassage(
         this.passageWordCount(),
         options.raceSeed,
-        options.wordList,
+        options.wordPool,
       );
       this.quoteSource = undefined;
     }
@@ -783,7 +782,7 @@ export class RaceRoom {
       this.words = generateRacePassage(
         this.passageWordCount(),
         this.raceSeed,
-        this.options.wordList,
+        this.options.wordPool,
       );
     }
     this.totalChars = totalCharsOf(this.words);
@@ -974,16 +973,16 @@ function mulberry32(seed: number): () => number {
 function generateRacePassage(
   count: number,
   seed: number,
-  wordList?: RaceWordList,
+  wordPool?: readonly string[],
 ): string[] {
   const rng = mulberry32(seed);
-  // Multiplayer pulls from the same MonkeyType `english.json` word
-  // pool the single-player English mode uses — the words a racer
-  // sees in a public room are the words they practice against in
-  // their own tests. `common` swaps in the high-frequency
-  // common-1000 list for a gentler passage.
+  // Default to the same MonkeyType `english.json` pool single-player
+  // English uses — the words a racer sees in a public room are the
+  // words they practice against. A host-chosen wordlist arrives as
+  // `wordPool` (the client fetched it from the same catalog the
+  // practice picker uses) and replaces the default here.
   const pool: readonly string[] =
-    wordList === "common" ? EN_COMMON_1000 : englishWords.words;
+    wordPool && wordPool.length > 0 ? wordPool : englishWords.words;
   const out: string[] = [];
   let prev = "";
   while (out.length < count) {
