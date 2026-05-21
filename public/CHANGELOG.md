@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.99.1 — 21 May 2026
+- Fixed: opening an old or expired race-challenge link — or returning to one whose lobby has already closed — no longer leaves you stuck on a blank screen. It now sends you back to the race menu.
+
 ## 6.99.0 — 21 May 2026
 - New **Free-for-all** race: share one lobby and up to 8 people race the same passage at once — real players only, no bots.
 - When you create a race lobby you can now set it up: pick the word list (English or common words), and choose either a word-count race (10 / 25 / 50 / 100 words) or a timed race (15 / 30 / 60 seconds).

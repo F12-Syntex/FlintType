@@ -85,7 +85,13 @@ export function OnlineRaceProvider({
   // null, we're in the local queue state.
   const room = initialRoom ?? null;
 
-  const { snapshot, sendProgress, leave, rematch: rematchRoom } = useRaceRoom({
+  const {
+    snapshot,
+    state: roomState,
+    sendProgress,
+    leave,
+    rematch: rematchRoom,
+  } = useRaceRoom({
     roomId: room?.roomId ?? null,
     sessionToken: room?.sessionToken ?? null,
   });
@@ -201,6 +207,31 @@ export function OnlineRaceProvider({
     cancelledFiredRef.current = true;
     onRoomCancelled?.();
   }, [snapshot?.cancelled, onRoomCancelled]);
+
+  // Dead / unreachable room. A missing room's SSE returns 404, which
+  // the browser treats as a fatal close (no reconnect): the stream goes
+  // `closed` and no snapshot ever arrives. The classic trigger is a HOST
+  // returning to an expired challenge link — their cached sessionStorage
+  // skips the join (which would 404 cleanly) and mounts the shell against
+  // a room the server has long since GC'd, leaving them stuck on a blank
+  // lobby forever. Treat "stream closed + never got a snapshot" as a
+  // cancel so the shell wipes the stale cache and bounces to /race. The
+  // grace window avoids firing during the brief initial connect, and the
+  // `snapshot != null` guard means a normal end-of-race close never trips
+  // it (a real race always delivered snapshots first).
+  const deadFiredRef = useRef(false);
+  useEffect(() => {
+    if (!room) return;
+    if (roomState !== "closed") return;
+    if (snapshot != null) return;
+    if (deadFiredRef.current) return;
+    const t = setTimeout(() => {
+      if (deadFiredRef.current) return;
+      deadFiredRef.current = true;
+      onRoomCancelled?.();
+    }, 4_000);
+    return () => clearTimeout(t);
+  }, [room, roomState, snapshot, onRoomCancelled]);
 
   // Local-clock tick during countdown / racing. The server snapshot
   // only re-broadcasts on state changes; during the 3-second
