@@ -65,7 +65,7 @@ flinttype is a typing speed test in the same product space as Monkeytype and 10f
 ## Quick start
 
 ```bash
-git clone https://github.com/saifkhan2003/flinttype.git
+git clone https://github.com/F12-Syntex/FlintType.git
 cd flinttype
 yarn install
 yarn dev          # http://localhost:3000
@@ -182,7 +182,7 @@ The `docs/` directory is authoritative — read the relevant guide before changi
 
 ## Contributing
 
-Contributions of every size are welcome — typo fixes through to whole new drill modes. Start with [**CONTRIBUTING.md**](CONTRIBUTING.md) for the dev loop, code style, commit format, and PR process. Two house rules worth knowing up front: every backend module ships with a co-located test in the same commit ([`docs/backend-rules.md`](docs/backend-rules.md) R12), and any new UI pattern is documented in [`docs/ui-law.md`](docs/ui-law.md) *before* it's used. Discussions happen in [GitHub Issues](https://github.com/saifkhan2003/flinttype/issues) and [Discussions](https://github.com/saifkhan2003/flinttype/discussions).
+Contributions of every size are welcome — typo fixes through to whole new drill modes. Start with [**CONTRIBUTING.md**](CONTRIBUTING.md) for the dev loop, code style, commit format, and PR process. Two house rules worth knowing up front: every backend module ships with a co-located test in the same commit ([`docs/backend-rules.md`](docs/backend-rules.md) R12), and any new UI pattern is documented in [`docs/ui-law.md`](docs/ui-law.md) *before* it's used. Discussions happen in [GitHub Issues](https://github.com/F12-Syntex/FlintType/issues) and [Discussions](https://github.com/F12-Syntex/FlintType/discussions).
 
 ## License
 
