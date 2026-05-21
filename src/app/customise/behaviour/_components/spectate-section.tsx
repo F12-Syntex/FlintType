@@ -52,6 +52,9 @@ function FriendAllowList({
       .catch(() => {
         if (!cancelled) setFriends([]);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [backend]);
 
   if (friends === null) return null;
