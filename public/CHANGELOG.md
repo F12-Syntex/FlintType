@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.100.1 — 21 May 2026
+- Internal changes only.
+
 ## 6.100.0 — 21 May 2026
 - Friends now live in a small dock in the bottom-right corner instead of a separate page. Open it from anywhere to see who's typing live, the challenges waiting for you, and everyone you follow, then jump straight to watching a friend or taking a challenge.
 - The dock keeps out of your way: it tucks into the corner while you type and hides entirely on the race, live-watch, and duel screens.
