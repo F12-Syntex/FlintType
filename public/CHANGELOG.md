@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.97.6 — 21 May 2026
+- Update pages now show a little preview of each feature (the friends hub, challenges, live spectating, your profile) instead of plain icons.
+- On profiles, the activity heatmap now shows your last 6 months, so the squares stay a comfortable size beside the skill chart.
+
 ## 6.97.5 — 21 May 2026
 - Redesigned the profile's main card: a bigger experience bar now anchors the bottom of the card (no more empty gap under it), and your activity heatmap and skill chart share one tidy split card below.
 

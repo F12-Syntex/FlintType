@@ -34,7 +34,7 @@ export function ActivityHeatmap({
         <div className="flex items-center gap-3">
           <span aria-hidden className="inline-block h-px w-4 bg-primary" />
           <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-            Activity · last 12 months
+            Activity · last 6 months
           </span>
         </div>
         <span className="text-[10px] font-medium uppercase tracking-[0.14em] tabular-nums text-muted-foreground/80">
@@ -43,7 +43,7 @@ export function ActivityHeatmap({
       </header>
 
       <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
-        <div className="flex min-w-[520px] flex-col gap-1.5 sm:w-full sm:min-w-0">
+        <div className="flex min-w-[300px] flex-col gap-1.5 sm:w-full sm:min-w-0">
           <MonthAxis columns={columns} />
           <div
             className="grid w-full gap-[2px]"

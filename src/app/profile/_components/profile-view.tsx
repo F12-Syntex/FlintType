@@ -166,7 +166,9 @@ export function ProfileView({ username }: { username?: string }) {
     () => mergePersonalBestsWithMt(localBests, subjectMtSlice),
     [localBests, subjectMtSlice],
   );
-  const activity = useMemo(() => deriveActivity(tests, 52), [tests]);
+  // 6 months (26 weeks), not 12 — the heatmap shares the split card's
+  // narrower column now, so fewer columns keep the cells their old size.
+  const activity = useMemo(() => deriveActivity(tests, 26), [tests]);
   const trend = useMemo(() => deriveTrend(tests, 60), [tests]);
   const skills = useMemo(() => deriveSkills(tests, totals), [tests, totals]);
 

@@ -5,9 +5,13 @@
  * per-version log; an Update is the editorial "here's the headline" card
  * for a release worth showing off.
  */
-import { Eye, Flame, Swords, Users, type LucideIcon } from "lucide-react";
-
-export type UpdateHighlight = { icon: LucideIcon; title: string; body: string };
+export type UpdateHighlight = {
+  /** Key into `UPDATE_PREVIEWS` — the bespoke mini-mockup shown for this
+   *  feature (hub / challenges / spectate / profile). */
+  preview: string;
+  title: string;
+  body: string;
+};
 
 export type Update = {
   /** URL slug — `/updates/<slug>`. */
@@ -38,24 +42,24 @@ export const UPDATES: Update[] = [
     versions: ["6.96.0", "6.94.0"],
     highlights: [
       {
-        icon: Users,
+        preview: "hub",
         title: "A calmer friends hub",
         body: "Everyone you type with, in one tidy place.",
       },
       {
-        icon: Eye,
-        title: "See who's around",
-        body: "Online, practising, racing, or last seen, at a glance.",
-      },
-      {
-        icon: Swords,
+        preview: "challenges",
         title: "Duel your friends",
         body: "Challenges land right on the page. Tap to race.",
       },
       {
-        icon: Flame,
+        preview: "spectate",
+        title: "Watch them live",
+        body: "Spectate a friend's run, keystroke by keystroke.",
+      },
+      {
+        preview: "profile",
         title: "A profile to show off",
-        body: "Your skill shape, your stats, and a flame rank to claim.",
+        body: "Your rank, your stats, and your skill shape.",
       },
     ],
   },

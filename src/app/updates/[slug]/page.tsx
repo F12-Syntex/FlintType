@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Logo } from "@/components/ft";
 import { getUpdate } from "@/lib/updates";
 import { buildPageMetadata } from "@/server/seo";
+import { UPDATE_PREVIEWS } from "../_components/previews";
 
 export async function generateMetadata({
   params,
@@ -60,22 +61,28 @@ export default async function UpdatePage({
           </p>
         </div>
 
-        {/* Big-icon feature grid */}
+        {/* Feature grid — each cell a bespoke mini-mockup preview, not an
+         *  icon, framed like a little screenshot. */}
         <div className="mt-7 grid grid-cols-1 gap-px border-t border-ft-line-soft bg-ft-line-soft sm:grid-cols-2">
-          {update.highlights.map((h) => (
-            <div
-              key={h.title}
-              className="flex flex-col gap-3 bg-ft-paper p-6 sm:p-7"
-            >
-              <span className="flex size-12 items-center justify-center rounded-md bg-ft-ember/10 text-ft-ember">
-                <h.icon size={26} strokeWidth={2} aria-hidden />
-              </span>
-              <h2 className="text-[15px] font-bold tracking-tight text-ft-ink">
-                {h.title}
-              </h2>
-              <p className="text-[13px] leading-snug text-ft-dim-2">{h.body}</p>
-            </div>
-          ))}
+          {update.highlights.map((h) => {
+            const Preview = UPDATE_PREVIEWS[h.preview];
+            return (
+              <div
+                key={h.title}
+                className="flex flex-col gap-3 bg-ft-paper p-5 sm:p-6"
+              >
+                <div className="flex h-28 items-center justify-center rounded-md border border-ft-line-soft bg-ft-paper-2 px-3">
+                  {Preview ? <Preview /> : null}
+                </div>
+                <h2 className="text-[15px] font-bold tracking-tight text-ft-ink">
+                  {h.title}
+                </h2>
+                <p className="text-[13px] leading-snug text-ft-dim-2">
+                  {h.body}
+                </p>
+              </div>
+            );
+          })}
         </div>
 
         {/* Footer brand strip */}
