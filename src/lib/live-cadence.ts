@@ -11,6 +11,13 @@ export const HEARTBEAT_MS = 2_000;
 export const WATCH_POLL_LIVE_MS = 900;
 /** Spectator poll backoff while the target is not live. */
 export const WATCH_POLL_IDLE_MS = 4_000;
+/** How long after a run finishes an UNWATCHED broadcaster keeps
+ *  publishing its results screen so a friend who clicks in late still
+ *  catches it. Past this, an unwatched results screen STOPS — otherwise
+ *  it would heartbeat every 2s (a DB write + a function invocation) for
+ *  as long as the tab stays open on the results page. A watcher already
+ *  attached keeps the full rate regardless. */
+export const DONE_BROADCAST_GRACE_MS = 30_000;
 
 export type BroadcastPlan = {
   /** Push a frame now? */
@@ -24,22 +31,34 @@ export type BroadcastPlan = {
   nextDelayMs: number | null;
 };
 
-/** What the practice broadcaster should do given who's watching and the
- *  run phase. Efficiency is purely about *cadence*, never about stripping
- *  the payload:
+/** What the practice broadcaster should do given who's watching, the run
+ *  phase, and (for the done screen) how long it's been finished.
+ *  Efficiency is purely about *cadence*, never about stripping the
+ *  payload:
  *  - watched (any phase) → full rate, full clone payload
- *  - typing OR on the results screen, unwatched → slow heartbeat, still
- *    the full clone payload (so a watcher who joins sees the 1:1 screen
- *    AND the results when they finish — `done` is not "idle")
- *  - resting + unwatched (sitting at the start, not begun) → stop */
-export function broadcastPlan(watched: boolean, phase: string): BroadcastPlan {
-  const active = phase === "running" || phase === "done";
-  const push = watched || active;
-  return {
-    push,
-    includeScreen: push,
-    nextDelayMs: watched ? WATCHED_MS : active ? HEARTBEAT_MS : null,
-  };
+ *  - typing, unwatched → slow heartbeat, full clone payload
+ *  - on the results screen, unwatched → slow heartbeat for a grace
+ *    window (so a friend who clicks in late still sees the results),
+ *    then STOP — an idle results tab must not heartbeat forever
+ *  - resting + unwatched (sitting at the start, not begun) → stop
+ *
+ *  `doneForMs` is how long the run has been in the `done` phase; it only
+ *  matters on the unwatched results screen. */
+export function broadcastPlan(
+  watched: boolean,
+  phase: string,
+  doneForMs = 0,
+): BroadcastPlan {
+  if (watched) {
+    return { push: true, includeScreen: true, nextDelayMs: WATCHED_MS };
+  }
+  if (phase === "running") {
+    return { push: true, includeScreen: true, nextDelayMs: HEARTBEAT_MS };
+  }
+  if (phase === "done" && doneForMs < DONE_BROADCAST_GRACE_MS) {
+    return { push: true, includeScreen: true, nextDelayMs: HEARTBEAT_MS };
+  }
+  return { push: false, includeScreen: false, nextDelayMs: null };
 }
 
 /** How long the spectator waits before its next `live.watch` poll:

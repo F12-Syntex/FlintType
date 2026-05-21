@@ -61,10 +61,13 @@ function readThemeVars(): Record<string, string> {
 /** Invisible. Mounted once inside every real <PracticeProvider>, so any
  *  passage-based surface (home practice, sudden-death drills) streams
  *  automatically. While sharing is on, it pushes a full clone payload to
- *  `live.progress` ~every 700ms in EVERY phase (rest / running / done):
- *  the windowed passage + the broadcaster's appearance, caret, behaviour,
- *  resolved theme vars, and (on done) the results data, so a spectator
- *  reconstructs the exact screen — passage, mode, and results alike.
+ *  `live.progress` on the adaptive `broadcastPlan` cadence — full rate
+ *  (700ms) while watched, a 2s heartbeat while typing-but-unwatched, and
+ *  it stops when resting (not begun) or once an unwatched results screen
+ *  passes the 30s grace (no forever-heartbeat on an idle results tab).
+ *  The payload is the windowed passage + the broadcaster's appearance,
+ *  caret, behaviour, resolved theme vars, and (on done) the results data,
+ *  so a spectator reconstructs the exact screen — passage, mode, results.
  *
  *  State/stats arrive as props (the provider passes them) so this file
  *  never imports `usePractice` (that would close an import cycle with
@@ -129,6 +132,12 @@ export function PracticeLiveBroadcast({
     }
     let stopped = false;
     let timer = 0;
+    // When this effect (re)starts in the done phase, mark when — the
+    // unwatched results screen broadcasts only for a grace window past
+    // this, then stops (broadcastPlan). Phase changes restart the
+    // effect, so this is the moment the run finished.
+    const doneStartedAt = phase === "done" ? Date.now() : 0;
+    const doneForMs = () => (doneStartedAt ? Date.now() - doneStartedAt : 0);
     // Re-send meta on the first push after a (re)start so the stored row
     // always has it (phase changes restart this effect).
     frameRef.current = 0;
@@ -197,6 +206,7 @@ export function PracticeLiveBroadcast({
       const { nextDelayMs } = broadcastPlan(
         watchersRef.current > 0,
         snapRef.current.state.phase,
+        doneForMs(),
       );
       if (nextDelayMs != null) timer = window.setTimeout(tick, nextDelayMs);
     };
@@ -205,7 +215,7 @@ export function PracticeLiveBroadcast({
       if (stopped) return;
       const s = snapRef.current;
       const st = s.state;
-      const plan = broadcastPlan(watchersRef.current > 0, st.phase);
+      const plan = broadcastPlan(watchersRef.current > 0, st.phase, doneForMs());
       if (plan.nextDelayMs == null) return; // idle + unwatched → stop
       // Skip the push (but keep the cadence) while the tab is hidden, or
       // when there's nothing to send yet — no request goes out.

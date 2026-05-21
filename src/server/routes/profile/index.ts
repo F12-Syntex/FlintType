@@ -5,6 +5,7 @@ import { invalidateCachedClerkUser } from "@/server/clerk-user-cache";
 import { requireAuth } from "@/server/middleware/auth";
 import { rateLimit } from "@/server/middleware/rate-limit";
 import { resolveEligibleTags } from "@/server/resolve-tags";
+import { invalidateUserDisplay } from "@/server/user-display";
 import {
   setTagsInputSchema,
   type SetTagsInput,
@@ -145,6 +146,7 @@ const updateUsername = defineRoute<UpdateUsernameInput, UpdateUsernameOutput>({
       // Stale cached read would surface the old handle on share /
       // profile surfaces until the TTL elapses — invalidate now.
       invalidateCachedClerkUser(userId);
+      invalidateUserDisplay(userId);
       log.info("username updated", { userId, username: next });
       return { username: updated.username ?? next };
     } catch (err) {
@@ -196,6 +198,9 @@ const setTags = defineRoute<SetTagsInput, SetTagsOutput>({
       validated.push(t);
     }
     await db.userPrefs.merge(userId, { selectedTags: validated });
+    // The chosen tags are part of the cached display projection — drop
+    // it so friends/leaderboard surfaces reflect the change immediately.
+    invalidateUserDisplay(userId);
     return { tags: validated, eligibleTags: eligible };
   },
 });

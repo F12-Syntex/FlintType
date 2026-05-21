@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.98.3 — 21 May 2026
+- Live spectating is lighter on the server: a friend who finishes a test and leaves the results screen open no longer stays in everyone's "Live now" forever — they drop out shortly after finishing unless someone's actually watching. Changes to your handle or shown tags now appear to friends right away. No change to what you see while actually watching a live run.
+
 ## 6.98.2 — 21 May 2026
 - The feature previews on the update card are clearer now: real handles, speeds, a live passage, and an Accept button instead of placeholder bars.
 

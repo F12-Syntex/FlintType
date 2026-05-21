@@ -112,9 +112,23 @@ export function FriendsView() {
     }
     void loadLists();
     loadDuels();
-    pollRef.current();
-    const id = window.setInterval(() => pollRef.current(), POLL_MS);
-    return () => window.clearInterval(id);
+    // Poll who's-live / online only while the tab is foregrounded — a
+    // backgrounded /friends tab makes zero requests (and resumes
+    // immediately on return), matching the broadcaster + watch loops.
+    const tick = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      pollRef.current();
+    };
+    tick();
+    const id = window.setInterval(tick, POLL_MS);
+    const onVisible = () => {
+      if (!document.hidden) pollRef.current();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [isLoaded, isSignedIn, loadLists, loadDuels]);
 
   const followingIds = useMemo(
