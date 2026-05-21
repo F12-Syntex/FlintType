@@ -38,6 +38,49 @@ function useHtmlFlag(attr: string): boolean {
   return on;
 }
 
+/** Live height (px) of the page footer, so the dock can float just
+ *  above it. Returns 0 when the footer isn't there — which is exactly
+ *  what we want for all the ways it can vanish: the §15 "hidden" footer
+ *  style (display:none), the compact-chrome footer that drops at <md,
+ *  or a route with no footer at all. Then the dock falls back to its
+ *  normal corner gap instead of floating in dead space.
+ *
+ *  Re-measures on route change (the footer remounts per page), on
+ *  resize (the compact footer flips at the md breakpoint), and when the
+ *  footer-style attribute toggles on <html>. */
+function useFooterHeight(routeKey: string): number {
+  const [height, setHeight] = useState(0);
+  useEffect(() => {
+    const measure = () => {
+      const el = document.querySelector<HTMLElement>("[data-ft-footer]");
+      if (!el) {
+        setHeight(0);
+        return;
+      }
+      const visible = getComputedStyle(el).display !== "none";
+      setHeight(visible ? el.getBoundingClientRect().height : 0);
+    };
+    measure();
+    const raf = requestAnimationFrame(measure);
+    const el = document.querySelector<HTMLElement>("[data-ft-footer]");
+    const ro = new ResizeObserver(measure);
+    if (el) ro.observe(el);
+    window.addEventListener("resize", measure);
+    const mo = new MutationObserver(measure);
+    mo.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-ft-footer-style"],
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      mo.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [routeKey]);
+  return height;
+}
+
 /** The friends dock — a small, non-intrusive floating affordance pinned
  *  to the bottom-right corner that replaces the old /friends page. It
  *  collapses to a slim pill (live / online avatars + count) and expands
@@ -54,6 +97,7 @@ export function FriendsDock() {
   const reduce = useReducedMotion();
   const running = useHtmlFlag("data-ft-running");
   const focus = useHtmlFlag("data-ft-focus");
+  const footerHeight = useFooterHeight(pathname);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [last, setLast] = useState({ pathname, visible: false });
@@ -126,10 +170,12 @@ export function FriendsDock() {
       className="fixed z-40 flex flex-col items-end gap-2"
       style={{
         right: "calc(0.75rem + env(safe-area-inset-right))",
-        // Lifted to clear the page footer (~40px tall, pinned at the
-        // viewport bottom on non-compact screens) so the dock floats
-        // *above* it rather than overlapping it.
-        bottom: "calc(3.5rem + env(safe-area-inset-bottom))",
+        // Float just above the page footer when it's there; when the
+        // footer is hidden (the §15 "hidden" footer style, compact-mobile
+        // chrome, or a footer-less route) `footerHeight` is 0 and the
+        // dock falls back to the normal corner gap instead of hovering
+        // in dead space.
+        bottom: `calc(${footerHeight}px + 0.75rem + env(safe-area-inset-bottom))`,
       }}
     >
       {/* Desktop floating panel. Mobile uses the bottom sheet below. */}

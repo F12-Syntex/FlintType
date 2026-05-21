@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.101.2 — 21 May 2026
+- The friends dock now positions itself correctly when you've hidden the footer (or on screens that don't show one): it drops to the bottom corner instead of floating in empty space above where the footer used to be.
+
 ## 6.101.1 — 21 May 2026
 - The friends dock has a cleaner look: open it to a tidy "Active members" panel with a search box, your live and online friends listed with their status, a quick Watch or Accept button where it makes sense, and a member-directory row at the bottom. The dock now floats just above the page footer instead of overlapping it.
 
