@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.95.0 — 21 May 2026
+- Challenges now live right on the Friends page instead of behind a link to another page. When a friend dares you to beat one of their runs, it shows up inline with their name and target speed, and you can jump straight into the race. The section stays hidden when there's nothing waiting.
+
 ## 6.94.0 — 21 May 2026
 - The Friends page is redesigned to be calmer and more focused: a single, tidy column with a clear "Challenges" shortcut at the top, a nicer "Live now" preview, and "Live now" / "Online" sections that only show up when friends are actually there.
 - Your people list now leads with your friends; Following and Followers sit quietly beside it instead of as chunky tabs.

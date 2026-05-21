@@ -1,3 +1,4 @@
+import type { Duel, DuelParticipant } from "@/types/duel";
 import type { FriendUser } from "@/types/friends";
 import type { LiveFriend } from "@/types/live";
 import type {
@@ -179,6 +180,56 @@ export function withDummyPresence(
     });
   }
   return out;
+}
+
+const duelParticipant = (
+  handle: string,
+  tags: DuelParticipant["tags"] = [],
+): DuelParticipant => ({
+  userId: `dev_${handle}`,
+  username: handle,
+  name: `@${handle}`,
+  tags,
+});
+
+const ME: DuelParticipant = {
+  userId: "dev_me",
+  username: null,
+  name: "@you",
+  tags: [],
+};
+
+/** Add a couple of dummy incoming challenges so the inline Challenges
+ *  section is visible in dev (real wins on id). */
+export function withDummyDuels(real: Duel[]): Duel[] {
+  const now = Date.now();
+  const make = (
+    id: string,
+    challenger: DuelParticipant,
+    wpm: number,
+    agoMs: number,
+  ): Duel => ({
+    id,
+    challenger,
+    opponent: ME,
+    words: ["the", "quick", "brown", "fox", "jumps"],
+    mode: "words",
+    durationOrWordCount: 25,
+    challengerWpm: wpm,
+    challengerAccuracy: 97,
+    challengerWpmHistory: null,
+    status: "pending",
+    opponentWpm: null,
+    opponentAccuracy: null,
+    createdAtMs: now - agoMs,
+    completedAtMs: null,
+  });
+  const dummy = [
+    make("dev_d1", duelParticipant("maya", ["og"]), 104, 40 * MIN),
+    make("dev_d2", duelParticipant("dao"), 88, 5 * HOUR),
+  ];
+  const seen = new Set(real.map((d) => d.id));
+  return [...real, ...dummy.filter((d) => !seen.has(d.id))];
 }
 
 /** Prepend a few dummy activity items to the real feed (newest first). */

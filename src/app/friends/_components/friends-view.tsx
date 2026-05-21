@@ -5,13 +5,15 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Tag } from "@/components/ft";
 import { BackendError, useBackend } from "@/lib/backend";
+import type { Duel } from "@/types/duel";
 import type { FriendRelationship, FriendUser } from "@/types/friends";
 import type { LiveFriend } from "@/types/live";
 import type { Notification } from "@/types/notification";
 import type { PresenceEntry } from "@/types/presence";
 import { ActivitySection } from "./activity-section";
-import { ChallengesCallout } from "./challenges-callout";
+import { ChallengesSection } from "./challenges-section";
 import {
+  withDummyDuels,
   withDummyFeed,
   withDummyLists,
   withDummyLive,
@@ -44,6 +46,7 @@ export function FriendsView() {
   const [lists, setLists] = useState<Lists | null>(null);
   const [feed, setFeed] = useState<Notification[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
+  const [duels, setDuels] = useState<Duel[]>([]);
   const [live, setLive] = useState<LiveFriend[]>([]);
   const [presenceById, setPresenceById] = useState<Map<string, PresenceEntry>>(
     () => new Map(),
@@ -86,6 +89,15 @@ export function FriendsView() {
       .finally(() => setFeedLoading(false));
   }, [backend]);
 
+  const loadDuels = useCallback(() => {
+    backend.duels
+      .list()
+      .then((r) => setDuels(DEV_DUMMY ? withDummyDuels(r.incoming) : r.incoming))
+      .catch(() => {
+        if (DEV_DUMMY) setDuels(withDummyDuels([]));
+      });
+  }, [backend]);
+
   const pollPresence = useCallback(() => {
     backend.live
       .friendsLive()
@@ -116,10 +128,11 @@ export function FriendsView() {
     }
     void loadLists();
     loadFeed();
+    loadDuels();
     pollRef.current();
     const id = window.setInterval(() => pollRef.current(), POLL_MS);
     return () => window.clearInterval(id);
-  }, [isLoaded, isSignedIn, loadLists, loadFeed]);
+  }, [isLoaded, isSignedIn, loadLists, loadFeed, loadDuels]);
 
   const followingIds = useMemo(
     () => new Set((lists?.following ?? []).map((u) => u.userId)),
@@ -160,12 +173,6 @@ export function FriendsView() {
       ),
     [lists, onlineIds, liveIds],
   );
-  const pendingDuels = useMemo(
-    () =>
-      feed.filter((n) => n.kind === "duel_challenge" && n.readAtMs == null)
-        .length,
-    [feed],
-  );
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:gap-7 sm:py-10">
@@ -189,8 +196,8 @@ export function FriendsView() {
         <LoadingSkeleton />
       ) : (
         <>
-          <ChallengesCallout pending={pendingDuels} />
           <LiveNow users={live} />
+          <ChallengesSection duels={duels} />
           <OnlineNow users={onlineUsers} presenceById={presenceById} />
           {lists ? (
             <PeoplePanel
