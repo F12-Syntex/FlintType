@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.101.1 — 21 May 2026
+- The friends dock has a cleaner look: open it to a tidy "Active members" panel with a search box, your live and online friends listed with their status, a quick Watch or Accept button where it makes sense, and a member-directory row at the bottom. The dock now floats just above the page footer instead of overlapping it.
+
 ## 6.101.0 — 21 May 2026
 - When you create a race lobby you can now pick from the full wordlist catalogue — the same searchable list of 440+ wordlists you use in practice (every language, code, and themed list), not just English. Everyone in the lobby races words from the list you chose.
 

@@ -2,7 +2,8 @@
 
 import { useUser } from "@clerk/nextjs";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Swords, Users, X } from "lucide-react";
+import { Plus, Swords, Users, X } from "lucide-react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "@/components/ft";
@@ -91,20 +92,21 @@ export function FriendsDock() {
     };
   }, [open, isMobile]);
 
-  const { stack, label, labelClass } = useMemo(() => {
+  const { stack, label, labelClass, activeCount } = useMemo(() => {
     const liveIds = new Set(data.live.map((u) => u.userId));
     const onlineUsers = data.directory.filter(
       (u) => data.presenceById.get(u.userId)?.online && !liveIds.has(u.userId),
     );
+    const activeCount = data.live.length + onlineUsers.length;
     const items = [
       ...data.live.map((u) => ({ id: u.userId, src: u.imageUrl, name: u.name, status: "live" as const })),
       ...onlineUsers.map((u) => ({ id: u.userId, src: u.imageUrl, name: u.name, status: "online" as const })),
     ].slice(0, 3);
     if (data.live.length > 0)
-      return { stack: items, label: `${data.live.length} live`, labelClass: "text-primary" };
+      return { stack: items, label: `${data.live.length} live`, labelClass: "text-primary", activeCount };
     if (onlineUsers.length > 0)
-      return { stack: items, label: `${onlineUsers.length} online`, labelClass: "text-muted-foreground" };
-    return { stack: items, label: "Friends", labelClass: "text-muted-foreground" };
+      return { stack: items, label: `${onlineUsers.length} online`, labelClass: "text-muted-foreground", activeCount };
+    return { stack: items, label: "Friends", labelClass: "text-muted-foreground", activeCount };
   }, [data.live, data.directory, data.presenceById]);
 
   if (!visible) return null;
@@ -124,7 +126,10 @@ export function FriendsDock() {
       className="fixed z-40 flex flex-col items-end gap-2"
       style={{
         right: "calc(0.75rem + env(safe-area-inset-right))",
-        bottom: "calc(0.75rem + env(safe-area-inset-bottom))",
+        // Lifted to clear the page footer (~40px tall, pinned at the
+        // viewport bottom on non-compact screens) so the dock floats
+        // *above* it rather than overlapping it.
+        bottom: "calc(3.5rem + env(safe-area-inset-bottom))",
       }}
     >
       {/* Desktop floating panel. Mobile uses the bottom sheet below. */}
@@ -140,26 +145,40 @@ export function FriendsDock() {
               style={{ transformOrigin: "bottom right" }}
               className="flex max-h-[70dvh] w-[min(88vw,360px)] flex-col overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
             >
-              <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
-                <span className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                  <Users size={13} aria-hidden />
-                  Friends
+              <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+                <span className="flex items-center gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground">
+                    Active members
+                  </span>
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
+                    {activeCount}
+                  </span>
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  aria-label="Close friends"
-                  className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                >
-                  <X size={16} aria-hidden />
-                </button>
+                <span className="flex items-center gap-0.5">
+                  <Link
+                    href="/leaderboard"
+                    onClick={() => setOpen(false)}
+                    aria-label="Find people to follow"
+                    className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  >
+                    <Plus size={16} aria-hidden />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setOpen(false)}
+                    aria-label="Close friends"
+                    className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  >
+                    <X size={16} aria-hidden />
+                  </button>
+                </span>
               </header>
               <div className="min-h-0 flex-1 overflow-y-auto">{panelBody}</div>
             </motion.div>
           ) : null}
         </AnimatePresence>
       ) : (
-        <MobileSheet open={open} onOpenChange={setOpen} title="Friends">
+        <MobileSheet open={open} onOpenChange={setOpen} title="Active members">
           {panelBody}
         </MobileSheet>
       )}
