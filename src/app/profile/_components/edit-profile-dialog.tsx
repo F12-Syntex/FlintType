@@ -6,9 +6,19 @@ import { UserTag } from "@/components/ft";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { BackendError, useBackend } from "@/lib/backend";
+import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { cn } from "@/lib/utils";
 import { USERNAME_REGEX } from "@/types/profile";
+import {
+  RANK_IDS,
+  RANKS,
+  rankFromWpm,
+  type ProfileRankPref,
+  type RankId,
+} from "@/types/rank";
 import { USER_TAG_IDS, type UserTagId } from "@/types/user-tag";
+
+const RANK_DEFAULT: ProfileRankPref = { id: null };
 
 /** Edit profile.
  *
@@ -31,6 +41,9 @@ export function EditProfileDialog({
   tags = [],
   eligibleTags = [],
   onTagsChanged,
+  rank = null,
+  bestWpm = 0,
+  onRankChanged,
 }: {
   open: boolean;
   onOpenChange: (next: boolean) => void;
@@ -47,9 +60,24 @@ export function EditProfileDialog({
    *  authoritative post-validation list. Parents use this to refresh
    *  the visible tag set on the hero without a snapshot refetch. */
   onTagsChanged?: (next: UserTagId[]) => void;
+  /** Current rank flair (from the snapshot); the picker reflects + writes
+   *  it. */
+  rank?: RankId | null;
+  /** The user's best WPM, used only to *suggest* a rank in the picker. */
+  bestWpm?: number;
+  /** Fires after the rank changes so the hero badge updates without a
+   *  snapshot refetch. */
+  onRankChanged?: (next: RankId | null) => void;
 }) {
   const { user, isLoaded } = useUser();
   const backend = useBackend();
+  const { update: updateRank } = useRemotePrefs<ProfileRankPref>(
+    "profileRank",
+    RANK_DEFAULT,
+  );
+  // Optimistic local selection (seeded from the snapshot on open), so a
+  // chip click flips instantly; the write + parent refresh follow.
+  const [selectedRank, setSelectedRank] = useState<RankId | null>(rank);
   const [firstName, setFirstName] = useState("");
   const [username, setUsername] = useState("");
   const [saving, setSaving] = useState(false);
@@ -71,10 +99,17 @@ export function EditProfileDialog({
       setUsername(user.username ?? "");
       setError(null);
       setSelectedTags(tags);
+      setSelectedRank(rank);
     }
-    // `tags` is intentionally watched too so the chips reflect the
-    // latest selection if the parent re-fetches while open.
-  }, [open, user, tags]);
+    // `tags` / `rank` are intentionally watched too so the chips reflect
+    // the latest selection if the parent re-fetches while open.
+  }, [open, user, tags, rank]);
+
+  function pickRank(next: RankId | null) {
+    setSelectedRank(next);
+    updateRank({ id: next });
+    onRankChanged?.(next);
+  }
 
   const toggleTag = async (tag: UserTagId) => {
     if (tagsSaving) return;
@@ -172,6 +207,37 @@ export function EditProfileDialog({
       confirmDisabled={!canSave}
     >
       <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Your rank
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+              {selectedRank ? RANKS[selectedRank].label : "none"}
+            </span>
+          </div>
+          <p className="text-[11px] leading-snug text-muted-foreground/80">
+            A flame badge beside your name. Wear any tier you like.
+            {bestWpm > 0
+              ? ` Your best maps to ${RANKS[rankFromWpm(bestWpm)].label}.`
+              : ""}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            <RankChip
+              label="None"
+              active={selectedRank == null}
+              onClick={() => pickRank(null)}
+            />
+            {RANK_IDS.map((id) => (
+              <RankChip
+                key={id}
+                label={RANKS[id].label}
+                active={selectedRank === id}
+                onClick={() => pickRank(id)}
+              />
+            ))}
+          </div>
+        </div>
         {eligibleTags.length > 0 ? (
           <div className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between gap-3">
@@ -253,6 +319,33 @@ export function EditProfileDialog({
         ) : null}
       </div>
     </ConfirmDialog>
+  );
+}
+
+function RankChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "rounded-md border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        active
+          ? "border-primary/40 bg-primary/[0.08] text-primary"
+          : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
+      )}
+    >
+      {label}
+    </button>
   );
 }
 

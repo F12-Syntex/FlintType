@@ -21,9 +21,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import type { FriendRelationship, FriendStats } from "@/types/friends";
+import type { RankId } from "@/types/rank";
 import type { UserTagId } from "@/types/user-tag";
 import type { ProfileTotals, StreakStats } from "./derive-stats";
 import { EditProfileDialog } from "./edit-profile-dialog";
+import { RankBadge } from "./rank-badge";
 
 const NUM_FMT = new Intl.NumberFormat("en-US");
 
@@ -41,6 +43,8 @@ export function ProfileHero({
   tags = [],
   eligibleTags = [],
   onTagsChanged,
+  rank = null,
+  onRankChanged,
   totals,
   streak,
   isMtConnected = false,
@@ -55,6 +59,12 @@ export function ProfileHero({
   tags?: UserTagId[];
   eligibleTags?: UserTagId[];
   onTagsChanged?: (next: UserTagId[]) => void;
+  /** The subject's self-selected rank flair (shown beside the name), or
+   *  null when unset. */
+  rank?: RankId | null;
+  /** Owner-only — fires after the rank is changed in the edit dialog so
+   *  the hero badge updates without a snapshot refetch. */
+  onRankChanged?: (next: RankId | null) => void;
   totals: ProfileTotals;
   streak: StreakStats;
   /** Subject's Clerk id — drives the follow button + friend counts. */
@@ -123,15 +133,19 @@ export function ProfileHero({
 
   return (
     <section className="rounded-md border border-border bg-card px-4 py-4 sm:px-6 sm:py-5">
-      <div className="flex flex-col gap-5 md:flex-row md:items-center md:gap-8">
-        {/* Identity — avatar + name + tags + level lockup */}
-        <div className="flex items-center gap-4 md:min-w-0 md:flex-1">
+      {/* Top row — identity on the left, actions hugging the top-right
+       *  corner. Actions are NOT a third flex column (that squeezed the
+       *  identity + stats); they sit out of the content flow so the
+       *  stats strip below gets the full width. */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-4">
           <Avatar imageUrl={avatarImageUrl} isLoaded={avatarIsLoaded} />
-          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-              <h1 className="truncate text-lg font-bold tracking-tight text-foreground sm:text-xl">
+              <h1 className="truncate text-lg font-bold tracking-tight text-foreground sm:text-2xl">
                 {displayName}
               </h1>
+              {rank ? <RankBadge rank={rank} /> : null}
               {tags.map((t) => (
                 <UserTag key={t} tag={t} size="sm" />
               ))}
@@ -147,70 +161,73 @@ export function ProfileHero({
             {friendStats ? (
               <FriendCounts stats={friendStats} isOwner={isOwner} />
             ) : null}
-            <LevelLockup totals={totals} />
           </div>
         </div>
 
-        {/* Headline stats — inline strip, no dividers. Mobile drops to
-         *  a 2×2 grid; md+ keeps them on one row separated only by
-         *  generous gap so each cell reads as its own column. */}
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4 sm:gap-x-6 md:flex md:flex-none md:items-baseline md:gap-x-10">
-          {/* On a visitor's view the Follow CTA is the single coral
-           *  spark (§2), so the stat values drop to ink — coral accents
-           *  here are reserved for the owner's own profile, which has
-           *  no follow button to compete with. */}
-          <StatCell
-            label="Tests"
-            value={NUM_FMT.format(totals.testsCompleted)}
-            accent={isOwner}
-          />
-          <StatCell
-            label="Time typing"
-            value={formatDuration(totals.totalSeconds)}
-          />
-          <StatCell
-            label="Best WPM"
-            value={Math.round(totals.bestWpm).toString()}
-            sub={
-              totals.bestWpm > 0
-                ? `${totals.bestWpmAccuracy.toFixed(1)}%`
-                : undefined
-            }
-            accent={isOwner}
-          />
-          <StatCell
-            label="Streak"
-            value={`${streak.current}`}
-            suffix="d"
-            accent={isOwner && streak.current > 0}
-            sub={streak.longest > 0 ? `${streak.longest}d best` : undefined}
-          />
-        </div>
-
-        {isOwner ? (
-          <OwnerMenu
-            isMtConnected={isMtConnected}
-            onEdit={() => setEditOpen(true)}
-            onOpenMt={onOpenMt ?? (() => undefined)}
-            onSignOut={() => void signOut({ redirectUrl: "/" })}
-          />
-        ) : relationship && subjectUserId ? (
-          <div className="flex flex-col items-start gap-2 md:self-start">
-            <FollowButton
-              userId={subjectUserId}
-              initial={relationship}
-              handle={handle}
+        <div className="flex shrink-0 items-center gap-2">
+          {isOwner ? (
+            <OwnerMenu
+              isMtConnected={isMtConnected}
+              onEdit={() => setEditOpen(true)}
+              onOpenMt={onOpenMt ?? (() => undefined)}
+              onSignOut={() => void signOut({ redirectUrl: "/" })}
             />
-            {relationship.mutual ? (
-              <Link
-                href={`/duel/new?opponent=${subjectUserId}`}
-                className="inline-flex h-9 items-center rounded-md border border-border bg-background px-3 text-[12px] font-medium text-foreground transition-colors hover:bg-accent"
-              >
-                Duel
-              </Link>
-            ) : null}
-          </div>
-        ) : null}
+          ) : relationship && subjectUserId ? (
+            <>
+              {relationship.mutual ? (
+                <Link
+                  href={`/duel/new?opponent=${subjectUserId}`}
+                  className="hidden h-9 items-center rounded-md border border-border bg-background px-3 text-[12px] font-medium text-foreground transition-colors hover:bg-accent sm:inline-flex"
+                >
+                  Duel
+                </Link>
+              ) : null}
+              <FollowButton
+                userId={subjectUserId}
+                initial={relationship}
+                handle={handle}
+              />
+            </>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Level — full-width bar beneath identity. */}
+      <div className="mt-4">
+        <LevelLockup totals={totals} />
+      </div>
+
+      {/* Headline stats — a full-width strip (2×2 on mobile, four
+       *  columns from sm+). On a visitor's view the Follow CTA is the
+       *  single coral spark (§2), so the stat values stay ink; coral
+       *  accents are reserved for the owner's own profile. */}
+      <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border/60 pt-4 sm:grid-cols-4 sm:gap-x-6">
+        <StatCell
+          label="Tests"
+          value={NUM_FMT.format(totals.testsCompleted)}
+          accent={isOwner}
+        />
+        <StatCell
+          label="Time typing"
+          value={formatDuration(totals.totalSeconds)}
+        />
+        <StatCell
+          label="Best WPM"
+          value={Math.round(totals.bestWpm).toString()}
+          sub={
+            totals.bestWpm > 0
+              ? `${totals.bestWpmAccuracy.toFixed(1)}%`
+              : undefined
+          }
+          accent={isOwner}
+        />
+        <StatCell
+          label="Streak"
+          value={`${streak.current}`}
+          suffix="d"
+          accent={isOwner && streak.current > 0}
+          sub={streak.longest > 0 ? `${streak.longest}d best` : undefined}
+        />
       </div>
 
       {isOwner ? (
@@ -220,6 +237,9 @@ export function ProfileHero({
           tags={tags}
           eligibleTags={eligibleTags}
           onTagsChanged={onTagsChanged}
+          rank={rank}
+          bestWpm={totals.bestWpm}
+          onRankChanged={onRankChanged}
         />
       ) : null}
     </section>

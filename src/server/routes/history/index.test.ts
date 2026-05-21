@@ -177,6 +177,30 @@ describe("history routes", () => {
     ).toBeUndefined();
   });
 
+  it("defaults rank to null and surfaces a valid self-selected rank", async () => {
+    signedInAs("u_rank");
+    const fresh = await callRoute<HistorySummaryOutput>(
+      ["history", "summary"],
+      { db: ctx.db },
+    );
+    expect(fresh.rank).toBeNull();
+
+    await ctx.db.userPrefs.set("u_rank", { profileRank: { id: "forge" } });
+    const picked = await callRoute<HistorySummaryOutput>(
+      ["history", "summary"],
+      { db: ctx.db },
+    );
+    expect(picked.rank).toBe("forge");
+
+    // Garbage in the pref blob coerces to null, never crosses the wire.
+    await ctx.db.userPrefs.set("u_rank", { profileRank: { id: "not_a_rank" } });
+    const bad = await callRoute<HistorySummaryOutput>(
+      ["history", "summary"],
+      { db: ctx.db },
+    );
+    expect(bad.rank).toBeNull();
+  });
+
   it("returns weakestPairs sorted by weakness, capped at 12", async () => {
     signedInAs("u1");
     // 30 deliberate runs of 4-letter words — generates enough bigram

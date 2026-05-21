@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { MonkeytypeStatsSlice } from "./monkeytype";
+import type { RankId } from "./rank";
 import type { UserTagId } from "./user-tag";
 
 /** Public-profile lookup input. The slug here is a Clerk username,
@@ -79,6 +80,11 @@ export type HistorySummaryOutput = {
    *  someone else's profile receive the same array (it's not
    *  sensitive — tags are display data). */
   eligibleTags: UserTagId[];
+  /** The subject's self-selected WPM rank flair (Ember…Solar Flare), or
+   *  null when they haven't picked one. Free choice — not derived or
+   *  enforced; read straight from their `profileRank` pref. Returned for
+   *  both own + visitor views so the badge shows on every profile. */
+  rank: RankId | null;
   /** Subject's avatar URL — null when they haven't uploaded a real
    *  photo (Clerk's auto-generated gradient is suppressed at this
    *  layer). Returned by both `summary` (own avatar) and

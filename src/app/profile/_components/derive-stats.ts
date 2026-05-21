@@ -347,6 +347,96 @@ export function mergePersonalBestsWithMt(
   return out;
 }
 
+/** One spoke of the skill radar: a 0..100 value for the chart plus a
+ *  human display of the underlying metric for the legend. */
+export type SkillAxis = {
+  key: string;
+  label: string;
+  value: number;
+  display: string;
+};
+
+/** WPM mapped to a full 100% spoke. 180 is a strong-but-reachable
+ *  ceiling so typical users land mid-radar rather than as a dot. */
+const SPEED_CAP = 180;
+
+function clampScore(n: number): number {
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+/** A five-axis skill profile derived from completed tests. Speed and
+ *  Endurance normalise WPM against `SPEED_CAP`; Accuracy rescales the
+ *  80–100% band so real gaps show; Consistency is 100 minus the WPM
+ *  coefficient of variation; Experience is a log-scaled test count.
+ *  Endurance keys off *actual elapsed time* (completed − started ≥ 45s)
+ *  since `mode` doesn't distinguish a time test from a words test.
+ *  Honest on cold start — sparse data yields low/zero spokes. */
+export function deriveSkills(
+  tests: readonly HistoryTest[],
+  totals: ProfileTotals,
+): SkillAxis[] {
+  const completed = tests.filter((t) => t.wasCompleted);
+  const wpms = completed.map((t) => t.wpm);
+
+  let consistency = 0;
+  if (wpms.length >= 3) {
+    const mean = wpms.reduce((s, w) => s + w, 0) / wpms.length;
+    if (mean > 0) {
+      const variance =
+        wpms.reduce((s, w) => s + (w - mean) ** 2, 0) / wpms.length;
+      const cv = Math.sqrt(variance) / mean;
+      consistency = clampScore(100 - cv * 250);
+    }
+  }
+
+  const longBest = completed.reduce((m, t) => {
+    const elapsedMs = t.completedAtMs - t.startedAtMs;
+    return elapsedMs >= 45_000 && t.wpm > m ? t.wpm : m;
+  }, 0);
+
+  const experience =
+    totals.testsCompleted > 0
+      ? clampScore(
+          (Math.log10(totals.testsCompleted + 1) / Math.log10(2000)) * 100,
+        )
+      : 0;
+
+  return [
+    {
+      key: "speed",
+      label: "Speed",
+      value: clampScore((totals.bestWpm / SPEED_CAP) * 100),
+      display: totals.bestWpm > 0 ? `${Math.round(totals.bestWpm)} wpm` : "—",
+    },
+    {
+      key: "accuracy",
+      label: "Accuracy",
+      value: clampScore(((totals.meanAccuracy - 80) / 20) * 100),
+      display:
+        totals.meanAccuracy > 0 ? `${totals.meanAccuracy.toFixed(1)}%` : "—",
+    },
+    {
+      key: "consistency",
+      label: "Consistency",
+      value: consistency,
+      display: wpms.length >= 3 ? `${consistency}/100` : "—",
+    },
+    {
+      key: "endurance",
+      label: "Endurance",
+      value: clampScore((longBest / SPEED_CAP) * 100),
+      display: longBest > 0 ? `${Math.round(longBest)} wpm` : "—",
+    },
+    {
+      key: "experience",
+      label: "Experience",
+      value: experience,
+      display: `Lv ${totals.level}`,
+    },
+  ];
+}
+
 export function deriveTrend(
   tests: readonly HistoryTest[],
   limit = 60,

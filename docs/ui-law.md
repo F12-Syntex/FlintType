@@ -846,12 +846,40 @@ The dot is `size-1.5 shrink-0 rounded-full`; the caption reuses the existing cap
 
 **Activity reporting.** `status` is now genuinely populated. A surface declares the local user's activity by mounting `<ReportActivity status="practicing|racing" />` (`src/app/_components/report-activity.tsx`) inside its `<PracticeProvider>` — the practice/drill surfaces report `practicing`, the race screen reports `racing` (never while spectating). It writes to the `presence-activity` module store (`src/lib/presence-activity.ts`); the global `<PresenceHeartbeat>` reads that store on every beat and fires an immediate beat on change so the switch reaches friends within a second. Don't prop-drill activity into the heartbeat — declare it with `<ReportActivity>`.
 
-## 18. Amending this document
+## 18. Profile page (`/profile`, `/profile/[username]`)
+
+The profile is the app's **shareable surface** — built to look good to a stranger who's never used flinttype, so it leans visual and identity-forward. Components live in `src/app/profile/_components/`; data is derived client-side from one `history.summary` / `publicProfile` snapshot (`derive-stats.ts`).
+
+### 18.1 Hero layout
+
+`<ProfileHero>` is a single bordered card, not a multi-column flex. The relationship/menu **actions sit in the top-right corner** (`flex items-start justify-between`), *out of the content flow* — never a third flex column, which squeezed the identity + stats. Order inside the card:
+
+1. **Top row** — avatar + name + rank badge + tags + "Follows you" on the left; actions (owner ⋯ menu, or visitor `<FollowButton>` + a `sm:`-only Duel link) hugging the right.
+2. **Level bar** — full width.
+3. **Stats strip** — a full-width `grid-cols-2 sm:grid-cols-4` row (Tests / Time / Best WPM / Streak) under a hairline. Stat values stay ink on a visitor's view so the coral Follow CTA is the page's one spark (§2); the owner's own profile (no follow button) may accent them coral.
+
+### 18.2 Skill radar (`skill-panel.tsx`)
+
+The headline "who is this typist" block: a five-spoke radar (**Speed, Accuracy, Consistency, Endurance, Experience**) beside a legend of the real numbers. Derived by `deriveSkills` (`derive-stats.ts`) — each spoke a 0–100 score (Speed/Endurance vs a 180-wpm ceiling, Accuracy rescaled into the 80–100 band, Consistency = 100 − WPM CV, Experience = log-scaled test count; Endurance keys off actual elapsed time ≥45s). Honest on cold start; below one completed test the panel shows a calm "not enough runs yet" note.
+
+- **Reuse the shared `ChartContainer`** from `@/components/ui/line-chart` (same wrapper `wpm-trend` uses) — do **not** add a second chart wrapper. The recharts radar paints in the brand coral (`var(--primary)` stroke + ~0.18 fill) over a hairline polar grid, **no glow filter** (the off-the-shelf "glowing radar" demo is off-brand: §13 bans ambient glow). One series on a profile; the radar is the page's coral element, so the legend bars/numbers stay ink.
+
+### 18.3 Rank badge (`<RankBadge>`, `rank-badge.tsx`)
+
+A **self-selected** WPM-tier flair (Ember…Solar Flare, `src/types/rank.ts`) shown beside the name. Distinct from §14 identity marks: those are *eligibility-gated* (server-resolved grants); a rank is *free choice*, a cosmetic the user picks in Edit profile regardless of actual speed (the picker only *suggests* a tier from their best WPM). One fixed ember tint across all 11 tiers — a `Flame` glyph in coral + the label in ink, in a hairline chip; no tier is louder than another. Stored as a `{ id }` object slice under the `profileRank` pref (object-slice so the object-only `useRemotePrefs` hook binds it); read into the profile snapshot server-side via `readProfileRank` so visitors see it too.
+
+### 18.4 Don't
+
+- **Don't** reinstate a "head-to-head" comparison panel. Comparison was removed in favour of each profile's own skill radar; a sparse two-column stat table read as empty. If cross-user comparison returns, overlay a second series on the radar, don't build a stat grid.
+- **Don't** make the actions a flex column beside identity/stats (the original bug). Top-right corner only.
+- **Don't** paint the rank badge per-tier colours or animate it — it's identity, not a notification.
+
+## 19. Amending this document
 
 When you introduce a new pattern:
 
 1. Open this file.
-2. Add a row to the matching table (§2 color, §3 spacing, §4 typography, §5 layout, §12 settings, §13 animation, §14 identity marks, §15 minimisation knobs, §16 command palette, §17 social controls) **or** a new section with the next sequential number.
+2. Add a row to the matching table (§2 color, §3 spacing, §4 typography, §5 layout, §12 settings, §13 animation, §14 identity marks, §15 minimisation knobs, §16 command palette, §17 social controls, §18 profile) **or** a new section with the next sequential number.
 3. Include a one-line rationale — why this pattern, what problem it solves.
 4. Commit the doc change **in the same commit** as the code using it.
 5. From that commit forward, all UI must follow the new rule.

@@ -35,6 +35,7 @@ import {
   type PublicMonkeytypeStats,
   type PublicProfileInput,
 } from "@/types/history";
+import { readProfileRank } from "@/types/rank";
 import type { MonkeytypeStatsSlice } from "@/types/monkeytype";
 
 /** How many recent tests we serve to the client. 500 is comfortably
@@ -177,6 +178,7 @@ async function loadHistorySummary(
     monkeytype,
     tags,
     eligibleTags,
+    rank: readProfileRank(prefsBlob),
     subjectAvatarUrl,
     subjectUserId: userId,
     lifetimeStats: readLifetimeStats(prefsBlob),
