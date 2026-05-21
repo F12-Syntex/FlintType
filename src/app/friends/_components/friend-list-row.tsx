@@ -75,7 +75,7 @@ export function FriendListRow({
         userId={user.userId}
         initial={relationship}
         size="sm"
-        menu
+        compact
         handle={user.username}
         onChange={onChange}
       />

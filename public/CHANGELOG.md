@@ -8,6 +8,12 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.94.0 — 21 May 2026
+- The Friends page is redesigned to be calmer and more focused: a single, tidy column with a clear "Challenges" shortcut at the top, a nicer "Live now" preview, and "Live now" / "Online" sections that only show up when friends are actually there.
+- Your people list now leads with your friends; Following and Followers sit quietly beside it instead of as chunky tabs.
+- Managing someone (unfollow, block, or challenge to a duel) now lives in a ⋯ menu on their row and asks you to confirm before unfollowing or blocking, so nothing changes by an accidental click. The button no longer flips to "Unfollow" when you hover it.
+- Recent activity is tucked into a tidy, expandable section with its own scroll, so the page stays uncluttered.
+
 ## 6.93.1 — 21 May 2026
 - Internal changes only. (Dev-mode fake friends for testing the Friends page; not shown in production.)
 

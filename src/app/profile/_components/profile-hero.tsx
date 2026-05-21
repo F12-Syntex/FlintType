@@ -199,7 +199,6 @@ export function ProfileHero({
             <FollowButton
               userId={subjectUserId}
               initial={relationship}
-              menu
               handle={handle}
             />
             {relationship.mutual ? (

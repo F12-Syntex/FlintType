@@ -768,22 +768,22 @@ The friends system introduces reusable relationship affordances. They reuse exis
 
 ### 17.1 `<FollowButton>` (`src/components/follow-button.tsx`)
 
-The single relationship control, reused on profile heroes and friends-list rows. State → treatment:
+The single relationship control, reused on profile heroes and friends-list rows. **The label never morphs on hover** — a control that swaps "Friends" → "Unfollow" under the cursor resizes the row and is too easy to mis-click. The state is *stable*; management actions live in a dropdown, and the destructive ones (Unfollow, Block) route through a confirm step. State → treatment:
 
 | State | Treatment | Rationale |
 |---|---|---|
-| not following | shadcn `Button` default (`bg-primary`) — "Follow" | The one coral CTA: the move we want the viewer to make. |
-| `followedBy && !following` | default (`bg-primary`) — "Follow back" | Still the action we want; still coral. |
-| `following && !mutual` | `variant="outline"` — "Following", hover swaps to "Unfollow" in `text-destructive` | Established; drops out of coral so it stops competing with any live CTA. |
-| `mutual` (friends) | `variant="outline"` — coral `Check` glyph + "Friends", hover swaps to "Unfollow" | The friendship is marked by a *small* coral check only, never a filled coral surface. |
-| `blocking` | `variant="outline"`, `text-muted-foreground` — "Blocked" → click unblocks | Quiet; a block is not a brand moment. |
+| not following | shadcn `Button` default (`bg-primary`) — "Follow", plus a ⋯ menu (Block) | The one coral CTA: the move we want the viewer to make. |
+| `followedBy && !following` | default (`bg-primary`) — "Follow back", plus ⋯ (Block) | Still the action we want; still coral. |
+| `following && !mutual` | a stable outline status that opens the menu (Unfollow, Block); `compact` rows show only the ⋯ | Established; drops out of coral so it never competes with the live spark. |
+| `mutual` (friends) | stable outline status with a small coral `Check` + "Friends" that opens the menu (Challenge, Unfollow, Block); `compact` rows show only the ⋯ | Friendship is marked by a *small* coral check only, never a filled coral surface. |
+| `blocking` | `variant="outline"`, `text-muted-foreground` — "Blocked" → click unblocks (no confirm; not destructive) | Quiet; a block is not a brand moment. |
 | `blockedBy` | renders nothing | No affordance toward someone who blocked you. |
 
-Rules: **at most one filled `bg-primary` follow control per view** (the Follow / Follow back CTA). Once connected, the control is always `outline`. Block / Unblock lives in an adjacent `⋯` `DropdownMenu` (set `menu`), never a modal. Loading disables the trigger and relabels it ("Following…"); errors render as a `text-destructive` line below (§6.3). `size="default"` on profile (the stacked CTA), `size="sm"` in dense rows.
+Rules: **at most one filled `bg-primary` follow control per view** (the Follow / Follow back CTA). Once connected, the control is always `outline` and **stable** (no hover swap). Management lives in a `⋯` `DropdownMenu`: Challenge to a duel (friends only → `/duel/new?opponent=<id>`), Unfollow, Block. **Unfollow and Block always confirm** via `<ConfirmDialog>` (`src/components/confirm-dialog.tsx`, built on the shadcn `Dialog`) — a destructive relationship change is the sanctioned exception to the §-13 "modal as last resort" bias. `compact` (dense rows) hides the connected status button and shows only the ⋯; the default (profile hero) shows the labelled status that opens the same menu. Loading disables + relabels ("Following…"); errors render as a `text-destructive` line below (§6.3). `size="default"` on profile, `size="sm"` in dense rows.
 
-### 17.2 Segmented list tabs
+### 17.2 People navigation — friends-first, not chunky tabs
 
-Friend lists (Friends / Following / Followers) switch via a segmented control built from the existing `rounded-md` + `bg-muted/40` track idiom: active segment is `bg-background text-foreground shadow-sm`, inactive is `text-muted-foreground hover:text-foreground`. Counts ride inline in `tabular-nums text-muted-foreground`. Same visual family as the mode-bar — don't invent a second tab style.
+Friend lists (Friends / Following / Followers) are **friends-first**, not a chunky segmented control: the panel leads with a heading for the active list (defaulting to **Your friends** + count), and the other two views ride beside it as quiet uppercase text links (`text-muted-foreground hover:text-foreground`, count in `tabular-nums`). Leaving Friends surfaces a `‹ Friends` return link. Search sits directly under the heading. The point is that the page opens on who matters (your friends) and the directory views feel secondary, never a heavy three-up pill track competing for attention. Don't reintroduce the `bg-muted/40` segmented tabs here.
 
 ### 17.3 Empty-state copy
 
@@ -801,14 +801,15 @@ Don't invent a second "live"/"recording" badge for the broadcaster. A *spectatab
 
 ### 17.5 Friends hub — a social activity page (`/friends`)
 
-The friends hub (`src/app/friends/_components/`) is a **social page**: an activity feed is the spine, relationship management sits beside it. It's the one place flinttype runs avatars at full fidelity (an explicit product call, so the rest of the app stays avatar-free). Layout: a full-width header, then a two-column grid on `lg:` (`grid-cols-[1fr_340px]`) — **feed left, People rail right**; on mobile a segmented **Activity / People** toggle swaps the two. Everything is **inline — no popups** (the earlier docked bottom-sheet was wrong on desktop and is gone; do not reintroduce a sheet for the people list).
+The friends hub (`src/app/friends/_components/`) is a **calm, single-column social page** (`max-w-2xl`, centred), not a noisy feed. It's the one place flinttype runs avatars at full fidelity (an explicit product call, so the rest of the app stays avatar-free). Everything is **inline — no popups, no chunky tabs, no two-column rail** (earlier iterations had a feed-spine + People rail with a mobile Activity/People toggle; that's gone — don't reintroduce it). The single column scales straight from 375px to desktop.
 
-Feed column, top to bottom:
-1. **`Live now`** (`presence-sections.tsx` → `LiveNow`) — mutual friends currently broadcasting (`live.friendsLive`). Eyebrow dot is the pulsing coral spark. Each row is the **watch trigger** (whole row links to `/live/<userId>`, hover `bg-accent`): avatar (`status="live"`), handle + tags, a coral mini progress bar + live WPM, and an `Eye`+"Watch" affordance. The CTA is the row, not a filled button, so N live friends don't paint N coral sparks (§17.1). Always shown; a slim muted sentence stands in when nobody's live.
-2. **`Online`** (`OnlineNow`) — people you follow who are online but not live. Compact avatar chips linking to the profile. Hidden when none.
-3. **`Activity`** (`feed.tsx` → `ActivityFeed`) — the timeline, newest first, built from `notifications.list` (friends' PBs, duels, follows, your milestones). A **divided list** (hairline `border-b`, not a card grid — avoids the identical-card-grid ban): kind icon (lucide) + the baked `title`/`body` + relative time; rows with a destination are links; unread carry a quiet coral dot. Skeleton rows while loading; dashed-border empty (§17.3).
-
-People rail (`people-panel.tsx`) — Friends / Following / Followers segmented control (§17.2) + search + `FriendListRow`s with the full `<FollowButton menu>` management. Rendered inline (sticky rail on desktop, the "People" tab on mobile).
+Top to bottom (`friends-view.tsx`):
+1. **Header** — a slim `Tag` + `h1` + one-line description. No duels link here (the callout owns that).
+2. **`<ChallengesCallout>`** (`challenges-callout.tsx`) — the dedicated challenges entry, a single quiet bordered row linking to `/duels` with a `Swords` glyph. Shows the count of pending incoming challenges (derived from unread `duel_challenge` notifications) or an invitation when there are none. **Kept neutral, no coral** — clarity comes from the dedicated row, not colour, so it never competes with the live spark.
+3. **`Live now`** (`presence-sections.tsx` → `LiveNow`) — mutual friends currently broadcasting (`live.friendsLive`). Eyebrow dot is the pulsing coral spark. Each row is the **watch trigger** (whole row links to `/live/<userId>`, hover `bg-accent`): avatar (`status="live"`), handle + tags, a coral mini progress bar + live WPM, an `Eye`+"Watch" affordance. The CTA is the row, not a filled button, so N live friends don't paint N coral sparks (§17.1). **Hidden entirely when nobody's live** — no dead "nobody's here" card.
+4. **`Online`** (`OnlineNow`) — people you follow who are online but not live. Compact avatar chips with a quiet activity word (§17.7). **Hidden when none.**
+5. **People** (`people-panel.tsx`) — the spine: friends-first navigation (§17.2) + search + `FriendListRow`s with the full `<FollowButton compact>` management.
+6. **`<ActivitySection>`** (`activity-section.tsx`) — recent activity, **collapsed by default** behind a single understated toggle line ("Recent activity · N new"). Expanding reveals `<ActivityFeed>` in a capped, scrollable area (`max-h-80 overflow-y-auto`) so a long history never pushes the page down. Hidden entirely when there's nothing. The feed itself (`feed.tsx`) is a **tight divided list** (hairline `border-b`, not a card grid): small kind icon + baked `title` + relative time on one line; unread carry a quiet coral dot. Activity is *secondary* here — it must never be the loudest thing on the page.
 
 Rows (`friend-list-row.tsx`) + presence rows are the avatar-`group` that livens the avatar on hover. Don't reintroduce a dedicated `/live` broadcast page — broadcasting is ambient (§17.4) and watching is reached from this hub.
 

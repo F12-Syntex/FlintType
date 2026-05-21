@@ -5,18 +5,18 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Tag } from "@/components/ft";
 import { BackendError, useBackend } from "@/lib/backend";
-import { cn } from "@/lib/utils";
 import type { FriendRelationship, FriendUser } from "@/types/friends";
 import type { LiveFriend } from "@/types/live";
 import type { Notification } from "@/types/notification";
 import type { PresenceEntry } from "@/types/presence";
+import { ActivitySection } from "./activity-section";
+import { ChallengesCallout } from "./challenges-callout";
 import {
   withDummyFeed,
   withDummyLists,
   withDummyLive,
   withDummyPresence,
 } from "./dev-dummy";
-import { ActivityFeed } from "./feed";
 import { PeoplePanel } from "./people-panel";
 import { LiveNow, OnlineNow } from "./presence-sections";
 
@@ -32,11 +32,12 @@ type Lists = {
   following: FriendUser[];
   followers: FriendUser[];
 };
-type MobileView = "activity" | "people";
 
-/** /friends — a social page. The spine is an activity feed (who's live,
- *  friends' PBs, duels, new friendships); relationship management lives
- *  in an inline People panel (a desktop rail, a mobile tab). No popups. */
+/** /friends — a calm, single-column social page. A challenges entry sits
+ *  up top; who's live and who's online appear only when there's actually
+ *  someone there; the People list (friends-first) is the spine; recent
+ *  activity is tucked into a collapsed, scrollable section so it never
+ *  overwhelms. No popups, no chunky tabs. */
 export function FriendsView() {
   const { isSignedIn, isLoaded } = useUser();
   const backend = useBackend();
@@ -49,7 +50,6 @@ export function FriendsView() {
   );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<MobileView>("activity");
 
   const loadLists = useCallback(async () => {
     setError(null);
@@ -160,25 +160,23 @@ export function FriendsView() {
       ),
     [lists, onlineIds, liveIds],
   );
+  const pendingDuels = useMemo(
+    () =>
+      feed.filter((n) => n.kind === "duel_challenge" && n.readAtMs == null)
+        .length,
+    [feed],
+  );
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-7 px-1 py-6 sm:gap-8 sm:py-10">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:gap-7 sm:py-10">
       <header className="flex flex-col gap-2">
         <Tag tone="dim">Friends</Tag>
         <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           People you type with
         </h1>
-        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Who's typing right now, your friends' personal bests and duels, and
-          everyone you follow. Follow each other to become friends and unlock
-          duels and live spectating.
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          See who&apos;s typing right now, your friends, and everyone you follow.
         </p>
-        <Link
-          href="/duels"
-          className="mt-1 w-fit text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
-        >
-          Your duels →
-        </Link>
       </header>
 
       {isLoaded && !isSignedIn ? (
@@ -191,83 +189,21 @@ export function FriendsView() {
         <LoadingSkeleton />
       ) : (
         <>
-          <MobileTabs view={view} onView={setView} />
-          <div className="lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-8">
-            <div
-              className={cn(
-                "flex flex-col gap-7",
-                view === "people" && "hidden lg:flex",
-              )}
-            >
-              <LiveNow users={live} />
-              <OnlineNow users={onlineUsers} presenceById={presenceById} />
-              <section className="flex flex-col gap-3">
-                <Eyebrow>Activity</Eyebrow>
-                <ActivityFeed items={feed} loading={feedLoading} />
-              </section>
-            </div>
-            <aside
-              className={cn(
-                "mt-7 lg:mt-0",
-                view === "activity" && "hidden lg:block",
-              )}
-            >
-              <div className="flex flex-col gap-3 lg:sticky lg:top-6">
-                <Eyebrow>People</Eyebrow>
-                {lists ? (
-                  <PeoplePanel
-                    lists={lists}
-                    relationshipFor={relationshipFor}
-                    presenceById={presenceById}
-                    onChange={() => void loadLists()}
-                  />
-                ) : null}
-              </div>
-            </aside>
-          </div>
+          <ChallengesCallout pending={pendingDuels} />
+          <LiveNow users={live} />
+          <OnlineNow users={onlineUsers} presenceById={presenceById} />
+          {lists ? (
+            <PeoplePanel
+              lists={lists}
+              relationshipFor={relationshipFor}
+              presenceById={presenceById}
+              onChange={() => void loadLists()}
+            />
+          ) : null}
+          <ActivitySection items={feed} loading={feedLoading} />
         </>
       )}
     </main>
-  );
-}
-
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-      {children}
-    </span>
-  );
-}
-
-function MobileTabs({
-  view,
-  onView,
-}: {
-  view: MobileView;
-  onView: (v: MobileView) => void;
-}) {
-  return (
-    <div className="flex gap-1 rounded-md border border-border bg-muted/40 p-1 lg:hidden">
-      {(["activity", "people"] as const).map((v) => {
-        const active = v === view;
-        return (
-          <button
-            key={v}
-            type="button"
-            onClick={() => onView(v)}
-            aria-pressed={active}
-            className={cn(
-              "flex-1 rounded-md px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors",
-              active
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {v === "activity" ? "Activity" : "People"}
-          </button>
-        );
-      })}
-    </div>
   );
 }
 

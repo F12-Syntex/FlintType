@@ -1,14 +1,17 @@
 "use client";
 
-import { Ban, Check, MoreHorizontal } from "lucide-react";
+import { Ban, Check, ChevronDown, MoreHorizontal, Swords, UserMinus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useBackend } from "@/lib/backend";
 import { useAsyncAction } from "@/lib/use-async-action";
 import { cn } from "@/lib/utils";
@@ -24,20 +27,25 @@ const LOADING_LABEL: Record<Op, string> = {
 };
 
 /** The single relationship control, reused on profile heroes and
- *  friends-list rows. The brand coral marks exactly one thing here:
- *  the *Follow* / *Follow back* call to action (the move we want the
- *  viewer to make). Once connected it drops to a quiet outline, and
- *  the established-friendship state is marked only by a small coral
- *  check, so a screen never carries two competing sparks.
+ *  friends-list rows. The brand coral marks exactly one thing here: the
+ *  *Follow* / *Follow back* call to action. Once connected the control is
+ *  a **stable** status (it never morphs on hover); management actions
+ *  (Unfollow, Block, Challenge) live in a dropdown, and the destructive
+ *  ones route through a confirm step (ui-law §17.1).
  *
- *  Self-contained: owns optimistic relationship state + the three
- *  async states (loading disables + relabels the trigger, errors
- *  render below). Pass `menu` to expose Block/Unblock in a kebab. */
+ *  - `compact` (dense rows): the connected state shows *only* the ⋯ menu,
+ *    since the list a row sits in already says "following" / "friends".
+ *  - default (profile hero): the connected state shows a labelled status
+ *    button that opens the same menu, so the relationship reads at a
+ *    glance.
+ *
+ *  Self-contained: owns optimistic relationship state + the async states
+ *  (loading disables + relabels, errors render below). */
 export function FollowButton({
   userId,
   initial,
   size = "default",
-  menu = false,
+  compact = false,
   handle,
   className,
   onChange,
@@ -45,21 +53,24 @@ export function FollowButton({
   userId: string;
   initial: FriendRelationship;
   size?: "default" | "sm";
-  /** Show the Block/Unblock kebab beside the button. */
-  menu?: boolean;
-  /** `@handle` for the Block menu label; falls back to "this user". */
+  /** Dense-row mode: hide the connected status button, show only ⋯. */
+  compact?: boolean;
+  /** `@handle` for menu labels; falls back to "this person". */
   handle?: string | null;
   className?: string;
   onChange?: (rel: FriendRelationship) => void;
 }) {
   const backend = useBackend();
+  const router = useRouter();
   const [rel, setRel] = useState<FriendRelationship>(initial);
+  const [confirm, setConfirm] = useState<null | "unfollow" | "block">(null);
   const opRef = useRef<Op>("follow");
 
   const action = useAsyncAction<FriendRelationship>(async () => {
     const next = await backend.friends[opRef.current]({ userId });
     setRel(next);
     onChange?.(next);
+    setConfirm(null);
     return next;
   });
 
@@ -75,14 +86,64 @@ export function FollowButton({
   const err = action.result && !action.result.ok ? action.result.message : null;
   const btnSize = size === "sm" ? "sm" : "default";
   // The repo's Button `default` size is h-8 (32px) — under the §7 44px
-  // touch floor for a primary action. The full-size control is the
-  // profile CTA, so bump it on mobile and relax to the dense desktop
-  // height. Dense rows use size="sm" and stay compact (secondary).
-  const heightClass = size === "default" ? "h-11 sm:h-9" : "";
+  // touch floor for a primary action. The profile CTA bumps to 44 on
+  // mobile, relaxes to the dense desktop height. Rows use size="sm".
+  const heightClass = size === "default" ? "h-11 sm:h-9" : "h-8";
+  const handleName = handle ? `@${handle}` : "this person";
 
-  let button: React.ReactNode;
+  // The ⋯ menu body — Challenge (friends only), Unfollow, then Block.
+  const menuItems = (
+    <DropdownMenuContent align="end" sideOffset={6} className="min-w-48 p-1">
+      {rel.mutual ? (
+        <DropdownMenuItem
+          onSelect={() => router.push(`/duel/new?opponent=${userId}`)}
+          className="flex items-center gap-2.5 rounded-sm py-2 pl-2 pr-3 text-[12px] font-medium uppercase tracking-[0.12em]"
+        >
+          <Swords size={13} aria-hidden />
+          <span>Challenge to a duel</span>
+        </DropdownMenuItem>
+      ) : null}
+      {rel.following || rel.mutual ? (
+        <DropdownMenuItem
+          onSelect={() => setConfirm("unfollow")}
+          className="flex items-center gap-2.5 rounded-sm py-2 pl-2 pr-3 text-[12px] font-medium uppercase tracking-[0.12em]"
+        >
+          <UserMinus size={13} aria-hidden />
+          <span>Unfollow {handleName}</span>
+        </DropdownMenuItem>
+      ) : null}
+      {rel.following || rel.mutual ? <DropdownMenuSeparator /> : null}
+      <DropdownMenuItem
+        onSelect={() => setConfirm("block")}
+        className="flex items-center gap-2.5 rounded-sm py-2 pl-2 pr-3 text-[12px] font-medium uppercase tracking-[0.12em] text-destructive focus:text-destructive"
+      >
+        <Ban size={13} aria-hidden />
+        <span>Block {handleName}</span>
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  );
+
+  const kebabTrigger = (
+    <DropdownMenuTrigger asChild>
+      <button
+        type="button"
+        aria-label={`More options for ${handleName}`}
+        className={cn(
+          "inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground",
+          "transition-colors hover:border-foreground/40 hover:bg-accent hover:text-foreground",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+          size === "sm" && "size-8",
+        )}
+      >
+        <MoreHorizontal size={16} aria-hidden />
+      </button>
+    </DropdownMenuTrigger>
+  );
+
+  let control: React.ReactNode;
   if (rel.blocking) {
-    button = (
+    // Unblock isn't destructive — a plain toggle, no confirm.
+    control = (
       <Button
         type="button"
         variant="outline"
@@ -94,111 +155,90 @@ export function FollowButton({
         {loading ? LOADING_LABEL.unblock : "Blocked"}
       </Button>
     );
-  } else if (rel.mutual) {
-    // Friends — quiet outline, coral check, hover offers Unfollow.
-    button = (
-      <Button
-        type="button"
-        variant="outline"
-        size={btnSize}
-        disabled={loading}
-        onClick={() => trigger("unfollow")}
-        className={cn("group", heightClass)}
-      >
-        {loading ? (
-          LOADING_LABEL.unfollow
-        ) : (
-          <>
-            <span className="inline-flex items-center gap-1.5 group-hover:hidden">
-              <Check size={14} className="text-primary" aria-hidden />
-              Friends
-            </span>
-            <span className="hidden text-destructive group-hover:inline">
-              Unfollow
-            </span>
-          </>
-        )}
-      </Button>
+  } else if (rel.mutual || rel.following) {
+    // Connected — stable status, no hover morph. The trigger opens the
+    // management menu. Compact rows show only the ⋯; the profile shows a
+    // labelled status button that opens the same menu.
+    const statusTrigger = compact ? (
+      kebabTrigger
+    ) : (
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size={btnSize}
+          className={cn("gap-1.5", heightClass)}
+        >
+          {rel.mutual ? (
+            <Check size={14} className="text-primary" aria-hidden />
+          ) : null}
+          {rel.mutual ? "Friends" : "Following"}
+          <ChevronDown size={13} className="text-muted-foreground" aria-hidden />
+        </Button>
+      </DropdownMenuTrigger>
     );
-  } else if (rel.following) {
-    button = (
-      <Button
-        type="button"
-        variant="outline"
-        size={btnSize}
-        disabled={loading}
-        onClick={() => trigger("unfollow")}
-        className={cn("group", heightClass)}
-      >
-        {loading ? (
-          LOADING_LABEL.unfollow
-        ) : (
-          <>
-            <span className="group-hover:hidden">Following</span>
-            <span className="hidden text-destructive group-hover:inline">
-              Unfollow
-            </span>
-          </>
-        )}
-      </Button>
+    control = (
+      <DropdownMenu>
+        {statusTrigger}
+        {menuItems}
+      </DropdownMenu>
     );
   } else {
-    // Not following — the one coral CTA. "Follow back" when they
-    // already follow us.
-    button = (
-      <Button
-        type="button"
-        size={btnSize}
-        disabled={loading}
-        onClick={() => trigger("follow")}
-        className={heightClass || undefined}
-      >
-        {loading
-          ? LOADING_LABEL.follow
-          : rel.followedBy
-            ? "Follow back"
-            : "Follow"}
-      </Button>
+    // Not following — the one coral CTA, plus a ⋯ for Block.
+    control = (
+      <>
+        <Button
+          type="button"
+          size={btnSize}
+          disabled={loading}
+          onClick={() => trigger("follow")}
+          className={heightClass}
+        >
+          {loading
+            ? LOADING_LABEL.follow
+            : rel.followedBy
+              ? "Follow back"
+              : "Follow"}
+        </Button>
+        <DropdownMenu>
+          {kebabTrigger}
+          {menuItems}
+        </DropdownMenu>
+      </>
     );
   }
 
   return (
-    <div className={cn("flex flex-col gap-1", className)}>
-      <div className="flex items-center gap-2">
-        {button}
-        {menu && !rel.blocking ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                aria-label="More options"
-                className={cn(
-                  "inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground",
-                  "transition-colors hover:border-foreground/40 hover:bg-accent hover:text-foreground",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                  size === "sm" && "size-8",
-                )}
-              >
-                <MoreHorizontal size={16} aria-hidden />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" sideOffset={6} className="min-w-44 p-1">
-              <DropdownMenuItem
-                onSelect={() => trigger("block")}
-                className="flex items-center gap-2.5 rounded-sm py-2 pl-2 pr-3 text-[12px] font-medium uppercase tracking-[0.12em] text-destructive focus:text-destructive"
-              >
-                <Ban size={13} aria-hidden />
-                <span>Block {handle ? `@${handle}` : "this user"}</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null}
-      </div>
+    <div className={cn("flex flex-col items-end gap-1", className)}>
+      <div className="flex items-center gap-2">{control}</div>
       {err ? (
         <span className="text-[11px] text-destructive">
           Couldn&apos;t update. Try again.
         </span>
       ) : null}
+
+      <ConfirmDialog
+        open={confirm === "unfollow"}
+        onOpenChange={(o) => !o && setConfirm(null)}
+        title={`Unfollow ${handleName}?`}
+        description="You'll stop seeing their activity, and you won't be friends until you follow each other again."
+        confirmLabel="Unfollow"
+        loadingLabel="Unfollowing…"
+        destructive
+        loading={loading}
+        onConfirm={() => trigger("unfollow")}
+      />
+      <ConfirmDialog
+        open={confirm === "block"}
+        onOpenChange={(o) => !o && setConfirm(null)}
+        title={`Block ${handleName}?`}
+        description="You'll both be removed as followers and won't see each other's activity or be able to duel. You can unblock them later."
+        confirmLabel="Block"
+        loadingLabel="Blocking…"
+        destructive
+        loading={loading}
+        onConfirm={() => trigger("block")}
+      />
     </div>
   );
 }

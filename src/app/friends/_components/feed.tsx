@@ -131,27 +131,22 @@ function FeedRow({ item }: { item: Notification }) {
   const unread = item.readAtMs == null;
 
   const inner = (
-    <div className="flex items-start gap-3 border-b border-border/60 py-3 transition-colors group-hover:bg-accent/40">
-      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-card text-muted-foreground">
-        <Icon size={15} aria-hidden />
+    <div className="flex items-center gap-2.5 border-b border-border/60 py-2.5 transition-colors group-hover:bg-accent/40">
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-card text-muted-foreground">
+        <Icon size={13} aria-hidden />
       </span>
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="flex items-center gap-2">
-          <span className="truncate text-sm font-semibold text-foreground">
-            {item.title}
-          </span>
-          {unread ? (
-            <span
-              aria-label="Unread"
-              className="size-1.5 shrink-0 rounded-full bg-primary"
-            />
-          ) : null}
+      <span className="flex min-w-0 flex-1 items-baseline gap-2">
+        <span className="truncate text-[13px] font-medium text-foreground">
+          {item.title}
         </span>
-        <span className="line-clamp-2 text-[13px] leading-snug text-muted-foreground">
-          {item.body}
-        </span>
+        {unread ? (
+          <span
+            aria-label="Unread"
+            className="size-1.5 shrink-0 self-center rounded-full bg-primary"
+          />
+        ) : null}
       </span>
-      <span className="shrink-0 pt-0.5 text-[11px] tabular-nums text-muted-foreground">
+      <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
         {timeAgo(item.createdAtMs)}
       </span>
     </div>

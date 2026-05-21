@@ -38,10 +38,10 @@ function SectionHeader({
 
 /** "Live now" — mutual friends currently broadcasting a practice run.
  *  The whole row is the watch trigger; the coral spark is the live dot
- *  on the avatar and the progress bar. Always rendered (it's the
- *  headline), with a slim note when nobody's live rather than a big
- *  empty card. */
+ *  on the avatar and the progress bar. Hidden entirely when nobody's
+ *  live, so the hub never carries a dead "nobody's here" card. */
 export function LiveNow({ users }: { users: LiveFriend[] }) {
+  if (users.length === 0) return null;
   return (
     <section className="flex flex-col gap-3">
       <SectionHeader
@@ -49,20 +49,13 @@ export function LiveNow({ users }: { users: LiveFriend[] }) {
         count={users.length}
         dotClass="bg-primary motion-safe:animate-pulse"
       />
-      {users.length === 0 ? (
-        <p className="text-[12px] leading-relaxed text-muted-foreground">
-          No friends are practising right now. When a friend types with sharing
-          on, they show up here to watch.
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {users.map((u) => (
-            <li key={u.userId}>
-              <LiveRow user={u} />
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul className="flex flex-col gap-2">
+        {users.map((u) => (
+          <li key={u.userId}>
+            <LiveRow user={u} />
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
