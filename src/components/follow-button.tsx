@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/confirm-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useBackend } from "@/lib/backend";
 import { useAsyncAction } from "@/lib/use-async-action";
 import { cn } from "@/lib/utils";
@@ -221,24 +221,30 @@ export function FollowButton({
         open={confirm === "unfollow"}
         onOpenChange={(o) => !o && setConfirm(null)}
         title={`Unfollow ${handleName}?`}
-        description="You'll stop seeing their activity, and you won't be friends until you follow each other again."
         confirmLabel="Unfollow"
-        loadingLabel="Unfollowing…"
-        destructive
-        loading={loading}
+        confirmVariant="destructive"
+        confirmDisabled={loading}
         onConfirm={() => trigger("unfollow")}
-      />
+      >
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          You&apos;ll stop seeing their activity, and you won&apos;t be friends
+          until you follow each other again.
+        </p>
+      </ConfirmDialog>
       <ConfirmDialog
         open={confirm === "block"}
         onOpenChange={(o) => !o && setConfirm(null)}
         title={`Block ${handleName}?`}
-        description="You'll both be removed as followers and won't see each other's activity or be able to duel. You can unblock them later."
         confirmLabel="Block"
-        loadingLabel="Blocking…"
-        destructive
-        loading={loading}
+        confirmVariant="destructive"
+        confirmDisabled={loading}
         onConfirm={() => trigger("block")}
-      />
+      >
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          You&apos;ll both be removed as followers and won&apos;t see each
+          other&apos;s activity or be able to duel. You can unblock them later.
+        </p>
+      </ConfirmDialog>
     </div>
   );
 }

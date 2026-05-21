@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.95.2 — 21 May 2026
+- Internal changes only. (Unfollow/block confirmation now uses the app's shared dialog instead of a duplicate.)
+
 ## 6.95.1 — 21 May 2026
 - Tidied the Friends page. The Friends / Following / Followers switch now matches the app's main navigation, so switches look consistent everywhere. The cluttered "Recent activity" section is gone; your friends' personal bests, new follows, and duel updates all still appear in the notifications bell. Removed the small arrow and eye icons for a cleaner, calmer look.
 
