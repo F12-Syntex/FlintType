@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.97.3 — 21 May 2026
+- Your skill chart now sits compactly inside your main profile card, beside your stats, instead of taking up a whole separate section.
+
 ## 6.97.2 — 21 May 2026
 - Fixed: the "Read the update" link in the changelog now shows on phones, not just desktop.
 

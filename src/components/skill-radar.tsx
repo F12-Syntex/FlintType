@@ -27,10 +27,14 @@ const chartConfig = {
 export function SkillRadar({
   skills,
   baseline,
+  compact = false,
   className,
 }: {
   skills: SkillRadarSpoke[];
   baseline?: Record<string, number> | null;
+  /** Tighter sizing for embedding in the profile hero without wasting
+   *  space; the default (larger) is for the /updates showcase. */
+  compact?: boolean;
   className?: string;
 }) {
   const data = skills.map((s) => ({
@@ -39,20 +43,30 @@ export function SkillRadar({
     baseline: baseline ? Math.round(baseline[s.key] ?? 0) : 0,
   }));
   return (
-    <div className={cn("flex flex-col items-center gap-3", className)}>
+    <div className={cn("flex flex-col items-center gap-2", className)}>
       <ChartContainer
         config={chartConfig}
-        className="pointer-events-none aspect-square h-[240px] w-full max-w-[340px] select-none sm:h-[280px] [&_*]:outline-none"
+        className={cn(
+          "pointer-events-none aspect-square w-full select-none [&_*]:outline-none",
+          compact
+            ? "h-[190px] max-w-[250px] sm:h-[210px]"
+            : "h-[240px] max-w-[340px] sm:h-[280px]",
+        )}
       >
         <RadarChart
           data={data}
-          outerRadius="70%"
-          margin={{ top: 12, right: 36, bottom: 12, left: 36 }}
+          outerRadius={compact ? "66%" : "70%"}
+          margin={{
+            top: 10,
+            right: compact ? 30 : 36,
+            bottom: 10,
+            left: compact ? 30 : 36,
+          }}
         >
           <PolarGrid stroke="currentColor" strokeOpacity={0.12} />
           <PolarAngleAxis
             dataKey="axis"
-            tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+            tick={{ fill: "var(--muted-foreground)", fontSize: compact ? 10 : 11 }}
           />
           <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
           {baseline ? (
@@ -77,7 +91,12 @@ export function SkillRadar({
         </RadarChart>
       </ChartContainer>
       {baseline ? (
-        <div className="flex items-center gap-4 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        <div
+          className={cn(
+            "flex items-center gap-4 font-medium uppercase tracking-[0.14em] text-muted-foreground",
+            compact ? "text-[9px]" : "text-[10px]",
+          )}
+        >
           <span className="flex items-center gap-1.5">
             <span aria-hidden className="inline-block h-0.5 w-3 rounded-full bg-primary" />
             You

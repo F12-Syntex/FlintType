@@ -19,7 +19,6 @@ import {
   mergePersonalBestsWithMt,
   mergeTotalsWithMt,
 } from "./derive-stats";
-import { SkillPanel } from "./skill-panel";
 import { MonkeytypeBanner } from "./monkeytype-banner";
 import { MonkeyTypeImportDialog } from "./monkeytype-import-dialog";
 import { MonkeyTypeManageDialog } from "./monkeytype-manage-dialog";
@@ -205,6 +204,8 @@ export function ProfileView({ username }: { username?: string }) {
         onTagsChanged={heroIsOwner ? onTagsChanged : undefined}
         rank={snapshot?.rank ?? null}
         onRankChanged={heroIsOwner ? onRankChanged : undefined}
+        skills={skills}
+        showSkill={totals.testsCompleted > 0}
         totals={totals}
         streak={streak}
         isMtConnected={isMtConnected}
@@ -221,7 +222,6 @@ export function ProfileView({ username }: { username?: string }) {
         </div>
       ) : (
         <>
-          <SkillPanel skills={skills} enoughData={totals.testsCompleted > 0} />
           <PersonalBests bests={bests} />
           <ActivityHeatmap days={activity} streak={streak} />
           <WpmTrend points={trend} />
