@@ -36,9 +36,13 @@ function SectionHeader({
 }
 
 /** "Live now" — mutual friends currently broadcasting a practice run.
- *  The whole row is the watch trigger; the coral spark is the live dot
- *  on the avatar and the progress bar. Hidden entirely when nobody's
- *  live, so the hub never carries a dead "nobody's here" card. */
+ *  The headline of the hub: big, coral, exciting. Each friend is a card
+ *  (not a thin row) with their live WPM, a progress bar, and a filled
+ *  "Watch live" button that opens the real spectate screen. The card
+ *  shows a **static glimpse** only (WPM + progress) — it never streams a
+ *  live preview here (that's reserved for the watch page, to save the
+ *  poll/CPU). Two-up on `sm+` so the cards stay large. Hidden when
+ *  nobody's live. */
 export function LiveNow({ users }: { users: LiveFriend[] }) {
   if (users.length === 0) return null;
   return (
@@ -48,10 +52,10 @@ export function LiveNow({ users }: { users: LiveFriend[] }) {
         count={users.length}
         dotClass="bg-primary motion-safe:animate-pulse"
       />
-      <ul className="flex flex-col gap-2">
+      <ul className="grid gap-3 sm:grid-cols-2">
         {users.map((u) => (
           <li key={u.userId}>
-            <LiveRow user={u} />
+            <LiveCard user={u} />
           </li>
         ))}
       </ul>
@@ -59,43 +63,57 @@ export function LiveNow({ users }: { users: LiveFriend[] }) {
   );
 }
 
-function LiveRow({ user }: { user: LiveFriend }) {
+function LiveCard({ user }: { user: LiveFriend }) {
   const frac =
     user.totalChars > 0
       ? Math.min(1, Math.max(0, user.progressChars / user.totalChars))
       : 0;
   return (
-    <Link
-      href={`/live/${user.userId}`}
-      className="group flex items-center gap-3 rounded-md border border-border bg-card px-3 py-2.5 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-    >
-      <Avatar src={user.imageUrl} alt={user.name} size="md" status="live" />
-      <span className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-          <span className="truncate text-sm font-semibold text-foreground">
-            {user.name}
+    <div className="flex flex-col gap-4 rounded-md border border-border bg-card p-4 transition-colors hover:border-primary/40 sm:p-5">
+      <div className="flex items-center gap-3">
+        <Avatar src={user.imageUrl} alt={user.name} size="lg" status="live" />
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="truncate text-sm font-semibold text-foreground sm:text-base">
+              {user.name}
+            </span>
+            {user.tags.map((t) => (
+              <UserTag key={t} tag={t} size="sm" />
+            ))}
           </span>
-          {user.tags.map((t) => (
-            <UserTag key={t} tag={t} size="sm" />
-          ))}
-        </span>
-        <span className="flex items-center gap-2">
-          <span className="h-1 w-16 overflow-hidden rounded-full bg-foreground/[0.08]">
+          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">
             <span
               aria-hidden
-              className="block h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
-              style={{ width: `${frac * 100}%` }}
+              className="size-1.5 rounded-full bg-primary motion-safe:animate-pulse"
             />
-          </span>
-          <span className="text-[11px] tabular-nums text-muted-foreground">
-            <span className="text-foreground">{Math.round(user.wpm)}</span> wpm
+            Typing now
           </span>
         </span>
+        <span className="flex shrink-0 flex-col items-end leading-none">
+          <span className="text-2xl font-bold tabular-nums text-foreground sm:text-3xl">
+            {Math.round(user.wpm)}
+          </span>
+          <span className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            wpm
+          </span>
+        </span>
+      </div>
+      <span
+        aria-hidden
+        className="block h-1.5 w-full overflow-hidden rounded-full bg-foreground/[0.08]"
+      >
+        <span
+          className="block h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
+          style={{ width: `${frac * 100}%` }}
+        />
       </span>
-      <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition-colors group-hover:text-foreground">
-        Watch
-      </span>
-    </Link>
+      <Link
+        href={`/live/${user.userId}`}
+        className="inline-flex h-9 items-center justify-center rounded-md bg-primary text-[12px] font-semibold uppercase tracking-[0.16em] text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
+        Watch live
+      </Link>
+    </div>
   );
 }
 

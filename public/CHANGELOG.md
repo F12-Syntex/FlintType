@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.98.0 — 21 May 2026
+- The Friends page now uses the full page width like the rest of the app, with your people list on the left and what's-happening (challenges, who's online) on the right.
+- "Live now" is bigger and more exciting: each live friend is a card showing their live speed and progress, with a clear "Watch live" button that opens their screen.
+
 ## 6.97.7 — 21 May 2026
 - Your profile's Tests stat now shows how many you've started underneath the number you've completed (when they differ).
 

@@ -157,8 +157,21 @@ export function FriendsView() {
     [lists, onlineIds, liveIds],
   );
 
+  // The right rail (challenges + online) only earns its column when it
+  // has content; otherwise People spans the full width so the page never
+  // leaves a dead column.
+  const hasRail = duels.length > 0 || onlineUsers.length > 0;
+  const peoplePanel = lists ? (
+    <PeoplePanel
+      lists={lists}
+      relationshipFor={relationshipFor}
+      presenceById={presenceById}
+      onChange={() => void loadLists()}
+    />
+  ) : null;
+
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:gap-7 sm:py-10">
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-3 py-6 sm:gap-7 sm:px-5 sm:py-8 lg:px-8 lg:py-10">
       <header className="flex flex-col gap-2">
         <Tag tone="dim">Friends</Tag>
         <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
@@ -180,16 +193,17 @@ export function FriendsView() {
       ) : (
         <>
           <LiveNow users={live} />
-          <ChallengesSection duels={duels} />
-          <OnlineNow users={onlineUsers} presenceById={presenceById} />
-          {lists ? (
-            <PeoplePanel
-              lists={lists}
-              relationshipFor={relationshipFor}
-              presenceById={presenceById}
-              onChange={() => void loadLists()}
-            />
-          ) : null}
+          {hasRail ? (
+            <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start lg:gap-6">
+              <div className="order-2 lg:order-1">{peoplePanel}</div>
+              <div className="order-1 flex flex-col gap-6 lg:order-2">
+                <ChallengesSection duels={duels} />
+                <OnlineNow users={onlineUsers} presenceById={presenceById} />
+              </div>
+            </div>
+          ) : (
+            peoplePanel
+          )}
         </>
       )}
     </main>
