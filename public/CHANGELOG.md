@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.101.9 — 22 May 2026
+- Friends dock tidy-up: the panel is titled "Friends" now, and the member directory has a clear back arrow so you can always get back. The directory also lists everyone in your network — the people you follow and your followers — not just the people you follow. Hovering a row is now a calm neutral highlight instead of turning the name coral.
+
 ## 6.101.8 — 21 May 2026
 - Clicking the "Member directory" bar in the friends dock now opens it as a full view: the bar becomes the panel's header and the complete list of everyone you follow fills the area, with its own search. Close it (the X, or back on mobile) to return to your active members.
 

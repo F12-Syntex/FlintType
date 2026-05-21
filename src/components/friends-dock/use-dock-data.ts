@@ -26,7 +26,8 @@ export type DockData = {
   /** Incoming challenges still waiting to be taken (pending only — accepted
    *  / completed ones live on /duels). */
   challenges: Duel[];
-  /** Friends first, then everyone else you follow (deduped). */
+  /** Everyone in your network — friends, people you follow, and your
+   *  followers (deduped). */
   directory: FriendUser[];
   presenceById: Map<string, PresenceEntry>;
   /** People in the directory who are online right now. */
@@ -50,6 +51,7 @@ export function useDockData({
   const backend = useBackend();
   const [friends, setFriends] = useState<FriendUser[]>([]);
   const [following, setFollowing] = useState<FriendUser[]>([]);
+  const [followers, setFollowers] = useState<FriendUser[]>([]);
   const [live, setLive] = useState<LiveFriend[]>([]);
   const [challenges, setChallenges] = useState<Duel[]>([]);
   const [presenceById, setPresenceById] = useState<Map<string, PresenceEntry>>(
@@ -63,12 +65,14 @@ export function useDockData({
 
   const loadLists = useCallback(async () => {
     try {
-      const [f, fo] = signedIn
+      const [f, fo, fr] = signedIn
         ? await Promise.all([
             backend.friends.listFriends(),
             backend.friends.listFollowing(),
+            backend.friends.listFollowers(),
           ])
         : await Promise.all([
+            Promise.resolve({ users: [] as FriendUser[] }),
             Promise.resolve({ users: [] as FriendUser[] }),
             Promise.resolve({ users: [] as FriendUser[] }),
           ]);
@@ -76,11 +80,13 @@ export function useDockData({
       const merged = DEV_DUMMY ? withDummyLists(next) : next;
       setFriends(merged.friends);
       setFollowing(merged.following);
+      setFollowers(fr.users);
     } catch {
       if (DEV_DUMMY) {
         const merged = withDummyLists({ friends: [], following: [] });
         setFriends(merged.friends);
         setFollowing(merged.following);
+        setFollowers([]);
       }
     } finally {
       setLoading(false);
@@ -149,13 +155,14 @@ export function useDockData({
   const directory = useMemo(() => {
     const seen = new Set<string>();
     const out: FriendUser[] = [];
-    for (const u of [...friends, ...following]) {
+    // Mutual friends first, then people you follow, then your followers.
+    for (const u of [...friends, ...following, ...followers]) {
       if (seen.has(u.userId)) continue;
       seen.add(u.userId);
       out.push(u);
     }
     return out;
-  }, [friends, following]);
+  }, [friends, following, followers]);
 
   const onlineCount = useMemo(
     () =>

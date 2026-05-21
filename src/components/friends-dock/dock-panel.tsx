@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Search, Swords, Users, X } from "lucide-react";
+import { ArrowLeft, Plus, Search, Swords, Users, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, type ReactNode } from "react";
 import { Avatar, UserTag } from "@/components/ft";
@@ -46,7 +46,7 @@ function MemberRow({ m, onNavigate }: { m: Member; onNavigate: () => void }) {
       )}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex min-w-0 items-center gap-1.5">
-          <span className="truncate text-sm font-semibold text-foreground transition-colors group-hover:text-primary">
+          <span className="truncate text-sm font-semibold text-foreground">
             {m.name}
           </span>
           {m.tags.map((t) => (
@@ -229,7 +229,7 @@ export function DockPanelBody({
     <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-3">
       <span className="flex items-center gap-2">
         <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground">
-          Active members
+          Friends
         </span>
         <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
           {activeCount}
@@ -255,24 +255,29 @@ export function DockPanelBody({
       </span>
     </header>
   ) : (
-    <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-3">
-      <span className="flex min-w-0 items-center gap-3">
-        <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground">
-          <Users size={16} aria-hidden />
-        </span>
+    <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-2 py-3">
+      <span className="flex min-w-0 items-center gap-1">
+        <button
+          type="button"
+          onClick={() => setView("active")}
+          aria-label="Back to friends"
+          className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          <ArrowLeft size={16} aria-hidden />
+        </button>
         <span className="flex min-w-0 flex-col">
           <span className="truncate text-sm font-semibold text-foreground">
             Member directory
           </span>
           <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground tabular-nums">
-            {registered} {registered === 1 ? "person" : "people"} you follow
+            {registered} {registered === 1 ? "person" : "people"}
           </span>
         </span>
       </span>
       <button
         type="button"
-        onClick={() => setView("active")}
-        aria-label="Back to active members"
+        onClick={onClose}
+        aria-label="Close friends"
         className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
       >
         <X size={16} aria-hidden />
@@ -345,7 +350,7 @@ export function DockPanelBody({
                       Member directory
                     </span>
                     <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground tabular-nums">
-                      {registered} {registered === 1 ? "person" : "people"} you follow
+                      {registered} {registered === 1 ? "person" : "people"}
                     </span>
                   </span>
                   {stack.length > 0 ? (
