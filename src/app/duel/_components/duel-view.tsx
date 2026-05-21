@@ -51,6 +51,35 @@ export function DuelView({ id }: { id: string }) {
     };
   }, [backend, id, isLoaded, isSignedIn]);
 
+  // Live status: while the duel is still pending, poll so the page
+  // flips to the outcome the moment the opponent finishes — without a
+  // manual reload. Stops as soon as it's completed, and pauses on a
+  // hidden tab so a backgrounded duel page makes no requests.
+  const pending = duel?.status === "pending";
+  useEffect(() => {
+    if (!pending) return;
+    let cancelled = false;
+    const poll = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      backend.duels
+        .get({ id })
+        .then((d) => {
+          if (!cancelled) setDuel(d);
+        })
+        .catch(() => {});
+    };
+    const interval = window.setInterval(poll, 5_000);
+    const onVisible = () => {
+      if (!document.hidden) poll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [backend, id, pending]);
+
   async function handleFinish(result: TypingResult) {
     if (!duel) return;
     setSubmitting(true);

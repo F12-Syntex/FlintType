@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.99.2 — 21 May 2026
+- Duels now update on their own: when your opponent finishes the challenge, the result appears without you having to refresh the page.
+- The duel typing area now matches your normal practice screen — same passage colours (including your chosen Appearance settings) and type styling.
+
 ## 6.99.1 — 21 May 2026
 - Fixed: opening an old or expired race-challenge link — or returning to one whose lobby has already closed — no longer leaves you stuck on a blank screen. It now sends you back to the race menu.
 

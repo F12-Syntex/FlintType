@@ -173,8 +173,11 @@ export function TypingSurface({
         </div>
       </div>
 
-      {/* Passage */}
-      <p className="font-mono text-xl leading-[1.8] tracking-tight sm:text-2xl">
+      {/* Passage — painted in the native practice passage's visual
+       *  language: the same `--ft-passage-*` colour tokens (so it
+       *  follows the user's Appearance settings exactly like the main
+       *  typing screen) and the same mono typography + line-height. */}
+      <p className="font-mono text-2xl leading-[1.7] tracking-tight sm:text-[26px]">
         {target.split("").map((ch, i) => {
           const state =
             i < typed.length
@@ -188,12 +191,14 @@ export function TypingSurface({
             <span
               key={i}
               className={cn(
-                state === "correct" && "text-foreground",
+                state === "correct" &&
+                  "text-[var(--ft-passage-typed,var(--primary))]",
                 state === "wrong" &&
-                  "rounded-[2px] bg-destructive/20 text-destructive",
+                  "font-bold text-[var(--ft-passage-error,var(--destructive))]",
                 state === "cursor" &&
-                  "rounded-[2px] bg-primary/15 text-foreground underline decoration-primary decoration-2 underline-offset-4",
-                state === "untyped" && "text-muted-foreground/60",
+                  "rounded-[2px] text-[var(--ft-passage-untyped,var(--muted-foreground))] underline decoration-primary decoration-2 underline-offset-[6px]",
+                state === "untyped" &&
+                  "text-[var(--ft-passage-untyped,var(--muted-foreground))]",
                 ch === " " && "px-px",
               )}
             >
