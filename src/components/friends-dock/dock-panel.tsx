@@ -1,32 +1,13 @@
 "use client";
 
-import { motion, useReducedMotion, type Variants } from "framer-motion";
-import { Search, Swords, Users } from "lucide-react";
+import { ChevronDown, Search, Swords, Users } from "lucide-react";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Avatar, UserTag } from "@/components/ft";
 import { cn } from "@/lib/utils";
 import type { UserTagId } from "@/types/user-tag";
 import type { DockData } from "./use-dock-data";
 import { presenceCaption } from "./presence-label";
-
-/** Member rows sweep in on a quick stagger when the directory opens —
- *  the one sanctioned friends-reveal motion (ui-law §13). Transform +
- *  opacity only (never layout properties), spring tuned overdamped so
- *  it eases out with no bounce. Collapses to nothing under
- *  prefers-reduced-motion (the `reduce` branch drops the variants). */
-const LIST_VARIANTS: Variants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.035, delayChildren: 0.04 } },
-};
-const ROW_VARIANTS: Variants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { type: "spring", stiffness: 320, damping: 32, mass: 0.6 },
-  },
-};
 
 /** One row's worth of data, normalised across the three sources (live
  *  broadcasters, pending challenges, directory) so the panel renders a
@@ -45,16 +26,15 @@ type Member = {
   /** Status line under the name: a dot + a short label. */
   caption: { label: string; dotClass: string | null } | null;
   /** Right-aligned action chip — the only thing in that slot, and only
-   *  on actionable rows (Watch a live run, Accept a challenge). Plain
-   *  directory rows carry no chip; their status lives in the caption. */
+   *  on actionable rows (Watch a live run, Accept a challenge). */
   action: string | null;
   /** Sort bucket: challenges, then live, then online, then offline. */
   bucket: number;
 };
 
-/** A single member row — the shared shape for every entry in the list.
- *  Avatar with presence dot, name + identity tags, a status caption,
- *  and an optional right-aligned action chip. The whole row is a link. */
+/** A single member row — avatar with presence dot, name + identity
+ *  tags, a status caption, and an optional right-aligned action chip.
+ *  The whole row is a link. */
 function MemberRow({ m, onNavigate }: { m: Member; onNavigate: () => void }) {
   return (
     <Link
@@ -99,11 +79,31 @@ function MemberRow({ m, onNavigate }: { m: Member; onNavigate: () => void }) {
   );
 }
 
-/** The dock's content: a search box, one status-sorted member list
- *  (challenges → live → online → offline) rendered as the reference's
- *  "Active Members" card in flinttype's editorial language, and a
- *  "Member directory" footer row. Title + count + close chrome is
- *  owned by the surrounding surface (floating panel / MobileSheet). */
+function MemberList({
+  rows,
+  onNavigate,
+  className,
+}: {
+  rows: Member[];
+  onNavigate: () => void;
+  className?: string;
+}) {
+  return (
+    <ul className={cn("divide-y divide-border/60", className)}>
+      {rows.map((m) => (
+        <li key={m.key}>
+          <MemberRow m={m} onNavigate={onNavigate} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** The dock's content: a search box, the active members (challenges →
+ *  live → online), and a "Member directory" bar at the bottom that
+ *  expands in place to reveal everyone you follow. Searching collapses
+ *  it to one flat list of matches. Title + close chrome is owned by the
+ *  surrounding surface (floating panel / MobileSheet). */
 export function DockPanelBody({
   data,
   query,
@@ -117,7 +117,7 @@ export function DockPanelBody({
   onNavigate: () => void;
 }) {
   const { live, challenges, directory, presenceById, loading } = data;
-  const reduce = useReducedMotion();
+  const [dirOpen, setDirOpen] = useState(false);
 
   const members = useMemo<Member[]>(() => {
     const liveIds = new Set(live.map((u) => u.userId));
@@ -173,13 +173,26 @@ export function DockPanelBody({
     return out;
   }, [live, challenges, directory, presenceById]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const rows = q
-      ? members.filter((m) => m.name.toLowerCase().includes(q))
-      : members;
-    return [...rows].sort((a, b) => a.bucket - b.bucket);
-  }, [members, query]);
+  const q = query.trim().toLowerCase();
+  const searching = q.length > 0;
+
+  const matches = useMemo(
+    () => members.filter((m) => m.name.toLowerCase().includes(q)),
+    [members, q],
+  );
+  // Active = challenges + live + online (everyone worth acting on now).
+  const active = useMemo(
+    () =>
+      members.filter((m) => m.bucket <= 2).sort((a, b) => a.bucket - b.bucket),
+    [members],
+  );
+  // The full directory = everyone you follow (live + online + offline),
+  // for the expandable bar.
+  const directoryRows = useMemo(
+    () =>
+      members.filter((m) => m.bucket >= 1).sort((a, b) => a.bucket - b.bucket),
+    [members],
+  );
 
   const registered = directory.length;
   const stack = directory.slice(0, 3);
@@ -206,73 +219,109 @@ export function DockPanelBody({
         </div>
       </div>
 
-      {/* Member list */}
       {loading && members.length === 0 ? (
         <DirectorySkeleton />
       ) : members.length === 0 ? (
         <EmptyState />
-      ) : filtered.length === 0 ? (
-        <p className="px-3 py-8 text-center text-[12px] text-muted-foreground">
-          No one matches &ldquo;{query}&rdquo;.
-        </p>
+      ) : searching ? (
+        matches.length === 0 ? (
+          <p className="px-3 py-8 text-center text-[12px] text-muted-foreground">
+            No one matches &ldquo;{query}&rdquo;.
+          </p>
+        ) : (
+          <MemberList
+            rows={matches}
+            onNavigate={onNavigate}
+            className="border-y border-border/60"
+          />
+        )
       ) : (
-        <motion.ul
-          initial="hidden"
-          animate="visible"
-          variants={reduce ? undefined : LIST_VARIANTS}
-          className="divide-y divide-border/60 border-y border-border/60"
-        >
-          {filtered.map((m) => (
-            <motion.li key={m.key} variants={reduce ? undefined : ROW_VARIANTS}>
-              <MemberRow m={m} onNavigate={onNavigate} />
-            </motion.li>
-          ))}
-        </motion.ul>
-      )}
+        <>
+          {active.length > 0 ? (
+            <MemberList
+              rows={active}
+              onNavigate={onNavigate}
+              className="border-y border-border/60"
+            />
+          ) : (
+            <p className="border-y border-border/60 px-3 py-6 text-center text-[12px] text-muted-foreground">
+              No one&apos;s active right now.
+            </p>
+          )}
 
-      {/* Member directory footer */}
-      {registered > 0 ? (
-        <div className="p-3">
-          <Link
-            href="/leaderboard"
-            onClick={onNavigate}
-            className="group flex items-center gap-3 rounded-md border border-border bg-card px-3 py-2.5 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          >
-            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors group-hover:text-foreground">
-              <Users size={16} aria-hidden />
-            </span>
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-sm font-semibold text-foreground">
-                Member directory
-              </span>
-              <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground tabular-nums">
-                {registered} {registered === 1 ? "person" : "people"} you follow
-              </span>
-            </span>
-            {stack.length > 0 ? (
-              <span className="flex shrink-0 items-center">
-                <span className="flex -space-x-2">
-                  {stack.map((u) => (
-                    <Avatar
-                      key={u.userId}
-                      src={u.imageUrl}
-                      alt={u.name}
-                      size="sm"
-                      liven={false}
-                      dotRing="ring-card"
-                    />
-                  ))}
-                </span>
-                {overflow > 0 ? (
-                  <span className="z-10 -ml-2 inline-flex size-8 items-center justify-center rounded-full border border-border bg-background text-[10px] font-semibold tabular-nums text-muted-foreground ring-1 ring-foreground/10">
-                    +{overflow}
+          {/* Member directory — click the bar to expand the full list of
+           *  everyone you follow, in place (CSS grid-rows reveal: a calm
+           *  height transition, no spring, no stagger). */}
+          {registered > 0 ? (
+            <div className="p-3">
+              <div className="overflow-hidden rounded-md border border-border bg-card">
+                <button
+                  type="button"
+                  onClick={() => setDirOpen((o) => !o)}
+                  aria-expanded={dirOpen}
+                  className="group flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
+                >
+                  <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors group-hover:text-foreground">
+                    <Users size={16} aria-hidden />
                   </span>
-                ) : null}
-              </span>
-            ) : null}
-          </Link>
-        </div>
-      ) : null}
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-sm font-semibold text-foreground">
+                      Member directory
+                    </span>
+                    <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground tabular-nums">
+                      {registered} {registered === 1 ? "person" : "people"} you
+                      follow
+                    </span>
+                  </span>
+                  {!dirOpen && stack.length > 0 ? (
+                    <span className="flex shrink-0 items-center">
+                      <span className="flex -space-x-2">
+                        {stack.map((u) => (
+                          <Avatar
+                            key={u.userId}
+                            src={u.imageUrl}
+                            alt={u.name}
+                            size="sm"
+                            liven={false}
+                            dotRing="ring-card"
+                          />
+                        ))}
+                      </span>
+                      {overflow > 0 ? (
+                        <span className="z-10 -ml-2 inline-flex size-8 items-center justify-center rounded-full border border-border bg-background text-[10px] font-semibold tabular-nums text-muted-foreground ring-1 ring-foreground/10">
+                          +{overflow}
+                        </span>
+                      ) : null}
+                    </span>
+                  ) : null}
+                  <ChevronDown
+                    size={16}
+                    aria-hidden
+                    className={cn(
+                      "shrink-0 text-muted-foreground transition-transform duration-200",
+                      dirOpen && "rotate-180",
+                    )}
+                  />
+                </button>
+                <div
+                  className={cn(
+                    "grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none",
+                    dirOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+                  )}
+                >
+                  <div className="overflow-hidden">
+                    <MemberList
+                      rows={directoryRows}
+                      onNavigate={onNavigate}
+                      className="border-t border-border/60"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </>
+      )}
     </div>
   );
 }

@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.101.6 — 21 May 2026
+- The friends dock opens with a quiet fade now (the springy slide-in is gone). And the "Member directory" bar at the bottom actually does something: click it to expand the full list of everyone you follow right there in the panel, and click again to collapse it.
+
 ## 6.101.5 — 21 May 2026
 - Internal changes only.
 

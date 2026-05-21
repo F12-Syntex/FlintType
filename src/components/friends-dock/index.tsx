@@ -184,17 +184,12 @@ export function FriendsDock() {
           {open ? (
             <motion.div
               key="panel"
-              initial={reduce ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.94 }}
-              animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-              exit={reduce ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.96 }}
-              // Spring slide-up from the pill (the sanctioned friends
-              // reveal, ui-law §13). Overdamped so it eases out with no
-              // bounce; reduced-motion collapses it to a quick fade.
-              transition={
-                reduce
-                  ? { duration: 0.15 }
-                  : { type: "spring", stiffness: 260, damping: 32, mass: 0.9 }
-              }
+              // Quiet, fast fade — no slide, no spring, no stagger. The
+              // panel just appears.
+              initial={{ opacity: 0, scale: reduce ? 1 : 0.985 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: reduce ? 1 : 0.985 }}
+              transition={{ duration: 0.13, ease: "easeOut" }}
               style={{ transformOrigin: "bottom right" }}
               className="flex max-h-[70dvh] w-[min(88vw,360px)] flex-col overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
             >
