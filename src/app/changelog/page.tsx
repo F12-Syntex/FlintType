@@ -56,22 +56,24 @@ export default function ChangelogPage() {
                   sticky stacked column from md up so it stays beside a
                   long change list as the reader scrolls. The newest
                   release carries the single coral spark. */}
-              <div className="flex items-baseline justify-between gap-3 md:sticky md:top-24 md:block md:self-start">
-                <h2
-                  className={cn(
-                    "text-lg font-bold tracking-tight tabular-nums",
-                    i === 0 ? "text-primary" : "text-foreground",
-                  )}
-                >
-                  {entry.version}
-                </h2>
-                <time className="shrink-0 text-[10px] font-medium uppercase tracking-[0.18em] tabular-nums text-muted-foreground md:mt-2 md:block">
-                  {entry.date}
-                </time>
+              <div className="md:sticky md:top-24 md:self-start">
+                <div className="flex items-baseline justify-between gap-3 md:block">
+                  <h2
+                    className={cn(
+                      "text-lg font-bold tracking-tight tabular-nums",
+                      i === 0 ? "text-primary" : "text-foreground",
+                    )}
+                  >
+                    {entry.version}
+                  </h2>
+                  <time className="shrink-0 text-[10px] font-medium uppercase tracking-[0.18em] tabular-nums text-muted-foreground md:mt-2 md:block">
+                    {entry.date}
+                  </time>
+                </div>
                 {update ? (
                   <Link
                     href={`/updates/${update.slug}`}
-                    className="mt-1 hidden text-[10px] font-semibold uppercase tracking-[0.14em] text-primary underline-offset-4 transition-opacity hover:opacity-80 md:block"
+                    className="mt-2 inline-block text-[10px] font-semibold uppercase tracking-[0.14em] text-primary underline-offset-4 transition-opacity hover:opacity-80"
                   >
                     Read the update
                   </Link>

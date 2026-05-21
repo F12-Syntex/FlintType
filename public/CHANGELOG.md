@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.97.2 — 21 May 2026
+- Fixed: the "Read the update" link in the changelog now shows on phones, not just desktop.
+
 ## 6.97.1 — 21 May 2026
 - Internal: refreshed the skill-radar average baseline from real player data.
 
