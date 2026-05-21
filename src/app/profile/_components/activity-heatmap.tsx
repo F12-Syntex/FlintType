@@ -8,9 +8,13 @@ import type { DayCell, StreakStats } from "./derive-stats";
 export function ActivityHeatmap({
   days,
   streak,
+  bare = false,
 }: {
   days: DayCell[];
   streak: StreakStats;
+  /** Render without the bordered card wrapper, for embedding in a parent
+   *  panel (e.g. the Activity + Skill split card). */
+  bare?: boolean;
 }) {
   if (days.length === 0) return null;
   const max = days.reduce((m, d) => (d.tests > m ? d.tests : m), 0);
@@ -24,8 +28,8 @@ export function ActivityHeatmap({
     streak.longest > 0 ? `${streak.longest}-day record` : null,
   ].filter(Boolean) as string[];
 
-  return (
-    <section className="rounded-md border border-border bg-card px-4 py-4 sm:px-6 sm:py-5">
+  const content = (
+    <>
       <header className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
         <div className="flex items-center gap-3">
           <span aria-hidden className="inline-block h-px w-4 bg-primary" />
@@ -70,6 +74,13 @@ export function ActivityHeatmap({
         ))}
         <span>More</span>
       </div>
+    </>
+  );
+
+  if (bare) return content;
+  return (
+    <section className="rounded-md border border-border bg-card px-4 py-4 sm:px-6 sm:py-5">
+      {content}
     </section>
   );
 }

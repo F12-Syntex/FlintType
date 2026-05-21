@@ -19,8 +19,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SkillRadar } from "@/components/skill-radar";
-import { SKILL_BASELINE } from "@/lib/skill-baseline";
 import { cn } from "@/lib/utils";
 import type { FriendRelationship, FriendStats } from "@/types/friends";
 import type { RankId } from "@/types/rank";
@@ -28,7 +26,6 @@ import type { UserTagId } from "@/types/user-tag";
 import {
   XP_PER_LEVEL,
   type ProfileTotals,
-  type SkillAxis,
   type StreakStats,
 } from "./derive-stats";
 import { EditProfileDialog } from "./edit-profile-dialog";
@@ -52,8 +49,6 @@ export function ProfileHero({
   onTagsChanged,
   rank = null,
   onRankChanged,
-  skills = [],
-  showSkill = false,
   totals,
   streak,
   isMtConnected = false,
@@ -74,11 +69,6 @@ export function ProfileHero({
   /** Owner-only — fires after the rank is changed in the edit dialog so
    *  the hero badge updates without a snapshot refetch. */
   onRankChanged?: (next: RankId | null) => void;
-  /** The subject's four skill-radar spokes, rendered compactly beside the
-   *  stats. */
-  skills?: SkillAxis[];
-  /** Whether there's enough data to chart the radar (else it's omitted). */
-  showSkill?: boolean;
   totals: ProfileTotals;
   streak: StreakStats;
   /** Subject's Clerk id — drives the follow button + friend counts. */
@@ -206,51 +196,43 @@ export function ProfileHero({
         </div>
       </div>
 
-      {/* Level — full-width bar beneath identity. */}
-      <div className="mt-4">
-        <LevelLockup totals={totals} />
+      {/* Headline stats — a full-width strip (2×2 on mobile, four columns
+       *  from sm+). On a visitor's view the Follow CTA is the single coral
+       *  spark (§2), so the stat values stay ink; the owner's own profile
+       *  (no follow button) may accent them coral. */}
+      <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4 sm:gap-x-6">
+        <StatCell
+          label="Tests"
+          value={NUM_FMT.format(totals.testsCompleted)}
+          accent={isOwner}
+        />
+        <StatCell
+          label="Time typing"
+          value={formatDuration(totals.totalSeconds)}
+        />
+        <StatCell
+          label="Best WPM"
+          value={Math.round(totals.bestWpm).toString()}
+          sub={
+            totals.bestWpm > 0
+              ? `${totals.bestWpmAccuracy.toFixed(1)}%`
+              : undefined
+          }
+          accent={isOwner}
+        />
+        <StatCell
+          label="Streak"
+          value={`${streak.current}`}
+          suffix="d"
+          accent={isOwner && streak.current > 0}
+          sub={streak.longest > 0 ? `${streak.longest}d best` : undefined}
+        />
       </div>
 
-      {/* Headline stats + a compact skill radar sharing one row. The
-       *  level bar above already reads as the divider, so no rule here.
-       *  On a visitor's view the Follow CTA is the single coral spark
-       *  (§2), so the stat values stay ink; coral accents are reserved
-       *  for the owner's profile. The radar fills the otherwise-empty
-       *  right edge on md+ and stacks under the stats on mobile. */}
-      <div className="mt-5 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-10">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4 sm:gap-x-6">
-          <StatCell
-            label="Tests"
-            value={NUM_FMT.format(totals.testsCompleted)}
-            accent={isOwner}
-          />
-          <StatCell
-            label="Time typing"
-            value={formatDuration(totals.totalSeconds)}
-          />
-          <StatCell
-            label="Best WPM"
-            value={Math.round(totals.bestWpm).toString()}
-            sub={
-              totals.bestWpm > 0
-                ? `${totals.bestWpmAccuracy.toFixed(1)}%`
-                : undefined
-            }
-            accent={isOwner}
-          />
-          <StatCell
-            label="Streak"
-            value={`${streak.current}`}
-            suffix="d"
-            accent={isOwner && streak.current > 0}
-            sub={streak.longest > 0 ? `${streak.longest}d best` : undefined}
-          />
-        </div>
-        {showSkill && skills.length > 0 ? (
-          <div className="mx-auto w-full max-w-[250px] md:mx-0 md:w-[220px] md:shrink-0">
-            <SkillRadar skills={skills} baseline={SKILL_BASELINE} compact />
-          </div>
-        ) : null}
+      {/* Experience — the big full-width bar that closes the card. It's the
+       *  last element, so nothing sits in dead space beneath it. */}
+      <div className="mt-6 border-t border-border/60 pt-5">
+        <LevelLockup totals={totals} />
       </div>
 
       {isOwner ? (
@@ -349,25 +331,23 @@ function FriendCounts({
   return inner;
 }
 
-/** The experience bar — the hero's full-width progress block. Doubles
- *  as the divider between identity and the stats strip, so the card
- *  needs no separate rule. Bigger + more detailed than a thin meter: a
- *  prominent level number, a 2px-tall track, and the total / to-next-
- *  level breakdown beneath. */
+/** The experience bar — the big full-width progress block that closes the
+ *  hero card. A prominent level number, a chunky 3px track, and a total /
+ *  to-next-level breakdown beneath. */
 function LevelLockup({ totals }: { totals: ProfileTotals }) {
   const toNext = Math.max(0, XP_PER_LEVEL - totals.xpIntoLevel);
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2.5">
       <div className="flex items-end justify-between gap-3">
         <span className="flex items-baseline gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Level
           </span>
-          <span className="text-xl font-bold leading-none tracking-[-0.02em] tabular-nums text-foreground sm:text-2xl">
+          <span className="text-2xl font-extrabold leading-none tracking-[-0.03em] tabular-nums text-foreground sm:text-3xl">
             {totals.level}
           </span>
         </span>
-        <span className="text-[11px] tabular-nums text-muted-foreground">
+        <span className="text-xs tabular-nums text-muted-foreground">
           <span className="font-semibold text-foreground">
             {NUM_FMT.format(totals.xpIntoLevel)}
           </span>{" "}
@@ -376,7 +356,7 @@ function LevelLockup({ totals }: { totals: ProfileTotals }) {
       </div>
       <span
         aria-hidden
-        className="relative block h-2 w-full overflow-hidden rounded-full bg-foreground/[0.08]"
+        className="relative block h-3 w-full overflow-hidden rounded-full bg-foreground/[0.08]"
       >
         <span
           className="absolute inset-y-0 left-0 rounded-full bg-primary"

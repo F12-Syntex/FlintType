@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.97.5 — 21 May 2026
+- Redesigned the profile's main card: a bigger experience bar now anchors the bottom of the card (no more empty gap under it), and your activity heatmap and skill chart share one tidy split card below.
+
 ## 6.97.4 — 21 May 2026
 - Update pages are now a clean, light, icon-led card you can screenshot to announce a release, instead of a technical list. Find them via "Read the update" in the changelog.
 - The version number now stays beside its notes as you scroll the changelog.

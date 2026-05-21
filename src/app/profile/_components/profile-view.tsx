@@ -8,7 +8,7 @@ import type { FriendRelationship, FriendStats } from "@/types/friends";
 import type { HistorySummaryOutput } from "@/types/history";
 import type { RankId } from "@/types/rank";
 import type { MonkeytypeStatsSlice } from "@/types/monkeytype";
-import { ActivityHeatmap } from "./activity-heatmap";
+import { ActivitySkillCard } from "./activity-skill-card";
 import {
   deriveActivity,
   derivePersonalBests,
@@ -204,8 +204,6 @@ export function ProfileView({ username }: { username?: string }) {
         onTagsChanged={heroIsOwner ? onTagsChanged : undefined}
         rank={snapshot?.rank ?? null}
         onRankChanged={heroIsOwner ? onRankChanged : undefined}
-        skills={skills}
-        showSkill={totals.testsCompleted > 0}
         totals={totals}
         streak={streak}
         isMtConnected={isMtConnected}
@@ -222,8 +220,13 @@ export function ProfileView({ username }: { username?: string }) {
         </div>
       ) : (
         <>
+          <ActivitySkillCard
+            days={activity}
+            streak={streak}
+            skills={skills}
+            enoughSkill={totals.testsCompleted > 0}
+          />
           <PersonalBests bests={bests} />
-          <ActivityHeatmap days={activity} streak={streak} />
           <WpmTrend points={trend} />
           <RecentRuns tests={tests} handle={username ?? "racer"} />
         </>
