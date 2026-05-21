@@ -206,7 +206,10 @@ export function FriendsDock() {
               exit={{ opacity: 0, scale: reduce ? 1 : 0.985 }}
               transition={{ duration: 0.13, ease: "easeOut" }}
               style={{ transformOrigin: "bottom right" }}
-              className="flex max-h-[70dvh] w-[min(88vw,360px)] flex-col overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
+              // Fixed height so switching between Friends and the Member
+              // directory never resizes the panel — the views move within
+              // a stable frame.
+              className="h-[min(72dvh,540px)] w-[min(88vw,360px)] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
             >
               {body}
             </motion.div>

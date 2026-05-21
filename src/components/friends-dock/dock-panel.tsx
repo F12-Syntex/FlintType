@@ -1,8 +1,9 @@
 "use client";
 
+import { AnimatePresence, motion, useReducedMotion, type Variants } from "framer-motion";
 import { ArrowLeft, Plus, Search, Swords, Users, X } from "lucide-react";
 import Link from "next/link";
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useRef } from "react";
 import { Avatar, UserTag } from "@/components/ft";
 import { cn } from "@/lib/utils";
 import type { UserTagId } from "@/types/user-tag";
@@ -11,22 +12,16 @@ import { presenceCaption } from "./presence-label";
 
 export type DockView = "active" | "directory";
 
-/** One row's worth of data, normalised across the three sources (live
- *  broadcasters, pending challenges, directory) so every list renders
- *  the same uniform row. */
 type Member = {
   key: string;
   href: string;
   src: string | null;
   name: string;
   tags: readonly UserTagId[];
-  /** A challenge has no avatar — render a swords glyph tile instead. */
   icon?: "swords";
   dot: "live" | "online" | null;
   caption: { label: string; dotClass: string | null } | null;
-  /** Right-aligned action chip (Watch a live run / Accept a challenge). */
   action: string | null;
-  /** Sort bucket: challenges, then live, then online, then offline. */
   bucket: number;
 };
 
@@ -104,7 +99,7 @@ function SearchBox({
   placeholder: string;
 }) {
   return (
-    <div className="px-3 pb-3 pt-3">
+    <div className="shrink-0 px-3 pb-3 pt-3">
       <div className="relative">
         <Search
           size={15}
@@ -124,17 +119,26 @@ function SearchBox({
   );
 }
 
-/** The dock's content. Two views inside one panel:
- *   - "active":    Active-members header, search, the live/online list,
- *                  and a Member-directory bar at the bottom.
- *   - "directory": the bar takes over — its header replaces the title,
- *                  the content area is replaced by the full follow list
- *                  (the reference's img1 → img2). Closing the directory
- *                  view (X / back) returns to active.
+/** Slide+fade between the two views — a clean directional push (forward
+ *  into the directory, back to friends), eased out with no bounce, and
+ *  flattened to a plain crossfade under prefers-reduced-motion. The
+ *  panel frame is a fixed size, so the views move *within* it; the modal
+ *  never resizes between views. */
+const VIEW_VARIANTS: Variants = {
+  enter: (d: number) => ({ opacity: 0, x: d * 22 }),
+  center: { opacity: 1, x: 0 },
+  exit: (d: number) => ({ opacity: 0, x: d * -22 }),
+};
+
+/** The dock's content. Two views inside ONE fixed-size frame:
+ *   - "active":    Friends header, search, the live/online list, and a
+ *                  Member-directory bar pinned to the bottom.
+ *   - "directory": the directory takes over the whole frame — a header
+ *                  with a back arrow, search, and the full follow list.
  *
  *  `withHeader` is true on desktop (the floating panel has no chrome of
- *  its own, so the body owns the header + scroll). On mobile the
- *  MobileSheet supplies the header + scroll, so the body renders bare. */
+ *  its own). On mobile the MobileSheet supplies the header, so the body
+ *  renders without one. */
 export function DockPanelBody({
   data,
   query,
@@ -155,6 +159,7 @@ export function DockPanelBody({
   withHeader?: boolean;
 }) {
   const { live, challenges, directory, presenceById, loading } = data;
+  const reduce = useReducedMotion();
 
   const members = useMemo<Member[]>(() => {
     const liveIds = new Set(live.map((u) => u.userId));
@@ -224,176 +229,179 @@ export function DockPanelBody({
   const stack = directory.slice(0, 3);
   const overflow = Math.max(0, registered - stack.length);
 
-  /* ─── Headers (desktop only; mobile uses the sheet's header) ─── */
-  const header = !withHeader ? null : view === "active" ? (
-    <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-3">
-      <span className="flex items-center gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground">
-          Friends
-        </span>
-        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
-          {activeCount}
-        </span>
-      </span>
-      <span className="flex items-center gap-0.5">
-        <Link
-          href="/leaderboard"
-          onClick={onNavigate}
-          aria-label="Find people to follow"
-          className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        >
-          <Plus size={16} aria-hidden />
-        </Link>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close friends"
-          className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        >
-          <X size={16} aria-hidden />
-        </button>
-      </span>
-    </header>
-  ) : (
-    <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-2 py-3">
-      <span className="flex min-w-0 items-center gap-1">
-        <button
-          type="button"
-          onClick={() => setView("active")}
-          aria-label="Back to friends"
-          className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        >
-          <ArrowLeft size={16} aria-hidden />
-        </button>
-        <span className="flex min-w-0 flex-col">
-          <span className="truncate text-sm font-semibold text-foreground">
-            Member directory
+  // Slide direction: +1 forward (friends → directory), -1 back. Derived
+  // during render (the sanctioned "adjust a ref when a prop changes").
+  const dirRef = useRef(0);
+  const prevViewRef = useRef(view);
+  if (prevViewRef.current !== view) {
+    dirRef.current = view === "directory" ? 1 : -1;
+    prevViewRef.current = view;
+  }
+
+  /* ─── Friends (active) view ─── */
+  const friendsView = (
+    <>
+      {withHeader ? (
+        <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-3">
+          <span className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground">
+              Friends
+            </span>
+            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
+              {activeCount}
+            </span>
           </span>
-          <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground tabular-nums">
-            {registered} {registered === 1 ? "person" : "people"}
+          <span className="flex items-center gap-0.5">
+            <Link
+              href="/leaderboard"
+              onClick={onNavigate}
+              aria-label="Find people to follow"
+              className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <Plus size={16} aria-hidden />
+            </Link>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close friends"
+              className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <X size={16} aria-hidden />
+            </button>
           </span>
-        </span>
-      </span>
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label="Close friends"
-        className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-      >
-        <X size={16} aria-hidden />
-      </button>
-    </header>
+        </header>
+      ) : null}
+      <SearchBox value={query} onChange={setQuery} placeholder="Search teammates…" />
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {loading && members.length === 0 ? (
+          <DirectorySkeleton />
+        ) : members.length === 0 ? (
+          <EmptyState />
+        ) : q ? (
+          (() => {
+            const matches = members.filter(byName);
+            return matches.length === 0 ? (
+              <NoMatch query={query} />
+            ) : (
+              <MemberList rows={matches} onNavigate={onNavigate} className="border-y border-border/60" />
+            );
+          })()
+        ) : active.length > 0 ? (
+          <MemberList rows={active} onNavigate={onNavigate} className="border-y border-border/60" />
+        ) : (
+          <p className="border-y border-border/60 px-3 py-6 text-center text-[12px] text-muted-foreground">
+            No one&apos;s active right now.
+          </p>
+        )}
+      </div>
+      {registered > 0 && !q ? (
+        <div className="shrink-0 p-3">
+          <button
+            type="button"
+            onClick={() => setView("directory")}
+            className="group flex w-full items-center gap-3 rounded-md border border-border bg-card px-3 py-2.5 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors group-hover:text-foreground">
+              <Users size={16} aria-hidden />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate text-sm font-semibold text-foreground">
+                Member directory
+              </span>
+              <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground tabular-nums">
+                {registered} {registered === 1 ? "person" : "people"}
+              </span>
+            </span>
+            {stack.length > 0 ? (
+              <span className="flex shrink-0 items-center">
+                <span className="flex -space-x-2">
+                  {stack.map((u) => (
+                    <Avatar
+                      key={u.userId}
+                      src={u.imageUrl}
+                      alt={u.name}
+                      size="sm"
+                      liven={false}
+                      dotRing="ring-card"
+                    />
+                  ))}
+                </span>
+                {overflow > 0 ? (
+                  <span className="z-10 -ml-2 inline-flex size-8 items-center justify-center rounded-full border border-border bg-background text-[10px] font-semibold tabular-nums text-muted-foreground ring-1 ring-foreground/10">
+                    +{overflow}
+                  </span>
+                ) : null}
+              </span>
+            ) : null}
+          </button>
+        </div>
+      ) : null}
+    </>
   );
 
-  /* ─── Body per view ─── */
-  let body: ReactNode;
-  if (loading && members.length === 0) {
-    body = (
-      <>
-        <SearchBox value={query} onChange={setQuery} placeholder="Search teammates…" />
-        <DirectorySkeleton />
-      </>
-    );
-  } else if (members.length === 0) {
-    body = (
-      <>
-        <SearchBox value={query} onChange={setQuery} placeholder="Search teammates…" />
-        <EmptyState />
-      </>
-    );
-  } else if (view === "directory") {
-    const rows = q ? directoryRows.filter(byName) : directoryRows;
-    body = (
-      <>
-        <SearchBox value={query} onChange={setQuery} placeholder="Search members…" />
-        {rows.length === 0 ? (
+  /* ─── Directory view (full takeover) ─── */
+  const dirShown = q ? directoryRows.filter(byName) : directoryRows;
+  const directoryView = (
+    <>
+      {withHeader ? (
+        <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-2 py-3">
+          <span className="flex min-w-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setView("active")}
+              aria-label="Back to friends"
+              className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <ArrowLeft size={16} aria-hidden />
+            </button>
+            <span className="flex min-w-0 flex-col">
+              <span className="truncate text-sm font-semibold text-foreground">
+                Member directory
+              </span>
+              <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground tabular-nums">
+                {registered} {registered === 1 ? "person" : "people"}
+              </span>
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close friends"
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <X size={16} aria-hidden />
+          </button>
+        </header>
+      ) : null}
+      <SearchBox value={query} onChange={setQuery} placeholder="Search members…" />
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {dirShown.length === 0 ? (
           <NoMatch query={query} />
         ) : (
-          <MemberList rows={rows} onNavigate={onNavigate} className="border-t border-border/60" />
+          <MemberList rows={dirShown} onNavigate={onNavigate} className="border-t border-border/60" />
         )}
-      </>
-    );
-  } else {
-    // Active view. A query searches everyone (flat) and hides the bar;
-    // otherwise show the active list + the directory bar.
-    const matches = q ? members.filter(byName) : null;
-    body = (
-      <>
-        <SearchBox value={query} onChange={setQuery} placeholder="Search teammates…" />
-        {matches ? (
-          matches.length === 0 ? (
-            <NoMatch query={query} />
-          ) : (
-            <MemberList rows={matches} onNavigate={onNavigate} className="border-y border-border/60" />
-          )
-        ) : (
-          <>
-            {active.length > 0 ? (
-              <MemberList rows={active} onNavigate={onNavigate} className="border-y border-border/60" />
-            ) : (
-              <p className="border-y border-border/60 px-3 py-6 text-center text-[12px] text-muted-foreground">
-                No one&apos;s active right now.
-              </p>
-            )}
-            {registered > 0 ? (
-              <div className="p-3">
-                <button
-                  type="button"
-                  onClick={() => setView("directory")}
-                  className="group flex w-full items-center gap-3 rounded-md border border-border bg-card px-3 py-2.5 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                >
-                  <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors group-hover:text-foreground">
-                    <Users size={16} aria-hidden />
-                  </span>
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate text-sm font-semibold text-foreground">
-                      Member directory
-                    </span>
-                    <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground tabular-nums">
-                      {registered} {registered === 1 ? "person" : "people"}
-                    </span>
-                  </span>
-                  {stack.length > 0 ? (
-                    <span className="flex shrink-0 items-center">
-                      <span className="flex -space-x-2">
-                        {stack.map((u) => (
-                          <Avatar
-                            key={u.userId}
-                            src={u.imageUrl}
-                            alt={u.name}
-                            size="sm"
-                            liven={false}
-                            dotRing="ring-card"
-                          />
-                        ))}
-                      </span>
-                      {overflow > 0 ? (
-                        <span className="z-10 -ml-2 inline-flex size-8 items-center justify-center rounded-full border border-border bg-background text-[10px] font-semibold tabular-nums text-muted-foreground ring-1 ring-foreground/10">
-                          +{overflow}
-                        </span>
-                      ) : null}
-                    </span>
-                  ) : null}
-                </button>
-              </div>
-            ) : null}
-          </>
-        )}
-      </>
-    );
-  }
+      </div>
+    </>
+  );
 
-  // Desktop: header sits above a scrollable body. Mobile: the sheet
-  // already provides the header + scroll, so render the body bare.
-  if (withHeader) {
-    return (
-      <>
-        {header}
-        <div className="min-h-0 flex-1 overflow-y-auto">{body}</div>
-      </>
-    );
-  }
-  return <>{body}</>;
+  return (
+    <div className="relative h-full min-h-0 overflow-hidden">
+      <AnimatePresence initial={false} custom={dirRef.current}>
+        <motion.div
+          key={view}
+          custom={dirRef.current}
+          variants={reduce ? undefined : VIEW_VARIANTS}
+          initial={reduce ? { opacity: 0 } : "enter"}
+          animate={reduce ? { opacity: 1 } : "center"}
+          exit={reduce ? { opacity: 0 } : "exit"}
+          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute inset-0 flex min-h-0 flex-col"
+        >
+          {view === "active" ? friendsView : directoryView}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
 }
 
 function NoMatch({ query }: { query: string }) {

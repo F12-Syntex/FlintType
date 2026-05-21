@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.101.10 — 22 May 2026
+- The friends dock is now a fixed size, so opening the Member directory no longer makes the panel jump to a different size. Switching between Friends and the directory now slides cleanly (forward into the directory, back to Friends) instead of snapping.
+
 ## 6.101.9 — 22 May 2026
 - Friends dock tidy-up: the panel is titled "Friends" now, and the member directory has a clear back arrow so you can always get back. The directory also lists everyone in your network — the people you follow and your followers — not just the people you follow. Hovering a row is now a calm neutral highlight instead of turning the name coral.
 
