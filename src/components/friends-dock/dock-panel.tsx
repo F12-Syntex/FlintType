@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { Search, Swords, Users } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -8,6 +9,24 @@ import { cn } from "@/lib/utils";
 import type { UserTagId } from "@/types/user-tag";
 import type { DockData } from "./use-dock-data";
 import { presenceCaption } from "./presence-label";
+
+/** Member rows sweep in on a quick stagger when the directory opens —
+ *  the one sanctioned friends-reveal motion (ui-law §13). Transform +
+ *  opacity only (never layout properties), spring tuned overdamped so
+ *  it eases out with no bounce. Collapses to nothing under
+ *  prefers-reduced-motion (the `reduce` branch drops the variants). */
+const LIST_VARIANTS: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.035, delayChildren: 0.04 } },
+};
+const ROW_VARIANTS: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring", stiffness: 320, damping: 32, mass: 0.6 },
+  },
+};
 
 /** One row's worth of data, normalised across the three sources (live
  *  broadcasters, pending challenges, directory) so the panel renders a
@@ -98,6 +117,7 @@ export function DockPanelBody({
   onNavigate: () => void;
 }) {
   const { live, challenges, directory, presenceById, loading } = data;
+  const reduce = useReducedMotion();
 
   const members = useMemo<Member[]>(() => {
     const liveIds = new Set(live.map((u) => u.userId));
@@ -196,13 +216,18 @@ export function DockPanelBody({
           No one matches &ldquo;{query}&rdquo;.
         </p>
       ) : (
-        <ul className="divide-y divide-border/60 border-y border-border/60">
+        <motion.ul
+          initial="hidden"
+          animate="visible"
+          variants={reduce ? undefined : LIST_VARIANTS}
+          className="divide-y divide-border/60 border-y border-border/60"
+        >
           {filtered.map((m) => (
-            <li key={m.key}>
+            <motion.li key={m.key} variants={reduce ? undefined : ROW_VARIANTS}>
               <MemberRow m={m} onNavigate={onNavigate} />
-            </li>
+            </motion.li>
           ))}
-        </ul>
+        </motion.ul>
       )}
 
       {/* Member directory footer */}
