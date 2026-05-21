@@ -858,12 +858,13 @@ The profile is the app's **shareable surface** — built to look good to a stran
 2. **Experience bar** — the full-width level/XP block (`LevelLockup`): a prominent level number, a 2px-tall track, and a total-XP / to-next-level breakdown beneath. It **doubles as the divider** between identity and stats, so the card carries **no separate hairline rule** there.
 3. **Stats strip** — a full-width `grid-cols-2 sm:grid-cols-4` row (Tests / Time / Best WPM / Streak), no top border (the experience bar divides). Stat values stay ink on a visitor's view so the coral Follow CTA is the page's one spark (§2); the owner's own profile (no follow button) may accent them coral.
 
-### 18.2 Skill radar (`skill-panel.tsx`)
+### 18.2 Skill radar (`<SkillRadar>`, `src/components/skill-radar.tsx`)
 
-The headline "who is this typist" block: a **four-spoke** radar (**Speed, Accuracy, Consistency, Endurance**), **standalone** — the shape is the story, with **no value table beside it** (redundant; raw numbers live in the stats strip + Personal bests). Derived by `deriveSkills` (`derive-stats.ts`) — each spoke a 0–100 score: Speed = best WPM vs a **300** ceiling; Endurance = best WPM on any ~30s+ run (keyed off actual elapsed time ≥ ~28s, since `mode` doesn't distinguish time vs words) vs a **250** ceiling; Accuracy rescaled into the 80–100 band; Consistency = 100 − WPM CV. Honest on cold start; below one completed test the panel shows a calm "not enough runs yet" note.
+The headline "who is this typist" block: a **four-spoke** radar (**Speed, Accuracy, Consistency, Endurance**), **standalone** — the shape is the story, with **no value table beside it** (redundant; raw numbers live in the stats strip + Personal bests). Profile values are derived by `deriveSkills` (`derive-stats.ts`) — each spoke a 0–100 score: Speed = best WPM vs a **300** ceiling; Endurance = best WPM on any ~30s+ run (keyed off actual elapsed time ≥ ~28s, since `mode` doesn't distinguish time vs words) vs a **250** ceiling; Accuracy rescaled into the 80–100 band; Consistency = 100 − WPM CV.
 
-- **Reuse the shared `ChartContainer`** from `@/components/ui/line-chart` (same wrapper `wpm-trend` uses) — do **not** add a second chart wrapper. The recharts radar paints in the brand coral (`var(--primary)` stroke + ~0.18 fill) over a hairline polar grid, **no glow filter** (the off-the-shelf "glowing radar" demo is off-brand: §13 bans ambient glow).
-- The chart is **`pointer-events-none` + `[&_*]:outline-none`** so a stray click never draws a focus box around it, and **`outerRadius` is held back (~70%)** with margins so the axis labels never clip. It's a static visual, not an interactive control.
+- **Always overlay the average baseline.** A radar with no reference reads as arbitrary, so `<SkillRadar baseline={…}>` draws a second muted **dashed** series (the average-typist scores) behind the user's coral shape, with a tiny "You / Average" legend. The baseline lives in `src/lib/skill-baseline.ts` — a committed default, **regenerated from real data by `yarn skills:baseline`** (computes each user's axes with the same `deriveSkills`, averages them, rewrites the file). Run it periodically + commit.
+- **`<SkillRadar>` is a shared component** (`src/components/`) because two routes use it: the profile `SkillPanel` (real `deriveSkills` data) and the `/updates` showcase card (a sample shape). Don't fork it. It reuses the shared `ChartContainer` from `@/components/ui/line-chart` (same wrapper `wpm-trend` uses) — do **not** add a second chart wrapper. Coral (`var(--primary)`) stroke + ~0.18 fill over a hairline polar grid, **no glow filter** (the "glowing radar" demo is off-brand: §13 bans ambient glow).
+- The chart is **`pointer-events-none` + `[&_*]:outline-none`** so a stray click never draws a focus box around it, and **`outerRadius` is held back (~70%)** with margins so the axis labels never clip. It's a static visual, not an interactive control. The profile `SkillPanel` is just section chrome + a cold-start "not enough runs yet" note around it.
 
 ### 18.3 Rank badge (`<RankBadge>`, `rank-badge.tsx`)
 
@@ -875,12 +876,22 @@ A **self-selected** WPM-tier flair (Ember…Solar Flare, `src/types/rank.ts`) sh
 - **Don't** make the actions a flex column beside identity/stats (the original bug). Top-right corner only.
 - **Don't** paint the rank badge per-tier colours or animate it — it's identity, not a notification.
 
-## 19. Amending this document
+## 19. Update cards (`/updates/[slug]`)
+
+A major release worth showing off gets an **update card** — a single, branded showcase page at the private route `/updates/<slug>`, linked from the matching `/changelog` entries. The changelog (`public/CHANGELOG.md`) stays the exhaustive per-version log; an update card is the editorial "here's the headline" for a release.
+
+- **Registry-driven.** Content lives in `src/lib/updates.ts` (`UPDATES`): `{ slug, version, title, tagline, date, versions[], highlights[], showcaseSkillRadar? }`. Add an entry; the route + the changelog link derive from it. No per-card bespoke page.
+- **The card** (`src/app/updates/[slug]/page.tsx`) is one bordered `bg-card` article inside `<AppChrome>`: a version·date eyebrow (coral tick), the feature name as an `h1`, a one-line tagline, an optional showcase visual (the skill radar, against the average baseline), then a hairline-divided list of highlights, then quiet bordered links out (Friends / Profile / Full changelog). It showcases the live theme — theme-aware tokens throughout, the radar as the single coral spark.
+- **Private (`noIndex: true`)** via `buildPageMetadata`, so it's omitted from sitemap + `llms.txt` (SEO S8). Unknown slug → `notFound()`.
+- **Changelog linkage:** the `/changelog` page calls `updateForVersion(entry.version)` and renders a "Read the update" link on covered entries. List the headline versions in the update's `versions[]`.
+- **Don't** hand-roll a second update page outside the registry, and don't index these pages.
+
+## 20. Amending this document
 
 When you introduce a new pattern:
 
 1. Open this file.
-2. Add a row to the matching table (§2 color, §3 spacing, §4 typography, §5 layout, §12 settings, §13 animation, §14 identity marks, §15 minimisation knobs, §16 command palette, §17 social controls, §18 profile) **or** a new section with the next sequential number.
+2. Add a row to the matching table (§2 color, §3 spacing, §4 typography, §5 layout, §12 settings, §13 animation, §14 identity marks, §15 minimisation knobs, §16 command palette, §17 social controls, §18 profile, §19 update cards) **or** a new section with the next sequential number.
 3. Include a one-line rationale — why this pattern, what problem it solves.
 4. Commit the doc change **in the same commit** as the code using it.
 5. From that commit forward, all UI must follow the new rule.

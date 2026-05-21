@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.97.0 — 21 May 2026
+- Big releases now get their own shareable update page: a single branded card showing what's new, linked from the changelog. The first one covers the whole Friends + Profile overhaul (find the "Read the update" link beside those versions in the changelog).
+- Your profile's skill chart now compares your shape against the average typist (a dashed baseline behind your own), so it reads as a real comparison instead of looking arbitrary.
+
 ## 6.96.1 — 21 May 2026
 - Friends: the Friends / Following / Followers switch now sits on the same row as the search box, and an incoming challenge's button reads "Accept".
 - Profile: the skill chart is now a cleaner standalone graphic (Speed, Accuracy, Consistency, Endurance; Experience removed). Speed is scaled to 300 wpm and Endurance is your best run of 30 seconds or longer (up to 250 wpm). Fixed the chart labels overflowing and a stray box appearing when you clicked it. The experience bar in the header is bigger and now shows your total XP and how far you are from the next level, and the "Load more" runs button matches the rest of the buttons.

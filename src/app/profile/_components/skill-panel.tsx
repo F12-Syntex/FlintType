@@ -1,30 +1,14 @@
 "use client";
 
-import {
-  PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
-  Radar,
-  RadarChart,
-} from "recharts";
-import {
-  type ChartConfig,
-  ChartContainer,
-} from "@/components/ui/line-chart";
+import { SkillRadar } from "@/components/skill-radar";
+import { SKILL_BASELINE } from "@/lib/skill-baseline";
 import type { SkillAxis } from "./derive-stats";
 
-const chartConfig = {
-  value: { label: "Skill", color: "var(--primary)" },
-} satisfies ChartConfig;
-
-/** Skill section — the profile's headline "who is this typist" block: a
- *  four-spoke radar (Speed, Accuracy, Consistency, Endurance) painted in
- *  the brand coral over a hairline polar grid. Standalone — the shape IS
- *  the story, so there's no redundant value table beside it (the raw
- *  numbers live in the stats strip + Personal bests). Editorial, no glow
- *  (§13). The chart is `pointer-events-none` + outline-suppressed so a
- *  stray click never draws a focus box around it. `outerRadius` is held
- *  back from the edge so the axis labels never clip. */
+/** Skill section — the profile's "who is this typist" block: a four-spoke
+ *  radar (Speed, Accuracy, Consistency, Endurance) overlaid against the
+ *  average-typist baseline so the shape reads as a comparison. The radar
+ *  itself is the shared `<SkillRadar>` (also used by the /updates card);
+ *  this is just the section chrome + the not-enough-data guard. */
 export function SkillPanel({
   skills,
   enoughData,
@@ -32,7 +16,6 @@ export function SkillPanel({
   skills: SkillAxis[];
   enoughData: boolean;
 }) {
-  const data = skills.map((s) => ({ axis: s.label, value: s.value }));
   return (
     <section className="rounded-md border border-border bg-card px-4 py-4 sm:px-6 sm:py-5">
       <header className="mb-2 flex items-center gap-3">
@@ -48,32 +31,7 @@ export function SkillPanel({
           the shape fills in.
         </p>
       ) : (
-        <ChartContainer
-          config={chartConfig}
-          className="pointer-events-none mx-auto aspect-square h-[260px] w-full max-w-[360px] select-none sm:h-[300px] [&_*]:outline-none"
-        >
-          <RadarChart
-            data={data}
-            outerRadius="70%"
-            margin={{ top: 12, right: 36, bottom: 12, left: 36 }}
-          >
-            <PolarGrid stroke="currentColor" strokeOpacity={0.12} />
-            <PolarAngleAxis
-              dataKey="axis"
-              tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-            />
-            <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-            <Radar
-              dataKey="value"
-              stroke="var(--color-value)"
-              fill="var(--color-value)"
-              fillOpacity={0.18}
-              strokeWidth={2}
-              dot={{ r: 2.5, fill: "var(--color-value)", strokeWidth: 0 }}
-              isAnimationActive={false}
-            />
-          </RadarChart>
-        </ChartContainer>
+        <SkillRadar skills={skills} baseline={SKILL_BASELINE} className="mt-2" />
       )}
     </section>
   );

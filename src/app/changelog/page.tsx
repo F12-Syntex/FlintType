@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import Link from "next/link";
 import { parseChangelog } from "@/lib/changelog";
+import { updateForVersion } from "@/lib/updates";
 import { cn } from "@/lib/utils";
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../_components/app-chrome";
@@ -43,7 +45,9 @@ export default function ChangelogPage() {
         }
       >
         <div className="flex flex-col">
-          {entries.map((entry, i) => (
+          {entries.map((entry, i) => {
+            const update = updateForVersion(entry.version);
+            return (
             <article
               key={entry.version}
               className="flex flex-col gap-3 border-t border-border/60 pt-7 pb-1 first:border-t-0 first:pt-0 md:grid md:grid-cols-[8rem_minmax(0,1fr)] md:gap-10 md:pt-9"
@@ -64,6 +68,14 @@ export default function ChangelogPage() {
                 <time className="shrink-0 text-[10px] font-medium uppercase tracking-[0.18em] tabular-nums text-muted-foreground md:mt-2 md:block">
                   {entry.date}
                 </time>
+                {update ? (
+                  <Link
+                    href={`/updates/${update.slug}`}
+                    className="mt-1 hidden text-[10px] font-semibold uppercase tracking-[0.14em] text-primary underline-offset-4 transition-opacity hover:opacity-80 md:block"
+                  >
+                    Read the update
+                  </Link>
+                ) : null}
               </div>
 
               <ul className="flex flex-col gap-2.5">
@@ -80,7 +92,8 @@ export default function ChangelogPage() {
                 ))}
               </ul>
             </article>
-          ))}
+            );
+          })}
         </div>
       </EditorialPage>
     </AppChrome>
