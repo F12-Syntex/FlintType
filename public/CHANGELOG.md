@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.97.7 — 21 May 2026
+- Your profile's Tests stat now shows how many you've started underneath the number you've completed (when they differ).
+
 ## 6.97.6 — 21 May 2026
 - Update pages now show a little preview of each feature (the friends hub, challenges, live spectating, your profile) instead of plain icons.
 - On profiles, the activity heatmap now shows your last 6 months, so the squares stay a comfortable size beside the skill chart.

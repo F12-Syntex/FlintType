@@ -204,6 +204,11 @@ export function ProfileHero({
         <StatCell
           label="Tests"
           value={NUM_FMT.format(totals.testsCompleted)}
+          sub={
+            totals.testsStarted > totals.testsCompleted
+              ? `${NUM_FMT.format(totals.testsStarted)} started`
+              : undefined
+          }
           accent={isOwner}
         />
         <StatCell
