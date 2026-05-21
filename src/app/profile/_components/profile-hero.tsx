@@ -163,7 +163,7 @@ export function ProfileHero({
               </p>
             ) : null}
             {friendStats ? (
-              <FriendCounts stats={friendStats} isOwner={isOwner} />
+              <FriendCounts stats={friendStats} />
             ) : null}
           </div>
         </div>
@@ -297,15 +297,9 @@ function StatCell({
 }
 
 /** Compact follower / following / friend line under the handle.
- *  Tabular-nums counts in ink, labels muted. For the owner the whole
- *  line links to /friends; visitors see it as static text. */
-function FriendCounts({
-  stats,
-  isOwner,
-}: {
-  stats: FriendStats;
-  isOwner: boolean;
-}) {
+ *  Tabular-nums counts in ink, labels muted. Static text — the friend
+ *  graph is reached through the global friends dock, not a profile link. */
+function FriendCounts({ stats }: { stats: FriendStats }) {
   const parts: { n: number; label: string }[] = [
     { n: stats.friends, label: stats.friends === 1 ? "friend" : "friends" },
     { n: stats.followers, label: "followers" },
@@ -323,16 +317,6 @@ function FriendCounts({
       ))}
     </span>
   );
-  if (isOwner) {
-    return (
-      <Link
-        href="/friends"
-        className="w-fit rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-      >
-        {inner}
-      </Link>
-    );
-  }
   return inner;
 }
 

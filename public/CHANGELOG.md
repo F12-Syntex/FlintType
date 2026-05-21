@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.100.0 — 21 May 2026
+- Friends now live in a small dock in the bottom-right corner instead of a separate page. Open it from anywhere to see who's typing live, the challenges waiting for you, and everyone you follow, then jump straight to watching a friend or taking a challenge.
+- The dock keeps out of your way: it tucks into the corner while you type and hides entirely on the race, live-watch, and duel screens.
+- Challenges you've already taken on no longer clutter the list: only challenges still waiting to be played show in the dock, and finished ones live on your Duels page.
+
 ## 6.99.2 — 21 May 2026
 - Duels now update on their own: when your opponent finishes the challenge, the result appears without you having to refresh the page.
 - The duel typing area now matches your normal practice screen — same passage colours (including your chosen Appearance settings) and type styling.

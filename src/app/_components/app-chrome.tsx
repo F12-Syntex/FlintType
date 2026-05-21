@@ -11,7 +11,6 @@ const NAV: NavItem[] = [
   { href: "/drills", label: "Drills" },
   { href: "/race", label: "Races" },
   { href: "/leaderboard", label: "Leaderboard" },
-  { href: "/friends", label: "Friends" },
   { href: "/insights", label: "Insights" },
 ];
 

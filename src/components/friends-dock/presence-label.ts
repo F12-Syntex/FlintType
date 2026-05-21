@@ -1,9 +1,9 @@
 import { relativeTime } from "@/lib/relative-time";
 import type { PresenceEntry } from "@/types/presence";
 
-/** Maps a presence entry to the caption shown under a friend's name: a
- *  status-dot class + a short label. Every online state stays on the
- *  sanctioned green (`bg-ft-ok`) — the coral spark is reserved for
+/** Maps a presence entry to the caption shown under a friend's name in
+ *  the dock: a status-dot class + a short label. Every online state stays
+ *  on the sanctioned green (`bg-ft-ok`) — the coral spark is reserved for
  *  live-broadcasting (ui-law §2), so activity is carried by the *word*,
  *  never a second colour. Offline drops to a quiet neutral dot + the
  *  relative "last active" time. */
@@ -29,14 +29,4 @@ export function presenceCaption(
     default:
       return { label: "Online", dotClass: "bg-ft-ok" };
   }
-}
-
-/** Short activity verb for the compact "Online" strip chips, or null for
- *  a plain-online user (the green avatar dot already reads as "online",
- *  so a redundant "Online" word would just add noise). */
-export function activityWord(entry: PresenceEntry): string | null {
-  if (!entry.online) return null;
-  if (entry.status === "practicing") return "Typing";
-  if (entry.status === "racing") return "Racing";
-  return null;
 }

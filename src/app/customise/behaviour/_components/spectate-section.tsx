@@ -22,7 +22,7 @@ function SpectatePreview({ enabled }: { enabled: boolean }) {
       <SpectatePill enabled={enabled} />
       <p className="max-w-xs text-center text-[11px] leading-relaxed text-muted-foreground">
         {enabled
-          ? "Mutual friends can watch your live runs from the Friends page. While you type, the people watching show up on your screen."
+          ? "Mutual friends can watch your live runs from the friends dock. While you type, the people watching show up on your screen."
           : "Your runs stay private. No one can watch you practise."}
       </p>
     </div>

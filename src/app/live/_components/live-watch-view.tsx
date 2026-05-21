@@ -68,8 +68,8 @@ function WatchHeader({ subject }: { subject: LiveSubject | null }) {
     <header className="safe-pt sticky top-0 z-10 border-b border-border bg-background/85 backdrop-blur">
       <div className="flex w-full items-center gap-3 px-3 py-2.5 sm:px-6 sm:py-3">
         <Link
-          href="/friends"
-          aria-label="Back to friends"
+          href="/"
+          aria-label="Back to practice"
           className="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
           <ArrowLeft size={18} aria-hidden />
@@ -154,10 +154,10 @@ function NotLive() {
         sessions.
       </p>
       <Link
-        href="/friends"
+        href="/"
         className="mx-auto w-fit text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
       >
-        Back to friends
+        Back to practice
       </Link>
     </div>
   );
