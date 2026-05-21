@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.101.5 — 21 May 2026
+- Internal changes only.
+
 ## 6.101.4 — 21 May 2026
 - Opening the friends dock now animates: the panel springs up from the corner and your members sweep in one after another, instead of appearing all at once. (Respects "reduce motion" — it just fades in.)
 
