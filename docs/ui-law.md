@@ -878,13 +878,13 @@ A **self-selected** WPM-tier flair (Ember…Solar Flare, `src/types/rank.ts`) sh
 
 ## 19. Update cards (`/updates/[slug]`)
 
-A major release worth showing off gets an **update card** — a single, branded showcase page at the private route `/updates/<slug>`, linked from the matching `/changelog` entries. The changelog (`public/CHANGELOG.md`) stays the exhaustive per-version log; an update card is the editorial "here's the headline" for a release.
+A major release worth showing off gets an **update card** — a **light, icon-led advert** at the private route `/updates/<slug>`, built to **screenshot and share**, not to read like a changelog. The changelog (`public/CHANGELOG.md`) stays the exhaustive per-version log; the update card is the *promo asset* for a release. **Keep the copy non-technical** — punchy advert one-liners, never implementation detail.
 
-- **Registry-driven.** Content lives in `src/lib/updates.ts` (`UPDATES`): `{ slug, version, title, tagline, date, versions[], highlights[], showcaseSkillRadar? }`. Add an entry; the route + the changelog link derive from it. No per-card bespoke page.
-- **The card** (`src/app/updates/[slug]/page.tsx`) is one bordered `bg-card` article inside `<AppChrome>`: a version·date eyebrow (coral tick), the feature name as an `h1`, a one-line tagline, an optional showcase visual (the skill radar, against the average baseline), then a hairline-divided list of highlights, then quiet bordered links out (Friends / Profile / Full changelog). It showcases the live theme — theme-aware tokens throughout, the radar as the single coral spark.
+- **Registry-driven.** Content lives in `src/lib/updates.ts` (`UPDATES`): `{ slug, version, title, tagline, date, versions[], highlights[] }`, where each highlight is `{ icon: LucideIcon, title, body }`. Add an entry; the route + changelog link derive from it. No per-card bespoke page.
+- **The card** (`src/app/updates/[slug]/page.tsx`) is a **forced-light** asset — it uses the fixed `ft-*` paper-and-ink tokens (§2.3: `bg-ft-paper`/`bg-ft-paper-soft`, `text-ft-ink`/`-dim`/`-dim-2`, `text-ft-ember`, `border-ft-line-soft`) so it renders the same in dark mode and reads as a clean light promo when screenshotted. **No `<AppChrome>`** — the page *is* the card, centred on a `bg-ft-paper-soft` field with a small "Back to changelog" link beneath. Shape: brand `<Logo>` + ember version pill, a big `text-4xl/5xl` headline + tagline, then a **big-icon feature grid** (each highlight a `size-12` ember icon tile + short title + one-line body), then a brand footer strip. The ember accent + icon scale carry the advert feel; stay within the hairline/no-glow brand (no drop shadows).
 - **Private (`noIndex: true`)** via `buildPageMetadata`, so it's omitted from sitemap + `llms.txt` (SEO S8). Unknown slug → `notFound()`.
 - **Changelog linkage:** the `/changelog` page calls `updateForVersion(entry.version)` and renders a "Read the update" link on covered entries. List the headline versions in the update's `versions[]`.
-- **Don't** hand-roll a second update page outside the registry, and don't index these pages.
+- **Don't** make the card technical, theme-aware, or chrome-wrapped — it's a fixed-light advert. Don't hand-roll a second update page outside the registry, and don't index these pages.
 
 ## 20. Amending this document
 

@@ -5,7 +5,9 @@
  * per-version log; an Update is the editorial "here's the headline" card
  * for a release worth showing off.
  */
-export type UpdateHighlight = { title: string; body: string };
+import { Eye, Flame, Swords, Users, type LucideIcon } from "lucide-react";
+
+export type UpdateHighlight = { icon: LucideIcon; title: string; body: string };
 
 export type Update = {
   /** URL slug — `/updates/<slug>`. */
@@ -21,9 +23,9 @@ export type Update = {
   /** Changelog versions this card covers — the /changelog page renders a
    *  "Read the update" link on each of these entries. */
   versions: string[];
+  /** Short, punchy, icon-led feature cards — advert copy, never
+   *  technical (the card is a screenshot-able promo, not a changelog). */
   highlights: UpdateHighlight[];
-  /** When true, the card renders the skill-radar showcase visual. */
-  showcaseSkillRadar?: boolean;
 };
 
 export const UPDATES: Update[] = [
@@ -31,26 +33,29 @@ export const UPDATES: Update[] = [
     slug: "friends-and-profile",
     version: "6.96",
     title: "Friends & Profile",
-    tagline: "A calmer place to find people, and a profile worth sharing.",
+    tagline: "Find your people. Show off your speed.",
     date: "May 2026",
     versions: ["6.96.0", "6.94.0"],
-    showcaseSkillRadar: true,
     highlights: [
       {
-        title: "A redesigned friends hub",
-        body: "One calm column: who's live right now, the duel challenges waiting for you inline, and a friends-first people switch. The noisy activity feed moved to the notifications bell.",
+        icon: Users,
+        title: "A calmer friends hub",
+        body: "Everyone you type with, in one tidy place.",
       },
       {
-        title: "See what friends are up to",
-        body: "Each person shows whether they're online, practising, or in a race right now, or when they were last active. Watch a friend's run live in a click.",
+        icon: Eye,
+        title: "See who's around",
+        body: "Online, practising, racing, or last seen, at a glance.",
       },
       {
-        title: "A profile built to share",
-        body: "A cleaner header with your stats given room to breathe, a bigger experience bar, and a flame rank you choose, from Ember all the way to Solar Flare.",
+        icon: Swords,
+        title: "Duel your friends",
+        body: "Challenges land right on the page. Tap to race.",
       },
       {
-        title: "Your skill at a glance",
-        body: "A four-spoke skill chart, Speed, Accuracy, Consistency, and Endurance, drawn against the average typist so the shape actually means something.",
+        icon: Flame,
+        title: "A profile to show off",
+        body: "Your skill shape, your stats, and a flame rank to claim.",
       },
     ],
   },

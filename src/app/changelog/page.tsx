@@ -56,7 +56,7 @@ export default function ChangelogPage() {
                   sticky stacked column from md up so it stays beside a
                   long change list as the reader scrolls. The newest
                   release carries the single coral spark. */}
-              <div className="md:sticky md:top-24 md:self-start">
+              <div className="md:sticky md:top-6 md:self-start">
                 <div className="flex items-baseline justify-between gap-3 md:block">
                   <h2
                     className={cn(
