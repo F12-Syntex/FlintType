@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { BackendError } from "@/lib/errors";
-import type { RaceModeId } from "@/types/race";
+import type { RaceModeId, RaceWordList } from "@/types/race";
 import { RaceRoom } from "./room";
 import { generateSlug } from "./slug";
 
@@ -136,6 +136,12 @@ export function evictFromMatchmaking(room: RaceRoom): void {
 export function createChallengeRoom(opts: {
   modeId: RaceModeId;
   raceSeed: number;
+  /** Host-chosen passage length (word-count races). */
+  wordCount?: number;
+  /** Host-chosen word pool. */
+  wordList?: RaceWordList;
+  /** When set, the challenge is a timed race of this many seconds. */
+  durationSec?: number;
   /** Passage override — used by quote rooms whose passage comes from
    *  the curated quote pool. */
   passage?: { text: string; source: string };
@@ -157,7 +163,9 @@ export function createChallengeRoom(opts: {
     kind: "challenge",
     modeId: opts.modeId,
     raceSeed: opts.raceSeed,
-    wordCount: 25,
+    wordCount: opts.wordCount ?? 25,
+    wordList: opts.wordList,
+    durationSec: opts.durationSec,
     quoteText: opts.passage?.text,
     quoteSource: opts.passage?.source,
     onIdle: () => {

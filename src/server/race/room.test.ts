@@ -644,6 +644,67 @@ describe("RaceRoom", () => {
     expect(top?.id).toBe("s_bob");
   });
 
+  it("free-for-all seats 8 real players and never adds bots", () => {
+    const room = new RaceRoom({
+      id: "r_ffa",
+      slug: "wild-otter-8",
+      kind: "challenge",
+      modeId: "ffa",
+      raceSeed: 1,
+      wordCount: 25,
+    });
+    expect(room.capacity).toBe(8);
+    room.addRealRacer({
+      sessionToken: "s_host",
+      name: "@host",
+      badge: "RACER",
+      isHost: true,
+    });
+    expect(room.hostStart("s_host")).toBe(true);
+    expect(room.snapshot().racers.filter((r) => r.isBot).length).toBe(0);
+    vi.advanceTimersByTime(700 + 3_000);
+    expect(room.phase).toBe("racing");
+    expect(room.snapshot().racers.filter((r) => r.isBot).length).toBe(0);
+  });
+
+  it("a timed challenge ends at the buzzer, ranking by net WPM over the whole race", () => {
+    const room = new RaceRoom({
+      id: "r_timed",
+      slug: "ticking-fox-15",
+      kind: "challenge",
+      modeId: "ffa",
+      raceSeed: 1,
+      durationSec: 15,
+    });
+    expect(room.durationSec).toBe(15);
+    expect(room.snapshot().durationSec).toBe(15);
+    room.addRealRacer({
+      sessionToken: "s_host",
+      name: "@host",
+      badge: "RACER",
+      isHost: true,
+    });
+    room.addRealRacer({ sessionToken: "s_b", name: "@b", badge: "RACER" });
+    expect(room.hostStart("s_host")).toBe(true);
+    vi.advanceTimersByTime(700 + 3_000);
+    expect(room.phase).toBe("racing");
+    // Host types more (50 chars) but with errors; b types fewer (25)
+    // cleanly. Neither completes the long timed passage early.
+    room.setProgress("s_host", 50, 0, false, 8, 84);
+    room.setProgress("s_b", 25, 0, false, 0, 100);
+    // Still racing before the 15s buzzer.
+    vi.advanceTimersByTime(14_000);
+    expect(room.phase).toBe("racing");
+    // Buzzer fires at 15s — everyone is marked finished and ranked.
+    vi.advanceTimersByTime(1_500);
+    expect(room.phase).toBe("finished");
+    const racers = room.snapshot().racers;
+    expect(racers.every((r) => r.finishedAt != null)).toBe(true);
+    expect(racers.every((r) => r.place != null)).toBe(true);
+    // Host did more correct work (50-8=42 vs 25), so higher net → 1st.
+    expect(racers.find((r) => r.place === 1)?.id).toBe("s_host");
+  });
+
   it("markRematchReady starts a new round instantly in a 1-real room", () => {
     const room = makeFinished1v1();
     const beforeRound = room.roundNumber;

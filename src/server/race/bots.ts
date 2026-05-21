@@ -152,9 +152,20 @@ export const BOT_LINEUP: Record<string, readonly BotId[]> = {
   endurance: ["selan", "kassia"],
   quote: ["elias", "mireille"],
   burst: ["nadya", "kassia"],
+  // Free-for-all is real-players-only — explicit empty lineup so the
+  // `?? ["selan"]` fallback can never slip a bot into an FFA room.
+  ffa: [],
 };
 
+/** Seats per mode. Free-for-all is a big open lobby (real players only,
+ *  no bots), so its capacity is fixed rather than derived from a bot
+ *  lineup. Every other mode seats the host plus its bot lineup — note
+ *  challenge/FFA rooms no longer fill those bot seats (see
+ *  `RaceRoom.hostStart`), so for them this is just the real-player cap. */
+export const FFA_CAPACITY = 8;
+
 export function capacityFor(modeId: string): number {
+  if (modeId === "ffa") return FFA_CAPACITY;
   const bots = BOT_LINEUP[modeId] ?? ["selan"];
   return bots.length + 1;
 }

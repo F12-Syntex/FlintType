@@ -1,8 +1,10 @@
+import { EN_COMMON_1000 } from "@/data/en-common-1000";
 import englishWords from "@/data/english.json";
 import type {
   RaceModeId,
   RacePhase,
   RaceRoomKind,
+  RaceWordList,
   RoomRacer,
   RoomSnapshot,
 } from "@/types/race";
@@ -67,8 +69,16 @@ export type RoomOptions = {
   /** Deterministic seed for passage generation + bot motion. */
   raceSeed: number;
   /** Word count for the passage. Ignored when `quoteText` is set —
-   *  the quote determines the passage. */
+   *  the quote determines the passage — or when `durationSec` is set
+   *  (a timed race generates its own long passage). */
   wordCount?: number;
+  /** Word pool for the passage. Defaults to the full english.json
+   *  pool; `common` uses the high-frequency common-1000 list. */
+  wordList?: RaceWordList;
+  /** When set, the race is TIMED: it runs for this many seconds and is
+   *  ranked by net WPM at the buzzer, instead of ending when a racer
+   *  completes a fixed passage. */
+  durationSec?: number;
   /** When set, the room runs a QUOTE race: the passage is this
    *  exact string, split on whitespace into words, and the source
    *  flows out via every snapshot for the client attribution line. */
@@ -85,6 +95,9 @@ export class RaceRoom {
   readonly kind: RaceRoomKind;
   readonly modeId: RaceModeId;
   readonly capacity: number;
+  /** Set for a TIMED race — seconds the race runs before the buzzer.
+   *  Undefined for the default word-count races. */
+  readonly durationSec: number | undefined;
   /** Mutable on rematch — every new round re-rolls the passage with a
    *  fresh seed so word-passage racers don't replay the same line. */
   raceSeed: number;
@@ -130,12 +143,17 @@ export class RaceRoom {
     this.kind = options.kind;
     this.modeId = options.modeId;
     this.capacity = capacityFor(options.modeId);
+    this.durationSec = options.durationSec;
     this.raceSeed = options.raceSeed;
     if (options.quoteText != null) {
       this.words = options.quoteText.split(/\s+/).filter(Boolean);
       this.quoteSource = options.quoteSource;
     } else {
-      this.words = generateRacePassage(options.wordCount ?? 25, options.raceSeed);
+      this.words = generateRacePassage(
+        this.passageWordCount(),
+        options.raceSeed,
+        options.wordList,
+      );
       this.quoteSource = undefined;
     }
     this.totalChars = totalCharsOf(this.words);
@@ -153,6 +171,18 @@ export class RaceRoom {
       // doesn't leak the room. Resets itself on every activity bump.
       this.scheduleChallengeIdleGc();
     }
+  }
+
+  /** Words to generate for the passage. A timed race needs a passage
+   *  long enough that nobody runs out before the buzzer, so we size it
+   *  to the duration (~4 words/sec ≈ a 240 WPM ceiling), capped so a
+   *  60s race doesn't generate an absurd wall of text. A word-count
+   *  race just uses the requested count (default 25). */
+  private passageWordCount(): number {
+    if (this.durationSec != null) {
+      return Math.min(300, Math.max(this.options.wordCount ?? 0, this.durationSec * 4));
+    }
+    return this.options.wordCount ?? 25;
   }
 
   /* ─── Subscribers ─────────────────────────────────────────── */
@@ -383,6 +413,45 @@ export class RaceRoom {
     this.phase = "racing";
     this.raceStartedAt = Date.now();
     this.botTickInterval = setInterval(() => this.tickBots(), BOT_TICK_MS);
+    // Timed race: end at the buzzer regardless of who's finished. The
+    // timer is tracked in `this.timers` so cancel/dispose clears it.
+    if (this.durationSec != null) {
+      const t = setTimeout(() => {
+        this.timers.delete(t);
+        this.endRaceByTimeLimit();
+      }, this.durationSec * 1000);
+      this.timers.add(t);
+    }
+    this.scheduleBroadcast();
+  }
+
+  /** Buzzer for a timed race — every racer still going is marked
+   *  finished at the time limit (in finish order, but `rankByNetWpm`
+   *  re-ranks by speed anyway), then the room finishes and ranks.
+   *  A racer who already completed the long passage early keeps their
+   *  earlier finish. */
+  private endRaceByTimeLimit() {
+    if (this.phase !== "racing") return;
+    const now = Date.now();
+    const elapsedSec =
+      this.raceStartedAt != null
+        ? Math.max(1, (now - this.raceStartedAt) / 1000)
+        : (this.durationSec ?? 1);
+    for (const r of this.racers.values()) {
+      if (r.disconnected || r.finishedAt != null) continue;
+      // Lock in each racer's final WPM over the WHOLE race duration so
+      // the net-WPM ranking at the buzzer reflects their real speed,
+      // not whatever the last mid-race progress tick computed. (Bots
+      // already keep a cumulative wpm via tickBots; this is for the
+      // real players, who are the only racers in a timed challenge.)
+      if (!r.isBot) {
+        const correct = Math.max(0, r.progressChars - r.errors);
+        r.wpm = Math.round((correct / 5) * (60 / elapsedSec));
+      }
+      r.finishedAt = Math.floor(elapsedSec);
+      r.place = this.nextPlace++;
+    }
+    this.maybeFinishRace(now);
     this.scheduleBroadcast();
   }
 
@@ -712,8 +781,9 @@ export class RaceRoom {
       this.words = this.options.quoteText.split(/\s+/).filter(Boolean);
     } else {
       this.words = generateRacePassage(
-        this.options.wordCount ?? 25,
+        this.passageWordCount(),
         this.raceSeed,
+        this.options.wordList,
       );
     }
     this.totalChars = totalCharsOf(this.words);
@@ -846,6 +916,7 @@ export class RaceRoom {
       countdownStartedAt: this.countdownStartedAt,
       raceStartedAt: this.raceStartedAt,
       raceEndedAt: this.raceEndedAt,
+      durationSec: this.durationSec,
       racers,
       cancelled: this.cancelled || undefined,
       quoteSource: this.quoteSource,
@@ -900,13 +971,19 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-function generateRacePassage(count: number, seed: number): string[] {
+function generateRacePassage(
+  count: number,
+  seed: number,
+  wordList?: RaceWordList,
+): string[] {
   const rng = mulberry32(seed);
   // Multiplayer pulls from the same MonkeyType `english.json` word
   // pool the single-player English mode uses — the words a racer
   // sees in a public room are the words they practice against in
-  // their own tests.
-  const pool: readonly string[] = englishWords.words;
+  // their own tests. `common` swaps in the high-frequency
+  // common-1000 list for a gentler passage.
+  const pool: readonly string[] =
+    wordList === "common" ? EN_COMMON_1000 : englishWords.words;
   const out: string[] = [];
   let prev = "";
   while (out.length < count) {

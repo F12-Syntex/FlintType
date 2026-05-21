@@ -4,7 +4,7 @@ import { EN_COMMON_1000 } from "@/data/en-common-1000";
  *  passage drawn from the English common-1000 word set (lowercase,
  *  no punctuation); first to the line wins. Bot lineup varies per
  *  mode. */
-export type RaceModeId = "1v1v1v1" | "1v1" | "sprint" | "endurance";
+export type RaceModeId = "1v1v1v1" | "1v1" | "sprint" | "endurance" | "ffa";
 
 export type RaceMode = {
   id: RaceModeId;
@@ -49,6 +49,14 @@ export const RACE_MODES: Record<RaceModeId, RaceMode> = {
     wordCount: 25,
     botIds: ["selan", "kassia"],
   },
+  ffa: {
+    id: "ffa",
+    name: "FREE-FOR-ALL",
+    detail: "open lobby · up to 8 · no bots",
+    wordCount: 25,
+    // Real players only — share the link and everyone races at once.
+    botIds: [],
+  },
 };
 
 export const RACE_MODE_ORDER: readonly RaceModeId[] = [
@@ -56,6 +64,7 @@ export const RACE_MODE_ORDER: readonly RaceModeId[] = [
   "1v1",
   "sprint",
   "endurance",
+  "ffa",
 ];
 
 /** Bot tick interval. 50ms = 20 ticks/sec, fine-grained enough to

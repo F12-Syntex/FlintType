@@ -10,8 +10,28 @@ import { z } from "zod";
  *  English mode uses), lowercase, no punctuation. Server-side
  *  quote handling in `src/server/race/{room,store,quotes}.ts`
  *  remains dormant; if the mode comes back, re-add "quote" here. */
-export const RACE_MODE_IDS = ["1v1v1v1", "1v1", "sprint", "endurance"] as const;
+export const RACE_MODE_IDS = [
+  "1v1v1v1",
+  "1v1",
+  "sprint",
+  "endurance",
+  "ffa",
+] as const;
 export type RaceModeId = (typeof RACE_MODE_IDS)[number];
+
+/** Word pools a challenge host can pick. Both are embedded server-side
+ *  (no fetch): `english` is the full MonkeyType english.json pool (wide
+ *  vocabulary, same as single-player English), `common` is the
+ *  common-1000 list (simpler, high-frequency words). */
+export const RACE_WORD_LISTS = ["english", "common"] as const;
+export type RaceWordList = (typeof RACE_WORD_LISTS)[number];
+
+/** Allowed word-count presets for a configurable challenge. */
+export const RACE_WORD_COUNTS = [10, 25, 50, 100] as const;
+/** Allowed timed-race durations (seconds). A timed race ends when the
+ *  clock runs out, ranked by net WPM at that moment, instead of when a
+ *  racer completes a fixed passage. */
+export const RACE_DURATIONS = [15, 30, 60] as const;
 
 /** Lifecycle of a server-authoritative race room.
  *    matching   — 5s window for real players to arrive; bots fill in
@@ -94,6 +114,10 @@ export type RoomSnapshot = {
   countdownStartedAt: number | null;
   raceStartedAt: number | null;
   raceEndedAt: number | null;
+  /** Set for a TIMED race — the race ends this many seconds after it
+   *  starts, ranked by net WPM at the buzzer (rather than first to
+   *  finish). Absent for the default word-count races. */
+  durationSec?: number;
   racers: readonly RoomRacer[];
   /** Set on the final snapshot a challenge room emits before it
    *  disposes itself, when the host hit Cancel. Clients use this to
@@ -166,6 +190,26 @@ export type LeaveOutput = { ok: true };
 
 export const createChallengeInputSchema = z.object({
   modeId: z.enum(RACE_MODE_IDS),
+  /** Passage length for a word-count race. Ignored when `durationSec`
+   *  is set (a timed race generates its own long passage). */
+  wordCount: z
+    .number()
+    .int()
+    .refine((v) => (RACE_WORD_COUNTS as readonly number[]).includes(v), {
+      message: "unsupported word count",
+    })
+    .optional(),
+  /** When set, the race is timed: it runs for this many seconds and is
+   *  ranked by net WPM at the buzzer, rather than first-to-finish. */
+  durationSec: z
+    .number()
+    .int()
+    .refine((v) => (RACE_DURATIONS as readonly number[]).includes(v), {
+      message: "unsupported duration",
+    })
+    .optional(),
+  /** Word pool for the passage. Defaults to `english`. */
+  wordList: z.enum(RACE_WORD_LISTS).optional(),
 });
 export type CreateChallengeInput = z.infer<typeof createChallengeInputSchema>;
 

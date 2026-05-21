@@ -1,11 +1,9 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { useBackend } from "@/lib/backend";
 import { cn } from "@/lib/utils";
-import { writeHostStorage } from "../c/[slug]/_components/challenge-shell";
+import { CreateChallengePanel } from "./challenge-config";
 import { ModePicker } from "./mode-picker";
 import type { RaceModeId } from "./race-data";
 import { useRace } from "./race-state";
@@ -77,7 +75,7 @@ export function RaceControls() {
       </Field>
       {state.phase === "queue" ? (
         <Field label="challenge">
-          <CreateChallengeButton modeId={modeId} />
+          <CreateChallengePanel modeId={modeId} />
         </Field>
       ) : null}
 
@@ -114,51 +112,6 @@ export function RaceControls() {
         </p>
       </ConfirmDialog>
     </div>
-  );
-}
-
-/** Create-a-private-lobby button. Lives in the top action strip
- *  next to Find race so both paths sit at the same hierarchy: one
- *  for matchmaking against bots / strangers, one for inviting a
- *  specific friend by URL. Only shown in queue phase — once the
- *  user is in a room, this affordance has nothing to do. */
-function CreateChallengeButton({ modeId }: { modeId: RaceModeId }) {
-  const backend = useBackend();
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
-  const onClick = async () => {
-    if (pending) return;
-    setPending(true);
-    try {
-      const res = await backend.race.challenge.create({ modeId });
-      writeHostStorage(res.slug, {
-        roomId: res.roomId,
-        sessionToken: res.sessionToken,
-        words: res.words,
-        totalChars: res.totalChars,
-        modeId: res.modeId as Parameters<typeof writeHostStorage>[1]["modeId"],
-        roundNumber: 1,
-      });
-      router.push(`/race/c/${res.slug}`);
-    } catch {
-      setPending(false);
-    }
-  };
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={pending}
-      className={cn(
-        "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-transparent px-3",
-        "text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground",
-        "transition-colors duration-150 hover:border-foreground/40 hover:bg-accent/40",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-        pending && "cursor-wait opacity-60",
-      )}
-    >
-      {pending ? "Creating…" : "Create lobby"}
-    </button>
   );
 }
 

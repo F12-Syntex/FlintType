@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.99.0 — 21 May 2026
+- New **Free-for-all** race: share one lobby and up to 8 people race the same passage at once — real players only, no bots.
+- When you create a race lobby you can now set it up: pick the word list (English or common words), and choose either a word-count race (10 / 25 / 50 / 100 words) or a timed race (15 / 30 / 60 seconds).
+
 ## 6.98.5 — 21 May 2026
 - Races are fairer: your speed is now measured from the moment the race starts, not from your first keystroke, and the winner is whoever has the highest real typing speed — not just whoever crosses the line first.
 - Challenge lobbies are now real players only — no bots are added when you start a challenge you've shared.
