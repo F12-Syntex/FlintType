@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.93.1 — 21 May 2026
+- Internal changes only. (Dev-mode fake friends for testing the Friends page; not shown in production.)
+
 ## 6.93.0 — 21 May 2026
 - You can now see what your friends are up to. On the Friends page, each person shows whether they're online, practising, or in a race right now, and when they were last active ("Active 5m ago") if they're offline. The Online strip marks who's typing or racing at a glance.
 

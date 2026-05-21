@@ -10,12 +10,22 @@ import type { FriendRelationship, FriendUser } from "@/types/friends";
 import type { LiveFriend } from "@/types/live";
 import type { Notification } from "@/types/notification";
 import type { PresenceEntry } from "@/types/presence";
+import {
+  withDummyFeed,
+  withDummyLists,
+  withDummyLive,
+  withDummyPresence,
+} from "./dev-dummy";
 import { ActivityFeed } from "./feed";
 import { PeoplePanel } from "./people-panel";
 import { LiveNow, OnlineNow } from "./presence-sections";
 
 /** Who's-live / online refresh cadence (live snapshots age out at 6s). */
 const POLL_MS = 5_000;
+
+/** Dev-only: inject fake friends/presence/activity so the hub can be
+ *  exercised without a real follow graph. Eliminated from prod builds. */
+const DEV_DUMMY = process.env.NODE_ENV === "development";
 
 type Lists = {
   friends: FriendUser[];
@@ -49,11 +59,12 @@ export function FriendsView() {
         backend.friends.listFollowing(),
         backend.friends.listFollowers(),
       ]);
-      setLists({
+      const next = {
         friends: friends.users,
         following: following.users,
         followers: followers.users,
-      });
+      };
+      setLists(DEV_DUMMY ? withDummyLists(next) : next);
     } catch (err) {
       if (err instanceof BackendError && err.code === "UNAUTHORIZED") {
         setError("Sign in to see your friends.");
@@ -68,22 +79,29 @@ export function FriendsView() {
   const loadFeed = useCallback(() => {
     backend.notifications
       .list()
-      .then((r) => setFeed(r.items))
-      .catch(() => {})
+      .then((r) => setFeed(DEV_DUMMY ? withDummyFeed(r.items) : r.items))
+      .catch(() => {
+        if (DEV_DUMMY) setFeed(withDummyFeed([]));
+      })
       .finally(() => setFeedLoading(false));
   }, [backend]);
 
   const pollPresence = useCallback(() => {
     backend.live
       .friendsLive()
-      .then((r) => setLive(r.users))
-      .catch(() => {});
+      .then((r) => setLive(DEV_DUMMY ? withDummyLive(r.users) : r.users))
+      .catch(() => {
+        if (DEV_DUMMY) setLive(withDummyLive([]));
+      });
     backend.presence
       .list()
-      .then((p) =>
-        setPresenceById(new Map(p.entries.map((e) => [e.userId, e]))),
-      )
-      .catch(() => {});
+      .then((p) => {
+        const map = new Map(p.entries.map((e) => [e.userId, e]));
+        setPresenceById(DEV_DUMMY ? withDummyPresence(map) : map);
+      })
+      .catch(() => {
+        if (DEV_DUMMY) setPresenceById(withDummyPresence(new Map()));
+      });
   }, [backend]);
 
   const pollRef = useRef(pollPresence);
