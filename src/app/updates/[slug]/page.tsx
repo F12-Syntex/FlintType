@@ -38,55 +38,43 @@ export default async function UpdatePage({
   if (!update) notFound();
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-ft-paper-soft px-4 py-12">
-      <article className="w-full max-w-xl overflow-hidden rounded-lg border border-ft-line-soft bg-ft-paper text-ft-ink">
-        {/* Brand + version */}
-        <div className="flex items-center justify-between gap-3 px-6 pt-6 sm:px-8 sm:pt-8">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-ft-paper-soft px-4 py-10">
+      {/* Wide, landscape promo — sized to paste into Discord, where wide
+       *  images render large. Condensed + visual: a headline and a single
+       *  row of preview thumbnails, no per-feature prose. */}
+      <article className="w-full max-w-4xl rounded-lg border border-ft-line-soft bg-ft-paper p-6 text-ft-ink sm:p-8">
+        <div className="flex items-center justify-between gap-3">
           <Logo />
           <span className="rounded-full border border-ft-ember/30 bg-ft-ember/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-ft-ember">
-            v{update.version}
+            v{update.version} · {update.date}
           </span>
         </div>
 
-        {/* Headline */}
-        <div className="px-6 pt-7 sm:px-8">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ft-dim">
-            What&apos;s new · {update.date}
-          </p>
-          <h1 className="mt-2 text-4xl font-extrabold leading-[0.95] tracking-[-0.02em] text-ft-ink sm:text-5xl">
-            {update.title}
-          </h1>
-          <p className="mt-3 text-[15px] leading-relaxed text-ft-dim-2 sm:text-base">
-            {update.tagline}
-          </p>
-        </div>
+        <h1 className="mt-5 text-3xl font-extrabold leading-[0.95] tracking-[-0.02em] text-ft-ink sm:mt-6 sm:text-5xl">
+          {update.title}
+        </h1>
+        <p className="mt-2 text-[15px] leading-relaxed text-ft-dim-2 sm:text-lg">
+          {update.tagline}
+        </p>
 
-        {/* Feature grid — each cell a bespoke mini-mockup preview, not an
-         *  icon, framed like a little screenshot. */}
-        <div className="mt-7 grid grid-cols-1 gap-px border-t border-ft-line-soft bg-ft-line-soft sm:grid-cols-2">
+        {/* Preview thumbnails — a single wide row on sm+, 2×2 on mobile. */}
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-7 sm:grid-cols-4">
           {update.highlights.map((h) => {
             const Preview = UPDATE_PREVIEWS[h.preview];
             return (
-              <div
-                key={h.title}
-                className="flex flex-col gap-3 bg-ft-paper p-5 sm:p-6"
-              >
-                <div className="flex h-28 items-center justify-center rounded-md border border-ft-line-soft bg-ft-paper-2 px-3">
+              <div key={h.label} className="flex flex-col gap-2">
+                <div className="flex h-24 items-center justify-center rounded-md border border-ft-line-soft bg-ft-paper-2 px-3">
                   {Preview ? <Preview /> : null}
                 </div>
-                <h2 className="text-[15px] font-bold tracking-tight text-ft-ink">
-                  {h.title}
-                </h2>
-                <p className="text-[13px] leading-snug text-ft-dim-2">
-                  {h.body}
+                <p className="text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-ft-dim">
+                  {h.label}
                 </p>
               </div>
             );
           })}
         </div>
 
-        {/* Footer brand strip */}
-        <div className="flex items-center justify-between gap-3 border-t border-ft-line-soft px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-ft-dim sm:px-8">
+        <div className="mt-6 flex items-center justify-between gap-3 border-t border-ft-line-soft pt-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-ft-dim">
           <span className="text-ft-ink">flinttype</span>
           <span>Type faster, together</span>
         </div>

@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.98.1 — 21 May 2026
+- The update card is now wide and condensed (landscape) so it looks good pasted into Discord: a headline and a single row of feature previews, less text, more visual.
+
 ## 6.98.0 — 21 May 2026
 - The Friends page now uses the full page width like the rest of the app, with your people list on the left and what's-happening (challenges, who's online) on the right.
 - "Live now" is bigger and more exciting: each live friend is a card showing their live speed and progress, with a clear "Watch live" button that opens their screen.

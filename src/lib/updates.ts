@@ -9,8 +9,10 @@ export type UpdateHighlight = {
   /** Key into `UPDATE_PREVIEWS` — the bespoke mini-mockup shown for this
    *  feature (hub / challenges / spectate / profile). */
   preview: string;
-  title: string;
-  body: string;
+  /** One-word caption under the preview. The card is a wide visual promo
+   *  (built to paste into Discord), so highlights are label-only — the
+   *  mockups carry the message, not prose. */
+  label: string;
 };
 
 export type Update = {
@@ -41,26 +43,10 @@ export const UPDATES: Update[] = [
     date: "May 2026",
     versions: ["6.96.0", "6.94.0"],
     highlights: [
-      {
-        preview: "hub",
-        title: "A calmer friends hub",
-        body: "Everyone you type with, in one tidy place.",
-      },
-      {
-        preview: "challenges",
-        title: "Duel your friends",
-        body: "Challenges land right on the page. Tap to race.",
-      },
-      {
-        preview: "spectate",
-        title: "Watch them live",
-        body: "Spectate a friend's run, keystroke by keystroke.",
-      },
-      {
-        preview: "profile",
-        title: "A profile to show off",
-        body: "Your rank, your stats, and your skill shape.",
-      },
+      { preview: "hub", label: "Friends" },
+      { preview: "challenges", label: "Duels" },
+      { preview: "spectate", label: "Spectate" },
+      { preview: "profile", label: "Profile" },
     ],
   },
 ];
