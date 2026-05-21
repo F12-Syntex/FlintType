@@ -16,6 +16,7 @@ import { ModeBar } from "./mode-bar";
 import { Passage } from "./passage";
 import { PracticeProvider, usePractice } from "./practice-state";
 import { Readouts } from "./readouts";
+import { ReportActivity } from "./report-activity";
 import { RestHint } from "./rest-hint";
 import { SpectateIndicator } from "@/components/spectate-indicator";
 import { TestSummary } from "./test-summary";
@@ -54,6 +55,7 @@ export function TypingSurface(props: TypingSurfaceProps = {}) {
   return (
     <PracticeProvider lockedWords={lockedWords}>
       <AutoHideApplier />
+      <ReportActivity status="practicing" />
       <InputCapture>
         <TypingSurfaceBody {...body} />
       </InputCapture>

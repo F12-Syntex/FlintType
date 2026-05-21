@@ -824,6 +824,24 @@ Spectating is **not a bespoke read-only view** — it reproduces the broadcaster
 
 The broadcaster sends this `screen` payload (phase + windowed `typed` + cursor + mode/length + appearance + caret + behaviour + theme vars, plus the run's `wpmHistory` + `events` on the `done` frame) in `live.progress` **in every phase** while on a practice surface — so "live now" reflects whoever's on their typing screen, and the spectator sees mode changes and results, not just typing. An absent payload falls back to the plain `<LivePassage>` mirror. The watch view replays snapshots through a **~1s jitter buffer** (`useBufferedWatch`) so the mirrored screen advances smoothly instead of stuttering with network jitter. Don't add a "spectator skin" — if the clone looks wrong, the broadcaster's real component is the bug.
 
+### 17.7 Presence & last-seen captions
+
+A friend's row carries a one-line presence caption under their name: a small status dot + a short label. It's the caption line on `<FriendListRow>` (it **replaces** the low-value "since" join date wherever presence data exists — i.e. for everyone you follow; a follower you don't follow back has no presence and falls back to "since"). The compact "Online" strip (`<OnlineNow>`) appends a quiet activity word after the name for practising / racing friends.
+
+**The dot colour is load-bearing and obeys the one-coral-spark rule (§2).** The coral pulse stays reserved for live-broadcasting (`<LiveNow>` only). Every *online* presence state — online, practising, racing — uses the sanctioned green `bg-ft-ok`. **Activity is conveyed by the word, never a second colour**; a practising friend is not a second coral.
+
+| Presence state | Dot | Caption label (row) | Strip suffix (`OnlineNow`) |
+|---|---|---|---|
+| online | `bg-ft-ok` | `Online` | (none — the green dot already reads "online") |
+| practising | `bg-ft-ok` | `Practising` | `Typing` |
+| racing | `bg-ft-ok` | `In a race` | `Racing` |
+| idle (rare; not actively set) | `bg-ft-ok/50` | `Away` | (none) |
+| offline | `bg-muted-foreground/40` | `Active <relative>` | n/a (offline friends aren't in the strip) |
+
+The dot is `size-1.5 shrink-0 rounded-full`; the caption reuses the existing caption type (`text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground`) with `tabular-nums` on the relative figure. Relative-time copy comes from `relativeTime()` (`src/lib/relative-time.ts`): `just now` / `5m ago` / `2h ago` / `3d ago` / `2w ago`, then an absolute `May 4` past ~a month. The state→label/dot mapping is `presenceCaption()` / `activityWord()` (`src/app/friends/_components/presence-label.ts`); reach for those, don't hand-roll the mapping per surface.
+
+**Activity reporting.** `status` is now genuinely populated. A surface declares the local user's activity by mounting `<ReportActivity status="practicing|racing" />` (`src/app/_components/report-activity.tsx`) inside its `<PracticeProvider>` — the practice/drill surfaces report `practicing`, the race screen reports `racing` (never while spectating). It writes to the `presence-activity` module store (`src/lib/presence-activity.ts`); the global `<PresenceHeartbeat>` reads that store on every beat and fires an immediate beat on change so the switch reaches friends within a second. Don't prop-drill activity into the heartbeat — declare it with `<ReportActivity>`.
+
 ## 18. Amending this document
 
 When you introduce a new pattern:

@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { FriendRelationship, FriendUser } from "@/types/friends";
+import type { PresenceEntry } from "@/types/presence";
 import { FriendListRow } from "./friend-list-row";
 
 type TabId = "friends" | "following" | "followers";
@@ -35,12 +36,12 @@ export type PeopleLists = {
 export function PeoplePanel({
   lists,
   relationshipFor,
-  onlineIds,
+  presenceById,
   onChange,
 }: {
   lists: PeopleLists;
   relationshipFor: (userId: string) => FriendRelationship;
-  onlineIds: Set<string>;
+  presenceById: Map<string, PresenceEntry>;
   onChange: () => void;
 }) {
   const [tab, setTab] = useState<TabId>("friends");
@@ -121,7 +122,7 @@ export function PeoplePanel({
               <FriendListRow
                 user={u}
                 relationship={relationshipFor(u.userId)}
-                online={onlineIds.has(u.userId)}
+                presence={presenceById.get(u.userId) ?? null}
                 onChange={onChange}
               />
             </li>

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import type { FriendRelationship, FriendUser } from "@/types/friends";
 import type { LiveFriend } from "@/types/live";
 import type { Notification } from "@/types/notification";
+import type { PresenceEntry } from "@/types/presence";
 import { ActivityFeed } from "./feed";
 import { PeoplePanel } from "./people-panel";
 import { LiveNow, OnlineNow } from "./presence-sections";
@@ -33,7 +34,9 @@ export function FriendsView() {
   const [feed, setFeed] = useState<Notification[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
   const [live, setLive] = useState<LiveFriend[]>([]);
-  const [onlineIds, setOnlineIds] = useState<Set<string>>(() => new Set());
+  const [presenceById, setPresenceById] = useState<Map<string, PresenceEntry>>(
+    () => new Map(),
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<MobileView>("activity");
@@ -78,9 +81,7 @@ export function FriendsView() {
     backend.presence
       .list()
       .then((p) =>
-        setOnlineIds(
-          new Set(p.entries.filter((e) => e.online).map((e) => e.userId)),
-        ),
+        setPresenceById(new Map(p.entries.map((e) => [e.userId, e]))),
       )
       .catch(() => {});
   }, [backend]);
@@ -127,6 +128,13 @@ export function FriendsView() {
   );
 
   const liveIds = useMemo(() => new Set(live.map((u) => u.userId)), [live]);
+  const onlineIds = useMemo(
+    () =>
+      new Set(
+        [...presenceById.values()].filter((e) => e.online).map((e) => e.userId),
+      ),
+    [presenceById],
+  );
   const onlineUsers = useMemo(
     () =>
       (lists?.following ?? []).filter(
@@ -174,7 +182,7 @@ export function FriendsView() {
               )}
             >
               <LiveNow users={live} />
-              <OnlineNow users={onlineUsers} />
+              <OnlineNow users={onlineUsers} presenceById={presenceById} />
               <section className="flex flex-col gap-3">
                 <Eyebrow>Activity</Eyebrow>
                 <ActivityFeed items={feed} loading={feedLoading} />
@@ -192,7 +200,7 @@ export function FriendsView() {
                   <PeoplePanel
                     lists={lists}
                     relationshipFor={relationshipFor}
-                    onlineIds={onlineIds}
+                    presenceById={presenceById}
                     onChange={() => void loadLists()}
                   />
                 ) : null}

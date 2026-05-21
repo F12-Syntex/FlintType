@@ -10,6 +10,7 @@ import {
   PracticeProvider,
   usePractice,
 } from "@/app/_components/practice-state";
+import { ReportActivity } from "@/app/_components/report-activity";
 import { useLifetimeStats } from "@/lib/use-lifetime-stats";
 import { DrillHeader } from "./drill-header";
 
@@ -39,6 +40,7 @@ export function SuddenDeathSurface({
     <>
       <DrillHeader title={title} subtitle={subtitle} />
       <PracticeProvider lockedWords={words} suddenDeath>
+        <ReportActivity status="practicing" />
         <Body />
       </PracticeProvider>
     </>

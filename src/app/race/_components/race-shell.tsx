@@ -12,6 +12,7 @@ import { useBackend } from "@/lib/backend";
 import { AutoHideApplier } from "../../_components/autohide-applier";
 import { InputCapture } from "../../_components/input-capture";
 import { PracticeProvider } from "../../_components/practice-state";
+import { ReportActivity } from "../../_components/report-activity";
 import { clearHostStorage } from "../c/[slug]/_components/challenge-shell";
 import type { RaceModeId } from "./race-data";
 import { RaceProvider } from "./race-state";
@@ -257,6 +258,7 @@ export function RaceShell({
   return (
     <PracticeProvider key={subtreeKey} lockedWords={words} raceMode={raceMode}>
       <AutoHideApplier />
+      {isSpectating ? null : <ReportActivity status="racing" />}
       {isSpectating ? <SpectatorBanner /> : null}
       {isSpectating ? raceTree : <InputCapture>{raceTree}</InputCapture>}
     </PracticeProvider>
