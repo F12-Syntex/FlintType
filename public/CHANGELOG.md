@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.98.2 — 21 May 2026
+- The feature previews on the update card are clearer now: real handles, speeds, a live passage, and an Accept button instead of placeholder bars.
+
 ## 6.98.1 — 21 May 2026
 - The update card is now wide and condensed (landscape) so it looks good pasted into Discord: a headline and a single row of feature previews, less text, more visual.
 
