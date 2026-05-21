@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.97.1 — 21 May 2026
+- Internal: refreshed the skill-radar average baseline from real player data.
+
 ## 6.97.0 — 21 May 2026
 - Big releases now get their own shareable update page: a single branded card showing what's new, linked from the changelog. The first one covers the whole Friends + Profile overhaul (find the "Read the update" link beside those versions in the changelog).
 - Your profile's skill chart now compares your shape against the average typist (a dashed baseline behind your own), so it reads as a real comparison instead of looking arbitrary.
