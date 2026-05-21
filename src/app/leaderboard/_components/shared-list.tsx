@@ -63,7 +63,7 @@ export function LeaderboardWrapper({
         </div>
       </header>
 
-      <section className="mt-6 rounded-md border border-border bg-card">
+      <section className="mt-6 overflow-hidden rounded-md border border-border bg-card">
         {error ? (
           <p className="p-6 text-sm text-muted-foreground">{error}</p>
         ) : loading ? (

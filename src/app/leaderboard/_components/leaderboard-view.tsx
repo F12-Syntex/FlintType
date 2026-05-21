@@ -73,16 +73,13 @@ function TableView() {
 
   const blurb = (
     <>
-      Ranked by net WPM (raw × accuracy). Showing{" "}
-      <Pill>{audience === "friends" ? "Friends" : "Global"}</Pill> ·{" "}
-      <Pill>{scopeLabel}</Pill> · <Pill>{windowLabelText}</Pill>
-      {presetText ? (
-        <>
-          {" · "}
-          <Pill>{presetText}</Pill>
-        </>
-      ) : null}
-      .
+      Ranked by net WPM (raw × accuracy).{" "}
+      <span className="inline-flex flex-wrap items-center gap-1.5 align-middle">
+        <Pill>{audience === "friends" ? "Friends" : "Global"}</Pill>
+        <Pill>{scopeLabel}</Pill>
+        <Pill>{windowLabelText}</Pill>
+        {presetText ? <Pill>{presetText}</Pill> : null}
+      </span>
     </>
   );
 
@@ -177,7 +174,7 @@ function AudienceToggle({
             aria-pressed={active}
             onClick={() => onSelect(o.id)}
             className={cn(
-              "rounded-[5px] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors",
+              "rounded-sm px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors",
               active
                 ? "bg-foreground text-background"
                 : "text-muted-foreground hover:text-foreground",

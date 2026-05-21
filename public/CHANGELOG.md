@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.101.7 — 21 May 2026
+- Tidied some UI inconsistencies: the selected tab in the top navigation and the leaderboard's Global / Friends toggle now share one consistent rounded-corner radius, the highlighted "you" row on the leaderboard no longer spills past its rounded corner, and the small dots that floated between the leaderboard filter labels are gone.
+
 ## 6.101.6 — 21 May 2026
 - The friends dock opens with a quiet fade now (the springy slide-in is gone). And the "Member directory" bar at the bottom actually does something: click it to expand the full list of everyone you follow right there in the panel, and click again to collapse it.
 

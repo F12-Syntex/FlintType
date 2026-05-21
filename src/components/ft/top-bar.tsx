@@ -119,7 +119,7 @@ export function TopBar({
                     // as the selected segment within the card; the
                     // weight + colour cue is still the dominant
                     // signal so the nav stays editorial-calm.
-                    "rounded-[5px] px-3 py-1.5 text-[13px] tracking-tight outline-none transition-colors",
+                    "rounded-sm px-3 py-1.5 text-[13px] tracking-tight outline-none transition-colors",
                     active
                       ? dark
                         ? "bg-white/[0.06] font-semibold text-ft-paper"
