@@ -1,12 +1,6 @@
 import type { Duel, DuelParticipant } from "@/types/duel";
 import type { FriendUser } from "@/types/friends";
 import type { LiveFriend } from "@/types/live";
-import type {
-  FollowNotificationData,
-  FriendPbNotificationData,
-  MutualNotificationData,
-  Notification,
-} from "@/types/notification";
 import type { PresenceEntry } from "@/types/presence";
 
 /** Dev-only fake data for the friends hub, so the presence / last-online
@@ -230,61 +224,4 @@ export function withDummyDuels(real: Duel[]): Duel[] {
   ];
   const seen = new Set(real.map((d) => d.id));
   return [...real, ...dummy.filter((d) => !seen.has(d.id))];
-}
-
-/** Prepend a few dummy activity items to the real feed (newest first). */
-export function withDummyFeed(real: Notification[]): Notification[] {
-  const now = Date.now();
-  const pb: FriendPbNotificationData = {
-    friendId: "dev_maya",
-    friendName: "@maya",
-    friendUsername: "maya",
-    mode: "words",
-    durationOrWordCount: 50,
-    wpm: 112,
-    accuracy: 0.98,
-  };
-  const mutual: MutualNotificationData = {
-    friendId: "dev_theo",
-    friendName: "@theo",
-    friendUsername: "theo",
-  };
-  const follow: FollowNotificationData = {
-    followerId: "dev_bex",
-    followerName: "@bex",
-    followerUsername: "bex",
-  };
-  const dummy: Notification[] = [
-    {
-      id: "dev_n1",
-      kind: "friend_pb",
-      title: "@maya hit a new personal best",
-      body: "112 wpm at 98% on words. Six faster than her old best.",
-      data: pb,
-      createdAtMs: now - 8 * MIN,
-      readAtMs: null,
-    },
-    {
-      id: "dev_n2",
-      kind: "mutual",
-      title: "You and @theo are now friends",
-      body: "You follow each other now. Challenge them to a duel.",
-      data: mutual,
-      createdAtMs: now - 3 * HOUR,
-      readAtMs: now - 2 * HOUR,
-    },
-    {
-      id: "dev_n3",
-      kind: "follow",
-      title: "@bex followed you",
-      body: "Follow back to become friends.",
-      data: follow,
-      createdAtMs: now - 26 * HOUR,
-      readAtMs: null,
-    },
-  ];
-  const seen = new Set(real.map((n) => n.id));
-  return [...real, ...dummy.filter((n) => !seen.has(n.id))].sort(
-    (a, b) => b.createdAtMs - a.createdAtMs,
-  );
 }

@@ -2,14 +2,17 @@
 
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 import type { FriendRelationship, FriendUser } from "@/types/friends";
 import type { PresenceEntry } from "@/types/presence";
 import { FriendListRow } from "./friend-list-row";
 
 type View = "friends" | "following" | "followers";
 
-const TITLE: Record<View, string> = {
-  friends: "Your friends",
+const VIEWS: View[] = ["friends", "following", "followers"];
+
+const LABEL: Record<View, string> = {
+  friends: "Friends",
   following: "Following",
   followers: "Followers",
 };
@@ -28,11 +31,13 @@ export type PeopleLists = {
   followers: FriendUser[];
 };
 
-/** The relationship surface — friends-first. The page leads with Your
- *  Friends; Following and Followers are quiet links beside the heading
- *  (with a "‹ Friends" return once you leave), not a chunky segmented
- *  control. Searchable, with the full `<FollowButton>` per row. Rendered
- *  inline, never a popup (ui-law §17.2 / §17.5). */
+/** The relationship surface. Friends / Following / Followers switch via a
+ *  segmented control built from the **same idiom as the TopBar nav**
+ *  (`rounded-md border bg-card p-0.5`, segments `rounded-[5px]` with a
+ *  subtle `bg-foreground/[0.06]` active tint), so the app's switches read
+ *  consistently. Full-width on mobile, hugging on `sm+`. Searchable, with
+ *  the full `<FollowButton>` per row. Inline, never a popup (ui-law
+ *  §17.2 / §17.5). */
 export function PeoplePanel({
   lists,
   relationshipFor,
@@ -64,36 +69,36 @@ export function PeoplePanel({
     );
   }, [lists, view, q]);
 
-  // Friends-first: lead with the active list; the other two views ride
-  // beside the heading. Leaving Friends surfaces a "‹ Friends" return.
-  const others = (["friends", "following", "followers"] as View[]).filter(
-    (v) => v !== view,
-  );
-
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-foreground">
-          {TITLE[view]}
-          <span className="ml-1.5 tabular-nums text-muted-foreground">
-            {counts[view]}
-          </span>
-        </h2>
-        <nav className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.12em]">
-          {others.map((v) => (
+      <div
+        role="tablist"
+        aria-label="People"
+        className="flex w-full items-center gap-0.5 rounded-md border border-border bg-card p-0.5 sm:inline-flex sm:w-fit sm:self-start"
+      >
+        {VIEWS.map((v) => {
+          const active = v === view;
+          return (
             <button
               key={v}
               type="button"
+              role="tab"
+              aria-selected={active}
               onClick={() => setView(v)}
-              className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:text-foreground"
+              className={cn(
+                "flex flex-1 items-center justify-center gap-1.5 rounded-[5px] px-3 py-1.5 text-[13px] tracking-tight outline-none transition-colors sm:flex-initial sm:justify-start",
+                active
+                  ? "bg-foreground/[0.06] font-semibold text-foreground"
+                  : "font-normal text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground focus-visible:text-foreground",
+              )}
             >
-              {v === "friends" ? "‹ Friends" : TITLE[v]}
-              <span className="ml-1 tabular-nums text-muted-foreground/70">
+              {LABEL[v]}
+              <span className="text-[11px] tabular-nums text-muted-foreground">
                 {counts[v]}
               </span>
             </button>
-          ))}
-        </nav>
+          );
+        })}
       </div>
 
       <div className="relative">

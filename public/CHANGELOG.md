@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.95.1 — 21 May 2026
+- Tidied the Friends page. The Friends / Following / Followers switch now matches the app's main navigation, so switches look consistent everywhere. The cluttered "Recent activity" section is gone; your friends' personal bests, new follows, and duel updates all still appear in the notifications bell. Removed the small arrow and eye icons for a cleaner, calmer look.
+
 ## 6.95.0 — 21 May 2026
 - Challenges now live right on the Friends page instead of behind a link to another page. When a friend dares you to beat one of their runs, it shows up inline with their name and target speed, and you can jump straight into the race. The section stays hidden when there's nothing waiting.
 

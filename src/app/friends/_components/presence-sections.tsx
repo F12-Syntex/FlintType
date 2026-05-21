@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { Eye } from "lucide-react";
 import { Avatar, UserTag } from "@/components/ft";
 import { cn } from "@/lib/utils";
 import type { FriendUser } from "@/types/friends";
@@ -93,8 +92,8 @@ function LiveRow({ user }: { user: LiveFriend }) {
           </span>
         </span>
       </span>
-      <span className="flex shrink-0 items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition-colors group-hover:text-foreground">
-        <Eye size={14} aria-hidden /> Watch
+      <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition-colors group-hover:text-foreground">
+        Watch
       </span>
     </Link>
   );

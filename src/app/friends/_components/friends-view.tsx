@@ -8,13 +8,10 @@ import { BackendError, useBackend } from "@/lib/backend";
 import type { Duel } from "@/types/duel";
 import type { FriendRelationship, FriendUser } from "@/types/friends";
 import type { LiveFriend } from "@/types/live";
-import type { Notification } from "@/types/notification";
 import type { PresenceEntry } from "@/types/presence";
-import { ActivitySection } from "./activity-section";
 import { ChallengesSection } from "./challenges-section";
 import {
   withDummyDuels,
-  withDummyFeed,
   withDummyLists,
   withDummyLive,
   withDummyPresence,
@@ -44,8 +41,6 @@ export function FriendsView() {
   const { isSignedIn, isLoaded } = useUser();
   const backend = useBackend();
   const [lists, setLists] = useState<Lists | null>(null);
-  const [feed, setFeed] = useState<Notification[]>([]);
-  const [feedLoading, setFeedLoading] = useState(true);
   const [duels, setDuels] = useState<Duel[]>([]);
   const [live, setLive] = useState<LiveFriend[]>([]);
   const [presenceById, setPresenceById] = useState<Map<string, PresenceEntry>>(
@@ -77,16 +72,6 @@ export function FriendsView() {
     } finally {
       setLoading(false);
     }
-  }, [backend]);
-
-  const loadFeed = useCallback(() => {
-    backend.notifications
-      .list()
-      .then((r) => setFeed(DEV_DUMMY ? withDummyFeed(r.items) : r.items))
-      .catch(() => {
-        if (DEV_DUMMY) setFeed(withDummyFeed([]));
-      })
-      .finally(() => setFeedLoading(false));
   }, [backend]);
 
   const loadDuels = useCallback(() => {
@@ -123,16 +108,14 @@ export function FriendsView() {
     if (!isLoaded) return;
     if (!isSignedIn) {
       setLoading(false);
-      setFeedLoading(false);
       return;
     }
     void loadLists();
-    loadFeed();
     loadDuels();
     pollRef.current();
     const id = window.setInterval(() => pollRef.current(), POLL_MS);
     return () => window.clearInterval(id);
-  }, [isLoaded, isSignedIn, loadLists, loadFeed, loadDuels]);
+  }, [isLoaded, isSignedIn, loadLists, loadDuels]);
 
   const followingIds = useMemo(
     () => new Set((lists?.following ?? []).map((u) => u.userId)),
@@ -207,7 +190,6 @@ export function FriendsView() {
               onChange={() => void loadLists()}
             />
           ) : null}
-          <ActivitySection items={feed} loading={feedLoading} />
         </>
       )}
     </main>
