@@ -1,0 +1,140 @@
+- generic:
+  - main:
+    - generic:
+      - generic:
+        - generic:
+          - link:
+            - /url: /
+            - img
+          - generic: Sign up
+          - heading [level=1]: Make it count.
+          - paragraph: Track your typing model across sessions, unlock adaptive drills, and bring your MonkeyType history with you.
+        - generic:
+          - generic:
+            - button:
+              - img
+              - text: Continue with Discord
+            - generic:
+              - generic: or sign up with email
+            - generic:
+              - generic:
+                - generic: Email
+                - textbox
+              - generic:
+                - generic: Password
+                - textbox
+                - generic: At least 8 characters.
+              - button [disabled]: Continue with email
+      - paragraph:
+        - text: Already have an account?
+        - link:
+          - /url: /sign-in
+          - text: Sign in
+  - alert
+  - dialog "What's new." [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]: Changelog
+      - heading "What's new." [level=2] [ref=e5]
+      - paragraph [ref=e6]:
+        - text: Everything that landed since you were last here
+        - generic [ref=e7]: (v6.84.0)
+        - text: .
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]:
+          - heading "6.91.2" [level=3] [ref=e11]
+          - generic [ref=e12]: 20 May 2026
+        - list [ref=e13]:
+          - listitem [ref=e14]:
+            - generic [ref=e16]: "Live spectating is much lighter now: your practice screen only streams while a friend is actually watching, or while you're actively typing, instead of constantly in the background. No change to what watchers see."
+      - generic [ref=e17]:
+        - generic [ref=e18]:
+          - heading "6.91.1" [level=3] [ref=e19]
+          - generic [ref=e20]: 20 May 2026
+        - list [ref=e21]:
+          - listitem [ref=e22]:
+            - generic [ref=e24]: "Cleaned up the live-watch screen: a slim header with a clear \"Spectating\" indicator, and the friend's screen now fills the whole view edge to edge instead of sitting in a small framed box."
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - heading "6.91.0" [level=3] [ref=e27]
+          - generic [ref=e28]: 20 May 2026
+        - list [ref=e29]:
+          - listitem [ref=e30]:
+            - generic [ref=e32]: Watching a friend is now fullscreen and immersive, with a slim header and a button to go truly fullscreen. And whenever someone is watching you, your practice screen shows a clear "ada is spectating" badge so you always know you're being watched.
+      - generic [ref=e33]:
+        - generic [ref=e34]:
+          - heading "6.90.0" [level=3] [ref=e35]
+          - generic [ref=e36]: 20 May 2026
+        - list [ref=e37]:
+          - listitem [ref=e38]:
+            - generic [ref=e40]: "Watching a friend now mirrors their whole practice screen: the mode they're on, the live passage as they type, and their full results page when they finish, themed exactly as they see it. It plays back with a smooth one-second buffer so it doesn't stutter."
+      - generic [ref=e41]:
+        - generic [ref=e42]:
+          - heading "6.89.0" [level=3] [ref=e43]
+          - generic [ref=e44]: 20 May 2026
+        - list [ref=e45]:
+          - listitem [ref=e46]:
+            - generic [ref=e48]: Watching a friend practise now shows a faithful clone of their actual screen, with their theme, font, caret, and colours, and the same live passage and readouts they're looking at, instead of a stripped-down view.
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - heading "6.88.0" [level=3] [ref=e51]
+          - generic [ref=e52]: 20 May 2026
+        - list [ref=e53]:
+          - listitem [ref=e54]:
+            - generic [ref=e56]: The Friends page is now a social feed. A timeline shows what your friends are up to, who's typing live, their personal bests, duels, and new friendships, with your friends, following, and followers list right beside it. On desktop the list sits inline next to the feed instead of behind a pop-up panel.
+      - generic [ref=e57]:
+        - generic [ref=e58]:
+          - heading "6.87.0" [level=3] [ref=e59]
+          - generic [ref=e60]: 20 May 2026
+        - list [ref=e61]:
+          - listitem [ref=e62]:
+            - generic [ref=e64]: Live spectating is now on by default, so mutual friends can watch you practise without you flipping a switch. While you type, your screen now shows who's currently watching ("ada is spectating", "3 people are spectating") instead of a static badge. You can still turn it off entirely, or keep specific friends out, in Customise → Behaviour → Live spectating.
+      - generic [ref=e65]:
+        - generic [ref=e66]:
+          - heading "6.86.3" [level=3] [ref=e67]
+          - generic [ref=e68]: 20 May 2026
+        - list [ref=e69]:
+          - listitem [ref=e70]:
+            - generic [ref=e72]: Internal changes only.
+      - generic [ref=e73]:
+        - generic [ref=e74]:
+          - heading "6.86.2" [level=3] [ref=e75]
+          - generic [ref=e76]: 20 May 2026
+        - list [ref=e77]:
+          - listitem [ref=e78]:
+            - generic [ref=e80]: Live spectating no longer cuts out partway through long timed runs, and the friends directory is now fully keyboard-accessible.
+      - generic [ref=e81]:
+        - generic [ref=e82]:
+          - heading "6.86.1" [level=3] [ref=e83]
+          - generic [ref=e84]: 20 May 2026
+        - list [ref=e85]:
+          - listitem [ref=e86]:
+            - generic [ref=e88]: Watching a friend type live now shows their avatar and a clearer live readout, with their words, speed, and accuracy front and centre.
+      - generic [ref=e89]:
+        - generic [ref=e90]:
+          - heading "6.86.0" [level=3] [ref=e91]
+          - generic [ref=e92]: 20 May 2026
+        - list [ref=e93]:
+          - listitem [ref=e94]:
+            - generic [ref=e96]: The Friends page is rebuilt around who's around right now. A "Live now" section shows friends typing live so you can jump straight in and watch them, an "Online" row shows who else is around, and your full friends, following, and followers lists live in a directory that slides up when you want it. Everyone shows their avatar now, and you can search the directory by handle.
+      - generic [ref=e97]:
+        - generic [ref=e98]:
+          - heading "6.85.0" [level=3] [ref=e99]
+          - generic [ref=e100]: 20 May 2026
+        - list [ref=e101]:
+          - listitem [ref=e102]:
+            - generic [ref=e104]: You can now let friends watch you practise from wherever you type, not a separate page. Turn on Live spectating in Customise → Behaviour, and any practice run or drill becomes watchable by your mutual friends in real time. A small "Friends can watch" badge shows on screen while it's on, and it's off by default.
+      - generic [ref=e105]:
+        - generic [ref=e106]:
+          - heading "6.84.1" [level=3] [ref=e107]
+          - generic [ref=e108]: 20 May 2026
+        - list [ref=e109]:
+          - listitem [ref=e110]:
+            - generic [ref=e112]: Internal changes only.
+    - generic [ref=e113]:
+      - link "Full changelog" [ref=e114] [cursor=pointer]:
+        - /url: /changelog
+      - button "Got it" [active] [ref=e115]
+    - button "Close" [ref=e116]:
+      - img [ref=e117]
+      - generic [ref=e120]: Close
