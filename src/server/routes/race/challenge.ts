@@ -46,6 +46,7 @@ const create = defineRoute<CreateChallengeInput, CreateChallengeOutput>({
       name: identity.name,
       badge: identity.badge,
       isHost: true,
+      userId: identity.userId ?? undefined,
     });
     if (!racer) {
       throw new BackendError(
@@ -57,7 +58,7 @@ const create = defineRoute<CreateChallengeInput, CreateChallengeOutput>({
     return {
       roomId: room.id,
       slug: room.slug!,
-      sessionToken,
+      sessionToken: racer.sessionToken,
       words: room.words,
       totalChars: room.totalChars,
       modeId: room.modeId,
@@ -82,6 +83,7 @@ const join = defineRoute<JoinChallengeInput, JoinChallengeOutput>({
       sessionToken,
       name: identity.name,
       badge: identity.badge,
+      userId: identity.userId ?? undefined,
     });
     if (!racer) {
       // Room is full or past the lobby phase. Instead of 409-ing
@@ -97,9 +99,12 @@ const join = defineRoute<JoinChallengeInput, JoinChallengeOutput>({
         spectate: true,
       };
     }
+    // `racer.sessionToken` may differ from the freshly-minted token when
+    // an authenticated user resumed their own seat (joining their own
+    // room) — return the seat they actually control.
     return {
       roomId: room.id,
-      sessionToken,
+      sessionToken: racer.sessionToken,
       words: room.words,
       totalChars: room.totalChars,
       modeId: room.modeId,

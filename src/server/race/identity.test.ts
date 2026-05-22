@@ -27,7 +27,7 @@ describe("race/identity", () => {
       emailAddresses: [],
     } as unknown as Awaited<ReturnType<typeof currentUser>>);
     const id = await getRaceIdentity("seed");
-    expect(id).toEqual({ name: "@Saif", badge: "RACER" });
+    expect(id).toEqual({ name: "@Saif", badge: "RACER", userId: "user_1" });
   });
 
   it("falls back to a deterministic Guest label when anonymous", async () => {
@@ -39,6 +39,7 @@ describe("race/identity", () => {
     expect(a.name).toBe(b.name);
     expect(a.name).toMatch(/^Guest · [A-Z]{3}$/);
     expect(a.badge).toBe("GUEST");
+    expect(a.userId).toBeNull();
   });
 
   it("guestNameFor is stable per seed and different across seeds", () => {

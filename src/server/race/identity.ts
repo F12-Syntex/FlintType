@@ -18,6 +18,9 @@ export type RaceIdentity = {
   /** Tier label rendered alongside the name. "RACER" for signed-in
    *  users; "GUEST" for anonymous. */
   badge: string;
+  /** Clerk user id when signed in, else null. Lets a room dedupe a
+   *  user joining their own race (see RaceRoom.addRealRacer). */
+  userId: string | null;
 };
 
 const GUEST_BADGE = "GUEST";
@@ -35,14 +38,20 @@ export async function getRaceIdentity(fallbackSeed: string): Promise<RaceIdentit
           user.emailAddresses[0]?.emailAddress?.split("@")[0] ??
           "racer";
         const handle = raw.startsWith("@") ? raw : `@${raw}`;
-        return { name: handle, badge: SIGNED_IN_BADGE };
+        return { name: handle, badge: SIGNED_IN_BADGE, userId: session.userId };
       }
+      // Signed in but no full user record — still dedupe by id.
+      return {
+        name: guestNameFor(fallbackSeed),
+        badge: SIGNED_IN_BADGE,
+        userId: session.userId,
+      };
     }
   } catch {
     // Clerk unavailable in dev keyless mode or test envs — fall
     // through to the guest path silently.
   }
-  return { name: guestNameFor(fallbackSeed), badge: GUEST_BADGE };
+  return { name: guestNameFor(fallbackSeed), badge: GUEST_BADGE, userId: null };
 }
 
 /** Deterministic guest name from a session token (or any per-call

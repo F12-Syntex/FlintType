@@ -43,11 +43,13 @@ const queue = defineRoute<QueueInput, QueueOutput>({
     // racing was retired so passages are always lowercase, no
     // punctuation. The server-side `pickRaceQuote` + quote pool
     // stays intact for when / if quote racing returns.
+    const userId = identity.userId ?? undefined;
     const room = joinOrCreateMatchmaking(input.modeId, seed, undefined);
     const added = room.addRealRacer({
       sessionToken,
       name: identity.name,
       badge: identity.badge,
+      userId,
     });
     if (!added) {
       // Race condition with the matchmaking-index lookup — the room
@@ -59,6 +61,7 @@ const queue = defineRoute<QueueInput, QueueOutput>({
         sessionToken,
         name: identity.name,
         badge: identity.badge,
+        userId,
       });
       if (!second) {
         throw new BackendError(
@@ -69,7 +72,7 @@ const queue = defineRoute<QueueInput, QueueOutput>({
       }
       return {
         roomId: fresh.id,
-        sessionToken,
+        sessionToken: second.sessionToken,
         words: fresh.words,
         totalChars: fresh.totalChars,
         modeId: fresh.modeId,
@@ -77,7 +80,7 @@ const queue = defineRoute<QueueInput, QueueOutput>({
     }
     return {
       roomId: room.id,
-      sessionToken,
+      sessionToken: added.sessionToken,
       words: room.words,
       totalChars: room.totalChars,
       modeId: room.modeId,

@@ -51,6 +51,10 @@ const CHALLENGE_HOST_IDLE_TTL_MS = 30 * 60_000;
 
 type InternalRacer = RoomRacer & {
   sessionToken: string;
+  /** Clerk user id for a signed-in racer (undefined for guests). Used to
+   *  stop an authenticated user joining their OWN room twice — they
+   *  resume their existing seat instead of spawning a duplicate. */
+  userId?: string;
   botProfile?: BotProfile;
   /** Fractional progress accumulator for bots so sub-1-char per-tick
    *  advances still produce smooth movement. */
@@ -213,6 +217,8 @@ export class RaceRoom {
     name: string;
     badge: string;
     isHost?: boolean;
+    /** Clerk user id when the joiner is signed in. */
+    userId?: string;
   }): InternalRacer | null {
     // Re-join after a transient disconnect: same sessionToken, same
     // seat. Clear the disconnected flag so the snapshot stops showing
@@ -224,11 +230,27 @@ export class RaceRoom {
       this.scheduleBroadcast();
       return existing;
     }
+    // An authenticated user can't join their OWN room a second time
+    // (e.g. the host opening the share link fresh, or a second tab):
+    // resume their existing seat instead of spawning a clone of
+    // themselves racing themselves. Guests (no userId) can't be matched,
+    // so they fall through to the normal join.
+    if (opts.userId) {
+      for (const r of this.racers.values()) {
+        if (!r.isBot && r.userId === opts.userId) {
+          r.disconnected = false;
+          this.lastTouchedAt = Date.now();
+          this.scheduleBroadcast();
+          return r;
+        }
+      }
+    }
     if (!this.canJoinAsReal()) return null;
     const now = Date.now();
     const racer: InternalRacer = {
       id: opts.sessionToken,
       sessionToken: opts.sessionToken,
+      userId: opts.userId,
       name: opts.name,
       flag: "—",
       badge: opts.badge,

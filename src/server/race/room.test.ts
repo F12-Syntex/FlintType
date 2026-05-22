@@ -644,6 +644,46 @@ describe("RaceRoom", () => {
     expect(top?.id).toBe("s_bob");
   });
 
+  it("an authenticated user can't join their own room twice — they resume their seat", () => {
+    const room = new RaceRoom({
+      id: "r_selfjoin",
+      slug: "self-otter-1",
+      kind: "challenge",
+      modeId: "ffa",
+      raceSeed: 1,
+      wordCount: 25,
+    });
+    // Host creates with a session token + their Clerk userId.
+    const host = room.addRealRacer({
+      sessionToken: "s_host",
+      name: "@host",
+      badge: "RACER",
+      isHost: true,
+      userId: "user_42",
+    });
+    expect(host).not.toBeNull();
+    expect(room.snapshot().racers.length).toBe(1);
+    // Same user opens the link fresh (a new session token) → no duplicate;
+    // they resume the existing seat (same token back).
+    const again = room.addRealRacer({
+      sessionToken: "s_host_tab2",
+      name: "@host",
+      badge: "RACER",
+      userId: "user_42",
+    });
+    expect(again?.sessionToken).toBe("s_host");
+    expect(room.snapshot().racers.length).toBe(1);
+    // A different authenticated user joins as a real, distinct racer.
+    const other = room.addRealRacer({
+      sessionToken: "s_other",
+      name: "@other",
+      badge: "RACER",
+      userId: "user_99",
+    });
+    expect(other?.sessionToken).toBe("s_other");
+    expect(room.snapshot().racers.length).toBe(2);
+  });
+
   it("free-for-all seats 8 real players and never adds bots", () => {
     const room = new RaceRoom({
       id: "r_ffa",

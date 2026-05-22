@@ -27,15 +27,19 @@ export function RacePassage() {
   // before the passage is revealed (so the lobby can already render
   // it under the "QUOTE" poster).
   const quoteSource = onlineSnapshot?.quoteSource;
-  const you = state.racers.find((r) => r.isYou)!;
+  // `you` is null for a pure spectator (joined a full/started lobby and
+  // never got a seat). Every `you`-derived value below is guarded so the
+  // surface renders the live race for them instead of crashing.
+  const you = state.racers.find((r) => r.isYou) ?? null;
+  const isSpectator = !you;
   const totalChars = state.totalChars;
-  const correctChars = you.correctChars;
+  const correctChars = you?.correctChars ?? 0;
   const wordsDone =
     totalChars > 0 && correctChars >= totalChars
       ? state.words.length
       : Math.min(practice.cursorWord, state.words.length);
-  const acc = liveAccuracy(practice.typed, practice.words);
-  const wpm = you.wpm;
+  const acc = isSpectator ? 100 : liveAccuracy(practice.typed, practice.words);
+  const wpm = you?.wpm ?? 0;
   const showColors = appearance.multiplayerPlayerColors;
   const marker = appearance.multiplayerOpponentMarker;
 
@@ -86,8 +90,13 @@ export function RacePassage() {
   // your passage for a live view of another racer's cursor.
   // RaceResults renders below in the page tree (page.tsx) so your
   // stats are visible at the same time.
-  const youFinished = you.finishedAt != null;
-  const showSpectator = state.phase === "racing" && youFinished;
+  const youFinished = you?.finishedAt != null;
+  // Swap in the live spectator passage when: you finished but the room
+  // hasn't (watch another racer), OR you're a pure spectator (no seat)
+  // for the whole race + results.
+  const showSpectator = isSpectator
+    ? state.phase === "racing" || state.phase === "finished"
+    : state.phase === "racing" && youFinished;
   // Player roster shows from matching onwards. Hidden in queue
   // (empty room — only the user) and in finished if everyone's
   // already wrapped (RaceResults takes over visually).

@@ -33,7 +33,7 @@ export function RaceResults() {
     abandon,
   } = useRace();
   const { state: practice } = usePractice();
-  const you = state.racers.find((r) => r.isYou)!;
+  const you = state.racers.find((r) => r.isYou) ?? null;
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
   const [rematchClicked, setRematchClicked] = useState(false);
@@ -95,6 +95,9 @@ export function RaceResults() {
   // are still mid-race. In the second case we show your results
   // immediately — no need to wait on slower racers — and the live
   // player strip above still ticks while the room wraps up.
+  // A pure spectator (joined a full/started lobby) has no "you" racer —
+  // they never get a personal results panel.
+  if (!you) return null;
   const allFinished = state.phase === "finished";
   const youFinished = you.finishedAt != null;
   if (!allFinished && !youFinished) return null;
