@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.103.1 — 22 May 2026
+- Fixed: leaving a race lobby now removes you from it for everyone else. Previously, navigating away (browser back, a link) could leave a ghost copy of you sitting in the lobby until it timed out.
+- When a race finishes, the results screen now takes over the whole area instead of sitting below the finished passage — the typing view is replaced by your standings, stats, and the rematch button.
+
 ## 6.103.0 — 22 May 2026
 - Simplified the race modes: the picker now offers just 1V1 and Free-for-all. The 1V1V1V1, Sprint, and Endurance modes have been retired.
 
