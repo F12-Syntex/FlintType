@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BackendError, useBackend } from "@/lib/backend";
 import { cn } from "@/lib/utils";
+import type { JoinChallengeOutput } from "@/types/race";
 import { RaceShell, type RaceShellOnline } from "../../../_components/race-shell";
 import type { RaceModeId } from "../../../_components/race-data";
 
@@ -55,6 +56,19 @@ export function ChallengeShell({
     | { state: "error"; kind: ChallengeErrorKind; message: string }
   >({ state: "loading" });
 
+  // Join EXACTLY once per slug, even across React strict-mode's dev
+  // double-mount. The join call mints a server seat; firing it twice for
+  // a guest (no userId to dedupe on) leaves a phantom racer in the room
+  // — the earliest-joined seat that no client ends up controlling, so it
+  // never receives a `leave` and lingers as a ghost "first joiner."
+  // Caching the in-flight promise in a slug-keyed ref means the second
+  // strict-mode mount reuses the first join instead of opening a new
+  // seat. A genuine remount (new component / new slug) gets a fresh join.
+  const joinRef = useRef<{
+    slug: string;
+    promise: Promise<JoinChallengeOutput>;
+  } | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     const cached = readHostStorage(slug);
@@ -62,9 +76,11 @@ export function ChallengeShell({
       setResolved({ state: "ready", online: cached });
       return;
     }
-    (async () => {
-      try {
-        const res = await backend.race.challenge.join({ slug });
+    if (!joinRef.current || joinRef.current.slug !== slug) {
+      joinRef.current = { slug, promise: backend.race.challenge.join({ slug }) };
+    }
+    joinRef.current.promise
+      .then((res) => {
         if (cancelled) return;
         // Server returns `spectate: true` instead of 409 CONFLICT
         // when the room is full or has already started. We pipe
@@ -82,14 +98,17 @@ export function ChallengeShell({
             spectate: res.spectate ?? false,
           },
         });
-      } catch (err) {
+      })
+      .catch((err) => {
         if (cancelled) return;
+        // A failed join shouldn't poison the cached promise — clear it
+        // so a retry (remount) can attempt a fresh join.
+        joinRef.current = null;
         setResolved({
           state: "error",
           ...classifyChallengeError(err),
         });
-      }
-    })();
+      });
     return () => {
       cancelled = true;
     };
