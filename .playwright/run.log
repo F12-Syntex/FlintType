@@ -1,0 +1,20 @@
+[screenshots] base http://localhost:3000 · viewport 1440x900
+[screenshots] demo user exists: user_3E4HIrKbV5JWbTJOJLZILSTiiol (@flint_demo)
+[screenshots] avatar uploaded
+[screenshots] opening browser…
+[screenshots] running automation (sign-in, mocks, all shots)…
+[screenshots] automation finished; no summary found. Tail: creenshot({ path: OUT + '/' + shot.name + '.png' });
+      results.push(shot.name + ':ok');
+    } catch (e) {
+      results.push(shot.name + ':ERR ' + (e && e.message || e));
+    }
+  }
+  return JSON.stringify({ signin, results });
+})(page);
+```
+### Page
+- Page URL: http://localhost:3000/
+- Page Title: flinttype — free online typing test, WPM speed test & adaptive trainer
+- Console: 5 errors, 1 warnings
+### Events
+- New console entries: .playwright-cli\console-2026-05-22T06-43-32-689Z.log#L7-L117
