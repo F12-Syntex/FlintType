@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.101.13 — 22 May 2026
+- Internal changes only.
+
 ## 6.101.12 — 22 May 2026
 - Fixed: joining a race lobby that's already full or under way no longer crashes the page — you drop in as a spectator and watch the race live instead.
 - Fixed: signed-in players can no longer end up racing themselves. Opening your own race link again just reconnects you to your existing spot instead of adding a duplicate of you.
