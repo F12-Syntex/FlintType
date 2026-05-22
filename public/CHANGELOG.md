@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.104.1 — 22 May 2026
+- Internal changes only.
+
 ## 6.104.0 — 22 May 2026
 - Added a new "White Hat" identity tag — a cool slate-blue chip that sits beside a person's name (next to OG and Owner) to mark someone who has found and reported three or more major bugs. It's awarded by hand; in local development the owner sees it on their own profile so the look can be checked.
 

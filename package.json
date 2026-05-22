@@ -1,6 +1,6 @@
 {
   "name": "flinttype",
-  "version": "6.104.0",
+  "version": "6.104.1",
   "private": true,
   "packageManager": "yarn@1.22.22",
   "scripts": {
@@ -20,6 +20,7 @@
     "skills:baseline": "tsx scripts/compute-skill-baseline.ts",
     "announce": "tsx scripts/send-announcement.ts",
     "backfill-og": "tsx scripts/backfill-og.ts",
+    "grant-tag": "tsx scripts/grant-tag.ts",
     "backfill-usernames": "tsx scripts/backfill-usernames.ts",
     "wordlists:sync": "tsx scripts/sync-wordlist-catalog.ts"
   },
