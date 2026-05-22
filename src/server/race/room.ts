@@ -192,6 +192,20 @@ export class RaceRoom {
 
   subscribe(fn: Subscriber): () => void {
     this.subs.add(fn);
+    // A live SSE connection is the honest signal that someone — the
+    // host, a racer, or a spectator — is present in this room. For a
+    // challenge lobby that means "keep it open": bump the activity
+    // clock and re-arm the idle window so a lobby with a connected
+    // viewer is never GC'd out from under the host, even if it sits
+    // for longer than the idle window with nobody typing (the host
+    // shared the link and is waiting for a friend). The idle GC only
+    // disposes a room with *zero* live connections — see
+    // `scheduleChallengeIdleGc`. Matchmaking rooms keep their fixed
+    // post-finish GC; they have no host and no slug to preserve.
+    if (this.kind === "challenge") {
+      this.lastTouchedAt = Date.now();
+      this.scheduleChallengeIdleGc();
+    }
     // Push the current snapshot immediately so the new subscriber
     // doesn't sit blank until the next state change.
     fn(this.snapshot());
@@ -808,6 +822,19 @@ export class RaceRoom {
       );
     }
     this.totalChars = totalCharsOf(this.words);
+    // Purge real racers who disconnected during the round that just
+    // finished — they left and aren't coming back for this rematch.
+    // Leaving them in would hold a seat against `capacity` and render a
+    // ghost "(disconnected)" slot in the new lobby. Bots never
+    // disconnect, so they're untouched. A racer who only had a
+    // transient blip re-joins under their own token / userId and gets a
+    // fresh seat — purging here doesn't block that.
+    for (const r of [...this.racers.values()]) {
+      if (!r.isBot && r.disconnected) {
+        this.racers.delete(r.id);
+        this.rematchReady.delete(r.sessionToken);
+      }
+    }
     // Reset per-racer state — keep identity (id / name / flag / badge
     // / isHost / isBot / botProfile) but wipe everything race-bound.
     for (const r of this.racers.values()) {
@@ -859,12 +886,19 @@ export class RaceRoom {
     }
     this.gcTimer = setTimeout(() => {
       this.gcTimer = null;
+      // Never GC a room that still has a live connection — an open SSE
+      // subscription means a host / racer / spectator is watching, even
+      // if the lobby has sat idle with no keystrokes. Only a room with
+      // zero connections AND no activity for the full window is truly
+      // abandoned (the host's tab crashed without firing a clean
+      // `leave`), and that's the one case this safety net exists for.
       const idleFor = Date.now() - this.lastTouchedAt;
-      if (idleFor >= CHALLENGE_HOST_IDLE_TTL_MS) {
+      if (this.subs.size === 0 && idleFor >= CHALLENGE_HOST_IDLE_TTL_MS) {
         this.dispose();
         return;
       }
-      // Activity happened since the timer was armed — push it out.
+      // Still connected, or activity happened since the timer was
+      // armed — push the window out and check again next interval.
       this.scheduleChallengeIdleGc();
     }, CHALLENGE_HOST_IDLE_TTL_MS);
   }

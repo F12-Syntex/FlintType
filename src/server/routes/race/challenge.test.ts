@@ -133,6 +133,49 @@ describe("race.challenge routes", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
+  it("FFA seats 8 real joiners; the 9th join is a read-only spectator", async () => {
+    const host = await callRoute<CreateChallengeOutput>(
+      ["race", "challenge", "create"],
+      { input: { modeId: "ffa" } },
+    );
+    // Host is seat 1 — add 7 more real joiners to reach the capacity of 8.
+    for (let i = 0; i < 7; i += 1) {
+      const j = await callRoute<JoinChallengeOutput>(
+        ["race", "challenge", "join"],
+        { input: { slug: host.slug } },
+      );
+      expect(j.spectate).toBeUndefined();
+      expect(j.sessionToken).toMatch(/^s_/);
+    }
+    const ninth = await callRoute<JoinChallengeOutput>(
+      ["race", "challenge", "join"],
+      { input: { slug: host.slug } },
+    );
+    expect(ninth.spectate).toBe(true);
+    expect(ninth.sessionToken).toBe("");
+    expect(ninth.roomId).toBe(host.roomId);
+  });
+
+  it("a third joiner on a full 1v1 lobby spectates (capacity gate, still in lobby)", async () => {
+    const host = await callRoute<CreateChallengeOutput>(
+      ["race", "challenge", "create"],
+      { input: { modeId: "1v1" } },
+    );
+    const second = await callRoute<JoinChallengeOutput>(
+      ["race", "challenge", "join"],
+      { input: { slug: host.slug } },
+    );
+    expect(second.spectate).toBeUndefined();
+    // Room is now full (host + 1) and still in lobby — a third lands as
+    // a spectator without the host ever pressing Start.
+    const third = await callRoute<JoinChallengeOutput>(
+      ["race", "challenge", "join"],
+      { input: { slug: host.slug } },
+    );
+    expect(third.spectate).toBe(true);
+    expect(third.sessionToken).toBe("");
+  });
+
   it("join returns a spectator response when the lobby is past lobby phase", async () => {
     // Create the room with the host, then start it — the room moves
     // into countdown and a fresh join can't take a seat. Instead of

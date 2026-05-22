@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.102.0 — 22 May 2026
+- Race lobbies you host now stay open as long as you're on the page — even if nobody joins for a long time. Previously a quiet lobby could be closed out from under you while you waited for a friend; now it only shuts down once you actually leave (or your tab closes).
+- When you rematch, anyone who left mid-race is cleared out cleanly, so their empty spot is freed up for a new player to join the next round.
+
 ## 6.101.13 — 22 May 2026
 - Internal changes only.
 
