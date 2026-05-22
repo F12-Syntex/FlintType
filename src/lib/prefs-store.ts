@@ -55,6 +55,57 @@ let writeInFlight: Promise<void> | null = null;
 
 const WRITE_DEBOUNCE_MS = 400;
 
+/** Version stamps backing the stale-backend guard. `localVersion`
+ *  increments on every local write; `syncedVersion` advances to the
+ *  version a backend save *confirmed*. When localVersion > syncedVersion
+ *  the device holds edits the server hasn't acknowledged, so on load
+ *  those edits win over the (possibly stale) server copy instead of
+ *  being silently overwritten — that's the "theme reverts on its own"
+ *  bug. Persisted to a SEPARATE localStorage key so the prefs blob
+ *  itself stays the bare shape the pre-hydration bootstrap reads
+ *  (src/lib/bootstrap.ts). */
+const META_KEY = "flinttype:prefs:meta";
+let localVersion = 0;
+let syncedVersion = 0;
+let metaLoaded = false;
+
+function metaRead(): { v: number; sv: number } {
+  if (typeof window === "undefined") return { v: 0, sv: 0 };
+  try {
+    const raw = window.localStorage.getItem(META_KEY);
+    if (raw) {
+      const p = JSON.parse(raw) as { v?: unknown; sv?: unknown };
+      if (typeof p?.v === "number" && typeof p?.sv === "number") {
+        return { v: p.v, sv: p.sv };
+      }
+    }
+  } catch {
+    /* corrupted — treat as clean (backend authoritative) */
+  }
+  return { v: 0, sv: 0 };
+}
+
+function metaWrite(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      META_KEY,
+      JSON.stringify({ v: localVersion, sv: syncedVersion }),
+    );
+  } catch {
+    /* quota / private mode — fail silent */
+  }
+}
+
+/** Hydrate the version stamps from localStorage once per session. */
+function ensureMeta(): void {
+  if (metaLoaded) return;
+  metaLoaded = true;
+  const m = metaRead();
+  localVersion = m.v;
+  syncedVersion = m.sv;
+}
+
 /** Subscribe to store changes. Returns an unsubscribe fn. */
 export function subscribe(l: Listener): () => void {
   listeners.add(l);
@@ -85,6 +136,7 @@ export function loadPrefs(): Promise<PrefsBlob> {
   // render after page load shows the user's stored choices instead
   // of the bare defaults — even before the backend GET resolves
   // (or even when the user is anonymous and the GET 401s).
+  ensureMeta();
   const seeded = lsRead();
   if (seeded) {
     cache = seeded;
@@ -94,11 +146,23 @@ export function loadPrefs(): Promise<PrefsBlob> {
     try {
       const backend = useBackend();
       const blob = await backend.prefs.get();
-      // Backend wins for signed-in users — overlay onto whatever
-      // localStorage seeded so any anon-side edits made *before*
-      // the GET resolves don't get clobbered by the network result
-      // (their write will flush momentarily anyway).
-      cache = { ...(cache ?? {}), ...(blob ?? {}) };
+      const local = cache ?? {};
+      const remote = (blob ?? {}) as PrefsBlob;
+      // Stale-backend guard. If the device has local edits the server
+      // hasn't confirmed (localVersion > syncedVersion), those edits
+      // win — the server copy may be behind (a debounced save that
+      // never landed, or one that 401'd / failed), and letting it
+      // overwrite would silently wipe a setting the user just changed
+      // (the theme-reverts-on-its-own bug). Local wins, the backend
+      // fills in slices the device doesn't have, and we re-flush so the
+      // server converges. When the device is in sync, the backend stays
+      // authoritative so cross-device changes still flow in.
+      if (localVersion > syncedVersion) {
+        cache = { ...remote, ...local };
+        scheduleWrite();
+      } else {
+        cache = { ...local, ...remote };
+      }
       lsWrite(cache);
     } catch (err) {
       // Anon / 401 — keep the seeded cache (or the empty one).
@@ -132,8 +196,11 @@ export function readSlice<T extends object>(key: string, defaults: T): T {
  *  localStorage so anon users keep their edits across reloads, and
  *  schedules a debounced backend save (silent 401 on anon). */
 export function writeSlice<T>(key: string, value: T): void {
+  ensureMeta();
   cache = { ...(cache ?? {}), [key]: value as unknown };
+  localVersion++;
   lsWrite(cache);
+  metaWrite();
   notify();
   scheduleWrite();
 }
@@ -141,10 +208,13 @@ export function writeSlice<T>(key: string, value: T): void {
 /** Drop a slice entirely (used by `reset()` flows). */
 export function clearSlice(key: string): void {
   if (!cache) return;
+  ensureMeta();
   const next = { ...cache };
   delete next[key];
   cache = next;
+  localVersion++;
   lsWrite(cache);
+  metaWrite();
   notify();
   scheduleWrite();
 }
@@ -166,10 +236,18 @@ async function flush(): Promise<void> {
   }
   if (!cache) return;
   const snapshot = cache;
+  const sending = localVersion;
   writeInFlight = (async () => {
     try {
       const backend = useBackend();
       await backend.prefs.set({ data: snapshot });
+      // Confirmed persisted — advance the synced stamp so a later load
+      // treats the backend as authoritative again. On failure we leave
+      // it behind, so the unsaved edits keep winning until a save lands.
+      if (sending > syncedVersion) {
+        syncedVersion = sending;
+        metaWrite();
+      }
     } catch {
       /* unauthenticated / transient — local state stays current */
     } finally {
@@ -184,6 +262,9 @@ async function flush(): Promise<void> {
 export function __resetForTests(): void {
   cache = null;
   loadPromise = null;
+  localVersion = 0;
+  syncedVersion = 0;
+  metaLoaded = false;
   if (writeTimer) {
     clearTimeout(writeTimer);
     writeTimer = null;

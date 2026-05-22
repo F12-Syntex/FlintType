@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.101.11 — 22 May 2026
+- Fixed: your appearance settings (theme, primary colour, and other customisations) no longer revert to the default on their own. A change you make on this device is now kept even when it hadn't finished saving to the server yet, instead of being overwritten by an older saved copy the next time the page loads.
+
 ## 6.101.10 — 22 May 2026
 - The friends dock is now a fixed size, so opening the Member directory no longer makes the panel jump to a different size. Switching between Friends and the directory now slides cleanly (forward into the directory, back to Friends) instead of snapping.
 
