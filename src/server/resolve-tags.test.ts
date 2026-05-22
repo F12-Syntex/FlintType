@@ -44,6 +44,26 @@ describe("resolveTagsFromClerkUser", () => {
     ).toEqual(["owner", "og"]);
   });
 
+  it("honours a manually-granted whitehat from publicMetadata", () => {
+    expect(
+      resolveTagsFromClerkUser({
+        email: "stranger@example.com",
+        publicMetadataTags: ["whitehat"],
+      }),
+    ).toEqual(["whitehat"]);
+  });
+
+  it("does not dev-self-grant whitehat to the owner under the test runner", () => {
+    // DEV_SELF_GRANT_ENABLED is false in vitest, so the owner's
+    // eligibility comes from the allowlist + metadata only.
+    expect(
+      resolveTagsFromClerkUser({
+        email: OWNER_EMAILS[0]!,
+        publicMetadataTags: null,
+      }),
+    ).toEqual(["owner"]);
+  });
+
   it("drops unknown tags from publicMetadata", () => {
     expect(
       resolveTagsFromClerkUser({

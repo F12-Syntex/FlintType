@@ -125,20 +125,26 @@ These are part of the §2.3 fixed layer — they do not swap with `<ModeToggle>`
 
 #### User-tag tokens
 
-Identity marks (OG, OWNER, …) paint from a per-tag token quartet that is **100% fixed across palettes AND modes**. A "founding member" or "owner" chip is a claim about the user, not chrome — themed-coral OG under one palette and themed-mint OG under another would let the tag drift across users and stop reading as a *kind*. The eight tokens have identical values in `:root` and `.dark`; there are no per-mode overrides. Fills are **solid opaque** so the chip carries its own contrast regardless of the surface behind it (dark race screens, light profile pages, every palette).
+Identity marks (OWNER, WHITE HAT, OG, …) paint from a per-tag token quartet that is **100% fixed across palettes AND modes**. A "founding member" or "owner" chip is a claim about the user, not chrome — themed-coral OG under one palette and themed-mint OG under another would let the tag drift across users and stop reading as a *kind*. Each tag's four-token quartet has identical values in `:root` and `.dark`; there are no per-mode overrides. Fills are **solid opaque** so the chip carries its own contrast regardless of the surface behind it (dark race screens, light profile pages, every palette).
 
-| Token                    | Use                                                            |
-|--------------------------|-----------------------------------------------------------------|
-| `--ft-tag-og-fg`         | OG icon + label colour (aged-copper ink)                       |
-| `--ft-tag-og-border`     | OG hairline border                                             |
-| `--ft-tag-og-fill`       | OG opaque warm-cream fill                                      |
-| `--ft-tag-og-glow`       | OG outer + inset box-shadow (static, no animation)             |
-| `--ft-tag-owner-fg`      | OWNER icon + label colour (deep brown for max contrast on gold) |
-| `--ft-tag-owner-border`  | OWNER hairline border                                          |
-| `--ft-tag-owner-fill`    | OWNER opaque amber-gold fill                                   |
-| `--ft-tag-owner-glow`    | OWNER outer halo + inner highlight (signet-press feel)         |
+The warm/cool axis is load-bearing: OG and OWNER are *warm* (copper-cream, amber-gold), WHITE HAT is deliberately *cool* (slate-blue ink on pale silver) so the three read as distinct kinds at a glance. Keep new tags low-chroma — a tag is quiet ink, never a second coral spark (§2).
 
-Only `<UserTag>` (§11) consumes these — never reach for them from product surfaces. Adding a new tag requires extending the eight tokens, the `UserTagId` union (`src/types/user-tag.ts`), the catalog in `src/components/ft/user-tag.tsx`, and the rows in §11 + §14 of this doc, all in the same commit.
+| Token                       | Use                                                            |
+|-----------------------------|-----------------------------------------------------------------|
+| `--ft-tag-og-fg`            | OG icon + label colour (aged-copper ink)                       |
+| `--ft-tag-og-border`        | OG hairline border                                             |
+| `--ft-tag-og-fill`          | OG opaque warm-cream fill                                      |
+| `--ft-tag-og-glow`          | OG outer + inset box-shadow (static, no animation)             |
+| `--ft-tag-owner-fg`         | OWNER icon + label colour (deep brown for max contrast on gold) |
+| `--ft-tag-owner-border`     | OWNER hairline border                                          |
+| `--ft-tag-owner-fill`       | OWNER opaque amber-gold fill                                   |
+| `--ft-tag-owner-glow`       | OWNER outer halo + inner highlight (signet-press feel)         |
+| `--ft-tag-whitehat-fg`      | WHITE HAT icon + label colour (deep cool slate-blue ink)       |
+| `--ft-tag-whitehat-border`  | WHITE HAT hairline border (mid cool slate)                     |
+| `--ft-tag-whitehat-fill`    | WHITE HAT opaque pale cool-silver fill (lightest of the three) |
+| `--ft-tag-whitehat-glow`    | WHITE HAT quiet cool halo + polished top-edge highlight        |
+
+Only `<UserTag>` (§11) consumes these — never reach for them from product surfaces. Adding a new tag requires extending the per-tag token quartet, the `UserTagId` union (`src/types/user-tag.ts`), the catalog in `src/components/ft/user-tag.tsx`, and the rows in §11 + §14 of this doc, all in the same commit.
 
 #### Third-party brand tokens
 
@@ -493,7 +499,7 @@ Reusable building blocks live in `src/components/ft/`. Use these — don't repro
 | `<Kbd>`      | `from "@/components/ft"`        | Inline keycap chip: white bg, double-bottom border, mono small caps.                                                                                                                                                                                               |
 | `<FtButton>` | `from "@/components/ft"`        | Square-cornered, uppercase, mono, tracked button. Variants: `ink`, `ember`, `ghost`, `ghostDark`. Sizes `sm \| md \| lg`.                                                                                                                                          |
 | `<Avatar>`   | `from "@/components/ft"`        | A user's Clerk avatar — circular, hairline `ring-foreground/10`, sizes `sm \| md \| lg \| xl`. **Desaturated at rest, full colour on hover** of an ancestor `.group` (`liven={false}` opts out). Optional presence dot: `status="live"` (the lone coral spark, `motion-safe:animate-pulse`) / `"online"` (`bg-ft-ok`). Plain `<img>` (Clerk's CDN isn't in `next.config` remotePatterns and that file is off-limits). **Avatars are a sanctioned departure from the no-avatars bias — only the friends/live surfaces (§17.5) use them; do not sprinkle avatars onto other product chrome.** |
-| `<UserTag>`  | `from "@/components/ft"`        | Identity tag chip — lucide icon + uppercase label with per-tag colour/border/fill/glow tokens. Variants: `tag ∈ { og, owner }`. Sizes `sm` (leaderboard row, h-5/text-[10px]) / `md` (profile hero, h-[26px]/text-[11px]). Hover (and focus) shows a Monkeytype-style two-line tooltip with the tag's name + one-line description; opt out with `tooltip={false}` only when the chip is itself inside an outer button whose own affordance already describes it. Icons use lucide-react with `strokeWidth={2.25}` so the glyph reads at 12–14px against the saturated fill. Static glow, no animation. Tokens are fixed across palettes (§2.3 User-tag tokens). Requires the root `<TooltipProvider>` in `src/app/providers.tsx`. |
+| `<UserTag>`  | `from "@/components/ft"`        | Identity tag chip — lucide icon + uppercase label with per-tag colour/border/fill/glow tokens. Variants: `tag ∈ { owner, whitehat, og }`. Sizes `sm` (leaderboard row, h-5/text-[10px]) / `md` (profile hero, h-[26px]/text-[11px]). Hover (and focus) shows a Monkeytype-style two-line tooltip with the tag's name + one-line description; opt out with `tooltip={false}` only when the chip is itself inside an outer button whose own affordance already describes it. Icons use lucide-react with `strokeWidth={2.25}` so the glyph reads at 12–14px against the saturated fill. Static glow, no animation. Tokens are fixed across palettes (§2.3 User-tag tokens). Requires the root `<TooltipProvider>` in `src/app/providers.tsx`. |
 
 The shadcn `<Button>` is still preferred when the form/dialog already uses shadcn primitives — but flinttype-themed CTAs (the editorial buttons in screen designs) use `<FtButton>`.
 
@@ -660,7 +666,7 @@ Animation in flinttype is the **exception**, not a default. The product is edito
 
 ## 14. Identity & ownership marks
 
-Identity tags (OG, OWNER, future kinds) are not chrome — they're a claim *about* a user, surfaced wherever that user's name appears. The renderer is `<UserTag>` (§11), painted from the per-tag token quartet in §2.3 → **User-tag tokens**.
+Identity tags (OWNER, WHITE HAT, OG, future kinds) are not chrome — they're a claim *about* a user, surfaced wherever that user's name appears. The renderer is `<UserTag>` (§11), painted from the per-tag token quartet in §2.3 → **User-tag tokens**.
 
 ### 14.1 Where tags render
 
@@ -678,10 +684,10 @@ Tag display is the intersection of **eligibility** (which tags the user is allow
 A new tag ships only when **every** piece below lands in the same commit:
 
 1. Extend `USER_TAG_IDS` (`src/types/user-tag.ts`) with the new id. Order matters — the array is the display-weight order.
-2. Add the eight CSS tokens (`--ft-tag-<id>-{fg,border,fill,glow}` in `:root`; the `fill` override in `.dark`) to `src/app/globals.css`.
+2. Add the four CSS tokens (`--ft-tag-<id>-{fg,border,fill,glow}`) to `:root` in `src/app/globals.css`. Identity tags have **no** `.dark` override — the quartet is fixed across modes (§2.3); opaque fills carry their own contrast.
 3. Add a catalog entry (label, aria-label, lucide icon component) to `TAG_CONFIG` in `src/components/ft/user-tag.tsx`. **Always a lucide-react `LucideIcon`** — never a hand-rolled SVG. Tags share the icon vocabulary with every other glyph in the app; bespoke SVGs read as foreign next to the lucide stroke family even when proportions are close. If lucide doesn't have a glyph that fits, pick the closest match and discuss before adding a custom one.
 4. Add a row to §2.3 "User-tag tokens" and update §14.1 if the surface set changes.
-5. Wire the backend grant path (where the tag becomes attached to a user).
+5. Wire the backend grant path (where the tag becomes attached to a user). Eligibility is computed by `resolveEligibleTags` (`src/server/resolve-tags.ts`); any tag present in a user's Clerk `publicMetadata.tags` is automatically eligible, so a *manually-granted* tag (added by hand in the Clerk dashboard) needs no extra code. An *automatic* grant (e.g. OG's 1000-user milestone) writes that metadata itself. A preview-only self-grant for the owner in local dev lives in `src/server/dev-tag-grant.ts` (never fires on a hosted deploy or under tests). **WHITE HAT** (`whitehat`) is a manual grant: the owner adds it to a user's `publicMetadata.tags` once they've reported 3+ major bugs, and self-grants it in local dev to preview the chip.
 
 ### 14.3 Don't
 

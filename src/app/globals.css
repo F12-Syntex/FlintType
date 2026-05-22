@@ -78,8 +78,9 @@
   --ds-gray-alpha-400: hsla(0, 0%, 0%, 0.08);
   --ds-background-100: oklch(0.9050 0.0220 85);
 
-  /* User-tag tokens — identity marks (OG, OWNER). Fully fixed: the
-     same eight values apply in :root AND .dark, on every palette.
+  /* User-tag tokens — identity marks (OWNER, WHITE HAT, OG). Fully
+     fixed: each tag's four-token quartet applies identically in :root
+     AND .dark, on every palette.
      Tokens use *solid opaque* fills so a chip never depends on the
      page surface for contrast — a dark-mode race screen renders the
      identical chip a light-mode profile renders. The previous
@@ -106,6 +107,19 @@
   --ft-tag-owner-glow:
     0 0 8px oklch(0.78 0.17 80 / 0.35),
     inset 0 1px 0 oklch(1 0 0 / 0.45);
+  /* WHITE HAT: a bug-finder credential. Deliberately *cool* (slate-blue
+     ink on pale cool-silver) so it reads as a distinct kind beside the
+     warm OG/OWNER chips, and the lightest fill of the three so it reads
+     literally as a "white" hat. Low chroma keeps it quiet ink, not a
+     second spark competing with --primary; the cool hue stays clear of
+     the neon-cyan "developer tool" cliché. Opaque fill carries its own
+     contrast on dark race screens. */
+  --ft-tag-whitehat-fg: oklch(0.31 0.07 248);
+  --ft-tag-whitehat-border: oklch(0.52 0.07 248);
+  --ft-tag-whitehat-fill: oklch(0.93 0.028 248);
+  --ft-tag-whitehat-glow:
+    0 0 6px oklch(0.62 0.07 248 / 0.20),
+    inset 0 0 0 1px oklch(1 0 0 / 0.30);
 }
 
 .dark {
@@ -173,8 +187,8 @@
   --ds-gray-alpha-400: hsla(0, 0%, 100%, 0.14);
   --ds-background-100: hsla(0, 0%, 4%, 1);
 
-  /* No user-tag overrides — identity marks (OG, OWNER) are 100%
-     fixed across modes per ui-law §2.3 → User-tag tokens. The chips
+  /* No user-tag overrides — identity marks (OWNER, WHITE HAT, OG) are
+     100% fixed across modes per ui-law §2.3 → User-tag tokens. The chips
      carry their own opaque fills so contrast is independent of the
      surface behind them. */
 }

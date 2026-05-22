@@ -13,7 +13,7 @@
  *  catalog in `src/components/ft/user-tag.tsx` AND the CSS tokens in
  *  `src/app/globals.css` AND a row in `docs/ui-law.md` §11 + §14 in
  *  the same commit. */
-export const USER_TAG_IDS = ["owner", "og"] as const;
+export const USER_TAG_IDS = ["owner", "whitehat", "og"] as const;
 export type UserTagId = (typeof USER_TAG_IDS)[number];
 
 export function isUserTagId(value: unknown): value is UserTagId {

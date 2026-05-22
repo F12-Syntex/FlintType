@@ -1,5 +1,6 @@
 import { parseUserTags, withUserTag } from "@/lib/user-tags";
 import { USER_TAG_IDS, type UserTagId } from "@/types/user-tag";
+import { DEV_SELF_GRANT_ENABLED, devSelfGrantTags } from "./dev-tag-grant";
 import { isOwnerEmail } from "./owner-config";
 
 /** Compute the *eligibility* set — the tags this user is allowed to
@@ -10,7 +11,12 @@ import { isOwnerEmail } from "./owner-config";
  *  they're not eligible for. Display is a separate decision: the
  *  user picks which of their eligible tags to actually show via
  *  `profile.setTags`, and `applyTagSelection` produces the final
- *  list the UI renders. */
+ *  list the UI renders.
+ *
+ *  In local development the owner additionally self-grants any
+ *  preview-only tags (`whitehat` today) so the chip can be seen before
+ *  it's manually granted to real users. This is a no-op on hosted
+ *  deploys and under the test runner — see `dev-tag-grant.ts`. */
 export function resolveEligibleTags(input: {
   email: string | null | undefined;
   publicMetadataTags: unknown;
@@ -18,6 +24,12 @@ export function resolveEligibleTags(input: {
   let tags = parseUserTags(input.publicMetadataTags);
   if (isOwnerEmail(input.email)) {
     tags = withUserTag(tags, "owner");
+  }
+  for (const tag of devSelfGrantTags({
+    email: input.email,
+    enabled: DEV_SELF_GRANT_ENABLED,
+  })) {
+    tags = withUserTag(tags, tag);
   }
   return tags;
 }

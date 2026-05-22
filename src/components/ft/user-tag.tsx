@@ -1,6 +1,6 @@
 "use client";
 
-import { Compass, Crown, type LucideIcon } from "lucide-react";
+import { Compass, Crown, ShieldCheck, type LucideIcon } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -141,5 +141,12 @@ const TAG_CONFIG: Record<
     icon: Crown,
     tooltipTitle: "Owner",
     tooltipDescription: "Creator and maintainer of flinttype.",
+  },
+  whitehat: {
+    label: "White Hat",
+    aria: "White Hat, bug finder",
+    icon: ShieldCheck,
+    tooltipTitle: "White Hat",
+    tooltipDescription: "Found and reported three or more major bugs.",
   },
 };
