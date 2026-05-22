@@ -4,7 +4,7 @@ import { EN_COMMON_1000 } from "@/data/en-common-1000";
  *  passage drawn from the English common-1000 word set (lowercase,
  *  no punctuation); first to the line wins. Bot lineup varies per
  *  mode. */
-export type RaceModeId = "1v1v1v1" | "1v1" | "sprint" | "endurance" | "ffa";
+export type RaceModeId = "1v1" | "ffa";
 
 export type RaceMode = {
   id: RaceModeId;
@@ -18,36 +18,12 @@ export type RaceMode = {
 };
 
 export const RACE_MODES: Record<RaceModeId, RaceMode> = {
-  "1v1v1v1": {
-    id: "1v1v1v1",
-    name: "1V1V1V1",
-    detail: "4 racers · 25 words",
-    wordCount: 25,
-    // Curated for variety — grandmaster, mid, rookie — so a solo
-    // player faces a recognisable spectrum instead of three near-
-    // identical speedsters.
-    botIds: ["damiel", "elias", "onyx"],
-  },
   "1v1": {
     id: "1v1",
     name: "1V1",
     detail: "head-to-head · 25 words",
     wordCount: 25,
     botIds: ["mireille"],
-  },
-  sprint: {
-    id: "sprint",
-    name: "SPRINT",
-    detail: "fast-pair · 25 words",
-    wordCount: 25,
-    botIds: ["haru", "nadya"],
-  },
-  endurance: {
-    id: "endurance",
-    name: "ENDURANCE",
-    detail: "marathon · 25 words",
-    wordCount: 25,
-    botIds: ["selan", "kassia"],
   },
   ffa: {
     id: "ffa",
@@ -59,13 +35,7 @@ export const RACE_MODES: Record<RaceModeId, RaceMode> = {
   },
 };
 
-export const RACE_MODE_ORDER: readonly RaceModeId[] = [
-  "1v1v1v1",
-  "1v1",
-  "sprint",
-  "endurance",
-  "ffa",
-];
+export const RACE_MODE_ORDER: readonly RaceModeId[] = ["1v1", "ffa"];
 
 /** Bot tick interval. 50ms = 20 ticks/sec, fine-grained enough to
  *  render smooth bot motion without burning the JS thread. */

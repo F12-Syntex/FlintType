@@ -28,11 +28,9 @@ describe("race/bots", () => {
     }
   });
 
-  it("capacity is 1 + bot lineup length", () => {
-    expect(capacityFor("1v1v1v1")).toBe(4);
+  it("capacity is 1 + bot lineup length (FFA is a fixed open lobby)", () => {
     expect(capacityFor("1v1")).toBe(2);
-    expect(capacityFor("sprint")).toBe(3);
-    expect(capacityFor("endurance")).toBe(3);
+    expect(capacityFor("ffa")).toBe(8);
   });
 
   it("unknown modes fall back to the selan lineup capacity", () => {
@@ -54,10 +52,13 @@ describe("race/bots", () => {
     expect(a).toBe(b);
   });
 
-  it("BOT_LINEUP covers every shipped mode id", () => {
-    for (const mode of ["1v1v1v1", "1v1", "sprint", "endurance", "quote", "burst"]) {
+  it("BOT_LINEUP gives every bot-backed mode a lineup", () => {
+    // FFA is intentionally bot-free (empty lineup); quote/burst are
+    // dormant but kept. Every other entry must seat at least one bot.
+    for (const mode of ["1v1", "quote", "burst"]) {
       expect(BOT_LINEUP[mode]?.length).toBeGreaterThan(0);
     }
+    expect(BOT_LINEUP.ffa).toEqual([]);
   });
 
   it("botMistakesChar respects accuracyTarget over many rolls", () => {

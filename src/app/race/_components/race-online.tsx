@@ -19,7 +19,7 @@ import type { Racer, RaceState } from "./race-types";
 import type { RaceModeId } from "./race-data";
 
 /** Online RaceProvider — server-authoritative race for the passage
- *  modes (1v1v1v1 / 1v1 / sprint / endurance). Holds the room handle
+ *  modes (1v1 / free-for-all). Holds the room handle
  *  state (roomId + sessionToken), subscribes to the room's SSE
  *  snapshot stream via `useRaceRoom`, and translates each snapshot
  *  into the existing client RaceState shape so the rest of the UI

@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.103.0 — 22 May 2026
+- Simplified the race modes: the picker now offers just 1V1 and Free-for-all. The 1V1V1V1, Sprint, and Endurance modes have been retired.
+
 ## 6.102.1 — 22 May 2026
 - Added a standalone cover page at /landing: a single editorial screen with the flinttype name, a sample of the typing test, and a quick rundown of what the app does. It's a shareable preview image, not part of the normal navigation.
 

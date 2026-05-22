@@ -19,7 +19,7 @@ describe("RaceRoom", () => {
       id: "r_test",
       slug: null,
       kind: "matchmaking",
-      modeId: "1v1v1v1",
+      modeId: "1v1", // capacity 2, single-bot lineup [mireille]
       raceSeed: 1,
       wordCount: 5,
     });
@@ -37,18 +37,35 @@ describe("RaceRoom", () => {
     expect(room.snapshot().racers.length).toBe(1);
   });
 
-  it("schedules bot fills every second until full or 5s lock", () => {
-    const room = makeRoom();
+  it("matchmaking fills the open seat with a bot, then locks to lobby", () => {
+    const room = makeRoom(); // 1v1: one bot fill at t=1s reaches capacity 2
     room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
-
+    expect(room.snapshot().racers.length).toBe(1);
     vi.advanceTimersByTime(1_000);
     expect(room.snapshot().racers.length).toBe(2);
-    vi.advanceTimersByTime(1_000);
-    expect(room.snapshot().racers.length).toBe(3);
-    vi.advanceTimersByTime(1_000);
-    expect(room.snapshot().racers.length).toBe(4);
-    // Room hit capacity (4 for 1v1v1v1) — should now be in lobby phase.
+    expect(room.snapshot().racers.filter((r) => r.isBot).length).toBe(1);
     expect(room.phase).toBe("lobby");
+  });
+
+  it("matchmaking flips to lobby at the 5s lock even when seats stay open (FFA, no bots)", () => {
+    // FFA has an empty bot lineup, so no fill timer ever reaches
+    // capacity — the hard 5s lock is the only thing that moves a
+    // single waiting player on to the lobby.
+    const room = new RaceRoom({
+      id: "r_ffa_lock",
+      slug: null,
+      kind: "matchmaking",
+      modeId: "ffa",
+      raceSeed: 1,
+      wordCount: 5,
+    });
+    room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
+    vi.advanceTimersByTime(4_900);
+    expect(room.phase).toBe("matching");
+    vi.advanceTimersByTime(200);
+    expect(room.phase).toBe("lobby");
+    expect(room.snapshot().racers.filter((r) => r.isBot).length).toBe(0);
+    expect(room.snapshot().racers.length).toBe(1);
   });
 
   it("matchmaking lock fills remaining seats and flips to lobby", () => {
@@ -94,10 +111,9 @@ describe("RaceRoom", () => {
   it("transitions to countdown after the 700ms lobby hold then to racing after 3s", () => {
     const room = makeRoom();
     room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
-    // 1v1v1v1 has a 3-bot lineup, so the room fills (and lobby fires) at
-    // t=3s when the third bot joins. From there: 700ms lobby hold,
-    // 3000ms countdown.
-    vi.advanceTimersByTime(3_000);
+    // 1v1 fills (and lobby fires) at t=1s when the single bot joins.
+    // From there: 700ms lobby hold, then a 3000ms countdown.
+    vi.advanceTimersByTime(1_000);
     expect(room.phase).toBe("lobby");
     vi.advanceTimersByTime(700);
     expect(room.phase).toBe("countdown");
@@ -408,7 +424,7 @@ describe("RaceRoom", () => {
       id: "r_host_migrate_order",
       slug: "warm-otter-99c",
       kind: "challenge",
-      modeId: "1v1v1v1",
+      modeId: "ffa",
       raceSeed: 1,
       wordCount: 5,
     });

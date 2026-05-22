@@ -21,14 +21,14 @@ describe("race/store", () => {
   });
 
   it("joinOrCreateMatchmaking returns the same open room for the same mode", () => {
-    const a = joinOrCreateMatchmaking("1v1v1v1", 1);
-    const b = joinOrCreateMatchmaking("1v1v1v1", 1);
+    const a = joinOrCreateMatchmaking("1v1", 1);
+    const b = joinOrCreateMatchmaking("1v1", 1);
     expect(a.id).toBe(b.id);
   });
 
   it("creates separate rooms for different modes", () => {
-    const a = joinOrCreateMatchmaking("1v1v1v1", 1);
-    const b = joinOrCreateMatchmaking("1v1", 1);
+    const a = joinOrCreateMatchmaking("1v1", 1);
+    const b = joinOrCreateMatchmaking("ffa", 1);
     expect(a.id).not.toBe(b.id);
   });
 
@@ -42,7 +42,7 @@ describe("race/store", () => {
   });
 
   it("getRoom by id round-trips", () => {
-    const room = joinOrCreateMatchmaking("1v1v1v1", 1);
+    const room = joinOrCreateMatchmaking("1v1", 1);
     expect(getRoom(room.id)?.id).toBe(room.id);
     expect(getRoom("missing")).toBeNull();
   });
@@ -90,14 +90,14 @@ describe("race/store", () => {
 
     it("joinOrCreateMatchmaking still reuses existing rooms even at cap", () => {
       // First call creates the matchmaking room for this mode.
-      const first = joinOrCreateMatchmaking("sprint", 1);
+      const first = joinOrCreateMatchmaking("ffa", 1);
       // Fill the rest of the store with challenge rooms.
       for (let i = 0; i < MAX_LIVE_ROOMS - 1; i++) {
         createChallengeRoom({ modeId: "1v1", raceSeed: i });
       }
       // We're at the cap, but the matchmaking mode still has an open
       // room — joining shouldn't try to create.
-      const second = joinOrCreateMatchmaking("sprint", 2);
+      const second = joinOrCreateMatchmaking("ffa", 2);
       expect(second.id).toBe(first.id);
     });
 
@@ -105,7 +105,7 @@ describe("race/store", () => {
       for (let i = 0; i < MAX_LIVE_ROOMS; i++) {
         createChallengeRoom({ modeId: "1v1", raceSeed: i });
       }
-      expect(() => joinOrCreateMatchmaking("sprint", 1))
+      expect(() => joinOrCreateMatchmaking("ffa", 1))
         .toThrowError(BackendError);
     });
   });

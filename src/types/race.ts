@@ -10,13 +10,7 @@ import { z } from "zod";
  *  English mode uses), lowercase, no punctuation. Server-side
  *  quote handling in `src/server/race/{room,store,quotes}.ts`
  *  remains dormant; if the mode comes back, re-add "quote" here. */
-export const RACE_MODE_IDS = [
-  "1v1v1v1",
-  "1v1",
-  "sprint",
-  "endurance",
-  "ffa",
-] as const;
+export const RACE_MODE_IDS = ["1v1", "ffa"] as const;
 export type RaceModeId = (typeof RACE_MODE_IDS)[number];
 
 /** Cap on the word pool a host can attach to a challenge. The host

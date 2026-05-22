@@ -141,15 +141,12 @@ export const BOTS: Record<BotId, BotProfile> = {
   },
 };
 
-/** Default bot lineup per mode. Curated for *variety* — a 1v1v1v1 race
- *  spans grandmaster → average → rookie so a solo player faces a
- *  recognisable spread of opponents instead of three near-identical
- *  speedsters. Sprint is a fast pair, endurance a mid pair, etc. */
+/** Default bot lineup per mode. `1v1` seats the host plus one mid-tier
+ *  opponent so a solo player always has someone to race. `quote` and
+ *  `burst` are dormant lineups kept for if/when those modes return —
+ *  they aren't in `RACE_MODE_IDS`, so nothing requests them today. */
 export const BOT_LINEUP: Record<string, readonly BotId[]> = {
-  "1v1v1v1": ["damiel", "elias", "onyx"],
   "1v1": ["mireille"],
-  sprint: ["haru", "nadya"],
-  endurance: ["selan", "kassia"],
   quote: ["elias", "mireille"],
   burst: ["nadya", "kassia"],
   // Free-for-all is real-players-only — explicit empty lineup so the
