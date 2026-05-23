@@ -400,13 +400,13 @@ function ReplayView({
  *  render inside the customise → Result preview. The visual body is
  *  identical so settings tweaks read 1:1 against the live screen. */
 export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
-  const { state, wpm, raw, accuracy, elapsedMs, wpmHistory, lastTestId } =
+  const { state, wpm, raw, accuracy, elapsedMs, wpmHistory, lastTestId, lastTestIsPb } =
     usePractice();
   const { prefs: appearance } = useAppearancePrefs();
   // The viewer's own Clerk handle — used to build a friendly slug for
   // their own share image. Mirrors how the server picks a display
   // name when joining identity onto a SharedTest.
-  const { user } = useUser();
+  const { user, isLoaded: userLoaded, isSignedIn } = useUser();
   const shareHandle =
     user?.firstName ??
     user?.username ??
@@ -449,23 +449,41 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
     }
   }, [exporting]);
 
-  // PB detection. Runs once per finished run — compares the just-
-  // completed WPM against the localStorage-cached PB for the same
-  // (mode, length) bucket. When it beats the cache, flip isNewPb on
-  // for this render so the crown badge + sparkle land in the result
-  // card. Skipped in preview mode (the customise → Result preview
-  // shouldn't trigger live PB writes).
+  // PB detection — drives the crown badge + confetti on the headline
+  // WPM stat. Two paths:
+  //
+  //  • Signed-in users get the *authoritative* verdict from the server
+  //    (`lastTestIsPb`), which compares this run against the user's full
+  //    history for the (mode, length) bucket. The crown pops in when the
+  //    submit resolves. This is the fix for "the crown shows on runs
+  //    that aren't my PB": the localStorage cache treated every unknown
+  //    bucket as 0, so the first run on each bucket (and every run after
+  //    a cache clear / on a new device) falsely crowned.
+  //
+  //  • Anonymous viewers have no server history, so they fall back to the
+  //    per-session localStorage cache — the best we can do without an
+  //    account, and harmless since it resets each session.
+  //
+  // Reset to false whenever we leave the done screen so a stale crown
+  // never carries into the next run.
   const [isNewPb, setIsNewPb] = useState(false);
+  useEffect(() => {
+    if (state.phase !== "done") setIsNewPb(false);
+  }, [state.phase]);
   useEffect(() => {
     if (preview) return;
     if (state.phase !== "done") return;
+    if (!userLoaded) return;
+    if (isSignedIn) {
+      // Authoritative path — only crown on the server's true PB verdict.
+      if (lastTestIsPb === true) setIsNewPb(true);
+      return;
+    }
+    // Anonymous fallback — per-browser localStorage cache.
     const mode = state.mode.toLowerCase();
-    const beat = recordIfPb(mode, state.length, wpm);
-    if (beat) setIsNewPb(true);
-    // We deliberately watch only mode/length/wpm here so a hot-render
-    // doesn't re-evaluate. The effect fires once when phase=done.
+    if (recordIfPb(mode, state.length, wpm)) setIsNewPb(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.phase]);
+  }, [state.phase, userLoaded, isSignedIn, lastTestIsPb]);
   // Convert the live wpmHistory samples into chart buckets keyed by
   // whole-second markers. monkeytype draws its WPM trace from exactly
   // this stream.

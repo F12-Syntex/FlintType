@@ -99,20 +99,37 @@ export type WpmResult = {
 };
 
 /** WPM + raw using monkeytype's exact formula. `elapsedMs` is the time
- *  from the first keystroke to whatever moment we're sampling at. */
+ *  from the first keystroke to whatever moment we're sampling at.
+ *
+ *  `charKeystrokes` is the count of character keys the user actually
+ *  pressed (the reducer's running `totalChars` / the length of the
+ *  keystroke-event log). When supplied, **raw** is derived from it
+ *  rather than from walking `typed[]`. This matters because raw is
+ *  defined as "how fast you press keys, regardless of accuracy" — but
+ *  the `typed[]` array only ever holds keys that *landed* in a word.
+ *  Under stop-on-error (and silently-dropped extras) a wrong keypress
+ *  never enters `typed[]`, so the `typed[]`-derived count undercounts —
+ *  a fast-but-inaccurate run could read raw ≈ 0 even though the user
+ *  hammered the keyboard. Passing the true keystroke count fixes that
+ *  while keeping `wpm` (correct words only) untouched. Omitting it
+ *  falls back to the old `typed[]`-derived count for callers that
+ *  don't track keystrokes (and for back-compat). */
 export function calcWpmAndRaw(
   typed: readonly string[],
   target: readonly string[],
   elapsedMs: number,
   final = true,
+  charKeystrokes?: number,
 ): WpmResult {
   if (elapsedMs <= 0) return { wpm: 0, raw: 0 };
   const c = countChars(typed, target, final);
   const testSeconds = elapsedMs / 1000;
   const wpm = ((c.correctWordChars + c.correctSpaces) * (60 / testSeconds)) / 5;
-  const raw =
-    ((c.allCorrectChars + c.spaces + c.incorrectChars + c.extraChars) *
-      (60 / testSeconds)) /
-    5;
+  // Character keystrokes (every key that produced a letter, correct or
+  // not) + the inter-word spaces. The spaces term keeps raw ≥ wpm for a
+  // clean run (wpm counts correctSpaces; raw counts every advance).
+  const typedChars =
+    charKeystrokes ?? c.allCorrectChars + c.incorrectChars + c.extraChars;
+  const raw = ((typedChars + c.spaces) * (60 / testSeconds)) / 5;
   return { wpm, raw };
 }

@@ -94,6 +94,7 @@ export function LiveClone({
       adaptLoading: false,
       suddenDeathRestarts: 0,
       lastTestId: null,
+      lastTestIsPb: null,
     };
   }, [words, screen, wpm, accuracy]);
 

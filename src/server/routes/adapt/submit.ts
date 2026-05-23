@@ -129,6 +129,13 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
           input.startedAt,
         )
       : null;
+    // Authoritative PB flag — the very same condition that gates the
+    // personal-best notification below. Returned to the client so the
+    // results-screen crown is driven by the user's true history, not a
+    // per-browser localStorage guess that crowns every first-of-its-kind
+    // run (and re-crowns after a cache clear).
+    const isPersonalBest =
+      pbEligible && (previousWpm == null || input.wpm > previousWpm);
 
     await db.tests.insert({
       id: testId,
@@ -164,7 +171,7 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
     // the test row id, which is unique by construction. Failures are
     // swallowed: an analytics notification falling over must never
     // turn a good test submit into a 5xx.
-    if (pbEligible && (previousWpm == null || input.wpm > previousWpm)) {
+    if (isPersonalBest) {
       try {
         await db.notifications.createIfAbsent({
           userId,
@@ -244,6 +251,8 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
       testId,
       measurementsAccepted: samples.accepted,
       measurementsRejected: samples.rejected,
+      isPersonalBest,
+      previousBest: previousWpm,
     };
   },
 });

@@ -230,6 +230,7 @@ export function PreviewPracticeProvider({
       adaptLoading: false,
       suddenDeathRestarts: 0,
       lastTestId: null,
+      lastTestIsPb: null,
     };
   }, [
     words,

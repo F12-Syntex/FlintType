@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from "react";
 import { useBackend } from "@/lib/backend";
-import type { SubmitTestInput } from "@/types/adapt";
+import type { SubmitTestInput, SubmitTestOutput } from "@/types/adapt";
 
 /** Target queue depth. Every test, every reset, every dequeue kicks a
  *  background refill that re-fills the queue back up to this many
@@ -135,7 +135,7 @@ export function useAdapt() {
   );
 
   const submitTest = useCallback(
-    async (input: SubmitTestInput): Promise<string | null> => {
+    async (input: SubmitTestInput): Promise<SubmitTestOutput | null> => {
       // Submitting updates the model. Queued batches were generated
       // against the *previous* snapshot — drop them so the next reset
       // sees only fresh-model batches. Also drop in-flight refill
@@ -147,13 +147,12 @@ export function useAdapt() {
       inflightRefillsRef.current.clear();
       refillTokensRef.current.clear();
       try {
-        const res = await backend.adapt.submit(input);
-        return res.testId;
+        return await backend.adapt.submit(input);
       } catch {
         // Fire-and-forget — the user has already seen their results,
         // and the next submit will fold any timings we missed via
         // the running-mean update. Returning null tells the caller
-        // there's no shareable testId for this run.
+        // there's no shareable testId (and no PB verdict) for this run.
         return null;
       }
       // Caller is expected to invoke `refill(count, pool)` after this

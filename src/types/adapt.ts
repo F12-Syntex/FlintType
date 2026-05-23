@@ -105,6 +105,16 @@ export type SubmitTestOutput = {
   testId: string;
   measurementsAccepted: number;
   measurementsRejected: number;
+  /** True when this completed run beat the user's prior best WPM for
+   *  the same (mode, length) bucket — the authoritative answer the
+   *  results screen uses to decide whether to show the PB crown. Same
+   *  determination that fires the personal-best notification, so the
+   *  crown and the notification never disagree. False for ineligible
+   *  runs (incomplete, or cold-training). */
+  isPersonalBest: boolean;
+  /** The prior best WPM in this bucket, or null when this is the first
+   *  completed run for it. */
+  previousBest: number | null;
 };
 
 export const requestWordsInputSchema = z.object({

@@ -124,6 +124,13 @@ type PracticeCtx = {
    *  fresh run starts so a stale id from the previous run never leaks
    *  into the share affordance on the new run's results screen. */
   lastTestId: string | null;
+  /** Server-authoritative personal-best verdict for the most recently
+   *  submitted run: `true` when it beat the user's prior best for this
+   *  (mode, length) bucket, `false` when it didn't, `null` while the
+   *  submit is still in flight, failed, or the run wasn't submitted
+   *  (anonymous viewer, BURST). The results screen reads this to gate
+   *  the PB crown for signed-in users so it only fires on a real PB. */
+  lastTestIsPb: boolean | null;
 };
 
 /** Exported so previews and other read-only consumers can mount their
@@ -415,7 +422,9 @@ export function PracticeProvider({
       const s = stateForSampleRef.current;
       if (s.startTime == null) return;
       const t = Date.now() - startTime;
-      const { wpm, raw } = calcWpmAndRaw(s.typed, s.words, t, false);
+      // Raw reflects every key pressed — pass the keystroke count so
+      // stop-on-error / dropped extras don't sink it (see wpm.ts).
+      const { wpm, raw } = calcWpmAndRaw(s.typed, s.words, t, false, s.events.length);
       setWpmHistory((prev) => [
         ...prev,
         {
@@ -463,8 +472,15 @@ export function PracticeProvider({
   // (restart, new run) so an old id can't leak into a fresh result
   // screen.
   const [lastTestId, setLastTestId] = useState<string | null>(null);
+  // PB verdict for the just-submitted run (see PracticeCtx.lastTestIsPb).
+  // null until the submit resolves; reset whenever the user leaves the
+  // done screen so a stale verdict can't crown the next run.
+  const [lastTestIsPb, setLastTestIsPb] = useState<boolean | null>(null);
   useEffect(() => {
-    if (state.phase !== "done") setLastTestId(null);
+    if (state.phase !== "done") {
+      setLastTestId(null);
+      setLastTestIsPb(null);
+    }
   }, [state.phase]);
 
   // Mirror wpmHistory in a ref so the submit effect can read the
@@ -501,6 +517,7 @@ export function PracticeProvider({
       state.words,
       endTime - startTime,
       true,
+      state.events.length,
     );
     // Feed the rolling-mean cache that backs BURST mode's auto-
     // threshold (behaviour.burstThreshold = 0). Pure localStorage,
@@ -538,7 +555,7 @@ export function PracticeProvider({
         ? "training"
         : "casual";
     void (async () => {
-      const testId = await adaptRef.current.submitTest({
+      const result = await adaptRef.current.submitTest({
         startedAt: startTime,
         completedAt: endTime,
         mode: submitMode,
@@ -564,7 +581,10 @@ export function PracticeProvider({
           raw: s.raw,
         })),
       });
-      if (testId) setLastTestId(testId);
+      if (result) {
+        setLastTestId(result.testId);
+        setLastTestIsPb(result.isPersonalBest);
+      }
       // submitTest cleared the queue (model just changed). Top up
       // immediately against the new snapshot so the user's next
       // restart finds a ready batch waiting — no network glitch.
@@ -672,6 +692,7 @@ export function PracticeProvider({
         s.words,
         t,
         isFinal,
+        s.events.length,
       );
       const counts = countChars(s.typed, s.words, isFinal);
       const correct = counts.allCorrectChars;
@@ -790,6 +811,7 @@ export function PracticeProvider({
       adaptLoading: effectiveState.adapt && adaptLoading && state.phase === "rest",
       suddenDeathRestarts,
       lastTestId,
+      lastTestIsPb,
       setMode: (mode) => {
         const length = defaultLengthFor(mode);
         const cfg = buildCfg();
@@ -881,7 +903,7 @@ export function PracticeProvider({
         }
       },
     };
-  }, [state, elapsedMs, wpmHistory, liveStats, isMobile, adaptAuthAllowed, adaptLoading, suddenDeathRestarts, lastTestId]);
+  }, [state, elapsedMs, wpmHistory, liveStats, isMobile, adaptAuthAllowed, adaptLoading, suddenDeathRestarts, lastTestId, lastTestIsPb]);
 
   // Flag the global `F` focus-mode shortcut to stand down while a run
   // is in progress (rest or running) — keystrokes here are typed

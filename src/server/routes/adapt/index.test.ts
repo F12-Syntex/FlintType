@@ -497,4 +497,71 @@ describe("adapt routes", () => {
     const list = await ctx.db.notifications.listForUser("u1");
     expect(list).toEqual([]);
   });
+
+  // ── PB verdict in the response (drives the results-screen crown) ─────
+
+  it("returns isPersonalBest=true with previousBest=null on the first run", async () => {
+    signedInAs("u1");
+    const out = await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({ mode: "casual", wpm: 80 }),
+    });
+    expect(out.isPersonalBest).toBe(true);
+    expect(out.previousBest).toBeNull();
+  });
+
+  it("returns isPersonalBest true for a faster run and false for a slower one", async () => {
+    signedInAs("u1");
+    await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({
+        mode: "casual",
+        startedAt: 1_700_000_000_000,
+        completedAt: 1_700_000_010_000,
+        wpm: 80,
+      }),
+    });
+    const faster = await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({
+        mode: "casual",
+        startedAt: 1_700_000_020_000,
+        completedAt: 1_700_000_030_000,
+        wpm: 100,
+      }),
+    });
+    expect(faster.isPersonalBest).toBe(true);
+    expect(faster.previousBest).toBe(80);
+    const slower = await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({
+        mode: "casual",
+        startedAt: 1_700_000_040_000,
+        completedAt: 1_700_000_050_000,
+        wpm: 95,
+      }),
+    });
+    // Not a PB — the run was slower than the 100 already on record. This
+    // is the crash-the-crown case the bug was about.
+    expect(slower.isPersonalBest).toBe(false);
+    expect(slower.previousBest).toBe(100);
+  });
+
+  it("returns isPersonalBest=false for an incomplete run", async () => {
+    signedInAs("u1");
+    const out = await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({ wasCompleted: false, wpm: 999 }),
+    });
+    expect(out.isPersonalBest).toBe(false);
+  });
+
+  it("returns isPersonalBest=false for a cold training run", async () => {
+    signedInAs("u1");
+    const out = await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({ mode: "training" }),
+    });
+    expect(out.isPersonalBest).toBe(false);
+  });
 });

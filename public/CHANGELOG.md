@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.104.3 — 23 May 2026
+- Fixed: raw speed now counts how fast you press keys, regardless of accuracy. A fast but very inaccurate run used to show a raw speed of 0 on the race results; it now reflects every keystroke you made.
+- Fixed: the personal-best crown only appears when you genuinely beat your best for that mode and length. Signed-in results now use your real history, so the crown no longer pops up on ordinary runs (for example the first run of a fresh session).
+
 ## 6.104.2 — 23 May 2026
 - Fixed: in a multiplayer race you can no longer type during the 3-2-1 countdown. Keystrokes are now ignored until the race actually starts, so nobody gets a phantom head start.
 

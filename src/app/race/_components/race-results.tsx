@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { Download } from "lucide-react";
-import { countChars } from "@/lib/wpm";
+import { calcWpmAndRaw, countChars } from "@/lib/wpm";
 import { cn } from "@/lib/utils";
 import { usePractice } from "../../_components/practice-state";
 import { useRace } from "./race-state";
@@ -109,6 +109,23 @@ export function RaceResults() {
   const charsTyped = counts.allCorrectChars + counts.correctSpaces;
   const errors = counts.incorrectChars + counts.extraChars;
   const yourAcc = accuracyFromTyped(practice.typed, practice.words);
+  // True raw WPM — every key pressed, regardless of accuracy. The
+  // racer's `wpm` is net (correct words only); for a wildly inaccurate
+  // run that collapses to ~0, which is *not* "raw". Compute raw from the
+  // practice keystroke stream so the stat means what its label says.
+  const youElapsedMs =
+    practice.startTime != null
+      ? (practice.endTime ?? Date.now()) - practice.startTime
+      : 0;
+  const yourRaw = Math.round(
+    calcWpmAndRaw(
+      practice.typed,
+      practice.words,
+      youElapsedMs,
+      true,
+      practice.events.length,
+    ).raw,
+  );
   return (
     <div
       ref={panelRef}
@@ -204,7 +221,7 @@ export function RaceResults() {
           value={String(netWpm(you.wpm, yourAcc ?? you.accuracy))}
           accent
         />
-        <Stat label="raw wpm" value={String(you.wpm)} />
+        <Stat label="raw wpm" value={String(yourRaw)} />
         <Stat label="accuracy" value={`${yourAcc.toFixed(1)}%`} />
         <Stat label="chars typed" value={String(charsTyped)} />
         <Stat label="errors" value={String(errors)} />
