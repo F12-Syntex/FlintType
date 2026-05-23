@@ -475,7 +475,15 @@ function PassageBody({
   const animateScroll = appearance.smoothLineScroll;
   const scrollDurationMs = tapeMode === "letter" ? 110 : 220;
   return (
-    <div ref={outerRef} className="relative h-full w-full overflow-hidden">
+    <div
+      ref={outerRef}
+      // Centre the clipped viewport in the available height so the text
+      // sits in the middle of the screen rather than pinned to the top
+      // with empty space below it. The viewport is a fixed whole-line
+      // height; justify-center floats it vertically. Scroll math is
+      // unaffected (it translates the inner *within* the viewport).
+      className="relative flex h-full w-full flex-col justify-center overflow-hidden"
+    >
       {/* Viewport — fixes the visible region to a whole-line multiple of
        *  the parent height so a partial line never peeks at the bottom.
        *  The translated `inner` block scrolls inside this clip box. */}

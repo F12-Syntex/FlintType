@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.107.0 — 23 May 2026
+- The typing text now sits in the centre of the screen by default, vertically as well as horizontally, instead of hugging the top with empty space below it.
+- The on-screen keyboard is a bit smaller by default so it doesn't dominate the page (scale it back up under Customise → Keyboard if you prefer it large).
+- Tape mode now opens with the first word in the centre of the screen and scrolls beneath the caret from there, rather than starting at the left edge.
+
 ## 6.106.0 — 23 May 2026
 - Added a Tape fade option (Customise → Appearance → Tape). Soft or Strong fades the tape line toward its ends — already-typed words dissolve as they recede behind the caret, and the far-upcoming edge softens too, keeping your eye on the words around the cursor. Off keeps the line hard-edged.
 

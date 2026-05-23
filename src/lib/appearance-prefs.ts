@@ -242,11 +242,11 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
 
   // Tape mode opt-in. Multi-line is the friendlier default.
   tapeMode: "off",
-  // Anchor the caret left-of-centre (25%) — the tape idiom reads as a
-  // runway of upcoming text with a little typed history trailing off
-  // the left, not one word floating dead-centre. Slide toward 50% to
-  // centre it, toward 0 to hug the left edge.
-  tapeMargin: 25,
+  // Caret centred (50%) — the tape opens with the first word in the
+  // middle of the screen and scrolls beneath it (Monkeytype-style),
+  // rather than hugging the left edge. Slide toward 0 to anchor the
+  // caret further left for a longer runway of upcoming text.
+  tapeMargin: 50,
   // Soft edge fade by default — the dissolving typed history is the
   // hallmark of a polished tape. Tape is opt-in, so this only shows
   // once the user turns tape on; flip to "off" for a hard-edged line.
@@ -281,7 +281,10 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   keymapStyle: "staggered",
   keymapLegend: "lowercase",
   keymapTopRow: "layout",
-  keymapSize: 1.0,
+  // Keyboard renders at 0.8 by default — a full-size keymap dominated
+  // the surface and competed with the passage. Users can scale it back
+  // up (or down) via Customise → Keyboard.
+  keymapSize: 0.8,
   keymapCompact: false,
 
   // Hairline borders rather than full-weight ones — quieter chrome,
