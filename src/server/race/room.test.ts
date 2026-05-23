@@ -153,6 +153,27 @@ describe("RaceRoom", () => {
     expect(alice?.progressChars).toBe(7);
   });
 
+  it("rejects progress posted before the race starts (matching/lobby/countdown)", () => {
+    const room = makeRoom();
+    room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
+    // matching — no input
+    expect(room.phase).toBe("matching");
+    expect(room.setProgress("s_alice", 3, 50, false)).toBe(false);
+    vi.advanceTimersByTime(1_000); // bot fills → lobby
+    expect(room.phase).toBe("lobby");
+    expect(room.setProgress("s_alice", 3, 50, false)).toBe(false);
+    vi.advanceTimersByTime(700); // → countdown
+    expect(room.phase).toBe("countdown");
+    expect(room.setProgress("s_alice", 3, 50, false)).toBe(false);
+    // Nothing landed on the snapshot.
+    expect(
+      room.snapshot().racers.find((r) => r.id === "s_alice")?.progressChars,
+    ).toBe(0);
+    vi.advanceTimersByTime(3_000); // → racing
+    expect(room.phase).toBe("racing");
+    expect(room.setProgress("s_alice", 3, 50, false)).toBe(true);
+  });
+
   it("computes WPM server-side from race-start elapsed, ignoring the client value", () => {
     // The client reports WPM measured from its first keystroke; the
     // authority must instead measure from the gun (raceStartedAt) so a

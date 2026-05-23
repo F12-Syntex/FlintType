@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useBackend } from "@/lib/backend";
+import { isRaceInputLocked } from "@/lib/race-input";
 import { calcWpmAndRaw } from "@/lib/wpm";
 import { usePractice } from "../../_components/practice-state";
 import type { RoomRacer, RoomSnapshot } from "@/types/race";
@@ -121,6 +122,46 @@ export function OnlineRaceProvider({
     snapshot?.phase,
     sendProgress,
   ]);
+
+  // Lock keystroke input until the server flips the room to "racing".
+  // The hidden <InputCapture> input and the practice surface's own
+  // window keydown handler both live *above* this provider in the
+  // tree, so we can't gate them with a prop — instead we swallow the
+  // relevant events in the capture phase (which runs before either
+  // handler) while the room is in matching / lobby / countdown. Without
+  // this the user can type during the 3-2-1 countdown: their local
+  // passage advances even though the server discards the progress, so
+  // it reads as a head start that never lands. `stopImmediatePropagation`
+  // keeps the event from reaching InputCapture's onKeyDown / onBeforeInput
+  // and the practice window listener.
+  const inputLockedRef = useRef(false);
+  inputLockedRef.current = isRaceInputLocked(snapshot?.phase);
+  useEffect(() => {
+    const blockKey = (e: KeyboardEvent) => {
+      if (!inputLockedRef.current) return;
+      // Let modifier combos (Cmd+R, Ctrl+L…), Tab, Escape, Enter, and
+      // arrow keys through — we only block the keys that produce typing.
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === " " || e.key === "Spacebar" || e.key === "Backspace" || e.key.length === 1) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      }
+    };
+    const blockInput = (e: Event) => {
+      if (!inputLockedRef.current) return;
+      // beforeinput fires on the hidden input for mobile / IME typing,
+      // where keydown carries no character. Swallow it wholesale while
+      // locked — the only beforeinput here is the user trying to type.
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    };
+    window.addEventListener("keydown", blockKey, true);
+    window.addEventListener("beforeinput", blockInput, true);
+    return () => {
+      window.removeEventListener("keydown", blockKey, true);
+      window.removeEventListener("beforeinput", blockInput, true);
+    };
+  }, []);
 
   const state = useMemo(
     () =>

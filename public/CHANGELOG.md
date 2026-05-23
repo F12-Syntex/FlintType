@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.104.2 — 23 May 2026
+- Fixed: in a multiplayer race you can no longer type during the 3-2-1 countdown. Keystrokes are now ignored until the race actually starts, so nobody gets a phantom head start.
+
 ## 6.104.1 — 22 May 2026
 - Internal changes only.
 
