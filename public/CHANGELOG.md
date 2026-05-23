@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.108.0 — 23 May 2026
+- Racing a friend now opens a live lobby instead of an offline challenge. The "Race" button on a friend's profile (and "Invite to a race" in their menu) creates a private lobby, drops you in to wait, and sends them an in-app notification with a Join button. (First step of moving everything to lobbies; more to follow.)
+
 ## 6.107.3 — 23 May 2026
 - Fixed: spamming keys the instant you enter a race (during matchmaking, the lobby, or the countdown) no longer registers anything or shows phantom progress on your lane. Input is now locked through every pre-race phase — including the brief moment while connecting — and only the race itself accepts typing. (The server already discarded any pre-race input, so this never affected other racers; it was your own screen showing local keystrokes early.)
 

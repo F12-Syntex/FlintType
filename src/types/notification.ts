@@ -11,6 +11,7 @@ export type NotificationKind =
   | "follow"
   | "mutual"
   | "friend_pb"
+  | "race_invite"
   | "duel_challenge"
   | "duel_result";
 
@@ -77,6 +78,18 @@ export type FriendPbNotificationData = {
   accuracy: number;
 };
 
+/** A friend opened a private race lobby and invited the recipient to
+ *  join live. The renderer shows a Join button that deep-links to the
+ *  lobby (`/race/c/<slug>`). This is the live replacement for the old
+ *  async ghost duel. */
+export type RaceInviteData = {
+  /** Lobby slug — the join target (`/race/c/<slug>`). */
+  slug: string;
+  inviterId: string;
+  inviterName: string;
+  inviterUsername: string | null;
+};
+
 /** A friend challenged the recipient to beat a recorded run. Links to
  *  `/duel/<duelId>` where the recipient races the ghost. */
 export type DuelChallengeData = {
@@ -108,6 +121,7 @@ export type NotificationData =
   | FollowNotificationData
   | MutualNotificationData
   | FriendPbNotificationData
+  | RaceInviteData
   | DuelChallengeData
   | DuelResultData
   | null;

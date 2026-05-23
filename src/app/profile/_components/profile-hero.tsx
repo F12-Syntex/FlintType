@@ -9,10 +9,10 @@ import {
   Pencil,
   User as UserIcon,
 } from "lucide-react";
-import Link from "next/link";
 import { useState } from "react";
 import { Tag, UserTag } from "@/components/ft";
 import { FollowButton } from "@/components/follow-button";
+import { InviteToRaceButton } from "@/components/invite-to-race-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -179,12 +179,10 @@ export function ProfileHero({
           ) : relationship && subjectUserId ? (
             <>
               {relationship.mutual ? (
-                <Link
-                  href={`/duel/new?opponent=${subjectUserId}`}
-                  className="hidden h-9 items-center rounded-md border border-border bg-background px-3 text-[12px] font-medium text-foreground transition-colors hover:bg-accent sm:inline-flex"
-                >
-                  Duel
-                </Link>
+                <InviteToRaceButton
+                  opponentId={subjectUserId}
+                  className="hidden sm:inline-flex"
+                />
               ) : null}
               <FollowButton
                 userId={subjectUserId}

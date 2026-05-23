@@ -14,6 +14,7 @@ import type {
   FollowNotificationData,
   MutualNotificationData,
   FriendPbNotificationData,
+  RaceInviteData,
   DuelChallengeData,
   DuelResultData,
 } from "@/types/notification";
@@ -242,9 +243,11 @@ function Row({ item, dark }: { item: Notification; dark: boolean }) {
         ? `/profile/${item.data.friendUsername ?? item.data.friendId}`
         : isFriendPb(item)
           ? `/profile/${item.data.friendUsername ?? item.data.friendId}`
-          : isDuelNotification(item)
-            ? `/duel/${item.data.duelId}`
-            : undefined;
+          : isRaceInvite(item)
+            ? `/race/c/${item.data.slug}`
+            : isDuelNotification(item)
+              ? `/duel/${item.data.duelId}`
+              : undefined;
   const body = (
     <div className="flex items-start gap-3 px-4 py-3">
       <span
@@ -391,6 +394,15 @@ function isFriendPb(n: Notification): n is Notification & {
   if (n.kind !== "friend_pb") return false;
   if (n.data == null || typeof n.data !== "object") return false;
   return "friendId" in (n.data as Record<string, unknown>);
+}
+
+/** A friend opened a race lobby and invited you — links to the lobby. */
+function isRaceInvite(n: Notification): n is Notification & {
+  data: RaceInviteData;
+} {
+  if (n.kind !== "race_invite") return false;
+  if (n.data == null || typeof n.data !== "object") return false;
+  return "slug" in (n.data as Record<string, unknown>);
 }
 
 /** Both duel kinds carry a `duelId` and link to the duel page. */

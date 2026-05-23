@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useBackend } from "@/lib/backend";
+import { createLobbyAndInvite } from "@/lib/invite-to-lobby";
 import { useAsyncAction } from "@/lib/use-async-action";
 import { cn } from "@/lib/utils";
 import type { FriendRelationship } from "@/types/friends";
@@ -96,11 +97,14 @@ export function FollowButton({
     <DropdownMenuContent align="end" sideOffset={6} className="min-w-48 p-1">
       {rel.mutual ? (
         <DropdownMenuItem
-          onSelect={() => router.push(`/duel/new?opponent=${userId}`)}
+          onSelect={async () => {
+            const slug = await createLobbyAndInvite(backend, userId);
+            if (slug) router.push(`/race/c/${slug}`);
+          }}
           className="flex items-center gap-2.5 rounded-sm py-2 pl-2 pr-3 text-[12px] font-medium uppercase tracking-[0.12em]"
         >
           <Swords size={13} aria-hidden />
-          <span>Challenge to a duel</span>
+          <span>Invite to a race</span>
         </DropdownMenuItem>
       ) : null}
       {rel.following || rel.mutual ? (
@@ -242,7 +246,8 @@ export function FollowButton({
       >
         <p className="text-sm leading-relaxed text-muted-foreground">
           You&apos;ll both be removed as followers and won&apos;t see each
-          other&apos;s activity or be able to duel. You can unblock them later.
+          other&apos;s activity or be able to race together. You can unblock
+          them later.
         </p>
       </ConfirmDialog>
     </div>
