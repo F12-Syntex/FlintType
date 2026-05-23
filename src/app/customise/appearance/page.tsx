@@ -8,6 +8,7 @@ import {
   type ThemeVar,
   useThemeOverrides,
 } from "@/lib/theme-customization";
+import { overrideCount } from "@/lib/themes/overrides";
 import { SettingsPageHeader } from "../_components/page-header";
 import { SettingsRow } from "../_components/row";
 import { SettingsSection } from "../_components/settings-section";
@@ -119,8 +120,7 @@ export default function AppearancePage() {
   const { overrides, setVar, clearVar, reset } = useThemeOverrides();
   const { customizedCount: appearanceCustomized, reset: resetAppearance } =
     useAppearancePrefs();
-  const customizedCount =
-    Object.keys(overrides).length + appearanceCustomized;
+  const customizedCount = overrideCount(overrides) + appearanceCustomized;
 
   function handleResetAll() {
     reset();

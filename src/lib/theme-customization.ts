@@ -1,7 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { writeSlice } from "./prefs-store";
+import { loadPrefs, readSlice, writeSlice } from "./prefs-store";
+import {
+  clearOverride,
+  diffAppliedVars,
+  EMPTY_OVERRIDES,
+  migrateThemeState,
+  setOverride,
+} from "./themes/overrides";
 import { CUSTOM_THEME_ID, getThemeRoot } from "./themes/registry";
 import { useRemotePrefs } from "./use-remote-prefs";
 
@@ -59,29 +66,27 @@ function applyVar(name: ThemeVar, value: string | undefined) {
   }
 }
 
-/** Theme-override defaults — paint the orange-leaning brand baseline
- *  every fresh account starts on. Paired with `DEFAULT_PALETTE.activeId
- *  = "custom"` in `themes/use-palette.tsx` so the picker reads "Custom"
- *  on first load and these inline vars are applied. The pre-reset
- *  default (empty record) is preserved in
- *  docs/defaults-previous-2026-05-19.json.
- *
- *  --accent / --accent-foreground are deliberately NOT pinned here.
- *  These inline vars are applied to <html> in BOTH light and dark mode
- *  (the override layer is mode-agnostic — a single value can't be a
- *  quiet tint in both modes). A pinned peach (`#fed7aa` + `#000000`)
- *  painted a strong, bright hover block on every interactive list/menu
- *  surface, especially on dark dropdowns, competing with --primary.
- *  Leaving them unset lets --accent inherit the mode-aware quiet
- *  neutral from globals.css :root / .dark (see ui-law §2: accent is the
- *  quiet hover tint, never a second spark). The brand baseline only
- *  needs --primary / --ring to carry the orange. */
-const EMPTY_OVERRIDES: ThemeOverrides = {
-  "--primary": "#f97316",
-  "--ring": "#fb923c",
-  "--radius": "0.5rem",
-  "--ft-word-spacing": "0.25em",
-};
+/** Run the one-shot migration off the pre-2026-05 fake-default state
+ *  (orange force-applied as an override + palette pinned to "custom")
+ *  onto the real Default theme. Module-level guard so it fires once per
+ *  page load no matter how many `useThemeOverrides` instances mount.
+ *  Idempotent — `migrateThemeState` is a no-op once the slices are
+ *  clean, so a later full reload re-runs it harmlessly. */
+let themeMigrationRan = false;
+function runThemeMigrationOnce() {
+  if (themeMigrationRan) return;
+  themeMigrationRan = true;
+  void loadPrefs().then(() => {
+    const storedTheme = readSlice<ThemeOverrides>("theme", EMPTY_OVERRIDES);
+    const storedPalette = readSlice<{ activeId: string | null }>("palette", {
+      activeId: null,
+    });
+    const m = migrateThemeState(storedPalette, storedTheme, CUSTOM_THEME_ID);
+    if (!m.changed) return;
+    writeSlice("theme", m.theme);
+    writeSlice("palette", m.palette);
+  });
+}
 
 export function useThemeOverrides() {
   // The slice itself is the ThemeOverrides record. We deliberately use
@@ -90,38 +95,32 @@ export function useThemeOverrides() {
   const { value: overrides, update: updateRaw, reset: resetRaw } =
     useRemotePrefs<ThemeOverrides>("theme", EMPTY_OVERRIDES);
 
-  // Apply only the vars this hook actually owns. The previous version
-  // unconditionally called applyVar(v, undefined) for every THEME_VAR
-  // not present in overrides, which trampled inline :root styles set
-  // by the reactive-palette sampler — every unrelated pref-store
-  // notify (caret toggle, behaviour change, anything) re-rendered
-  // useRemotePrefs with a fresh `overrides` object identity, the
-  // effect re-fired, and reactive's --primary / --background etc.
-  // got removeProperty'd back to defaults. Track the set of vars this
-  // hook has set and only remove the ones we wrote that no longer
-  // appear in `overrides`.
+  // One-shot migration off the old fake-default (orange-as-override).
+  useEffect(() => {
+    runThemeMigrationOnce();
+  }, []);
+
+  // Apply only the vars this hook actually owns. Tracking the set of
+  // vars we've written (and only removing those) keeps us from
+  // trampling inline :root styles set by another layer — e.g. the
+  // reactive-palette sampler — when an unrelated pref-store notify
+  // re-renders this hook with a fresh `overrides` identity.
   const appliedRef = useRef<Set<ThemeVar>>(new Set());
   useEffect(() => {
     const root = getThemeRoot();
     if (!root) return;
-    const prev = appliedRef.current;
-    const next = new Set<ThemeVar>();
-    for (const v of THEME_VARS) {
-      const value = overrides[v];
-      if (value != null && value !== "") {
-        root.style.setProperty(v, value);
-        next.add(v);
-      }
-    }
-    for (const v of prev) {
-      if (!next.has(v)) root.style.removeProperty(v);
-    }
-    appliedRef.current = next;
+    const { set, remove, nextKeys } = diffAppliedVars(
+      appliedRef.current,
+      overrides,
+    );
+    for (const [k, v] of set) root.style.setProperty(k, v);
+    for (const k of remove) root.style.removeProperty(k);
+    appliedRef.current = nextKeys;
   }, [overrides]);
 
   const setVar = useCallback(
     (name: ThemeVar, value: string) => {
-      updateRaw((prev) => ({ ...prev, [name]: value }));
+      updateRaw((prev) => setOverride(prev, name, value));
       applyVar(name, value);
       // Any per-var override forks the user off whatever named palette
       // they were on — mark the palette slice as "custom" so the theme
@@ -134,11 +133,7 @@ export function useThemeOverrides() {
 
   const clearVar = useCallback(
     (name: ThemeVar) => {
-      updateRaw((prev) => {
-        const next = { ...prev };
-        delete next[name];
-        return next;
-      });
+      updateRaw((prev) => clearOverride(prev, name));
       applyVar(name, undefined);
       // Don't auto-demote palette here — the user might still have other
       // overrides active. They demote by either resetting all overrides

@@ -27,7 +27,7 @@ import { SettingsRow } from "../../_components/row";
  *  Hardcoded so the Default swatches stay correct even when another
  *  palette is active — getComputedStyle would just read the override. */
 const DEFAULT_SWATCHES: readonly string[] = [
-  "oklch(0.6551 0.2312 34.7438)",
+  "#f97316",
   "oklch(0.9450 0.0180 85)",
   "oklch(0.9650 0.0150 85)",
   "oklch(0.9050 0.0140 85)",

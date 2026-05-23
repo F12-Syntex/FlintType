@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.111.0 — 23 May 2026
+- Fixed the theme system so "Default" is a real default again. The orange accent used to be force-applied as a hidden custom override, which meant a fresh setup always read as "Custom", the Primary accent colour always showed a "Reset" that never actually did anything, and you could never get back to a clean default. Now the orange is the genuine Default theme: the picker reads "Default", the Primary accent has no stray Reset until you actually change it, and resetting a colour (or the whole theme) truly returns it to default.
+- Switching between themes and back to Default now reliably changes and restores colours.
+- Existing setups are migrated automatically off the old state — your look is unchanged.
+
 ## 6.110.0 — 23 May 2026
 - Race results are now live while the race is still on. When you cross the line before your opponents, your panel shows a provisional standing ("you're 2nd of 3 on net WPM, 1 racer still typing") and the rankings re-settle as each racer finishes, instead of prematurely declaring a win.
 - Fixed: finishing first no longer shows "Race won" when your run wasn't accurate. Placement is by net WPM (speed adjusted for accuracy), so a fast-but-inaccurate run lands where it actually ranks. A run with 0 accuracy is 0 net WPM and won't win.

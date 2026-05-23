@@ -44,11 +44,13 @@ type Ctx = {
 };
 
 type PaletteSlice = { activeId: string | null };
-// Fresh accounts land on the "custom" palette id by default — the
-// matching theme-override defaults in `theme-customization.ts` paint
-// the orange-leaning baseline. Setting null here would mean a brief
-// flash of the OKLCH :root coral before the overrides apply.
-const DEFAULT_PALETTE: PaletteSlice = { activeId: CUSTOM_THEME_ID };
+// Fresh accounts land on the real Default theme — `activeId: null`, no
+// overrides. The brand baseline (the orange --primary / --ring, the
+// 0.5rem radius) now lives in `globals.css :root` / `.dark` as the
+// Default theme itself, so there's no override layer to flash in and no
+// reason to pretend a fresh account is "custom". Picking a community
+// palette is one click in the picker.
+const DEFAULT_PALETTE: PaletteSlice = { activeId: null };
 
 const PaletteContext = createContext<Ctx | null>(null);
 
