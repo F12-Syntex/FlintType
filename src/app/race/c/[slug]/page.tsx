@@ -6,16 +6,16 @@ import { RaceSurface } from "../../_components/race-surface";
 import { ChallengeShell } from "./_components/challenge-shell";
 
 export const metadata = buildPageMetadata({
-  title: "Race · Challenge",
-  description: "Join a flinttype challenge race via your invite link.",
+  title: "Race · Lobby",
+  description: "Join a flinttype race lobby via your invite link.",
   path: "/race/c",
   noIndex: true,
 });
 
-/** Challenge join page — same chrome as /race, but the shell mounts
- *  in challenge mode: it asks the server for the room handle by slug
+/** Private-lobby join page — same chrome as /race, but the shell mounts
+ *  in private-lobby mode: it asks the server for the room handle by slug
  *  (or pulls the host's pre-issued token from sessionStorage when
- *  the host created the challenge in this same browser). */
+ *  the host created the lobby in this same browser). */
 export default async function ChallengePage({
   params,
 }: {

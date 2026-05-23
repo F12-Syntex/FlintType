@@ -67,14 +67,15 @@ export default function AboutPage() {
               The race surface
             </Link>{" "}
             puts you against deterministic bots out of the box — three
-            difficulty tiers across four passage modes — but real
-            multiplayer matchmaking is one click away. Press{" "}
-            <em>Find race</em> and we look for real players for up to five
-            seconds; if none show, bots fill the empty seats so your run
-            isn't blocked on someone else being online.
+            difficulty tiers across four passage modes — but a real
+            multiplayer race is one click away. Press{" "}
+            <em>Find race</em> and we drop you into a public lobby, looking
+            for real players for up to five seconds; if none show, bots
+            fill the empty seats so your run isn't blocked on someone else
+            being online.
           </p>
           <p>
-            <em>Create lobby</em> spins up a private challenge room and
+            <em>Create lobby</em> spins up a private race lobby and
             gives you a short friendly URL (e.g.{" "}
             <code className="text-foreground/85">quick-otter-42</code>) to
             share with a friend. Anyone who clicks the link drops into

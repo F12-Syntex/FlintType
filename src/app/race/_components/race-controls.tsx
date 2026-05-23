@@ -74,7 +74,7 @@ export function RaceControls() {
         />
       </Field>
       {state.phase === "queue" ? (
-        <Field label="challenge">
+        <Field label="lobby">
           <CreateChallengePanel modeId={modeId} />
         </Field>
       ) : null}

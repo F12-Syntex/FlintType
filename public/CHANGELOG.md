@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.109.1 — 23 May 2026
+- Reworded the race screens around one idea: lobbies. Racing strangers drops you into a public lobby (the "Find race" button is unchanged); "Create lobby" / "Invite to a race" opens a private lobby you share with a friend. The old "challenge" wording is gone.
+
 ## 6.109.0 — 23 May 2026
 - Removed the old offline "duels" feature. Racing a friend is now always a live lobby: open a friend's profile (or their menu) and "Invite to a race" creates a private lobby and sends them a Join notification — you both race in real time. The standalone Duels page and the older "beat my recorded run" challenges are gone.
 - Pending race invites from friends now show up in the friends dock with a Join button, alongside who's online and who's broadcasting.

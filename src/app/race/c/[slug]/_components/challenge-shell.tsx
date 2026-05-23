@@ -164,21 +164,21 @@ function ChallengeError({
 }) {
   const headline =
     kind === "missing"
-      ? "This challenge link has expired"
+      ? "This lobby link has expired"
       : kind === "full"
         ? "This race already started"
-        : "Couldn't reach the challenge";
+        : "Couldn't reach the lobby";
   const explainer =
     kind === "missing"
-      ? "Challenges live for a few minutes after the host creates them. Ask whoever shared the link to spin up a fresh one, or start your own race against bots while you wait."
+      ? "Lobbies live for a few minutes after the host opens them. Ask whoever shared the link to spin up a fresh one, or start your own race against bots while you wait."
       : kind === "full"
-        ? "The host has already kicked off the race or the lobby is full. You can hop into matchmaking against bots straight away while the host queues another."
-        : "Something went wrong on our side reaching this challenge. Try again in a moment, or start a fresh race against bots.";
+        ? "The host has already kicked off the race or the lobby is full. You can hop into a public race against bots straight away while the host opens another."
+        : "Something went wrong on our side reaching this lobby. Try again in a moment, or start a fresh race against bots.";
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-6 px-6 py-16 text-center">
       <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-        Challenge · {slug}
+        Lobby · {slug}
       </span>
       <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
         {headline}

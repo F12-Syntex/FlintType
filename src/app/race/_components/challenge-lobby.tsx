@@ -48,7 +48,7 @@ function LobbyCard({
   return (
     <div className="flex flex-col items-center gap-3 border-t border-border/60 pt-4 text-center">
       <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-        Challenge · {slug}
+        Lobby · {slug}
       </span>
       {showHostBar ? (
         <HostBar slug={slug} roomId={roomId} sessionToken={sessionToken} />

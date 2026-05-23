@@ -2,6 +2,12 @@
 
 Race state — matchmaking rooms, challenge rooms, bot tick loops, racer progress, the SSE broadcast — lives in an **in-memory** store (`src/server/race/store.ts`). One process owns the truth. To make that work safely behind a serverless front end, the deployment is split:
 
+> **Lobby vocabulary (user-facing ↔ internal).** Multiplayer is one concept to the user: **lobbies**. There are two kinds, which map onto the two existing internal `RaceRoomKind`s:
+> - **Public lobby** = an internal **matchmaking** room. Entered with **"Find race"** → `race.queue`, which only takes a `modeId`; the server joins the most-available public room or spins one up (`joinOrCreateMatchmaking`). **Clients can never create a public lobby** — `queue` exposes no room handle, so there is no client path to mint one. This is by design (the authority is the single source of public rooms).
+> - **Private lobby** = an internal **challenge** room. Created by **"Create lobby"** (`race.challenge.create`) or by **"Invite to a race"** on a friend (`createLobbyAndInvite` → `race.challenge.create` + a `race_invite` notification). Joined at `/race/c/<slug>`.
+>
+> The internal `RaceRoomKind = "matchmaking" | "challenge"` and the `race.challenge.*` route names are kept as-is (the user-facing copy says "lobby"); renaming them is a cosmetic follow-up, not a behavioural one. Async "ghost duels" were removed — racing a friend is always a live private lobby.
+
 | Role | Where it runs | Env shape |
 |---|---|---|
 | **Authority** | Single warm Node process (Railway Hobby). One instance, ever. | `RACE_AUTHORITY=true`, `RACE_PROXY_SECRET=<shared>` |
