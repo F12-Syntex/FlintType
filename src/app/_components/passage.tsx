@@ -392,12 +392,15 @@ function PassageBody({
           cursorX = wsRect.left - innerRect.left;
         }
       }
-      // Don't pull the line right of its natural start — at the very
-      // first word the user expects the line to *start* at the anchor,
-      // not have empty space pushed in front of it. Math.max prevents
-      // negative scrollX on the first few words when the cursor's
-      // position is left of the anchor.
-      setScrollX(Math.max(0, cursorX - anchor));
+      // Pin the cursor (letter) / active word (word) at the anchor from
+      // the very first keystroke — real tape behaviour. A *negative*
+      // scrollX is intentional and correct: it translates the line to
+      // the right so the first character sits at the margin with empty
+      // space to its left (exactly how Monkeytype's tape opens). The
+      // old `Math.max(0, …)` clamp pinned the line flush-left until the
+      // cursor had typed past the anchor, so the test didn't scroll at
+      // the start — that was the bug.
+      setScrollX(cursorX - anchor);
       setScrollOffset(0);
     } else {
       // Multi-line — keep the cursor at the mid-line of the viewport
@@ -444,14 +447,20 @@ function PassageBody({
     : clipHeight != null
       ? `${clipHeight}px`
       : "100%";
-  // In word-tape mode, jumps between words happen rarely (one per
-  // ~5 keystrokes) so an animation reads as a clear "next word"
-  // signal; in letter-tape mode, every keypress nudges the line
-  // and animating each one would smear the text. So we honour
-  // smoothLineScroll for vertical scroll and tape-word, but force
-  // jumps in tape-letter regardless.
-  const animateScroll =
-    appearance.smoothLineScroll && tapeMode !== "letter";
+  // Smooth scroll is honoured in every mode when the user has it on.
+  // The transition *duration* adapts to the cadence of the moves:
+  //   - multi-line / word-tape reposition once every several keystrokes,
+  //     so a 220ms glide reads as a clear "next line / next word" slide.
+  //   - letter-tape nudges the line on every keypress, so it uses a
+  //     short 110ms glide that keeps up with fast typing and tracks the
+  //     cursor smoothly instead of smearing (a long glide there would
+  //     visibly lag behind the caret).
+  // The caret glyph's own transform transition is matched to this
+  // duration in tape mode (see CaretGlyph `transformDurationMs`) so the
+  // pinned caret and the sliding text move in lockstep — otherwise the
+  // caret wobbles around the anchor while the two animations race.
+  const animateScroll = appearance.smoothLineScroll;
+  const scrollDurationMs = tapeMode === "letter" ? 110 : 220;
   return (
     <div ref={outerRef} className="relative h-full w-full overflow-hidden">
       {/* Viewport — fixes the visible region to a whole-line multiple of
@@ -505,10 +514,10 @@ function PassageBody({
           // compose without interference.
           transform: `translate3d(${-scrollX}px, ${-scrollOffset}px, 0)`,
           transition: animateScroll
-            ? "transform 220ms cubic-bezier(0.16, 1, 0.3, 1)"
+            ? `transform ${scrollDurationMs}ms cubic-bezier(0.16, 1, 0.3, 1)`
             : "none",
           willChange:
-            scrollOffset > 0 || scrollX > 0 ? "transform" : undefined,
+            scrollOffset !== 0 || scrollX !== 0 ? "transform" : undefined,
           // maxLineWidth — only applies to wrapped (non-tape) layouts;
           // a tape line has no wrap point so a max width would just be
           // dead space.
@@ -521,6 +530,14 @@ function PassageBody({
             settings={caretSettings}
             animate={animate}
             idle={phase === "rest" && appearance.caretIdle === "pulse"}
+            // In tape mode the caret is pinned at the anchor and the
+            // text slides beneath it. Lock the caret's horizontal
+            // transition to the scroll's so the two move together — the
+            // visible caret then holds steady at the margin instead of
+            // wobbling. `0` (smooth off) snaps both in lockstep too.
+            transformDurationMs={
+              tapeOn ? (animateScroll ? scrollDurationMs : 0) : undefined
+            }
           />
         ) : null}
         {words.map((word, wi) => {
@@ -666,6 +683,7 @@ function CaretGlyph({
   settings,
   animate,
   idle,
+  transformDurationMs,
 }: {
   caret: CaretPos;
   settings: {
@@ -680,6 +698,12 @@ function CaretGlyph({
    *  caret softly pulses ~1Hz so the user sees where typing will
    *  start on a bare bg. CSS keyframe lives in globals.css §15. */
   idle: boolean;
+  /** Tape mode override for the *transform* (position) transition,
+   *  in ms. When set, it replaces the caret's own smoothSpeed for the
+   *  horizontal glide so the pinned caret tracks the sliding text in
+   *  lockstep (`0` = snap). Width/height keep smoothSpeed. Undefined
+   *  outside tape mode → the caret animates on its own smoothSpeed. */
+  transformDurationMs?: number;
 }) {
   const { style, width, radius, blinkSpeed, smoothSpeed } = settings;
 
@@ -733,10 +757,21 @@ function CaretGlyph({
           style === "outline" ? `${width}px solid ${border}` : undefined,
         borderRadius: r,
         transform: `translate3d(${x}px, ${y}px, 0)`,
-        transition:
-          animate && smoothSpeed > 0
-            ? `transform ${smoothSpeed}ms cubic-bezier(0.16, 1, 0.3, 1), width ${smoothSpeed}ms cubic-bezier(0.16, 1, 0.3, 1), height ${smoothSpeed}ms cubic-bezier(0.16, 1, 0.3, 1)`
-            : "none",
+        transition: (() => {
+          const ease = "cubic-bezier(0.16, 1, 0.3, 1)";
+          // Position glide: tape mode locks it to the scroll duration;
+          // elsewhere it's the caret's own smoothSpeed (gated on animate).
+          const tMs =
+            transformDurationMs ?? (animate && smoothSpeed > 0 ? smoothSpeed : 0);
+          const parts: string[] = [];
+          if (tMs > 0) parts.push(`transform ${tMs}ms ${ease}`);
+          // Width/height (block/underline caret resizing per char) keep
+          // the caret's own smoothSpeed regardless of tape mode.
+          if (animate && smoothSpeed > 0) {
+            parts.push(`width ${smoothSpeed}ms ${ease}`, `height ${smoothSpeed}ms ${ease}`);
+          }
+          return parts.length > 0 ? parts.join(", ") : "none";
+        })(),
         ["--ft-blink-speed" as string]: `${blinkSpeed}ms`,
         willChange: "transform",
       }}

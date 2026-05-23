@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.105.0 — 23 May 2026
+- Tape mode is now complete. The passage collapses to a single line that scrolls under a fixed caret from the very first keystroke (it used to sit still at the start until you had typed past the middle). Choose how it tracks you — Letter (scrolls every keypress) or Word (scrolls per word) — and set where the caret sits with the Tape margin slider; it now opens left-of-centre so there's a long runway of upcoming text.
+- Smooth scroll now works in every mode, including the letter tape and the normal stacked passage — the text glides instead of jumping.
+
 ## 6.104.3 — 23 May 2026
 - Fixed: raw speed now counts how fast you press keys, regardless of accuracy. A fast but very inaccurate run used to show a raw speed of 0 on the race results; it now reflects every keystroke you made.
 - Fixed: the personal-best crown only appears when you genuinely beat your best for that mode and length. Signed-in results now use your real history, so the crown no longer pops up on ordinary runs (for example the first run of a fresh session).

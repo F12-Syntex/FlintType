@@ -233,7 +233,11 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
 
   // Tape mode opt-in. Multi-line is the friendlier default.
   tapeMode: "off",
-  tapeMargin: 50,
+  // Anchor the caret left-of-centre (25%) — the tape idiom reads as a
+  // runway of upcoming text with a little typed history trailing off
+  // the left, not one word floating dead-centre. Slide toward 50% to
+  // centre it, toward 0 to hug the left edge.
+  tapeMargin: 25,
   // Line-scroll animation on by default — the snap-to-next-line
   // feels jarring for first-time users.
   smoothLineScroll: true,
