@@ -101,10 +101,30 @@ export function RaceResults() {
   const allFinished = state.phase === "finished";
   const youFinished = you.finishedAt != null;
   if (!allFinished && !youFinished) return null;
-  const place = you.place ?? state.racers.length;
-  const ordered = [...state.racers].sort(
-    (a, b) => (a.place ?? 99) - (b.place ?? 99),
-  );
+
+  const total = state.racers.length;
+  // While the room is still racing, rank by *live* net WPM — the same
+  // metric the server uses for the final placement — so the standings
+  // update as each racer crosses and a run that finished first but at
+  // low accuracy sits where its net WPM actually lands (not at the top
+  // on finish-order). Once allFinished, the server's net-WPM `place` is
+  // the source of truth and we order by that.
+  type Racer = (typeof state.racers)[number];
+  const byLiveNet = (a: Racer, b: Racer) => {
+    if (a.disconnected !== b.disconnected) return a.disconnected ? 1 : -1;
+    const d = netWpm(b.wpm, b.accuracy) - netWpm(a.wpm, a.accuracy);
+    if (d !== 0) return d;
+    return (a.finishedAt ?? Infinity) - (b.finishedAt ?? Infinity);
+  };
+  const ordered = allFinished
+    ? [...state.racers].sort((a, b) => (a.place ?? 99) - (b.place ?? 99))
+    : [...state.racers].sort(byLiveNet);
+  const rankOf = (r: Racer) =>
+    allFinished ? (r.place ?? total) : ordered.indexOf(r) + 1;
+  const place = rankOf(you);
+  const stillRacing = state.racers.filter(
+    (r) => r.finishedAt == null && !r.disconnected,
+  ).length;
   const counts = countChars(practice.typed, practice.words, true);
   const charsTyped = counts.allCorrectChars + counts.correctSpaces;
   const errors = counts.incorrectChars + counts.extraChars;
@@ -134,17 +154,21 @@ export function RaceResults() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-2">
           <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-            Race finished
+            {allFinished ? "Race finished" : "You finished · race in progress"}
           </span>
           <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-[40px]">
-            {place === 1
-              ? "Race won."
-              : place === state.racers.length
-                ? "Last across."
-                : `Finished ${ordinal(place)}.`}
+            {!allFinished
+              ? "Across the line."
+              : place === 1
+                ? "Race won."
+                : place === total
+                  ? "Last across."
+                  : `Finished ${ordinal(place)}.`}
           </h2>
           <p className="max-w-md text-[13px] leading-relaxed text-muted-foreground">
-            {summaryLine(place, state.racers.length, you.finishedAt ?? 0)}
+            {allFinished
+              ? summaryLine(place, total, you.finishedAt ?? 0)
+              : provisionalLine(place, total, stillRacing)}
           </p>
         </div>
         <div
@@ -167,7 +191,11 @@ export function RaceResults() {
             <Download size={14} className="shrink-0" />
             {exporting ? "Saving" : "Save image"}
           </button>
-          {voted ? (
+          {/* Rematch only makes sense once the race is actually over —
+           *  the server rejects a ready-vote while the room is still
+           *  racing. Until then the panel is your live standing; just
+           *  Save image / Leave are offered. */}
+          {!allFinished ? null : voted ? (
             <span
               role="status"
               aria-live="polite"
@@ -240,8 +268,10 @@ export function RaceResults() {
           <span className="text-right">time</span>
         </div>
         {ordered.map((r) => {
-          const placedFirst = (r.place ?? 99) === 1;
+          const rank = rankOf(r);
+          const placedFirst = rank === 1;
           const net = netWpm(r.wpm, r.accuracy);
+          const racing = r.finishedAt == null && !r.disconnected;
           return (
             <div
               key={r.id}
@@ -256,7 +286,7 @@ export function RaceResults() {
                   placedFirst ? "text-primary" : "text-muted-foreground",
                 )}
               >
-                {r.place ?? "—"}
+                {rank}
               </span>
               <span
                 className={cn(
@@ -288,8 +318,15 @@ export function RaceResults() {
               <span className="text-right tabular-nums text-muted-foreground">
                 {Math.round(r.accuracy)}%
               </span>
-              <span className="text-right tabular-nums text-muted-foreground">
-                {formatT(r.finishedAt ?? 0)}
+              <span
+                className={cn(
+                  "text-right tabular-nums",
+                  racing
+                    ? "text-[10px] uppercase tracking-[0.14em] text-primary/70"
+                    : "text-muted-foreground",
+                )}
+              >
+                {racing ? "racing" : formatT(r.finishedAt ?? 0)}
               </span>
             </div>
           );
@@ -432,6 +469,22 @@ function summaryLine(place: number, total: number, time: number): string {
     return `Bots took the line first this time. Queue another and aim for the next slot up.`;
   }
   return `Solid run — ${formatT(time)} on the clock. The leader's still up the page.`;
+}
+
+/** Standing line shown while the room is still racing — the placement
+ *  isn't final yet, so we frame it as a live, net-WPM standing that
+ *  resettles as each remaining racer crosses. (Finishing first counts
+ *  for nothing if the run was inaccurate: net WPM is the score.) */
+function provisionalLine(
+  place: number,
+  total: number,
+  stillRacing: number,
+): string {
+  const standing =
+    place === 1 ? "leading on net WPM" : `${ordinal(place)} of ${total} on net WPM`;
+  if (stillRacing <= 0) return `You're ${standing}. Tallying the final places.`;
+  const who = stillRacing === 1 ? "1 racer is" : `${stillRacing} racers are`;
+  return `You're ${standing}, ${who} still typing. Standings update as each one crosses.`;
 }
 
 function accuracyFromTyped(

@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.110.0 — 23 May 2026
+- Race results are now live while the race is still on. When you cross the line before your opponents, your panel shows a provisional standing ("you're 2nd of 3 on net WPM, 1 racer still typing") and the rankings re-settle as each racer finishes, instead of prematurely declaring a win.
+- Fixed: finishing first no longer shows "Race won" when your run wasn't accurate. Placement is by net WPM (speed adjusted for accuracy), so a fast-but-inaccurate run lands where it actually ranks. A run with 0 accuracy is 0 net WPM and won't win.
+- The Rematch button now appears only once the whole race has finished (it did nothing earlier).
+
 ## 6.109.6 — 23 May 2026
 - On the practice screen, the live stats (WPM, accuracy, word, elapsed) now sit directly above the typing text and stay grouped with it in the centre of the screen, instead of being pinned to the top with a gap below them.
 
