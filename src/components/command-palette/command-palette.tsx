@@ -67,14 +67,47 @@ export function CommandPalette() {
   // instead of the input. Pinning focus here is more reliable.
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Cmd / Ctrl + K toggles the palette. Ignored when the user is
-  // already typing into an input — accidental closes on input "k"
-  // would be horrible — except for the shortcut itself.
+  // `open` read inside the global key handler without re-subscribing.
+  const openRef = useRef(open);
+  openRef.current = open;
+
+  // Two global openers:
+  //   - Cmd / Ctrl + K toggles the palette (the canonical shortcut).
+  //   - Escape ALSO opens it — but only when Escape would otherwise do
+  //     nothing. Escape is heavily overloaded (close a dialog/popover/
+  //     dropdown, the friends dock, the bell, clear focus mode, blur an
+  //     input, back out of the palette's own sub-view), so we open only
+  //     when none of those apply: the palette is closed, no overlay is
+  //     open, focus mode is off, and the user isn't mid-edit. When the
+  //     palette is open, its capture handler (onKeyDownInside) owns
+  //     Escape, so we bail here.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((v) => !v);
+        return;
+      }
+      if (e.key === "Escape") {
+        if (openRef.current) return;
+        if (isEditableTarget(document.activeElement)) return;
+        if (document.documentElement.getAttribute("data-ft-focus") === "on") {
+          return; // let the focus-mode shortcut clear it
+        }
+        // An open overlay/disclosure should get Escape to close itself
+        // first. Each of these is present in the DOM only while open:
+        // Radix dialogs/alertdialogs + the notifications popover
+        // (role=dialog), Radix poppers (popover/dropdown/select/tooltip),
+        // and the friends dock / bell triggers (aria-expanded).
+        if (
+          document.querySelector(
+            '[role="dialog"],[role="alertdialog"],[data-radix-popper-content-wrapper],button[aria-label="Friends"][aria-expanded="true"],button[aria-label*="Notifications"][aria-expanded="true"]',
+          )
+        ) {
+          return;
+        }
+        e.preventDefault();
+        setOpen(true);
       }
     }
     window.addEventListener("keydown", onKey);
@@ -426,6 +459,20 @@ function Footer({ view }: { view: View }) {
         <Kbd>K</Kbd>
       </div>
     </div>
+  );
+}
+
+/** True when the focused element is text-editable, so a global Escape
+ *  binding shouldn't steal it (the user may be blurring / clearing an
+ *  input, or typing the practice passage into the hidden input). */
+function isEditableTarget(el: Element | null): boolean {
+  if (!el) return false;
+  const tag = el.tagName;
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    (el as HTMLElement).isContentEditable
   );
 }
 

@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.109.5 — 23 May 2026
+- You can now press **Escape** to open the command palette (the Cmd/Ctrl+K search panel), as well as Cmd/Ctrl+K. Escape only opens it when it wouldn't otherwise close something — so it still closes open menus, dialogs, the friends panel, and focus mode first, and never interrupts typing.
+
 ## 6.109.4 — 23 May 2026
 - Internal changes only (the lobby migration is complete; removed its working notes).
 
