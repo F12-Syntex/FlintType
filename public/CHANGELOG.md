@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.109.3 — 23 May 2026
+- Internal changes only (the private-lobby end-to-end test now types at a human speed so the race resolves to its results screen).
+
 ## 6.109.2 — 23 May 2026
 - Internal changes only (added end-to-end browser tests for the public and private race lobbies).
 

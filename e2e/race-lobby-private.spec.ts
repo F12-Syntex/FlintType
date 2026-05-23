@@ -3,7 +3,6 @@ import {
   countdownVisible,
   dismissChangelog,
   finishRace,
-  maxLaneWidth,
 } from "./helpers";
 
 /** Private lobby — the "race a friend" path. The friend graph (app DB)
@@ -65,21 +64,20 @@ test("private lobby: host opens, a second player joins by link, both race", asyn
   await expect.poll(() => countdownVisible(page), { timeout: 20_000 }).toBe(false);
   await expect.poll(() => countdownVisible(joiner), { timeout: 20_000 }).toBe(false);
 
-  // Both type their copy of the passage to completion. Each side's
-  // input empties as the final word commits, and a lane fills to the
-  // line — proof both players actually raced the passage in this one
-  // shared private lobby.
+  // Both type their copy of the passage to completion at a human speed
+  // (so the authority records each finish). A 2-human 1v1 fills no bot
+  // seats, so once both cross the line the room resolves to finished —
+  // the "Race again" CTA only renders at phase === "finished", on BOTH
+  // screens. That's the full private-lobby race, end to end.
   await finishRace(page);
   await finishRace(joiner);
 
   await expect(
-    page.locator('input[aria-label="Typing input"]'),
-  ).toHaveValue("", { timeout: 10_000 });
+    page.getByRole("button", { name: "Race again" }).first(),
+  ).toBeVisible({ timeout: 25_000 });
   await expect(
-    joiner.locator('input[aria-label="Typing input"]'),
-  ).toHaveValue("", { timeout: 10_000 });
-  await expect.poll(() => maxLaneWidth(page), { timeout: 12_000 }).toBeGreaterThanOrEqual(99);
-  await expect.poll(() => maxLaneWidth(joiner), { timeout: 12_000 }).toBeGreaterThanOrEqual(99);
+    joiner.getByRole("button", { name: "Race again" }).first(),
+  ).toBeVisible({ timeout: 25_000 });
 
   await joinerCtx.close();
 });

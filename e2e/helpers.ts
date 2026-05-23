@@ -85,9 +85,13 @@ export async function finishRace(page: Page): Promise<void> {
     throw new Error("could not read the race passage words from the DOM");
   }
   await focusTypingInput(page);
-  // A small per-key delay keeps the hidden-input keydown stream honest
-  // (mirrors the countdown spec). Trailing space commits the last word.
-  await page.keyboard.type(`${words.join(" ")} `, { delay: 8 });
+  // 45ms/char ≈ 265 gross WPM — fast, but under the server's 500-WPM
+  // keystroke cap (the client publishes gross WPM since the gun, and
+  // anything over 500 is rejected as superhuman). Typing at a human
+  // speed means the authority actually records the progress + finish,
+  // so a bot-less race resolves to its finished state. Trailing space
+  // commits the last word.
+  await page.keyboard.type(`${words.join(" ")} `, { delay: 45 });
 }
 
 /** True while the big 3/2/1 countdown digit is on screen. */
