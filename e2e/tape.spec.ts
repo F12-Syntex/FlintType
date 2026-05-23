@@ -30,6 +30,45 @@ test.describe("tape mode", () => {
     expect(afterTyping.caretRatio!).toBeLessThan(0.58); // caret stays centred
   });
 
+  test("restarting spawns the text centred, not sliding in from the left", async ({
+    page,
+  }) => {
+    await seedPrefs(page, { tapeMode: "letter", tapeMargin: 50 });
+    await page.goto("/");
+    await dismissChangelog(page);
+
+    // Type so the line scrolls well away from the centred anchor.
+    await focusTypingInput(page);
+    await page.keyboard.type("the quick brown fox jumps over ", { delay: 8 });
+
+    // Restart (Esc), then check the resting state.
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(250);
+
+    const { transitionDuration, caretRatio } = await page.evaluate(() => {
+      const inner = [...document.querySelectorAll("div")].find((d) =>
+        /translate3d/.test(d.getAttribute("style") || ""),
+      )!;
+      const outer = inner.parentElement!.parentElement!;
+      const oR = outer.getBoundingClientRect();
+      const caret = [...inner.querySelectorAll("span")].find((s) => {
+        const st = getComputedStyle(s);
+        return st.position === "absolute" && st.pointerEvents === "none";
+      });
+      const cR = caret!.getBoundingClientRect();
+      return {
+        transitionDuration: getComputedStyle(inner).transitionDuration,
+        caretRatio: (cR.left + cR.width / 2 - oR.left) / oR.width,
+      };
+    });
+
+    // No scroll transition at rest → the line can't animate in from the
+    // left; it spawns at the centred anchor.
+    expect(transitionDuration).toBe("0s");
+    expect(caretRatio).toBeGreaterThan(0.45);
+    expect(caretRatio).toBeLessThan(0.55);
+  });
+
   test("applies the edge-fade opacity mask when fade is on", async ({ page }) => {
     await seedPrefs(page, { tapeMode: "letter", tapeMargin: 50, tapeFade: "strong" });
     await page.goto("/");

@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.107.2 — 23 May 2026
+- Fixed: in tape mode, restarting (or starting a fresh run) now spawns the text already centred under the caret, instead of briefly appearing at the left and sliding into place.
+
 ## 6.107.1 — 23 May 2026
 - Internal changes only (added end-to-end browser tests).
 

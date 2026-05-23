@@ -460,7 +460,14 @@ function PassageBody({
     : clipHeight != null
       ? `${clipHeight}px`
       : "100%";
-  // Smooth scroll is honoured in every mode when the user has it on.
+  // Smooth scroll is honoured in every mode when the user has it on,
+  // but ONLY while a run is in progress. At rest the line snaps to its
+  // resting position with no transition — so a fresh passage (first
+  // paint, or after a restart) spawns already centred at the tape anchor
+  // instead of sliding in from wherever the previous run had scrolled
+  // to. (Restart keeps the active-word target mounted, so the usual
+  // first-measure reset doesn't fire; gating on phase is what makes the
+  // spawn instant.)
   // The transition *duration* adapts to the cadence of the moves:
   //   - multi-line / word-tape reposition once every several keystrokes,
   //     so a 220ms glide reads as a clear "next line / next word" slide.
@@ -472,7 +479,7 @@ function PassageBody({
   // duration in tape mode (see CaretGlyph `transformDurationMs`) so the
   // pinned caret and the sliding text move in lockstep — otherwise the
   // caret wobbles around the anchor while the two animations race.
-  const animateScroll = appearance.smoothLineScroll;
+  const animateScroll = appearance.smoothLineScroll && phase === "running";
   const scrollDurationMs = tapeMode === "letter" ? 110 : 220;
   return (
     <div
