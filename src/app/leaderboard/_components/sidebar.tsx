@@ -79,7 +79,7 @@ export function LeaderboardSidebar() {
       data-no-export="true"
       aria-label="Leaderboard filters"
       className={cn(
-        "hidden bg-background/85 backdrop-blur-md",
+        "hidden bg-card",
         "lg:flex lg:h-full lg:flex-col lg:overflow-hidden",
         "lg:rounded-md lg:border lg:border-border",
       )}

@@ -234,7 +234,7 @@ export function SettingsSidebar() {
         // bounded by a full border and rounded corners so it reads
         // as its own surface instead of being flush against the
         // chrome edge.
-        "hidden bg-background/85 backdrop-blur-md",
+        "hidden bg-card",
         "lg:flex lg:h-full lg:flex-col lg:overflow-hidden",
         "lg:rounded-md lg:border lg:border-border",
       )}

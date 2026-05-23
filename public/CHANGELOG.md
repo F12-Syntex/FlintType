@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.111.4 — 23 May 2026
+- Corrected the sidebar/content surface colour: the settings and leaderboard sidebars and their content area now use the same card surface that sits behind the top nav and the theme/mode switcher, so everything reads as one consistent surface (the previous attempt matched them to the page background instead).
+
 ## 6.111.3 — 23 May 2026
 - The settings and leaderboard sidebars and their content area now share the same background as the rest of the page, in both light and dark mode, instead of the content area being a slightly lighter shade on light themes.
 - The ERR live stat now matches the size of WPM / ACC / BURST instead of always rendering larger (it stood out when the other stats were set to the smaller "mini" style).
