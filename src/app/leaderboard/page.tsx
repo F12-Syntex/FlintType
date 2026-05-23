@@ -31,7 +31,7 @@ export default function LeaderboardPage() {
 
         <div
           data-bg-scope="content"
-          className="relative min-h-0 overflow-hidden lg:rounded-md lg:border lg:border-border lg:bg-card/40"
+          className="relative min-h-0 overflow-hidden lg:rounded-md lg:border lg:border-border lg:bg-background/40"
         >
           <div className="absolute inset-0 overflow-y-auto">
             <Suspense fallback={null}>

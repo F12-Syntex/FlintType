@@ -340,7 +340,16 @@ function DesktopStats(props: StatsProps) {
           />
         ) : null}
         {running ? (
-          <Stat label="ERR" value={String(errs)} size="lg" align="right" />
+          // ERR has no per-stat style of its own, so size it like the
+          // group's anchor (WPM) instead of a hardcoded lg — otherwise
+          // under the "mini" live-stat style WPM/ACC/BURST shrink to md
+          // and ERR stays lg, standing out bigger than the rest.
+          <Stat
+            label="ERR"
+            value={String(errs)}
+            size={sizeFor(speed.cls)}
+            align="right"
+          />
         ) : null}
       </div>
     </div>
