@@ -446,7 +446,7 @@ function OwnerMenu({
           aria-label="Profile actions"
           className={cn(
             "inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground",
-            "transition-colors hover:border-foreground/40 hover:bg-accent/40 hover:text-foreground",
+            "transition-colors hover:border-foreground/40 hover:bg-accent hover:text-foreground",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
             "md:self-start",
           )}

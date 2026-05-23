@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.111.1 — 23 May 2026
+- Made hover highlights consistent across the app and fixed weak ones in light mode. Several surfaces (race lobby, profile, leaderboard rows, sidebars) used a washed-out, half-strength tint that was nearly invisible on a light background; they now all use the same theme-aware highlight that darkens on light themes and lifts on dark ones.
+
 ## 6.111.0 — 23 May 2026
 - Fixed the theme system so "Default" is a real default again. The orange accent used to be force-applied as a hidden custom override, which meant a fresh setup always read as "Custom", the Primary accent colour always showed a "Reset" that never actually did anything, and you could never get back to a clean default. Now the orange is the genuine Default theme: the picker reads "Default", the Primary accent has no stray Reset until you actually change it, and resetting a colour (or the whole theme) truly returns it to default.
 - Switching between themes and back to Default now reliably changes and restores colours.

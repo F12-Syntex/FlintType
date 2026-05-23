@@ -211,7 +211,7 @@ export function ThemesRow() {
                   <button
                     type="button"
                     onClick={exploreThemes}
-                    className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left text-base font-semibold text-primary transition-colors hover:bg-foreground/5 active:bg-foreground/10"
+                    className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left text-base font-semibold text-primary transition-colors hover:bg-accent active:bg-foreground/10"
                   >
                     Explore themes…
                     <ChevronDown
@@ -389,7 +389,7 @@ function ThemeSheetItem({
           "flex w-full items-center gap-3 px-4 py-4 text-left transition-colors",
           active
             ? "bg-foreground/[0.04]"
-            : "hover:bg-foreground/5 active:bg-foreground/10",
+            : "hover:bg-accent active:bg-foreground/10",
         )}
       >
         <span

@@ -36,7 +36,7 @@ export function RecentTests({ tests }: { tests: readonly HistoryTest[] }) {
         <li
           key={t.id}
           className={cn(
-            "group/row grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-foreground/[0.02]",
+            "group/row grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-accent",
           )}
         >
           <div className="flex flex-col gap-0.5">

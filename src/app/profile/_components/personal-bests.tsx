@@ -105,7 +105,7 @@ function CategoryPicker({
             "group inline-flex h-7 items-center gap-2 rounded-md border border-border bg-background px-2.5",
             "text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground",
             "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-            "hover:border-foreground/40 hover:bg-accent/40",
+            "hover:border-foreground/40 hover:bg-accent",
           )}
         >
           <span>{prettyCategory(value)}</span>

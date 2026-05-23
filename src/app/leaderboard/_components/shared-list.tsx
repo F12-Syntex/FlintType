@@ -135,7 +135,7 @@ export function LeaderboardRow({
         href={href}
         className={cn(
           "flex items-center gap-4 px-4 py-3 sm:px-6 sm:py-4",
-          "transition-colors hover:bg-accent/30",
+          "transition-colors hover:bg-accent",
         )}
       >
         <span

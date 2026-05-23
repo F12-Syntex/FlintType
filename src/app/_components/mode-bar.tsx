@@ -440,7 +440,7 @@ function AdaptModal({
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               <X size={18} />
             </button>

@@ -188,7 +188,7 @@ function RailItem({
           "relative flex w-full items-center gap-2 rounded-md py-1.5 pr-3 pl-3 text-sm transition-colors",
           active
             ? "bg-foreground/[0.04] text-foreground"
-            : "text-muted-foreground hover:bg-foreground/[0.03] hover:text-foreground",
+            : "text-muted-foreground hover:bg-accent hover:text-foreground",
         )}
       >
         {active ? (
@@ -242,7 +242,7 @@ export function MobileLeaderboardPicker() {
         className={cn(
           "inline-flex h-9 max-w-[80vw] items-center gap-1.5 rounded-md px-2 -ml-2",
           "text-base font-semibold tracking-tight text-foreground",
-          "transition-colors hover:bg-foreground/5 active:bg-foreground/10",
+          "transition-colors hover:bg-accent active:bg-foreground/10",
         )}
       >
         <span className="truncate">
@@ -372,7 +372,7 @@ function SheetRow({
           "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
           active
             ? "bg-foreground/[0.04]"
-            : "hover:bg-foreground/5 active:bg-foreground/10",
+            : "hover:bg-accent active:bg-foreground/10",
         )}
       >
         <span

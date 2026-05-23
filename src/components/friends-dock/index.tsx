@@ -228,7 +228,7 @@ export function FriendsDock() {
                 type="button"
                 onClick={() => setView("active")}
                 aria-label="Back to active members"
-                className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+                className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
                 <ArrowLeft size={18} aria-hidden />
               </button>

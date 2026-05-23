@@ -246,7 +246,7 @@ function SaveImageButton() {
       aria-label="Save leaderboard as image"
       className={cn(
         "inline-flex items-center gap-2 rounded-md border border-border bg-background/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground transition-colors",
-        "hover:bg-foreground/[0.04] hover:text-foreground",
+        "hover:bg-accent hover:text-foreground",
         "disabled:cursor-not-allowed disabled:opacity-60",
       )}
     >
@@ -276,7 +276,7 @@ function RefreshButton({
       aria-label="Refresh leaderboard"
       className={cn(
         "inline-flex items-center gap-2 rounded-md border border-border bg-background/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground transition-colors",
-        "hover:bg-foreground/[0.04] hover:text-foreground",
+        "hover:bg-accent hover:text-foreground",
         "disabled:cursor-not-allowed disabled:opacity-60",
       )}
     >

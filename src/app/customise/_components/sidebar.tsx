@@ -111,7 +111,7 @@ export function MobileSectionPicker() {
         className={cn(
           "inline-flex h-9 max-w-[60vw] items-center gap-1.5 rounded-md px-2 -ml-2",
           "text-base font-semibold tracking-tight text-foreground",
-          "transition-colors hover:bg-foreground/5 active:bg-foreground/10",
+          "transition-colors hover:bg-accent active:bg-foreground/10",
         )}
       >
         <span className="truncate">{triggerText}</span>
@@ -144,7 +144,7 @@ export function MobileSectionPicker() {
                       "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
                       isActive
                         ? "bg-foreground/[0.04]"
-                        : "hover:bg-foreground/5 active:bg-foreground/10",
+                        : "hover:bg-accent active:bg-foreground/10",
                     )}
                     aria-current={isActive ? "true" : undefined}
                   >
@@ -186,7 +186,7 @@ export function MobileSectionPicker() {
                       "flex w-full items-center gap-3 px-4 py-4 text-left transition-colors",
                       isActive
                         ? "bg-foreground/[0.04]"
-                        : "hover:bg-foreground/5 active:bg-foreground/10",
+                        : "hover:bg-accent active:bg-foreground/10",
                     )}
                     aria-current={isActive ? "page" : undefined}
                   >
@@ -258,7 +258,7 @@ export function SettingsSidebar() {
                 "relative flex items-center gap-2 rounded-md py-2 pr-3 pl-3 text-sm transition-colors",
                 onAppearance
                   ? "text-foreground"
-                  : "text-foreground/85 hover:bg-foreground/[0.03]",
+                  : "text-foreground/85 hover:bg-accent",
               )}
             >
               <ChevronRight
@@ -285,7 +285,7 @@ export function SettingsSidebar() {
                         "relative flex items-center gap-2 rounded-md py-1.5 pr-3 pl-2 text-sm transition-colors",
                         isActive
                           ? "bg-foreground/[0.04] text-foreground"
-                          : "text-muted-foreground hover:bg-foreground/[0.03] hover:text-foreground",
+                          : "text-muted-foreground hover:bg-accent hover:text-foreground",
                       )}
                     >
                       {isActive ? (
@@ -314,7 +314,7 @@ export function SettingsSidebar() {
                     "relative flex items-center justify-between gap-3 rounded-md py-2 pr-3 pl-3 text-sm transition-colors",
                     isActive
                       ? "bg-foreground/[0.04] text-foreground"
-                      : "text-foreground/85 hover:bg-foreground/[0.03]",
+                      : "text-foreground/85 hover:bg-accent",
                   )}
                 >
                   {isActive ? (

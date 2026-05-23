@@ -82,7 +82,7 @@ function ShareLink({ slug }: { slug: string }) {
       className={cn(
         "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-card px-3",
         "text-[11px] tabular-nums text-foreground",
-        "transition-colors hover:border-foreground/40 hover:bg-accent/40",
+        "transition-colors hover:border-foreground/40 hover:bg-accent",
       )}
     >
       <span className="truncate max-w-[14rem]">{url}</span>
@@ -145,7 +145,7 @@ function HostBar({
         className={cn(
           "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-card px-3",
           "text-[11px] tabular-nums text-foreground",
-          "transition-colors hover:border-foreground/40 hover:bg-accent/40",
+          "transition-colors hover:border-foreground/40 hover:bg-accent",
         )}
       >
         <span className="truncate max-w-[14rem]">{url}</span>

@@ -90,7 +90,7 @@ export function CreateChallengePanel({ modeId }: { modeId: RaceModeId }) {
           className={cn(
             "inline-flex h-8 w-full items-center justify-between gap-2 rounded-md border border-border bg-background px-3",
             "text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground",
-            "transition-colors duration-150 hover:border-foreground/40 hover:bg-accent/40",
+            "transition-colors duration-150 hover:border-foreground/40 hover:bg-accent",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
           )}
         >
@@ -157,7 +157,7 @@ export function CreateChallengePanel({ modeId }: { modeId: RaceModeId }) {
       className={cn(
         "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-transparent px-3",
         "text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground",
-        "transition-colors duration-150 hover:border-foreground/40 hover:bg-accent/40",
+        "transition-colors duration-150 hover:border-foreground/40 hover:bg-accent",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
       )}
     >
@@ -236,7 +236,7 @@ function Chip({
         "transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         active
           ? "border-primary bg-primary text-primary-foreground"
-          : "border-border bg-transparent text-foreground hover:border-foreground/40 hover:bg-accent/40",
+          : "border-border bg-transparent text-foreground hover:border-foreground/40 hover:bg-accent",
       )}
     >
       {children}

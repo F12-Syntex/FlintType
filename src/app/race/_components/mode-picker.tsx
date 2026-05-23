@@ -41,7 +41,7 @@ export function ModePicker({
             "transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
             disabled
               ? "cursor-not-allowed opacity-40"
-              : "hover:border-foreground/40 hover:bg-accent/40",
+              : "hover:border-foreground/40 hover:bg-accent",
           )}
         >
           <span>{mode.name}</span>
