@@ -124,18 +124,18 @@ export function OnlineRaceProvider({
   ]);
 
   // Lock keystroke input until the server flips the room to "racing".
-  // Publish the lock to the shared store that the keystroke handlers
-  // (the hidden <InputCapture> input + the practice window keydown
-  // handler) read synchronously before they dispatch — gating at the
-  // dispatch site is reliable regardless of DOM event ordering. Without
-  // this the user can type during the 3-2-1 countdown: their local
-  // passage advances even though the server discards the progress, so
-  // it reads as a head start that never lands.
-  useEffect(() => {
-    setRaceInputLocked(isRaceInputLocked(snapshot?.phase));
-  }, [snapshot?.phase]);
-  // Always release the lock when the race surface unmounts so a later
-  // single-player run is never left locked.
+  // Published to the shared store the keystroke handlers (the hidden
+  // <InputCapture> input + the practice window keydown handler) read
+  // synchronously before they dispatch. We set it during *render* (not
+  // in an effect) so the lock is correct from the very first frame the
+  // surface mounts — the exact moment a user can start spamming keys.
+  // If we waited for an effect, the connecting window (snapshot still
+  // null) would be briefly unlocked and a fast spammer could accumulate
+  // local progress to dump at the gun. isRaceInputLocked(null) is true,
+  // so the surface opens locked and only unlocks when the server says
+  // "racing". The unmount cleanup releases it so a later single-player
+  // run is never left locked.
+  setRaceInputLocked(isRaceInputLocked(snapshot?.phase));
   useEffect(() => () => setRaceInputLocked(false), []);
 
   const state = useMemo(

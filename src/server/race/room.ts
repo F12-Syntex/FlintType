@@ -574,6 +574,11 @@ export class RaceRoom {
   ): boolean {
     const r = this.racers.get(token);
     if (!r || r.isBot) return false;
+    // Server is the authority on when input counts: progress posted
+    // before the room is actually racing (matchmaking / lobby / the
+    // 3-2-1 countdown) is dropped outright, so nothing a client typed
+    // early can ever land. Progress is also clamped to the passage
+    // bounds [0, totalChars].
     if (this.phase !== "racing" && this.phase !== "finished") return false;
     const next = Math.min(this.totalChars, Math.max(0, Math.floor(progressChars)));
     if (next !== r.progressChars) r.progressChars = next;

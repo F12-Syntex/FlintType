@@ -2,15 +2,19 @@ import type { RacePhase } from "@/types/race";
 
 /** Whether keystroke input must be ignored for the given race phase.
  *
- *  During matchmaking, the locked lobby, and the 3-2-1 countdown the
- *  passage is on screen but the run has not begun — typing must not
- *  register. Only `racing` (and `finished`, where the user may have
- *  crossed the line) accept input. The server already drops any
- *  progress posted before `racing` (see `Room.setProgress`); this is
- *  the client-side half so the user never even *sees* their own
- *  keystrokes land early. */
+ *  Input is allowed **only** while the room is actually `racing` (or
+ *  `finished`, where the user may have crossed the line). Every other
+ *  phase is locked — matchmaking, the lobby, the 3-2-1 countdown, and
+ *  crucially the *connecting* window where no snapshot has arrived yet
+ *  (`null`/`undefined`). That last case is the one that bit us: if the
+ *  lock defaults open before the first snapshot, a user spamming keys
+ *  the instant they enter accumulates local progress that then gets
+ *  dumped at the gun. The server is the real authority (it rejects
+ *  pre-race posts and clamps progress to what's typeable since the
+ *  gun — see `Room.setProgress`); this is the client half so nothing
+ *  accumulates locally and the user never sees phantom progress. */
 export function isRaceInputLocked(phase: RacePhase | null | undefined): boolean {
-  return phase === "matching" || phase === "lobby" || phase === "countdown";
+  return phase !== "racing" && phase !== "finished";
 }
 
 // ─── Live lock flag ──────────────────────────────────────────────────

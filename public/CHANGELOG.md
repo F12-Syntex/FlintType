@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.107.3 — 23 May 2026
+- Fixed: spamming keys the instant you enter a race (during matchmaking, the lobby, or the countdown) no longer registers anything or shows phantom progress on your lane. Input is now locked through every pre-race phase — including the brief moment while connecting — and only the race itself accepts typing. (The server already discarded any pre-race input, so this never affected other racers; it was your own screen showing local keystrokes early.)
+
 ## 6.107.2 — 23 May 2026
 - Fixed: in tape mode, restarting (or starting a fresh run) now spawns the text already centred under the caret, instead of briefly appearing at the left and sliding into place.
 

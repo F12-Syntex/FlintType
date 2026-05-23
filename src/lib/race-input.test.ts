@@ -11,7 +11,7 @@ import {
 afterEach(() => setRaceInputLocked(false));
 
 describe("isRaceInputLocked (phase predicate)", () => {
-  it("locks input during the pre-race phases", () => {
+  it("locks input during every pre-race phase", () => {
     expect(isRaceInputLocked("matching")).toBe(true);
     expect(isRaceInputLocked("lobby")).toBe(true);
     expect(isRaceInputLocked("countdown")).toBe(true);
@@ -22,9 +22,11 @@ describe("isRaceInputLocked (phase predicate)", () => {
     expect(isRaceInputLocked("finished")).toBe(false);
   });
 
-  it("does not lock when there is no snapshot yet", () => {
-    expect(isRaceInputLocked(null)).toBe(false);
-    expect(isRaceInputLocked(undefined)).toBe(false);
+  it("locks input while connecting (no snapshot yet)", () => {
+    // The connecting window is the gap that let a spammer accumulate
+    // local progress before the first snapshot arrived — it must lock.
+    expect(isRaceInputLocked(null)).toBe(true);
+    expect(isRaceInputLocked(undefined)).toBe(true);
   });
 });
 

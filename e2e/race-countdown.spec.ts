@@ -17,6 +17,13 @@ test("typing is locked during the race countdown and unlocked when racing", asyn
   await dismissChangelog(page);
   await page.getByRole("button", { name: "Find race" }).click();
 
+  // Spam keys the *instant* we enter — matchmaking / connecting, before
+  // the countdown even shows. This is the window that used to leak
+  // (snapshot still null → lock open). Nothing may register.
+  await focusTypingInput(page);
+  await page.keyboard.type("spamspamspam ", { delay: 5 });
+  expect(await maxLaneWidth(page)).toBe(0);
+
   // Wait for the countdown digit to appear (matchmaking + lobby first).
   await expect.poll(() => countdownVisible(page), { timeout: 25_000 }).toBe(true);
 
