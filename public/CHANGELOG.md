@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.107.1 — 23 May 2026
+- Internal changes only (added end-to-end browser tests).
+
 ## 6.107.0 — 23 May 2026
 - The typing text now sits in the centre of the screen by default, vertically as well as horizontally, instead of hugging the top with empty space below it.
 - The on-screen keyboard is a bit smaller by default so it doesn't dominate the page (scale it back up under Customise → Keyboard if you prefer it large).

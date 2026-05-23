@@ -1,6 +1,6 @@
 {
   "name": "FlintType",
-  "version": "6.107.0",
+  "version": "6.107.1",
   "private": true,
   "packageManager": "yarn@1.22.22",
   "scripts": {
@@ -10,6 +10,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "e2e:ui": "playwright test --ui",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/server/migrate.ts",
     "db:push": "drizzle-kit push",
@@ -61,6 +64,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
