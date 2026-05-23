@@ -511,7 +511,17 @@ function PassageBody({
   // pinned caret and the sliding text move in lockstep — otherwise the
   // caret wobbles around the anchor while the two animations race.
   const animateScroll = appearance.smoothLineScroll && phase === "running";
-  const scrollDurationMs = tapeMode === "letter" ? 110 : 220;
+  // Tape scroll glides at a CONSTANT velocity (linear) so consecutive
+  // per-keystroke nudges blend into one continuous slide — an ease-out
+  // curve front-loads each nudge and re-accelerates from rest every
+  // keystroke, which reads as fast + juttery rather than smooth. The
+  // multi-line vertical scroll keeps the ease-out "next line" slide
+  // (a discrete jump every few keystrokes, where a decelerating glide
+  // reads well). Tape durations are a touch longer so the motion is a
+  // visible smooth glide, not an instant snap; the caret matches it
+  // (transformDurationMs below) so the two stay in lockstep.
+  const scrollDurationMs = !tapeOn ? 220 : tapeMode === "letter" ? 190 : 240;
+  const scrollEase = tapeOn ? "linear" : "cubic-bezier(0.16, 1, 0.3, 1)";
   return (
     <div
       ref={outerRef}
@@ -582,7 +592,7 @@ function PassageBody({
           // compose without interference.
           transform: `translate3d(${-scrollX}px, ${-scrollOffset}px, 0)`,
           transition: animateScroll
-            ? `transform ${scrollDurationMs}ms cubic-bezier(0.16, 1, 0.3, 1)`
+            ? `transform ${scrollDurationMs}ms ${scrollEase}`
             : "none",
           willChange:
             scrollOffset !== 0 || scrollX !== 0 ? "transform" : undefined,
@@ -831,8 +841,12 @@ function CaretGlyph({
           // elsewhere it's the caret's own smoothSpeed (gated on animate).
           const tMs =
             transformDurationMs ?? (animate && smoothSpeed > 0 ? smoothSpeed : 0);
+          // In tape mode (transformDurationMs set) the caret rides with
+          // the line, which now glides linearly — match it so the pinned
+          // caret tracks the constant-velocity scroll instead of wobbling.
+          const transformEase = transformDurationMs != null ? "linear" : ease;
           const parts: string[] = [];
-          if (tMs > 0) parts.push(`transform ${tMs}ms ${ease}`);
+          if (tMs > 0) parts.push(`transform ${tMs}ms ${transformEase}`);
           // Width/height (block/underline caret resizing per char) keep
           // the caret's own smoothSpeed regardless of tape mode.
           if (animate && smoothSpeed > 0) {

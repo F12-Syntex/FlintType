@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.111.2 — 23 May 2026
+- Tape mode scrolling is now a smooth, steady glide instead of a fast, juddery snap. The text slides under the caret at a constant speed (and the caret tracks it in lockstep), so fast typing reads as continuous motion rather than a series of instant jumps.
+
 ## 6.111.1 — 23 May 2026
 - Made hover highlights consistent across the app and fixed weak ones in light mode. Several surfaces (race lobby, profile, leaderboard rows, sidebars) used a washed-out, half-strength tint that was nearly invisible on a light background; they now all use the same theme-aware highlight that darkens on light themes and lifts on dark ones.
 
