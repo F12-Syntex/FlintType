@@ -114,9 +114,14 @@ function TypingSurfaceBody({
   const body = (
     <>
       {!done ? <SpectateIndicator className="-mt-1 mb-1" /> : null}
-      {showReadouts && !done ? (
+      {/* BURST keeps its readouts pinned above the single centred word.
+       *  The WORDS/TIME/QUOTE passage instead renders the readouts in
+       *  its own `above` slot (below), so the strip rides directly above
+       *  the vertically-centred text as one group rather than floating
+       *  at the top of the surface. */}
+      {showReadouts && !done && isBurst ? (
         <div className="hidden md:block">
-          {isBurst ? <BurstReadouts /> : <Readouts />}
+          <BurstReadouts />
         </div>
       ) : null}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -132,7 +137,18 @@ function TypingSurfaceBody({
           // values between the two surfaces.
           <BurstWordView />
         ) : (
-          <Passage />
+          <Passage
+            above={
+              showReadouts ? (
+                // hidden md:block — desktop only; mobile readouts live
+                // in the RestHint footer. pb gives the gap to the text
+                // and is reserved by the passage's line-fit calc.
+                <div className="hidden pb-3 sm:pb-4 md:block">
+                  <Readouts />
+                </div>
+              ) : undefined
+            }
+          />
         )}
       </div>
       {showRestHint && !done ? (

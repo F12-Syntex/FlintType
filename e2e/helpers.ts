@@ -116,16 +116,24 @@ export async function passageMetrics(page: Page): Promise<{
   caretRatio: number | null;
   gapAbove: number;
   gapBelow: number;
+  groupGapAbove: number;
 }> {
   return page.evaluate(() => {
     const inner = [...document.querySelectorAll("div")].find((d) =>
       /translate3d/.test(d.getAttribute("style") || ""),
     );
-    if (!inner) return { innerX: NaN, caretRatio: null, gapAbove: NaN, gapBelow: NaN };
+    if (!inner)
+      return { innerX: NaN, caretRatio: null, gapAbove: NaN, gapBelow: NaN, groupGapAbove: NaN };
     const viewport = inner.parentElement as HTMLElement;
     const outer = viewport.parentElement as HTMLElement;
     const oR = outer.getBoundingClientRect();
     const vR = viewport.getBoundingClientRect();
+    // The centred group is [optional readouts slot, viewport]. Its top is
+    // the outer's first child — the readouts when present, else the
+    // viewport itself. `groupGapAbove` is the space above that group, so
+    // it ≈ `gapBelow` when the whole group is vertically centred.
+    const first = (outer.firstElementChild as HTMLElement | null) ?? viewport;
+    const groupGapAbove = first.getBoundingClientRect().top - oR.top;
     const m = getComputedStyle(inner).transform.match(/matrix\(([^)]+)\)/);
     const innerX = m ? parseFloat(m[1]!.split(",")[4]!) : 0;
     const caret = [...inner.querySelectorAll("span")].find((s) => {
@@ -138,6 +146,7 @@ export async function passageMetrics(page: Page): Promise<{
       caretRatio: cR ? (cR.left + cR.width / 2 - oR.left) / oR.width : null,
       gapAbove: vR.top - oR.top,
       gapBelow: oR.bottom - vR.bottom,
+      groupGapAbove,
     };
   });
 }

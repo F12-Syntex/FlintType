@@ -241,6 +241,12 @@ export type PassageProps = {
    *  words keep their typed colour so the user's own progress feedback
    *  stays intact. */
   wordTextColor?: (wordIdx: number) => string | undefined;
+  /** Optional content rendered *inside* the passage's centred column,
+   *  directly above the clipped text, so it rides with the text as one
+   *  vertically-centred group instead of floating at the top of the
+   *  surface. Practice passes the live readouts here. Its height is
+   *  reserved from the line-fit calc so the group never overflows. */
+  above?: React.ReactNode;
 };
 
 export function Passage(props: PassageProps = {}) {
@@ -250,6 +256,7 @@ export function Passage(props: PassageProps = {}) {
     <PassageBody
       wordBackground={props.wordBackground}
       wordTextColor={props.wordTextColor}
+      above={props.above}
     />
   );
 }
@@ -257,9 +264,11 @@ export function Passage(props: PassageProps = {}) {
 function PassageBody({
   wordBackground,
   wordTextColor,
+  above,
 }: {
   wordBackground?: (wordIdx: number) => string | undefined;
   wordTextColor?: (wordIdx: number) => string | undefined;
+  above?: React.ReactNode;
 }) {
   const { state } = usePractice();
   const { words, cursorWord, cursorChar, errorWords, phase, typed } = state;
@@ -288,6 +297,18 @@ function PassageBody({
   // character positions so the | slides forward instead of teleporting.
   const outerRef = useRef<HTMLDivElement | null>(null);
   const innerRef = useRef<HTMLDivElement | null>(null);
+  // Wraps the optional `above` slot (the live readouts on practice).
+  // Its measured height is subtracted from the line-fit budget so the
+  // {readouts + text} group fits the centred column without clipping a
+  // line. Collapses to 0 height when the slot is empty / display:none
+  // (mobile, where readouts live in the footer instead).
+  const aboveRef = useRef<HTMLDivElement | null>(null);
+  // High-water mark of the above-slot height within a measurement cycle.
+  // The readouts can shrink mid-run (the "flash" live-stat style hides
+  // stats most of the time), and we don't want the text to reflow every
+  // time they fade out — so we reserve the tallest height seen and only
+  // reset it when appearance changes (which re-runs the effect).
+  const aboveMaxRef = useRef(0);
   const targetRef = useRef<HTMLSpanElement | null>(null);
   const activeWordRef = useRef<HTMLSpanElement | null>(null);
   const targetSideRef = useRef<"left" | "right">("left");
@@ -342,7 +363,13 @@ function PassageBody({
     if (!outer || !inner) return;
     const measure = () => {
       const lh = parseFloat(getComputedStyle(inner).lineHeight);
-      const h = outer.clientHeight;
+      // Reserve the above-slot's height (readouts + its gap) so the
+      // centred group is `above + N lines`, not `N lines` overflowing
+      // it. 0 when the slot is absent or hidden. High-water so a flash
+      // hide doesn't reflow the text (see aboveMaxRef).
+      const aboveNow = aboveRef.current?.offsetHeight ?? 0;
+      aboveMaxRef.current = Math.max(aboveMaxRef.current, aboveNow);
+      const h = outer.clientHeight - aboveMaxRef.current;
       if (!Number.isFinite(lh) || lh <= 0 || h <= 0) return;
       setLineHeight(lh);
       const fits = Math.max(1, Math.floor(h / lh));
@@ -353,10 +380,14 @@ function PassageBody({
         : fits;
       setClipHeight(cap * lh);
     };
+    // Reset the high-water reservation per appearance change so a smaller
+    // readouts size / a removed slot reclaims the space.
+    aboveMaxRef.current = 0;
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(outer);
     ro.observe(inner);
+    if (aboveRef.current) ro.observe(aboveRef.current);
     return () => ro.disconnect();
   }, [appearance]);
 
@@ -491,6 +522,15 @@ function PassageBody({
       // unaffected (it translates the inner *within* the viewport).
       className="relative flex h-full w-full flex-col justify-center overflow-hidden"
     >
+      {/* Optional content (practice readouts) riding directly above the
+       *  clipped text, so the two centre as one group. shrink-0 keeps it
+       *  at its natural height; its height is reserved in the line-fit
+       *  calc above. Empty/hidden → collapses to 0. */}
+      {above ? (
+        <div ref={aboveRef} className="w-full shrink-0">
+          {above}
+        </div>
+      ) : null}
       {/* Viewport — fixes the visible region to a whole-line multiple of
        *  the parent height so a partial line never peeks at the bottom.
        *  The translated `inner` block scrolls inside this clip box. */}

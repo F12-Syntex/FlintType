@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.109.6 — 23 May 2026
+- On the practice screen, the live stats (WPM, accuracy, word, elapsed) now sit directly above the typing text and stay grouped with it in the centre of the screen, instead of being pinned to the top with a gap below them.
+
 ## 6.109.5 — 23 May 2026
 - You can now press **Escape** to open the command palette (the Cmd/Ctrl+K search panel), as well as Cmd/Ctrl+K. Escape only opens it when it wouldn't otherwise close something — so it still closes open menus, dialogs, the friends panel, and focus mode first, and never interrupts typing.
 

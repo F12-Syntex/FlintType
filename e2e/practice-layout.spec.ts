@@ -2,15 +2,23 @@ import { expect, test } from "@playwright/test";
 import { dismissChangelog, passageMetrics } from "./helpers";
 
 test.describe("practice layout defaults", () => {
-  test("the typing text is vertically centred in its area", async ({ page }) => {
+  test("the readouts + typing text are vertically centred as one group", async ({ page }) => {
     await page.goto("/");
     await dismissChangelog(page);
 
     const m = await passageMetrics(page);
-    // The clipped viewport floats in the middle of its box: the gap
-    // above it equals the gap below it (within a pixel of rounding).
-    expect(Math.abs(m.gapAbove - m.gapBelow)).toBeLessThan(4);
-    expect(m.gapAbove).toBeGreaterThan(8); // genuinely centred, not pinned to the top
+    // The live readouts ride directly above the text, and the whole
+    // {readouts + text} group floats in the middle of its box: the gap
+    // above the readouts equals the gap below the text. (The text
+    // viewport itself sits just below centre because the readouts take
+    // the top of the group — that's intended, so we check the *group*,
+    // not the viewport.)
+    expect(Math.abs(m.groupGapAbove - m.gapBelow)).toBeLessThan(6);
+    expect(m.groupGapAbove).toBeGreaterThan(8); // genuinely centred, not pinned to the top
+    // The readouts sit above the text within the group: the viewport's
+    // own top gap is larger than the group's (it's pushed down by the
+    // readouts slot).
+    expect(m.gapAbove).toBeGreaterThan(m.groupGapAbove);
   });
 
   test("the on-screen keyboard renders at the smaller default scale", async ({
