@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.106.0 — 23 May 2026
+- Added a Tape fade option (Customise → Appearance → Tape). Soft or Strong fades the tape line toward its ends — already-typed words dissolve as they recede behind the caret, and the far-upcoming edge softens too, keeping your eye on the words around the cursor. Off keeps the line hard-edged.
+
 ## 6.105.1 — 23 May 2026
 - Fixed (for real this time): typing during a race countdown no longer registers. The previous fix didn't hold; keystrokes are now blocked at the point they would become input, verified in a live race — the bar stays at 0% through the whole 3-2-1 and only moves once the race starts.
 

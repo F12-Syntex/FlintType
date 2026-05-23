@@ -1,6 +1,10 @@
 "use client";
 
-import { type TapeMode, useAppearancePrefs } from "@/lib/appearance-prefs";
+import {
+  type TapeFade,
+  type TapeMode,
+  useAppearancePrefs,
+} from "@/lib/appearance-prefs";
 import { cn } from "@/lib/utils";
 import {
   LabelWithDesc,
@@ -62,6 +66,37 @@ const TAPE_OPTIONS: readonly {
   },
 ];
 
+/** Fade hint: a solid bar (off) vs a bar masked to dissolve at its ends
+ *  (soft / strong) — the same opacity-gradient technique the passage
+ *  uses, so the chip reads exactly like the effect it toggles. */
+function TapeFadeChipPreview({ level }: { level: TapeFade }) {
+  if (level === "off") {
+    return <span className="block h-1 w-7 rounded-full bg-foreground/55" />;
+  }
+  const edge = level === "strong" ? 32 : 16;
+  const grad = `linear-gradient(to right, transparent 0%, #000 ${edge}%, #000 ${100 - edge}%, transparent 100%)`;
+  return (
+    <span
+      className="block h-1 w-7 rounded-full bg-foreground/65"
+      style={{ maskImage: grad, WebkitMaskImage: grad }}
+    />
+  );
+}
+
+const TAPE_FADE_OPTIONS: readonly {
+  id: TapeFade;
+  label: string;
+  preview: React.ReactNode;
+}[] = [
+  { id: "off", label: "Off", preview: <TapeFadeChipPreview level="off" /> },
+  { id: "soft", label: "Soft", preview: <TapeFadeChipPreview level="soft" /> },
+  {
+    id: "strong",
+    label: "Strong",
+    preview: <TapeFadeChipPreview level="strong" />,
+  },
+];
+
 export function TapeRows() {
   const { prefs, update } = useAppearancePrefs();
   const tapeOff = prefs.tapeMode === "off";
@@ -99,6 +134,22 @@ export function TapeRows() {
             step={1}
             format={(v) => `${v}%`}
             onChange={(v) => update("tapeMargin", v)}
+          />
+        }
+      />
+
+      <SettingsRow
+        label={
+          <LabelWithDesc
+            title="Tape fade"
+            desc="Fade the tape line toward its ends — typed words dissolve as they recede past the caret. No effect when tape mode is off."
+          />
+        }
+        control={
+          <SelectChips
+            value={prefs.tapeFade}
+            options={TAPE_FADE_OPTIONS}
+            onChange={(v) => update("tapeFade", v)}
           />
         }
       />

@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { useCaretSettings } from "@/lib/caret-settings";
+import { tapeFadeMask } from "@/lib/tape-fade";
 import { cn } from "@/lib/utils";
 import { usePractice } from "./practice-state";
 
@@ -314,6 +315,18 @@ function PassageBody({
   const tapeMode = appearance.tapeMode;
   const tapeOn = tapeMode !== "off";
 
+  // Tape edge fade — a horizontal opacity mask on the (fixed) viewport.
+  // The gradient (and the caret-crisp clamp) is built by `tapeFadeMask`;
+  // typed history dissolves to the left while the caret + upcoming text
+  // stay crisp, and the far-right edge softens. Opacity only — no colour
+  // — so the tape stays paper-and-ink.
+  const tapeFadeGrad = tapeOn
+    ? tapeFadeMask(appearance.tapeFade, appearance.tapeMargin)
+    : null;
+  const tapeFadeStyle: React.CSSProperties | undefined = tapeFadeGrad
+    ? { maskImage: tapeFadeGrad, WebkitMaskImage: tapeFadeGrad }
+    : undefined;
+
   const registerTarget = (el: HTMLSpanElement | null, side: "left" | "right") => {
     targetRef.current = el;
     targetSideRef.current = side;
@@ -468,7 +481,7 @@ function PassageBody({
        *  The translated `inner` block scrolls inside this clip box. */}
       <div
         className="relative w-full overflow-hidden"
-        style={{ height: viewportHeight }}
+        style={{ height: viewportHeight, ...tapeFadeStyle }}
       >
       <div
         ref={innerRef}

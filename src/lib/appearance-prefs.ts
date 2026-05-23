@@ -10,6 +10,13 @@ export type LiveStatStyle = "off" | "text" | "mini" | "flash";
 export type HighlightMode = "off" | "letter" | "word" | "next-word" | "next-letter";
 export type TypedEffect = "off" | "fade" | "strike";
 export type TapeMode = "off" | "word" | "letter";
+/** Edge fade for the tape line. `soft` / `strong` mask the line with a
+ *  horizontal opacity gradient — typed history dissolves to the left as
+ *  it recedes from the caret, and the far-upcoming edge softens too;
+ *  `off` leaves the line hard-edged. Tape-only (no effect when tape is
+ *  off). The caret stays crisp because the left fade never reaches past
+ *  the caret's margin. */
+export type TapeFade = "off" | "soft" | "strong";
 export type TypingSpeedUnit = "wpm" | "cpm" | "wps" | "cps" | "wph";
 export type Keymap = "off" | "static" | "react" | "next";
 /** How an opponent's leading edge is marked inside the practice
@@ -76,6 +83,8 @@ export type AppearancePrefs = {
   tapeMode: TapeMode;
   /** 0–100, percent from the left edge of the typing area. */
   tapeMargin: number;
+  /** Edge fade for the tape line — see `TapeFade`. */
+  tapeFade: TapeFade;
   smoothLineScroll: boolean;
   /** Maximum lines rendered in the passage. `0` means unbounded —
    *  show every line that fits in the available height. Otherwise
@@ -238,6 +247,10 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   // the left, not one word floating dead-centre. Slide toward 50% to
   // centre it, toward 0 to hug the left edge.
   tapeMargin: 25,
+  // Soft edge fade by default — the dissolving typed history is the
+  // hallmark of a polished tape. Tape is opt-in, so this only shows
+  // once the user turns tape on; flip to "off" for a hard-edged line.
+  tapeFade: "soft",
   // Line-scroll animation on by default — the snap-to-next-line
   // feels jarring for first-time users.
   smoothLineScroll: true,
