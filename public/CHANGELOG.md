@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.108.1 — 23 May 2026
+- Internal changes only.
+
 ## 6.108.0 — 23 May 2026
 - Racing a friend now opens a live lobby instead of an offline challenge. The "Race" button on a friend's profile (and "Invite to a race" in their menu) creates a private lobby, drops you in to wait, and sends them an in-app notification with a Join button. (First step of moving everything to lobbies; more to follow.)
 
