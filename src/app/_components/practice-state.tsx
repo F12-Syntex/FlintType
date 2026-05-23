@@ -17,6 +17,7 @@ import { loadQuotes, pickQuote, type QuoteGroup } from "@/lib/quotes";
 import { useTypingSurfaceMarker } from "@/lib/typing-surface";
 import { useAdapt } from "@/lib/use-adapt";
 import { useIsMobile } from "@/lib/use-is-mobile";
+import { isRaceInputCurrentlyLocked } from "@/lib/race-input";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { useWordlist } from "@/lib/wordlists/use-wordlist";
 import { calcWpmAndRaw, countChars } from "@/lib/wpm";
@@ -958,6 +959,10 @@ export function PracticeProvider({
       return;
     }
     if (s.phase === "done") return;
+    // Race countdown / lobby / matching — block typing keys until the
+    // race starts (Escape above still works). The race provider sets
+    // this lock; single-player never does, so this is a no-op there.
+    if (isRaceInputCurrentlyLocked()) return;
 
     if (e.key === " ") {
       e.preventDefault();

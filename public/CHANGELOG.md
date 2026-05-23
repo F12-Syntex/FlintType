@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.105.1 — 23 May 2026
+- Fixed (for real this time): typing during a race countdown no longer registers. The previous fix didn't hold; keystrokes are now blocked at the point they would become input, verified in a live race — the bar stays at 0% through the whole 3-2-1 and only moves once the race starts.
+
 ## 6.105.0 — 23 May 2026
 - Tape mode is now complete. The passage collapses to a single line that scrolls under a fixed caret from the very first keystroke (it used to sit still at the start until you had typed past the middle). Choose how it tracks you — Letter (scrolls every keypress) or Word (scrolls per word) — and set where the caret sits with the Tape margin slider; it now opens left-of-centre so there's a long runway of upcoming text.
 - Smooth scroll now works in every mode, including the letter tape and the normal stacked passage — the text glides instead of jumping.

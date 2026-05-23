@@ -2,6 +2,7 @@
 
 import { type ReactNode, useCallback, useEffect, useRef } from "react";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
+import { isRaceInputCurrentlyLocked } from "@/lib/race-input";
 import { useKeyClickSound } from "@/lib/use-key-click-sound";
 import { usePractice } from "./practice-state";
 
@@ -94,6 +95,10 @@ export function InputCapture({ children }: { children: ReactNode }) {
             document.querySelector('[role="dialog"][aria-modal="true"]')
           )
             return;
+          // Race countdown / lobby / matching — the run hasn't started,
+          // so swallow typing (incl. mobile / IME beforeinput). preventDefault
+          // above already stopped the character; just bail before dispatch.
+          if (isRaceInputCurrentlyLocked()) return;
           const ne = e.nativeEvent as InputEvent;
           const t = ne.inputType;
           if (
@@ -184,6 +189,12 @@ export function InputCapture({ children }: { children: ReactNode }) {
             return;
           }
           if (phaseRef.current === "done") return;
+          // Race countdown / lobby / matching — block typing keys until
+          // the race starts. Escape (above) still leaves the room.
+          if (isRaceInputCurrentlyLocked()) {
+            e.preventDefault();
+            return;
+          }
 
           if (e.key === "Backspace") {
             e.preventDefault();
