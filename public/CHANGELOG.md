@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.109.0 — 23 May 2026
+- Removed the old offline "duels" feature. Racing a friend is now always a live lobby: open a friend's profile (or their menu) and "Invite to a race" creates a private lobby and sends them a Join notification — you both race in real time. The standalone Duels page and the older "beat my recorded run" challenges are gone.
+- Pending race invites from friends now show up in the friends dock with a Join button, alongside who's online and who's broadcasting.
+
 ## 6.108.1 — 23 May 2026
 - Internal changes only.
 

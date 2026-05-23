@@ -44,7 +44,7 @@ export const UPDATES: Update[] = [
     versions: ["6.96.0", "6.94.0"],
     highlights: [
       { preview: "hub", label: "Friends" },
-      { preview: "challenges", label: "Duels" },
+      { preview: "challenges", label: "Race a friend" },
       { preview: "spectate", label: "Spectate" },
       { preview: "profile", label: "Profile" },
     ],

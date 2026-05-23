@@ -7,9 +7,8 @@ import { createLobbyAndInvite } from "@/lib/invite-to-lobby";
 import { cn } from "@/lib/utils";
 
 /** "Race a friend" action: opens a private lobby, notifies the friend
- *  in-app, and drops the host into the lobby to wait. The live
- *  replacement for the old async-duel link. Mutual-friends only — the
- *  caller decides whether to render it. */
+ *  in-app, and drops the host into the lobby to wait. Mutual-friends
+ *  only — the caller decides whether to render it. */
 export function InviteToRaceButton({
   opponentId,
   className,

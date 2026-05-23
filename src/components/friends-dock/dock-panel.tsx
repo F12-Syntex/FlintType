@@ -164,20 +164,20 @@ export function DockPanelBody({
   const members = useMemo<Member[]>(() => {
     const liveIds = new Set(live.map((u) => u.userId));
     const out: Member[] = [];
-    for (const d of challenges) {
+    for (const c of challenges) {
       out.push({
-        key: `c:${d.id}`,
-        href: `/duel/${d.id}`,
+        key: `c:${c.id}`,
+        href: `/race/c/${c.slug}`,
         src: null,
         icon: "swords",
-        name: d.challenger.name,
-        tags: d.challenger.tags,
+        name: c.inviterName,
+        tags: [],
         dot: null,
         caption: {
-          label: `beat ${Math.round(d.challengerWpm)} wpm`,
+          label: "wants to race",
           dotClass: "bg-primary",
         },
-        action: "Accept",
+        action: "Join",
         bucket: 0,
       });
     }

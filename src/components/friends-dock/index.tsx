@@ -15,12 +15,12 @@ import { useDockData } from "./use-dock-data";
 const DEV = process.env.NODE_ENV === "development";
 
 /** Routes where the dock would fight an intentionally immersive surface:
- *  the dark race screen, the fullscreen live-watch clone, the duel
- *  screen, the auth pages, and the standalone cover/landing asset (which
- *  is meant to be screenshotted clean, with no app chrome). Everywhere
- *  else (practice, customise, leaderboard, profile, …) it floats quietly
- *  in the corner. */
-const HIDDEN_PREFIXES = ["/race", "/live", "/duel", "/sign-in", "/sign-up", "/landing"];
+ *  the dark race screen (incl. private lobbies at /race/c/<slug>), the
+ *  fullscreen live-watch clone, the auth pages, and the standalone
+ *  cover/landing asset (which is meant to be screenshotted clean, with
+ *  no app chrome). Everywhere else (practice, customise, leaderboard,
+ *  profile, …) it floats quietly in the corner. */
+const HIDDEN_PREFIXES = ["/race", "/live", "/sign-in", "/sign-up", "/landing"];
 
 /** Reads a `data-*` attribute off <html>, kept in sync with a observer so
  *  the dock can step aside while a run is active (`data-ft-running`) or

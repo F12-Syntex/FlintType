@@ -11,9 +11,7 @@ export type NotificationKind =
   | "follow"
   | "mutual"
   | "friend_pb"
-  | "race_invite"
-  | "duel_challenge"
-  | "duel_result";
+  | "race_invite";
 
 export type AnnouncementData = {
   /** Optional CTA URL — when present the row becomes a link. */
@@ -80,38 +78,14 @@ export type FriendPbNotificationData = {
 
 /** A friend opened a private race lobby and invited the recipient to
  *  join live. The renderer shows a Join button that deep-links to the
- *  lobby (`/race/c/<slug>`). This is the live replacement for the old
- *  async ghost duel. */
+ *  lobby (`/race/c/<slug>`). This is how you race a friend — a live
+ *  lobby invite, not an async run-vs-run comparison. */
 export type RaceInviteData = {
   /** Lobby slug — the join target (`/race/c/<slug>`). */
   slug: string;
   inviterId: string;
   inviterName: string;
   inviterUsername: string | null;
-};
-
-/** A friend challenged the recipient to beat a recorded run. Links to
- *  `/duel/<duelId>` where the recipient races the ghost. */
-export type DuelChallengeData = {
-  duelId: string;
-  challengerId: string;
-  challengerName: string;
-  challengerUsername: string | null;
-  challengerWpm: number;
-  mode: string;
-  durationOrWordCount: number;
-};
-
-/** The opponent finished a duel the recipient issued. `won` is from
- *  the opponent's perspective (true = they beat the recipient's run). */
-export type DuelResultData = {
-  duelId: string;
-  opponentId: string;
-  opponentName: string;
-  opponentUsername: string | null;
-  opponentWpm: number;
-  challengerWpm: number;
-  won: boolean;
 };
 
 export type NotificationData =
@@ -122,8 +96,6 @@ export type NotificationData =
   | MutualNotificationData
   | FriendPbNotificationData
   | RaceInviteData
-  | DuelChallengeData
-  | DuelResultData
   | null;
 
 export type Notification = {

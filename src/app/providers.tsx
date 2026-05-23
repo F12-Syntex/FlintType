@@ -42,9 +42,9 @@ export function Providers({ children }: { children: ReactNode }) {
               listens for the shortcut. */}
           <CommandPalette />
           {/* Friends dock — a small, non-intrusive corner affordance for
-              who's live, pending challenges, and the friend directory.
-              Self-mounts; hides on immersive surfaces (race / live /
-              duel) and while a run or focus mode is active (ui-law §17). */}
+              who's live, pending race-lobby invites, and the friend
+              directory. Self-mounts; hides on immersive surfaces (race /
+              live) and while a run or focus mode is active (ui-law §17). */}
           <FriendsDock />
           {/* "What's new" popup — self-mounts, compares the cached
               app version against the running one and surfaces the

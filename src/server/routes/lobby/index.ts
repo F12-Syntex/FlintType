@@ -11,10 +11,10 @@ import {
 import type { RaceInviteData } from "@/types/notification";
 
 /** Notify a friend that you've opened a private race lobby for them.
- *  Lobbies replace the old async ghost duel: instead of racing a
- *  recorded run, the friend gets a live "join my race" notification.
- *  Friends-only (mutual follow), block-gated, and deduped per lobby so
- *  a double-click can't double-notify. */
+ *  Racing a friend means a live lobby: the friend gets a "join my race"
+ *  notification and races you in real time. Friends-only (mutual
+ *  follow), block-gated, and deduped per lobby so a double-click can't
+ *  double-notify. */
 const invite = defineRoute<InviteToLobbyInput, InviteToLobbyOutput>({
   input: inviteToLobbyInputSchema,
   handler: async ({ input, db, meta, log }) => {

@@ -110,7 +110,7 @@ function buildDisplay(
  *  Error posture: a Clerk failure only throws when there's an actual
  *  miss to fetch — a fully-warm batch returns cached data even during a
  *  Clerk blip. When there IS a miss, the error is NOT swallowed:
- *  friend/duel actions are authenticated and low-frequency, so a Clerk
+ *  friend/lobby actions are authenticated and low-frequency, so a Clerk
  *  outage should surface as a normal failure the caller retries, not
  *  silently produce an empty result that looks like "no friends". */
 export async function resolveUserDisplays(

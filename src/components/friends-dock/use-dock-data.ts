@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useBackend } from "@/lib/backend";
-import type { Duel } from "@/types/duel";
 import type { FriendUser } from "@/types/friends";
 import type { LiveFriend } from "@/types/live";
+import type { RaceInviteData } from "@/types/notification";
 import type { PresenceEntry } from "@/types/presence";
 import {
   withDummyChallenges,
@@ -12,6 +12,20 @@ import {
   withDummyLive,
   withDummyPresence,
 } from "./dock-dummy";
+
+/** A pending race-lobby invite, surfaced as a "challenge" row in the
+ *  dock. Derived from unread `race_invite` notifications — the live
+ *  lobby is the only kind of friend race, so a pending invite is the
+ *  dock's challenge. */
+export type DockChallenge = {
+  /** Notification id — the row key + dedupe handle. */
+  id: string;
+  /** Lobby slug, the join target (`/race/c/<slug>`). */
+  slug: string;
+  inviterId: string;
+  inviterName: string;
+  inviterUsername: string | null;
+};
 
 /** Dev-only: inject fake friends/presence/challenges so the dock can be
  *  exercised without a real follow graph. Eliminated from prod builds. */
@@ -23,9 +37,9 @@ const POLL_MS = 6_000;
 export type DockData = {
   /** Mutual friends broadcasting a live run right now. */
   live: LiveFriend[];
-  /** Incoming challenges still waiting to be taken (pending only — accepted
-   *  / completed ones live on /duels). */
-  challenges: Duel[];
+  /** Pending race-lobby invites — a friend opened a lobby and invited
+   *  you. Derived from unread `race_invite` notifications. */
+  challenges: DockChallenge[];
   /** Everyone in your network — friends, people you follow, and your
    *  followers (deduped). */
   directory: FriendUser[];
@@ -53,7 +67,7 @@ export function useDockData({
   const [following, setFollowing] = useState<FriendUser[]>([]);
   const [followers, setFollowers] = useState<FriendUser[]>([]);
   const [live, setLive] = useState<LiveFriend[]>([]);
-  const [challenges, setChallenges] = useState<Duel[]>([]);
+  const [challenges, setChallenges] = useState<DockChallenge[]>([]);
   const [presenceById, setPresenceById] = useState<Map<string, PresenceEntry>>(
     () => new Map(),
   );
@@ -111,20 +125,34 @@ export function useDockData({
       })
       .catch(() => DEV_DUMMY && setPresenceById(withDummyPresence(new Map())));
 
-    const duelReq = signedIn
-      ? backend.duels.list().then((r) => r.incoming)
-      : Promise.resolve<Duel[]>([]);
-    duelReq
-      .then((incoming) => {
-        const all = DEV_DUMMY ? withDummyChallenges(incoming) : incoming;
-        setChallenges(all.filter((d) => d.status === "pending"));
-      })
+    // Pending race-lobby invites = unread `race_invite` notifications.
+    // The notification bell is the canonical feed; the dock surfaces the
+    // still-actionable ones as a join shortcut.
+    const inviteReq = signedIn
+      ? backend.notifications.list().then((r) =>
+          r.items.flatMap<DockChallenge>((n) => {
+            if (n.kind !== "race_invite" || n.readAtMs != null) return [];
+            const d = n.data;
+            if (!d || typeof d !== "object" || !("slug" in d)) return [];
+            const data = d as RaceInviteData;
+            return [
+              {
+                id: n.id,
+                slug: data.slug,
+                inviterId: data.inviterId,
+                inviterName: data.inviterName,
+                inviterUsername: data.inviterUsername,
+              },
+            ];
+          }),
+        )
+      : Promise.resolve<DockChallenge[]>([]);
+    inviteReq
+      .then((invites) =>
+        setChallenges(DEV_DUMMY ? withDummyChallenges(invites) : invites),
+      )
       .catch(() => {
-        if (DEV_DUMMY) {
-          setChallenges(
-            withDummyChallenges([]).filter((d) => d.status === "pending"),
-          );
-        }
+        if (DEV_DUMMY) setChallenges(withDummyChallenges([]));
       });
   }, [backend, signedIn]);
 

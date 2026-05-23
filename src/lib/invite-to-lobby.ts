@@ -7,9 +7,9 @@ type Backend = ReturnType<typeof useBackend>;
 
 /** Open a private race lobby for a friend and notify them.
  *
- *  This is the live replacement for the old async ghost duel: instead of
- *  racing a recorded run, you spin up a real lobby and the friend gets an
- *  in-app "join my race" notification. Creates the lobby (host = caller),
+ *  This is how you race a friend: you spin up a real lobby and the
+ *  friend gets an in-app "join my race" notification, then you race
+ *  live. Creates the lobby (host = caller),
  *  stashes the host handle so navigating into it resumes the seat, fires
  *  the invite (best-effort — the lobby is usable even if the notify
  *  fails), and returns the lobby slug to navigate to (or null on

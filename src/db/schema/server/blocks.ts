@@ -6,7 +6,7 @@ import { pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
  *    - blocking severs follow edges in **both** directions (the route
  *      orchestrates `blocks.add` + `follows.unfollow` both ways);
  *    - while a block exists in *either* direction, neither party can
- *      (re-)follow the other, duel, or spectate.
+ *      (re-)follow the other, invite them to a race, or spectate.
  *
  *  Keyed on (blockerId, blockedId). Both "who have I blocked"
  *  (`listBlocked`, PK-prefix scan) and the directional checks

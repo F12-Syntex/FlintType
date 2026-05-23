@@ -1,22 +1,24 @@
 # Friends system
 
-Authoritative guide for the friends/social subsystem: following, presence, live spectate, async duels, and the social surfaces built on top. Built in verifiable steps — each step lands its tests in the same commit, is independently verified, and only then does the next begin.
+Authoritative guide for the friends/social subsystem: following, presence, live spectate, racing a friend (live private lobbies), and the social surfaces built on top. Built in verifiable steps — each step lands its tests in the same commit, is independently verified, and only then does the next begin.
+
+> **Note (lobby migration):** the original "beat my run" *async ghost duels* (Step 7) have been **removed** — multiplayer is now one concept, lobbies (`docs/multiplayer.md`). Racing a friend opens a **live private lobby** and sends them an in-app `race_invite` notification with a Join link. The `duels` table, routes, pages, and `duel_*` notification kinds are gone. Step 7 below is kept as a historical record, struck through.
 
 ## Product decisions (locked)
 
 | Question | Decision |
 |---|---|
-| Graph model | **Follow + mutual = friend.** Follows are one-way, no approval. A reciprocal pair (A→B and B→A) makes them *friends*; mutuality is what unlocks duels + live spectate. |
+| Graph model | **Follow + mutual = friend.** Follows are one-way, no approval. A reciprocal pair (A→B and B→A) makes them *friends*; mutuality is what unlocks racing a friend (live private lobby invites) + live spectate. |
 | Spectate scope | **Live solo practice** is the headline (watch a friend type in real time), built on top of cheaper layers first. |
 | Spectate write transport | **Direct browser → Railway authority**, capability-token-authed + CORS, bypassing the Vercel proxy. Mirrors the existing SSE-direct path; chosen for latency + architectural consistency (not cost — at current scale both are ~$0, but the direct path doesn't degrade with growth and keeps a 10–12 Hz stream off Vercel function-invocation/CPU meters). Extends `docs/multiplayer.md` — amended in the spectate step. |
-| Headline extras | Friends-scoped leaderboard, "beat my run" async ghost duels, head-to-head profile compare, activity feed / PB notifications. |
+| Headline extras | Friends-scoped leaderboard, race a friend (live private lobby + in-app invite), head-to-head profile compare, activity feed / PB notifications. |
 
 ## Architecture in 30 seconds
 
 - **Graph** lives in Postgres: two directed-edge tables, `follows` and `blocks` (`src/db/schema/server/`). No `friendships` table — mutuality is a read-time computation (`follows.listFriends` / `isMutual`). No FK constraints (same mirror convention as `tests`/`notifications`; Clerk owns identity, dangling edges to deleted users are filtered at display time).
-- **Notifications** reuse the existing per-user feed (`notifications` table, open `kind` + jsonb `data` + dedupe index). New kinds: `follow`, `mutual`, `friend_pb`, `duel_*`. No migration per kind — only a new `NotificationKind` union arm + renderer.
+- **Notifications** reuse the existing per-user feed (`notifications` table, open `kind` + jsonb `data` + dedupe index). Kinds: `follow`, `mutual`, `friend_pb`, `race_invite`. No migration per kind — only a new `NotificationKind` union arm + renderer.
 - **Presence + live spectate** ride the Railway race authority — the one warm process that already owns ephemeral live state + SSE broadcast. Presence is an in-memory map fed by a heartbeat/control SSE; that same control channel tells a broadcaster "you're being watched" so streaming is **lazy** (only while a spectator is attached). Progress writes go browser→authority direct with a per-session capability token.
-- **Async ghost duels** need *no* live infra: a duel snapshots the passage + the challenger's per-second `wpmHistory` (already persisted on `tests`), and the opponent races a ghost integrated from those samples — the same trick the race bot tick uses.
+- **Racing a friend** is a **live private lobby**, not async infra: the friend graph (app DB) and the room store (race authority) live in different places, so the client opens a lobby via `race.challenge.create` (proxied to the authority), then `lobby.invite` fires a `race_invite` notification with a Join link to `/race/c/<slug>`. See `docs/multiplayer.md`.
 
 ## Data model
 
@@ -24,9 +26,9 @@ Authoritative guide for the friends/social subsystem: following, presence, live 
 `(follower_id, followee_id)` composite PK, `created_at`. Secondary index on `followee_id` for "who follows me". Self-edges never written.
 
 ### `blocks` (Step 1)
-`(blocker_id, blocked_id)` composite PK, `created_at`. A block in *either* direction (`blocks.eitherBlocks`) severs the relationship for both and prevents re-follow/duel/spectate. Blocking also unfollows both ways (route-orchestrated).
+`(blocker_id, blocked_id)` composite PK, `created_at`. A block in *either* direction (`blocks.eitherBlocks`) severs the relationship for both and prevents re-follow / lobby-invite / spectate. Blocking also unfollows both ways (route-orchestrated).
 
-_(Later steps add: duel/run-snapshot tables (Step 7); presence + live-session state is in-memory on the authority, not in Postgres (Steps 8–9).)_
+_(The `duels` table from the original Step 7 was dropped in the lobby migration — see migration `0013`. Presence + live-session state is DB-backed (Steps 8–9).)_
 
 ## Build steps & status
 
@@ -38,7 +40,7 @@ _(Later steps add: duel/run-snapshot tables (Step 7); presence + live-session st
 | 4 | Friends-scoped leaderboard | ✅ done |
 | 5 | Head-to-head profile compare | ✅ done |
 | 6 | Activity feed (PB fan-out to followers) | ✅ done |
-| 7 | Async ghost duels ("beat my run") | ✅ done |
+| 7 | ~~Async ghost duels ("beat my run")~~ — **removed** (replaced by live private-lobby invites; see `docs/multiplayer.md`) | ❌ removed |
 | 8 | Presence (online / rich status) | ✅ done |
 | 9 | Live solo-practice spectate | ✅ done |
 
@@ -86,12 +88,9 @@ Each step: tests-first, `yarn test` + `yarn tsc --noEmit` green, a dedicated age
 - New `friend_pb` notification kind + `FriendPbNotificationData` (friend handle + run stats); popover renders it (neutral, not coral) linking to the friend's profile.
 - The notification feed (bell popover) is the activity feed — no separate page.
 
-### Step 7 — Async ghost duels ("beat my run")
-- **Schema:** `duels` (snapshot of passage + challenger run + per-second WPM trace, status pending→completed, opponent result). Migration `0009`; test DDL mirrored. Repo `duelsRepo` (create/findById/listIncoming/listOutgoing/guarded recordResult).
-- **Routes:** `duels` namespace (auth) — `create` (mutual-friend gate, snapshots run, notifies opponent), `get` (participants only), `submitResult` (opponent-only, guarded, notifies challenger, win = net WPM), `list`. Notification kinds `duel_challenge` / `duel_result`.
-- **No live infra:** a duel is pure request/response. The opponent races a ghost cursor integrated from the challenger's trace.
-- **`DuelTyper`** (`app/duel/_components/`) — self-contained typing surface (decoupled from the adaptive engine): hidden-input capture, gross WPM/accuracy, per-second sampling, ghost pacing. The cumulative-char math is a pure, tested helper (`ghost.ts` + `ghost.test.ts`) — samples are cumulative averages, mapped (not re-integrated) to char positions.
-- **Flow:** challenger sets the run at `/duel/new?opponent=<id>` (Duel button on a mutual friend's profile) → opponent races at `/duel/<id>` → `<DuelOutcome>` scoreboard (winner by weight, net WPM). `/duels` lists incoming/outgoing; linked from `/friends`; notifications deep-link to the duel.
+### ~~Step 7 — Async ghost duels ("beat my run")~~ — REMOVED
+
+> **Removed in the lobby migration.** Multiplayer is now one concept (lobbies). "Racing a friend" is a **live private lobby** + an in-app `race_invite` notification, not an async run-vs-recorded-ghost comparison. The deletion dropped: the `duels` table (migration `0013` `DROP TABLE duels`), the `duels` routes namespace, the `duel_challenge` / `duel_result` notification kinds, the `/duel/*` and `/duels` pages, and the self-contained `<TypingSurface>` ghost-pacing component (`typing-ghost.ts`) that only the duel surface used. Racing a friend now goes through `<InviteToRaceButton>` / the `<FollowButton>` "Invite to a race" menu item → `createLobbyAndInvite` → `/race/c/<slug>`. The original implementation is preserved in git history (pre-`0013`); this section is the tombstone.
 
 ### Step 8 — Presence (who's online)
 - **DB-backed**, not in-memory on the race authority: presence keys on the authenticated Clerk userId (which the authority can't see), and a shared `presence` table (migration `0010`) is correct across Vercel instances. "Online" is derived at read time (lastSeenAt within `ONLINE_WINDOW_MS` = 60s, 2× the heartbeat), so a closed tab needs no goodbye.
@@ -105,8 +104,7 @@ Each step: tests-first, `yarn test` + `yarn tsc --noEmit` green, a dedicated age
 - **DB-backed store** (`live_sessions`, migration `0011`; `liveSessionsRepo`), not in-memory on the authority — keyed on the authenticated Clerk userId and correct across Vercel instances. "Live" is freshness of the last push (`LIVE_TTL_MS` = 6s).
 - **Routes:** `live` namespace (auth) — `progress` (broadcaster push, only stored if opted in), `watch` (gated poll), `stop`.
 - **Transport:** v1 polls `live.progress` / `live.watch` every ~700ms through the normal backend (sub-second "live-ish"). The designed end-state — direct browser→authority writes + a capability-token SSE stream — is documented in `docs/multiplayer.md` as the upgrade behind the same `live.*` surface.
-- **UI:** `<TypingSurface>` (promoted from the duel typer to `src/components/`, now shared by duels + live) streams progress via its `onProgress` hook on the `/live` broadcaster surface (with the consent toggle); `/live/<userId>` polls + renders the friend's passage read-only (`<LivePassage>`). Discovery: a "Watch" link on mutual friend rows + a "Practise live" link on `/friends`.
-- The duel typer was promoted (not copied) per `docs/organization.md` — a component used by two routes belongs in `src/components/`.
+- **UI (superseded — see the ambient bullet below):** the original broadcaster surface streamed through a shared `<TypingSurface>` (`onProgress` hook) on a dedicated `/live` page; `/live/<userId>` polls + renders the friend's passage read-only (`<LivePassage>`). That standalone `<TypingSurface>` ghost-pacing component was removed alongside the duels (it was the duel/broadcaster surface, and the broadcaster moved to the ambient path below). Discovery is now the friends dock, not a `/friends` page.
 - **Broadcasting is now ambient (no `/live` broadcaster page).** A `PracticeLiveBroadcast` mounted inside `PracticeProvider` streams from the real practice + sudden-death surfaces while sharing is on; the snapshot is windowed to `LIVE_MAX_WORDS` so a runaway TIME buffer can't blow the wire cap. Watching is reached from the reworked `/friends` hub. See `docs/ui-law.md` §17.4 (consent chip) + §17.5 (hub).
 - **Lazy streaming (efficiency).** The broadcaster does NOT push at a fixed rate forever. `live.progress` returns the current watcher count (one indexed read, free on the push), and the broadcaster self-throttles: **full rate + the heavy `screen` clone payload only while watched** (`WATCHED_MS`); a **slow, light heartbeat** (no `screen`) while typing-but-unwatched (`HEARTBEAT_MS`, for discoverability in "live now"); and it **stops entirely when idle + unwatched**. The watcher count flows to the on-screen indicator via a tiny shared store (`src/lib/live-watchers.ts`), so the indicator names watchers only when there's actually someone to name — no idle polling. (This is the "lazy control channel" `docs/multiplayer.md` always intended, achieved over the polling transport by piggy-backing the count on the progress response.)
 - **Dev self-spectate.** `selfSpectateAllowed()` (`src/server/live-self-spectate.ts`, gated `IS_DEV && !IS_TEST`) lets a developer watch their *own* live session in `APP_ENV=development`, so the broadcast → watch flow is testable in one browser: turn sharing on, practise in one tab, and you appear in your own "Live now" (and `/live/<yourId>` works). Everyone else still needs to be an unblocked mutual friend; the bypass can never fire on a hosted deploy (env.ts forbids `APP_ENV=development` there) or under the test runner.

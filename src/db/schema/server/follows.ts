@@ -5,7 +5,7 @@ import { index, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core
  *  The graph is **follow + mutual**: a follow is one-way and needs no
  *  approval (`followerId` follows `followeeId`). Two people are
  *  "friends" when a reciprocal pair of edges exists (A→B and B→A);
- *  that mutual state is what unlocks duels + live spectate. There is
+ *  that mutual state is what unlocks racing a friend + live spectate. There is
  *  no separate `friendships` table — mutuality is computed at read
  *  time (`followsRepo.listFriends` / `isMutual`) so there's nothing to
  *  keep in sync.

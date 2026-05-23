@@ -45,7 +45,7 @@ function HubPreview() {
   );
 }
 
-/** Challenges — the inline duel row with a filled Accept button. */
+/** Challenges — the inline race-invite row with a filled Join button. */
 function ChallengesPreview() {
   return (
     <div
@@ -57,10 +57,10 @@ function ChallengesPreview() {
       </span>
       <span className="flex min-w-0 flex-col gap-0.5">
         <span className="text-[11px] font-semibold text-ft-ink">@dao</span>
-        <span className="text-[9px] font-medium text-ft-dim">beat 104 wpm</span>
+        <span className="text-[9px] font-medium text-ft-dim">wants to race</span>
       </span>
       <span className="ml-auto rounded-md bg-ft-ember px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-ft-paper">
-        Accept
+        Join
       </span>
     </div>
   );

@@ -268,24 +268,6 @@ function buildMocks(userId: string, avatarUrl: string | null) {
     generatedAtMs: now,
   };
 
-  const part = (uid: string, uname: string | null, name: string, tags: string[] = []) => ({ userId: uid, username: uname, name, tags });
-  const me = part(userId, DEMO.username, "Alex Quill", ["owner", "og"]);
-  const duelWords = "the quick study found a steady rhythm and kept the pace through every word".split(" ");
-  const duels = {
-    incoming: [{
-      id: "d_in_1", challenger: part("user_demo_0", "maravexley", "Mara Vexley", ["owner"]), opponent: me,
-      words: duelWords, mode: "training", durationOrWordCount: 25,
-      challengerWpm: 152, challengerAccuracy: 98.2, challengerWpmHistory: [60, 110, 138, 149, 152],
-      status: "pending", opponentWpm: null, opponentAccuracy: null, createdAtMs: now - 2_400_000, completedAtMs: null,
-    }],
-    outgoing: [{
-      id: "d_out_1", challenger: me, opponent: part("user_demo_3", "kenjisaito", "Kenji Saito"),
-      words: duelWords, mode: "training", durationOrWordCount: 25,
-      challengerWpm: 144, challengerAccuracy: 97.6, challengerWpmHistory: [55, 102, 130, 141, 144],
-      status: "completed", opponentWpm: 131, opponentAccuracy: 96.1, createdAtMs: now - 26_000_000, completedAtMs: now - 25_000_000,
-    }],
-  };
-
   const notifications = {
     unreadCount: 3,
     items: [
@@ -304,7 +286,6 @@ function buildMocks(userId: string, avatarUrl: string | null) {
     "leaderboard/list": leaderboard,
     "leaderboard/topPlayers": topPlayers,
     "leaderboard/topByLevel": topByLevel,
-    "duels/list": duels,
     "notifications/list": notifications,
     "friends/stats": friendsStats,
   } as Record<string, unknown>;
@@ -325,8 +306,7 @@ const SHOTS: Shot[] = [
   { name: "06-profile", url: "/profile", wait: 2400 },
   { name: "07-insights", url: "/insights", wait: 2400 },
   { name: "08-drills", url: "/drills", wait: 2000 },
-  { name: "09-duels", url: "/duels", wait: 1800 },
-  { name: "10-race", url: "/race", wait: 1800 },
+  { name: "09-race", url: "/race", wait: 1800 },
   {
     name: "11-friends-dock", url: "/leaderboard", wait: 1800,
     action: `await page.locator('button[aria-label="Friends"]').first().click({ timeout: 5000 }).catch(() => {}); await page.waitForTimeout(1200);`,

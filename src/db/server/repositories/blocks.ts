@@ -47,7 +47,7 @@ export function blocksRepo(db: ServerDrizzle) {
     },
 
     /** Does a block exist in *either* direction between `a` and `b`?
-     *  This is the gate the follow / duel / spectate paths consult —
+     *  This is the gate the follow / lobby-invite / spectate paths consult —
      *  a block by either party severs the relationship for both. */
     async eitherBlocks(a: string, b: string): Promise<boolean> {
       const rows = await db

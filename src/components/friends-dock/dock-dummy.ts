@@ -1,7 +1,7 @@
-import type { Duel, DuelParticipant } from "@/types/duel";
 import type { FriendUser } from "@/types/friends";
 import type { LiveFriend } from "@/types/live";
 import type { PresenceEntry } from "@/types/presence";
+import type { DockChallenge } from "./use-dock-data";
 
 /** Dev-only fake data for the friends dock, so the live / presence /
  *  challenge UI can be exercised without a populated Clerk instance and a
@@ -134,46 +134,24 @@ export function withDummyPresence(
   return out;
 }
 
-const challenger = (
-  handle: string,
-  tags: DuelParticipant["tags"] = [],
-): DuelParticipant => ({
-  userId: `dev_${handle}`,
-  username: handle,
-  name: `@${handle}`,
-  tags,
-});
-
-const ME: DuelParticipant = {
-  userId: "dev_me",
-  username: null,
-  name: "@you",
-  tags: [],
-};
-
-/** A couple of pending incoming challenges so the dock's Challenges
+/** A couple of pending race-lobby invites so the dock's Challenges
  *  section is visible in dev (real wins on id). */
-export function withDummyChallenges(real: Duel[]): Duel[] {
-  const now = Date.now();
-  const make = (id: string, c: DuelParticipant, wpm: number, agoMs: number): Duel => ({
-    id,
-    challenger: c,
-    opponent: ME,
-    words: ["the", "quick", "brown", "fox", "jumps"],
-    mode: "words",
-    durationOrWordCount: 25,
-    challengerWpm: wpm,
-    challengerAccuracy: 97,
-    challengerWpmHistory: null,
-    status: "pending",
-    opponentWpm: null,
-    opponentAccuracy: null,
-    createdAtMs: now - agoMs,
-    completedAtMs: null,
-  });
-  const dummy = [
-    make("dev_d1", challenger("maya", ["og"]), 104, 40 * MIN),
-    make("dev_d2", challenger("ozz"), 88, 5 * HOUR),
+export function withDummyChallenges(real: DockChallenge[]): DockChallenge[] {
+  const dummy: DockChallenge[] = [
+    {
+      id: "dev_inv1",
+      slug: "dev-lobby-maya",
+      inviterId: "dev_maya",
+      inviterName: "@maya",
+      inviterUsername: "maya",
+    },
+    {
+      id: "dev_inv2",
+      slug: "dev-lobby-ozz",
+      inviterId: "dev_ozz",
+      inviterName: "@ozz",
+      inviterUsername: "ozz",
+    },
   ];
   const seen = new Set(real.map((d) => d.id));
   return [...real, ...dummy.filter((d) => !seen.has(d.id))];

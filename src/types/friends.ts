@@ -16,8 +16,8 @@ export type FriendTargetInput = z.infer<typeof friendTargetSchema>;
  *  the client re-renders the follow button straight from the response,
  *  and by the standalone `relationship` route for arbitrary profiles.
  *
- *  `mutual` (following && followedBy) is the gate that unlocks duels +
- *  live spectate in later steps. */
+ *  `mutual` (following && followedBy) is the gate that unlocks racing a
+ *  friend (private lobby invites) + live spectate. */
 export type FriendRelationship = {
   userId: string;
   /** me → userId */
