@@ -1021,11 +1021,20 @@ export function PracticeProvider({
       if (e.ctrlKey || e.altKey || e.metaKey) return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      restartRef.current();
+      // In BURST, Tab retries the CURRENT word (clears the typed buffer),
+      // it does NOT re-roll a whole new set — a burst is a repeat-until-
+      // clean drill, so "again" means this word, not a fresh passage.
+      // (Esc still restarts the set as the fast in-test path.) Every
+      // other mode keeps Tab → restart.
+      if (liveStateRef.current.mode === "BURST") {
+        dispatch({ type: "BURST_RESET" });
+      } else {
+        restartRef.current();
+      }
     }
     window.addEventListener("keydown", onTab, true);
     return () => window.removeEventListener("keydown", onTab, true);
-  }, []);
+  }, [dispatch]);
 
   // Cross-component restart channel. The command palette's "Restart
   // test" entry dispatches this event; the practice surface

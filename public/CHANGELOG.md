@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.111.5 — 23 May 2026
+- Burst mode is now strict: the instant you mistype a letter, the word resets so you re-attempt it from scratch (it no longer waits until you press space). And pressing Tab now resets the current word to retry it, instead of starting a whole new set of words. (Esc still starts a fresh set.)
+
 ## 6.111.4 — 23 May 2026
 - Corrected the sidebar/content surface colour: the settings and leaderboard sidebars and their content area now use the same card surface that sits behind the top nav and the theme/mode switcher, so everything reads as one consistent surface (the previous attempt matched them to the page background instead).
 

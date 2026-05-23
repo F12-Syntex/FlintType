@@ -101,6 +101,22 @@ export function BurstProvider({ children }: { children: ReactNode }) {
     prevTypedLenRef.current = 0;
   }, [state.words]);
 
+  // Strict burst: reset the moment a mistake is made, not at the space.
+  // The instant the typed buffer stops being a prefix of the target
+  // (a wrong char, or typing past the word), wipe the word and break
+  // the rep streak — same failure the SPACE handler catches on a wrong
+  // word, just caught immediately so a burst can't be sloppily
+  // backspace-corrected.
+  useEffect(() => {
+    if (state.phase === "done" || state.phase === "rest") return;
+    const tgt = state.words[cursorWord] ?? "";
+    if (typedHere.length > 0 && !tgt.startsWith(typedHere)) {
+      setOutcome("wrong");
+      setReps(0);
+      dispatch({ type: "BURST_RESET" });
+    }
+  }, [typedHere, cursorWord, state.phase, state.words, dispatch]);
+
   const handleSpace = useCallback(() => {
     if (state.phase === "done" || state.phase === "rest") return;
     const tgt = state.words[state.cursorWord] ?? "";
