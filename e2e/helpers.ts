@@ -56,6 +56,40 @@ export async function maxLaneWidth(page: Page): Promise<number> {
   });
 }
 
+/** The race passage's target words, read straight off the DOM. The
+ *  passage inner block always carries a `translate3d(...)` transform
+ *  (vertical/horizontal scroll), and each word span renders a trailing
+ *  space — so the block's textContent is "word1 word2 …", split on
+ *  whitespace. Read this once the race is *racing* (the active word is
+ *  word 0, the rest render as raw text) for the full passage. */
+export async function racePassageWords(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const inner = [...document.querySelectorAll("div")].find((d) =>
+      /translate3d/.test(d.getAttribute("style") || ""),
+    );
+    if (!inner) return [];
+    return (inner.textContent || "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+  });
+}
+
+/** Type the whole race passage correctly to completion, then wait for
+ *  the finished state (the "Race again" CTA, which only appears at
+ *  phase === "finished"). Extracts the words first, then types them
+ *  with single spaces + a trailing space so the final word commits. */
+export async function finishRace(page: Page): Promise<void> {
+  const words = await racePassageWords(page);
+  if (words.length === 0) {
+    throw new Error("could not read the race passage words from the DOM");
+  }
+  await focusTypingInput(page);
+  // A small per-key delay keeps the hidden-input keydown stream honest
+  // (mirrors the countdown spec). Trailing space commits the last word.
+  await page.keyboard.type(`${words.join(" ")} `, { delay: 8 });
+}
+
 /** True while the big 3/2/1 countdown digit is on screen. */
 export async function countdownVisible(page: Page): Promise<boolean> {
   return page.evaluate(() =>

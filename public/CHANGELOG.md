@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.109.2 — 23 May 2026
+- Internal changes only (added end-to-end browser tests for the public and private race lobbies).
+
 ## 6.109.1 — 23 May 2026
 - Reworded the race screens around one idea: lobbies. Racing strangers drops you into a public lobby (the "Find race" button is unchanged); "Create lobby" / "Invite to a race" opens a private lobby you share with a friend. The old "challenge" wording is gone.
 
