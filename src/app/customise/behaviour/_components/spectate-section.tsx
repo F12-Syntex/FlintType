@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Avatar } from "@/components/ft";
+import { SpectatePill } from "@/components/spectate-indicator";
 import { useBackend } from "@/lib/backend";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import type { FriendUser } from "@/types/friends";
@@ -12,6 +13,21 @@ import { SettingsSection } from "../../_components/settings-section";
 type SpectatePrefs = { enabled?: boolean; blocked?: string[] };
 /** Module-level stable default — sharing is on unless turned off. */
 const SPECTATE_DEFAULT: SpectatePrefs = { enabled: true };
+
+/** Bespoke live preview (ui-law §12.5): the on/off chip the practice
+ *  screen falls back to, flipped by the toggle below. */
+function SpectatePreview({ enabled }: { enabled: boolean }) {
+  return (
+    <div className="flex flex-col items-center gap-3 px-4 py-8">
+      <SpectatePill enabled={enabled} />
+      <p className="max-w-xs text-center text-[11px] leading-relaxed text-muted-foreground">
+        {enabled
+          ? "Mutual friends can watch your live runs from the friends dock. While you type, the people watching show up on your screen."
+          : "Your runs stay private. No one can watch you practise."}
+      </p>
+    </div>
+  );
+}
 
 /** The per-friend allow/deny list — every mutual friend can watch by
  *  default; switch a friend to Off to keep them out. Writes the
@@ -108,6 +124,7 @@ export function SpectateSection() {
       eyebrow="Social"
       title="Live spectating"
       description="Mutual friends can watch you practise live, on by default. They see your screen, your speed, and who else is watching, only while you're typing. Turn it off entirely, or keep specific friends out below."
+      preview={<SpectatePreview enabled={enabled} />}
     >
       <SettingsRow
         label={
