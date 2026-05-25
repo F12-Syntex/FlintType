@@ -184,7 +184,11 @@ export function FriendsDock() {
   return (
     <div
       ref={containerRef}
-      className="fixed z-40 flex flex-col items-end gap-2"
+      // The corner gap mirrors the practice surface's bottom padding
+      // (typing-surface.tsx: pb-3 / sm:py-4 / min-height:900px sm:py-8)
+      // so the dock's gap above the footer matches the keyboard's gap
+      // above the footer — the two bottom-anchored elements line up.
+      className="fixed z-40 flex flex-col items-end gap-2 [--ft-dock-gap:0.75rem] sm:[--ft-dock-gap:1rem] [@media(min-height:900px)]:sm:[--ft-dock-gap:2rem]"
       style={{
         right: "calc(0.75rem + env(safe-area-inset-right))",
         // Float just above the page footer when it's there; when the
@@ -192,7 +196,7 @@ export function FriendsDock() {
         // chrome, or a footer-less route) `footerHeight` is 0 and the
         // dock falls back to the normal corner gap instead of hovering
         // in dead space.
-        bottom: `calc(${footerHeight}px + 0.75rem + env(safe-area-inset-bottom))`,
+        bottom: `calc(${footerHeight}px + var(--ft-dock-gap) + env(safe-area-inset-bottom))`,
       }}
     >
       {/* Desktop floating panel. Mobile uses the bottom sheet below. */}

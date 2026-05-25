@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.116.1 — 25 May 2026
+- Nudged the friends bubble in the bottom-right corner so its gap above the footer now matches the on-screen keyboard's, lining the two up neatly.
+
 ## 6.116.0 — 25 May 2026
 - Removed the side preview rail and gave every setting its own preview card again — a real, live render of that exact setting (built from the actual typing screen), so you see precisely how your choice looks, including the Colours section. Each card has a "Preview" toggle in its heading so you can fold the ones you've settled and keep the page as short as you like; your choices are remembered per section.
 
