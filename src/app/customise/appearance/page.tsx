@@ -40,24 +40,6 @@ import {
   PagePaddingRow,
   SurfacePresetRow,
 } from "./_components/surface-rows";
-import {
-  BackgroundPreview,
-  CaretPreview,
-  ChromePreview,
-  ColorPreview,
-  GeometryPreview,
-  KeyboardLivePreview,
-  KeymapLivePreview,
-  LiveStatsPreview,
-  MistakesPreview,
-  MultiplayerPreview,
-  ResultLivePreview,
-  SurfacePreview,
-  TapePreview,
-  ThemePreview,
-  TypingAreaPreview,
-  TypographyPreview,
-} from "./_components/section-previews";
 import { ThemesRow } from "./_components/themes-row";
 import { TypographyRows } from "./_components/typography-row";
 
@@ -142,7 +124,6 @@ export default function AppearancePage() {
         eyebrow="Surface"
         title="Themes & mode"
         description="Pick a community palette and flip light / dark. The preview is the real practice passage — every palette swap repaints it."
-        preview={<ThemePreview />}
       >
         <ThemesRow />
         <SettingsRow label="Mode" control={<ModeSwitcher />} />
@@ -162,7 +143,6 @@ export default function AppearancePage() {
         eyebrow="Tokens"
         title="Colors"
         description="Override the active palette one CSS variable at a time. The preview pairs the live stats strip with the practice passage so every token has a visible target."
-        preview={<ColorPreview />}
       >
         {COLOR_ROWS.map((row) => (
           <ColorRow
@@ -182,7 +162,6 @@ export default function AppearancePage() {
         eyebrow="Shape"
         title="Geometry"
         description="Corner radius and the borders rule across the app. Every component honours these — the passage card, buttons, chips, popovers."
-        preview={<GeometryPreview />}
       >
         <RadiusRow
           value={overrides["--radius"]}
@@ -197,7 +176,6 @@ export default function AppearancePage() {
         eyebrow="Minimise"
         title="Surface"
         description="Collapse card surfaces, dividers, padding, background — the dial that takes flinttype from editorial paper to a Monkeytype-leaning minimal sheet. Presets ship three calibrated bundles."
-        preview={<SurfacePreview />}
       >
         <SurfacePresetRow />
         <CardSurfacesRow />
@@ -212,7 +190,6 @@ export default function AppearancePage() {
         eyebrow="Layer"
         title="Chrome"
         description="Topbar, footer, mode bar style + auto-hide while typing. Tune how much of the app gets out of the way during a run."
-        preview={<ChromePreview />}
       >
         <TopbarStyleRow />
         <FooterStyleRow />
@@ -226,7 +203,6 @@ export default function AppearancePage() {
         eyebrow="Cursor"
         title="Caret & cursor"
         description="Style, thickness, roundness, blink, smooth-motion — the marker that follows your typing. The preview runs the real caret on a frozen passage so every option (including blink and smooth) plays here."
-        preview={<CaretPreview />}
       >
         <CaretRow />
       </SettingsSection>
@@ -236,7 +212,6 @@ export default function AppearancePage() {
         eyebrow="Feedback"
         title="Mistakes"
         description="How a mistyped letter in the current word is shown. Every option paints the letter in your error colour — pick whether to stop there or stack a bold weight, underline, or background highlight on top. Past errored words are governed by 'Mark incomplete words' under Typing area."
-        preview={<MistakesPreview />}
       >
         <MistakesRows />
       </SettingsSection>
@@ -246,7 +221,6 @@ export default function AppearancePage() {
         eyebrow="Type"
         title="Typography"
         description="Font family, size, and word spacing of the practice passage. Body text and chrome stay on JetBrains Mono — only the passage changes."
-        preview={<TypographyPreview />}
       >
         <TypographyRows />
       </SettingsSection>
@@ -256,7 +230,6 @@ export default function AppearancePage() {
         eyebrow="Visual"
         title="Keyboard widget"
         description="The live keyboard rendered under the passage. Every option here repaints the preview above instantly."
-        preview={<KeyboardLivePreview />}
       >
         <KeyboardRow />
       </SettingsSection>
@@ -266,7 +239,6 @@ export default function AppearancePage() {
         eyebrow="Canvas"
         title="Background"
         description="Drop in an image, pick how it fits, and tune opacity. Local to your browser — nothing uploads."
-        preview={<BackgroundPreview />}
       >
         <BackgroundRow />
       </SettingsSection>
@@ -276,7 +248,6 @@ export default function AppearancePage() {
         eyebrow="Heads-up"
         title="Live stats"
         description="WPM and accuracy ticker rendered alongside the passage. Colour, opacity, style (off / text / mini / flash), unit and decimal toggle all reflect in the real Readouts strip."
-        preview={<LiveStatsPreview />}
       >
         <LiveStatsRows />
       </SettingsSection>
@@ -286,7 +257,6 @@ export default function AppearancePage() {
         eyebrow="Surface"
         title="Typing area"
         description="Line count and max width of the passage. The preview above is the same component the test screen runs — every toggle moves it live."
-        preview={<TypingAreaPreview />}
       >
         <PassageRows />
       </SettingsSection>
@@ -296,7 +266,6 @@ export default function AppearancePage() {
         eyebrow="Layout"
         title="Tape mode"
         description="One scrolling line. Word scrolls per word, Letter scrolls per keypress. Best with smooth scroll + a mono font."
-        preview={<TapePreview />}
       >
         <TapeRows />
       </SettingsSection>
@@ -306,7 +275,6 @@ export default function AppearancePage() {
         eyebrow="Outcome"
         title="Result screen"
         description="What the post-test screen shows. The preview embeds the real result components (BigStats and WpmTrace) so the layout, type ramp, and chart shape are exactly what the user sees after a run."
-        preview={<ResultLivePreview />}
       >
         <ResultRows />
       </SettingsSection>
@@ -316,7 +284,6 @@ export default function AppearancePage() {
         eyebrow="Layout"
         title="Keymap"
         description="Hand-layout that powers the heatmap and ergonomic stats. The preview reacts to every keymap setting; switching layout swaps the legend live."
-        preview={<KeymapLivePreview />}
       >
         <KeymapRows />
       </SettingsSection>
@@ -326,7 +293,6 @@ export default function AppearancePage() {
         eyebrow="Race"
         title="Multiplayer"
         description="How live opponents read in /race — the 1v1 bot race and free-for-all lobbies. Visuals here only affect surfaces with more than one racer."
-        preview={<MultiplayerPreview />}
       >
         <MultiplayerRows />
       </SettingsSection>

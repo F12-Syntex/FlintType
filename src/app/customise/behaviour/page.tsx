@@ -11,10 +11,6 @@ import { SliderRow } from "../_components/controls";
 import { SettingsPageHeader } from "../_components/page-header";
 import { SettingsRow } from "../_components/row";
 import { SettingsSection } from "../_components/settings-section";
-import {
-  InputHandlingPreview,
-  WordListPreview,
-} from "./_components/section-previews";
 import { SpectateSection } from "./_components/spectate-section";
 
 function ToggleChips({
@@ -128,7 +124,6 @@ export default function BehaviourPage() {
         eyebrow="Discipline"
         title="Input handling"
         description="How the test reacts to every keystroke — what counts as an error, when the cursor advances, and whether you can see what you typed. Live-stat styling lives in Appearance > Live stats now."
-        preview={<InputHandlingPreview />}
       >
         <ToggleRow
           label="Stop on error"
@@ -178,7 +173,6 @@ export default function BehaviourPage() {
         eyebrow="Source"
         title="Word list"
         description="Which words land in the passage. Filter short noise out, or sprinkle numbers and punctuation in to practice the symbols you actually use."
-        preview={<WordListPreview prefs={prefs} />}
       >
         <SettingsRow
           label={

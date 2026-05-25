@@ -7,20 +7,18 @@ import { cn } from "@/lib/utils";
  *    - Eyebrow line: 1px primary tick + uppercase eyebrow tag
  *    - Two-line lockup: bigger title + optional one-line description on
  *      the left; right-aligned `actions` slot (per-section reset)
- *    - Optional preview card: bespoke per section (no shared previews
- *      across sections — see ui-law.md §12.5)
  *    - Body: the control rows themselves
  *
- *  The wrapper is `<section id={id}>` so anchor links from the sidebar
- *  jump correctly and IntersectionObserver-based active-rail tracking
- *  picks the section up.
+ *  Sections carry no live-preview card — the rows themselves are the
+ *  surface (see ui-law.md §12.5). The wrapper is `<section id={id}>` so
+ *  anchor links from the sidebar jump correctly and
+ *  IntersectionObserver-based active-rail tracking picks the section up.
  */
 export function SettingsSection({
   id,
   eyebrow,
   title,
   description,
-  preview,
   actions,
   children,
   className,
@@ -29,7 +27,6 @@ export function SettingsSection({
   eyebrow: string;
   title: string;
   description?: string;
-  preview?: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
@@ -69,12 +66,6 @@ export function SettingsSection({
           ) : null}
         </div>
       </div>
-
-      {preview ? (
-        <div className="mb-6 overflow-hidden rounded-md border border-border bg-background">
-          {preview}
-        </div>
-      ) : null}
 
       <div className="flex flex-col gap-3">{children}</div>
     </section>

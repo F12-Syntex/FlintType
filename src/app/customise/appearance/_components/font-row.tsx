@@ -276,7 +276,7 @@ export function FontRow({
   return (
     <>
       {/* Mobile only — compact key/value row. */}
-      <div className="flex min-h-12 items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2 sm:hidden">
+      <div className="flex min-h-12 items-center justify-between gap-3 rounded-md border border-border bg-muted px-3 py-2 sm:hidden">
         <span className="truncate text-sm font-medium text-foreground">
           Font
         </span>
@@ -305,7 +305,7 @@ export function FontRow({
       </div>
 
       {/* Desktop only — Card layout per ui-law §12. */}
-      <Card className="hidden rounded-md shadow-sm ring-border min-h-16 sm:block">
+      <Card className="hidden rounded-md border-border bg-muted shadow-sm ring-border min-h-16 sm:block">
         <CardHeader>
           <CardTitle className="text-sm font-semibold">Font</CardTitle>
           <CardDescription>

@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.112.0 — 25 May 2026
+- Redesigned the Customise pages so each setting reads as its own distinct surface. The control rows now sit on a slightly recessed shade against the page and sidebar, so options like Theme and Mode stand out instead of blending into one flat sheet.
+- Removed the large live-preview block that sat above every settings section. The controls are the focus now, and you see every change land for real on the typing screen.
+
 ## 6.111.7 — 25 May 2026
 - Fixed the live WPM counter briefly showing a wild number (like 6000) in the first second of a test. It now settles into a sensible reading from the very start.
 - Fixed timed tests (60s, 120s) running out of visible words for fast typists. Previously, once you reached a certain point the passage looked empty and the next words only appeared as you typed; now there's always a deep run of upcoming words ahead of your cursor.

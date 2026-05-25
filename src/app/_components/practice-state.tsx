@@ -145,12 +145,11 @@ type PracticeCtx = {
   lastTestIsPb: boolean | null;
 };
 
-/** Exported so previews and other read-only consumers can mount their
- *  own provider that supplies a frozen state — see
- *  `_components/preview-practice.tsx`. The real provider is the only
- *  source of *live* practice state; previews just need to satisfy the
- *  context shape so real components (Passage, Readouts, …) mount
- *  unmodified. */
+/** Exported so read-only consumers (e.g. the live-spectate clone) can
+ *  mount their own provider that supplies a frozen state. The real
+ *  provider is the only source of *live* practice state; a read-only
+ *  consumer just needs to satisfy the context shape so real components
+ *  (Passage, Readouts, …) mount unmodified. */
 export const PracticeContext = createContext<PracticeCtx | null>(null);
 const Ctx = PracticeContext;
 

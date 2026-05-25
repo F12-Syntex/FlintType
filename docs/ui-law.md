@@ -523,9 +523,10 @@ A *section* is a labelled group of related settings, rendered through the single
 
 1. **Eyebrow line** — `<SettingsSection eyebrow="…">` paints a 1px primary tick + a section-specific eyebrow (e.g. "Surface", "Cursor", "Type") above the heading. Eyebrows are short categorical labels, not the section's own name.
 2. **Two-line lockup** — bigger title + optional one-line description on the left; the right slot (`actions`) is reserved for per-section utilities (rare).
-3. **Bespoke preview** — `<SettingsSection preview={…}>` mounts a section-specific card that foregrounds *that* section's setting (see §12.5). Required for any section whose setting has a visible effect; omitted only for purely-functional sections.
-4. **Setting rows** — one per option, rendered via `<SettingsRow label="…" control={…} />` from `customise/_components/row.tsx`. Each row has the label on the left and a right-aligned control. `min-h-16` baseline, `max-h-48` (3×) cap.
-5. **Reset** — when the section can be customised away from defaults, a single ghost-button row at the bottom: `Reset to default`. Per-row reset on color/font pickers stays where it lives (inline ⌫ chevron); per-section reset stays at the bottom of the section body.
+3. **Setting rows** — one per option, rendered via `<SettingsRow label="…" control={…} />` from `customise/_components/row.tsx`. Each row has the label on the left and a right-aligned control. **Rows sit on `bg-muted`** — a recessed inset layer one step off the `bg-card` sidebar / content panel they live in (and off the `bg-background` page on mobile, where there's no panel), so the controls read as their own surface instead of blending into the card on a hairline alone. Chips *inside* a row keep `bg-card` so they read as raised controls on the recessed row; their hover routes through `bg-accent` (§2.2), never `bg-muted` (which would merge into the row). `min-h-16` baseline, `max-h-48` (3×) cap. The Card-based rich rows (`<ColorRow>` desktop, `<FontRow>` desktop) carry the same `bg-muted` override so every option surface matches.
+4. **Reset** — when the section can be customised away from defaults, a single ghost-button row at the bottom: `Reset to default`. Per-row reset on color/font pickers stays where it lives (inline ⌫ chevron); per-section reset stays at the bottom of the section body.
+
+Sections carry **no** preview card — the muted rows themselves are the surface, and the user sees the real effect of every override on the live test screen at `/app`. (Earlier revisions mounted a bespoke live-preview card above each section; that was removed — see §12.5.)
 
 ### 12.2 What lives in `control={…}`
 
@@ -598,37 +599,21 @@ The `<SettingsSection>` primitive owns the section spacing — these values are 
 | What                                         | Class                                                     |
 |----------------------------------------------|-----------------------------------------------------------|
 | Eyebrow → heading lockup                     | `gap-4` on the header column                              |
-| Heading → preview                            | `mb-6` on the header / `mb-6` on the preview card         |
-| Preview → first row                          | `mb-6` on the preview card (or none, when no preview)     |
+| Heading → first row                          | `mb-6 sm:mb-7` on the header                               |
 | Between rows                                 | `gap-3` on the wrapping body                              |
 | Between adjacent sections                    | `border-t border-border/60 pt-10 pb-12 sm:pt-14 sm:pb-16` (bigger pad sm+; first-of-type opts out of the top border) |
 
-### 12.5 Sections are anchors on one page — every section ships with a *bespoke* live preview
+### 12.5 Sections are anchors on one page — no preview cards
 
 `/app/customise/appearance` is one page. Every topic (Themes & mode, Colors, Geometry, Caret, Typography, Keyboard, Background, Live stats, Typing area, Result, Keymap) renders inline as `<section id="…">` with the catalogued id from `src/app/app/customise/appearance/_sections.ts`. The sidebar links to `/app/customise/appearance#<id>`; the customise scroller jumps to that anchor. There are no sub-page routes — every control lives on the single page so the user is never wondering "is the thing I want behind another click?"
 
-Every section is rendered through `<SettingsSection>` (§12.1), which owns the eyebrow + heading + preview frame.
+Every section is rendered through `<SettingsSection>` (§12.1), which owns the eyebrow + heading frame and nothing else.
 
-**Bespoke preview rule.** Each section's `preview` foregrounds *that section's own* setting — not a generic everything-card. Repeating one shared preview across nine sections (the previous `<MiniSample>` pattern) buries the override the user is making and turns the page into a wall of identical cards. Live previews live in `appearance/_components/section-previews.tsx` (one export per section); behaviour mirrors with its own `behaviour/_components/section-previews.tsx`. Every preview is **static + live** — built from real CSS variables / hooks so the override is visible immediately, no animation. If you change a setting and the preview doesn't react, the preview is broken; fix the preview, never make the override "more visible" by editing the row chrome.
-
-**Reuse the real on-page components — never re-render them.** Previews mount the same components the test screen uses (`<Passage />`, `<Readouts />` / `<MobileReadouts />`, `<Keyboard />`, results-page components like `<BigStats />` / `<WpmTrace />`). Practice-state-coupled components (Passage, Readouts) are wrapped in `<PreviewPracticeProvider>` from `_components/preview-practice.tsx`, which mounts a frozen mock state into the real `PracticeContext` and exposes noop dispatch/restart so the surfaces render read-only. Never duplicate `<Passage>`-style rendering inline — every fork drifts and the preview stops being a 1:1 reflection. If a preview needs a setting that the real component doesn't yet honour (e.g. results-page hardcoded demo numbers), fix the real component, don't fork the preview.
-
-Examples of bespoke preview shape:
-- **Themes & mode** — a 3-tile swatch row showing the active palette's background / card / primary surfaces
-- **Colors** — a labelled swatch ribbon plus one line of practice passage in the typed/untyped/error tokens
-- **Geometry** — a card + button + chip rendered at the user's current radius
-- **Caret & cursor** — a single short word with the live caret rendered at the user's chosen style/thickness/radius
-- **Typography** — a hero word in the chosen family + scale, plus a sample line below
-- **Background** — a small framed window with the chosen image / fit / position
-- **Live stats** — the stats strip alone, painted in the user's chosen colour + opacity
-- **Typing area** — the line-width band visualised against margins
-- **Keyboard / Keymap / Result** — embed the real component (Keyboard widget) or a faithful inline composition (Result chart)
+**No preview cards.** Sections do **not** mount a live-preview card above their rows. An earlier revision shipped a bespoke per-section preview (`section-previews.tsx`, mounted via `<SettingsSection preview={…}>` and wrapped in a `PreviewPracticeProvider`); both the preview files and the `preview` prop were **removed**. Two problems drove the removal: a column of large demo cards turned a dense settings page into a wall of identical frames and buried the controls, and the previews were a second renderer of the real test surface that had to be kept in 1:1 sync. The control rows are now the surface, and the user sees every override land for real on the live test screen at `/app`. Do **not** reintroduce a `preview` prop on `<SettingsSection>` or a `section-previews` module — if a control's effect is hard to predict, prefer a per-option chip preview (§12.2a), which samples the value *inside* the control where the choice is made.
 
 **Themes explorer exemption.** `/app/customise/appearance/themes` is a separate full-page browser of every palette — it lives at its own route because it *is* a preview at full size. The Themes section on `/appearance` includes a "Browse all palettes" link to it.
 
-**Sidebar** — the desktop sidebar renders Appearance with its 11 sub-section anchors indented under it on a left rail. The active rail bar tracks whichever section is currently scrolled into view (IntersectionObserver, threshold band 0–1). The mobile picker shows the same shape inside the bottom sheet — picking a row is a hash navigation, not a route change.
-
-**When to bring this shape to other settings parents.** Any settings parent with ≥ 3 logically distinct sub-topics that each deserve their own live preview. The behaviour page now follows the same architecture (Restart, Live signal, Input handling, Word list — each with its own bespoke preview); previously it was a flat row stack and read as a bare admin form next to Appearance. The threshold isn't section count — it's whether any setting on the page benefits from seeing its effect before committing.
+**Sidebar** — the desktop sidebar renders Appearance with its sub-section anchors indented under it on a left rail. The active rail bar tracks whichever section is currently scrolled into view (IntersectionObserver, threshold band 0–1). The mobile picker shows the same shape inside the bottom sheet — picking a row is a hash navigation, not a route change.
 
 ### 12.7 Page header
 
@@ -655,13 +640,13 @@ Animation in flinttype is the **exception**, not a default. The product is edito
 
 `framer-motion` is the only sanctioned animation library, but reach for it sparingly:
 
-- A control's effect is genuinely **temporal** and a static preview cannot represent it (the live caret blink in the running practice surface, where blink speed is itself the setting).
+- A control's effect is genuinely **temporal** and a static sample cannot represent it (the live caret blink in the running practice surface, where blink speed is itself the setting).
 - A user-initiated transition (route change, modal entrance) where the motion provides spatial continuity.
 - **The friends dock (§17.5)** is a deliberate, user-mandated exception: opening the collapsed pill springs the panel up from the corner with a single transform-based reveal (`opacity` + `y` + `scale`, ease-out, ~180ms, no bounce). It earns motion because it's a user-initiated reveal of a tucked-away surface (spatial continuity). It collapses to a static reveal under `prefers-reduced-motion` via `useReducedMotion()`. The panel reveals as **one** element — the directory rows do **not** stagger (an earlier hub iteration staggered a list; that's retired, don't reintroduce per-row stagger).
 
 ### 13.1 Don't
 
-- **Don't** animate settings previews. Settings previews are *static + live* — built from real components reflecting real overrides. See §12.5.
+- **Don't** animate per-option chip previews (§12.2a). They're *static + live* — a bare sample of the value, no motion. (Section-level preview cards were removed entirely — see §12.5.)
 - **Don't** use motion on a settings row's control (toggle, chip, slider). Native shadcn primitives have their own focus / hover transitions.
 - **Don't** loop ambient decorations on any surface. Loaders are the only acceptable infinite animation.
 - **Don't** ship any animation without `prefers-reduced-motion: reduce` collapsing it to a single static frame.
@@ -803,7 +788,6 @@ List empty states use a single dashed-border card (`border-dashed border-border 
 
 - **`<SpectatePill enabled>`** — presentational. `rounded-md` hairline chip, mono `text-[10px]` uppercase tracked, with a leading status dot + an `Eye` glyph (lucide). The single coral spark is the dot in the **on** state (`bg-primary` with `motion-safe:animate-pulse`); the off state is quiet ink (`text-muted-foreground`, `bg-card`). Pulsing coral dots are reserved for live-spectate state — this consent chip plus the live markers in the friends dock + watch surfaces (§17.5). They convey live state, not decoration (§13), and every one is gated behind `motion-safe:` so reduced-motion users get a static dot. Don't introduce a pulsing dot anywhere else.
 - **`<SpectateIndicator>`** — the hooked wrapper mounted on practice/drill surfaces. Renders the pill (linking to the toggle) **only** while signed-in and opted-in, so it never reflows the typing area in the common off case, and doubles as the persistent "your runs are visible" consent reminder.
-- Reused as the Behaviour page's bespoke section preview (§12.5): the same pill, flipped by the toggle, so the user previews the exact indicator they're enabling.
 
 Don't invent a second "live"/"recording" badge for the broadcaster. A *spectatable friend who is currently broadcasting* is marked separately in the friends dock (§17.5); this chip is strictly the broadcaster's own consent state.
 
@@ -832,7 +816,7 @@ Don't reintroduce a dedicated `/live` broadcast page — broadcasting is ambient
 The watch page is **fullscreen + immersive** — no `<AppChrome>`. It's a `min-h-dvh` surface with a slim sticky header (back to practice · the broadcaster's avatar/handle under a single coral "Spectating" eyebrow · a Fullscreen-API toggle). The cloned screen is **full-bleed** — no frame, no max-width, no card — filling the entire body under the header and laid out exactly like the real practice surface, so it reads as their screen, not a preview tile. The broadcaster, meanwhile, always sees who's watching via the prominent §17.4 spectator-count chip on their own practice screen.
 
 
-Spectating is **not a bespoke read-only view** — it reproduces the broadcaster's actual practice screen, **every phase**: the real `<ModeBar>` + `<Readouts>` + `<Passage>` while they type, and the real `<TestSummary preview>` on their results screen. `<LiveClone>` (`src/app/live/_components/live-clone.tsx`) mounts those real components (never a fork — same rule as settings previews, §12.5) against a frozen `PracticeContext` rebuilt from the live snapshot, the whole surface `pointer-events-none` (it's a view, not controls), wrapped in:
+Spectating is **not a bespoke read-only view** — it reproduces the broadcaster's actual practice screen, **every phase**: the real `<ModeBar>` + `<Readouts>` + `<Passage>` while they type, and the real `<TestSummary preview>` on their results screen. `<LiveClone>` (`src/app/live/_components/live-clone.tsx`) mounts those real components (never a fork — a second renderer of the practice surface always drifts out of 1:1 sync) against a frozen `PracticeContext` rebuilt from the live snapshot, the whole surface `pointer-events-none` (it's a view, not controls), wrapped in:
 
 - **`<PrefsOverrideProvider>`** (`src/lib/prefs-override.tsx`) — feeds the broadcaster's appearance / caret / behaviour prefs to the real components. The `useAppearancePrefs` / `useCaretSettings` / `useBehaviourPrefs` hooks consult this context first and return the override read-only (their `update`/`reset` no-op), so the viewer's own stored prefs are never touched. This is the **only** sanctioned way to render practice components with someone else's settings; don't mutate the global prefs store to theme a subtree.
 - **The broadcaster's resolved theme CSS vars** on the clone container (`style={screen.themeVars}`) — `--background`, `--primary`, `--ft-passage-*`, `--ft-font-*`, … cascade to the real components so colours + fonts match exactly, scoped to the container (not `<html>`, so it never fights the viewer's own theme).
