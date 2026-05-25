@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.114.0 — 25 May 2026
+- Made the per-option setting previews far more literal: instead of small abstract swatches, each option now shows a tiny real mockup of the result — Card surfaces render an actual card with text, Topbar/Footer/Mode bar show a mini app frame, Dividers show two text blocks with the rule between them, Auto-hide fades a real toolbar, Live stats show the "42 98%" ticker in its panel, and the typing toggles (stop on error, extras, strict space, blind) show the words exactly as you'd type them. You can now tell at a glance how each choice will look.
+
 ## 6.113.1 — 25 May 2026
 - Fixed a crash ("Cannot read properties of undefined") that could fire on page load when the account menu initialised before the sign-in client was ready.
 

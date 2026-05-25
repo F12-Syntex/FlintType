@@ -11,47 +11,11 @@ import { Chip, ChipGroup } from "../../_components/chip";
 import { SettingsRow } from "../../_components/row";
 import {
   BgFillSample,
+  CardSurfaceSample,
   DividerSample,
   MonochromeSample,
   PaddingSample,
 } from "./chip-previews";
-
-/** Card-surface preset chips. Each preview is a small square painted
- *  the way that mode would paint a card — solid fill, faint wash, or
- *  hairline-only outline on the page bg. Box-shadow over border so
- *  the global borders-hidden rule never blanks the swatch. */
-function CardPreview({ mode }: { mode: CardSurfaceMode }) {
-  const base = "block h-4 w-6 rounded-[3px]";
-  if (mode === "solid")
-    return (
-      <span
-        aria-hidden
-        className={base}
-        style={{ backgroundColor: "var(--card)" }}
-      />
-    );
-  if (mode === "subtle")
-    return (
-      <span
-        aria-hidden
-        className={base}
-        style={{
-          backgroundColor: "color-mix(in oklch, var(--background) 70%, transparent)",
-          boxShadow: "inset 0 0 0 1px color-mix(in oklch, var(--foreground) 12%, transparent)",
-        }}
-      />
-    );
-  return (
-    <span
-      aria-hidden
-      className={base}
-      style={{
-        backgroundColor: "transparent",
-        boxShadow: "inset 0 0 0 1px color-mix(in oklch, var(--foreground) 18%, transparent)",
-      }}
-    />
-  );
-}
 
 const CARD_PRESETS: ReadonlyArray<{ id: CardSurfaceMode; label: string }> = [
   { id: "solid", label: "Solid" },
@@ -191,7 +155,7 @@ export function CardSurfacesRow() {
               label={p.label}
               active={prefs.cardSurfaces === p.id}
               onClick={() => update("cardSurfaces", p.id)}
-              preview={<CardPreview mode={p.id} />}
+              preview={<CardSurfaceSample mode={p.id} />}
             />
           ))}
         </ChipGroup>

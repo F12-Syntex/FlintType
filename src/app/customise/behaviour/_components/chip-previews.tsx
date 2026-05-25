@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
  *  untyped colours so the user previews how the rule changes what they
  *  see while typing. Pure, SSR-safe, no chrome of their own. */
 
-const ROW = "flex items-center gap-px font-mono text-[11px] leading-none";
+const ROW = "flex items-center gap-px font-mono text-[15px] leading-none";
 const ERR = "text-[var(--ft-passage-error,var(--destructive))]";
 
 /** A stuck-cursor block in the error colour — typing can't advance. */
@@ -15,7 +15,7 @@ function StuckCaret() {
   return (
     <span
       aria-hidden
-      className="inline-block h-3 w-0.5 align-middle"
+      className="ml-px inline-block h-4 w-0.5 align-middle"
       style={{ backgroundColor: "var(--ft-passage-error, var(--destructive))" }}
     />
   );
@@ -46,13 +46,13 @@ export function ConfidenceSample({ mode }: { mode: Confidence }) {
     <span
       aria-hidden
       className={cn(
-        "flex items-center gap-0.5 font-mono text-[13px] leading-none",
+        "flex items-center gap-0.5 font-mono text-[17px] leading-none",
         mode === "off" ? "text-foreground" : "text-muted-foreground",
       )}
     >
       <span className={cn(mode === "all" && "line-through")}>⌫</span>
       {mode === "word" ? (
-        <span className="inline-block h-2.5 w-px bg-muted-foreground" />
+        <span className="inline-block h-3.5 w-px bg-muted-foreground" />
       ) : null}
     </span>
   );
@@ -112,8 +112,8 @@ export function MinWordSample({ len }: { len: number }) {
       {Array.from({ length: len }, (_, i) => (
         <span
           key={i}
-          className="block h-1.5 w-1 rounded-[1px]"
-          style={{ backgroundColor: "color-mix(in oklch, var(--foreground) 30%, transparent)" }}
+          className="block h-2.5 w-1.5 rounded-[1px]"
+          style={{ backgroundColor: "color-mix(in oklch, var(--foreground) 32%, transparent)" }}
         />
       ))}
     </span>
@@ -142,8 +142,8 @@ export function SecondarySample({ on }: { on: boolean }) {
 /** Keypress click — a speaker (on) vs a muted speaker (off). */
 export function KeypressClickSample({ on }: { on: boolean }) {
   return on ? (
-    <Volume2 aria-hidden size={13} className="text-foreground" />
+    <Volume2 aria-hidden size={17} className="text-foreground" />
   ) : (
-    <VolumeX aria-hidden size={13} className="text-muted-foreground" />
+    <VolumeX aria-hidden size={17} className="text-muted-foreground" />
   );
 }

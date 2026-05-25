@@ -29,7 +29,7 @@ function MiniKey({
 }) {
   return (
     <span
-      className="inline-flex h-2.5 w-2.5 items-center justify-center rounded-[2px] font-mono text-[6px] leading-none text-foreground"
+      className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-[2px] font-mono text-[8px] leading-none text-foreground"
       style={{ boxShadow: `inset 0 0 0 1px ${INK}`, backgroundColor: fill }}
     >
       {children}
