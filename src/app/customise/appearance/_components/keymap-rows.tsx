@@ -16,11 +16,106 @@ import {
 } from "../../_components/controls";
 import { SettingsRow } from "../../_components/row";
 
-const KEYMAP_OPTIONS: readonly { id: Keymap; label: string }[] = [
-  { id: "off", label: "Off" },
-  { id: "static", label: "Static" },
-  { id: "react", label: "React" },
-  { id: "next", label: "Next" },
+const INK = "color-mix(in oklch, var(--foreground) 22%, transparent)";
+
+/** A tiny keycap. `fill` paints the cap (a pressed/next key); otherwise
+ *  it's a hairline outline. */
+function MiniKey({
+  fill,
+  children,
+}: {
+  fill?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <span
+      className="inline-flex h-2.5 w-2.5 items-center justify-center rounded-[2px] font-mono text-[6px] leading-none text-foreground"
+      style={{ boxShadow: `inset 0 0 0 1px ${INK}`, backgroundColor: fill }}
+    >
+      {children}
+    </span>
+  );
+}
+
+/** Keymap mode — off shows nothing, static shows bare caps, react fills
+ *  a just-pressed key (ink), next flags the upcoming key (coral). */
+function KeymapModeSample({ mode }: { mode: Keymap }) {
+  if (mode === "off")
+    return <span aria-hidden className="block font-mono text-[11px] leading-none text-muted-foreground">—</span>;
+  const fill =
+    mode === "react"
+      ? "color-mix(in oklch, var(--foreground) 22%, transparent)"
+      : mode === "next"
+        ? "color-mix(in oklch, var(--primary) 30%, transparent)"
+        : undefined;
+  return (
+    <span aria-hidden className="flex items-center gap-0.5">
+      <MiniKey />
+      <MiniKey fill={mode === "static" ? undefined : fill} />
+      <MiniKey />
+    </span>
+  );
+}
+
+/** Legend — what's printed on a cap: lowercase, uppercase, blank, or
+ *  (dynamic) the next letter to type. */
+function KeymapLegendSample({ legend }: { legend: KeymapLegend }) {
+  const glyph =
+    legend === "lowercase"
+      ? "a"
+      : legend === "uppercase"
+        ? "A"
+        : legend === "dynamic"
+          ? "k"
+          : "";
+  return (
+    <span aria-hidden className="flex items-center justify-center">
+      <MiniKey fill={legend === "dynamic" ? "color-mix(in oklch, var(--primary) 25%, transparent)" : undefined}>
+        {glyph}
+      </MiniKey>
+    </span>
+  );
+}
+
+/** Top row — whether the number row sits above the letter grid. */
+function KeymapTopRowSample({ mode }: { mode: KeymapTopRow }) {
+  return (
+    <span aria-hidden className="flex flex-col items-center gap-0.5">
+      <span
+        className="block h-0.5 w-5 rounded-full"
+        style={{ backgroundColor: mode === "never" ? "transparent" : INK }}
+      />
+      <span className="flex gap-0.5">
+        <MiniKey />
+        <MiniKey />
+        <MiniKey />
+      </span>
+    </span>
+  );
+}
+
+/** Compact — full board with a modifier column (off) vs letter grid
+ *  only (on). */
+function KeymapCompactSample({ on }: { on: boolean }) {
+  return (
+    <span aria-hidden className="flex items-center gap-0.5">
+      {!on ? <MiniKey fill={INK} /> : null}
+      <MiniKey />
+      <MiniKey />
+      <MiniKey />
+    </span>
+  );
+}
+
+const KEYMAP_OPTIONS: readonly {
+  id: Keymap;
+  label: string;
+  preview: React.ReactNode;
+}[] = [
+  { id: "off", label: "Off", preview: <KeymapModeSample mode="off" /> },
+  { id: "static", label: "Static", preview: <KeymapModeSample mode="static" /> },
+  { id: "react", label: "React", preview: <KeymapModeSample mode="react" /> },
+  { id: "next", label: "Next", preview: <KeymapModeSample mode="next" /> },
 ];
 
 const LAYOUT_OPTIONS: readonly { id: LayoutId; label: string }[] = (
@@ -34,17 +129,25 @@ const STYLE_OPTIONS: readonly { id: KeymapStyle; label: string }[] = [
   { id: "alice", label: "Alice" },
 ];
 
-const LEGEND_OPTIONS: readonly { id: KeymapLegend; label: string }[] = [
-  { id: "lowercase", label: "Lower" },
-  { id: "uppercase", label: "Upper" },
-  { id: "blank", label: "Blank" },
-  { id: "dynamic", label: "Dynamic" },
+const LEGEND_OPTIONS: readonly {
+  id: KeymapLegend;
+  label: string;
+  preview: React.ReactNode;
+}[] = [
+  { id: "lowercase", label: "Lower", preview: <KeymapLegendSample legend="lowercase" /> },
+  { id: "uppercase", label: "Upper", preview: <KeymapLegendSample legend="uppercase" /> },
+  { id: "blank", label: "Blank", preview: <KeymapLegendSample legend="blank" /> },
+  { id: "dynamic", label: "Dynamic", preview: <KeymapLegendSample legend="dynamic" /> },
 ];
 
-const TOP_ROW_OPTIONS: readonly { id: KeymapTopRow; label: string }[] = [
-  { id: "always", label: "Always" },
-  { id: "layout", label: "Layout" },
-  { id: "never", label: "Never" },
+const TOP_ROW_OPTIONS: readonly {
+  id: KeymapTopRow;
+  label: string;
+  preview: React.ReactNode;
+}[] = [
+  { id: "always", label: "Always", preview: <KeymapTopRowSample mode="always" /> },
+  { id: "layout", label: "Layout", preview: <KeymapTopRowSample mode="layout" /> },
+  { id: "never", label: "Never", preview: <KeymapTopRowSample mode="never" /> },
 ];
 
 export function KeymapRows() {
@@ -154,6 +257,8 @@ export function KeymapRows() {
           <ToggleChips
             value={prefs.keymapCompact}
             onChange={(v) => update("keymapCompact", v)}
+            offPreview={<KeymapCompactSample on={false} />}
+            onPreview={<KeymapCompactSample on={true} />}
           />
         }
       />

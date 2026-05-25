@@ -12,19 +12,28 @@ import {
   SliderRow,
 } from "../../_components/controls";
 import { SettingsRow } from "../../_components/row";
+import { LiveStyleSample, StatSurfaceSample } from "./chip-previews";
 import { ColorRow } from "./color-row";
 
-const SURFACE_OPTIONS: readonly { id: StatStripSurface; label: string }[] = [
-  { id: "plain", label: "Plain" },
-  { id: "card", label: "Card" },
-  { id: "none", label: "Hidden" },
+const SURFACE_OPTIONS: readonly {
+  id: StatStripSurface;
+  label: string;
+  preview: React.ReactNode;
+}[] = [
+  { id: "plain", label: "Plain", preview: <StatSurfaceSample mode="plain" /> },
+  { id: "card", label: "Card", preview: <StatSurfaceSample mode="card" /> },
+  { id: "none", label: "Hidden", preview: <StatSurfaceSample mode="none" /> },
 ];
 
-const STYLE_OPTIONS: readonly { id: LiveStatStyle; label: string }[] = [
-  { id: "off", label: "Off" },
-  { id: "text", label: "Text" },
-  { id: "mini", label: "Mini" },
-  { id: "flash", label: "Flash" },
+const STYLE_OPTIONS: readonly {
+  id: LiveStatStyle;
+  label: string;
+  preview: React.ReactNode;
+}[] = [
+  { id: "off", label: "Off", preview: <LiveStyleSample style="off" /> },
+  { id: "text", label: "Text", preview: <LiveStyleSample style="text" /> },
+  { id: "mini", label: "Mini", preview: <LiveStyleSample style="mini" /> },
+  { id: "flash", label: "Flash", preview: <LiveStyleSample style="flash" /> },
 ];
 
 function StyleRow({

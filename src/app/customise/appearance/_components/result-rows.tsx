@@ -11,13 +11,23 @@ import {
   ToggleChips,
 } from "../../_components/controls";
 import { SettingsRow } from "../../_components/row";
+import {
+  DecimalSample,
+  GraphZeroSample,
+  ResultBlockSample,
+  SpeedUnitSample,
+} from "./chip-previews";
 
-const SPEED_UNITS: readonly { id: TypingSpeedUnit; label: string }[] = [
-  { id: "wpm", label: "WPM" },
-  { id: "cpm", label: "CPM" },
-  { id: "wps", label: "WPS" },
-  { id: "cps", label: "CPS" },
-  { id: "wph", label: "WPH" },
+const SPEED_UNITS: readonly {
+  id: TypingSpeedUnit;
+  label: string;
+  preview: React.ReactNode;
+}[] = [
+  { id: "wpm", label: "WPM", preview: <SpeedUnitSample unit="wpm" /> },
+  { id: "cpm", label: "CPM", preview: <SpeedUnitSample unit="cpm" /> },
+  { id: "wps", label: "WPS", preview: <SpeedUnitSample unit="wps" /> },
+  { id: "cps", label: "CPS", preview: <SpeedUnitSample unit="cps" /> },
+  { id: "wph", label: "WPH", preview: <SpeedUnitSample unit="wph" /> },
 ];
 
 const SECTION_TOGGLES: readonly {
@@ -63,6 +73,8 @@ export function ResultRows() {
           <ToggleChips
             value={prefs.alwaysShowDecimal}
             onChange={(v) => update("alwaysShowDecimal", v)}
+            offPreview={<DecimalSample on={false} />}
+            onPreview={<DecimalSample on={true} />}
           />
         }
       />
@@ -94,6 +106,8 @@ export function ResultRows() {
           <ToggleChips
             value={prefs.startGraphsAtZero}
             onChange={(v) => update("startGraphsAtZero", v)}
+            offPreview={<GraphZeroSample on={false} />}
+            onPreview={<GraphZeroSample on={true} />}
           />
         }
       />
@@ -106,6 +120,8 @@ export function ResultRows() {
             <ToggleChips
               value={prefs[s.key] as boolean}
               onChange={(v) => update(s.key, v as never)}
+              offPreview={<ResultBlockSample on={false} />}
+              onPreview={<ResultBlockSample on={true} />}
             />
           }
         />

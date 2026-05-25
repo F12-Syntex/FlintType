@@ -9,6 +9,12 @@ import {
 } from "@/lib/appearance-prefs";
 import { Chip, ChipGroup } from "../../_components/chip";
 import { SettingsRow } from "../../_components/row";
+import {
+  AutoHideSample,
+  FooterSample,
+  ModeBarSample,
+  TopbarSample,
+} from "./chip-previews";
 
 const TOPBAR: ReadonlyArray<{ id: TopbarStyle; label: string }> = [
   { id: "elevated", label: "Elevated" },
@@ -47,6 +53,7 @@ export function TopbarStyleRow() {
               label={p.label}
               active={prefs.topbarStyle === p.id}
               onClick={() => update("topbarStyle", p.id)}
+              preview={<TopbarSample mode={p.id} />}
             />
           ))}
         </ChipGroup>
@@ -68,6 +75,7 @@ export function FooterStyleRow() {
               label={p.label}
               active={prefs.footerStyle === p.id}
               onClick={() => update("footerStyle", p.id)}
+              preview={<FooterSample mode={p.id} />}
             />
           ))}
         </ChipGroup>
@@ -89,6 +97,7 @@ export function AutoHideRow() {
               label={p.label}
               active={prefs.autoHide === p.id}
               onClick={() => update("autoHide", p.id)}
+              preview={<AutoHideSample mode={p.id} />}
             />
           ))}
         </ChipGroup>
@@ -110,6 +119,7 @@ export function ModeBarStyleRow() {
               label={p.label}
               active={prefs.modeBarStyle === p.id}
               onClick={() => update("modeBarStyle", p.id)}
+              preview={<ModeBarSample mode={p.id} />}
             />
           ))}
         </ChipGroup>

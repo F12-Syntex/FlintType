@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.113.0 — 25 May 2026
+- Every visual setting now shows a tiny live sample right on its option chips, so you can pick by sight instead of by guessing what a label means. Surface, Chrome, Live stats, Result, Keymap, Background, Multiplayer and the Behaviour toggles (stop on error, confidence, extras, strict space, blind mode, minimum word length, secondary characters, keypress click) all carry these samples now. Options where a picture can't honestly show the effect (animation speeds, sliders, font names) keep their clear text labels.
+
 ## 6.112.0 — 25 May 2026
 - Redesigned the Customise pages so each setting reads as its own distinct surface. The control rows now sit on a slightly recessed shade against the page and sidebar, so options like Theme and Mode stand out instead of blending into one flat sheet.
 - Removed the large live-preview block that sat above every settings section. The controls are the focus now, and you see every change land for real on the typing screen.

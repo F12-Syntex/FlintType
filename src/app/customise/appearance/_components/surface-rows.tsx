@@ -9,6 +9,12 @@ import {
 } from "@/lib/appearance-prefs";
 import { Chip, ChipGroup } from "../../_components/chip";
 import { SettingsRow } from "../../_components/row";
+import {
+  BgFillSample,
+  DividerSample,
+  MonochromeSample,
+  PaddingSample,
+} from "./chip-previews";
 
 /** Card-surface preset chips. Each preview is a small square painted
  *  the way that mode would paint a card — solid fill, faint wash, or
@@ -207,6 +213,7 @@ export function DividersRow() {
               label={p.label}
               active={prefs.dividers === p.id}
               onClick={() => update("dividers", p.id)}
+              preview={<DividerSample mode={p.id} />}
             />
           ))}
         </ChipGroup>
@@ -228,6 +235,7 @@ export function PagePaddingRow() {
               label={p.label}
               active={prefs.pagePadding === p.id}
               onClick={() => update("pagePadding", p.id)}
+              preview={<PaddingSample mode={p.id} />}
             />
           ))}
         </ChipGroup>
@@ -249,6 +257,7 @@ export function BackgroundFillRow() {
               label={p.label}
               active={prefs.backgroundFill === p.id}
               onClick={() => update("backgroundFill", p.id)}
+              preview={<BgFillSample mode={p.id} />}
             />
           ))}
         </ChipGroup>
@@ -268,11 +277,13 @@ export function MonochromeRow() {
             label="Off"
             active={!prefs.monochromeChrome}
             onClick={() => update("monochromeChrome", false)}
+            preview={<MonochromeSample on={false} />}
           />
           <Chip
             label="On"
             active={prefs.monochromeChrome}
             onClick={() => update("monochromeChrome", true)}
+            preview={<MonochromeSample on={true} />}
           />
         </ChipGroup>
       }

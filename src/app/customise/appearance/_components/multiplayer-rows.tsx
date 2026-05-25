@@ -11,13 +11,83 @@ import {
 } from "../../_components/controls";
 import { SettingsRow } from "../../_components/row";
 
+const INK = "color-mix(in oklch, var(--foreground) 22%, transparent)";
+
+/** Player colours — distinct hues per lane (on) vs uniform ink (off). */
+function PlayerColorsSample({ on }: { on: boolean }) {
+  const a = on ? "var(--primary)" : "color-mix(in oklch, var(--foreground) 35%, transparent)";
+  const b = on
+    ? "color-mix(in oklch, var(--primary) 45%, var(--foreground))"
+    : "color-mix(in oklch, var(--foreground) 35%, transparent)";
+  return (
+    <span aria-hidden className="flex flex-col gap-0.5">
+      <span className="block h-1 w-6 rounded-full" style={{ backgroundColor: a }} />
+      <span className="block h-1 w-4 rounded-full" style={{ backgroundColor: b }} />
+    </span>
+  );
+}
+
+/** Opponent marker inside the passage — plain (off), a soft band behind
+ *  covered words (tint), or the upcoming letters painted in their colour
+ *  (text). */
+function OpponentMarkerSample({ mode }: { mode: MultiplayerOpponentMarker }) {
+  if (mode === "text")
+    return (
+      <span aria-hidden className="block font-mono text-[11px] leading-none" style={{ color: "var(--primary)" }}>
+        abc
+      </span>
+    );
+  if (mode === "tint")
+    return (
+      <span
+        aria-hidden
+        className="inline-block rounded-[2px] px-1 font-mono text-[11px] leading-none text-foreground"
+        style={{ backgroundColor: "color-mix(in oklch, var(--primary) 22%, transparent)" }}
+      >
+        abc
+      </span>
+    );
+  return (
+    <span aria-hidden className="block font-mono text-[11px] leading-none text-muted-foreground">
+      abc
+    </span>
+  );
+}
+
+/** Race feed — a short chronological log (on) vs none (off). */
+function RaceFeedSample({ on }: { on: boolean }) {
+  if (!on)
+    return <span aria-hidden className="block h-4 w-6 rounded-[3px] border border-dashed border-foreground/25" />;
+  return (
+    <span aria-hidden className="flex h-4 w-6 flex-col justify-center gap-0.5">
+      {[6, 5, 4].map((w, i) => (
+        <span key={i} className="block h-0.5 rounded-full" style={{ width: `${w * 3}px`, backgroundColor: INK }} />
+      ))}
+    </span>
+  );
+}
+
+/** Opponent WPM — a lane bar with its live number (on) vs the bare lane
+ *  (off). */
+function OpponentWpmSample({ on }: { on: boolean }) {
+  return (
+    <span aria-hidden className="flex items-center gap-1">
+      <span className="block h-1 w-4 rounded-full" style={{ backgroundColor: INK }} />
+      {on ? (
+        <span className="font-mono text-[10px] leading-none tabular-nums text-foreground">42</span>
+      ) : null}
+    </span>
+  );
+}
+
 const OPPONENT_MARKER_OPTIONS: readonly {
   id: MultiplayerOpponentMarker;
   label: string;
+  preview: React.ReactNode;
 }[] = [
-  { id: "off", label: "Off" },
-  { id: "tint", label: "Highlight" },
-  { id: "text", label: "Text colour" },
+  { id: "off", label: "Off", preview: <OpponentMarkerSample mode="off" /> },
+  { id: "tint", label: "Highlight", preview: <OpponentMarkerSample mode="tint" /> },
+  { id: "text", label: "Text colour", preview: <OpponentMarkerSample mode="text" /> },
 ];
 
 /** Multiplayer row stack. Settings here only affect surfaces with
@@ -40,6 +110,8 @@ export function MultiplayerRows() {
           <ToggleChips
             value={prefs.multiplayerPlayerColors}
             onChange={(v) => update("multiplayerPlayerColors", v)}
+            offPreview={<PlayerColorsSample on={false} />}
+            onPreview={<PlayerColorsSample on={true} />}
           />
         }
       />
@@ -71,6 +143,8 @@ export function MultiplayerRows() {
           <ToggleChips
             value={prefs.multiplayerRaceFeed}
             onChange={(v) => update("multiplayerRaceFeed", v)}
+            offPreview={<RaceFeedSample on={false} />}
+            onPreview={<RaceFeedSample on={true} />}
           />
         }
       />
@@ -86,6 +160,8 @@ export function MultiplayerRows() {
           <ToggleChips
             value={prefs.multiplayerShowOpponentWpm}
             onChange={(v) => update("multiplayerShowOpponentWpm", v)}
+            offPreview={<OpponentWpmSample on={false} />}
+            onPreview={<OpponentWpmSample on={true} />}
           />
         }
       />

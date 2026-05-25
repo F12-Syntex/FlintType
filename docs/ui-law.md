@@ -582,6 +582,8 @@ Don't reach for them when:
 
 Implementation note: chip previews are SSR-safe pure renders. Keep them small — one short line (`text-[11px] leading-none`), bare type or symbols, no chrome of their own.
 
+**Where they live.** Now that sections carry no preview card (§12.5), the chip sample *is* the preview, so nearly every visual option chip ships one. The shared samples live in `appearance/_components/chip-previews.tsx` (Surface, Chrome, Live stats, Result, Background) with the more bespoke grids co-located in their row file (`keymap-rows.tsx`, `multiplayer-rows.tsx`, `mistakes-row.tsx`, `tape-row.tsx`, the caret/radius/keyboard previews); behaviour samples live in `behaviour/_components/chip-previews.tsx`. Options where a sample would mislead keep none, per the "don't" list below: temporal values (blink / smooth speed), pure label-is-value picks (font family, palette id, keymap layout name, the WPM/CPM acronym carries a representative number rather than the unit itself), continuous sliders (their value badge is the live readout), and pure pipeline flags with no visual surface (exclude-casual-from-adapt).
+
 ### 12.3 Nesting rule
 
 Every option that belongs to the same parent topic lives **inside the same section**. Examples:

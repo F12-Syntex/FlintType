@@ -15,20 +15,29 @@ import {
   SliderRow,
 } from "../../_components/controls";
 import { SettingsRow } from "../../_components/row";
+import { BgFitSample, BgScopeSample } from "./chip-previews";
 
 const MAX_DIM = 1920;
 const JPEG_QUALITY = 0.82;
 
-const FIT_OPTIONS: readonly { id: BgFit; label: string }[] = [
-  { id: "cover", label: "Cover" },
-  { id: "contain", label: "Contain" },
-  { id: "auto", label: "Auto" },
-  { id: "tile", label: "Tile" },
+const FIT_OPTIONS: readonly {
+  id: BgFit;
+  label: string;
+  preview: React.ReactNode;
+}[] = [
+  { id: "cover", label: "Cover", preview: <BgFitSample fit="cover" /> },
+  { id: "contain", label: "Contain", preview: <BgFitSample fit="contain" /> },
+  { id: "auto", label: "Auto", preview: <BgFitSample fit="auto" /> },
+  { id: "tile", label: "Tile", preview: <BgFitSample fit="tile" /> },
 ];
 
-const SCOPE_OPTIONS: readonly { id: BgScope; label: string }[] = [
-  { id: "page", label: "Page" },
-  { id: "content", label: "Content only" },
+const SCOPE_OPTIONS: readonly {
+  id: BgScope;
+  label: string;
+  preview: React.ReactNode;
+}[] = [
+  { id: "page", label: "Page", preview: <BgScopeSample scope="page" /> },
+  { id: "content", label: "Content only", preview: <BgScopeSample scope="content" /> },
 ];
 
 /** Read a File into an HTMLImageElement off a temporary object URL. */
