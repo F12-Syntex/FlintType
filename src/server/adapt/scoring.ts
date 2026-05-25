@@ -37,20 +37,23 @@ export type ScoringWeights = {
   delta: number;
 };
 
-/** Default weighting. The mechanical terms (α/β/γ) stay at 1 so their
- *  relative contributions match the original spec. δ — the per-word
- *  term — is pulled up to 2.0 because words are the unit users actually
- *  type: a confident measurement against the whole word captures the
- *  cognitive friction (memory, context-switch, spelling hesitation)
- *  that no per-pair signal can see. The `weakness()` helper still
- *  scales δ by `confidence(n)` per word, so untrained words don't
- *  overpower the bigram aggregate — the bump only applies once we
- *  actually have data on the word. */
+/** Default weighting. γ — the motor-feature term — is the heaviest
+ *  (2.0) because it is the only term that *generalises*: a weak
+ *  "same-finger ring jump" or "index row-jump" is shared by every
+ *  letter pair built from that motion, so optimising for it trains a
+ *  transferable skill rather than a single word. α/β (bigrams,
+ *  trigrams) stay at 1 — concrete but pair-specific. δ — the per-word
+ *  term — is pulled *down* to 0.5 so it acts as a minor tie-breaker:
+ *  without this, a confident slow whole-word mean dominated the score
+ *  and the selector converged on memorising the same ~15 carrier words
+ *  (`develop`, `possible`, …) instead of the motions underneath them.
+ *  `weakness()` still scales δ by `confidence(n)` per word, so the
+ *  word term only contributes once we have data on the word. */
 export const DEFAULT_WEIGHTS: ScoringWeights = {
   alpha: 1,
   beta: 1,
-  gamma: 1,
-  delta: 2,
+  gamma: 2,
+  delta: 0.5,
 };
 
 export type ModelMap = ReadonlyMap<string, ModelState>;
@@ -302,7 +305,14 @@ export function scoreWord(args: {
  *  scales its score down on a curve that recovers to 1.0 over the
  *  recovery window. testsAgo = 0 means "in the test we just ran". */
 export const RECENCY_FLOOR = 0.2;
-export const RECENCY_RECOVERY_TESTS = 5;
+/** How many tests a just-shown word stays penalised for (and how long
+ *  the persisted recently-shown map keeps it — `advanceRecency` prunes
+ *  on the same window, so the two never drift). Widened from 5 to 14
+ *  so a word drilled this session doesn't resurface next session: with
+ *  a small weak set the old window let the same handful of carriers
+ *  recur every few tests. The floor (not a hard ban) still lets a weak
+ *  word return if the pool genuinely can't avoid it. */
+export const RECENCY_RECOVERY_TESTS = 14;
 
 export function recencyMultiplier(testsAgo: number): number {
   if (testsAgo < 0) return 1;
@@ -330,6 +340,17 @@ export function inChallengeBand(
   const ratio = predictedMs / expected;
   return ratio >= CHALLENGE_LOW && ratio <= CHALLENGE_HIGH;
 }
+
+/** Coverage decay base. During selection, each weak pattern (weak
+ *  bigram, weak motor-feature, or unsampled-explore bigram) a word
+ *  touches is down-weighted by this factor for every prior word in
+ *  the same passage that already covered it. So the first carrier of
+ *  a weak motion keeps full weight; the fifth copy of the same motion
+ *  is worth 0.4^k of its score. The net effect is a passage that
+ *  spreads across the user's top weak motions instead of stacking
+ *  carriers of the single weakest one. < 1 so overlap always shrinks
+ *  weight; not so small that one weak pattern can never repeat. */
+export const COVERAGE_DECAY = 0.4;
 
 /** Weighted random sampling without replacement. Used to pick
  *  `count` words from the candidate pool, biased by score. Falls

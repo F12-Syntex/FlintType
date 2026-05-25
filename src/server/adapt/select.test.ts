@@ -108,6 +108,32 @@ describe("selectWords", () => {
     });
     expect(r.words.length).toBeGreaterThan(0);
   });
+
+  it("spreads a multi-word selection across distinct weak motions", () => {
+    // Group A carriers all carry the unsampled bigram "kx"; group B
+    // all carry "vy". Every other bigram in the carriers is sampled
+    // and fast, so each carrier's only weight + pattern comes from its
+    // group's target bigram — and both targets weigh the same. Without
+    // the coverage pass the second pick stacks the first group as often
+    // as it diversifies (~0.57 both-covered); coverage damps the picked
+    // group so the other motion gets covered far more often.
+    const fast = (): ModelState => ({ mean: 80, variance: 0, n: 50 });
+    const bigramModels = new Map<string, ModelState>([
+      ["xa", fast()], ["xe", fast()], ["xo", fast()],
+      ["ya", fast()], ["ye", fast()], ["yo", fast()],
+    ]); // "kx" and "vy" are intentionally absent → unsampled targets.
+    const pool = ["kxa", "kxe", "kxo", "vya", "vye", "vyo"];
+    const rng = SEED_RNG();
+    const TRIALS = 500;
+    let bothCovered = 0;
+    for (let t = 0; t < TRIALS; t++) {
+      const r = selectWords({ count: 2, pool, ...EMPTY, bigramModels, rng });
+      const hasA = r.words.some((w) => w.startsWith("kx"));
+      const hasB = r.words.some((w) => w.startsWith("vy"));
+      if (hasA && hasB) bothCovered++;
+    }
+    expect(bothCovered / TRIALS).toBeGreaterThan(0.7);
+  });
 });
 
 describe("advanceRecency", () => {

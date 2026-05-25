@@ -1,5 +1,6 @@
 import { EN_COMMON_1000 } from "@/data/en-common-1000";
 import englishWords from "@/data/english.json";
+import { findCarrierWords } from "@/lib/adapt-carriers";
 import type { HistoryWeakness } from "@/types/history";
 
 /** Drills split into two groups by where their data comes from:
@@ -246,6 +247,94 @@ function pickWeaknessTrigrams(
   return userPicks;
 }
 
+const ISOLATION_MAX_BIGRAMS = 3;
+const ISOLATION_MAX_TRIGRAMS = 2;
+const ISOLATION_CARRIER_COUNT = 24;
+
+/** keybr-style isolation drills: one weak pattern, drilled across many
+ *  varied real carrier words from EN_COMMON_1000. This is the
+ *  high-transfer counterpart to the in-pool adaptive selection — it
+ *  trains the *motion* across unlimited vocabulary rather than the
+ *  handful of carrier words a small pool contains. An isolation drill
+ *  is just a burst over those carriers, so it reuses the burst engine
+ *  (no new DrillSpec kind). Emits one card per top weak bigram (minus
+ *  the ultra-common pairs every passage already drills) and trigram;
+ *  degrades to a single locked card when the model is cold. */
+function buildIsolationDrills(
+  weakestPairs: readonly HistoryWeakness[],
+  weakestTrigrams: readonly { key: string }[] | undefined,
+  personalReady: boolean,
+  seed: number,
+): DrillSpec[] {
+  const patterns: { pattern: string; type: "bigram" | "trigram" }[] = [];
+  if (personalReady) {
+    for (const w of weakestPairs) {
+      if (patterns.length >= ISOLATION_MAX_BIGRAMS) break;
+      if (/^[a-z]{2}$/.test(w.key) && !COMMON_BIGRAMS.has(w.key)) {
+        patterns.push({ pattern: w.key, type: "bigram" });
+      }
+    }
+    let trigramCount = 0;
+    for (const t of weakestTrigrams ?? []) {
+      if (trigramCount >= ISOLATION_MAX_TRIGRAMS) break;
+      if (/^[a-z]{3}$/.test(t.key)) {
+        patterns.push({ pattern: t.key, type: "trigram" });
+        trigramCount++;
+      }
+    }
+  }
+
+  const cards: DrillSpec[] = [];
+  patterns.forEach(({ pattern, type }, i) => {
+    const items = findCarrierWords(
+      pattern,
+      EN_COMMON_1000,
+      ISOLATION_CARRIER_COUNT,
+      seed + 11 + i,
+    );
+    if (items.length === 0) return; // never hand BurstSurface an empty list
+    cards.push({
+      id: `isolation-${pattern}`,
+      kind: "burst",
+      category: "tailored",
+      title: `Isolate "${pattern}"`,
+      contextLabel: "Isolation drill",
+      description: `Hammer the ${type} "${pattern}" across ${items.length} everyday words — ${items
+        .slice(0, 4)
+        .map((w) => `"${w}"`)
+        .join(", ")}${items.length > 4 ? ", …" : ""}. Same motion, many words, so the speed transfers instead of sticking to one word.`,
+      payoff:
+        "Drilling one weak motion across varied real words is the keybr-style path to transfer — you train the hand movement, not a single word's shape.",
+      ready: true,
+      items,
+      thresholdWpm: DEFAULT_BURST_THRESHOLD_WPM,
+      repsPerItem: DEFAULT_BURST_REPS,
+      repsConfigurable: true,
+    });
+  });
+
+  if (cards.length > 0) return cards;
+
+  return [
+    {
+      id: "isolation",
+      kind: "burst",
+      category: "tailored",
+      title: "Isolation drill",
+      contextLabel: "Isolation drill",
+      description:
+        "Once we've spotted the letter pairs your hands are slowest on, this drill hammers one of them across dozens of varied everyday words — so the speed transfers instead of sticking to a single word.",
+      payoff:
+        "Isolating one weak motion across many real words is the highest-transfer drill — you train the movement, not the word.",
+      ready: false,
+      items: [],
+      thresholdWpm: DEFAULT_BURST_THRESHOLD_WPM,
+      repsPerItem: DEFAULT_BURST_REPS,
+      repsConfigurable: true,
+    },
+  ];
+}
+
 /** All drills the picker offers, in display order. Snapshot-aware
  *  drills (weakness, trigram-burst) gracefully degrade when the
  *  user is cold — they surface a "not enough data yet" card and
@@ -354,6 +443,10 @@ export function buildDrills({
     repsPerItem: DEFAULT_BURST_REPS,
     repsConfigurable: true,
   });
+
+  drills.push(
+    ...buildIsolationDrills(weakestPairs, weakestTrigrams, personalReady, seed),
+  );
 
   // ─── Generic ──────────────────────────────────────────────────────
   // Curated lists that always work, regardless of model state.

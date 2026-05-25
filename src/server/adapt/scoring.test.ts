@@ -246,6 +246,34 @@ describe("scoreWord", () => {
     });
     expect(without).toBeLessThan(baseline);
   });
+
+  it("weights a transferable motor-feature weakness above a single-word weakness", () => {
+    // Both candidates share the same warm, fast bigram ('aa' below its
+    // same-finger baseline → 0 bigram contribution, and sampled so no
+    // exploration bonus). The first's only weakness is a slow *shared
+    // motion*; the second's only weakness is a slow *whole-word* mean,
+    // with an identical gap + sample count so the confidence factor
+    // cancels. Under DEFAULT_WEIGHTS (γ=2 ≫ δ=0.5) the generalisable
+    // motor-feature signal must win — that's what keeps the selector
+    // training the motion instead of memorising the word.
+    const fastBigram = new Map([["aa", MS(50, 60)]]);
+    const motorWeak = scoreWord({
+      ...cold,
+      word: "aa",
+      bigramModels: fastBigram,
+      motorFeatureModels: new Map([["same_finger_L5", MS(300, 60)]]),
+    });
+    const wordWeak = scoreWord({
+      ...cold,
+      word: "aa",
+      bigramModels: fastBigram,
+      baselines: { ...cold.baselines, word: 100 },
+      wordModels: new Map([["aa", MS(300, 60)]]),
+    });
+    expect(motorWeak).toBeGreaterThan(0);
+    expect(wordWeak).toBeGreaterThan(0);
+    expect(motorWeak).toBeGreaterThan(wordWeak);
+  });
 });
 
 describe("bigramBaselines", () => {

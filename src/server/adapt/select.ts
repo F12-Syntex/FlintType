@@ -1,14 +1,19 @@
 import type { HandLayoutPrefs } from "@/lib/hand-layout";
 import type { TestRow } from "@/types/adapt";
+import { bigramCategory, deriveFeatureKeys } from "./motor-features";
 import {
+  baselineForCategory,
   baselineMean,
+  type BigramBaselines,
   bigramBaselines,
+  COVERAGE_DECAY,
   fatigueDampener,
   inChallengeBand,
+  MIN_SAMPLES_FOR_WEAKNESS,
   predictedWordMs,
   recencyMultiplier,
-  sampleWeighted,
   scoreWord,
+  weakness,
   type ModelMap,
   type ScoringWeights,
 } from "./scoring";
@@ -77,7 +82,15 @@ export function selectWords(input: SelectionInput): SelectionResult {
     );
     return {
       word,
-      score: raw * fatigue * recency,
+      weight: Math.max(0, raw * fatigue * recency),
+      patterns: weakPatternKeys(
+        word,
+        input.bigramModels,
+        input.motorFeatureModels,
+        baselines.bigram,
+        baselines.motorFeature,
+        input.layout,
+      ),
       predictedMs: predicted,
       bigramCount: Math.max(0, word.length - 1),
     };
@@ -98,16 +111,96 @@ export function selectWords(input: SelectionInput): SelectionResult {
     if (banded.length >= input.count) filtered = banded;
   }
 
-  // Cold start: every candidate has score 0; sampleWeighted falls
-  // through to uniform. That's intentional — we surface random words
-  // until measurements accumulate.
-  const words = sampleWeighted(
-    filtered.map((c) => ({ word: c.word, weight: Math.max(0, c.score) })),
-    input.count,
-    input.rng,
-  );
+  // Greedy coverage pick: weighted-random without replacement, but
+  // each pick down-weights candidates whose weak patterns are already
+  // represented in the passage so far (COVERAGE_DECAY). This spreads a
+  // passage across the user's top weak motions instead of stacking
+  // carriers of the single weakest pair. On cold start every weight is
+  // an exploration bonus and coverage spreads across distinct unsampled
+  // bigrams; if a sub-pool is genuinely all-zero, the pick falls
+  // through to uniform random.
+  const words = selectWithCoverage(filtered, input.count, input.rng);
 
   return { words, cold };
+}
+
+/** The weak / explore patterns a word touches, used by the coverage
+ *  pick. A bigram that's still unsampled is an exploration target
+ *  (`u:`); a sampled bigram or motor-feature counts only when it
+ *  scores positive weakness (`b:` / `f:`). Spreading across these keys
+ *  is what turns "20 copies of the weakest word" into "the top weak
+ *  motions, each covered". */
+function weakPatternKeys(
+  word: string,
+  bigramModels: ModelMap,
+  motorFeatureModels: ModelMap,
+  bigramBs: BigramBaselines,
+  motorFeatureBaseline: number,
+  layout: HandLayoutPrefs,
+): string[] {
+  const w = word.toLowerCase();
+  const keys = new Set<string>();
+  for (let i = 1; i < w.length; i++) {
+    const a = w[i - 1]!;
+    const b = w[i]!;
+    const bg = a + b;
+    const st = bigramModels.get(bg);
+    if (!st || st.n < MIN_SAMPLES_FOR_WEAKNESS) {
+      keys.add(`u:${bg}`);
+    } else {
+      const cb = baselineForCategory(bigramCategory(a, b, layout), bigramBs);
+      if (weakness(st, cb) > 0) keys.add(`b:${bg}`);
+    }
+    for (const fk of deriveFeatureKeys(a, b, layout)) {
+      const fst = motorFeatureModels.get(fk);
+      if (fst && weakness(fst, motorFeatureBaseline) > 0) keys.add(`f:${fk}`);
+    }
+  }
+  return [...keys];
+}
+
+/** Weighted random sampling without replacement, biased by `weight`
+ *  and damped by pattern overlap with already-picked words. */
+function selectWithCoverage(
+  items: readonly { word: string; weight: number; patterns: readonly string[] }[],
+  count: number,
+  rng: () => number = Math.random,
+): string[] {
+  if (items.length === 0) return [];
+  const pool = items.map((i) => ({ ...i }));
+  const covered = new Set<string>();
+  const out: string[] = [];
+  const target = Math.min(count, pool.length);
+  for (let pick = 0; pick < target; pick++) {
+    const weights = pool.map((p) => {
+      let overlap = 0;
+      for (const pat of p.patterns) if (covered.has(pat)) overlap++;
+      return Math.max(0, p.weight) * COVERAGE_DECAY ** overlap;
+    });
+    const idx = weightedPickIndex(weights, rng);
+    const chosen = pool[idx]!;
+    out.push(chosen.word);
+    for (const pat of chosen.patterns) covered.add(pat);
+    pool.splice(idx, 1);
+  }
+  return out;
+}
+
+/** Pick one index from a weight array, biased by weight. Falls back to
+ *  uniform random when every weight is zero (cold sub-pool). */
+function weightedPickIndex(
+  weights: readonly number[],
+  rng: () => number,
+): number {
+  let total = 0;
+  for (const w of weights) total += Math.max(0, w);
+  if (total === 0) return Math.floor(rng() * weights.length);
+  let r = rng() * total;
+  for (let i = 0; i < weights.length; i++) {
+    r -= Math.max(0, weights[i]!);
+    if (r <= 0) return i;
+  }
+  return weights.length - 1;
 }
 
 /** Step the recently-shown map forward by one test: every existing
