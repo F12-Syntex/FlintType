@@ -72,13 +72,20 @@ function ProfileLink({ dark }: { dark: boolean }) {
   // .sessions array is mutated rather than replaced on session
   // changes. Mirror it into local state so the dropdown re-renders
   // when sign-in / sign-out / setActive runs.
-  const [sessions, setSessions] = useState(() => clerk.client?.sessions ?? []);
+  const [sessions, setSessions] = useState(() => clerk?.client?.sessions ?? []);
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
   useEffect(() => {
     // Clerk's client emits a `client:update` event on session
     // mutations; we re-snapshot the array on every emission.
     // Falling back to a polling listener would be wrong — Clerk's
     // public API exposes the event explicitly.
+    //
+    // `useClerk()` can transiently hand back an unready instance during
+    // hydration (Next 16 / Turbopack), so guard before touching it —
+    // a bare `clerk.addListener` then throws "Cannot read properties of
+    // undefined (reading 'addListener')". The effect re-runs once Clerk
+    // is ready (clerk is in the dep array).
+    if (!clerk?.addListener) return;
     const sync = () => setSessions(clerk.client?.sessions ?? []);
     sync();
     const unsub = clerk.addListener((event) => {
