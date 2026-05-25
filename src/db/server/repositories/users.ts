@@ -6,12 +6,17 @@ import type { ServerDrizzle } from "../driver";
  *  `seq <= OG_MILESTONE_LIMIT` is eligible for the OG tag; past the
  *  threshold, no grant fires.
  *
+ *  **The OG cohort is closed.** flinttype launched with 20 users and
+ *  that's the final OG set — the cap is pinned to 20 so seq 1–20 keep
+ *  the tag and every later signup (seq 21+) never receives it. Do not
+ *  raise this without an explicit decision to mint new OG holders.
+ *
  *  Eligibility is granted **retroactively** — when an existing user
  *  whose `og_granted_at` is null hits `ensureUser`, the grant
  *  pipeline runs even though `seq` was assigned long before the
  *  feature shipped. The flag column above ensures we only do the
  *  Clerk write + notification once per eligible user. */
-export const OG_MILESTONE_LIMIT = 1000;
+export const OG_MILESTONE_LIMIT = 20;
 
 /** Result of `ensureForUser`. `created=true` means this call inserted
  *  the row — the caller can read `row.seq` to decide whether a
