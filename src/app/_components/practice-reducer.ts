@@ -90,6 +90,12 @@ export type Action =
   | { type: "RESTART"; words: string[]; quoteSource: string | null }
   | { type: "REGENERATE"; cfg: WordCfg }
   | { type: "FINISH_TIME"; now: number }
+  /** TIME-mode buffer top-up. The provider dispatches this from a
+   *  refill effect whenever the cursor nears the end of the generated
+   *  passage, so a fast typist always has a deep buffer of upcoming
+   *  words ahead of them. Pure append — never touches cursor / run
+   *  state. */
+  | { type: "APPEND_WORDS"; words: string[] }
   /** Burst-mode mid-run retry. The burst controller dispatches this
    *  on every failed attempt (wrong word OR below threshold WPM) and
    *  on every successful-but-rep-incomplete attempt: clears the
@@ -183,6 +189,15 @@ export function adaptPool(cfg: WordCfg): readonly string[] {
  *  run out before the timer expires. 300 words at 200 wpm ≈ 90 s of
  *  typing, which covers every supported duration with margin. */
 export const TIME_BUFFER = 300;
+
+/** TIME mode tops the buffer up while the cursor is still this many
+ *  words from the end. Generous on purpose: it must comfortably exceed
+ *  the most words the visible window can ever show, so the passage
+ *  ahead of the cursor is never starved — even a 250 wpm typist has
+ *  ~30 s of runway before the next refill is needed. The append fires
+ *  once per crossing (it pushes the remaining count far back above the
+ *  threshold), so there's no per-keystroke churn. */
+export const TIME_REFILL_AHEAD = 120;
 
 export function generateForMode(
   mode: Mode,
@@ -306,6 +321,12 @@ export function reducer(s: State, a: Action): State {
     case "FINISH_TIME":
       if (s.phase !== "running") return s;
       return { ...s, phase: "done", endTime: a.now };
+    case "APPEND_WORDS":
+      // Pure buffer top-up (TIME mode — see the provider's refill
+      // effect). No-op on an empty batch so a stray dispatch can't
+      // churn the array identity and re-trigger downstream effects.
+      if (a.words.length === 0) return s;
+      return { ...s, words: [...s.words, ...a.words] };
     case "BURST_RESET": {
       // Reset the user's typed buffer for the current word so they
       // can re-attempt it. Don't touch errorWords (burst retries

@@ -37,6 +37,7 @@ import {
   quoteToWords,
   reducer,
   TIME_BUFFER,
+  TIME_REFILL_AHEAD,
   type Action,
   type KeyEvent,
   type Length,
@@ -79,6 +80,16 @@ export {
   reducer,
 };
 
+
+/** Floor (ms) for the denominator of the *live* WPM readout. WPM is
+ *  computed over a window from the first keystroke to now; in the
+ *  opening moment that window is tens of ms long, so a single correct
+ *  word divides by ~0.02 s and the displayed number explodes into the
+ *  thousands. Flooring the window at 1 s makes the first second read as
+ *  a sane ramp (chars-so-far over 1 s) instead of a 6000-WPM spike. The
+ *  final, recorded value is computed over the true run duration and is
+ *  never clamped — this only smooths the in-progress display. */
+const MIN_LIVE_WPM_WINDOW_MS = 1000;
 
 // ─── Context ────────────────────────────────────────────────────────
 
@@ -467,6 +478,30 @@ export function PracticeProvider({
     return () => clearTimeout(id);
   }, [state.mode, state.phase, state.startTime, state.length]);
 
+  // TIME mode: keep a deep buffer of upcoming words ahead of the cursor.
+  // The reducer seeds TIME_BUFFER words up front, but a fast typist can
+  // chew through them before the timer expires — and as the cursor nears
+  // the end, the visible window shows fewer and fewer trailing words
+  // (the passage looks like it "runs out", with the next batch only
+  // appearing once you space past the last word). Topping up here, well
+  // ahead of the cursor and with the user's actual wordlist cfg, means
+  // the passage ahead is never starved. The append pushes the remaining
+  // count far back above the threshold, so this fires once per crossing,
+  // not per keystroke. Locked-word drills never refill.
+  useEffect(() => {
+    if (lockedWordsRef.current) return;
+    if (state.mode !== "TIME" || state.phase !== "running") return;
+    if (state.words.length - state.cursorWord >= TIME_REFILL_AHEAD) return;
+    dispatch({
+      type: "APPEND_WORDS",
+      words: generateWords(TIME_BUFFER, Date.now(), {
+        minWordLength: prefsRef.current.minWordLength,
+        showSecondary: prefsRef.current.showSecondary,
+        wordPool: wordPoolRef.current ?? undefined,
+      }),
+    });
+  }, [state.mode, state.phase, state.cursorWord, state.words.length]);
+
   // Server-minted id for the most recent submitted run. Set when
   // `adapt.submit` resolves (so the share affordance can build a
   // /r/<id> link); cleared whenever the user leaves the "done" phase
@@ -688,10 +723,14 @@ export function PracticeProvider({
       if (s.startTime == null) return { wpm: 0, raw: 0, accuracy: 100 };
       const t =
         isFinal && s.endTime != null ? s.endTime - s.startTime : Date.now() - s.startTime;
+      // Floor the live window at 1 s so the opening second can't divide
+      // by a near-zero elapsed and spike to thousands of WPM. The final
+      // value (isFinal) keeps the true duration — it's never spiky.
+      const windowMs = isFinal ? t : Math.max(t, MIN_LIVE_WPM_WINDOW_MS);
       const { wpm: rawWpm, raw: rawRaw } = calcWpmAndRaw(
         s.typed,
         s.words,
-        t,
+        windowMs,
         isFinal,
         s.events.length,
       );

@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.111.7 — 25 May 2026
+- Fixed the live WPM counter briefly showing a wild number (like 6000) in the first second of a test. It now settles into a sensible reading from the very start.
+- Fixed timed tests (60s, 120s) running out of visible words for fast typists. Previously, once you reached a certain point the passage looked empty and the next words only appeared as you typed; now there's always a deep run of upcoming words ahead of your cursor.
+
 ## 6.111.6 — 25 May 2026
 - The OG tag is now closed to flinttype's first 20 members. Everyone who already has it keeps it; new sign-ups no longer receive it.
 

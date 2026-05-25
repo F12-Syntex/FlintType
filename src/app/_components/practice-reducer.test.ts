@@ -252,6 +252,50 @@ describe("practice reducer — BURST_RESET", () => {
   });
 });
 
+describe("practice reducer — APPEND_WORDS (TIME buffer top-up)", () => {
+  it("appends the batch to the end without touching cursor or run state", () => {
+    const s = seed({
+      mode: "TIME",
+      words: ["the", "cat", "sat"],
+      cursorWord: 1,
+      cursorChar: 2,
+      typed: ["the", "ca"],
+    });
+    const next = reducer(s, { type: "APPEND_WORDS", words: ["mat", "hat"] });
+    expect(next.words).toEqual(["the", "cat", "sat", "mat", "hat"]);
+    expect(next.cursorWord).toBe(1);
+    expect(next.cursorChar).toBe(2);
+    expect(next.typed).toEqual(["the", "ca"]);
+    expect(next.phase).toBe("running");
+  });
+
+  it("is a no-op (same reference) on an empty batch", () => {
+    const s = seed({ mode: "TIME", words: ["the", "cat"] });
+    const next = reducer(s, { type: "APPEND_WORDS", words: [] });
+    expect(next).toBe(s);
+  });
+});
+
+describe("practice reducer — TIME mode never finishes on word count", () => {
+  it("advances past the last word instead of ending the run", () => {
+    // SPACE on the final word in TIME mode keeps the run going (the
+    // timer ends it) — the legacy emergency append still tops the
+    // buffer up so the cursor always has a word to land on.
+    const s = seed({
+      mode: "TIME",
+      words: ["the"],
+      cursorWord: 0,
+      cursorChar: 3,
+      typed: ["the"],
+    });
+    const next = reducer(s, { type: "SPACE", now: 100, strictSpace: false });
+    expect(next.phase).toBe("running");
+    expect(next.endTime).toBeNull();
+    expect(next.cursorWord).toBe(1);
+    expect(next.words.length).toBeGreaterThan(1);
+  });
+});
+
 describe("practice reducer — generateWords adjacency", () => {
   it("never emits the same word twice in a row", () => {
     // Seed loop a handful of seeds to catch the rare back-to-back roll.
