@@ -61,6 +61,11 @@ export type RoomRacer = {
   /** Challenge rooms only: marks the player who created the room and
    *  is allowed to press Start. */
   isHost: boolean;
+  /** Whether this racer has readied up in the lobby. Bots are always
+   *  ready; humans toggle it. The host's Start is gated until every
+   *  non-host human is ready, so a challenge can't begin before
+   *  everyone's set (issue #26). Meaningless outside the lobby phase. */
+  ready: boolean;
   joinedAt: number;
   progressChars: number;
   /** Accumulated mistypes the racer has produced so far — wrong char
@@ -182,6 +187,17 @@ export const leaveInputSchema = z.object({
 export type LeaveInput = z.infer<typeof leaveInputSchema>;
 
 export type LeaveOutput = { ok: true };
+
+export const setReadyInputSchema = z.object({
+  roomId: z.string().min(1),
+  sessionToken: z.string().min(1),
+  ready: z.boolean(),
+});
+export type SetReadyInput = z.infer<typeof setReadyInputSchema>;
+/** `canStart` mirrors the room's all-humans-ready gate so the host's
+ *  client can enable/disable Start without waiting for the next SSE
+ *  snapshot. */
+export type SetReadyOutput = { ok: boolean; canStart: boolean };
 
 export const createChallengeInputSchema = z.object({
   modeId: z.enum(RACE_MODE_IDS),

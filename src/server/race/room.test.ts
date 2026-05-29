@@ -874,3 +874,55 @@ describe("RaceRoom", () => {
     expect(room.snapshot().roundNumber).toBe(2);
   });
 });
+
+describe("ready-up gate — challenge lobby (#26)", () => {
+  function challengeRoom() {
+    return new RaceRoom({
+      id: "r_ready",
+      slug: "ready-fox-1",
+      kind: "challenge",
+      modeId: "1v1",
+      raceSeed: 1,
+      wordCount: 25,
+    });
+  }
+
+  it("a solo host can start immediately (no other humans to wait for)", () => {
+    const room = challengeRoom();
+    room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
+    expect(room.allHumansReady()).toBe(true);
+    expect(room.hostStart("s_host")).toBe(true);
+  });
+
+  it("isn't all-ready until every other human readies up", () => {
+    // The challenge.start ROUTE gates on allHumansReady(); hostStart
+    // itself stays ungated so the state machine is directly drivable.
+    const room = challengeRoom();
+    room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
+    room.addRealRacer({ sessionToken: "s_bob", name: "@bob", badge: "RACER" });
+    expect(room.allHumansReady()).toBe(false);
+
+    expect(room.setReady("s_bob", true)).toBe(true);
+    expect(room.allHumansReady()).toBe(true);
+  });
+
+  it("un-readying flips it back to not-all-ready", () => {
+    const room = challengeRoom();
+    room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
+    room.addRealRacer({ sessionToken: "s_bob", name: "@bob", badge: "RACER" });
+    room.setReady("s_bob", true);
+    expect(room.allHumansReady()).toBe(true);
+    room.setReady("s_bob", false);
+    expect(room.allHumansReady()).toBe(false);
+  });
+
+  it("reports ready state in the snapshot (bots auto-ready, humans start unready)", () => {
+    const room = challengeRoom();
+    room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
+    const bob = room.snapshot().racers.find((r) => r.id === "s_host");
+    expect(bob?.ready).toBe(false);
+    room.setReady("s_host", true);
+    // host can ready too; the gate only checks NON-host humans
+    expect(room.snapshot().racers.find((r) => r.id === "s_host")?.ready).toBe(true);
+  });
+});

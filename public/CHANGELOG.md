@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.118.0 — 29 May 2026
+- Race lobbies now have a ready-up step. Each player presses **Ready**, the lobby shows who's set, and the host can only start once everyone's ready (bots are always ready). The host's Start button waits — "Waiting for everyone to ready up · 1/2" — until the whole lobby is good to go, so a race can't begin before you're set.
+
 ## 6.117.9 — 29 May 2026
 - Multiplayer: signed-in racers now show their real handle instead of "Guest". (The race server wasn't being told who you were on the hosted setup.)
 - Multiplayer: you can no longer keep typing into the passage after a race has finished — input locks the instant the race ends, and the instant you personally cross the line.

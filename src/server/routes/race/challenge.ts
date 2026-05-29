@@ -126,6 +126,26 @@ const start = defineRoute<StartChallengeInput, StartChallengeOutput>({
         "only challenge rooms can be host-started",
       );
     }
+    // Host identity first — a non-host caller gets FORBIDDEN, not the
+    // ready-up message.
+    if (!room.isHost(input.sessionToken)) {
+      throw new BackendError(
+        403,
+        "FORBIDDEN",
+        "only the room host can start a challenge race",
+      );
+    }
+    // Ready-up gate (#26): the host can only start once every other
+    // present human has readied up (bots auto-ready; the host's Start is
+    // the unanimous "go"). The lobby UI also disables Start until then,
+    // so this is the server-side enforcement of the same rule.
+    if (!room.allHumansReady()) {
+      throw new BackendError(
+        409,
+        "CONFLICT",
+        "everyone must ready up before the race can start",
+      );
+    }
     const ok = room.hostStart(input.sessionToken);
     if (!ok) {
       throw new BackendError(

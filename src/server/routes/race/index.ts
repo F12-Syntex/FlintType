@@ -22,10 +22,13 @@ import {
   type QueueOutput,
   type RematchInput,
   type RematchOutput,
+  type SetReadyInput,
+  type SetReadyOutput,
   keystrokeInputSchema,
   leaveInputSchema,
   queueInputSchema,
   rematchInputSchema,
+  setReadyInputSchema,
 } from "@/types/race";
 import { challenge } from "./challenge";
 
@@ -161,6 +164,23 @@ const rematch = defineRoute<RematchInput, RematchOutput>({
   }),
 });
 
+/** Toggle the caller's lobby ready flag in a challenge room. The host's
+ *  Start is gated until every other human is ready (#26). Idempotent;
+ *  graceful no-op outside a challenge lobby. Returns `canStart` so the
+ *  host's client can flip the Start button without awaiting the snapshot. */
+const setReady = defineRoute<SetReadyInput, SetReadyOutput>({
+  input: setReadyInputSchema,
+  middleware: [rateLimit({ limit: 120, windowMs: 60_000 })],
+  handler: raceHandler<SetReadyInput, SetReadyOutput>(({ input }) => {
+    const room = getRoom(input.roomId);
+    if (!room) {
+      throw new BackendError(404, "NOT_FOUND", "race room not found");
+    }
+    room.setReady(input.sessionToken, input.ready);
+    return { ok: true, canStart: room.allHumansReady() };
+  }),
+});
+
 /** Public race namespace. No `requireAuth` — anonymous users get
  *  `Guest · XYZ` labels via `getRaceIdentity` and can join matchmaking
  *  or challenge rooms identically to signed-in users.
@@ -178,5 +198,5 @@ const rematch = defineRoute<RematchInput, RematchOutput>({
  *  any local store touch. */
 export const race = defineNamespace({
   middleware: [requireRaceProxySecret],
-  routes: { queue, keystroke, leave, rematch, challenge },
+  routes: { queue, keystroke, leave, rematch, setReady, challenge },
 });
