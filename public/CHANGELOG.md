@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.121.7 — 29 May 2026
+- Internal changes only (developer tooling — Playwright Test Agents + browser MCP for automated test authoring).
+
 ## 6.121.6 — 29 May 2026
 - Internal: the race lobby share-link "Copy" buttons now share one copy-to-clipboard helper instead of duplicating the logic. No behaviour change.
 
