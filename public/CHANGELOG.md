@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.121.6 — 29 May 2026
+- Internal: the race lobby share-link "Copy" buttons now share one copy-to-clipboard helper instead of duplicating the logic. No behaviour change.
+
 ## 6.121.5 — 29 May 2026
 - After a race ends, the passage you typed stays on screen above the results instead of vanishing.
 - The race result headline now just states your place plainly ("1st place", "2nd place", …) instead of vague phrases like "Last across", with a one-line "Nth of N in m:ss" under it.

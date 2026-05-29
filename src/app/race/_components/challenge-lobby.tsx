@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useBackend } from "@/lib/backend";
+import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
 import { useRace } from "./race-state";
 
@@ -173,26 +174,22 @@ function ReadyToggle({
   );
 }
 
-/** Share-link row (no Start button) — rendered for non-host viewers. */
-function ShareLink({ slug }: { slug: string }) {
-  const [copied, setCopied] = useState(false);
-  const url =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/race/c/${slug}`
-      : `/race/c/${slug}`;
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      window.prompt("Share this link", url);
-    }
-  };
+/** Absolute share URL for a lobby slug (falls back to a relative path
+ *  during SSR where `window` is absent). */
+function lobbyUrl(slug: string): string {
+  return typeof window !== "undefined"
+    ? `${window.location.origin}/race/c/${slug}`
+    : `/race/c/${slug}`;
+}
+
+/** Share-link button: the lobby URL + a Copy/Copied affordance. Shared
+ *  by the guest row and the host bar (clipboard via useCopyToClipboard). */
+function CopyLinkButton({ url }: { url: string }) {
+  const { copied, copy } = useCopyToClipboard();
   return (
     <button
       type="button"
-      onClick={copy}
+      onClick={() => copy(url)}
       className={cn(
         "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-card px-3",
         "text-[11px] tabular-nums text-foreground",
@@ -212,6 +209,11 @@ function ShareLink({ slug }: { slug: string }) {
   );
 }
 
+/** Share-link row (no Start button) — rendered for non-host viewers. */
+function ShareLink({ slug }: { slug: string }) {
+  return <CopyLinkButton url={lobbyUrl(slug)} />;
+}
+
 function HostBar({
   slug,
   roomId,
@@ -228,24 +230,7 @@ function HostBar({
   readyCount: number;
 }) {
   const backend = useBackend();
-  const [copied, setCopied] = useState(false);
   const [pending, setPending] = useState(false);
-  const url =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/race/c/${slug}`
-      : `/race/c/${slug}`;
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard API unavailable (older browsers / iframe) — fall
-      // back to a window.prompt so the user can still grab the URL.
-      window.prompt("Share this link", url);
-    }
-  };
 
   const start = async () => {
     if (pending || !allReady) return;
@@ -260,25 +245,7 @@ function HostBar({
   return (
     <div className="flex flex-col items-center gap-2">
     <div className="flex flex-wrap items-center justify-center gap-2">
-      <button
-        type="button"
-        onClick={copy}
-        className={cn(
-          "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-card px-3",
-          "text-[11px] tabular-nums text-foreground",
-          "transition-colors hover:border-foreground/40 hover:bg-accent",
-        )}
-      >
-        <span className="truncate max-w-[14rem]">{url}</span>
-        <span
-          className={cn(
-            "text-[9px] font-semibold uppercase tracking-[0.18em]",
-            copied ? "text-primary" : "text-muted-foreground",
-          )}
-        >
-          {copied ? "Copied" : "Copy"}
-        </span>
-      </button>
+      <CopyLinkButton url={lobbyUrl(slug)} />
       <button
         type="button"
         onClick={start}
