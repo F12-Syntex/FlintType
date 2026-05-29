@@ -274,6 +274,7 @@ export class RaceRoom {
       progressChars: 0,
       errors: 0,
       wpm: 0,
+      raw: 0,
       accuracy: 100,
       finishedAt: null,
       place: null,
@@ -305,6 +306,7 @@ export class RaceRoom {
       progressChars: 0,
       errors: 0,
       wpm: 0,
+      raw: 0,
       accuracy: 100,
       finishedAt: null,
       place: null,
@@ -482,6 +484,7 @@ export class RaceRoom {
       if (!r.isBot) {
         const correct = Math.max(0, r.progressChars - r.errors);
         r.wpm = Math.round((correct / 5) * (60 / elapsedSec));
+        r.raw = Math.round((r.progressChars / 5) * (60 / elapsedSec));
       }
       r.finishedAt = Math.floor(elapsedSec);
       r.place = this.nextPlace++;
@@ -538,6 +541,11 @@ export class RaceRoom {
       );
       if (cumulativeWpm !== r.wpm) {
         r.wpm = cumulativeWpm;
+        changed = true;
+      }
+      const cumulativeRaw = Math.round((r.progressChars / 5) * (60 / elapsedSec));
+      if (cumulativeRaw !== r.raw) {
+        r.raw = cumulativeRaw;
         changed = true;
       }
       // Live accuracy = correct / typed * 100, clamped to [0, 100].
@@ -602,6 +610,9 @@ export class RaceRoom {
       const elapsedSec = Math.max(1, (Date.now() - this.raceStartedAt) / 1000);
       const correct = Math.max(0, r.progressChars - r.errors);
       r.wpm = Math.round((correct / 5) * (60 / elapsedSec));
+      // Raw = every char typed (gross), so the results "raw" column is
+      // honest and raw ≥ net always. Same gun-anchored window.
+      r.raw = Math.round((r.progressChars / 5) * (60 / elapsedSec));
     }
     // A real player publishing progress is implicitly here — clear
     // any prior disconnected flag set by a stale leave / strict-mode
@@ -846,6 +857,7 @@ export class RaceRoom {
       r.progressChars = 0;
       r.errors = 0;
       r.wpm = 0;
+      r.raw = 0;
       r.accuracy = 100;
       r.finishedAt = null;
       r.place = null;
@@ -941,6 +953,7 @@ export class RaceRoom {
       progressChars: r.progressChars,
       errors: r.errors,
       wpm: r.wpm,
+      raw: r.raw,
       accuracy: r.accuracy,
       finishedAt: r.finishedAt,
       place: r.place,

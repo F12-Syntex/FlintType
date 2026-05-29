@@ -54,9 +54,13 @@ export type Racer = {
    *  between completed words). Monotonic 0..totalChars; drives lane
    *  bars, leader detection, and finish checks. */
   correctChars: number;
-  /** Instantaneous WPM — bots: jitter around target; you: cumulative
-   *  since GO, mirrored from practice's calcWpmAndRaw. */
+  /** Net WPM — server-authoritative for every racer (correct chars / 5
+   *  / minute from the gun). Shown directly as "net wpm" — already
+   *  error-adjusted, so no extra × accuracy. */
   wpm: number;
+  /** Raw WPM — server-authoritative gross speed (all chars / 5 / min).
+   *  raw ≥ wpm. Shown as the results "raw" column. */
+  raw: number;
   /** Race-clock seconds when this racer crossed the finish line. */
   finishedAt: number | null;
   /** Place 1..N when finished, null while still racing. */

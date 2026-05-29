@@ -2,9 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { Download } from "lucide-react";
-import { calcWpmAndRaw, countChars } from "@/lib/wpm";
 import { cn } from "@/lib/utils";
-import { usePractice } from "../../_components/practice-state";
 import { useRace } from "./race-state";
 
 /** Track whether the local user already cast a rematch vote on the
@@ -32,7 +30,6 @@ export function RaceResults() {
     onlineSessionToken,
     abandon,
   } = useRace();
-  const { state: practice } = usePractice();
   const you = state.racers.find((r) => r.isYou) ?? null;
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -112,7 +109,9 @@ export function RaceResults() {
   type Racer = (typeof state.racers)[number];
   const byLiveNet = (a: Racer, b: Racer) => {
     if (a.disconnected !== b.disconnected) return a.disconnected ? 1 : -1;
-    const d = netWpm(b.wpm, b.accuracy) - netWpm(a.wpm, a.accuracy);
+    // r.wpm is already net (correct chars / 5 / min), so rank by it
+    // directly — applying netWpm again would penalize accuracy twice.
+    const d = b.wpm - a.wpm;
     if (d !== 0) return d;
     return (a.finishedAt ?? Infinity) - (b.finishedAt ?? Infinity);
   };
@@ -125,27 +124,6 @@ export function RaceResults() {
   const stillRacing = state.racers.filter(
     (r) => r.finishedAt == null && !r.disconnected,
   ).length;
-  const counts = countChars(practice.typed, practice.words, true);
-  const charsTyped = counts.allCorrectChars + counts.correctSpaces;
-  const errors = counts.incorrectChars + counts.extraChars;
-  const yourAcc = accuracyFromTyped(practice.typed, practice.words);
-  // True raw WPM — every key pressed, regardless of accuracy. The
-  // racer's `wpm` is net (correct words only); for a wildly inaccurate
-  // run that collapses to ~0, which is *not* "raw". Compute raw from the
-  // practice keystroke stream so the stat means what its label says.
-  const youElapsedMs =
-    practice.startTime != null
-      ? (practice.endTime ?? Date.now()) - practice.startTime
-      : 0;
-  const yourRaw = Math.round(
-    calcWpmAndRaw(
-      practice.typed,
-      practice.words,
-      youElapsedMs,
-      true,
-      practice.events.length,
-    ).raw,
-  );
   return (
     <div
       ref={panelRef}
@@ -244,15 +222,14 @@ export function RaceResults() {
       </div>
 
       <div className="grid grid-cols-2 gap-x-6 gap-y-4 border-y border-border/70 py-5 sm:grid-cols-6 sm:gap-x-10">
-        <Stat
-          label="net wpm"
-          value={String(netWpm(you.wpm, yourAcc ?? you.accuracy))}
-          accent
-        />
-        <Stat label="raw wpm" value={String(yourRaw)} />
-        <Stat label="accuracy" value={`${yourAcc.toFixed(1)}%`} />
-        <Stat label="chars typed" value={String(charsTyped)} />
-        <Stat label="errors" value={String(errors)} />
+        {/* All headline stats read the server-authoritative racer row —
+            the SAME source the per-racer table below uses — so the local
+            racer's headline and table row can never disagree (#4/#7). */}
+        <Stat label="net wpm" value={String(you.wpm)} accent />
+        <Stat label="raw wpm" value={String(you.raw)} />
+        <Stat label="accuracy" value={`${you.accuracy.toFixed(1)}%`} />
+        <Stat label="chars typed" value={String(you.correctChars)} />
+        <Stat label="errors" value={String(you.errors)} />
         <Stat label="time" value={formatT(you.finishedAt ?? 0)} />
       </div>
 
@@ -270,7 +247,7 @@ export function RaceResults() {
         {ordered.map((r) => {
           const rank = rankOf(r);
           const placedFirst = rank === 1;
-          const net = netWpm(r.wpm, r.accuracy);
+          const net = r.wpm;
           const racing = r.finishedAt == null && !r.disconnected;
           return (
             <div
@@ -313,7 +290,7 @@ export function RaceResults() {
                 {net}
               </span>
               <span className="text-right tabular-nums text-muted-foreground">
-                {r.wpm}
+                {r.raw}
               </span>
               <span className="text-right tabular-nums text-muted-foreground">
                 {Math.round(r.accuracy)}%
@@ -487,29 +464,8 @@ function provisionalLine(
   return `You're ${standing}, ${who} still typing. Standings update as each one crosses.`;
 }
 
-function accuracyFromTyped(
-  typed: readonly string[],
-  words: readonly string[],
-): number {
-  const counts = countChars(typed, words, true);
-  const correct = counts.allCorrectChars;
-  const wrong = counts.incorrectChars + counts.extraChars;
-  if (correct + wrong === 0) return 100;
-  return Math.round((correct / (correct + wrong)) * 1000) / 10;
-}
-
 function formatT(sec: number): string {
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);
   return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-/** Accuracy-adjusted WPM — the canonical "score" metric for both
- *  practice and race surfaces. Reads as raw_wpm × accuracy/100, so
- *  a 100-wpm run at 90 % accuracy lands at 90 net. Bots default to
- *  100 % accuracy so their net equals their raw. */
-export function netWpm(wpm: number, accuracy: number): number {
-  if (!Number.isFinite(wpm) || wpm <= 0) return 0;
-  const a = Math.max(0, Math.min(100, accuracy));
-  return Math.round(wpm * (a / 100));
 }

@@ -337,7 +337,9 @@ function PbDelta({
       </span>
     );
   }
-  const delta = Math.round(data.wpm - data.previousWpm);
+  // Delta from the rounded figures the user sees (not the raw gap), so
+  // "+N wpm vs M" always reconciles with the headline best (#12).
+  const delta = Math.round(data.wpm) - Math.round(data.previousWpm);
   return (
     <span
       className={cn(

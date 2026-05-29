@@ -152,15 +152,6 @@ export function ResultChart({
             }
           />
 
-          {/* Soft fill under WPM gives the trace presence */}
-          <Area
-            dataKey="wpm"
-            type="monotone"
-            stroke="none"
-            fill="url(#wpmGap)"
-            isAnimationActive={false}
-          />
-
           {/* Average WPM reference — line only, no overlay text.
            *  The labelled value lives in the stat strip under the
            *  chart so it never collides with the plot area. */}
@@ -183,11 +174,16 @@ export function ResultChart({
             dot={false}
             isAnimationActive={false}
           />
-          <Line
+          {/* WPM trace + its soft fill as ONE series. Previously a
+              separate fill-only <Area dataKey="wpm"> plus this line both
+              keyed "wpm", so the tooltip listed "wpm" twice (#13). One
+              <Area> draws the stroke and the gradient fill together. */}
+          <Area
             dataKey="wpm"
             type="monotone"
             stroke="var(--color-wpm)"
             strokeWidth={2.25}
+            fill="url(#wpmGap)"
             dot={false}
             activeDot={{
               r: 3,
