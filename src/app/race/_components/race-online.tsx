@@ -437,6 +437,7 @@ function snapshotToRaceState({
           bot: null,
           correctChars: 0,
           wpm: 0,
+          raw: 0,
           finishedAt: null,
           place: null,
           charProgress: 0,
@@ -520,13 +521,20 @@ function serverRacerToClient(
     // doesn't visibly stall your own bar. Other racers use the
     // server-published progressChars.
     correctChars: isYou ? Math.max(youSnapshot.correctChars, s.progressChars) : s.progressChars,
-    wpm: isYou ? youSnapshot.wpm || s.wpm : s.wpm,
+    // Bar progress stays responsive for "you", but the WPM / raw / acc
+    // NUMBERS always come from the server — the same source the table,
+    // ranking, and leaderboard use — so the local racer's stats agree
+    // everywhere (live ticker, headline, table, recorded result). They
+    // previously used the client youSnapshot (timed from the first
+    // keystroke, not the gun), which is the #6/#7 client-vs-server gap.
+    wpm: s.wpm,
+    raw: s.raw,
     finishedAt: s.finishedAt,
     place: s.place,
     charProgress: 0,
     joinedAt: s.joinedAt,
     errors: isYou ? Math.max(youSnapshot.errors, s.errors) : s.errors,
-    accuracy: isYou ? youSnapshot.accuracy : s.accuracy,
+    accuracy: s.accuracy,
     disconnected: s.disconnected,
   };
 }

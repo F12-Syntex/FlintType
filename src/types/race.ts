@@ -68,11 +68,18 @@ export type RoomRacer = {
    *  report 0 (their motion is deterministic and error-free). Drives
    *  the destructive-coloured tail on the player-strip bar. */
   errors: number;
+  /** Net WPM — correct characters (progress − errors) / 5 / minute,
+   *  computed server-side from the gun (raceStartedAt) so every racer
+   *  is measured from the same t=0. This is the ranking + headline
+   *  "net wpm" value; the results panel and live lineup show it
+   *  directly (no extra × accuracy — it's already error-adjusted). */
   wpm: number;
+  /** Raw WPM — ALL characters typed / 5 / minute (gross, ignoring
+   *  errors), server-side over the same window. raw ≥ wpm always.
+   *  The results "raw" column reads this so the label is honest. */
+  raw: number;
   /** Live accuracy percent (0–100). Bots are always 100; real
-   *  players publish from the typed-vs-target diff. Drives the
-   *  "net wpm" = `wpm × accuracy / 100` metric the results panel
-   *  and leaderboard rank by. */
+   *  players publish from the typed-vs-target diff. */
   accuracy: number;
   finishedAt: number | null;
   place: number | null;

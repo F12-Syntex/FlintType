@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.117.7 — 29 May 2026
+- Multiplayer race results now show one consistent set of numbers. Your headline net WPM, your row in the standings, and the live race all read the same server-measured values, so they no longer disagree (the "66 here, 64 there" bug). The "raw" column now shows a true raw WPM (every key pressed) instead of repeating the net figure, and the ranking no longer penalises accuracy twice.
+
 ## 6.117.0 — 25 May 2026
 - Adaptive practice now zeroes in on the hand motions you're actually slow at, rather than a handful of specific words — so the speed you build carries over to everything you type. Each passage also spreads across several of your weak motions instead of repeating the same word over and over, and a word you've just drilled won't keep resurfacing for a good while.
 - New "Isolation drill" cards on the Drills page: pick one of your weakest letter pairs and drill it across dozens of varied everyday words. Same motion, many words — the keybr-style way to make the speed actually transfer.
