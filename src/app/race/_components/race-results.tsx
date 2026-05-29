@@ -463,12 +463,12 @@ function ordinal(n: number): string {
 
 function summaryLine(place: number, total: number, time: number): string {
   if (place === 1) {
-    return `Cleared the passage in ${formatT(time)} — fastest across the line. Queue another to defend.`;
+    return `Won in ${formatT(time)}. Race again to defend it.`;
   }
   if (place === total) {
-    return `Bots took the line first this time. Queue another and aim for the next slot up.`;
+    return `Finished last in ${formatT(time)}. Race again.`;
   }
-  return `Solid run — ${formatT(time)} on the clock. The leader's still up the page.`;
+  return `Finished ${ordinal(place)} of ${total} in ${formatT(time)}.`;
 }
 
 /** Standing line shown while the room is still racing — the placement
@@ -482,9 +482,9 @@ function provisionalLine(
 ): string {
   const standing =
     place === 1 ? "leading on net WPM" : `${ordinal(place)} of ${total} on net WPM`;
-  if (stillRacing <= 0) return `You're ${standing}. Tallying the final places.`;
-  const who = stillRacing === 1 ? "1 racer is" : `${stillRacing} racers are`;
-  return `You're ${standing}, ${who} still typing. Standings update as each one crosses.`;
+  if (stillRacing <= 0) return `You're ${standing}. Finalising places.`;
+  const who = stillRacing === 1 ? "1 racer" : `${stillRacing} racers`;
+  return `You're ${standing} — ${who} still typing.`;
 }
 
 function accuracyFromTyped(

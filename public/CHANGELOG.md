@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.118.1 — 29 May 2026
+- Plainer copy in a couple of spots: the Drills page now reads "Drill your weak spots · Short, focused sets on the letter pairs and words you're slowest at", and the race-finished line just states your placement and time ("Won in 0:24. Race again to defend it.") instead of the wordier version.
+
 ## 6.117.0 — 25 May 2026
 - Adaptive practice now zeroes in on the hand motions you're actually slow at, rather than a handful of specific words — so the speed you build carries over to everything you type. Each passage also spreads across several of your weak motions instead of repeating the same word over and over, and a word you've just drilled won't keep resurfacing for a good while.
 - New "Isolation drill" cards on the Drills page: pick one of your weakest letter pairs and drill it across dozens of varied everyday words. Same motion, many words — the keybr-style way to make the speed actually transfer.
