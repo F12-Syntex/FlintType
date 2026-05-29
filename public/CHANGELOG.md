@@ -8,6 +8,13 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.117.2 — 29 May 2026
+- The friends panel now lists everyone you follow — including people who are offline — each with their last-seen status, instead of hiding them until you searched. Live and online friends still sort to the top, all in one scrollable list.
+
+## 6.117.1 — 29 May 2026
+- Edit profile no longer wipes a name or username you'd started typing the moment you pick a rank or toggle a tag — your in-progress text now stays put.
+- Edit profile's Save button is no longer stuck disabled when you've only changed your rank or tags: those already save the instant you click them, and Save now reliably commits any name/username edit and closes the dialog.
+
 ## 6.117.0 — 25 May 2026
 - Adaptive practice now zeroes in on the hand motions you're actually slow at, rather than a handful of specific words — so the speed you build carries over to everything you type. Each passage also spreads across several of your weak motions instead of repeating the same word over and over, and a word you've just drilled won't keep resurfacing for a good while.
 - New "Isolation drill" cards on the Drills page: pick one of your weakest letter pairs and drill it across dozens of varied everyday words. Same motion, many words — the keybr-style way to make the speed actually transfer.
