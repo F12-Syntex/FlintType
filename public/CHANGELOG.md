@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.117.9 — 29 May 2026
+- Multiplayer: signed-in racers now show their real handle instead of "Guest". (The race server wasn't being told who you were on the hosted setup.)
+- Multiplayer: you can no longer keep typing into the passage after a race has finished — input locks the instant the race ends, and the instant you personally cross the line.
+
 ## 6.117.0 — 25 May 2026
 - Adaptive practice now zeroes in on the hand motions you're actually slow at, rather than a handful of specific words — so the speed you build carries over to everything you type. Each passage also spreads across several of your weak motions instead of repeating the same word over and over, and a word you've just drilled won't keep resurfacing for a good while.
 - New "Isolation drill" cards on the Drills page: pick one of your weakest letter pairs and drill it across dozens of varied everyday words. Same motion, many words — the keybr-style way to make the speed actually transfer.

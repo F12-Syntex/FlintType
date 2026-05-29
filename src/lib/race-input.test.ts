@@ -17,9 +17,16 @@ describe("isRaceInputLocked (phase predicate)", () => {
     expect(isRaceInputLocked("countdown")).toBe(true);
   });
 
-  it("allows input once the race is running or finished", () => {
+  it("allows input only while racing, and locks once finished", () => {
+    // #11: the "finished" phase (whole race over) is now locked so a
+    // racer can't keep typing into the passage after the race ends.
     expect(isRaceInputLocked("racing")).toBe(false);
-    expect(isRaceInputLocked("finished")).toBe(false);
+    expect(isRaceInputLocked("finished")).toBe(true);
+  });
+
+  it("locks a racer who has already crossed the line, even mid-race", () => {
+    expect(isRaceInputLocked("racing", true)).toBe(true);
+    expect(isRaceInputLocked("racing", false)).toBe(false);
   });
 
   it("locks input while connecting (no snapshot yet)", () => {
@@ -51,9 +58,9 @@ describe("live race-input lock store", () => {
     // Gun fires → input flows.
     setRaceInputLocked(isRaceInputLocked("racing"));
     expect(isRaceInputCurrentlyLocked()).toBe(false);
-    // Finished → still open (the user may have crossed the line).
+    // Finished → locked again so no post-race typing leaks in (#11).
     setRaceInputLocked(isRaceInputLocked("finished"));
-    expect(isRaceInputCurrentlyLocked()).toBe(false);
+    expect(isRaceInputCurrentlyLocked()).toBe(true);
   });
 
   it("is released on unmount (provider resets to false)", () => {

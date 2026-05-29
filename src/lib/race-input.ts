@@ -13,8 +13,17 @@ import type { RacePhase } from "@/types/race";
  *  pre-race posts and clamps progress to what's typeable since the
  *  gun — see `Room.setProgress`); this is the client half so nothing
  *  accumulates locally and the user never sees phantom progress. */
-export function isRaceInputLocked(phase: RacePhase | null | undefined): boolean {
-  return phase !== "racing" && phase !== "finished";
+export function isRaceInputLocked(
+  phase: RacePhase | null | undefined,
+  youFinished = false,
+): boolean {
+  // Locked unless the room is actively `racing`. The `finished` phase
+  // (whole race over) is now locked too — previously it was open, which
+  // let a racer keep typing into the passage for the post-race window
+  // (#11). And once the LOCAL racer has crossed the line, lock them even
+  // while others are still racing — their run is done.
+  if (youFinished) return true;
+  return phase !== "racing";
 }
 
 // ─── Live lock flag ──────────────────────────────────────────────────

@@ -1,6 +1,13 @@
+import { auth } from '@clerk/nextjs/server';
 import { BackendError, type ErrorCode } from '@/lib/errors';
 import { env, IS_RACE_AUTHORITY } from '@/server/env';
 import type { Middleware, RouteContext, RouteHandler } from '@/server/types';
+import { RACE_USER_ID_HEADER } from './identity';
+
+/** Race routes that resolve a racer's display identity on join. Only
+ *  these forward the caller's user id — the high-frequency keystroke
+ *  firehose and leave/rematch never pay the auth() read. */
+const IDENTITY_ROUTES = /\/(queue|create|join)$/;
 
 /** Header name carried on every Vercel → Railway proxy hop. Stays in
  *  one place so authority + proxy agree by reference. */
@@ -48,6 +55,23 @@ export async function proxyToRaceAuthority<O>(
     ctx.req.headers.get(FORWARDED_FOR_HEADER) ??
     ctx.req.headers.get('x-real-ip');
   if (incomingFwd) headers[FORWARDED_FOR_HEADER] = incomingFwd;
+
+  // The Clerk session cookie can't cross the cross-origin proxy hop, so
+  // the authority's auth() sees no user and would label every signed-in
+  // racer "Guest" (#9). Here on Vercel auth() works and is cheap (cookie
+  // parse, no API call) — forward the caller's user id as a trusted
+  // header on the join routes only; the authority resolves the handle
+  // from that id. The keystroke firehose never pays this.
+  if (IDENTITY_ROUTES.test(pathname)) {
+    try {
+      const session = await auth();
+      if (session.userId) headers[RACE_USER_ID_HEADER] = session.userId;
+    } catch (err) {
+      // Identity is cosmetic — a Clerk blip must not block the race
+      // action. The authority falls back to a guest label.
+      ctx.log.warn('race proxy auth read failed', { err: String(err) });
+    }
+  }
 
   let res: Response;
   try {

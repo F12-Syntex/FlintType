@@ -135,7 +135,9 @@ export function OnlineRaceProvider({
   // so the surface opens locked and only unlocks when the server says
   // "racing". The unmount cleanup releases it so a later single-player
   // run is never left locked.
-  setRaceInputLocked(isRaceInputLocked(snapshot?.phase));
+  const youFinished =
+    snapshot?.racers.find((r) => r.id === room?.sessionToken)?.finishedAt != null;
+  setRaceInputLocked(isRaceInputLocked(snapshot?.phase, youFinished));
   useEffect(() => () => setRaceInputLocked(false), []);
 
   const state = useMemo(
