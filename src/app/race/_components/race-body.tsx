@@ -29,21 +29,20 @@ export function RaceBody() {
   const raceOver = state.phase === "finished";
   const youFinished = you?.finishedAt != null;
 
-  // Race fully over → results take the whole surface, no writer.
-  if (raceOver) {
+  // Race over, OR you've finished while the room runs on → keep the
+  // passage visible (so you can still read what you typed) with the
+  // results panel beneath it. (Previously a finished race dropped the
+  // writer entirely; the text should stay.)
+  if (raceOver || youFinished) {
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pt-4 pb-8 sm:gap-6 sm:px-12 sm:py-8 lg:px-20">
-        <RaceResults />
-      </div>
-    );
-  }
-
-  // You're done but the room hasn't finished → live surface (spectator
-  // view of who's still going) plus your results beneath it.
-  if (youFinished) {
-    return (
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pt-4 pb-8 sm:gap-6 sm:px-12 sm:py-8 lg:px-20">
-        <RaceSurface />
+        {/* Give the surface a real height so the passage (which centres
+         *  + clips to its container) doesn't collapse to nothing inside
+         *  the scrolling results column — that's what was hiding the
+         *  text. Results scroll beneath it. */}
+        <div className="flex min-h-[55vh] shrink-0 flex-col">
+          <RaceSurface />
+        </div>
         <RaceResults />
       </div>
     );

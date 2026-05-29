@@ -135,13 +135,7 @@ export function RaceResults() {
             {allFinished ? "Race finished" : "You finished · race in progress"}
           </span>
           <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-[40px]">
-            {!allFinished
-              ? "Across the line."
-              : place === 1
-                ? "Race won."
-                : place === total
-                  ? "Last across."
-                  : `Finished ${ordinal(place)}.`}
+            {ordinal(place)} place
           </h2>
           <p className="max-w-md text-[13px] leading-relaxed text-muted-foreground">
             {allFinished
@@ -433,19 +427,22 @@ function Stat({
 }
 
 function ordinal(n: number): string {
-  if (n === 2) return "2nd";
-  if (n === 3) return "3rd";
-  return `${n}th`;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1:
+      return `${n}st`;
+    case 2:
+      return `${n}nd`;
+    case 3:
+      return `${n}rd`;
+    default:
+      return `${n}th`;
+  }
 }
 
 function summaryLine(place: number, total: number, time: number): string {
-  if (place === 1) {
-    return `Won in ${formatClock(time)}. Race again to defend it.`;
-  }
-  if (place === total) {
-    return `Finished last in ${formatClock(time)}. Race again.`;
-  }
-  return `Finished ${ordinal(place)} of ${total} in ${formatClock(time)}.`;
+  return `${ordinal(place)} of ${total} in ${formatClock(time)}.`;
 }
 
 /** Standing line shown while the room is still racing — the placement
@@ -457,9 +454,8 @@ function provisionalLine(
   total: number,
   stillRacing: number,
 ): string {
-  const standing =
-    place === 1 ? "leading on net WPM" : `${ordinal(place)} of ${total} on net WPM`;
-  if (stillRacing <= 0) return `You're ${standing}. Finalising places.`;
+  const standing = `${ordinal(place)} of ${total}`;
+  if (stillRacing <= 0) return `${standing}. Finalising places.`;
   const who = stillRacing === 1 ? "1 racer" : `${stillRacing} racers`;
-  return `You're ${standing} — ${who} still typing.`;
+  return `${standing}, ${who} still typing.`;
 }

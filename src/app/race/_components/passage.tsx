@@ -97,14 +97,15 @@ export function RacePassage() {
   const showSpectator = isSpectator
     ? state.phase === "racing" || state.phase === "finished"
     : state.phase === "racing" && youFinished;
-  // Player roster shows from matching onwards. Hidden in queue
-  // (empty room — only the user) and in finished if everyone's
-  // already wrapped (RaceResults takes over visually).
+  // Player roster shows from matching through the live race (incl. the
+  // post-finish spectator view while the room runs on). At "finished"
+  // it's dropped: the RaceResults standings table is THE roster then,
+  // so the passage text below can have the full surface to itself.
   const showLineup =
     state.phase === "matching" ||
     state.phase === "lobby" ||
     state.phase === "countdown" ||
-    racing;
+    state.phase === "racing";
   const totalOpponents = state.racers.filter((r) => !r.isYou).length;
   const joinedOpponents = state.racers.filter(
     (r) => !r.isYou && r.joinedAt != null,

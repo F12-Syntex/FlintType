@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.121.5 — 29 May 2026
+- After a race ends, the passage you typed stays on screen above the results instead of vanishing.
+- The race result headline now just states your place plainly ("1st place", "2nd place", …) instead of vague phrases like "Last across", with a one-line "Nth of N in m:ss" under it.
+
 ## 6.121.4 — 29 May 2026
 - Added breathing room between the race player-list card and the text below it (the passage you type, and the spectator view), so the text no longer crowds the card.
 
