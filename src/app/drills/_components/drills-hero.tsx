@@ -24,15 +24,14 @@ export function DrillsHero({
       <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:gap-8">
         <div className="flex flex-col gap-3">
           <h1 className="text-[28px] font-bold leading-[1.05] tracking-[-0.02em] text-foreground sm:text-[44px] lg:text-[52px]">
-            Targeted reps.
+            Drill your
             <br />
-            <span className="text-foreground/60">Built around your model.</span>
+            <span className="text-foreground/60">weak spots.</span>
           </h1>
           <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Short minigames against the bigrams and words your model
-            says are slowest — plus curated sudden-death gauntlets,
-            pangrams, and the top-100 sprint that always work without
-            a model.
+            Short, focused sets on the letter pairs and words you're
+            slowest at. Plus sudden-death gauntlets, pangrams, and a
+            top-100 sprint you can run any time.
           </p>
         </div>
 
