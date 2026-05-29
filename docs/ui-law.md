@@ -507,6 +507,8 @@ The shadcn `<Button>` is still preferred when the form/dialog already uses shadc
 
 **Brand mark.** Always render via `<Logo>`. The flame SVG at `/public/flinttype-logo.svg` is the single source of truth — never hand-roll a square/diamond mark inline. An older rotated-square glyph appeared in early commits; it has been replaced everywhere.
 
+**Top-bar control height** — every interactive control in the `<TopBar>` right slot (sign-in pill, profile trigger, notifications bell, settings gear) is **`h-9` / `size-9` (36px)** so the cluster reads as one row of equal-height controls beside the nav segmented card (which lands at ~36px via `p-0.5` + `py-1.5 text-[13px]`). Pin the height with `h-9`/`size-9` — never let it be driven by `py-*` + intrinsic text/avatar size, which silently produces a short control (the sign-in pill once rendered ~24px this way). Bordered segmented chrome that can't hit exactly 36px on the Tailwind scale without an arbitrary value (the `<ModeSwitcher>` icon toggle at `size-8` + border ≈ 34px) stays on the clean scale value — the 1–2px difference is invisible once `items-center` centres it in the 56px bar, and §3 forbids arbitrary heights to force the match.
+
 **Hairline rule** — any "section break" is a single 1px border in `border-ft-line-soft` (paper) or `border-[#221F1A]` (ink). No box-shadows on product surfaces, no double borders.
 
 **Severity dot** — a 6×6 square (not circle): `bg-ft-ember` (high), `bg-ft-ember-soft` (mid), `bg-ft-dim` (low), `bg-ft-ok` (resolved/win).

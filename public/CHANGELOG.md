@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.118.3 — 29 May 2026
+- Tidied the top bar: the "Sign in" button is now the same height as the bell, settings, and profile controls beside it, so the row lines up instead of the Sign in pill sitting noticeably shorter.
+
 ## 6.118.2 — 29 May 2026
 - Both Start buttons in a race lobby (the header action and the lobby card) now wait for everyone to ready up — neither lets the host start early.
 

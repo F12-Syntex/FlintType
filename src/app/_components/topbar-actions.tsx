@@ -100,7 +100,10 @@ function ProfileLink({ dark }: { dark: boolean }) {
         href="/sign-in"
         aria-label="Sign in"
         className={cn(
-          "hidden items-center gap-2 rounded-md px-3 py-1 text-[11px] font-medium tracking-[0.14em] uppercase transition-colors md:flex",
+          // h-9 (36px) pins the control height to match the nav segmented
+          // card, the notifications bell, and the profile trigger beside
+          // it — height was previously py-driven (~24px) and read short.
+          "hidden h-9 items-center gap-2 rounded-md px-3 text-[11px] font-medium tracking-[0.14em] uppercase transition-colors md:flex",
           dark
             ? "text-ft-paper hover:bg-white/5"
             : "text-foreground hover:bg-foreground/5",
@@ -149,7 +152,9 @@ function ProfileLink({ dark }: { dark: boolean }) {
       <DropdownMenuTrigger
         aria-label={`Profile · ${displayName}`}
         className={cn(
-          "hidden items-center gap-2 rounded-md px-2 py-1 outline-none transition-colors md:flex",
+          // h-9 (36px) matches the sign-in pill, the notifications bell,
+          // and the nav segmented card — one chrome control height.
+          "hidden h-9 items-center gap-2 rounded-md px-2 outline-none transition-colors md:flex",
           "focus-visible:ring-1 focus-visible:ring-ring",
           dark
             ? "text-ft-paper hover:bg-white/5"
