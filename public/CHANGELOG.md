@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.117.5 — 29 May 2026
+- Fixed leaderboard rows on mobile dropping the @handle when a player had wide tags (e.g. WHITE HAT + OG). The name now sits on its own line above the tags on phones, so it's always visible.
+
 ## 6.117.4 — 29 May 2026
 - Fixed quote mode getting stuck on "loading quote…" after a page reload. If quote was your last-used mode, the passage now loads straight away instead of hanging.
 
