@@ -437,6 +437,8 @@ function snapshotToRaceState({
           badge: "RACER",
           isYou: true,
           bot: null,
+          isHost: false,
+          ready: false,
           correctChars: 0,
           wpm: 0,
           finishedAt: null,
@@ -518,6 +520,8 @@ function serverRacerToClient(
     badge: s.badge,
     isYou,
     bot: botProfile,
+    isHost: s.isHost,
+    ready: s.ready,
     // Prefer the local progress for "you" so a server lag-spike
     // doesn't visibly stall your own bar. Other racers use the
     // server-published progressChars.

@@ -35,6 +35,12 @@ export function RaceControls() {
     state.phase === "queue" ||
     state.phase === "lobby" ||
     state.phase === "finished";
+  // Ready-up gate (#26): the host's Start stays disabled until every
+  // other present human has readied up (bots auto-ready). Matches the
+  // lobby card and the server-side challenge.start enforcement.
+  const allReady = state.racers
+    .filter((r) => r.bot == null && !r.disconnected && !r.isHost)
+    .every((r) => r.ready);
   // "Bare" phases — `queue` and `finished` — let mode switches go
   // straight through. Every other phase (matching / lobby /
   // countdown / racing) represents a live commitment that the user
@@ -67,6 +73,7 @@ export function RaceControls() {
         <ActionButton
           phase={state.phase}
           isChallenge={isChallenge ?? false}
+          allReady={allReady}
           onEnter={enterQueue}
           onStart={startCountdown}
           onRestart={restart}
@@ -215,6 +222,7 @@ function Field({
 function ActionButton({
   phase,
   isChallenge,
+  allReady,
   onEnter,
   onStart,
   onRestart,
@@ -226,6 +234,9 @@ function ActionButton({
    *  primary CTA (host-controlled), instead of the auto-progressing
    *  matchmaking flow's disabled "Starting" pip. */
   isChallenge: boolean;
+  /** False while a non-host human in the lobby hasn't readied up — the
+   *  host's Start is disabled until then (#26). */
+  allReady: boolean;
   onEnter: () => void;
   onStart: () => void;
   onRestart: () => void;
@@ -239,7 +250,13 @@ function ActionButton({
   }
   if (phase === "lobby") {
     if (isChallenge) {
-      return <PrimaryButton onClick={onStart}>Start race</PrimaryButton>;
+      // Gate Start until everyone's readied up (#26). Server enforces
+      // the same rule; this keeps the button honest so it never errors.
+      return allReady ? (
+        <PrimaryButton onClick={onStart}>Start race</PrimaryButton>
+      ) : (
+        <DisabledButton>Waiting…</DisabledButton>
+      );
     }
     return <DisabledButton>Starting</DisabledButton>;
   }
