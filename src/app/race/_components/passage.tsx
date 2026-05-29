@@ -109,49 +109,57 @@ export function RacePassage() {
   const joinedOpponents = state.racers.filter(
     (r) => !r.isYou && r.joinedAt != null,
   ).length;
+  // The live racetrack (each racer a bead gliding toward the finish).
+  // Shown from matching onward; the TypeRacer "cars on top" element.
+  const lineupEl = showLineup ? (
+    <RaceLineupPanel
+      racers={state.racers}
+      totalChars={state.totalChars}
+      phase={state.phase as RacePhase}
+      modeName={RACE_MODES[state.modeId].name}
+      joinedOpponents={joinedOpponents}
+      totalOpponents={totalOpponents}
+      wordsDone={wordsDone}
+      totalWords={state.words.length}
+      wpm={wpm}
+      accuracy={acc}
+    />
+  ) : null;
+
+  // While racing, the racetrack is pinned to the TOP as an overlay
+  // (out of the vertical-centering flow) so the typing text below
+  // centres on the VIEWPORT, not on the gap left between the racetrack
+  // and the footer. The passage fills the full surface and its own
+  // justify-center then lands the text at the screen's middle.
+  if (racing) {
+    return (
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+        {lineupEl ? (
+          <div className="absolute inset-x-0 top-0 z-10">{lineupEl}</div>
+        ) : null}
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
+          <div className="min-h-0 flex-1">
+            {showSpectator ? (
+              <SpectatorPassage words={state.words} racers={state.racers} />
+            ) : (
+              <Passage wordBackground={wordTints} wordTextColor={wordTextColor} />
+            )}
+          </div>
+          {quoteSource ? <QuoteAttribution source={quoteSource} /> : null}
+        </div>
+      </div>
+    );
+  }
+
+  // Pre-race (matching / lobby / countdown): the racetrack + lobby card
+  // stack in normal flow above the poster — there's no passage to
+  // centre yet, so the in-flow stack reads cleanly.
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
-      {/* Lineup sits ABOVE the typing area — the TypeRacer layout. The
-       *  live racetrack (each racer a bead gliding toward the finish)
-       *  is the first thing the eye lands on; the passage you type
-       *  flows underneath it. During the lobby the roster + lobby card
-       *  stack here above the poster. */}
-      {showLineup ? (
-        <RaceLineupPanel
-          racers={state.racers}
-          totalChars={state.totalChars}
-          phase={state.phase as RacePhase}
-          modeName={RACE_MODES[state.modeId].name}
-          joinedOpponents={joinedOpponents}
-          totalOpponents={totalOpponents}
-          wordsDone={wordsDone}
-          totalWords={state.words.length}
-          wpm={wpm}
-          accuracy={acc}
-        />
-      ) : null}
-
+      {lineupEl}
       <ChallengeLobby />
-
       <div className="min-h-0 flex-1">
-        {racing ? (
-          <div className="flex h-full w-full flex-col gap-3">
-            <div className="min-h-0 flex-1">
-              {showSpectator ? (
-                <SpectatorPassage
-                  words={state.words}
-                  racers={state.racers}
-                />
-              ) : (
-                <Passage
-                  wordBackground={wordTints}
-                  wordTextColor={wordTextColor}
-                />
-              )}
-            </div>
-            {quoteSource ? <QuoteAttribution source={quoteSource} /> : null}
-          </div>
-        ) : state.phase === "countdown" ? (
+        {state.phase === "countdown" ? (
           <CountdownPanel n={countdownNumber ?? 3} />
         ) : (
           <RacePoster

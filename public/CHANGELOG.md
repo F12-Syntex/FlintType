@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.121.2 — 29 May 2026
+- During a race the typing text now sits at the vertical centre of the screen again. The racetrack floats at the top instead of pushing the text down into the gap above the footer.
+
 ## 6.121.1 — 29 May 2026
 - Relative timestamps now read consistently everywhere (recent runs, notifications, insights, your profile): "5m ago", "2h ago", then a tidy "May 4" for older entries. Internal: the duration and "time ago" formatters are now shared instead of re-written per page.
 
