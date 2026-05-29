@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.117.4 — 29 May 2026
+- Fixed quote mode getting stuck on "loading quote…" after a page reload. If quote was your last-used mode, the passage now loads straight away instead of hanging.
+
 ## 6.117.3 — 29 May 2026
 - Replaying a timed test now shows only the words you actually typed, instead of the entire long buffer of upcoming words that scrolls ahead during the run.
 
