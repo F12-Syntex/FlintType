@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.122.1 — 29 May 2026
+- Added a shareable "what's new" card for the multiplayer race update (a private promo page you can screenshot), showing the flint-stone racetrack and the fire progression. Not an in-app change.
+
 ## 6.122.0 — 29 May 2026
 - The multiplayer race now looks like an actual race: bigger lanes, and every racer is a flint stone that rolls toward the finish line as they type. The faster someone is going, the more their stone catches fire (a plain pebble at the bottom, a full inferno at the top), so you can see at a glance who's burning. You're the coral-glowing stone.
 

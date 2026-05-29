@@ -57,8 +57,14 @@ export default async function UpdatePage({
           {update.tagline}
         </p>
 
-        {/* Preview thumbnails — a single wide row on sm+, 2×2 on mobile. */}
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-7 sm:grid-cols-4">
+        {/* Preview thumbnails — a single wide row on sm+, wrapping on
+         *  mobile. Column count tracks the highlight count so a 3-up card
+         *  doesn't leave a dead cell. */}
+        <div
+          className={`mt-6 grid grid-cols-2 gap-3 sm:mt-7 ${
+            update.highlights.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-4"
+          }`}
+        >
           {update.highlights.map((h) => {
             const Preview = UPDATE_PREVIEWS[h.preview];
             return (

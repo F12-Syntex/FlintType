@@ -1,4 +1,4 @@
-import { Flame, Swords } from "lucide-react";
+import { Check, Flame, Swords } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** Bespoke mini-mockups for the update advert card — small, recognisable
@@ -125,10 +125,134 @@ function ProfilePreview() {
   );
 }
 
+/** The actual flint-stone racer SVG (from `/public/stone-assets`) — the
+ *  real asset the race screen rides, not a stand-in. `you` paints the
+ *  coral drop-shadow that marks the local racer on the track. One
+ *  eslint-disable for the whole file's worth of stones. */
+function Stone({
+  name,
+  you,
+  className,
+}: {
+  name: string;
+  you?: boolean;
+  className?: string;
+}) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`/stone-assets/${name}.svg`}
+      alt=""
+      aria-hidden
+      draggable={false}
+      className={cn("select-none", className)}
+      style={
+        you
+          ? {
+              filter:
+                "drop-shadow(0 0 5px color-mix(in oklch, var(--color-ft-ember) 70%, transparent))",
+            }
+          : undefined
+      }
+    />
+  );
+}
+
+/** One race lane: a ground line, a scorch trail from the start, a finish
+ *  post on the right, and the flint stone gliding to its progress mark —
+ *  the same anatomy the live racetrack uses. */
+function StoneLane({
+  name,
+  pct,
+  you,
+}: {
+  name: string;
+  pct: number;
+  you?: boolean;
+}) {
+  const ink = you ? "var(--color-ft-ember)" : "var(--color-ft-ink)";
+  return (
+    <div className="relative h-7">
+      <span
+        className="absolute inset-x-0 bottom-1.5 h-px"
+        style={{ backgroundColor: ink, opacity: you ? 0.5 : 0.14 }}
+      />
+      <span
+        className="absolute bottom-1.5 left-0 h-[2px] rounded-full"
+        style={{ width: `${pct}%`, backgroundColor: ink, opacity: you ? 0.5 : 0.25 }}
+      />
+      <span className="absolute right-0 bottom-1 h-5 w-px bg-ft-ink/30" />
+      <span
+        className="absolute bottom-0.5 -translate-x-1/2"
+        style={{ left: `${pct}%` }}
+      >
+        <Stone name={name} you={you} className="size-7" />
+      </span>
+    </div>
+  );
+}
+
+/** Racetrack — flint-stone racers riding their lanes toward the finish.
+ *  Your stone (top) carries the coral spark and a hotter tier out in
+ *  front; the field trails behind on quieter tiers. The headline. */
+function RacetrackPreview() {
+  return (
+    <div aria-hidden className="flex w-full flex-col gap-0.5">
+      <StoneLane name="blaze" pct={80} you />
+      <StoneLane name="ember" pct={54} />
+      <StoneLane name="spark" pct={30} />
+    </div>
+  );
+}
+
+/** Ignite — the new fire progression. The same stone gets hotter as the
+ *  WPM climbs, pebble through inferno, so the field visibly catches
+ *  fire as it speeds up. */
+function IgnitePreview() {
+  const tiers = ["pebble", "ember", "blaze", "inferno"] as const;
+  return (
+    <div aria-hidden className="flex w-full flex-col gap-1.5">
+      <div className="flex items-end justify-between">
+        {tiers.map((name) => (
+          <Stone key={name} name={name} className="size-7 sm:size-9" />
+        ))}
+      </div>
+      <div className="flex items-center justify-between border-t border-ft-line-soft pt-1 text-[7px] font-bold uppercase tracking-[0.18em] text-ft-dim">
+        <span>Slow</span>
+        <span>Fast</span>
+      </div>
+    </div>
+  );
+}
+
+/** A single squashed-bug line. */
+function FixLine({ children }: { children: string }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Check size={10} className="shrink-0 text-ft-ok" />
+      <span className="text-[9px] font-medium text-ft-ink">{children}</span>
+    </div>
+  );
+}
+
+/** Fixes — a short checklist of squashed bugs. No coral; success ink only. */
+function FixesPreview() {
+  return (
+    <div aria-hidden className="flex w-full flex-col gap-1.5">
+      <FixLine>Error counts agree</FixLine>
+      <FixLine>Net + raw WPM match</FixLine>
+      <FixLine>Tab no longer resets</FixLine>
+    </div>
+  );
+}
+
 /** Keyed map the update card renders by `highlight.preview`. */
 export const UPDATE_PREVIEWS: Record<string, React.ComponentType> = {
   hub: HubPreview,
   challenges: ChallengesPreview,
   spectate: SpectatePreview,
   profile: ProfilePreview,
+  racetrack: RacetrackPreview,
+  ignite: IgnitePreview,
+  fixes: FixesPreview,
 };

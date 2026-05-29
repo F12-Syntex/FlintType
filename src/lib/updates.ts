@@ -36,6 +36,19 @@ export type Update = {
 
 export const UPDATES: Update[] = [
   {
+    slug: "multiplayer-race",
+    version: "6.122",
+    title: "The race catches fire",
+    tagline: "Every racer is a flint stone that ignites as it speeds up. Plus a stack of fixes.",
+    date: "May 2026",
+    versions: ["6.122.0", "6.120.0", "6.117.7"],
+    highlights: [
+      { preview: "racetrack", label: "Racetrack" },
+      { preview: "ignite", label: "Ignite" },
+      { preview: "fixes", label: "Fixes" },
+    ],
+  },
+  {
     slug: "friends-and-profile",
     version: "6.96",
     title: "Friends & Profile",
