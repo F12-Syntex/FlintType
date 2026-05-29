@@ -1,0 +1,6 @@
+# Saved Clerk sessions for emulated personas — never commit credentials/cookies.
+.auth/
+# Playwright artifacts from sim runs.
+test-results/
+# Throwaway exploration screenshots.
+*.png

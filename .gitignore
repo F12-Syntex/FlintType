@@ -65,3 +65,8 @@ todo
 /playwright-report/
 /blob-report/
 /.playwright/
+
+# Emulated-user simulation harness artifacts (build/server logs + html report)
+/.sim-build.log
+/.sim-server.log
+/.sim-report/

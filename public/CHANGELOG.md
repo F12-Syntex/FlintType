@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.122.3 — 29 May 2026
+- Internal changes only (developer tooling — an emulated multi-user simulation that drives four signed-in users through practice, following each other, and a private-lobby race, for end-to-end testing).
+
 ## 6.122.2 — 29 May 2026
 - Updated the Discord invite link (the old invite is replaced); the "Join Discord" buttons and banners now point to the new server invite.
 
