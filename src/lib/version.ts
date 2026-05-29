@@ -12,4 +12,4 @@ export const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0";
 export const APP_VERSION_LABEL = `v${APP_VERSION}`;
 
 export const GITHUB_URL = "https://github.com/F12-Syntex/FlintType";
-export const DISCORD_URL = "https://discord.gg/dnewradQxH";
+export const DISCORD_URL = "https://discord.gg/qQsmvpnHdF";

@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.122.2 — 29 May 2026
+- Updated the Discord invite link (the old invite is replaced); the "Join Discord" buttons and banners now point to the new server invite.
+
 ## 6.122.1 — 29 May 2026
 - Added a shareable "what's new" card for the multiplayer race update (a private promo page you can screenshot), showing the flint-stone racetrack and the fire progression. Not an in-app change.
 
