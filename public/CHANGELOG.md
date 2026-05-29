@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.120.1 — 29 May 2026
+- Pressing Tab during a multiplayer race no longer resets your run. Tab restarts only apply to solo practice; in a race it does nothing (rematch is the "Race again" button on the results panel).
+
 ## 6.120.0 — 29 May 2026
 - The multiplayer race screen now reads like a racetrack. Everyone's progress shows as a row of lanes ABOVE the passage, each racer a marker that slides toward the finish line as they type (you're the coral one).
 - Once you're in a lobby or race, the crowded mode / action chips are gone. A single "Leave race" button takes you out and back to the race menu.

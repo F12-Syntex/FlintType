@@ -18,13 +18,12 @@ import { useRace } from "./race-state";
  *  WPM-trace SVG, the per-racer leaderboard table, and the
  *  Race-again CTA so the loop closes inside one screen.
  *
- *  The Tab key is wired to the same Race-again action from the race
- *  state's window keydown handler — pressing Tab on this surface
- *  jumps straight to a new race. */
+ *  Tab is inert during a race (it would otherwise reset your run);
+ *  rematch is the visible "Race again" button on this panel, not a
+ *  keyboard shortcut. */
 export function RaceResults() {
   const {
     state,
-    restart,
     rematch,
     rematchReady,
     onlineSessionToken,

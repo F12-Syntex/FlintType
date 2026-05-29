@@ -1083,6 +1083,12 @@ export function PracticeProvider({
       if (e.ctrlKey || e.altKey || e.metaKey) return;
       e.preventDefault();
       e.stopImmediatePropagation();
+      // In a multiplayer race, Tab is inert: a mid-race restart would
+      // wipe your progress, and the room owns the passage so there's no
+      // fresh set to roll. Swallow it (the preventDefault above already
+      // killed the native focus-shift). Rematch is the visible
+      // "Race again" button on the results panel.
+      if (raceMode) return;
       // In BURST, Tab retries the CURRENT word (clears the typed buffer),
       // it does NOT re-roll a whole new set — a burst is a repeat-until-
       // clean drill, so "again" means this word, not a fresh passage.
@@ -1096,7 +1102,7 @@ export function PracticeProvider({
     }
     window.addEventListener("keydown", onTab, true);
     return () => window.removeEventListener("keydown", onTab, true);
-  }, [dispatch]);
+  }, [dispatch, raceMode]);
 
   // Cross-component restart channel. The command palette's "Restart
   // test" entry dispatches this event; the practice surface
