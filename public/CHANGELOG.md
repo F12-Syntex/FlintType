@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.117.6 — 29 May 2026
+- The error count shown while you type now matches the one on the results screen. Both count individual mistyped characters — previously the live counter counted whole words while the results counted keystrokes, so the two disagreed.
+- Correcting a mistake with Backspace now clears its red mark, the same as Ctrl+Backspace already did. A fully-corrected run reads zero errors, matching its 100% accuracy.
+- The results "errors over time" strip is now labelled "mistakes over time", to set the timeline of every keypress slip apart from the final error total.
+
 ## 6.117.5 — 29 May 2026
 - Fixed leaderboard rows on mobile dropping the @handle when a player had wide tags (e.g. WHITE HAT + OG). The name now sits on its own line above the tags on phones, so it's always visible.
 

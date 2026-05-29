@@ -9,6 +9,7 @@ import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { recordIfPb } from "@/lib/pb-cache";
 import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
 import { cn } from "@/lib/utils";
+import { errorCount } from "@/lib/wpm";
 import {
   avgWpm,
   consistencyScore,
@@ -516,7 +517,12 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
   const avg = Math.round(avgWpm(buckets));
   const stall = Math.round(stallWpm(buckets));
   const cons = consistencyScore(buckets);
-  const wrongTotal = state.events.filter((e) => !e.correct).length;
+  // Per-character errors (incorrect + extra) from the final typed
+  // buffer — the SAME metric the live ERR readout now shows, so the two
+  // agree. (Was a per-keystroke wrong-event count, which also disagreed
+  // with the countChars-based accuracy: a fully-corrected run read 100%
+  // accuracy yet a non-zero error total.)
+  const wrongTotal = errorCount(state.typed, state.words, true);
   const elapsedSec = Math.max(1, Math.round(elapsedMs / 1000));
   // Raw comes straight from the practice state now — same monkeytype
   // formula as WPM but without the "only-perfect-words" filter.

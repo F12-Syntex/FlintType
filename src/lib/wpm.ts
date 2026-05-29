@@ -93,6 +93,27 @@ export function countChars(
   };
 }
 
+/** The run's error count — incorrect + extra characters in the typed
+ *  buffer (monkeytype's "errors"). Final-buffer based: corrected
+ *  mistakes don't count and a 100%-accuracy run reports 0 errors. A
+ *  skipped word's untyped chars are `missedChars`, not errors, so they
+ *  don't count here either.
+ *
+ *  Shared by the live readout (`errs`) and the results screen
+ *  (`errors`) so the two always agree. They previously diverged: the
+ *  live readout counted *words* with any error (`errorWords.size`)
+ *  while the results counted incorrect *keystrokes*
+ *  (`events.filter(!correct)`), so the same run showed different error
+ *  totals during the test vs on the summary. */
+export function errorCount(
+  typed: readonly string[],
+  target: readonly string[],
+  final = true,
+): number {
+  const c = countChars(typed, target, final);
+  return c.incorrectChars + c.extraChars;
+}
+
 export type WpmResult = {
   wpm: number;
   raw: number;

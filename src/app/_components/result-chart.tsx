@@ -24,7 +24,7 @@ export type Bucket = { sec: number; wpm: number; raw: number };
 const chartConfig = {
   wpm: { label: "wpm", color: "var(--primary)" },
   raw: { label: "raw", color: "var(--muted-foreground)" },
-  errors: { label: "errors", color: "var(--destructive)" },
+  errors: { label: "mistakes", color: "var(--destructive)" },
 } satisfies ChartConfig;
 
 /** Per-second error count bucketed off the keystroke stream — same
@@ -236,10 +236,14 @@ function ErrorRibbon({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between gap-3 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-        <span>errors over time</span>
+        {/* "mistakes" (keystroke timeline — every wrong keypress, when it
+            happened) is deliberately distinct from the headline "errors"
+            stat (uncorrected characters in the final text). Different
+            label so the two numbers don't read as the same metric. */}
+        <span>mistakes over time</span>
         <span className="text-muted-foreground/70 tabular-nums">
           {totalErrors === 0
-            ? "no errors"
+            ? "no mistakes"
             : `${totalErrors} total · peak ${maxErrors}/s`}
         </span>
       </div>

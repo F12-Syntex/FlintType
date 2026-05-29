@@ -293,6 +293,21 @@ function popTyped(typed: readonly string[], index: number): string[] {
   return next;
 }
 
+/** Whether a word's current typed buffer is "wrong" for the red
+ *  underline: it has a character that mismatches the target in the
+ *  overlap, or it runs past the target (extras). An incomplete but
+ *  correct prefix is NOT wrong here — it only gets flagged when the
+ *  user skips past it with SPACE. Used to clear/keep the error flag as
+ *  the buffer is edited, so correcting a mistake (via plain Backspace,
+ *  not just Ctrl+Backspace) clears the underline. */
+function wordErrored(typedWord: string, target: string): boolean {
+  if (typedWord.length > target.length) return true;
+  for (let i = 0; i < typedWord.length; i += 1) {
+    if (typedWord[i] !== target[i]) return true;
+  }
+  return false;
+}
+
 export function reducer(s: State, a: Action): State {
   switch (a.type) {
     case "SET_MODE":
@@ -420,10 +435,22 @@ export function reducer(s: State, a: Action): State {
           cursorChar: prevTyped.length,
         };
       }
+      // Re-evaluate the current word's error flag after the delete:
+      // if the buffer no longer has a wrong character, clear the red
+      // underline — so plain Backspace clears a corrected mistake just
+      // like Ctrl+Backspace does (previously only the latter did).
+      const nextTyped = popTyped(s.typed, s.cursorWord);
+      const nextErrors = new Set(s.errorWords);
+      if (wordErrored(nextTyped[s.cursorWord] ?? "", s.words[s.cursorWord] ?? "")) {
+        nextErrors.add(s.cursorWord);
+      } else {
+        nextErrors.delete(s.cursorWord);
+      }
       return {
         ...s,
         cursorChar: s.cursorChar - 1,
-        typed: popTyped(s.typed, s.cursorWord),
+        typed: nextTyped,
+        errorWords: nextErrors,
       };
     }
     case "BACKSPACE_WORD": {

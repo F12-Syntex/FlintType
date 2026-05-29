@@ -319,3 +319,47 @@ describe("practice reducer — generateWords adjacency", () => {
     expect(words).toEqual(["only", "only", "only", "only", "only"]);
   });
 });
+
+describe("practice reducer — BACKSPACE clears the error underline on fix (#16)", () => {
+  it("removes the word from errorWords once the wrong char is deleted", () => {
+    // Typed "helxo" against "hello" — the 4th char is wrong, word flagged.
+    const s = seed({
+      words: ["hello", "world"],
+      cursorWord: 0,
+      cursorChar: 5,
+      typed: ["helxo", ""],
+      errorWords: new Set([0]),
+    });
+    // Backspace twice to delete the 'o' then the wrong 'x'.
+    const next = run(s, { type: "BACKSPACE" }, { type: "BACKSPACE" });
+    expect(next.typed[0]).toBe("hel");
+    // "hel" is a correct prefix of "hello" → no longer flagged, so the
+    // red underline clears (previously only Ctrl+Backspace cleared it).
+    expect(next.errorWords.has(0)).toBe(false);
+  });
+
+  it("keeps the flag while a wrong char remains in the buffer", () => {
+    const s = seed({
+      words: ["hello"],
+      cursorWord: 0,
+      cursorChar: 5,
+      typed: ["helxo"],
+      errorWords: new Set([0]),
+    });
+    const next = reducer(s, { type: "BACKSPACE" }); // deletes 'o' → "helx"
+    expect(next.typed[0]).toBe("helx");
+    expect(next.errorWords.has(0)).toBe(true);
+  });
+});
+
+describe("practice reducer — SPACE is a no-op at rest (leading space ignored)", () => {
+  it("does not advance or start the run on a leading space", () => {
+    // Matches monkeytype: a space before any typing is ignored, so the
+    // run only starts on a real character. (The skipped-word *error
+    // count* half of #17 is fixed separately by the shared errorCount
+    // metric — see wpm.test.ts.)
+    const s = { ...initialState, words: ["hello", "world"], phase: "rest" as const };
+    const next = reducer(s, { type: "SPACE", now: 1000, strictSpace: false });
+    expect(next).toBe(s);
+  });
+});
