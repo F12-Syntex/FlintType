@@ -28,6 +28,23 @@ export const RACE_WORD_COUNTS = [10, 25, 50, 100] as const;
  *  racer completes a fixed passage. */
 export const RACE_DURATIONS = [15, 30, 60] as const;
 
+/** Quote length buckets for a QUOTE race. The char-length brackets
+ *  mirror monkeytype's (and single-player's `src/lib/quotes.ts`
+ *  `QUOTE_GROUPS`) — the parallel is intentional: races keep their own
+ *  copy here so these isomorphic types never pull the `"use client"`
+ *  practice module onto the server. */
+export const RACE_QUOTE_GROUPS = [
+  { id: 0, label: "short", min: 0, max: 100 },
+  { id: 1, label: "medium", min: 101, max: 300 },
+  { id: 2, label: "long", min: 301, max: 600 },
+  { id: 3, label: "thicc", min: 601, max: 9999 },
+] as const;
+export type RaceQuoteGroup = (typeof RACE_QUOTE_GROUPS)[number]["id"];
+/** The default "small to large" range a fresh lobby draws from: short,
+ *  medium, and long — excludes the 600+ char `thicc` bracket, which
+ *  would push a race well past a minute. */
+export const DEFAULT_RACE_QUOTE_LENGTHS: readonly RaceQuoteGroup[] = [0, 1, 2];
+
 /** Lifecycle of a server-authoritative race room.
  *    matching   — 5s window for real players to arrive; bots fill in
  *                 every ~1s if seats stay open
@@ -236,6 +253,19 @@ export const createChallengeInputSchema = z.object({
     .array(z.string().min(1).max(60))
     .min(1)
     .max(RACE_WORD_POOL_MAX)
+    .optional(),
+  /** When true, the challenge is a QUOTE race: the server draws a
+   *  random quote whose char-length falls in one of `quoteLengths`.
+   *  Takes precedence over `wordCount` / `wordPool` / `durationSec` —
+   *  the quote determines the passage. */
+  quote: z.boolean().optional(),
+  /** Quote length buckets to draw from (ids into `RACE_QUOTE_GROUPS`:
+   *  0 short, 1 medium, 2 long, 3 thicc). Defaults to short..long
+   *  (`DEFAULT_RACE_QUOTE_LENGTHS`). Ignored unless `quote` is true. */
+  quoteLengths: z
+    .array(z.number().int().min(0).max(3))
+    .min(1)
+    .max(4)
     .optional(),
 });
 export type CreateChallengeInput = z.infer<typeof createChallengeInputSchema>;

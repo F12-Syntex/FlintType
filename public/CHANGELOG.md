@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.119.0 — 29 May 2026
+- Creating a race lobby is now one click. "Create lobby" makes the lobby straight away and drops you into it, instead of opening a setup panel first.
+- Next to it is a settings button (the sliders icon) that lets you change what the lobby races. New lobbies default to quotes of mixed length (short through long). In there you can switch between Quote, Words, and Timed races, choose which quote lengths to draw from, or pick a word list and length as before. Your choice is remembered for next time.
+
 ## 6.118.3 — 29 May 2026
 - Tidied the top bar: the "Sign in" button is now the same height as the bell, settings, and profile controls beside it, so the row lines up instead of the Sign in pill sitting noticeably shorter.
 

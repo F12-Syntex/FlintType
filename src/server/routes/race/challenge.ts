@@ -17,6 +17,7 @@ import {
   type CreateChallengeOutput,
   type JoinChallengeInput,
   type JoinChallengeOutput,
+  type RaceQuoteGroup,
   type StartChallengeInput,
   type StartChallengeOutput,
   cancelChallengeInputSchema,
@@ -31,15 +32,21 @@ const create = defineRoute<CreateChallengeInput, CreateChallengeOutput>({
     const sessionToken = newSessionToken();
     const identity = await getRaceIdentity(sessionToken);
     const seed = Date.now() | 0;
-    // Quote racing retired — challenges always use the word-list
-    // passage. Kept the passage option on createChallengeRoom for
-    // backward compat with the dormant quote pipeline.
+    // A QUOTE lobby draws a single curated quote (whose length falls in
+    // the host's chosen range) and races it word-by-word; the source
+    // flows out via every snapshot for the attribution line. Otherwise
+    // the passage is generated from a word list (or the embedded
+    // English pool). `quote` takes precedence over word-count / timed.
+    const passage = input.quote
+      ? pickRaceQuote(input.quoteLengths as RaceQuoteGroup[] | undefined)
+      : undefined;
     const room = createChallengeRoom({
       modeId: input.modeId,
       raceSeed: seed,
       wordCount: input.wordCount,
       wordPool: input.wordPool,
       durationSec: input.durationSec,
+      ...(passage ? { passage } : {}),
     });
     const racer = room.addRealRacer({
       sessionToken,

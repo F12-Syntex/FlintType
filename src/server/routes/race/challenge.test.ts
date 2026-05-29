@@ -35,6 +35,25 @@ describe("race.challenge routes", () => {
     expect(res.sessionToken).toMatch(/^s_/);
   });
 
+  it("create with quote:true makes a quote-passage room (multi-word passage)", async () => {
+    const res = await callRoute<CreateChallengeOutput>(
+      ["race", "challenge", "create"],
+      { input: { modeId: "1v1", quote: true, quoteLengths: [0, 1, 2] } },
+    );
+    expect(res.roomId).toMatch(/^r_/);
+    // A quote splits into several words; totalChars matches the words.
+    expect(res.words.length).toBeGreaterThan(1);
+    expect(res.totalChars).toBeGreaterThan(0);
+  });
+
+  it("create rejects an out-of-range quoteLengths id via the schema", async () => {
+    await expect(
+      callRoute(["race", "challenge", "create"], {
+        input: { modeId: "1v1", quote: true, quoteLengths: [4] as never },
+      }),
+    ).rejects.toBeInstanceOf(ZodError);
+  });
+
   it("create refuses unknown modeIds via the schema", async () => {
     // The pipeline rethrows ZodError as-is; the HTTP dispatcher is
     // what maps it to BackendError(VALIDATION). callRoute bypasses

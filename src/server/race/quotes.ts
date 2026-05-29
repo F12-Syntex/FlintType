@@ -1,16 +1,21 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import {
+  DEFAULT_RACE_QUOTE_LENGTHS,
+  RACE_QUOTE_GROUPS,
+  type RaceQuoteGroup,
+} from "@/types/race";
 
 /** Server-side quote pool used by the QUOTE race mode. Reads the
  *  same monkeytype english.json shipped to the client at
- *  /public/quotes/monkeytype/english.json, filters to the medium
- *  length bracket (101–300 chars — keeps races in the 30–60 s zone
- *  for most racers), and excludes anything mentioning "god" per the
- *  project-wide content rule.
+ *  /public/quotes/monkeytype/english.json, excludes anything
+ *  mentioning "god" per the project-wide content rule, and keeps
+ *  every length — a room picks its bracket at create time so the
+ *  host's chosen length range (short..thicc) can be honoured.
  *
  *  Loaded lazily on first call and cached for the lifetime of the
  *  Node process. The file is ~2.3 MB but the parsed pool we keep is
- *  much smaller after filtering — typically a few hundred quotes. */
+ *  smaller after the content filter. */
 
 type Quote = {
   text: string;
@@ -19,8 +24,6 @@ type Quote = {
   id: number;
 };
 
-const MEDIUM_MIN = 101;
-const MEDIUM_MAX = 300;
 const QUOTES_PATH = join(
   process.cwd(),
   "public",
@@ -56,9 +59,7 @@ function loadPool(): Quote[] {
   try {
     const raw = readFileSync(QUOTES_PATH, "utf-8");
     const data = JSON.parse(raw) as { quotes: Quote[] };
-    pool = data.quotes
-      .filter((q) => q.length >= MEDIUM_MIN && q.length <= MEDIUM_MAX)
-      .filter((q) => !/\bgod\b/i.test(q.text));
+    pool = data.quotes.filter((q) => !/\bgod\b/i.test(q.text));
     if (pool.length === 0) pool = FALLBACK.slice();
   } catch {
     // File missing / unreadable — fall back so room creation still
@@ -72,9 +73,21 @@ function loadPool(): Quote[] {
 
 export type RaceQuote = { text: string; source: string };
 
-/** Pick a random medium-length quote for a new race room. */
-export function pickRaceQuote(): RaceQuote {
+/** Pick a random quote for a new race room, drawn from the union of
+ *  the requested length buckets. `groups` are ids into
+ *  `RACE_QUOTE_GROUPS` (0 short … 3 thicc); defaults to the
+ *  "small to large" range (short..long). An empty filter result
+ *  (e.g. a deploy with only the in-band fallback) falls back to the
+ *  whole pool so a room always launches. */
+export function pickRaceQuote(
+  groups: readonly RaceQuoteGroup[] = DEFAULT_RACE_QUOTE_LENGTHS,
+): RaceQuote {
   const p = loadPool();
-  const q = p[Math.floor(Math.random() * p.length)]!;
+  const ranges = RACE_QUOTE_GROUPS.filter((g) => groups.includes(g.id));
+  const inRange = (len: number) =>
+    ranges.some((r) => len >= r.min && len <= r.max);
+  const filtered = p.filter((q) => inRange(q.length));
+  const usable = filtered.length > 0 ? filtered : p;
+  const q = usable[Math.floor(Math.random() * usable.length)]!;
   return { text: q.text, source: q.source };
 }
