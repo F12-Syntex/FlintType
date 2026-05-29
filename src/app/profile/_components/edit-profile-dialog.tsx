@@ -91,19 +91,31 @@ export function EditProfileDialog({
   const currentFirstName = user?.firstName ?? "";
   const currentUsername = user?.username ?? "";
 
-  // Re-seed inputs whenever the dialog opens so a previous edit
-  // attempt doesn't ghost into the next session.
+  // Re-seed the *text* inputs when the dialog opens (or once Clerk's
+  // user data loads) so a previous edit attempt doesn't ghost into the
+  // next session. Crucially this must NOT depend on `tags` / `rank`:
+  // the rank picker and tag chips auto-save on click and bubble a fresh
+  // value up to the parent, which feeds a new `tags` / `rank` prop back
+  // down. If those were in this effect's deps, picking a rank (or
+  // toggling a tag) mid-edit would re-fire it and clobber whatever the
+  // user had typed into First name / Username.
   useEffect(() => {
     if (open && user) {
       setFirstName(user.firstName ?? "");
       setUsername(user.username ?? "");
       setError(null);
+    }
+  }, [open, user]);
+
+  // Re-seed the chip selections from props. Watched on `tags` / `rank`
+  // too so the chips always reflect the parent's authoritative selection
+  // after an auto-save round-trips — without touching the text inputs.
+  useEffect(() => {
+    if (open) {
       setSelectedTags(tags);
       setSelectedRank(rank);
     }
-    // `tags` / `rank` are intentionally watched too so the chips reflect
-    // the latest selection if the parent re-fetches while open.
-  }, [open, user, tags, rank]);
+  }, [open, tags, rank]);
 
   function pickRank(next: RankId | null) {
     setSelectedRank(next);
@@ -147,11 +159,14 @@ export function EditProfileDialog({
     trimmedUsername.length > 0 && !USERNAME_REGEX.test(trimmedUsername);
   const usernameTooShort =
     trimmedUsername.length > 0 && trimmedUsername.length < 2;
-  const canSave =
-    !saving &&
-    (firstNameChanged || usernameChanged) &&
-    !usernameInvalid &&
-    !usernameTooShort;
+  // Rank + tags auto-save on click (pickRank / toggleTag), so the dialog
+  // already persists those the moment they change. Save governs only the
+  // text fields — but it must NOT be disabled when name/username are
+  // untouched, or the dialog reads as "my changes can't be saved" even
+  // though the rank/tag edits already landed (the reported bug). Keep it
+  // enabled as a plain confirm unless the username is invalid or a save
+  // is already in flight; handleSave no-ops any field that didn't change.
+  const canSave = !saving && !usernameInvalid && !usernameTooShort;
 
   async function handleSave() {
     if (!user) return;
