@@ -111,6 +111,28 @@ export function RacePassage() {
   ).length;
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+      {/* Lineup sits ABOVE the typing area — the TypeRacer layout. The
+       *  live racetrack (each racer a bead gliding toward the finish)
+       *  is the first thing the eye lands on; the passage you type
+       *  flows underneath it. During the lobby the roster + lobby card
+       *  stack here above the poster. */}
+      {showLineup ? (
+        <RaceLineupPanel
+          racers={state.racers}
+          totalChars={state.totalChars}
+          phase={state.phase as RacePhase}
+          modeName={RACE_MODES[state.modeId].name}
+          joinedOpponents={joinedOpponents}
+          totalOpponents={totalOpponents}
+          wordsDone={wordsDone}
+          totalWords={state.words.length}
+          wpm={wpm}
+          accuracy={acc}
+        />
+      ) : null}
+
+      <ChallengeLobby />
+
       <div className="min-h-0 flex-1">
         {racing ? (
           <div className="flex h-full w-full flex-col gap-3">
@@ -140,27 +162,6 @@ export function RacePassage() {
           />
         )}
       </div>
-
-      <ChallengeLobby />
-
-      {/* Lineup moved below the passage. Racers sit where the user's
-       *  eye naturally drops after typing — close to the keyboard,
-       *  fatter bars (h-3) for at-a-glance read-out, doesn't compete
-       *  with the passage for vertical real estate above. */}
-      {showLineup ? (
-        <RaceLineupPanel
-          racers={state.racers}
-          totalChars={state.totalChars}
-          phase={state.phase as RacePhase}
-          modeName={RACE_MODES[state.modeId].name}
-          joinedOpponents={joinedOpponents}
-          totalOpponents={totalOpponents}
-          wordsDone={wordsDone}
-          totalWords={state.words.length}
-          wpm={wpm}
-          accuracy={acc}
-        />
-      ) : null}
     </div>
   );
 }

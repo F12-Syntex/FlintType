@@ -1,192 +1,61 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { CreateChallengePanel } from "./challenge-config";
 import { ModePicker } from "./mode-picker";
-import type { RaceModeId } from "./race-data";
 import { useRace } from "./race-state";
 
-/** Top race strip, sibling of practice's `<ModeBar>`. Same centred
- *  horizontal `<Field>` lockup convention, same `px-7 py-4` shell,
- *  no border-b. Two fields:
- *    - mode   → dropdown of every race mode
- *    - action → phase-aware button (Find race / Race again / Abandon)
+/** Top race strip, sibling of practice's `<ModeBar>`. Phase-aware:
  *
- *  The phase status used to live here as a `● QUEUE`-style bullet pill
- *  but that read as a console-output cliché. It now lives in the
- *  `<PhaseRow>` above the passage where the rest of the per-phase
- *  signal already lives — one place to look, not two. */
+ *    queue   → the setup strip: pick a mode, "Find race" (public
+ *              matchmaking), or "Create lobby" (private, with its
+ *              settings gear). Same centred `<Field>` lockup the
+ *              practice ModeBar uses.
+ *    in a room (matching / lobby / countdown / racing) → the mode /
+ *              action / host chips are gone (nothing to pick once
+ *              you're in a lobby). A single "Leave race" button is
+ *              both the exit and the back button.
+ *    finished → nothing; the results panel owns Leave + Race again. */
 export function RaceControls() {
-  const {
-    state,
-    modeId,
-    setModeId,
-    enterQueue,
-    startCountdown,
-    restart,
-    abandon,
-    cancelLobby,
-    isHost,
-    isChallenge,
-  } = useRace();
-  const allowSwitch =
-    state.phase === "queue" ||
-    state.phase === "lobby" ||
-    state.phase === "finished";
-  // Ready-up gate (#26): the host's Start stays disabled until every
-  // other present human has readied up (bots auto-ready). Matches the
-  // lobby card and the server-side challenge.start enforcement.
-  const allReady = state.racers
-    .filter((r) => r.bot == null && !r.disconnected && !r.isHost)
-    .every((r) => r.ready);
-  // "Bare" phases — `queue` and `finished` — let mode switches go
-  // straight through. Every other phase (matching / lobby /
-  // countdown / racing) represents a live commitment that the user
-  // shouldn't lose to a misclick; gate them behind a confirm dialog.
-  const requiresConfirm =
-    state.phase === "matching" ||
-    state.phase === "lobby" ||
-    state.phase === "countdown" ||
-    state.phase === "racing";
-  const [pendingMode, setPendingMode] = useState<RaceModeId | null>(null);
+  const { state, modeId, setModeId, enterQueue, abandon } = useRace();
+  const router = useRouter();
+  const phase = state.phase;
 
-  const onPickMode = useCallback(
-    (next: RaceModeId) => {
-      if (next === modeId) return;
-      if (requiresConfirm) {
-        setPendingMode(next);
-        return;
-      }
-      setModeId(next);
-    },
-    [modeId, requiresConfirm, setModeId],
-  );
+  // In a room: a single "Leave race" affordance that drops you from the
+  // room and returns to /race. The leave-guard whitelists /race
+  // navigation, so this never fires the confirm dialog on top.
+  if (phase !== "queue" && phase !== "finished") {
+    return (
+      <div className="flex shrink-0 items-center px-7 py-4">
+        <GhostButton
+          onClick={() => {
+            abandon();
+            router.push("/race");
+          }}
+        >
+          Leave race
+        </GhostButton>
+      </div>
+    );
+  }
 
+  // Race over: RaceResults owns the Leave + Race again CTAs.
+  if (phase === "finished") return null;
+
+  // Queue surface: pick a mode, find a public race, or create a lobby.
   return (
     <div className="flex shrink-0 flex-wrap items-end justify-center gap-x-8 gap-y-4 px-7 py-4">
       <Field label="mode">
-        <ModePicker modeId={modeId} onPick={onPickMode} disabled={!allowSwitch} />
+        <ModePicker modeId={modeId} onPick={setModeId} disabled={false} />
       </Field>
       <Field label="action">
-        <ActionButton
-          phase={state.phase}
-          isChallenge={isChallenge ?? false}
-          allReady={allReady}
-          onEnter={enterQueue}
-          onStart={startCountdown}
-          onRestart={restart}
-          onAbandon={abandon}
-        />
+        <PrimaryButton onClick={enterQueue}>Find race</PrimaryButton>
       </Field>
-      {state.phase === "queue" ? (
-        <Field label="lobby">
-          <CreateChallengePanel modeId={modeId} />
-        </Field>
-      ) : null}
-
-      {/* Host-only Cancel — visible from the moment the challenge
-       *  has a lobby through the live race. Valid up to (not
-       *  including) finished; the server enforces the same gate. */}
-      {isChallenge &&
-      isHost &&
-      (state.phase === "lobby" ||
-        state.phase === "countdown" ||
-        state.phase === "racing") ? (
-        <Field label="host">
-          <CancelLobbyButton phase={state.phase} onCancel={cancelLobby} />
-        </Field>
-      ) : null}
-
-      <ConfirmDialog
-        open={pendingMode != null}
-        onOpenChange={(next) => {
-          if (!next) setPendingMode(null);
-        }}
-        title="Switch race mode?"
-        confirmLabel="Switch mode"
-        cancelLabel="Stay"
-        confirmVariant="destructive"
-        onConfirm={() => {
-          if (pendingMode) setModeId(pendingMode);
-          setPendingMode(null);
-        }}
-      >
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          You&apos;re already in a race. Switching modes will drop you
-          out of the current lobby and start a fresh queue.
-        </p>
-      </ConfirmDialog>
+      <Field label="lobby">
+        <CreateChallengePanel modeId={modeId} />
+      </Field>
     </div>
-  );
-}
-
-/** Host-only "Cancel" affordance for challenge rooms. Mirrors the
- *  GhostButton shape used by Abandon, but pops a ConfirmDialog first
- *  because the action is destructive for *everyone* in the room
- *  (every connected client receives a cancelled snapshot and bounces
- *  out). Labels shift slightly by phase so the button reads correctly
- *  whether the host hasn't started yet (Cancel lobby) or has
- *  (End race). */
-function CancelLobbyButton({
-  phase,
-  onCancel,
-}: {
-  phase: string;
-  onCancel: () => Promise<void> | void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
-  const inLobby = phase === "lobby";
-  const label = inLobby ? "Cancel lobby" : "End race";
-  const dialogTitle = inLobby ? "Cancel the lobby?" : "End the race for everyone?";
-  const dialogBody = inLobby
-    ? "Closing this lobby kicks every joiner back to the race menu. The share link will stop working."
-    : "Ending the race for everyone closes the room mid-flight. Active racers will be sent back to the race menu.";
-  const confirmLabel = inLobby ? "Cancel lobby" : "End race";
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        disabled={pending}
-        className={cn(
-          "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-transparent px-3",
-          "text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground",
-          "transition-colors duration-150 hover:border-destructive/40 hover:text-destructive",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40",
-          pending && "cursor-wait opacity-60",
-        )}
-      >
-        {pending ? "Cancelling…" : label}
-      </button>
-      <ConfirmDialog
-        open={open}
-        onOpenChange={(next) => {
-          if (!next && !pending) setOpen(false);
-        }}
-        title={dialogTitle}
-        confirmLabel={confirmLabel}
-        cancelLabel="Keep going"
-        confirmVariant="destructive"
-        onConfirm={async () => {
-          setPending(true);
-          try {
-            await onCancel();
-          } finally {
-            // Leave `pending` true — the shell is about to navigate
-            // away. Resetting would briefly re-enable the button on a
-            // stale tree before the route change tears it down.
-            setOpen(false);
-          }
-        }}
-      >
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {dialogBody}
-        </p>
-      </ConfirmDialog>
-    </>
   );
 }
 
@@ -208,65 +77,6 @@ function Field({
       {children}
     </div>
   );
-}
-
-/** Phase-aware right-hand action. Three button shapes share the same
- *  geometry (h-8, rounded-md, uppercase tracking) so they
- *  line up against the mode chip across phases:
- *
- *    queue / finished → filled primary CTA (the move that opens up
- *                       the loop: Find race, Race again)
- *    racing           → hairline ghost (Abandon — recoverable, soft)
- *    matching / lobby /
- *    countdown        → disabled ghost (system is doing the work) */
-function ActionButton({
-  phase,
-  isChallenge,
-  allReady,
-  onEnter,
-  onStart,
-  onRestart,
-  onAbandon,
-}: {
-  phase: string;
-  /** True when the user is in a `/race/c/<slug>` challenge lobby. In
-   *  challenge mode the lobby phase exposes a clickable "Start race"
-   *  primary CTA (host-controlled), instead of the auto-progressing
-   *  matchmaking flow's disabled "Starting" pip. */
-  isChallenge: boolean;
-  /** False while a non-host human in the lobby hasn't readied up — the
-   *  host's Start is disabled until then (#26). */
-  allReady: boolean;
-  onEnter: () => void;
-  onStart: () => void;
-  onRestart: () => void;
-  onAbandon: () => void;
-}) {
-  if (phase === "queue") {
-    return <PrimaryButton onClick={onEnter}>Find race</PrimaryButton>;
-  }
-  if (phase === "matching") {
-    return <DisabledButton>Matching</DisabledButton>;
-  }
-  if (phase === "lobby") {
-    if (isChallenge) {
-      // Gate Start until everyone's readied up (#26). Server enforces
-      // the same rule; this keeps the button honest so it never errors.
-      return allReady ? (
-        <PrimaryButton onClick={onStart}>Start race</PrimaryButton>
-      ) : (
-        <DisabledButton>Waiting…</DisabledButton>
-      );
-    }
-    return <DisabledButton>Starting</DisabledButton>;
-  }
-  if (phase === "countdown") {
-    return <DisabledButton>Get ready</DisabledButton>;
-  }
-  if (phase === "finished") {
-    return <PrimaryButton onClick={onRestart}>Race again</PrimaryButton>;
-  }
-  return <GhostButton onClick={onAbandon}>Abandon</GhostButton>;
 }
 
 function PrimaryButton({
@@ -312,24 +122,5 @@ function GhostButton({
     >
       {children}
     </button>
-  );
-}
-
-/** Same shape as GhostButton but visually quieter — used when the
- *  system is running and the user has no action to take (matching,
- *  starting, get ready). A dimmed border tells the eye "this is the
- *  same control surface, but inert right now" without forcing the
- *  cursor to read disabled-grey as failed. */
-function DisabledButton({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      aria-disabled
-      className={cn(
-        "inline-flex h-8 cursor-not-allowed items-center gap-2 rounded-md border border-dashed border-border/70 px-3",
-        "text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70",
-      )}
-    >
-      {children}
-    </span>
   );
 }

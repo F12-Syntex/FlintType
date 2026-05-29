@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.120.0 — 29 May 2026
+- The multiplayer race screen now reads like a racetrack. Everyone's progress shows as a row of lanes ABOVE the passage, each racer a marker that slides toward the finish line as they type (you're the coral one).
+- Once you're in a lobby or race, the crowded mode / action chips are gone. A single "Leave race" button takes you out and back to the race menu.
+
 ## 6.119.0 — 29 May 2026
 - Creating a race lobby is now one click. "Create lobby" makes the lobby straight away and drops you into it, instead of opening a setup panel first.
 - Next to it is a settings button (the sliders icon) that lets you change what the lobby races. New lobbies default to quotes of mixed length (short through long). In there you can switch between Quote, Words, and Timed races, choose which quote lengths to draw from, or pick a word list and length as before. Your choice is remembered for next time.
