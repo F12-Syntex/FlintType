@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.121.3 — 29 May 2026
+- Fixed the race typing text getting clipped under the player-list card. The text now sits at the vertical centre of the screen AND fully below the racetrack, so the first line is never hidden.
+
 ## 6.121.2 — 29 May 2026
 - During a race the typing text now sits at the vertical centre of the screen again. The racetrack floats at the top instead of pushing the text down into the gap above the footer.
 

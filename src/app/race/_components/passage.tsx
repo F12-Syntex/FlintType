@@ -133,10 +133,9 @@ export function RacePassage() {
   // justify-center then lands the text at the screen's middle.
   if (racing) {
     return (
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        {lineupEl ? (
-          <div className="absolute inset-x-0 top-0 z-10">{lineupEl}</div>
-        ) : null}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {/* Roster at the top, fully visible. */}
+        {lineupEl ? <div className="shrink-0">{lineupEl}</div> : null}
         <div className="flex min-h-0 flex-1 flex-col gap-3">
           <div className="min-h-0 flex-1">
             {showSpectator ? (
@@ -147,6 +146,17 @@ export function RacePassage() {
           </div>
           {quoteSource ? <QuoteAttribution source={quoteSource} /> : null}
         </div>
+        {/* Invisible mirror of the roster — reserves a matching band at
+         *  the bottom so the passage centres on the VIEWPORT (not the
+         *  gap below the roster) while the roster above stays fully
+         *  visible and never clips the first line. Auto-matches the
+         *  roster's height for any racer count; aria-hidden + invisible
+         *  so it's inert and unread. */}
+        {lineupEl ? (
+          <div className="invisible shrink-0" aria-hidden>
+            {lineupEl}
+          </div>
+        ) : null}
       </div>
     );
   }
