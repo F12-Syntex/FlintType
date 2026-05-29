@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.121.0 — 29 May 2026
+- The results graph now marks your mistakes: a small red ✕ sits on the WPM line at each second you mistyped, so you can see where on the run your speed dipped against an error.
+
 ## 6.120.1 — 29 May 2026
 - Pressing Tab during a multiplayer race no longer resets your run. Tab restarts only apply to solo practice; in a race it does nothing (rematch is the "Race again" button on the results panel).
 

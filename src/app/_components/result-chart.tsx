@@ -7,6 +7,7 @@ import {
   ComposedChart,
   Line,
   ReferenceLine,
+  Scatter,
   XAxis,
   YAxis,
 } from "recharts";
@@ -193,6 +194,18 @@ export function ResultChart({
             isAnimationActive={false}
           />
 
+          {/* Mistake markers — a destructive ✕ on the WPM line at each
+           *  second a wrong key was pressed, so the user can see where
+           *  on the speed curve they slipped (errors usually sit in a
+           *  dip). The count detail lives in the tooltip + the ribbon
+           *  below; these are aria-hidden so they don't double-announce. */}
+          <Scatter
+            data={merged.filter((b) => b.errors > 0)}
+            dataKey="wpm"
+            shape={<ErrorMark />}
+            isAnimationActive={false}
+          />
+
           {/* Peak / stall numbers live in the stat strip under the
            *  chart — no on-chart markers; the wpm trace already shows
            *  where the line tops out and bottoms out. */}
@@ -209,6 +222,27 @@ export function ResultChart({
 }
 
 type MergedBucket = Bucket & { errors: number; gap: number };
+
+/** A small destructive ✕ plotted on the WPM line at a second where a
+ *  mistake occurred. Recharts hands the resolved pixel centre as
+ *  `cx`/`cy`; we draw two crossed strokes. aria-hidden — the tooltip
+ *  and the ribbon below carry the readable count. */
+function ErrorMark(props: { cx?: number; cy?: number }) {
+  const { cx, cy } = props;
+  if (cx == null || cy == null) return null;
+  const r = 3.5;
+  return (
+    <g
+      aria-hidden
+      stroke="var(--color-errors)"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+    >
+      <line x1={cx - r} y1={cy - r} x2={cx + r} y2={cy + r} />
+      <line x1={cx - r} y1={cy + r} x2={cx + r} y2={cy - r} />
+    </g>
+  );
+}
 
 /** Per-second error histogram aligned to the WPM time axis. Quiet
  *  while at zero, fills primary on every miss. Reads as the rhythm
