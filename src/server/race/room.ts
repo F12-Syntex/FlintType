@@ -270,6 +270,7 @@ export class RaceRoom {
       badge: opts.badge,
       isBot: false,
       isHost: opts.isHost ?? false,
+      ready: false,
       joinedAt: now,
       progressChars: 0,
       errors: 0,
@@ -302,6 +303,7 @@ export class RaceRoom {
       badge: bot.badge,
       isBot: true,
       isHost: false,
+      ready: true,
       joinedAt: now,
       progressChars: 0,
       errors: 0,
@@ -400,10 +402,45 @@ export class RaceRoom {
    *  an instant race against deterministic opponents). Challenge / FFA
    *  lobbies are real-players-only — starting solo just races alone, and
    *  the shareable link is how real opponents join. */
+  /** True when every present human who isn't the host has readied up.
+   *  Bots are always ready; the host readies implicitly by pressing
+   *  Start. With no other humans (solo, or host + bots) this is
+   *  vacuously true so a solo challenge still starts. */
+  allHumansReady(): boolean {
+    for (const r of this.racers.values()) {
+      if (r.isBot || r.disconnected || r.isHost) continue;
+      if (!r.ready) return false;
+    }
+    return true;
+  }
+
+  /** Whether the given session token is the room's host. */
+  isHost(token: string): boolean {
+    return this.racers.get(token)?.isHost ?? false;
+  }
+
+  /** Toggle a racer's lobby ready flag. Only meaningful in a challenge
+   *  lobby; ignored once the room has left the lobby. */
+  setReady(token: string, ready: boolean): boolean {
+    if (this.kind !== "challenge") return false;
+    if (this.phase !== "lobby") return false;
+    const r = this.racers.get(token);
+    if (!r || r.isBot) return false;
+    if (r.ready === ready) return true;
+    r.ready = ready;
+    this.lastTouchedAt = Date.now();
+    this.scheduleBroadcast();
+    return true;
+  }
+
   hostStart(token: string): boolean {
     if (this.phase !== "lobby" && this.phase !== "matching") return false;
     const host = this.racers.get(token);
     if (!host || !host.isHost) return false;
+    // Note: the all-humans-ready gate (#26) lives in the `challenge.start`
+    // route, not here — so the room state-machine stays directly
+    // drivable in tests and `hostStart` keeps its single responsibility
+    // (sequence the lobby → countdown → race).
     if (this.kind === "matchmaking") {
       const fill = BOT_LINEUP[this.modeId] ?? ["selan"];
       for (const botId of fill) {
@@ -862,6 +899,8 @@ export class RaceRoom {
       r.finishedAt = null;
       r.place = null;
       r.botCharProgress = 0;
+      // Humans must re-ready for the rematch; bots stay ready.
+      r.ready = r.isBot;
     }
     this.rematchReady.clear();
     this.nextPlace = 1;
@@ -949,6 +988,7 @@ export class RaceRoom {
       badge: r.badge,
       isBot: r.isBot,
       isHost: r.isHost,
+      ready: r.ready,
       joinedAt: r.joinedAt,
       progressChars: r.progressChars,
       errors: r.errors,

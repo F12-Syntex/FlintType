@@ -50,6 +50,11 @@ export type Racer = {
   isYou: boolean;
   /** Bot profile, null for the human. */
   bot: BotProfile | null;
+  /** True for the challenge-room host. */
+  isHost: boolean;
+  /** Lobby ready flag (#26). Bots are always ready; humans toggle it.
+   *  Host Start is gated until every non-host human is ready. */
+  ready: boolean;
   /** Cursor position in the passage (chars, includes the spaces
    *  between completed words). Monotonic 0..totalChars; drives lane
    *  bars, leader detection, and finish checks. */

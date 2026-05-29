@@ -8,8 +8,18 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.118.2 — 29 May 2026
+- Both Start buttons in a race lobby (the header action and the lobby card) now wait for everyone to ready up — neither lets the host start early.
+
 ## 6.118.1 — 29 May 2026
 - Plainer copy in a couple of spots: the Drills page now reads "Drill your weak spots · Short, focused sets on the letter pairs and words you're slowest at", and the race-finished line just states your placement and time ("Won in 0:24. Race again to defend it.") instead of the wordier version.
+
+## 6.118.0 — 29 May 2026
+- Race lobbies now have a ready-up step. Each player presses **Ready**, the lobby shows who's set, and the host can only start once everyone's ready (bots are always ready). The host's Start button waits — "Waiting for everyone to ready up · 1/2" — until the whole lobby is good to go, so a race can't begin before you're set.
+
+## 6.117.9 — 29 May 2026
+- Multiplayer: signed-in racers now show their real handle instead of "Guest". (The race server wasn't being told who you were on the hosted setup.)
+- Multiplayer: you can no longer keep typing into the passage after a race has finished — input locks the instant the race ends, and the instant you personally cross the line.
 
 ## 6.117.8 — 29 May 2026
 - Fixed the "new personal best" note so the "+N" improvement always matches the numbers shown — e.g. a 160 beating a previous 156 now reads +4, not +5.

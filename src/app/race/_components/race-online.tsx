@@ -135,7 +135,9 @@ export function OnlineRaceProvider({
   // so the surface opens locked and only unlocks when the server says
   // "racing". The unmount cleanup releases it so a later single-player
   // run is never left locked.
-  setRaceInputLocked(isRaceInputLocked(snapshot?.phase));
+  const youFinished =
+    snapshot?.racers.find((r) => r.id === room?.sessionToken)?.finishedAt != null;
+  setRaceInputLocked(isRaceInputLocked(snapshot?.phase, youFinished));
   useEffect(() => () => setRaceInputLocked(false), []);
 
   const state = useMemo(
@@ -435,6 +437,8 @@ function snapshotToRaceState({
           badge: "RACER",
           isYou: true,
           bot: null,
+          isHost: false,
+          ready: false,
           correctChars: 0,
           wpm: 0,
           raw: 0,
@@ -517,6 +521,8 @@ function serverRacerToClient(
     badge: s.badge,
     isYou,
     bot: botProfile,
+    isHost: s.isHost,
+    ready: s.ready,
     // Prefer the local progress for "you" so a server lag-spike
     // doesn't visibly stall your own bar. Other racers use the
     // server-published progressChars.

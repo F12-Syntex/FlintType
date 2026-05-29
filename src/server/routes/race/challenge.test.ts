@@ -12,6 +12,7 @@ import type {
   CancelChallengeOutput,
   CreateChallengeOutput,
   JoinChallengeOutput,
+  SetReadyOutput,
   StartChallengeOutput,
 } from "@/types/race";
 
@@ -97,6 +98,59 @@ describe("race.challenge routes", () => {
     // No assertion needed beyond "didn't throw" — the room module's
     // own tests cover the timeline. This route test verifies the route
     // forwarded the call.
+  });
+
+  it("start is blocked until every other human readies up (#26)", async () => {
+    const host = await callRoute<CreateChallengeOutput>(
+      ["race", "challenge", "create"],
+      { input: { modeId: "1v1" } },
+    );
+    const joiner = await callRoute<JoinChallengeOutput>(
+      ["race", "challenge", "join"],
+      { input: { slug: host.slug } },
+    );
+    // Joiner hasn't readied → host's start is rejected with CONFLICT.
+    await expect(
+      callRoute(["race", "challenge", "start"], {
+        input: { roomId: host.roomId, sessionToken: host.sessionToken },
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+
+    // Joiner readies up → canStart flips true → host can start.
+    const ready = await callRoute<SetReadyOutput>(["race", "setReady"], {
+      input: {
+        roomId: host.roomId,
+        sessionToken: joiner.sessionToken,
+        ready: true,
+      },
+    });
+    expect(ready.ok).toBe(true);
+    expect(ready.canStart).toBe(true);
+
+    const res = await callRoute<StartChallengeOutput>(
+      ["race", "challenge", "start"],
+      { input: { roomId: host.roomId, sessionToken: host.sessionToken } },
+    );
+    expect(res.ok).toBe(true);
+  });
+
+  it("setReady reports canStart=false while a human is unready", async () => {
+    const host = await callRoute<CreateChallengeOutput>(
+      ["race", "challenge", "create"],
+      { input: { modeId: "1v1" } },
+    );
+    const joiner = await callRoute<JoinChallengeOutput>(
+      ["race", "challenge", "join"],
+      { input: { slug: host.slug } },
+    );
+    const r1 = await callRoute<SetReadyOutput>(["race", "setReady"], {
+      input: { roomId: host.roomId, sessionToken: joiner.sessionToken, ready: true },
+    });
+    expect(r1.canStart).toBe(true);
+    const r2 = await callRoute<SetReadyOutput>(["race", "setReady"], {
+      input: { roomId: host.roomId, sessionToken: joiner.sessionToken, ready: false },
+    });
+    expect(r2.canStart).toBe(false);
   });
 
   it("cancel as host wipes the lobby and frees the slug", async () => {
