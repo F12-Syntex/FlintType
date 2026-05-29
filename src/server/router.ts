@@ -2,6 +2,7 @@ import { defineNamespace } from '@/server';
 import { logging } from './middleware/logging';
 import { adapt } from './routes/adapt';
 import { admin } from './routes/admin';
+import { appearance } from './routes/appearance';
 import { friends } from './routes/friends';
 import { health } from './routes/health';
 import { history } from './routes/history';
@@ -23,6 +24,7 @@ export const router = defineNamespace({
     prefs,
     adapt,
     admin,
+    appearance,
     friends,
     history,
     leaderboard,

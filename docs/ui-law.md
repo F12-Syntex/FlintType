@@ -645,6 +645,17 @@ Every customise page opens with `<SettingsPageHeader>` (`_components/page-header
 - **Don't** add per-chip previews on rows whose value is *temporal* (Blink speed, Smooth speed, animation timings). The chip's text label conveys the speed; a static preview can't, and an animated one would be noise.
 - **Don't** mix slider + chip presets for the same setting unless the slider is in a separate fine-tune block; the rule of thumb is one control per row.
 
+### 12.8 AI settings assistant
+
+The appearance page opens with `<AiBar>` (`appearance/_components/ai-bar.tsx`): a single-line natural-language input ("warm sepia, big serif, soft corners") that turns a described look into real settings. It posts to `backend.appearance.aiSuggest({ prompt })` (server route `src/server/routes/appearance/`, OpenRouter via `src/server/openrouter.ts`, gated `requireAuth` + a tight rate limit because each call hits a paid model). The model's JSON is **never trusted directly** — `sanitize.ts` whitelists it into an `AppearancePatch` (known theme vars / appearance enums / background fields only; CSS-injection and out-of-range values dropped).
+
+The flow is **preview-first**: when a suggestion returns, the patch is applied straight onto the live prefs stores via `useApplyPatch` (so the whole page + the persistent preview repaint 1:1 — the preview *is* the real state), and a suggestion card reveals (§13) with a one-line summary + a changed-rows list. **Accept** keeps it; **Discard** reverts from the snapshot `useApplyPatch` captured before applying.
+
+Rules:
+- The AI only ever writes through the **same typed store setters** the manual controls use (`setVar`, appearance/background `update`) — never a parallel write path.
+- The server whitelist is the security boundary. Widen it deliberately (add the key + validator in `sanitize.ts` and the matching line in `prompt.ts`), never by trusting the model.
+- No API key configured → the route returns a clear error the bar surfaces; unauthenticated → the bar prompts sign-in. Both are handled states, not crashes.
+
 ---
 
 ## 13. Animation primitives
@@ -653,6 +664,7 @@ Animation in flinttype is the **exception**, not a default. The product is edito
 
 `framer-motion` is the only sanctioned animation library, but reach for it sparingly:
 
+- **The AI settings suggestion reveal (§12.8)** is a sanctioned exception: when the appearance assistant returns a proposed look, its suggestion card springs in (`opacity` + `y` + `scale`, ease-out, ~180ms, no bounce) and collapses to a static fade under `prefers-reduced-motion` via `useReducedMotion()`. It earns motion because it's a user-initiated reveal of a result (spatial continuity), mirroring the friends dock.
 - A control's effect is genuinely **temporal** and a static sample cannot represent it (the live caret blink in the running practice surface, where blink speed is itself the setting).
 - A user-initiated transition (route change, modal entrance) where the motion provides spatial continuity.
 - **The friends dock (§17.5)** is a deliberate, user-mandated exception: opening the collapsed pill springs the panel up from the corner with a single transform-based reveal (`opacity` + `y` + `scale`, ease-out, ~180ms, no bounce). It earns motion because it's a user-initiated reveal of a tucked-away surface (spatial continuity). It collapses to a static reveal under `prefers-reduced-motion` via `useReducedMotion()`. The panel reveals as **one** element — the directory rows do **not** stagger (an earlier hub iteration staggered a list; that's retired, don't reintroduce per-row stagger).

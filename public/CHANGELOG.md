@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.124.0 — 29 May 2026
+- New on the Appearance settings page: describe the look you want in plain words ("light green background, big serif, soft corners") and flinttype turns it into real settings, previewing the change live on the page so you can see it before deciding. Accept to keep it, or discard to put everything back exactly as it was. Needs you to be signed in.
+
 ## 6.123.0 — 29 May 2026
 - The Appearance settings page now has one live preview that's always on. As you scroll the controls it follows along and shows whatever you're tuning, repainting from the real typing surface the moment you change anything (instead of a separate little preview tucked inside each section). A coral dot now marks every section you've changed away from its default, both on the section heading and in the sidebar, and the preview shows a running count of how many things you've customised.
 

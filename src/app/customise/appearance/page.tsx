@@ -12,6 +12,7 @@ import { overrideCount } from "@/lib/themes/overrides";
 import { SettingsPageHeader } from "../_components/page-header";
 import { SettingsRow } from "../_components/row";
 import { SettingsSection } from "../_components/settings-section";
+import { AiBar } from "./_components/ai-bar";
 import { BackgroundRow } from "./_components/background-row";
 import { BordersRow } from "./_components/borders-row";
 import { CaretRow } from "./_components/caret-row";
@@ -138,6 +139,8 @@ export default function AppearancePage() {
         </div>
 
         <div className="order-2 flex flex-col xl:order-1">
+          <AiBar />
+
           <SettingsSection
             id="themes"
             eyebrow="Surface"
