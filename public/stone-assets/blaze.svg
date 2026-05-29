@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="blaze racer">
+  <title>blaze</title>
+  <defs>
+    <linearGradient id="rock-b" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#4a4a4a"/>
+      <stop offset="100%" stop-color="#1f1f1f"/>
+    </linearGradient>
+    <linearGradient id="flame-b" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="45%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#dc2626"/>
+    </linearGradient>
+    <radialGradient id="dust-b" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#888" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#888" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="halo-b" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f97316" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <g>
+    <circle cx="15" cy="82" r="4" fill="url(#dust-b)">
+      <animate attributeName="r" values="2;6;2" dur="0.9s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.9;0;0.9" dur="0.9s" repeatCount="indefinite"/>
+      <animate attributeName="cx" values="20;10;20" dur="0.9s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="8" cy="85" r="3" fill="url(#dust-b)">
+      <animate attributeName="r" values="1;5;1" dur="0.9s" begin="0.3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.7;0;0.7" dur="0.9s" begin="0.3s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- rising embers -->
+  <circle cx="48" cy="10" r="1" fill="#fbbf24">
+    <animate attributeName="cy" values="20;-5;20" dur="1.4s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="1;0;1" dur="1.4s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="55" cy="6" r="0.8" fill="#fbbf24">
+    <animate attributeName="cy" values="18;-3;18" dur="1.7s" begin="0.6s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="1;0;1" dur="1.7s" begin="0.6s" repeatCount="indefinite"/>
+  </circle>
+
+  <g>
+    <animateTransform attributeName="transform" type="translate"
+      values="0,0; 0,-5; 0,0; 0,-2; 0,0" dur="0.6s" repeatCount="indefinite"/>
+    <g>
+      <animateTransform attributeName="transform" type="rotate"
+        values="-2 50 60; 2 50 60; -2 50 60" dur="0.6s" repeatCount="indefinite"/>
+
+      <ellipse cx="50" cy="82" rx="22" ry="3" fill="#000" opacity="0.25"/>
+
+      <!-- flame halo -->
+      <circle cx="50" cy="30" r="28" fill="url(#halo-b)">
+        <animate attributeName="opacity" values="0.5;1;0.5" dur="0.7s" repeatCount="indefinite"/>
+      </circle>
+
+      <path d="M 22 72 Q 14 58 24 46 Q 32 36 47 35 Q 62 34 74 41 Q 84 50 82 63 Q 80 76 70 78 Q 55 82 38 80 Q 26 78 22 72 Z"
+        fill="url(#rock-b)"/>
+
+      <!-- main flame -->
+      <g>
+        <animateTransform attributeName="transform" type="scale"
+          values="1 1; 1.08 0.92; 0.94 1.06; 1.05 0.97; 1 1" dur="0.45s" repeatCount="indefinite" additive="sum"/>
+
+        <!-- outer flame -->
+        <path d="M 35 38 Q 30 25 38 14 Q 42 22 46 16 Q 48 8 52 4 Q 56 10 58 18 Q 62 12 64 20 Q 70 28 65 38 Q 50 42 35 38 Z"
+          fill="url(#flame-b)"/>
+        <!-- inner flame -->
+        <path d="M 42 36 Q 40 26 46 18 Q 50 12 54 20 Q 58 26 56 36 Q 50 40 42 36 Z"
+          fill="#fbbf24" opacity="0.9"/>
+        <!-- hot core -->
+        <path d="M 47 34 Q 46 28 50 22 Q 54 28 53 34 Q 50 38 47 34 Z"
+          fill="#fef3c7" opacity="0.9"/>
+      </g>
+
+      <path d="M 30 56 L 36 60" stroke="#6a6a6a" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.5"/>
+      <path d="M 60 62 L 68 60" stroke="#6a6a6a" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.5"/>
+    </g>
+  </g>
+</svg>

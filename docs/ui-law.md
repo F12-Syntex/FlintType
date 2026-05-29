@@ -652,12 +652,13 @@ Animation in flinttype is the **exception**, not a default. The product is edito
 - A control's effect is genuinely **temporal** and a static sample cannot represent it (the live caret blink in the running practice surface, where blink speed is itself the setting).
 - A user-initiated transition (route change, modal entrance) where the motion provides spatial continuity.
 - **The friends dock (§17.5)** is a deliberate, user-mandated exception: opening the collapsed pill springs the panel up from the corner with a single transform-based reveal (`opacity` + `y` + `scale`, ease-out, ~180ms, no bounce). It earns motion because it's a user-initiated reveal of a tucked-away surface (spatial continuity). It collapses to a static reveal under `prefers-reduced-motion` via `useReducedMotion()`. The panel reveals as **one** element — the directory rows do **not** stagger (an earlier hub iteration staggered a list; that's retired, don't reintroduce per-row stagger).
+- **The race lanes (`<RaceLineupPanel>`, §17 race surface)** are a user-mandated exception: each racer is a **flint-stone SVG** (`/public/stone-assets/*.svg`, a 7-tier fire progression pebble → inferno; the tier escalates with the racer's live WPM via `stoneTierForWpm`) riding a lane toward the finish post. The **glide** along the lane is functional motion (`transition-[left]`, like the progress bars). On top of it the stone carries a subtle idle bob (`@keyframes ft-stone-bob` in globals.css — `translateY` + faint `scale`, ~1.3s), applied **only** via `motion-safe:animate-[…]` so reduced-motion users get a still stone. The local user's stone is the lone coral spark (a coral `drop-shadow` + coral ground line / scorch trail); opponents stay neutral ink (or their `playerColorFor` when the player-colours pref is on). This is the one place a looping idle animation is sanctioned, because it's the race itself — keep it subtle.
 
 ### 13.1 Don't
 
 - **Don't** animate per-option chip previews (§12.2a). They're *static + live* — a bare sample of the value, no motion. (Section-level preview cards were removed entirely — see §12.5.)
 - **Don't** use motion on a settings row's control (toggle, chip, slider). Native shadcn primitives have their own focus / hover transitions.
-- **Don't** loop ambient decorations on any surface. Loaders are the only acceptable infinite animation.
+- **Don't** loop ambient decorations on any surface. The only sanctioned infinite animations are loaders, the live-spectate pulse dot (§17.4), and the race-stone idle bob (§13, race lanes) — all `motion-safe`-gated.
 - **Don't** ship any animation without `prefers-reduced-motion: reduce` collapsing it to a single static frame.
 
 ## 14. Identity & ownership marks

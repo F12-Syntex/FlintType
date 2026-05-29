@@ -2,7 +2,12 @@
 
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { cn } from "@/lib/utils";
-import { playerColorFor, progressOf } from "./race-data";
+import {
+  playerColorFor,
+  progressOf,
+  stoneSrc,
+  stoneTierForWpm,
+} from "./race-data";
 import type { Racer, RacePhase } from "./race-types";
 
 /** Race roster + live racetrack. Sits ABOVE the typing surface (the
@@ -97,7 +102,7 @@ export function RaceLineupPanel({
       {/* Lanes. Capped height + internal scroll so a full 8-racer FFA
        *  lobby never crushes the passage below it. Common 1v1 / small
        *  lobbies never reach the cap. */}
-      <ol className="flex max-h-[42vh] flex-col gap-2.5 overflow-y-auto sm:gap-3">
+      <ol className="flex max-h-[42vh] flex-col gap-2 overflow-y-auto sm:gap-2.5">
         {ordered.map((r, idx) => (
           <RacerLane
             key={r.id}
@@ -194,22 +199,23 @@ function RacerLane({
 }) {
   const prog = progressOf(racer.correctChars, totalChars);
   const pct = Math.round(prog * 100);
-  const color = playerColorFor(racer.id);
+  // Fire tier (0..6) tracks the racer's live speed — the field ignites
+  // as it goes. Buckets are coarse (25–35 wpm wide) so the stone holds
+  // steady mid-race rather than flickering at a boundary.
+  const stoneTier = stoneTierForWpm(racer.wpm);
   const place = racer.place;
   const disconnected = racer.disconnected;
-  // Errors accumulated at the leading edge — a short destructive
-  // segment trailing the bead so a sloppy racer reads visibly "hot".
-  const errorWidth =
-    totalChars > 0 ? Math.min(prog, racer.errors / totalChars) * 100 : 0;
-  // Trail + bead colour: the local user is always the coral spark;
-  // opponents take their hand-tuned palette colour only when the
-  // player-colours pref is on, else a neutral ink. Disconnected racers
-  // drop to a muted grey regardless.
-  const fill = disconnected
+  const isYou = racer.isYou;
+  // Lane accent: the local user is the one coral spark; opponents take
+  // their hand-tuned palette colour only when the player-colours pref
+  // is on, else neutral ink. Disconnected drops to muted grey.
+  const accent = disconnected
     ? "var(--muted-foreground)"
-    : showColors || racer.isYou
-      ? color
-      : undefined;
+    : isYou
+      ? "var(--primary)"
+      : showColors
+        ? playerColorFor(racer.id)
+        : "var(--foreground)";
 
   return (
     <li
@@ -219,27 +225,27 @@ function RacerLane({
       aria-valuemax={100}
       aria-valuenow={pct}
       className={cn(
-        "grid grid-cols-[18px_minmax(56px,132px)_minmax(0,1fr)_auto] items-center gap-2 sm:gap-3",
+        "grid grid-cols-[22px_minmax(60px,140px)_minmax(0,1fr)_auto] items-center gap-2 sm:gap-3",
         disconnected && "opacity-60",
       )}
     >
       {/* Rank — leader in the coral spark, the rest muted. */}
       <span
         className={cn(
-          "text-[12px] font-bold tabular-nums sm:text-[13px]",
+          "text-[14px] font-bold tabular-nums sm:text-[15px]",
           rank === 1 ? "text-primary" : "text-muted-foreground",
         )}
       >
         {rank.toString().padStart(2, "0")}
       </span>
 
-      {/* Handle + bot/place/disconnected tag, single line. */}
+      {/* Handle + bot / place / disconnected tag, single line. */}
       <span
         className={cn(
           "flex min-w-0 items-center gap-1.5 truncate text-[12px] sm:text-[13px]",
           disconnected
             ? "text-muted-foreground"
-            : racer.isYou
+            : isYou
               ? "font-semibold text-foreground"
               : "text-foreground/85",
         )}
@@ -257,64 +263,75 @@ function RacerLane({
         ) : null}
       </span>
 
-      {/* The lane. A road (muted, inset hairline), a player-coloured
-       *  trail behind the bead, the destructive error segment at the
-       *  tip, a finish post on the right, and the racer bead gliding
-       *  to its progress position. The bead rides ON the lane (size-3,
-       *  taller than the h-2.5 road) so it reads as a distinct object,
-       *  not just a bar cap. */}
-      <div className="relative h-2.5">
-        {/* Road + trail + error, clipped to the rounded lane so the
-         *  fills never spill past the ends. The bead + finish post are
-         *  siblings outside this layer so the bead can ride past the
-         *  lane edges as a distinct object. */}
-        <div className="absolute inset-0 overflow-hidden rounded-full bg-muted shadow-[inset_0_0_0_1px_var(--border)]">
-          <div
-            className={cn(
-              "absolute inset-y-0 left-0 rounded-full transition-[width] duration-150 ease-out",
-              !fill && "bg-foreground/65",
-            )}
-            style={{ width: `${pct}%`, backgroundColor: fill }}
-          />
-          {errorWidth > 0 && !disconnected ? (
-            <div
-              aria-hidden
-              className="absolute inset-y-0 transition-[left,width] duration-150 ease-out"
-              style={{
-                left: `${pct - errorWidth}%`,
-                width: `${errorWidth}%`,
-                backgroundColor: "var(--destructive)",
-              }}
-            />
-          ) : null}
-        </div>
-        {/* Finish post. */}
-        <span
+      {/* The racetrack lane: a ground line the stone rolls along, a
+       *  scorch trail from the start to the stone, a finish post on the
+       *  right, and the flint stone gliding to its progress position.
+       *  The stone tier escalates with the racer's speed (pebble →
+       *  inferno) so the field visibly ignites. */}
+      <div className="relative h-14 sm:h-16">
+        {/* Ground line — the track surface. Coral for you, faint ink
+         *  for opponents. */}
+        <div
           aria-hidden
-          className="absolute -top-0.5 -bottom-0.5 right-0 w-px bg-foreground/30"
-        />
-        {/* Racer bead — glides to its progress position. */}
-        <span
-          aria-hidden
-          className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background transition-[left] duration-150 ease-out"
+          className="absolute inset-x-0 bottom-3 h-px"
           style={{
-            left: `${pct}%`,
-            backgroundColor: disconnected
-              ? "var(--muted-foreground)"
-              : fill ?? "var(--foreground)",
+            backgroundColor: accent,
+            opacity: isYou ? 0.5 : disconnected ? 0.12 : 0.16,
           }}
         />
+        {/* Scorch trail from the start to the stone. */}
+        <div
+          aria-hidden
+          className="absolute bottom-3 left-0 h-[2px] rounded-full transition-[width] duration-150 ease-out"
+          style={{
+            width: `${pct}%`,
+            backgroundColor: accent,
+            opacity: disconnected ? 0.25 : isYou ? 0.55 : showColors ? 0.45 : 0.3,
+          }}
+        />
+        {/* Finish post + flag cap at the right edge. */}
+        <span
+          aria-hidden
+          className="absolute right-0 bottom-2 h-10 w-px bg-foreground/30"
+        />
+        <span
+          aria-hidden
+          className="absolute right-[-2px] top-1 size-2 rounded-[1px] bg-foreground/35"
+        />
+        {/* The stone — glides along the lane to the progress position;
+         *  the inner img carries the subtle idle bob (motion-safe). */}
+        <div
+          className="absolute bottom-1.5 -translate-x-1/2 transition-[left] duration-150 ease-out"
+          style={{ left: `${pct}%` }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={stoneSrc(stoneTier)}
+            alt=""
+            aria-hidden
+            draggable={false}
+            className="size-10 select-none sm:size-12 motion-safe:animate-[ft-stone-bob_1.3s_ease-in-out_infinite]"
+            style={
+              isYou
+                ? {
+                    filter:
+                      "drop-shadow(0 0 7px color-mix(in oklch, var(--primary) 75%, transparent))",
+                  }
+                : undefined
+            }
+          />
+        </div>
       </div>
 
-      {/* WPM + percent cluster, right-aligned. Compact so the lane
-       *  stays the dominant element. */}
+      {/* WPM + percent cluster, right-aligned. Bigger WPM so the live
+       *  speed reads across the room. */}
       <div className="flex items-baseline justify-end gap-2">
         <span
           className={cn(
-            "text-[14px] font-bold tabular-nums sm:text-[15px]",
+            "text-[16px] font-bold tabular-nums sm:text-[18px]",
             disconnected
               ? "text-muted-foreground"
-              : racer.isYou
+              : isYou
                 ? "text-primary"
                 : "text-foreground",
           )}

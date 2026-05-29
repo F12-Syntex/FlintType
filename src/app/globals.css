@@ -359,6 +359,20 @@
   }
 }
 
+/* Race-stone idle: a subtle bob + flame flicker so the flint racers
+   feel alive on the track. Functional motion is the glide along the
+   lane; this is the small "engine running" loop on top. Applied only
+   via `motion-safe:` so reduced-motion users get a still stone. */
+@keyframes ft-stone-bob {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.05);
+  }
+}
+
 /* New-PB confetti — each piece bursts from the stat origin to
    (dx, dy) while rotating once, then fades. The CSS custom
    properties `--burst-dx` / `--burst-dy` / `--burst-rotate` are set

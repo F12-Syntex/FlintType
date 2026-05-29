@@ -185,3 +185,32 @@ export function playerColorFor(id: string): string {
       return "var(--muted-foreground)";
   }
 }
+
+/** Flint-stone racer tiers, slowest (a plain pebble) to fastest (a
+ *  full inferno). A racer's stone reflects the speed they're hitting,
+ *  so the field visibly ignites as it goes. SVGs in
+ *  `/public/stone-assets`; `minWpm` is the floor for each tier. */
+export const STONE_TIERS = [
+  { name: "pebble", minWpm: 0 },
+  { name: "spark", minWpm: 35 },
+  { name: "ember", minWpm: 60 },
+  { name: "kindling", minWpm: 85 },
+  { name: "blaze", minWpm: 110 },
+  { name: "wildfire", minWpm: 145 },
+  { name: "inferno", minWpm: 180 },
+] as const;
+
+/** Stone tier index (0..6) for a WPM. */
+export function stoneTierForWpm(wpm: number): number {
+  let tier = 0;
+  for (let i = 0; i < STONE_TIERS.length; i += 1) {
+    if (wpm >= STONE_TIERS[i]!.minWpm) tier = i;
+  }
+  return tier;
+}
+
+/** Public path to a stone tier's SVG (clamped to the valid range). */
+export function stoneSrc(tier: number): string {
+  const i = Math.max(0, Math.min(STONE_TIERS.length - 1, tier));
+  return `/stone-assets/${STONE_TIERS[i]!.name}.svg`;
+}
