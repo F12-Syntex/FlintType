@@ -2,14 +2,14 @@
 
 import { useUser } from "@clerk/nextjs";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, Swords, Users } from "lucide-react";
+import { Swords, Users } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "@/components/ft";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { cn } from "@/lib/utils";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
-import { DockPanelBody, type DockView } from "./dock-panel";
+import { DockPanelBody } from "./dock-panel";
 import { useDockData } from "./use-dock-data";
 
 const DEV = process.env.NODE_ENV === "development";
@@ -101,7 +101,6 @@ export function FriendsDock() {
   const footerHeight = useFooterHeight(pathname);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [view, setView] = useState<DockView>("active");
   const [last, setLast] = useState({ pathname, visible: false });
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -120,18 +119,13 @@ export function FriendsDock() {
     if (pathname !== last.pathname || !visible) {
       setOpen(false);
       setQuery("");
-      setView("active");
     }
   }
 
-  // Reset to the active view + clear search whenever the panel closes,
-  // so the next open always starts on the active members, not whatever
-  // sub-view was last left open.
+  // Clear search whenever the panel closes, so the next open always
+  // starts on the full list.
   useEffect(() => {
-    if (!open) {
-      setView("active");
-      setQuery("");
-    }
+    if (!open) setQuery("");
   }, [open]);
 
   // Desktop: Escape + click-outside close. Mobile sheet owns its own.
@@ -174,8 +168,6 @@ export function FriendsDock() {
       query={query}
       setQuery={setQuery}
       onNavigate={close}
-      view={view}
-      setView={setView}
       onClose={close}
       withHeader={!isMobile}
     />
@@ -222,23 +214,7 @@ export function FriendsDock() {
           ) : null}
         </AnimatePresence>
       ) : (
-        <MobileSheet
-          open={open}
-          onOpenChange={setOpen}
-          title={view === "active" ? "Active members" : "Member directory"}
-          leading={
-            view === "directory" ? (
-              <button
-                type="button"
-                onClick={() => setView("active")}
-                aria-label="Back to active members"
-                className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              >
-                <ArrowLeft size={18} aria-hidden />
-              </button>
-            ) : undefined
-          }
-        >
+        <MobileSheet open={open} onOpenChange={setOpen} title="Friends">
           {body}
         </MobileSheet>
       )}

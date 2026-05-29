@@ -1,16 +1,13 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion, type Variants } from "framer-motion";
-import { ArrowLeft, Plus, Search, Swords, Users, X } from "lucide-react";
+import { Plus, Search, Swords, X } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { Avatar, UserTag } from "@/components/ft";
 import { cn } from "@/lib/utils";
 import type { UserTagId } from "@/types/user-tag";
 import type { DockData } from "./use-dock-data";
 import { presenceCaption } from "./presence-label";
-
-export type DockView = "active" | "directory";
 
 type Member = {
   key: string;
@@ -119,22 +116,9 @@ function SearchBox({
   );
 }
 
-/** Slide+fade between the two views — a clean directional push (forward
- *  into the directory, back to friends), eased out with no bounce, and
- *  flattened to a plain crossfade under prefers-reduced-motion. The
- *  panel frame is a fixed size, so the views move *within* it; the modal
- *  never resizes between views. */
-const VIEW_VARIANTS: Variants = {
-  enter: (d: number) => ({ opacity: 0, x: d * 22 }),
-  center: { opacity: 1, x: 0 },
-  exit: (d: number) => ({ opacity: 0, x: d * -22 }),
-};
-
-/** The dock's content. Two views inside ONE fixed-size frame:
- *   - "active":    Friends header, search, the live/online list, and a
- *                  Member-directory bar pinned to the bottom.
- *   - "directory": the directory takes over the whole frame — a header
- *                  with a back arrow, search, and the full follow list.
+/** The dock's content: one directory inside a fixed-size frame —
+ *  Friends header, search, then the unified list (pending challenges,
+ *  live broadcasters, and everyone you follow, online AND offline).
  *
  *  `withHeader` is true on desktop (the floating panel has no chrome of
  *  its own). On mobile the MobileSheet supplies the header, so the body
@@ -144,8 +128,6 @@ export function DockPanelBody({
   query,
   setQuery,
   onNavigate,
-  view,
-  setView,
   onClose,
   withHeader = false,
 }: {
@@ -153,13 +135,10 @@ export function DockPanelBody({
   query: string;
   setQuery: (next: string) => void;
   onNavigate: () => void;
-  view: DockView;
-  setView: (next: DockView) => void;
   onClose: () => void;
   withHeader?: boolean;
 }) {
   const { live, challenges, directory, presenceById, loading } = data;
-  const reduce = useReducedMotion();
 
   const members = useMemo<Member[]>(() => {
     const liveIds = new Set(live.map((u) => u.userId));
@@ -215,31 +194,19 @@ export function DockPanelBody({
 
   const q = query.trim().toLowerCase();
   const byName = (m: Member) => m.name.toLowerCase().includes(q);
-  const active = useMemo(
-    () => members.filter((m) => m.bucket <= 2).sort((a, b) => a.bucket - b.bucket),
+  // One unified list: pending challenges, live broadcasters, then the
+  // full directory — online AND offline — ordered by bucket. Offline
+  // friends are first-class here (ui-law §17.5: the directory lists
+  // everyone you follow with a presence caption), so they no longer
+  // hide behind a search or a separate sub-view.
+  const rows = useMemo(
+    () => [...members].sort((a, b) => a.bucket - b.bucket),
     [members],
   );
-  const directoryRows = useMemo(
-    () => members.filter((m) => m.bucket >= 1).sort((a, b) => a.bucket - b.bucket),
-    [members],
-  );
-
   const registered = directory.length;
-  const activeCount = members.filter((m) => m.bucket === 1 || m.bucket === 2).length;
-  const stack = directory.slice(0, 3);
-  const overflow = Math.max(0, registered - stack.length);
 
-  // Slide direction: +1 forward (friends → directory), -1 back. Derived
-  // during render (the sanctioned "adjust a ref when a prop changes").
-  const dirRef = useRef(0);
-  const prevViewRef = useRef(view);
-  if (prevViewRef.current !== view) {
-    dirRef.current = view === "directory" ? 1 : -1;
-    prevViewRef.current = view;
-  }
-
-  /* ─── Friends (active) view ─── */
-  const friendsView = (
+  /* ─── Single panel body ─── */
+  const panelBody = (
     <>
       {withHeader ? (
         <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-3">
@@ -248,7 +215,7 @@ export function DockPanelBody({
               Friends
             </span>
             <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
-              {activeCount}
+              {registered}
             </span>
           </span>
           <span className="flex items-center gap-0.5">
@@ -279,128 +246,22 @@ export function DockPanelBody({
           <EmptyState />
         ) : q ? (
           (() => {
-            const matches = members.filter(byName);
+            const matches = rows.filter(byName);
             return matches.length === 0 ? (
               <NoMatch query={query} />
             ) : (
               <MemberList rows={matches} onNavigate={onNavigate} className="border-y border-border/60" />
             );
           })()
-        ) : active.length > 0 ? (
-          <MemberList rows={active} onNavigate={onNavigate} className="border-y border-border/60" />
         ) : (
-          <p className="border-y border-border/60 px-3 py-6 text-center text-[12px] text-muted-foreground">
-            No one&apos;s active right now.
-          </p>
-        )}
-      </div>
-      {registered > 0 && !q ? (
-        <div className="shrink-0 p-3">
-          <button
-            type="button"
-            onClick={() => setView("directory")}
-            className="group flex w-full items-center gap-3 rounded-md border border-border bg-card px-3 py-2.5 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          >
-            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors group-hover:text-foreground">
-              <Users size={16} aria-hidden />
-            </span>
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-sm font-semibold text-foreground">
-                Member directory
-              </span>
-              <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground tabular-nums">
-                {registered} {registered === 1 ? "person" : "people"}
-              </span>
-            </span>
-            {stack.length > 0 ? (
-              <span className="flex shrink-0 items-center">
-                <span className="flex -space-x-2">
-                  {stack.map((u) => (
-                    <Avatar
-                      key={u.userId}
-                      src={u.imageUrl}
-                      alt={u.name}
-                      size="sm"
-                      liven={false}
-                      dotRing="ring-card"
-                    />
-                  ))}
-                </span>
-                {overflow > 0 ? (
-                  <span className="z-10 -ml-2 inline-flex size-8 items-center justify-center rounded-full border border-border bg-background text-[10px] font-semibold tabular-nums text-muted-foreground ring-1 ring-foreground/10">
-                    +{overflow}
-                  </span>
-                ) : null}
-              </span>
-            ) : null}
-          </button>
-        </div>
-      ) : null}
-    </>
-  );
-
-  /* ─── Directory view (full takeover) ─── */
-  const dirShown = q ? directoryRows.filter(byName) : directoryRows;
-  const directoryView = (
-    <>
-      {withHeader ? (
-        <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-2 py-3">
-          <span className="flex min-w-0 items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setView("active")}
-              aria-label="Back to friends"
-              className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
-              <ArrowLeft size={16} aria-hidden />
-            </button>
-            <span className="flex min-w-0 flex-col">
-              <span className="truncate text-sm font-semibold text-foreground">
-                Member directory
-              </span>
-              <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground tabular-nums">
-                {registered} {registered === 1 ? "person" : "people"}
-              </span>
-            </span>
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close friends"
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <X size={16} aria-hidden />
-          </button>
-        </header>
-      ) : null}
-      <SearchBox value={query} onChange={setQuery} placeholder="Search members…" />
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {dirShown.length === 0 ? (
-          <NoMatch query={query} />
-        ) : (
-          <MemberList rows={dirShown} onNavigate={onNavigate} className="border-t border-border/60" />
+          <MemberList rows={rows} onNavigate={onNavigate} className="border-y border-border/60" />
         )}
       </div>
     </>
   );
 
   return (
-    <div className="relative h-full min-h-0 overflow-hidden">
-      <AnimatePresence initial={false} custom={dirRef.current}>
-        <motion.div
-          key={view}
-          custom={dirRef.current}
-          variants={reduce ? undefined : VIEW_VARIANTS}
-          initial={reduce ? { opacity: 0 } : "enter"}
-          animate={reduce ? { opacity: 1 } : "center"}
-          exit={reduce ? { opacity: 0 } : "exit"}
-          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute inset-0 flex min-h-0 flex-col"
-        >
-          {view === "active" ? friendsView : directoryView}
-        </motion.div>
-      </AnimatePresence>
-    </div>
+    <div className="flex h-full min-h-0 flex-col">{panelBody}</div>
   );
 }
 
