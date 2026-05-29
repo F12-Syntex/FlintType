@@ -29,9 +29,10 @@ import { MistakesRows } from "./_components/mistakes-row";
 import { MultiplayerRows } from "./_components/multiplayer-rows";
 import { LiveStatsRows } from "./_components/live-stats-rows";
 import { PassageRows } from "./_components/passage-rows";
+import { PreviewPane } from "./_components/preview-pane";
 import { RadiusRow } from "./_components/radius-row";
 import { ResultRows } from "./_components/result-rows";
-import { TapeRows } from "./_components/tape-row";
+import { useSectionChanges } from "./_components/section-changes";
 import {
   BackgroundFillRow,
   CardSurfacesRow,
@@ -40,26 +41,10 @@ import {
   PagePaddingRow,
   SurfacePresetRow,
 } from "./_components/surface-rows";
-import {
-  BackgroundPreview,
-  CaretPreview,
-  ChromePreview,
-  ColorPreview,
-  GeometryPreview,
-  KeyboardLivePreview,
-  KeymapLivePreview,
-  LiveStatsPreview,
-  MistakesPreview,
-  MultiplayerPreview,
-  ResultLivePreview,
-  SurfacePreview,
-  TapePreview,
-  ThemePreview,
-  TypingAreaPreview,
-  TypographyPreview,
-} from "./_components/section-previews";
+import { TapeRows } from "./_components/tape-row";
 import { ThemesRow } from "./_components/themes-row";
 import { TypographyRows } from "./_components/typography-row";
+import { useActiveAppearanceSection } from "./_components/use-active-section";
 
 type ColorRowDef = {
   var: ThemeVar;
@@ -121,6 +106,8 @@ export default function AppearancePage() {
   const { customizedCount: appearanceCustomized, reset: resetAppearance } =
     useAppearancePrefs();
   const customizedCount = overrideCount(overrides) + appearanceCustomized;
+  const changed = useSectionChanges();
+  const activeId = useActiveAppearanceSection(true);
 
   function handleResetAll() {
     reset();
@@ -134,202 +121,218 @@ export default function AppearancePage() {
         title="Make it look the way you think"
         customizedCount={customizedCount}
         onResetAll={handleResetAll}
-        description="Every visual control with its own live preview built from the real test surface — every override you make appears here exactly as it will on /app."
+        description="One live preview, always on, follows whatever you're tuning and repaints from the real test surface. A coral dot marks every section you've changed."
       />
 
-      <SettingsSection
-        id="themes"
-        eyebrow="Surface"
-        title="Themes & mode"
-        description="Pick a community palette and flip light / dark. The preview is the real practice passage — every palette swap repaints it."
-        preview={<ThemePreview />}
-      >
-        <ThemesRow />
-        <SettingsRow label="Mode" control={<ModeSwitcher />} />
-        <div>
-          <Link
-            href="/customise/appearance/themes"
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Browse all palettes
-            <ExternalLink size={12} aria-hidden />
-          </Link>
-        </div>
-      </SettingsSection>
-
-      <SettingsSection
-        id="colors"
-        eyebrow="Tokens"
-        title="Colors"
-        description="Override the active palette one CSS variable at a time. The preview pairs the live stats strip with the practice passage so every token has a visible target."
-        preview={<ColorPreview />}
-      >
-        {COLOR_ROWS.map((row) => (
-          <ColorRow
-            key={row.var}
-            label={row.label}
-            desc={row.desc}
-            swatchColor={resolveSwatchColor(row.var, row.fallbackVar)}
-            value={overrides[row.var]}
-            onChange={(hex) => setVar(row.var, hex)}
-            onClear={() => clearVar(row.var)}
+      {/* Two-pane: scrollable controls + the persistent live preview. The
+          preview rides the top of the stack on mobile / lg and docks into
+          a sticky right column at xl, where there's honest room for both
+          beside the section nav rail. */}
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start xl:gap-10">
+        <div className="order-1 xl:order-2 xl:sticky xl:top-4">
+          <PreviewPane
+            activeId={activeId}
+            changed={changed}
+            customizedCount={customizedCount}
           />
-        ))}
-      </SettingsSection>
+        </div>
 
-      <SettingsSection
-        id="geometry"
-        eyebrow="Shape"
-        title="Geometry"
-        description="Corner radius and the borders rule across the app. Every component honours these — the passage card, buttons, chips, popovers."
-        preview={<GeometryPreview />}
-      >
-        <RadiusRow
-          value={overrides["--radius"]}
-          onChange={(rem) => setVar("--radius", `${rem}rem`)}
-          onClear={() => clearVar("--radius")}
-        />
-        <BordersRow />
-      </SettingsSection>
+        <div className="order-2 flex flex-col xl:order-1">
+          <SettingsSection
+            id="themes"
+            eyebrow="Surface"
+            title="Themes & mode"
+            changed={changed.themes}
+            description="Pick a community palette and flip light / dark. Every palette swap repaints the live preview."
+          >
+            <ThemesRow />
+            <SettingsRow label="Mode" control={<ModeSwitcher />} />
+            <div>
+              <Link
+                href="/customise/appearance/themes"
+                className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Browse all palettes
+                <ExternalLink size={12} aria-hidden />
+              </Link>
+            </div>
+          </SettingsSection>
 
-      <SettingsSection
-        id="surface"
-        eyebrow="Minimise"
-        title="Surface"
-        description="Collapse card surfaces, dividers, padding, background — the dial that takes flinttype from editorial paper to a Monkeytype-leaning minimal sheet. Presets ship three calibrated bundles."
-        preview={<SurfacePreview />}
-      >
-        <SurfacePresetRow />
-        <CardSurfacesRow />
-        <DividersRow />
-        <PagePaddingRow />
-        <BackgroundFillRow />
-        <MonochromeRow />
-      </SettingsSection>
+          <SettingsSection
+            id="colors"
+            eyebrow="Tokens"
+            title="Colors"
+            changed={changed.colors}
+            description="Override the active palette one CSS variable at a time."
+          >
+            {COLOR_ROWS.map((row) => (
+              <ColorRow
+                key={row.var}
+                label={row.label}
+                desc={row.desc}
+                swatchColor={resolveSwatchColor(row.var, row.fallbackVar)}
+                value={overrides[row.var]}
+                onChange={(hex) => setVar(row.var, hex)}
+                onClear={() => clearVar(row.var)}
+              />
+            ))}
+          </SettingsSection>
 
-      <SettingsSection
-        id="chrome"
-        eyebrow="Layer"
-        title="Chrome"
-        description="Topbar, footer, mode bar style + auto-hide while typing. Tune how much of the app gets out of the way during a run."
-        preview={<ChromePreview />}
-      >
-        <TopbarStyleRow />
-        <FooterStyleRow />
-        <ModeBarStyleRow />
-        <AutoHideRow />
-        <FocusShortcutHint />
-      </SettingsSection>
+          <SettingsSection
+            id="geometry"
+            eyebrow="Shape"
+            title="Geometry"
+            changed={changed.geometry}
+            description="Corner radius and the borders rule across the app. Every component honours these — the passage card, buttons, chips, popovers."
+          >
+            <RadiusRow
+              value={overrides["--radius"]}
+              onChange={(rem) => setVar("--radius", `${rem}rem`)}
+              onClear={() => clearVar("--radius")}
+            />
+            <BordersRow />
+          </SettingsSection>
 
-      <SettingsSection
-        id="caret"
-        eyebrow="Cursor"
-        title="Caret & cursor"
-        description="Style, thickness, roundness, blink, smooth-motion — the marker that follows your typing. The preview runs the real caret on a frozen passage so every option (including blink and smooth) plays here."
-        preview={<CaretPreview />}
-      >
-        <CaretRow />
-      </SettingsSection>
+          <SettingsSection
+            id="surface"
+            eyebrow="Minimise"
+            title="Surface"
+            changed={changed.surface}
+            description="Collapse card surfaces, dividers, padding, background — the dial that takes flinttype from editorial paper to a Monkeytype-leaning minimal sheet. Presets ship three calibrated bundles."
+          >
+            <SurfacePresetRow />
+            <CardSurfacesRow />
+            <DividersRow />
+            <PagePaddingRow />
+            <BackgroundFillRow />
+            <MonochromeRow />
+          </SettingsSection>
 
-      <SettingsSection
-        id="mistakes"
-        eyebrow="Feedback"
-        title="Mistakes"
-        description="How a mistyped letter in the current word is shown. Every option paints the letter in your error colour — pick whether to stop there or stack a bold weight, underline, or background highlight on top. Past errored words are governed by 'Mark incomplete words' under Typing area."
-        preview={<MistakesPreview />}
-      >
-        <MistakesRows />
-      </SettingsSection>
+          <SettingsSection
+            id="chrome"
+            eyebrow="Layer"
+            title="Chrome"
+            changed={changed.chrome}
+            description="Topbar, footer, mode bar style + auto-hide while typing. Tune how much of the app gets out of the way during a run."
+          >
+            <TopbarStyleRow />
+            <FooterStyleRow />
+            <ModeBarStyleRow />
+            <AutoHideRow />
+            <FocusShortcutHint />
+          </SettingsSection>
 
-      <SettingsSection
-        id="typography"
-        eyebrow="Type"
-        title="Typography"
-        description="Font family, size, and word spacing of the practice passage. Body text and chrome stay on JetBrains Mono — only the passage changes."
-        preview={<TypographyPreview />}
-      >
-        <TypographyRows />
-      </SettingsSection>
+          <SettingsSection
+            id="caret"
+            eyebrow="Cursor"
+            title="Caret & cursor"
+            changed={changed.caret}
+            description="Style, thickness, roundness, blink, smooth-motion — the marker that follows your typing. The preview runs the real caret on a frozen passage so every option (including blink and smooth) plays there."
+          >
+            <CaretRow />
+          </SettingsSection>
 
-      <SettingsSection
-        id="keyboard"
-        eyebrow="Visual"
-        title="Keyboard widget"
-        description="The live keyboard rendered under the passage. Every option here repaints the preview above instantly."
-        preview={<KeyboardLivePreview />}
-      >
-        <KeyboardRow />
-      </SettingsSection>
+          <SettingsSection
+            id="mistakes"
+            eyebrow="Feedback"
+            title="Mistakes"
+            changed={changed.mistakes}
+            description="How a mistyped letter in the current word is shown. Every option paints the letter in your error colour — pick whether to stop there or stack a bold weight, underline, or background highlight on top. Past errored words are governed by 'Mark incomplete words' under Typing area."
+          >
+            <MistakesRows />
+          </SettingsSection>
 
-      <SettingsSection
-        id="background"
-        eyebrow="Canvas"
-        title="Background"
-        description="Drop in an image, pick how it fits, and tune opacity. Local to your browser — nothing uploads."
-        preview={<BackgroundPreview />}
-      >
-        <BackgroundRow />
-      </SettingsSection>
+          <SettingsSection
+            id="typography"
+            eyebrow="Type"
+            title="Typography"
+            changed={changed.typography}
+            description="Font family, size, and word spacing of the practice passage. Body text and chrome stay on JetBrains Mono — only the passage changes."
+          >
+            <TypographyRows />
+          </SettingsSection>
 
-      <SettingsSection
-        id="live-stats"
-        eyebrow="Heads-up"
-        title="Live stats"
-        description="WPM and accuracy ticker rendered alongside the passage. Colour, opacity, style (off / text / mini / flash), unit and decimal toggle all reflect in the real Readouts strip."
-        preview={<LiveStatsPreview />}
-      >
-        <LiveStatsRows />
-      </SettingsSection>
+          <SettingsSection
+            id="keyboard"
+            eyebrow="Visual"
+            title="Keyboard widget"
+            changed={changed.keyboard}
+            description="The live keyboard rendered under the passage. Every option here repaints the preview instantly."
+          >
+            <KeyboardRow />
+          </SettingsSection>
 
-      <SettingsSection
-        id="typing-area"
-        eyebrow="Surface"
-        title="Typing area"
-        description="Line count and max width of the passage. The preview above is the same component the test screen runs — every toggle moves it live."
-        preview={<TypingAreaPreview />}
-      >
-        <PassageRows />
-      </SettingsSection>
+          <SettingsSection
+            id="background"
+            eyebrow="Canvas"
+            title="Background"
+            changed={changed.background}
+            description="Drop in an image, pick how it fits, and tune opacity. Local to your browser — nothing uploads."
+          >
+            <BackgroundRow />
+          </SettingsSection>
 
-      <SettingsSection
-        id="tape"
-        eyebrow="Layout"
-        title="Tape mode"
-        description="One scrolling line. Word scrolls per word, Letter scrolls per keypress. Best with smooth scroll + a mono font."
-        preview={<TapePreview />}
-      >
-        <TapeRows />
-      </SettingsSection>
+          <SettingsSection
+            id="live-stats"
+            eyebrow="Heads-up"
+            title="Live stats"
+            changed={changed["live-stats"]}
+            description="WPM and accuracy ticker rendered alongside the passage. Colour, opacity, style (off / text / mini / flash), unit and decimal toggle all reflect in the real Readouts strip."
+          >
+            <LiveStatsRows />
+          </SettingsSection>
 
-      <SettingsSection
-        id="result"
-        eyebrow="Outcome"
-        title="Result screen"
-        description="What the post-test screen shows. The preview embeds the real result components (BigStats and WpmTrace) so the layout, type ramp, and chart shape are exactly what the user sees after a run."
-        preview={<ResultLivePreview />}
-      >
-        <ResultRows />
-      </SettingsSection>
+          <SettingsSection
+            id="typing-area"
+            eyebrow="Surface"
+            title="Typing area"
+            changed={changed["typing-area"]}
+            description="Line count and max width of the passage. The preview is the same component the test screen runs — every toggle moves it live."
+          >
+            <PassageRows />
+          </SettingsSection>
 
-      <SettingsSection
-        id="keymap"
-        eyebrow="Layout"
-        title="Keymap"
-        description="Hand-layout that powers the heatmap and ergonomic stats. The preview reacts to every keymap setting; switching layout swaps the legend live."
-        preview={<KeymapLivePreview />}
-      >
-        <KeymapRows />
-      </SettingsSection>
+          <SettingsSection
+            id="tape"
+            eyebrow="Layout"
+            title="Tape mode"
+            changed={changed.tape}
+            description="One scrolling line. Word scrolls per word, Letter scrolls per keypress. Best with smooth scroll + a mono font."
+          >
+            <TapeRows />
+          </SettingsSection>
 
-      <SettingsSection
-        id="multiplayer"
-        eyebrow="Race"
-        title="Multiplayer"
-        description="How live opponents read in /race — the 1v1 bot race and free-for-all lobbies. Visuals here only affect surfaces with more than one racer."
-        preview={<MultiplayerPreview />}
-      >
-        <MultiplayerRows />
-      </SettingsSection>
+          <SettingsSection
+            id="result"
+            eyebrow="Outcome"
+            title="Result screen"
+            changed={changed.result}
+            description="What the post-test screen shows. The preview embeds the real result components (BigStats and WpmTrace) so the layout, type ramp, and chart shape are exactly what the user sees after a run."
+          >
+            <ResultRows />
+          </SettingsSection>
+
+          <SettingsSection
+            id="keymap"
+            eyebrow="Layout"
+            title="Keymap"
+            changed={changed.keymap}
+            description="Hand-layout that powers the heatmap and ergonomic stats. The preview reacts to every keymap setting; switching layout swaps the legend live."
+          >
+            <KeymapRows />
+          </SettingsSection>
+
+          <SettingsSection
+            id="multiplayer"
+            eyebrow="Race"
+            title="Multiplayer"
+            changed={changed.multiplayer}
+            description="How live opponents read in /race — the 1v1 bot race and free-for-all lobbies. Visuals here only affect surfaces with more than one racer."
+          >
+            <MultiplayerRows />
+          </SettingsSection>
+        </div>
+      </div>
     </section>
   );
 }

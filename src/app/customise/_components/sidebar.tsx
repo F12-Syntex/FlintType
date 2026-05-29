@@ -3,10 +3,12 @@
 import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
 import { cn } from "@/lib/utils";
 import { APPEARANCE_SECTIONS } from "../appearance/_sections";
+import { useActiveAppearanceSection } from "../appearance/_components/use-active-section";
+import { useSectionChanges } from "../appearance/_components/section-changes";
 import { SECTIONS } from "./data";
 
 function titleCase(name: string): string {
@@ -23,60 +25,6 @@ const TOP_LEVEL = SECTIONS.map((s) => ({
   count: s.settings.length,
 }));
 
-/** Track which `<section id>` is currently visible inside the customise
- *  scroller so the sidebar can highlight it. The customise layout uses
- *  a custom scroller (the inner `<div className="absolute inset-0
- *  overflow-y-auto">`) rather than the window, so we observe with
- *  IntersectionObserver against the document — the threshold trips when
- *  ≥ 30 % of a section is in view, picking the topmost match. */
-function useActiveAppearanceSection(active: boolean): string | null {
-  const [activeId, setActiveId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!active) {
-      setActiveId(null);
-      return;
-    }
-    const ids = APPEARANCE_SECTIONS.map((s) => s.id);
-    const targets = ids
-      .map((id) => document.getElementById(id))
-      .filter((el): el is HTMLElement => el !== null);
-    if (targets.length === 0) return;
-
-    // Track ratios across all sections; pick the one closest to the
-    // top of the viewport with a non-trivial visibility share. Plain
-    // "first intersecting" is wrong because two sections often overlap
-    // the threshold band when one is partly scrolled past.
-    const ratios = new Map<string, number>();
-    const obs = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          ratios.set(e.target.id, e.intersectionRatio);
-        }
-        let bestId: string | null = null;
-        let bestRatio = 0;
-        for (const id of ids) {
-          const r = ratios.get(id) ?? 0;
-          if (r > bestRatio) {
-            bestRatio = r;
-            bestId = id;
-          }
-        }
-        if (bestId) setActiveId(bestId);
-      },
-      {
-        // Bands at 0/25/50/75/100 — finer than the default lets us
-        // distinguish "barely peeking" from "mostly visible".
-        threshold: [0, 0.25, 0.5, 0.75, 1],
-      },
-    );
-    for (const t of targets) obs.observe(t);
-    return () => obs.disconnect();
-  }, [active]);
-
-  return activeId;
-}
-
 /** Mobile section picker — the trigger sits in the customise header
  *  ("Themes & mode ⌄"), opening a bottom sheet that lists every section
  *  on the appearance page (as anchor jumps) plus other top-level
@@ -88,6 +36,7 @@ export function MobileSectionPicker() {
 
   const onAppearance = pathname.startsWith("/customise/appearance");
   const activeAppearanceId = useActiveAppearanceSection(onAppearance);
+  const changed = useSectionChanges();
   const activeName =
     APPEARANCE_SECTIONS.find((s) => s.id === activeAppearanceId)?.name ??
     (onAppearance ? "Appearance" : null);
@@ -166,6 +115,12 @@ export function MobileSectionPicker() {
                     >
                       {s.name}
                     </span>
+                    {changed[s.id] ? (
+                      <span
+                        aria-label="Changed from default"
+                        className="inline-block size-1.5 shrink-0 rounded-full bg-primary"
+                      />
+                    ) : null}
                   </button>
                 </li>
               );
@@ -223,6 +178,7 @@ export function SettingsSidebar() {
   const pathname = usePathname();
   const onAppearance = pathname.startsWith("/customise/appearance");
   const activeAppearanceId = useActiveAppearanceSection(onAppearance);
+  const changed = useSectionChanges();
   const otherTopLevel = TOP_LEVEL.filter((s) => s.id !== "appearance");
 
   return (
@@ -295,6 +251,13 @@ export function SettingsSidebar() {
                         />
                       ) : null}
                       <span className="font-medium">{s.name}</span>
+                      {changed[s.id] ? (
+                        <span
+                          title="Changed from default"
+                          aria-label="Changed from default"
+                          className="ml-auto inline-block size-1.5 shrink-0 rounded-full bg-primary"
+                        />
+                      ) : null}
                     </Link>
                   </li>
                 );

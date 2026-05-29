@@ -63,6 +63,7 @@ export function SettingsSection({
   actions,
   children,
   className,
+  changed = false,
 }: {
   id: string;
   eyebrow: string;
@@ -72,6 +73,9 @@ export function SettingsSection({
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** When true, a small primary dot sits beside the title to flag that
+   *  this section has been customised away from its defaults. */
+  changed?: boolean;
 }) {
   const [previewOpen, togglePreview] = usePreviewOpen(id);
   return (
@@ -95,8 +99,15 @@ export function SettingsSection({
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
           <div className="flex flex-col gap-1.5">
-            <h3 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+            <h3 className="flex items-center gap-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
               {title}
+              {changed ? (
+                <span
+                  aria-label="Changed from default"
+                  title="Changed from default"
+                  className="inline-block size-2 shrink-0 rounded-full bg-primary"
+                />
+              ) : null}
             </h3>
             {description ? (
               <p className="max-w-xl text-[13px] leading-relaxed text-muted-foreground">
