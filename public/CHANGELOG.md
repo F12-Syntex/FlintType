@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.117.6 — 29 May 2026
+- The error count shown while you type now matches the one on the results screen. Both count individual mistyped characters — previously the live counter counted whole words while the results counted keystrokes, so the two disagreed.
+- Correcting a mistake with Backspace now clears its red mark, the same as Ctrl+Backspace already did. A fully-corrected run reads zero errors, matching its 100% accuracy.
+- The results "errors over time" strip is now labelled "mistakes over time", to set the timeline of every keypress slip apart from the final error total.
+
 ## 6.117.0 — 25 May 2026
 - Adaptive practice now zeroes in on the hand motions you're actually slow at, rather than a handful of specific words — so the speed you build carries over to everything you type. Each passage also spreads across several of your weak motions instead of repeating the same word over and over, and a word you've just drilled won't keep resurfacing for a good while.
 - New "Isolation drill" cards on the Drills page: pick one of your weakest letter pairs and drill it across dozens of varied everyday words. Same motion, many words — the keybr-style way to make the speed actually transfer.

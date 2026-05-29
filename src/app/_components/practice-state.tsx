@@ -20,7 +20,7 @@ import { useIsMobile } from "@/lib/use-is-mobile";
 import { isRaceInputCurrentlyLocked } from "@/lib/race-input";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { useWordlist } from "@/lib/wordlists/use-wordlist";
-import { calcWpmAndRaw, countChars } from "@/lib/wpm";
+import { calcWpmAndRaw, countChars, errorCount as computeErrorCount } from "@/lib/wpm";
 import {
   avgWpm as computeAvgWpm,
   consistencyScore as computeConsistency,
@@ -597,7 +597,10 @@ export function PracticeProvider({
         durationOrWordCount: length,
         wpm,
         accuracy,
-        errorCount: state.errorWords.size,
+        // Per-character errors (incorrect + extra), the same metric the
+        // results + live readouts show — so the persisted/history figure
+        // matches what the user saw (was errorWords.size, a per-word count).
+        errorCount: computeErrorCount(state.typed, state.words),
         resetCount: 0,
         wasCompleted: true,
         words: wordsActuallyTyped,

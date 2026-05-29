@@ -1,7 +1,36 @@
 import { describe, expect, it } from "vitest";
-import { calcWpmAndRaw, countChars } from "./wpm";
+import { calcWpmAndRaw, countChars, errorCount } from "./wpm";
 
 const MIN = 60_000; // one minute in ms
+
+describe("errorCount (shared live + results error metric)", () => {
+  it("is zero for a perfect run", () => {
+    expect(errorCount(["hello", "world"], ["hello", "world"])).toBe(0);
+  });
+
+  it("counts per character, not per word", () => {
+    // Three wrong letters in ONE word → 3, not 1. (The live readout used
+    // to report per-word, the results per-keystroke; both now use this.)
+    expect(errorCount(["hxllx", "wxrld"], ["hello", "world"])).toBe(3);
+  });
+
+  it("is zero once mistakes are corrected (final-buffer based)", () => {
+    // The typed buffer ends up matching the target — corrected mistakes
+    // don't linger, so it agrees with the 100%-accuracy reading.
+    expect(errorCount(["hello", "world"], ["hello", "world"])).toBe(0);
+  });
+
+  it("counts extra characters as errors", () => {
+    expect(errorCount(["helloo"], ["hello"])).toBe(1);
+  });
+
+  it("does NOT count a skipped (short) word's missing chars", () => {
+    // A word skipped with space leaves missedChars, not incorrect — so a
+    // pure skip contributes 0 errors in both the live and results views
+    // (previously it bumped the live per-word count but not the results).
+    expect(errorCount(["hel", "world"], ["hello", "world"])).toBe(0);
+  });
+});
 
 describe("countChars", () => {
   it("counts a perfect two-word run", () => {

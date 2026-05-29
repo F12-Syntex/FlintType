@@ -7,6 +7,7 @@ import type { LiveStatStyle } from "@/lib/appearance-prefs";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
 import { cn } from "@/lib/utils";
+import { errorCount } from "@/lib/wpm";
 import { usePractice } from "./practice-state";
 
 function formatElapsed(ms: number): string {
@@ -88,7 +89,11 @@ function useStatsProps(): StatsProps {
     wpm,
     accuracy,
     burst,
-    errs: state.errorWords.size,
+    // Per-character error count (incorrect + extra), the SAME metric the
+    // results screen shows — so the live ERR and the final ERRORS always
+    // agree. (Was errorWords.size, a per-word count that diverged from
+    // the results' per-keystroke total.)
+    errs: errorCount(state.typed, state.words, false),
     wordIdx,
     wordCount,
     elapsedMs,
