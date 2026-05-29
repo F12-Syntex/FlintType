@@ -280,10 +280,15 @@ function reconstructCursor(
 function ReplayView({
   words,
   events,
+  typedCount,
   onExit,
 }: {
   words: readonly string[];
   events: readonly KeyEvent[];
+  /** How many words the user actually produced input for (`state.typed`
+   *  length). The honest "what you typed" cap — correctness-independent,
+   *  unlike the reconstructed cursor which only advances on correct keys. */
+  typedCount: number;
   onExit: () => void;
 }) {
   const [step, setStep] = useState(0);
@@ -309,6 +314,17 @@ function ReplayView({
   const { wordIdx, charIdx, errorWords } = useMemo(
     () => reconstructCursor(events, words, step),
     [events, words, step],
+  );
+
+  // Timed tests keep a deep buffer of upcoming words past where the user
+  // actually typed (the passage tops up ahead of the cursor). The replay
+  // should mirror only the span the user typed, not the whole buffer —
+  // otherwise a 15s run renders hundreds of grey untyped words. Cap the
+  // rendered passage at the number of words the user produced input for.
+  // No-op for words/quote runs, where typedCount reaches the full length.
+  const displayWords = useMemo(
+    () => words.slice(0, Math.min(words.length, Math.max(1, typedCount))),
+    [words, typedCount],
   );
 
   const pct =
@@ -362,7 +378,7 @@ function ReplayView({
         </div>
 
         <div className="font-mono text-xl leading-[1.7] tracking-[0.04em]">
-          {words.map((word, wi) => (
+          {displayWords.map((word, wi) => (
             <span key={wi}>
               {[...word].map((ch, ci) => {
                 const typed =
@@ -382,7 +398,7 @@ function ReplayView({
                   </span>
                 );
               })}
-              {wi < words.length - 1 ? (
+              {wi < displayWords.length - 1 ? (
                 <span className="text-muted-foreground">{" "}</span>
               ) : null}
             </span>
@@ -517,6 +533,7 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
       <ReplayView
         words={state.words}
         events={state.events}
+        typedCount={state.typed.length}
         onExit={() => setReplaying(false)}
       />
     );

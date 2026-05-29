@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.117.3 — 29 May 2026
+- Replaying a timed test now shows only the words you actually typed, instead of the entire long buffer of upcoming words that scrolls ahead during the run.
+
 ## 6.117.0 — 25 May 2026
 - Adaptive practice now zeroes in on the hand motions you're actually slow at, rather than a handful of specific words — so the speed you build carries over to everything you type. Each passage also spreads across several of your weak motions instead of repeating the same word over and over, and a word you've just drilled won't keep resurfacing for a good while.
 - New "Isolation drill" cards on the Drills page: pick one of your weakest letter pairs and drill it across dozens of varied everyday words. Same motion, many words — the keybr-style way to make the speed actually transfer.
