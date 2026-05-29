@@ -5,6 +5,7 @@ import { Check } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBackend } from "@/lib/backend";
+import { relativeTime } from "@/lib/relative-time";
 import { cn } from "@/lib/utils";
 import { UserTag } from "@/components/ft";
 import type {
@@ -277,7 +278,7 @@ function Row({ item, dark }: { item: Notification; dark: boolean }) {
               dark ? "text-ft-warm-3" : "text-muted-foreground",
             )}
           >
-            {formatRelative(item.createdAtMs)}
+            {relativeTime(item.createdAtMs)}
           </span>
         </div>
         <p
@@ -401,16 +402,6 @@ function isRaceInvite(n: Notification): n is Notification & {
   if (n.kind !== "race_invite") return false;
   if (n.data == null || typeof n.data !== "object") return false;
   return "slug" in (n.data as Record<string, unknown>);
-}
-
-function formatRelative(ms: number): string {
-  const diff = (Date.now() - ms) / 1000;
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-  if (diff < 86_400) return `${Math.floor(diff / 3600)}h`;
-  if (diff < 7 * 86_400) return `${Math.floor(diff / 86_400)}d`;
-  const d = new Date(ms);
-  return d.toLocaleDateString();
 }
 
 function BellIcon() {

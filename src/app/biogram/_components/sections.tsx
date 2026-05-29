@@ -8,6 +8,7 @@ import {
   type FingerId,
   type HandLayoutPrefs,
 } from "@/lib/hand-layout";
+import { relativeTime } from "@/lib/relative-time";
 import { cn } from "@/lib/utils";
 import type { AdaptSnapshotOutput, AdaptTestSummary } from "@/types/adapt";
 
@@ -114,7 +115,7 @@ export function RecentTests({ tests }: { tests: AdaptTestSummary[] }) {
               className="border-b border-foreground/5 transition-colors last:border-b-0 hover:bg-foreground/[0.02]"
             >
               <td className="py-2.5 pr-3 pl-4 text-muted-foreground">
-                {formatWhen(t.startedAtMs)}
+                {relativeTime(t.startedAtMs)}
               </td>
               <td className="py-2.5 pr-3 text-foreground">{t.mode}</td>
               <td className="py-2.5 pr-3 text-right text-foreground">
@@ -260,12 +261,3 @@ function FingerColumn({
   );
 }
 
-function formatWhen(ms: number): string {
-  const d = new Date(ms);
-  const now = Date.now();
-  const diff = (now - ms) / 1000;
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86_400) return `${Math.floor(diff / 3600)}h ago`;
-  return d.toLocaleDateString();
-}

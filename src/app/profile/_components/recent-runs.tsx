@@ -4,6 +4,7 @@ import { Crown } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { ShareRunButton } from "@/components/share-run-button";
+import { relativeTime } from "@/lib/relative-time";
 import { cn } from "@/lib/utils";
 import type { HistoryTest } from "@/types/history";
 
@@ -106,7 +107,7 @@ function RunRow({
     <li className="group/row grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 py-3 sm:grid-cols-[1fr_auto_auto_auto] sm:gap-x-6">
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          {formatWhen(test.startedAtMs)}
+          {relativeTime(test.startedAtMs)}
         </span>
         <div className="flex items-baseline gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground">
@@ -160,13 +161,3 @@ function prettyMode(m: string): string {
   return m;
 }
 
-function formatWhen(ms: number): string {
-  const d = new Date(ms);
-  const now = Date.now();
-  const diff = (now - ms) / 1000;
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86_400) return `${Math.floor(diff / 3600)}h ago`;
-  if (diff < 7 * 86_400) return `${Math.floor(diff / 86_400)}d ago`;
-  return d.toLocaleDateString();
-}

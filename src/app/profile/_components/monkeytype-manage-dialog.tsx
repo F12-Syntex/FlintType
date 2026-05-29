@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { BackendError, useBackend } from "@/lib/backend";
+import { relativeTime } from "@/lib/relative-time";
 import { cn } from "@/lib/utils";
 import type { MonkeytypeStatsSlice } from "@/types/monkeytype";
 
@@ -92,7 +93,9 @@ export function MonkeyTypeManageDialog({
     }
   }
 
-  const lastSynced = formatRelative(slice.importedAt);
+  const lastSynced = slice.importedAt
+    ? relativeTime(slice.importedAt)
+    : "—";
   const pbCells =
     Object.keys(slice.pbs.time).length +
     Object.keys(slice.pbs.words).length;
@@ -251,11 +254,3 @@ export function MonkeyTypeManageDialog({
   );
 }
 
-function formatRelative(ms: number): string {
-  if (!ms) return "—";
-  const diff = (Date.now() - ms) / 1000;
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86_400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86_400)}d ago`;
-}

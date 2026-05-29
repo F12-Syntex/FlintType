@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { Download } from "lucide-react";
+import { formatClock } from "@/lib/format-duration";
 import { cn } from "@/lib/utils";
 import { useRace } from "./race-state";
 
@@ -229,7 +230,7 @@ export function RaceResults() {
         <Stat label="accuracy" value={`${you.accuracy.toFixed(1)}%`} />
         <Stat label="chars typed" value={String(you.correctChars)} />
         <Stat label="errors" value={String(you.errors)} />
-        <Stat label="time" value={formatT(you.finishedAt ?? 0)} />
+        <Stat label="time" value={formatClock(you.finishedAt ?? 0)} />
       </div>
 
       <FinalTrace />
@@ -302,7 +303,7 @@ export function RaceResults() {
                     : "text-muted-foreground",
                 )}
               >
-                {racing ? "racing" : formatT(r.finishedAt ?? 0)}
+                {racing ? "racing" : formatClock(r.finishedAt ?? 0)}
               </span>
             </div>
           );
@@ -439,12 +440,12 @@ function ordinal(n: number): string {
 
 function summaryLine(place: number, total: number, time: number): string {
   if (place === 1) {
-    return `Won in ${formatT(time)}. Race again to defend it.`;
+    return `Won in ${formatClock(time)}. Race again to defend it.`;
   }
   if (place === total) {
-    return `Finished last in ${formatT(time)}. Race again.`;
+    return `Finished last in ${formatClock(time)}. Race again.`;
   }
-  return `Finished ${ordinal(place)} of ${total} in ${formatT(time)}.`;
+  return `Finished ${ordinal(place)} of ${total} in ${formatClock(time)}.`;
 }
 
 /** Standing line shown while the room is still racing — the placement
@@ -461,10 +462,4 @@ function provisionalLine(
   if (stillRacing <= 0) return `You're ${standing}. Finalising places.`;
   const who = stillRacing === 1 ? "1 racer" : `${stillRacing} racers`;
   return `You're ${standing} — ${who} still typing.`;
-}
-
-function formatT(sec: number): string {
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return `${m}:${String(s).padStart(2, "0")}`;
 }

@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.121.1 — 29 May 2026
+- Relative timestamps now read consistently everywhere (recent runs, notifications, insights, your profile): "5m ago", "2h ago", then a tidy "May 4" for older entries. Internal: the duration and "time ago" formatters are now shared instead of re-written per page.
+
 ## 6.121.0 — 29 May 2026
 - The results graph now marks your mistakes: a small red ✕ sits on the WPM line at each second you mistyped, so you can see where on the run your speed dipped against an error.
 

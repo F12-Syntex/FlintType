@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ftButtonVariants, Stat, Tag, UserTag } from "@/components/ft";
+import { formatClock } from "@/lib/format-duration";
 import type { SharedTest } from "@/types/share";
 
 /** Friendly mode label for the eyebrow strip. The DB stores `casual`
@@ -18,12 +19,6 @@ function lengthLabel(mode: string, amount: number): string {
   if (mode === "time" || /time/i.test(mode)) return `Time · ${amount}s`;
   if (/quote/i.test(mode)) return `Quote · ${amount}`;
   return `Words · ${amount}`;
-}
-
-function formatDuration(sec: number): string {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 /** Linked handle pill — points at `/profile/<username>` when a Clerk
@@ -105,7 +100,7 @@ export function ShareCard({ data }: { data: SharedTest }) {
           <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.22em] text-ft-warm-3">
             <span>{lengthLabel(data.mode, data.durationOrWordCount)}</span>
             <span className="tabular-nums text-ft-warm-1">
-              {formatDuration(data.durationSec)}
+              {formatClock(data.durationSec)}
             </span>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { getDatabase } from "@/db/server";
 import { BackendError } from "@/lib/errors";
+import { formatClock } from "@/lib/format-duration";
 import { logger } from "@/server/logger";
 import { loadSharedTest } from "@/server/routes/share/load";
 import type { SharedTest } from "@/types/share";
@@ -65,7 +66,7 @@ export default async function RunOpengraphImage({
   const acc = roundDecimal(data.accuracy);
   const initials = data.handle.replace(/^@/, "").slice(0, 2).toUpperCase();
   const lengthLabel = formatLengthLabel(data.mode, data.durationOrWordCount);
-  const durationLabel = formatDuration(data.durationSec);
+  const durationLabel = formatClock(data.durationSec);
 
   return new ImageResponse(
     (
@@ -753,11 +754,6 @@ function modeLabel(mode: string): string {
   return "Casual";
 }
 
-function formatDuration(sec: number): string {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
 
 function roundDecimal(v: number): number {
   return Math.round(v * 10) / 10;

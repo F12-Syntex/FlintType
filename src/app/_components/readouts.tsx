@@ -5,16 +5,15 @@ import { Stat } from "@/components/ft";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import type { LiveStatStyle } from "@/lib/appearance-prefs";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
+import { formatClock } from "@/lib/format-duration";
 import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
 import { cn } from "@/lib/utils";
 import { errorCount } from "@/lib/wpm";
 import { usePractice } from "./practice-state";
 
+// Readouts hold milliseconds; the shared m:ss formatter takes seconds.
 function formatElapsed(ms: number): string {
-  const total = Math.floor(ms / 1000);
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
+  return formatClock(ms / 1000);
 }
 
 /** Toggle that turns true for ~1.5s every 15s — drives the "flash"

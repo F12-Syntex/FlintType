@@ -2,6 +2,7 @@
 
 import { useUser } from "@clerk/nextjs";
 import { ShareRunButton } from "@/components/share-run-button";
+import { relativeTime } from "@/lib/relative-time";
 import { cn } from "@/lib/utils";
 import type { HistoryTest } from "@/types/history";
 
@@ -41,7 +42,7 @@ export function RecentTests({ tests }: { tests: readonly HistoryTest[] }) {
         >
           <div className="flex flex-col gap-0.5">
             <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              {formatWhen(t.startedAtMs)}
+              {relativeTime(t.startedAtMs)}
             </span>
             <span className="text-[12px] text-foreground">
               {prettyMode(t.mode)} ·{" "}
@@ -73,13 +74,3 @@ function prettyMode(m: string): string {
   return m;
 }
 
-function formatWhen(ms: number): string {
-  const d = new Date(ms);
-  const now = Date.now();
-  const diff = (now - ms) / 1000;
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86_400) return `${Math.floor(diff / 3600)}h ago`;
-  if (diff < 7 * 86_400) return `${Math.floor(diff / 86_400)}d ago`;
-  return d.toLocaleDateString();
-}
