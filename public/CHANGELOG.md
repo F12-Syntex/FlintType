@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.121.4 — 29 May 2026
+- Added breathing room between the race player-list card and the text below it (the passage you type, and the spectator view), so the text no longer crowds the card.
+
 ## 6.121.3 — 29 May 2026
 - Fixed the race typing text getting clipped under the player-list card. The text now sits at the vertical centre of the screen AND fully below the racetrack, so the first line is never hidden.
 

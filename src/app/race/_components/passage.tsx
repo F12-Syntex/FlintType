@@ -134,8 +134,12 @@ export function RacePassage() {
   if (racing) {
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {/* Roster at the top, fully visible. */}
-        {lineupEl ? <div className="shrink-0">{lineupEl}</div> : null}
+        {/* Roster at the top, fully visible. mb gives the passage /
+         *  spectator content below it real breathing room so the text
+         *  never crowds the player-list card. */}
+        {lineupEl ? (
+          <div className="mb-6 shrink-0 sm:mb-8">{lineupEl}</div>
+        ) : null}
         <div className="flex min-h-0 flex-1 flex-col gap-3">
           <div className="min-h-0 flex-1">
             {showSpectator ? (
