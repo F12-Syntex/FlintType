@@ -146,10 +146,14 @@ export function LeaderboardRow({
         >
           {String(rank).padStart(2, "0")}
         </span>
-        <span className="flex min-w-0 flex-1 items-center gap-2">
+        {/* Handle stacks above its tags on mobile, inline from sm+. Wide
+            tags (WHITE HAT + OG) previously starved the truncating handle
+            to zero width on a 375px row, dropping the @handle entirely
+            (§10.2 — stack on mobile, inline on sm+). */}
+        <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:gap-2">
           <span
             className={cn(
-              "min-w-0 truncate text-[14px] sm:text-[15px]",
+              "min-w-0 max-w-full truncate text-[14px] sm:text-[15px]",
               isYou
                 ? "font-semibold text-primary"
                 : leader
@@ -159,15 +163,19 @@ export function LeaderboardRow({
           >
             {handle}
           </span>
-          {tags.map((t) => (
-            <UserTag key={t} tag={t} size="sm" className="shrink-0" />
-          ))}
-          {isYou ? (
-            <span
-              aria-label="Your entry"
-              className="inline-flex h-5 shrink-0 items-center rounded-md border border-primary/40 bg-primary/[0.08] px-1.5 text-[9px] font-semibold uppercase leading-none tracking-[0.18em] text-primary"
-            >
-              You
+          {tags.length > 0 || isYou ? (
+            <span className="flex shrink-0 items-center gap-2">
+              {tags.map((t) => (
+                <UserTag key={t} tag={t} size="sm" className="shrink-0" />
+              ))}
+              {isYou ? (
+                <span
+                  aria-label="Your entry"
+                  className="inline-flex h-5 shrink-0 items-center rounded-md border border-primary/40 bg-primary/[0.08] px-1.5 text-[9px] font-semibold uppercase leading-none tracking-[0.18em] text-primary"
+                >
+                  You
+                </span>
+              ) : null}
             </span>
           ) : null}
         </span>

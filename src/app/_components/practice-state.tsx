@@ -956,6 +956,27 @@ export function PracticeProvider({
   const restartRef = useRef(value.restart);
   restartRef.current = value.restart;
 
+  // Cold-start quote fetch. setMode() and restart() kick the async quote
+  // load on user action, but a reload that restores mode=QUOTE from the
+  // persisted prefs fires neither — leaving the passage stuck on
+  // "loading quote…" forever. When we land in QUOTE mode at rest with no
+  // passage yet, kick the fetch once (restart() handles the QUOTE path).
+  // The ref guards against re-firing while the fetch is in flight (words
+  // stays empty until SET_QUOTE lands); it resets once a passage exists.
+  const quoteKickedRef = useRef(false);
+  useEffect(() => {
+    const needsQuote =
+      state.mode === "QUOTE" &&
+      state.phase === "rest" &&
+      state.words.length === 0;
+    if (needsQuote && !quoteKickedRef.current) {
+      quoteKickedRef.current = true;
+      restartRef.current();
+    } else if (!needsQuote) {
+      quoteKickedRef.current = false;
+    }
+  }, [state.mode, state.phase, state.words.length]);
+
   const onKeyDown = useCallback((e: KeyboardEvent) => {
     // Only Backspace is allowed to ride a modifier — Ctrl / Alt(Win)
     // / ⌥(Mac) / ⌘(Mac) + Backspace = "delete word". Every other
