@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.117.8 — 29 May 2026
+- Fixed the "new personal best" note so the "+N" improvement always matches the numbers shown — e.g. a 160 beating a previous 156 now reads +4, not +5.
+- Fixed the results graph tooltip listing "wpm" twice; it now shows wpm and raw once each.
+
 ## 6.117.7 — 29 May 2026
 - Multiplayer race results now show one consistent set of numbers. Your headline net WPM, your row in the standings, and the live race all read the same server-measured values, so they no longer disagree (the "66 here, 64 there" bug). The "raw" column now shows a true raw WPM (every key pressed) instead of repeating the net figure, and the ranking no longer penalises accuracy twice.
 

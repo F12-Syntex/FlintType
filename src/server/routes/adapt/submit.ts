@@ -262,7 +262,7 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
  *  modes fall back to the raw amount. The previous best is appended
  *  in parens when there was one, so the user can read the delta at a
  *  glance ("Casual 60s · 102 wpm · 98% acc (previous best 92)"). */
-function formatPbBody(
+export function formatPbBody(
   input: SubmitTestInput,
   previousWpm: number | null,
 ): string {
@@ -270,7 +270,11 @@ function formatPbBody(
   const modeLabel = input.mode === "training" ? "Training" : "Casual";
   const head = `${modeLabel} ${lengthLabel} · ${Math.round(input.wpm)} wpm · ${input.accuracy.toFixed(1)}% acc`;
   if (previousWpm == null) return head;
-  const delta = Math.round(input.wpm - previousWpm);
+  // Derive the delta from the ROUNDED figures the user sees, not from
+  // the raw difference — otherwise round(new) − round(prev) can disagree
+  // with the displayed "+N" (e.g. 160 shown, 156 shown, but +5 from the
+  // unrounded gap). Now 160 − 156 == +4 always reconciles (#12).
+  const delta = Math.round(input.wpm) - Math.round(previousWpm);
   const deltaTail =
     delta > 0 ? ` (previous best ${Math.round(previousWpm)} · +${delta})` : ` (previous best ${Math.round(previousWpm)})`;
   return head + deltaTail;
