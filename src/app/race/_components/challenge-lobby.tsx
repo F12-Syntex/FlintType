@@ -86,13 +86,18 @@ function LobbyCard({
           readyCount={readyCount}
         />
       ) : (
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <ShareLink slug={slug} />
+        <div className="flex flex-col items-center gap-2.5">
           <ReadyToggle
             roomId={roomId}
             sessionToken={sessionToken}
             ready={meReady}
           />
+          <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            {meReady
+              ? "Waiting for the host to start"
+              : "Ready up so the host can start"}
+          </span>
+          <ShareLink slug={slug} />
         </div>
       )}
     </div>
@@ -162,7 +167,7 @@ function ReadyToggle({
       disabled={pending}
       aria-pressed={ready}
       className={cn(
-        "inline-flex h-8 items-center gap-2 rounded-md px-3.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition-colors active:translate-y-[0.5px]",
+        "inline-flex h-11 items-center gap-2 rounded-md px-7 text-[12px] font-semibold uppercase tracking-[0.18em] transition-colors active:translate-y-[0.5px]",
         ready
           ? "border border-primary/40 bg-primary/[0.08] text-primary hover:bg-primary/[0.14]"
           : "bg-primary text-primary-foreground hover:bg-primary/90",
@@ -270,13 +275,13 @@ function HostBar({
           onClick={() => start(true)}
           disabled={pending}
           className={cn(
-            "inline-flex h-7 items-center rounded-md border border-border px-3",
-            "text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground",
-            "transition-colors hover:bg-accent hover:text-foreground",
+            "inline-flex h-8 items-center rounded-md border border-foreground/25 px-3.5",
+            "text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground",
+            "transition-colors hover:border-foreground/40 hover:bg-accent",
             pending && "cursor-not-allowed opacity-50",
           )}
         >
-          Force start now
+          {pending ? "Starting…" : "Force start now"}
         </button>
       </div>
     ) : null}

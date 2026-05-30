@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.133.0 — 30 May 2026
+- Redesigned the live race: everyone now races on a single shared line, each player a flint stone gliding toward the finish, with a compact name + speed legend underneath. A full lobby stays compact instead of stacking a tall lane per player.
+- The "Ready up" button in a lobby is now a clear, prominent button so you can't miss it.
+- The host's "Force start now" button is easier to see while waiting on players to ready up.
+
 ## 6.132.0 — 30 May 2026
 - You can now force-start a private race lobby. When some players haven't readied up, the host gets a "Force start now" button to begin anyway, instead of waiting on everyone.
 
