@@ -20,7 +20,8 @@ type Knob = { label: string; options: readonly KnobOption[] };
 
 const accent = (h: number): OptionPatch => {
   const v = formatOklch({ l: 0.63, c: 0.2, h });
-  return { theme: { "--primary": v, "--ring": v } };
+  // Keep readable text on the accent regardless of light/dark.
+  return { theme: { "--primary": v, "--ring": v, "--primary-foreground": "oklch(0.99 0 0)" } };
 };
 
 const SURFACE_ROLES = [
@@ -28,6 +29,11 @@ const SURFACE_ROLES = [
   "--foreground",
   "--card",
   "--card-foreground",
+  // Popover surfaces (dropdowns, the AI + friends docks, mobile sheets) must
+  // move with the surface too, else a light surface applied in dark mode (or
+  // vice-versa) leaves them stuck on the old mode's value.
+  "--popover",
+  "--popover-foreground",
   "--muted",
   "--muted-foreground",
   "--border",

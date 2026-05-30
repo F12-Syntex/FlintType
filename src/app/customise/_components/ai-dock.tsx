@@ -162,7 +162,7 @@ export function CustomiseAiDock() {
       }}
     >
       {open ? (
-        <div className="pointer-events-auto flex max-h-[min(60dvh,30rem)] flex-col overflow-hidden rounded-2xl bg-popover/95 shadow-xl backdrop-blur-md">
+        <div className="pointer-events-auto flex max-h-[min(60dvh,30rem)] flex-col overflow-hidden rounded-2xl bg-card/95 text-card-foreground shadow-xl backdrop-blur-md">
           <div className="flex shrink-0 items-center justify-between gap-3 px-4 pt-3 pb-1">
             <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
               Design with AI

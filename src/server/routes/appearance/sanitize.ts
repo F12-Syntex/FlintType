@@ -15,6 +15,8 @@ export const AI_THEME_VARS = [
   "--foreground",
   "--card",
   "--card-foreground",
+  "--popover",
+  "--popover-foreground",
   "--primary",
   "--primary-foreground",
   "--accent",
