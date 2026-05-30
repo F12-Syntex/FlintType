@@ -137,24 +137,6 @@ export default function AppearancePage() {
         description="Every visual control with its own live preview built from the real test surface — every override you make appears here exactly as it will on /app."
       />
 
-      <Link
-        href="/customise/appearance/ai"
-        className="mb-10 flex items-center justify-between gap-3 rounded-md border border-border bg-card p-4 transition-colors hover:bg-accent"
-      >
-        <span className="flex flex-col gap-0.5">
-          <span className="text-sm font-semibold text-foreground">
-            Design with AI
-          </span>
-          <span className="text-[13px] text-muted-foreground">
-            Describe a look in plain words and preview it on the real surface
-            before applying.
-          </span>
-        </span>
-        <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Open
-        </span>
-      </Link>
-
       <SettingsSection
         id="themes"
         eyebrow="Surface"

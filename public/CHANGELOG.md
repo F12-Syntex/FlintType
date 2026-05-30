@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.127.2 — 30 May 2026
+- Removed the "Design with AI" card from the top of the Appearance settings page so the page is one consistent list of sections.
+
 ## 6.127.1 — 30 May 2026
 - The "Design with AI" input now spans the full width, so your prompt no longer wraps to a second line when there's plenty of room.
 
