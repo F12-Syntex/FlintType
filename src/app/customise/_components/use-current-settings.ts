@@ -3,21 +3,21 @@
 import { useCallback } from "react";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { useBackgroundPrefs } from "@/lib/background-prefs";
+import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { THEME_VARS } from "@/lib/theme-customization";
 import type { AiCurrentState } from "@/types/appearance-ai";
 
 /** Capture a compact snapshot of the user's *current* settings to send
  *  with an AI request, so the model can reason relatively ("warmer", "a
- *  bit bigger") and reply with only the delta. Returns a reader so the
- *  values are read at call time (the resolved theme vars come from the
- *  live cascade via `getComputedStyle`). */
+ *  bit bigger", "stricter") and reply with only the delta. Returns a
+ *  reader so values are read at call time (resolved theme vars come from
+ *  the live cascade via `getComputedStyle`). */
 export function useCurrentSettings(): () => AiCurrentState {
   const { prefs: appearance } = useAppearancePrefs();
   const { prefs: background } = useBackgroundPrefs();
+  const { prefs: behaviour } = useBehaviourPrefs();
 
   return useCallback((): AiCurrentState => {
-    // Resolved theme custom-properties from the cascade (current palette
-    // + the user's overrides), so "warmer"/"darker" have real values.
     const theme: Record<string, string> = {};
     if (typeof window !== "undefined") {
       const cs = getComputedStyle(document.documentElement);
@@ -27,14 +27,18 @@ export function useCurrentSettings(): () => AiCurrentState {
       }
     }
 
-    // Appearance — primitives only (drop any object-valued slices).
-    const appr: Record<string, string | number | boolean> = {};
-    for (const [k, val] of Object.entries(appearance)) {
-      const t = typeof val;
-      if (t === "string" || t === "number" || t === "boolean") {
-        appr[k] = val as string | number | boolean;
+    const primitives = (
+      src: Record<string, unknown>,
+    ): Record<string, string | number | boolean> => {
+      const out: Record<string, string | number | boolean> = {};
+      for (const [k, val] of Object.entries(src)) {
+        const t = typeof val;
+        if (t === "string" || t === "number" || t === "boolean") {
+          out[k] = val as string | number | boolean;
+        }
       }
-    }
+      return out;
+    };
 
     // Background knobs only — never the imageUrl (it may be a multi-MB
     // data URL from a local upload, and the model doesn't need it).
@@ -46,6 +50,11 @@ export function useCurrentSettings(): () => AiCurrentState {
       darken: background.darken,
     };
 
-    return { theme, appearance: appr, background: bg };
-  }, [appearance, background]);
+    return {
+      theme,
+      appearance: primitives(appearance),
+      background: bg,
+      behaviour: primitives(behaviour),
+    };
+  }, [appearance, background, behaviour]);
 }

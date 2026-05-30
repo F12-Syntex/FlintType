@@ -1,5 +1,9 @@
 import type { AiCurrentState } from "@/types/appearance-ai";
-import { AI_THEME_VARS, APPEARANCE_FIELDS } from "./sanitize";
+import {
+  AI_THEME_VARS,
+  APPEARANCE_FIELDS,
+  BEHAVIOUR_FIELDS,
+} from "./sanitize";
 
 /** System prompt for the appearance AI assistant. It describes the exact,
  *  whitelisted setting surface the model may touch, the **delta-only**
@@ -17,6 +21,7 @@ Reply with ONLY a JSON object, no prose, with this shape (include only the keys 
   "theme": { "<css-var>": "<value>" },
   "appearance": { "<key>": <value> },
   "background": { "<key>": <value> },
+  "behaviour": { "<key>": <value> },
   "tools": { ... }
 }
 
@@ -48,6 +53,18 @@ APPEARANCE (exact values only):
 - markIncompleteWord: true | false
 - linesRendered: integer 0-6 (0 = as many as fit)
 - maxLineWidth: integer 0-120 (characters; 0 = full width)
+
+BEHAVIOUR (how the test behaves — exact values only):
+- quickRestart: true | false (Tab restarts instantly)
+- stopOnError: true | false (block typing until a mistake is fixed)
+- confidence: "off" | "word" | "all" (can't backspace: never / within a word / at all)
+- allowExtras: true | false (record extra characters past a word's end)
+- strictSpace: true | false (space before a word is finished refuses to advance)
+- blindMode: true | false (hide right/wrong feedback while typing)
+- showSecondary: true | false (show a secondary live stat)
+- excludeCasualFromAdapt: true | false (don't feed casual runs to the adaptive engine)
+- minWordLength: integer 1-12 (filter out words shorter than this)
+- burstThreshold: integer 0-300 (BURST target WPM; 0 = auto)
 
 BACKGROUND (only if the user gives an image URL or asks about a background image):
 - imageUrl: an http(s) image URL the user provided (never invent one)
@@ -92,6 +109,7 @@ export function buildUserMessage(
     theme: pickKeys(current?.theme, AI_THEME_VARS),
     appearance: pickKeys(current?.appearance, Object.keys(APPEARANCE_FIELDS)),
     background: current?.background ?? {},
+    behaviour: pickKeys(current?.behaviour, Object.keys(BEHAVIOUR_FIELDS)),
   };
   return `Current settings:\n${JSON.stringify(snapshot)}\n\nRequest: ${prompt}`;
 }

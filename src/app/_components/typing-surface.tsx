@@ -174,7 +174,7 @@ function TypingSurfaceBody({
        *  py-3 sm:py-4 holds the floor; [@media(min-height:900px)]
        *  restores the editorial sm:py-8 only when there's actually
        *  room. Same trick for the gap. */}
-      <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pt-3 pb-3 sm:gap-4 sm:px-12 sm:py-4 [@media(min-height:900px)]:sm:gap-6 [@media(min-height:900px)]:sm:py-8 lg:px-20">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pt-3 pb-2 sm:gap-4 sm:px-12 sm:pt-4 [@media(min-height:900px)]:sm:gap-6 [@media(min-height:900px)]:sm:pt-8 [@media(min-height:900px)]:sm:pb-3 lg:px-20">
         {isBurst ? <BurstProvider>{body}</BurstProvider> : body}
         {renderKeyboard ? (
           // Auto-hide the keyboard widget at short viewports — its

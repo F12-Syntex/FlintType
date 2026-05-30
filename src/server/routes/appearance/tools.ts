@@ -140,12 +140,18 @@ export function resolveTools(
 /** Merge tool-resolved candidates under direct model values (direct wins
  *  on a key conflict — an explicit colour beats a tool fill). */
 export function mergeBuckets(
-  direct: { theme?: unknown; appearance?: unknown; background?: unknown },
+  direct: {
+    theme?: unknown;
+    appearance?: unknown;
+    background?: unknown;
+    behaviour?: unknown;
+  },
   resolved: ResolvedTools,
 ): {
   theme: Record<string, unknown>;
   appearance: Record<string, unknown>;
   background: Record<string, unknown>;
+  behaviour: Record<string, unknown>;
 } {
   const obj = (v: unknown): Record<string, unknown> =>
     v && typeof v === "object" ? (v as Record<string, unknown>) : {};
@@ -153,5 +159,6 @@ export function mergeBuckets(
     theme: { ...resolved.theme, ...obj(direct.theme) },
     appearance: { ...resolved.appearance, ...obj(direct.appearance) },
     background: { ...resolved.background, ...obj(direct.background) },
+    behaviour: obj(direct.behaviour),
   };
 }

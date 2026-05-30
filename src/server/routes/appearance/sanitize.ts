@@ -85,13 +85,30 @@ export const APPEARANCE_FIELDS: Record<string, EnumSpec | BoolSpec | IntSpec> = 
   maxLineWidth: { kind: "int", min: 0, max: 120 },
 };
 
-function sanitizeAppearance(
+/** Behaviour settings the AI may touch (curated subset of BehaviourPrefs).
+ *  Same enum/bool/int validation as appearance. */
+export const BEHAVIOUR_FIELDS: Record<string, EnumSpec | BoolSpec | IntSpec> = {
+  quickRestart: { kind: "bool" },
+  stopOnError: { kind: "bool" },
+  confidence: { kind: "enum", values: ["off", "word", "all"] },
+  allowExtras: { kind: "bool" },
+  strictSpace: { kind: "bool" },
+  blindMode: { kind: "bool" },
+  showSecondary: { kind: "bool" },
+  excludeCasualFromAdapt: { kind: "bool" },
+  minWordLength: { kind: "int", min: 1, max: 12 },
+  burstThreshold: { kind: "int", min: 0, max: 300 },
+};
+
+/** Shared validator for an enum/bool/int field map. */
+function sanitizeFields(
   input: unknown,
+  fields: Record<string, EnumSpec | BoolSpec | IntSpec>,
 ): Record<string, string | number | boolean> {
   const out: Record<string, string | number | boolean> = {};
   if (!input || typeof input !== "object") return out;
   for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
-    const spec = APPEARANCE_FIELDS[key];
+    const spec = fields[key];
     if (!spec) continue;
     if (spec.kind === "enum") {
       if (typeof value === "string" && spec.values.includes(value)) {
@@ -107,6 +124,11 @@ function sanitizeAppearance(
   }
   return out;
 }
+
+const sanitizeAppearance = (input: unknown) =>
+  sanitizeFields(input, APPEARANCE_FIELDS);
+const sanitizeBehaviour = (input: unknown) =>
+  sanitizeFields(input, BEHAVIOUR_FIELDS);
 
 function safeImageUrl(v: unknown): string | null {
   if (typeof v !== "string") return null;
@@ -153,6 +175,7 @@ export function sanitizePatch(input: unknown): AppearancePatch {
     theme: sanitizeTheme(o.theme),
     appearance: sanitizeAppearance(o.appearance),
     background: sanitizeBackground(o.background),
+    behaviour: sanitizeBehaviour(o.behaviour),
   };
 }
 

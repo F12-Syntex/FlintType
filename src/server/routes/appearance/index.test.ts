@@ -81,8 +81,29 @@ describe("appearance.aiSuggest", () => {
     const out = await callRoute<AiSuggestOutput>(["appearance", "aiSuggest"], {
       input: { prompt: "whatever" },
     });
-    expect(out.patch).toEqual({ theme: {}, appearance: {}, background: {} });
+    expect(out.patch).toEqual({
+      theme: {},
+      appearance: {},
+      background: {},
+      behaviour: {},
+    });
     expect(out.changes).toEqual([]);
+  });
+
+  it("sanitizes behaviour changes from the model", async () => {
+    signedIn();
+    mockLlm.mockResolvedValue({
+      summary: "Stricter typing.",
+      changes: [{ label: "Stop on error", value: "on" }],
+      behaviour: { stopOnError: true, confidence: "word", bogus: "x" },
+    });
+    const out = await callRoute<AiSuggestOutput>(["appearance", "aiSuggest"], {
+      input: { prompt: "make it strict" },
+    });
+    expect(out.patch.behaviour).toEqual({
+      stopOnError: true,
+      confidence: "word",
+    });
   });
 
   it("passes the current settings to the model", async () => {

@@ -177,10 +177,10 @@ export function FriendsDock() {
     <div
       ref={containerRef}
       // The corner gap mirrors the practice surface's bottom padding
-      // (typing-surface.tsx: pb-3 / sm:py-4 / min-height:900px sm:py-8)
-      // so the dock's gap above the footer matches the keyboard's gap
-      // above the footer — the two bottom-anchored elements line up.
-      className="fixed z-40 flex flex-col items-end gap-2 [--ft-dock-gap:0.75rem] sm:[--ft-dock-gap:1rem] [@media(min-height:900px)]:sm:[--ft-dock-gap:2rem]"
+      // (typing-surface.tsx: pb-2 / min-height:900px sm:pb-3) so the dock
+      // sits low, its gap above the footer matching the keyboard's — the
+      // two bottom-anchored elements line up near the bottom edge.
+      className="fixed z-40 flex flex-col items-end gap-2 [--ft-dock-gap:0.5rem] [@media(min-height:900px)]:sm:[--ft-dock-gap:0.75rem]"
       style={{
         right: "calc(0.75rem + env(safe-area-inset-right))",
         // Float just above the page footer when it's there; when the

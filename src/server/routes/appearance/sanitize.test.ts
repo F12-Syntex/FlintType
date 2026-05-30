@@ -64,6 +64,32 @@ describe("sanitizePatch — appearance", () => {
   });
 });
 
+describe("sanitizePatch — behaviour", () => {
+  it("keeps valid behaviour enums/bools and clamps ints", () => {
+    const p = sanitizePatch({
+      behaviour: {
+        stopOnError: true,
+        confidence: "all",
+        minWordLength: 99,
+        burstThreshold: -10,
+      },
+    });
+    expect(p.behaviour).toEqual({
+      stopOnError: true,
+      confidence: "all",
+      minWordLength: 12,
+      burstThreshold: 0,
+    });
+  });
+
+  it("drops unknown behaviour keys and bad enums", () => {
+    const p = sanitizePatch({
+      behaviour: { confidence: "sometimes", nope: 1, blindMode: "yes" },
+    });
+    expect(p.behaviour).toEqual({});
+  });
+});
+
 describe("sanitizePatch — background", () => {
   it("keeps an http(s) image URL and clamps numbers", () => {
     const p = sanitizePatch({

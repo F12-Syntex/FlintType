@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AppChrome } from "../_components/app-chrome";
+import { CustomiseAiDock } from "./_components/ai-dock";
 import { CustomiseHeader } from "./_components/header";
 import { SettingsSidebar } from "./_components/sidebar";
 
@@ -27,6 +28,7 @@ export default function CustomiseLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </div>
+      <CustomiseAiDock />
     </AppChrome>
   );
 }

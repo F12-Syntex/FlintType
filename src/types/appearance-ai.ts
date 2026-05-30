@@ -17,6 +17,9 @@ export const aiCurrentStateSchema = z
     background: z
       .record(z.string(), z.union([z.string().max(2048), z.number()]))
       .optional(),
+    behaviour: z
+      .record(z.string(), z.union([z.string().max(80), z.number(), z.boolean()]))
+      .optional(),
   })
   .optional();
 export type AiCurrentState = z.infer<typeof aiCurrentStateSchema>;
@@ -41,11 +44,13 @@ export type AiChange = { label: string; value: string };
  *
  *  - `theme`      — CSS custom-property overrides (var name → value)
  *  - `appearance` — a curated subset of AppearancePrefs keys
- *  - `background` — a subset of BackgroundPrefs keys */
+ *  - `background` — a subset of BackgroundPrefs keys
+ *  - `behaviour`  — a curated subset of BehaviourPrefs keys */
 export type AppearancePatch = {
   theme: Record<string, string>;
   appearance: Record<string, string | number | boolean>;
   background: Record<string, string | number>;
+  behaviour: Record<string, string | number | boolean>;
 };
 
 export type AiSuggestOutput = {
@@ -63,6 +68,7 @@ export function isEmptyPatch(patch: AppearancePatch): boolean {
   return (
     Object.keys(patch.theme).length === 0 &&
     Object.keys(patch.appearance).length === 0 &&
-    Object.keys(patch.background).length === 0
+    Object.keys(patch.background).length === 0 &&
+    Object.keys(patch.behaviour).length === 0
   );
 }

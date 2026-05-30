@@ -9,6 +9,10 @@ import {
   type BackgroundPrefs,
   useBackgroundPrefs,
 } from "@/lib/background-prefs";
+import {
+  type BehaviourPrefs,
+  useBehaviourPrefs,
+} from "@/lib/behaviour-prefs";
 import { type ThemeVar, useThemeOverrides } from "@/lib/theme-customization";
 import type { AppearancePatch } from "@/types/appearance-ai";
 
@@ -16,31 +20,40 @@ type Snapshot = {
   theme: Record<string, string | undefined>;
   appearance: Partial<Record<keyof AppearancePrefs, unknown>>;
   background: Partial<Record<keyof BackgroundPrefs, unknown>>;
+  behaviour: Partial<Record<keyof BehaviourPrefs, unknown>>;
 };
 
-/** Apply an AI patch straight onto the live prefs stores (so the whole
- *  page + the persistent preview repaint immediately), capturing the
- *  prior values first so a Discard can put everything back. The preview
- *  IS the real app state — Accept just keeps it, Discard reverts it. */
+/** Apply an AI patch straight onto the live prefs stores — theme,
+ *  appearance, background, AND behaviour — so the customise page and its
+ *  live previews repaint immediately. Captures the prior values first so
+ *  `revert` can put everything back; `commit` keeps it and forgets the
+ *  undo point. Every write goes through the same typed store setters the
+ *  manual controls use. */
 export function useApplyPatch() {
   const { overrides, setVar, clearVar } = useThemeOverrides();
   const { prefs: appearance, update: updateAppearance } = useAppearancePrefs();
   const { prefs: background, update: updateBackground } = useBackgroundPrefs();
+  const { prefs: behaviour, update: updateBehaviour } = useBehaviourPrefs();
 
-  // Read latest store values through refs so apply() snapshots the real
-  // current state, not a value captured when the callback was created.
   const overridesRef = useRef(overrides);
   overridesRef.current = overrides;
   const appearanceRef = useRef(appearance);
   appearanceRef.current = appearance;
   const backgroundRef = useRef(background);
   backgroundRef.current = background;
+  const behaviourRef = useRef(behaviour);
+  behaviourRef.current = behaviour;
 
   const snapshotRef = useRef<Snapshot | null>(null);
 
   const apply = useCallback(
     (patch: AppearancePatch) => {
-      const snap: Snapshot = { theme: {}, appearance: {}, background: {} };
+      const snap: Snapshot = {
+        theme: {},
+        appearance: {},
+        background: {},
+        behaviour: {},
+      };
 
       for (const k of Object.keys(patch.theme)) {
         snap.theme[k] = overridesRef.current[k as ThemeVar];
@@ -53,7 +66,22 @@ export function useApplyPatch() {
         const key = k as keyof BackgroundPrefs;
         snap.background[key] = backgroundRef.current[key];
       }
-      snapshotRef.current = snap;
+      for (const k of Object.keys(patch.behaviour)) {
+        const key = k as keyof BehaviourPrefs;
+        snap.behaviour[key] = behaviourRef.current[key];
+      }
+      // Merge onto any prior snapshot so a multi-step session can still
+      // revert all the way back to the original.
+      if (snapshotRef.current) {
+        snapshotRef.current = {
+          theme: { ...snap.theme, ...snapshotRef.current.theme },
+          appearance: { ...snap.appearance, ...snapshotRef.current.appearance },
+          background: { ...snap.background, ...snapshotRef.current.background },
+          behaviour: { ...snap.behaviour, ...snapshotRef.current.behaviour },
+        };
+      } else {
+        snapshotRef.current = snap;
+      }
 
       for (const [k, v] of Object.entries(patch.theme)) {
         setVar(k as ThemeVar, v);
@@ -64,8 +92,11 @@ export function useApplyPatch() {
       for (const [k, v] of Object.entries(patch.background)) {
         updateBackground(k as keyof BackgroundPrefs, v as never);
       }
+      for (const [k, v] of Object.entries(patch.behaviour)) {
+        updateBehaviour(k as keyof BehaviourPrefs, v as never);
+      }
     },
-    [setVar, updateAppearance, updateBackground],
+    [setVar, updateAppearance, updateBackground, updateBehaviour],
   );
 
   const revert = useCallback(() => {
@@ -81,10 +112,13 @@ export function useApplyPatch() {
     for (const [k, v] of Object.entries(snap.background)) {
       updateBackground(k as keyof BackgroundPrefs, v as never);
     }
+    for (const [k, v] of Object.entries(snap.behaviour)) {
+      updateBehaviour(k as keyof BehaviourPrefs, v as never);
+    }
     snapshotRef.current = null;
-  }, [setVar, clearVar, updateAppearance, updateBackground]);
+  }, [setVar, clearVar, updateAppearance, updateBackground, updateBehaviour]);
 
-  /** Keep the applied patch; forget the undo point (Accept). */
+  /** Keep the applied changes; forget the undo point. */
   const commit = useCallback(() => {
     snapshotRef.current = null;
   }, []);
