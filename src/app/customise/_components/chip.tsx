@@ -33,7 +33,7 @@ export function Chip({
           : "px-3 py-2 text-xs sm:px-2.5 sm:py-1 sm:text-[11px]",
         active
           ? "border-primary bg-primary/10 text-primary"
-          : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground",
+          : "border-border bg-muted text-muted-foreground hover:bg-accent hover:text-foreground",
       )}
     >
       {preview ? (

@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.128.2 — 30 May 2026
+- Settings rows no longer sit in a grey band; each row is now a clean outline on the page, and the option buttons themselves carry the surface, so the controls are clearly the thing you click.
+
 ## 6.128.1 — 30 May 2026
 - The leaderboard now opens on the 60-second time test by default.
 - Insights: removed the dashes from the copy, and simplified the heading.
