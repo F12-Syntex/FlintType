@@ -17,6 +17,7 @@ import {
   stallWpm,
 } from "@/lib/wpm-stats";
 import { type KeyEvent, usePractice } from "./practice-state";
+import { reconstructCursor } from "./replay-cursor";
 import { type Bucket, ResultChart } from "./result-chart";
 import {
   ExtraStats,
@@ -252,31 +253,6 @@ function PassageHeatmap({
 
 
 // ─── Replay ────────────────────────────────────────────────────────
-
-function reconstructCursor(
-  events: readonly KeyEvent[],
-  words: readonly string[],
-  upTo: number,
-) {
-  let w = 0;
-  let c = 0;
-  const errorWords = new Set<number>();
-  for (let i = 0; i < upTo; i += 1) {
-    const e = events[i]!;
-    const word = words[w];
-    if (!word) break;
-    if (e.correct) {
-      c += 1;
-      if (c >= word.length) {
-        w += 1;
-        c = 0;
-      }
-    } else {
-      errorWords.add(w);
-    }
-  }
-  return { wordIdx: w, charIdx: c, errorWords };
-}
 
 function ReplayView({
   words,

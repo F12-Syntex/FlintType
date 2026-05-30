@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.133.1 — 30 May 2026
+- Fixed test replays drifting out of sync on longer runs (especially timed one-minute tests): the replay now highlights exactly the words you typed as it plays, so the trail tracks the timeline instead of lagging behind whenever a word was left incomplete or mistyped.
+
 ## 6.133.0 — 30 May 2026
 - Redesigned the live race: everyone now races on a single shared line, each player a flint stone gliding toward the finish, with a compact name + speed legend underneath. A full lobby stays compact instead of stacking a tall lane per player.
 - The "Ready up" button in a lobby is now a clear, prominent button so you can't miss it.
