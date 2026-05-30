@@ -127,11 +127,11 @@ export function RacePassage() {
     />
   ) : null;
 
-  // While racing, the racetrack is pinned to the TOP as an overlay
-  // (out of the vertical-centering flow) so the typing text below
-  // centres on the VIEWPORT, not on the gap left between the racetrack
-  // and the footer. The passage fills the full surface and its own
-  // justify-center then lands the text at the screen's middle.
+  // While racing, the roster sits at the TOP (compact + height-capped),
+  // and the passage fills ALL the remaining space below it, centring its
+  // text within that space. (We used to mirror the roster at the bottom
+  // to centre on the viewport, but that doubled the roster's footprint
+  // and crushed the passage to nothing once a lobby had several racers.)
   if (racing) {
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -139,7 +139,7 @@ export function RacePassage() {
          *  spectator content below it real breathing room so the text
          *  never crowds the player-list card. */}
         {lineupEl ? (
-          <div className="mb-6 shrink-0 sm:mb-8">{lineupEl}</div>
+          <div className="mb-4 shrink-0 sm:mb-6">{lineupEl}</div>
         ) : null}
         <div className="flex min-h-0 flex-1 flex-col gap-3">
           <div className="min-h-0 flex-1">
@@ -151,17 +151,6 @@ export function RacePassage() {
           </div>
           {quoteSource ? <QuoteAttribution source={quoteSource} /> : null}
         </div>
-        {/* Invisible mirror of the roster — reserves a matching band at
-         *  the bottom so the passage centres on the VIEWPORT (not the
-         *  gap below the roster) while the roster above stays fully
-         *  visible and never clips the first line. Auto-matches the
-         *  roster's height for any racer count; aria-hidden + invisible
-         *  so it's inert and unread. */}
-        {lineupEl ? (
-          <div className="invisible shrink-0" aria-hidden>
-            {lineupEl}
-          </div>
-        ) : null}
       </div>
     );
   }

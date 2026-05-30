@@ -102,7 +102,7 @@ export function RaceLineupPanel({
       {/* Lanes. Capped height + internal scroll so a full 8-racer FFA
        *  lobby never crushes the passage below it. Common 1v1 / small
        *  lobbies never reach the cap. */}
-      <ol className="flex max-h-[42vh] flex-col gap-2 overflow-y-auto sm:gap-2.5">
+      <ol className="flex max-h-[34vh] flex-col gap-1.5 overflow-y-auto sm:gap-2">
         {ordered.map((r, idx) => (
           <RacerLane
             key={r.id}
@@ -268,7 +268,7 @@ function RacerLane({
        *  right, and the flint stone gliding to its progress position.
        *  The stone tier escalates with the racer's speed (pebble →
        *  inferno) so the field visibly ignites. */}
-      <div className="relative h-14 sm:h-16">
+      <div className="relative h-11 sm:h-12">
         {/* Ground line — the track surface. Coral for you, faint ink
          *  for opponents. */}
         <div
@@ -292,7 +292,7 @@ function RacerLane({
         {/* Finish post + flag cap at the right edge. */}
         <span
           aria-hidden
-          className="absolute right-0 bottom-2 h-10 w-px bg-foreground/30"
+          className="absolute right-0 bottom-1.5 h-8 w-px bg-foreground/30"
         />
         <span
           aria-hidden
@@ -310,7 +310,7 @@ function RacerLane({
             alt=""
             aria-hidden
             draggable={false}
-            className="size-10 select-none sm:size-12 motion-safe:animate-[ft-stone-bob_1.3s_ease-in-out_infinite]"
+            className="size-9 select-none sm:size-10 motion-safe:animate-[ft-stone-bob_1.3s_ease-in-out_infinite]"
             style={
               isYou
                 ? {
