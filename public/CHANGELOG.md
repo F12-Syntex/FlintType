@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.130.0 — 30 May 2026
+- The "Design with AI" panel is now a proper chat that remembers your conversation (it's no longer wiped when you close and reopen it, with a Clear button when you want a fresh start). It's been stripped back to a clean, borderless look that reads correctly in both light and dark mode, and when you send a message your text turns into a chat bubble with an animated "working" indicator instead of just disappearing.
+
 ## 6.129.1 — 30 May 2026
 - Removed the helper blurb from the "Design with AI" panel; it opens straight to the input.
 
