@@ -12,7 +12,7 @@ vi.mock("@/server/env", () => ({
   },
 }));
 
-import { openRouterJson } from "./openrouter";
+import { extractJson, openRouterJson } from "./openrouter";
 
 function mockFetch(impl: () => Promise<Response> | Response) {
   vi.stubGlobal("fetch", vi.fn(impl));
@@ -78,5 +78,48 @@ describe("openRouterJson", () => {
     await expect(
       openRouterJson({ system: "s", user: "u" }),
     ).rejects.toBeInstanceOf(BackendError);
+  });
+
+  it("retries and succeeds when the first reply has empty content", async () => {
+    let calls = 0;
+    mockFetch(() => {
+      calls += 1;
+      if (calls === 1) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ choices: [{ message: { content: "" } }] }),
+        } as unknown as Response;
+      }
+      return jsonResponse('{"theme":{"--primary":"#0f0"}}');
+    });
+    const out = await openRouterJson({ system: "s", user: "u" });
+    expect(out).toEqual({ theme: { "--primary": "#0f0" } });
+    expect(calls).toBe(2);
+  });
+
+  it("strips ``` fences and parses JSON wrapped in prose", async () => {
+    mockFetch(() => jsonResponse('```json\n{"a":1}\n```'));
+    expect(await openRouterJson({ system: "s", user: "u" })).toEqual({ a: 1 });
+  });
+});
+
+describe("extractJson", () => {
+  it("parses plain JSON", () => {
+    expect(extractJson('{"a":1}')).toEqual({ a: 1 });
+  });
+  it("strips a json code fence", () => {
+    expect(extractJson('```json\n{"a":1}\n```')).toEqual({ a: 1 });
+  });
+  it("slices an object out of surrounding prose", () => {
+    expect(extractJson('Sure, here you go: {"a":1} done.')).toEqual({ a: 1 });
+  });
+  it("joins array-of-parts content", () => {
+    expect(extractJson([{ text: '{"a":' }, { text: "1}" }])).toEqual({ a: 1 });
+  });
+  it("returns null for empty or non-text input", () => {
+    expect(extractJson("")).toBeNull();
+    expect(extractJson(undefined)).toBeNull();
+    expect(extractJson("nothing parseable here")).toBeNull();
   });
 });
