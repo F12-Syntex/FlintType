@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.125.1 — 30 May 2026
+- Simplified the "Design with AI" page: the chat panel is gone. It's now a minimal AI bar above a full, native preview of your real typing screen — same fonts and sizes as the actual app. Type a look, see it exactly as it'll appear, then accept or discard.
+
 ## 6.125.0 — 30 May 2026
 - "Design with AI" now has its own page (Customise → Appearance → Design with AI). Chat to describe the look you want and watch it render on a full preview of the real typing screen — top bar, live stats, passage, and keyboard, all fitting on screen with no scrolling. The proposed look only shows in the preview, so the chat and the rest of the app stay readable until you accept it. Accept to apply, or discard and try another.
 
