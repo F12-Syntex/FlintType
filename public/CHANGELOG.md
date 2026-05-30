@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.126.0 — 30 May 2026
+- "Design with AI" is smarter. It now knows your current look, so you can talk in relative terms ("warmer", "a bit bigger", "make it match the accent") and it adjusts from where you are. Ask for "a matching palette" or "colours that go together" and it builds a coordinated set; ask to "surprise me" or "randomise the accent" and it rolls tasteful random values. Faster too, since it only computes what changes.
+
 ## 6.125.1 — 30 May 2026
 - Simplified the "Design with AI" page: the chat panel is gone. It's now a minimal AI bar above a full, native preview of your real typing screen — same fonts and sizes as the actual app. Type a look, see it exactly as it'll appear, then accept or discard.
 

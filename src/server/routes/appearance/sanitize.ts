@@ -10,7 +10,7 @@ import type { AiChange, AppearancePatch } from "@/types/appearance-ai";
  *  `THEME_VARS` in `@/lib/theme-customization`, inlined here so this
  *  server-only validator doesn't pull a `"use client"` module into the
  *  server bundle. Keep in sync if THEME_VARS grows. */
-const AI_THEME_VARS = [
+export const AI_THEME_VARS = [
   "--background",
   "--foreground",
   "--card",
@@ -62,7 +62,7 @@ type EnumSpec = { kind: "enum"; values: readonly string[] };
 type BoolSpec = { kind: "bool" };
 type IntSpec = { kind: "int"; min: number; max: number };
 
-const APPEARANCE_FIELDS: Record<string, EnumSpec | BoolSpec | IntSpec> = {
+export const APPEARANCE_FIELDS: Record<string, EnumSpec | BoolSpec | IntSpec> = {
   tapeMode: { kind: "enum", values: ["off", "word", "letter"] },
   highlightMode: {
     kind: "enum",

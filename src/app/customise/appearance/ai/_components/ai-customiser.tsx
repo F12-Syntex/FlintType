@@ -6,10 +6,12 @@ import { type AiSuggestOutput, isEmptyPatch } from "@/types/appearance-ai";
 import { useApplyPatch } from "../../_components/use-apply-patch";
 import { AiDock } from "./ai-dock";
 import { AiPreview } from "./ai-preview";
+import { useCurrentSettings } from "./use-current-settings";
 
 export function AiCustomiser() {
   const backend = useBackend();
   const { apply, commit } = useApplyPatch();
+  const readCurrent = useCurrentSettings();
 
   const [loading, setLoading] = useState(false);
   const [needsAuth, setNeedsAuth] = useState(false);
@@ -24,7 +26,10 @@ export function AiCustomiser() {
     setError("");
     setLoading(true);
     try {
-      const res = await backend.appearance.aiSuggest({ prompt: text });
+      const res = await backend.appearance.aiSuggest({
+        prompt: text,
+        current: readCurrent(),
+      });
       if (isEmptyPatch(res.patch)) {
         setEmpty(true);
         return;

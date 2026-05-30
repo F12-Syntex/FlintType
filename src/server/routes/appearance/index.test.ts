@@ -84,4 +84,51 @@ describe("appearance.aiSuggest", () => {
     expect(out.patch).toEqual({ theme: {}, appearance: {}, background: {} });
     expect(out.changes).toEqual([]);
   });
+
+  it("passes the current settings to the model", async () => {
+    signedIn();
+    mockLlm.mockResolvedValue({ summary: "ok", changes: [] });
+    await callRoute<AiSuggestOutput>(["appearance", "aiSuggest"], {
+      input: {
+        prompt: "warmer",
+        current: { theme: { "--background": "oklch(0.95 0.02 85)" } },
+      },
+    });
+    const userMsg = mockLlm.mock.calls[0]![0].user;
+    expect(userMsg).toContain("Current settings");
+    expect(userMsg).toContain("oklch(0.95 0.02 85)");
+    expect(userMsg).toContain("warmer");
+  });
+
+  it("resolves a palette tool into matching colours", async () => {
+    signedIn();
+    mockLlm.mockResolvedValue({
+      summary: "A matching set.",
+      changes: [],
+      tools: { palette: { base: "oklch(0.65 0.2 30)", harmony: "analogous" } },
+    });
+    const out = await callRoute<AiSuggestOutput>(["appearance", "aiSuggest"], {
+      input: { prompt: "colours that go together" },
+    });
+    expect(Object.keys(out.patch.theme).length).toBeGreaterThan(5);
+    expect(out.patch.theme["--primary"]).toMatch(/^oklch\(/);
+    expect(out.changes.some((c) => c.label === "Palette")).toBe(true);
+  });
+
+  it("resolves a randomize tool, direct values winning over tools", async () => {
+    signedIn();
+    mockLlm.mockResolvedValue({
+      summary: "Surprise.",
+      changes: [],
+      theme: { "--primary": "oklch(0.5 0.3 0)" },
+      tools: { randomize: ["--primary", "tapeMode"] },
+    });
+    const out = await callRoute<AiSuggestOutput>(["appearance", "aiSuggest"], {
+      input: { prompt: "surprise me" },
+    });
+    // direct --primary beats the randomised one
+    expect(out.patch.theme["--primary"]).toBe("oklch(0.5 0.3 0)");
+    expect(["off", "word", "letter"]).toContain(out.patch.appearance.tapeMode);
+    expect(out.changes.some((c) => c.label === "Randomised")).toBe(true);
+  });
 });

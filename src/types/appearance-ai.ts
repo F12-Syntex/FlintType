@@ -1,10 +1,33 @@
 import { z } from "zod";
 
+/** A compact snapshot of the user's *current* settings, sent with the
+ *  request so the model can resolve abstract / relative asks ("warmer",
+ *  "a bit bigger", "match the accent") against real values, and output
+ *  only the delta. Loose records — the server reads known keys only and
+ *  re-validates everything downstream. */
+export const aiCurrentStateSchema = z
+  .object({
+    theme: z.record(z.string(), z.string().max(80)).optional(),
+    appearance: z
+      .record(
+        z.string(),
+        z.union([z.string().max(80), z.number(), z.boolean()]),
+      )
+      .optional(),
+    background: z
+      .record(z.string(), z.union([z.string().max(2048), z.number()]))
+      .optional(),
+  })
+  .optional();
+export type AiCurrentState = z.infer<typeof aiCurrentStateSchema>;
+
 /** Natural-language request the user types into the AI settings bar
  *  ("light green background, big fancy serif, fatter caret"). Capped so a
- *  pasted essay can't blow up the LLM call. */
+ *  pasted essay can't blow up the LLM call. `current` carries the live
+ *  settings so the model can reason relatively and return only changes. */
 export const aiSuggestInputSchema = z.object({
   prompt: z.string().min(1).max(500),
+  current: aiCurrentStateSchema,
 });
 export type AiSuggestInput = z.infer<typeof aiSuggestInputSchema>;
 

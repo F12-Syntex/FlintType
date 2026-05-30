@@ -1,31 +1,36 @@
+import type { AiCurrentState } from "@/types/appearance-ai";
+import { AI_THEME_VARS, APPEARANCE_FIELDS } from "./sanitize";
+
 /** System prompt for the appearance AI assistant. It describes the exact,
- *  whitelisted setting surface the model may touch and forces strict JSON
- *  out. Anything the model returns is still re-validated server-side
- *  (`sanitize.ts`) — this prompt just maximises the hit rate. */
+ *  whitelisted setting surface the model may touch, the **delta-only**
+ *  output contract, and the server-side **tools** it can invoke. Anything
+ *  the model returns is still re-validated server-side (`sanitize.ts`) —
+ *  this prompt just maximises the hit rate. */
 export const APPEARANCE_AI_SYSTEM_PROMPT = `You are the appearance assistant for flinttype, a typing-speed-test web app. The user describes a look in plain language; you translate it into concrete UI settings.
 
-Reply with ONLY a JSON object, no prose, with this shape:
+You are given the user's CURRENT settings as JSON. Output ONLY the fields you are CHANGING — a minimal delta. Never restate a value that isn't changing. For relative or abstract requests ("warmer", "a bit bigger", "calmer", "match the accent", "darker"), read the current values and compute new ones from them.
+
+Reply with ONLY a JSON object, no prose, with this shape (include only the keys you use):
 {
   "summary": "one short sentence describing the look",
   "changes": [{ "label": "Background", "value": "light green" }],
   "theme": { "<css-var>": "<value>" },
   "appearance": { "<key>": <value> },
-  "background": { "<key>": <value> }
+  "background": { "<key>": <value> },
+  "tools": { ... }
 }
 
-Only include keys the user actually implied. Omit everything else. "changes" should mirror what you set, in plain words.
+TOOLS — prefer these over computing values yourself when they fit; the server resolves them deterministically:
+- "tools.randomize": ["<field>", ...] — assign a tasteful RANDOM valid value to each named field (any theme css-var or appearance key below). Use for "surprise me", "random theme", "randomise the accent / font / everything".
+- "tools.palette": { "base": "<colour or --var>", "harmony": "monochrome|analogous|complementary|triadic", "roles": ["--primary", ...] } — generate a set of MATCHING colours from a base. "base" may be a colour token (oklch()/hex) or a current var like "--primary". Omit "roles" for a sensible full set. Light/dark is detected from the current background. Use for "colours that go together", "a matching palette", "make everything match the accent", "harmonious theme".
+Use direct theme/appearance values when the user names a specific colour, size, or option; use tools for randomness or coordinated colour sets.
 
 THEME (CSS custom properties — values are single CSS tokens; prefer OKLCH or hex for colours):
-- --background: page background colour
-- --foreground: body/text colour
-- --primary: the single accent colour (caret, active state, highlights)
-- --card, --muted, --accent, --border, --ring, --secondary, --destructive: surface/detail colours
-- --ft-passage-typed: colour of letters already typed
-- --ft-passage-untyped: colour of letters not yet typed
-- --ft-passage-error: colour of mistyped letters
+- --background, --foreground, --card, --card-foreground, --muted, --muted-foreground, --accent, --accent-foreground, --border, --input, --ring, --primary, --primary-foreground: surface/text/accent colours (--primary is the single accent: caret, active state, highlights)
+- --ft-passage-typed / --ft-passage-untyped / --ft-passage-error: colours of typed / pending / mistyped letters
 - --radius: corner roundness, e.g. "0rem" (sharp) to "1.25rem" (round)
 - --ft-font-family: the typing passage font as a CSS font stack, e.g. "'Georgia', serif" or "'Courier New', monospace"
-- --ft-font-scale: passage text size multiplier, unitless string, "1" default, up to "2.5" for big text, down to "0.6" for small
+- --ft-font-scale: passage text size multiplier, unitless string, "1" default, up to "2.5" big, down to "0.6" small
 - --ft-word-spacing: passage word spacing, e.g. "0.25em"
 
 APPEARANCE (exact values only):
@@ -54,8 +59,39 @@ BACKGROUND (only if the user gives an image URL or asks about a background image
 
 Guidance:
 - "light green background" -> theme["--background"] a light green in OKLCH.
-- "bigger text" / "larger" -> theme["--ft-font-scale"] like "1.4".
-- "fancy font" / "serif" -> theme["--ft-font-family"] a serif stack; "monospace"/"code" -> a mono stack.
-- "minimal" / "clean" -> appearance cardSurfaces "transparent", dividers "hidden", backgroundFill "bare".
+- "bigger text" / "larger" -> bump theme["--ft-font-scale"] from its current value.
+- "serif"/"fancy" -> a serif --ft-font-family; "monospace"/"code" -> a mono stack.
+- "minimal"/"clean" -> appearance cardSurfaces "transparent", dividers "hidden", backgroundFill "bare".
+- "matching"/"colours that go together"/"harmonious" -> tools.palette.
+- "random"/"surprise me" -> tools.randomize.
 - Keep colours readable: text must contrast with the background.
-- Never invent an image URL; only set background.imageUrl if the user pasted one.`;
+- "changes" mirrors what you set, in plain words. Never invent an image URL.`;
+
+/** Filter an object to known keys (and only when present) so the prompt's
+ *  current-state block stays compact. */
+function pickKeys(
+  obj: Record<string, unknown> | undefined,
+  keys: readonly string[],
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (!obj) return out;
+  for (const k of keys) {
+    if (k in obj && obj[k] !== undefined) out[k] = obj[k];
+  }
+  return out;
+}
+
+/** Build the user message: a compact snapshot of the current settings
+ *  (trimmed to the fields the AI can touch) plus the request, so the
+ *  model can reason relatively and reply with only the delta. */
+export function buildUserMessage(
+  prompt: string,
+  current: AiCurrentState | undefined,
+): string {
+  const snapshot = {
+    theme: pickKeys(current?.theme, AI_THEME_VARS),
+    appearance: pickKeys(current?.appearance, Object.keys(APPEARANCE_FIELDS)),
+    background: current?.background ?? {},
+  };
+  return `Current settings:\n${JSON.stringify(snapshot)}\n\nRequest: ${prompt}`;
+}
