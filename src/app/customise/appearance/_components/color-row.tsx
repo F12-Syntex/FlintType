@@ -43,7 +43,7 @@ export function ColorRow({
   return (
     <>
       {/* Mobile only — compact key/value row. */}
-      <div className="flex min-h-12 items-center justify-between gap-3 rounded-md border border-border px-3 py-2 sm:hidden">
+      <div className="flex min-h-12 items-center justify-between gap-3 py-2 sm:hidden">
         <span className="truncate text-sm font-medium text-foreground">
           {label}
         </span>
@@ -70,7 +70,7 @@ export function ColorRow({
       </div>
 
       {/* Desktop only — Card layout per ui-law §12. */}
-      <Card className="hidden rounded-md border-border bg-transparent ring-border min-h-16 sm:block">
+      <Card className="hidden rounded-md bg-transparent ring-0 min-h-16 sm:block">
         <CardHeader>
           <CardTitle className="text-sm font-semibold">{label}</CardTitle>
           <CardDescription>{desc}</CardDescription>

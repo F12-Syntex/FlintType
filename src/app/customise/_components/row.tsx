@@ -8,15 +8,16 @@ import { cn } from "@/lib/utils";
  *  4-5 lines on a 375 px viewport. From `sm:` up the row falls back to
  *  the inline label-left / control-right form.
  *
- *  The row has **no fill** — it's a hairline-outlined container on the
- *  page background. The surface lives on the *control* instead (the
- *  chips are `bg-muted`), so the thing you interact with reads as the
- *  surface rather than the whole row sitting in a band. See ui-law.md §12.1.
+ *  The row has **no fill and no border** — just a label and a control,
+ *  separated from its neighbours by the section's row gap. The surface
+ *  lives on the *control* instead (the chips are `bg-muted`), and the only
+ *  outline anywhere is the coral primary-accent border on the *active*
+ *  chip. See ui-law.md §12.1.
  *
- *  Optional `preview`: when present, renders a hairline-separated strip
- *  below the row showing the current value's live effect (a sample
- *  passage with the chosen caret, a wrong-letter glyph in the chosen
- *  mistake style, etc.). Subtle by design, smaller scale, no extra
+ *  Optional `preview`: when present, renders a strip below the row showing
+ *  the current value's live effect (a sample passage with the chosen
+ *  caret, a wrong-letter glyph in the chosen mistake style, etc.). Subtle
+ *  by design, smaller scale, no extra
  *  border around the preview itself. */
 export function SettingsRow({
   label,
@@ -30,22 +31,15 @@ export function SettingsRow({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "flex flex-col rounded-md border border-border",
-        className,
-      )}
-    >
-      <div className="flex flex-col gap-3 px-4 py-4 sm:min-h-16 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-0">
+    <div className={cn("flex flex-col", className)}>
+      <div className="flex flex-col gap-3 py-3 sm:min-h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-0">
         <span className="text-base font-semibold text-foreground sm:text-sm sm:font-medium">
           {label}
         </span>
         {control}
       </div>
       {preview ? (
-        <div className="border-t border-border/50 px-4 py-3 text-muted-foreground">
-          {preview}
-        </div>
+        <div className="pb-3 text-muted-foreground">{preview}</div>
       ) : null}
     </div>
   );

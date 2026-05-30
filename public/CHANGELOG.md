@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.128.4 — 30 May 2026
+- Settings are flatter: the boxes around each option are gone. Rows are just a label and its controls, and the only outline left is the coral highlight on the option you've selected.
+
 ## 6.128.3 — 30 May 2026
 - "Design with AI" fails far less often. The request now gives the model more room to answer, falls back to other models if one stalls, retries a blank reply, and tolerates extra formatting around the result, so the "AI service returned no content" error should be rare.
 
