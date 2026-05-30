@@ -164,12 +164,7 @@ export function CustomiseAiDock() {
                 ))}
               </div>
             </div>
-          ) : (
-            <p className="px-4 py-3 text-[13px] text-muted-foreground">
-              Describe a change — colours, fonts, the caret, or how the test
-              behaves. It applies live; review it on the page, then keep going.
-            </p>
-          )}
+          ) : null}
 
           <div className="shrink-0 border-t border-border p-3">
             {dirty ? (

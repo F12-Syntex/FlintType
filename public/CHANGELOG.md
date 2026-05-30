@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.129.1 — 30 May 2026
+- Removed the helper blurb from the "Design with AI" panel; it opens straight to the input.
+
 ## 6.129.0 — 30 May 2026
 - "Design with AI" is more reliable. Instead of inventing colours and values, it now picks from a fixed set of options we curate (accent colours, surface themes, fonts, sizes, and every behaviour toggle), so results are always valid and on-brand. It can also confidently change lots of things at once: ask for "a cosy warm dark theme, big serif, forgiving" and it sets the surface, accent, font, size, and behaviour in a single go.
 
