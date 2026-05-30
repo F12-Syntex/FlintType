@@ -65,8 +65,8 @@ export function AiCustomiser() {
 
   return (
     <div className="flex h-[calc(100dvh-10rem)] min-h-0 flex-col gap-3 lg:h-[calc(100dvh-12rem)] lg:gap-4">
-      {/* Detached AI dock — its own bar above the preview. */}
-      <div className="flex shrink-0 justify-center">
+      {/* Detached AI dock — its own bar above the preview, full width. */}
+      <div className="shrink-0">
         <AiDock
           loading={loading}
           pending={pending !== null}

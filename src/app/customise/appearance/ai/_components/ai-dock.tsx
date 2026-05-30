@@ -40,7 +40,7 @@ export function AiDock({
   }
 
   return (
-    <div className="w-full max-w-2xl rounded-md border border-border bg-popover/95 p-2 shadow-sm backdrop-blur-md">
+    <div className="w-full rounded-md border border-border bg-popover/95 p-2 shadow-sm backdrop-blur-md">
       <PromptInput
         value={value}
         onValueChange={setValue}

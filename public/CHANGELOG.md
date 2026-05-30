@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.127.1 — 30 May 2026
+- The "Design with AI" input now spans the full width, so your prompt no longer wraps to a second line when there's plenty of room.
+
 ## 6.127.0 — 30 May 2026
 - Cleaner "Design with AI": a simple prompt box with a send button (no clutter). Keep typing to refine — each message builds on the last, so you can say "warmer", then "bigger caret", then "match the accent" and watch the preview stack the changes. When you're happy, hit "Apply changes" to save it, or "Reset" to start over.
 
