@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.131.0 — 30 May 2026
+- "Design with AI" is now a dedicated page. The bar on the customise pages is just a launcher; pressing it opens a studio that previews your described look across six parts of the app (typing, live stats, keyboard, result, race, buttons) at once. Changes there only affect the previews, never your real settings, until you hit "Apply to settings".
+
 ## 6.130.1 — 30 May 2026
 - Fixed the AI panel (and other pop-up surfaces) showing up dark on a light page after the AI applied a theme: applying a surface now updates the pop-up colours too, and the AI panel follows your theme directly.
 
