@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.125.0 — 30 May 2026
+- "Design with AI" now has its own page (Customise → Appearance → Design with AI). Chat to describe the look you want and watch it render on a full preview of the real typing screen — top bar, live stats, passage, and keyboard, all fitting on screen with no scrolling. The proposed look only shows in the preview, so the chat and the rest of the app stay readable until you accept it. Accept to apply, or discard and try another.
+
 ## 6.124.1 — 30 May 2026
 - Removed the always-on live preview from the Appearance settings page. Each setting keeps its own per-section preview as before, and the "describe the look" AI helper stays.
 

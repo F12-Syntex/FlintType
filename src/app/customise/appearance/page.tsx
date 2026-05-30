@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { ModeSwitcher } from "@/components/ui/mode-switcher";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
@@ -12,7 +12,6 @@ import { overrideCount } from "@/lib/themes/overrides";
 import { SettingsPageHeader } from "../_components/page-header";
 import { SettingsRow } from "../_components/row";
 import { SettingsSection } from "../_components/settings-section";
-import { AiBar } from "./_components/ai-bar";
 import { BackgroundRow } from "./_components/background-row";
 import { BordersRow } from "./_components/borders-row";
 import { CaretRow } from "./_components/caret-row";
@@ -138,7 +137,26 @@ export default function AppearancePage() {
         description="Every visual control with its own live preview built from the real test surface — every override you make appears here exactly as it will on /app."
       />
 
-      <AiBar />
+      <Link
+        href="/customise/appearance/ai"
+        className="mb-10 flex items-center justify-between gap-3 rounded-md border border-border bg-card p-4 transition-colors hover:bg-accent"
+      >
+        <span className="flex items-center gap-3">
+          <Sparkles size={16} className="shrink-0 text-primary" aria-hidden />
+          <span className="flex flex-col gap-0.5">
+            <span className="text-sm font-semibold text-foreground">
+              Design with AI
+            </span>
+            <span className="text-[13px] text-muted-foreground">
+              Describe a look in plain words and preview it on the real surface
+              before applying.
+            </span>
+          </span>
+        </span>
+        <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          Open
+        </span>
+      </Link>
 
       <SettingsSection
         id="themes"
