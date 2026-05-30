@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.127.0 — 30 May 2026
+- Cleaner "Design with AI": a simple prompt box with a send button (no clutter). Keep typing to refine — each message builds on the last, so you can say "warmer", then "bigger caret", then "match the accent" and watch the preview stack the changes. When you're happy, hit "Apply changes" to save it, or "Reset" to start over.
+
 ## 6.126.0 — 30 May 2026
 - "Design with AI" is smarter. It now knows your current look, so you can talk in relative terms ("warmer", "a bit bigger", "make it match the accent") and it adjusts from where you are. Ask for "a matching palette" or "colours that go together" and it builds a coordinated set; ask to "surprise me" or "randomise the accent" and it rolls tasteful random values. Faster too, since it only computes what changes.
 

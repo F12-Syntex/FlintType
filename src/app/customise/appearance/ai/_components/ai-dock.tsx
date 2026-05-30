@@ -1,13 +1,14 @@
 "use client";
 
-import { Check, Sparkles, X } from "lucide-react";
+import { Check, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { PromptInput } from "@/components/ui/prompt-input";
 
-/** Minimal AI dock that floats over the top of the preview: one input +
- *  Suggest, and — once a look is proposed — a one-line summary with
- *  Accept / Discard. No chat log, no chrome beyond a hairline panel. */
+/** Minimal AI dock: a prompt input you can keep talking to (each send
+ *  refines the live preview), plus an explicit Apply / Reset when there
+ *  are pending changes. No chat log, no sparkle, no "suggest". */
 export function AiDock({
   loading,
   pending,
@@ -16,8 +17,8 @@ export function AiDock({
   error,
   summary,
   onSend,
-  onAccept,
-  onReject,
+  onApply,
+  onReset,
 }: {
   loading: boolean;
   pending: boolean;
@@ -26,8 +27,8 @@ export function AiDock({
   error: string;
   summary: string;
   onSend: (text: string) => void;
-  onAccept: () => void;
-  onReject: () => void;
+  onApply: () => void;
+  onReset: () => void;
 }) {
   const [value, setValue] = useState("");
 
@@ -39,46 +40,37 @@ export function AiDock({
   }
 
   return (
-    <div className="w-full max-w-xl rounded-md border border-border bg-popover/95 p-2 shadow-sm backdrop-blur-md">
-      <div className="flex items-center gap-2">
-        <Sparkles size={15} className="ml-1 shrink-0 text-primary" aria-hidden />
-        <input
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              submit();
-            }
-          }}
-          placeholder="Describe a look — “warm sepia, big serif”…"
-          aria-label="Describe the look you want"
-          disabled={loading}
-          className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-50"
-        />
-        <Button
-          size="sm"
-          onClick={submit}
-          disabled={loading || value.trim().length === 0}
-          className="shrink-0"
-        >
-          {loading ? "Thinking…" : pending ? "Refine" : "Suggest"}
-        </Button>
-      </div>
+    <div className="w-full max-w-2xl rounded-md border border-border bg-popover/95 p-2 shadow-sm backdrop-blur-md">
+      <PromptInput
+        value={value}
+        onValueChange={setValue}
+        onSubmit={submit}
+        loading={loading}
+        placeholder={
+          pending
+            ? "Keep going — “warmer”, “bigger caret”, “match the accent”…"
+            : "Describe a look — “warm sepia, big serif, soft corners”…"
+        }
+      />
 
       {pending ? (
-        <div className="mt-2 flex items-center justify-between gap-2 border-t border-border pt-2">
+        <div className="mt-2 flex items-center justify-between gap-3 border-t border-border pt-2">
           <span className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">
-            {summary}
+            {summary || "Previewing your changes"}
           </span>
           <span className="flex shrink-0 items-center gap-1.5">
-            <Button size="sm" onClick={onAccept} className="gap-1">
+            <Button size="sm" onClick={onApply} className="gap-1.5">
               <Check size={14} aria-hidden />
-              Accept
+              Apply changes
             </Button>
-            <Button size="sm" variant="ghost" onClick={onReject} className="gap-1">
-              <X size={14} aria-hidden />
-              Discard
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onReset}
+              className="gap-1.5"
+            >
+              <RotateCcw size={14} aria-hidden />
+              Reset
             </Button>
           </span>
         </div>
