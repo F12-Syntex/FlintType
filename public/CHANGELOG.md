@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.129.0 — 30 May 2026
+- "Design with AI" is more reliable. Instead of inventing colours and values, it now picks from a fixed set of options we curate (accent colours, surface themes, fonts, sizes, and every behaviour toggle), so results are always valid and on-brand. It can also confidently change lots of things at once: ask for "a cosy warm dark theme, big serif, forgiving" and it sets the surface, accent, font, size, and behaviour in a single go.
+
 ## 6.128.4 — 30 May 2026
 - Settings are flatter: the boxes around each option are gone. Rows are just a label and its controls, and the only outline left is the coral highlight on the option you've selected.
 
