@@ -3,7 +3,7 @@ import { Tag } from "@/components/ft";
 import { cn } from "@/lib/utils";
 
 /** Single section primitive every insights panel uses. Mirrors the
- *  profile-section pattern — eyebrow tick + Tag, optional right-
+ *  profile-section pattern, eyebrow tick + Tag, optional right-
  *  aligned actions, consistent padding. Stays compact (py-10 sm:py-12)
  *  so the page doesn't read as a wall of slabs. */
 export function InsightsSection({

@@ -14,7 +14,7 @@ import { WeaknessChart } from "./weakness-chart";
 /** /insights orchestrator. One backend.history.summary() call
  *  fans out to: hero status, WPM trend, slow words, slow bigrams,
  *  recent tests, practical guidance. The confidence playground is
- *  independent — it talks to /api/adapt/scoreWord per-word.
+ *  independent, it talks to /api/adapt/scoreWord per-word.
  *
  *  Replaces the old /history page; the data is the same source
  *  (recent tests + weakness lists), but the framing pivots from
@@ -66,7 +66,7 @@ export function InsightsView() {
         </section>
       ) : (
         <>
-          {/* Trend + recent tests share a row at lg+ — both are
+          {/* Trend + recent tests share a row at lg+, both are
            *  time-axis summaries and read together. */}
           <div className="grid gap-0 border-b border-border lg:grid-cols-[2fr_1fr]">
             <InsightsSection
@@ -86,7 +86,7 @@ export function InsightsView() {
             </InsightsSection>
           </div>
 
-          {/* Weakness charts side-by-side at lg+ — words on the
+          {/* Weakness charts side-by-side at lg+, words on the
            *  left, bigrams on the right. Both read the same summary
            *  payload; the chart primitive is shared. */}
           <div className="grid gap-0 border-b border-border lg:grid-cols-2">
@@ -98,7 +98,7 @@ export function InsightsView() {
             >
               <WeaknessChart
                 rows={snap.weakestWords}
-                emptyHint="No word baseline yet — finish a few more tests."
+                emptyHint="No word baseline yet. Finish a few more tests."
                 baselineMs={snap.wordBaselineMs}
               />
             </InsightsSection>
@@ -109,7 +109,7 @@ export function InsightsView() {
             >
               <WeaknessChart
                 rows={snap.weakestPairs}
-                emptyHint="No bigram baseline yet — type a bit more and the model will surface your weak pairs."
+                emptyHint="No bigram baseline yet. Type a bit more and the model will surface your weak pairs."
                 baselineMs={snap.bigramBaselineMs}
               />
             </InsightsSection>
@@ -117,7 +117,7 @@ export function InsightsView() {
 
           <InsightsSection
             label="Coaching · what to focus on next"
-            subtitle="Plain-language guidance derived from your model — what's actually slow, what to drill."
+            subtitle="Plain-language guidance derived from your model: what's actually slow, what to drill."
           >
             <Guidance snap={snap} />
           </InsightsSection>

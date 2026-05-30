@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import type { HistoryWeakness } from "@/types/history";
 
 /** Horizontal-bar chart of the user's slowest patterns. Used by both
- *  the weakest-words and weakest-bigrams panels — same shape, just
+ *  the weakest-words and weakest-bigrams panels, same shape, just
  *  different data. The bar fills primary, sized against the topmost
  *  weakness in the list so contrast is preserved at low-data states.
  *

@@ -88,9 +88,10 @@ export function parseWindow(s: string | null): LeaderboardWindow {
 }
 
 export function parsePreset(s: string | null): LeaderboardPreset {
-  if (s == null) return "any";
+  // Default view is the 60-second time test.
+  if (s == null) return "t60";
   const found = PRESET_IDS.find((id) => id === s);
-  return found ?? "any";
+  return found ?? "t60";
 }
 
 /** Which kind of ranking the main pane shows. Switched from the

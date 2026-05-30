@@ -6,7 +6,7 @@ import { relativeTime } from "@/lib/relative-time";
 import { cn } from "@/lib/utils";
 import type { HistoryTest } from "@/types/history";
 
-/** Compact recent-runs list — last 6 completed tests, hairline-
+/** Compact recent-runs list, last 6 completed tests, hairline-
  *  divided rows. Same shape as the profile list, kept inline so
  *  insights doesn't need to bounce out to the profile to peek at
  *  recent activity. */
@@ -26,8 +26,8 @@ export function RecentTests({ tests }: { tests: readonly HistoryTest[] }) {
   if (completed.length === 0) {
     return (
       <p className="text-[12px] leading-relaxed text-muted-foreground">
-        Run a few tests at <span className="text-foreground">/app</span>{" "}
-        — your latest results will land here.
+        Run a few tests at <span className="text-foreground">/app</span> and
+        your latest results will land here.
       </p>
     );
   }

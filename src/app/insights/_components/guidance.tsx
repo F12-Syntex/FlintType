@@ -1,6 +1,6 @@
 import type { HistorySummaryOutput } from "@/types/history";
 
-/** Practical-guidance panel — derives 1-3 short coaching lines from
+/** Practical-guidance panel, derives 1-3 short coaching lines from
  *  the snapshot. Realistic and concrete: 'drill this exact pair',
  *  'your accuracy slipped on long passages', etc. Skips the
  *  motivational fluff. */
@@ -37,12 +37,12 @@ function buildTips(snap: HistorySummaryOutput): string[] {
 
   if (snap.cold) {
     tips.push(
-      "Run a handful of tests at /app to leave cold start — once the algorithm has ~200 bigram samples it'll start tailoring drills.",
+      "Run a handful of tests at /app to leave cold start. Once the algorithm has about 200 bigram samples it'll start tailoring drills.",
     );
     return tips;
   }
 
-  // 1) Worst pair — concrete drill suggestion.
+  // 1) Worst pair, concrete drill suggestion.
   const worstPair = snap.weakestPairs[0];
   if (worstPair && worstPair.weakness > 0) {
     const slowPct =
@@ -55,12 +55,12 @@ function buildTips(snap: HistorySummaryOutput): string[] {
         : null;
     tips.push(
       slowPct != null
-        ? `Your slowest letter pair is "${worstPair.key}" — typed ${slowPct}% slower than your overall baseline. The Weakness gauntlet drill at /drills bursts a passage built around it.`
+        ? `Your slowest letter pair is "${worstPair.key}", typed ${slowPct}% slower than your overall baseline. The Weakness gauntlet drill at /drills bursts a passage built around it.`
         : `Your slowest letter pair is "${worstPair.key}". The Weakness gauntlet drill at /drills burst-trains it under sudden death.`,
     );
   }
 
-  // 2) Worst word — concrete word-level focus.
+  // 2) Worst word, concrete word-level focus.
   const worstWord = snap.weakestWords[0];
   if (worstWord && worstWord.weakness > 0) {
     tips.push(
@@ -68,10 +68,10 @@ function buildTips(snap: HistorySummaryOutput): string[] {
     );
   }
 
-  // 3) If neither — generic accuracy nudge from completion rate.
+  // 3) If neither, generic accuracy nudge from completion rate.
   if (tips.length === 0) {
     tips.push(
-      "Your model is warm and balanced — no single weak pair stands out. Mix in the Tongue-twister gauntlet drill to keep pushing the ceiling.",
+      "Your model is warm and balanced, with no single weak pair standing out. Mix in the Tongue-twister gauntlet drill to keep pushing the ceiling.",
     );
   }
 

@@ -8,7 +8,7 @@ import type { ScoreWordOutput } from "@/types/adapt";
 
 const SAMPLE = "the quick brown fox jumps over the lazy dog";
 
-/** Confidence playground — paste any text, see what the algorithm
+/** Confidence playground, paste any text, see what the algorithm
  *  thinks of it. For each word we hit /api/adapt/scoreWord and
  *  display the predicted WPM (derived from predictedMs) and a
  *  challenge-band tag. The text itself paints per-word with colour
@@ -20,7 +20,7 @@ export function ConfidencePlayground() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Tokenise input on every render — the actual scoring waits for
+  // Tokenise input on every render, the actual scoring waits for
   // the user to settle (debounced effect below).
   const words = useMemo(
     () =>
@@ -131,7 +131,7 @@ export function ConfidencePlayground() {
       </div>
 
       <p className="text-[11.5px] leading-relaxed text-muted-foreground">
-        Colour intensity scales with predicted slowness — the darker
+        Colour intensity scales with predicted slowness. The darker
         primary tint means the algorithm thinks you&apos;ll stall on
         that word. Hover for the per-word breakdown.
       </p>

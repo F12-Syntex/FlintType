@@ -2,7 +2,7 @@ import { Tag } from "@/components/ft";
 import { cn } from "@/lib/utils";
 import type { HistorySummaryOutput } from "@/types/history";
 
-/** Compact hero — page label + a one-line summary of the algorithm
+/** Compact hero, page label + a one-line summary of the algorithm
  *  state (cold/warm, sample volume, last test). The whole point is
  *  that the user can read the 'what does the algorithm think of me
  *  right now' answer in one glance. */
@@ -25,7 +25,7 @@ export function InsightsHero({
           <h1 className="font-bold tracking-[-0.02em] text-foreground text-[28px] leading-[1.05] sm:text-[44px] lg:text-[52px]">
             What the algorithm
             <br />
-            <span className="text-foreground/60">knows about you.</span>
+            knows about you.
           </h1>
           <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
             Trends, slow words, weak letter pairs, plus a confidence

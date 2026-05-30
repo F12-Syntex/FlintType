@@ -24,7 +24,7 @@ const chartConfig = {
 
 type Point = { idx: number; wpm: number; ts: number };
 
-/** Compact WPM trend — last 30 completed tests. Same shape as the
+/** Compact WPM trend, last 30 completed tests. Same shape as the
  *  profile trend chart but dropped one size class so it fits inside
  *  the insights flow without dominating the page. */
 export function InsightsTrend({

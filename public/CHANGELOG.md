@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.128.1 — 30 May 2026
+- The leaderboard now opens on the 60-second time test by default.
+- Insights: removed the dashes from the copy, and simplified the heading.
+- The customise and leaderboard pages no longer wrap their content in a panel that looked like the sidebar; the content now sits flush on the page.
+
 ## 6.128.0 — 30 May 2026
 - "Design with AI" is now a small dock pinned to the bottom of the customise pages (Appearance and Behaviour). Open it, describe a change in plain words, and it applies live so you see it on the page right away. Keep chatting to make more changes; it lists exactly what it changed each time. Hit "Apply changes" to keep them, or "Undo" to roll the whole session back. It can now change how the test behaves too (stop-on-error, strict space, confidence, and so on), not just the look.
 - Moved the on-screen keyboard and the friends dock lower so they sit closer to the bottom edge.

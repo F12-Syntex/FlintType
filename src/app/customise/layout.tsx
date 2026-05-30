@@ -18,7 +18,7 @@ export default function CustomiseLayout({ children }: { children: ReactNode }) {
             of the scrollable height and scroll out of view. */}
         <div
           data-bg-scope="content"
-          className="relative min-h-0 overflow-hidden lg:rounded-md lg:border lg:border-border lg:bg-card"
+          className="relative min-h-0 overflow-hidden"
         >
           <div className="absolute inset-0 overflow-y-auto">
             <CustomiseHeader />
