@@ -232,11 +232,11 @@ function HostBar({
   const backend = useBackend();
   const [pending, setPending] = useState(false);
 
-  const start = async () => {
-    if (pending || !allReady) return;
+  const start = async (force: boolean) => {
+    if (pending || (!force && !allReady)) return;
     setPending(true);
     try {
-      await backend.race.challenge.start({ roomId, sessionToken });
+      await backend.race.challenge.start({ roomId, sessionToken, force });
     } catch {
       setPending(false);
     }
@@ -248,7 +248,7 @@ function HostBar({
       <CopyLinkButton url={lobbyUrl(slug)} />
       <button
         type="button"
-        onClick={start}
+        onClick={() => start(false)}
         disabled={pending || !allReady}
         className={cn(
           "inline-flex h-8 items-center gap-2 rounded-md bg-primary px-3.5",
@@ -261,9 +261,24 @@ function HostBar({
       </button>
     </div>
     {otherCount > 0 && !allReady ? (
-      <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-        Waiting for everyone to ready up · {readyCount}/{otherCount}
-      </span>
+      <div className="flex flex-col items-center gap-1.5">
+        <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+          Waiting for everyone to ready up · {readyCount}/{otherCount}
+        </span>
+        <button
+          type="button"
+          onClick={() => start(true)}
+          disabled={pending}
+          className={cn(
+            "inline-flex h-7 items-center rounded-md border border-border px-3",
+            "text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground",
+            "transition-colors hover:bg-accent hover:text-foreground",
+            pending && "cursor-not-allowed opacity-50",
+          )}
+        >
+          Force start now
+        </button>
+      </div>
     ) : null}
     </div>
   );

@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.132.0 — 30 May 2026
+- You can now force-start a private race lobby. When some players haven't readied up, the host gets a "Force start now" button to begin anyway, instead of waiting on everyone.
+
 ## 6.131.1 — 30 May 2026
 - Fixed the race screen squeezing the passage off-screen when several people joined: the racer list is now more compact, and it no longer reserves a matching empty band at the bottom, so the text you type stays visible without zooming out.
 

@@ -311,6 +311,8 @@ export type CancelChallengeOutput = { ok: true };
 export const startChallengeInputSchema = z.object({
   roomId: z.string().min(1),
   sessionToken: z.string().min(1),
+  /** Host override: start even if not everyone has readied up. */
+  force: z.boolean().optional(),
 });
 export type StartChallengeInput = z.infer<typeof startChallengeInputSchema>;
 

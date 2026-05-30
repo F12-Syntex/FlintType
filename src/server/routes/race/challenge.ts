@@ -142,11 +142,12 @@ const start = defineRoute<StartChallengeInput, StartChallengeOutput>({
         "only the room host can start a challenge race",
       );
     }
-    // Ready-up gate (#26): the host can only start once every other
-    // present human has readied up (bots auto-ready; the host's Start is
-    // the unanimous "go"). The lobby UI also disables Start until then,
-    // so this is the server-side enforcement of the same rule.
-    if (!room.allHumansReady()) {
+    // Ready-up gate (#26): normally the host can only start once every
+    // other present human has readied up (bots auto-ready). The host may
+    // override with `force` — their explicit "go now" regardless of the
+    // ready votes. The lobby UI surfaces both: a disabled Start plus a
+    // Force-start button while not everyone is ready.
+    if (!input.force && !room.allHumansReady()) {
       throw new BackendError(
         409,
         "CONFLICT",

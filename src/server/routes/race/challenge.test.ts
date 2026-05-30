@@ -153,6 +153,48 @@ describe("race.challenge routes", () => {
     expect(res.ok).toBe(true);
   });
 
+  it("force lets the host start even when a human hasn't readied up", async () => {
+    const host = await callRoute<CreateChallengeOutput>(
+      ["race", "challenge", "create"],
+      { input: { modeId: "1v1" } },
+    );
+    await callRoute<JoinChallengeOutput>(["race", "challenge", "join"], {
+      input: { slug: host.slug },
+    });
+    // No ready-up — but force overrides the gate.
+    const res = await callRoute<StartChallengeOutput>(
+      ["race", "challenge", "start"],
+      {
+        input: {
+          roomId: host.roomId,
+          sessionToken: host.sessionToken,
+          force: true,
+        },
+      },
+    );
+    expect(res.ok).toBe(true);
+  });
+
+  it("force start still requires the host", async () => {
+    const host = await callRoute<CreateChallengeOutput>(
+      ["race", "challenge", "create"],
+      { input: { modeId: "1v1" } },
+    );
+    const joiner = await callRoute<JoinChallengeOutput>(
+      ["race", "challenge", "join"],
+      { input: { slug: host.slug } },
+    );
+    await expect(
+      callRoute(["race", "challenge", "start"], {
+        input: {
+          roomId: host.roomId,
+          sessionToken: joiner.sessionToken,
+          force: true,
+        },
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("setReady reports canStart=false while a human is unready", async () => {
     const host = await callRoute<CreateChallengeOutput>(
       ["race", "challenge", "create"],
