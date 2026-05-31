@@ -65,6 +65,7 @@ todo
 /playwright-report/
 /blob-report/
 /.playwright/
+.playwright-mcp
 
 # Emulated-user simulation harness artifacts (build/server logs + html report)
 /.sim-build.log
