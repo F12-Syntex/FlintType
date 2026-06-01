@@ -25,7 +25,9 @@ export function ChallengeLobby() {
 
   // Ready-up state (#26). Every present human who isn't the host must be
   // ready before the host's Start fires; bots are always ready and the
-  // host readies implicitly by starting.
+  // host readies implicitly by starting. Who-is-ready is shown per-lane
+  // in the racetrack above (RaceLineupPanel); this card is just the
+  // controls — share link, Ready toggle, Start.
   const humans = onlineSnapshot.racers.filter((r) => !r.isBot && !r.disconnected);
   const others = humans.filter((r) => !r.isHost);
   const readyCount = others.filter((r) => r.ready).length;
@@ -37,7 +39,6 @@ export function ChallengeLobby() {
       showHostBar={isHost}
       roomId={onlineRoomId ?? ""}
       sessionToken={onlineSessionToken ?? ""}
-      racers={humans}
       meReady={me?.ready ?? false}
       readyCount={readyCount}
       otherCount={others.length}
@@ -48,13 +49,13 @@ export function ChallengeLobby() {
 
 /** Card body. `showHostBar=true` reveals the share-link + Start-race
  *  buttons (Start-race fires the server `challenge.start` route, gated
- *  on everyone being ready). Guests get a share-link + Ready toggle. */
+ *  on everyone being ready). Guests get a share-link + Ready toggle.
+ *  The roster lives in the racetrack lanes above, not here. */
 function LobbyCard({
-  slug,
   showHostBar,
   roomId,
   sessionToken,
-  racers,
+  slug,
   meReady,
   readyCount,
   otherCount,
@@ -64,7 +65,6 @@ function LobbyCard({
   showHostBar: boolean;
   roomId: string;
   sessionToken: string;
-  racers: { id: string; name: string; isHost: boolean; ready: boolean }[];
   meReady: boolean;
   readyCount: number;
   otherCount: number;
@@ -75,7 +75,6 @@ function LobbyCard({
       <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
         Lobby · {slug}
       </span>
-      <RosterReady racers={racers} />
       {showHostBar ? (
         <HostBar
           slug={slug}
@@ -101,38 +100,6 @@ function LobbyCard({
         </div>
       )}
     </div>
-  );
-}
-
-/** Per-racer ready row so everyone sees who's set. A small dot + name;
- *  the host is marked, and a coral tick once a player is ready. */
-function RosterReady({
-  racers,
-}: {
-  racers: { id: string; name: string; isHost: boolean; ready: boolean }[];
-}) {
-  if (racers.length === 0) return null;
-  return (
-    <ul className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-      {racers.map((r) => (
-        <li
-          key={r.id}
-          className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
-        >
-          <span
-            aria-hidden
-            className={cn(
-              "size-1.5 rounded-full",
-              r.isHost || r.ready ? "bg-primary" : "bg-muted-foreground/40",
-            )}
-          />
-          <span className="truncate max-w-[10rem] text-foreground">{r.name}</span>
-          <span className="text-[9px] font-semibold uppercase tracking-[0.16em]">
-            {r.isHost ? "host" : r.ready ? "ready" : "not ready"}
-          </span>
-        </li>
-      ))}
-    </ul>
   );
 }
 

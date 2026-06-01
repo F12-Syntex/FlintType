@@ -1,5 +1,6 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { cn } from "@/lib/utils";
 import {
@@ -10,21 +11,29 @@ import {
 } from "./race-data";
 import type { Racer, RacePhase } from "./race-types";
 
-/** Race roster + live racetrack. Sits ABOVE the typing surface (the
- *  TypeRacer layout: the track on top, the passage you type below).
- *  One consolidated card so the user has exactly one place to look for
- *  "who am I racing and how am I doing."
+/** Race roster + live racetrack, the TypeRacer way: ONE horizontal lane
+ *  per racer. Each lane reads left to right —
  *
- *  ONE shared track: every racer is a flint stone on a single line,
- *  gliding toward the finish post on the right. The lone coral spark is
- *  the local user's stone (coral drop-shadow + a coral trail). A compact
- *  legend below carries the identity the stones can't (rank, handle,
- *  WPM) since beads bunch up and overlap mid-race.
+ *    [ ✓  name ]   ·····🔥·············🏁   [ status / wpm ]
  *
- *  Header carries the phase context (mode + status + the local
- *  words/wpm/acc strip while racing). Hidden in queue (no opponents to
- *  show) and absorbed by the RaceResults card once the race finishes
- *  (rendered below in the page tree). */
+ *  the flint stone glides along its own dashed track toward the finish
+ *  post on the right. Sits ABOVE the typing surface and is the single
+ *  "who am I racing and how am I doing" surface for every pre-finish
+ *  phase:
+ *
+ *    - lobby / countdown — stones rest at the start line; the left mark
+ *      is a checkbox so ready vs not-ready reads down the column at a
+ *      glance (the host is implicitly ready).
+ *    - racing — stones glide by progress; the right column shows WPM and
+ *      the left mark becomes the racer's colour dot.
+ *
+ *  The local user is the lone coral spark (coral stone glow + a coral
+ *  trail behind their stone); opponents stay neutral ink, or their
+ *  hand-tuned `playerColorFor` when the player-colours pref is on. A
+ *  finished racer shows their place. Lanes keep a STABLE order (you
+ *  first, then join order) so an overtake reads as the stone gliding
+ *  past, never the whole row jumping. Hidden in queue, and absorbed by
+ *  the RaceResults card once the race finishes. */
 export function RaceLineupPanel({
   racers,
   totalChars,
@@ -56,22 +65,24 @@ export function RaceLineupPanel({
 
   const joined = racers.filter((r) => r.joinedAt != null);
   const you = joined.find((r) => r.isYou) ?? null;
+  // Stable lane order: you first, then opponents by join order (id
+  // tie-break) so lanes never swap places mid-race.
   const opponents = joined
     .filter((r) => !r.isYou)
-    .sort((a, b) => b.correctChars - a.correctChars);
-  // Leaderboard order (you first in the legend so your row is easy to
-  // find); the track itself layers you on top regardless of position.
-  const ordered = you ? [you, ...opponents] : opponents;
+    .sort((a, b) => {
+      const ja = a.joinedAt ?? Number.MAX_SAFE_INTEGER;
+      const jb = b.joinedAt ?? Number.MAX_SAFE_INTEGER;
+      if (ja !== jb) return ja - jb;
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    });
+  const lanes = you ? [you, ...opponents] : opponents;
 
   const racing = phase === "racing" || phase === "finished";
-  const youPct = you
-    ? Math.round(progressOf(you.correctChars, totalChars) * 100)
-    : 0;
 
-  /** Stone / dot / text accent for one racer: the local user is the one
-   *  coral spark; opponents take their hand-tuned palette colour only
-   *  when the player-colours pref is on, else neutral ink; disconnected
-   *  drops to muted grey. */
+  /** Marker / stone / text accent for one racer: the local user is the
+   *  one coral spark; opponents take their hand-tuned palette colour
+   *  only when the player-colours pref is on, else neutral ink;
+   *  disconnected drops to muted grey. */
   const accentFor = (r: Racer): string =>
     r.disconnected
       ? "var(--muted-foreground)"
@@ -84,7 +95,7 @@ export function RaceLineupPanel({
   return (
     <section
       aria-label="Race roster"
-      className="flex shrink-0 flex-col gap-3.5 rounded-md border border-border bg-card/70 px-4 py-3.5 backdrop-blur-sm sm:gap-4 sm:px-6 sm:py-4"
+      className="flex shrink-0 flex-col gap-3 rounded-md border border-border bg-card/70 px-4 py-3.5 backdrop-blur-sm sm:gap-3.5 sm:px-6 sm:py-4"
     >
       <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1.5">
         <div className="flex items-baseline gap-3">
@@ -117,150 +128,209 @@ export function RaceLineupPanel({
         ) : null}
       </header>
 
-      {/* The single shared track: a ground line every stone rolls along,
-       *  a coral trail from the start to YOUR stone, a finish post on the
-       *  right, and every racer's flint stone gliding to its progress
-       *  position. Stones get a tiny vertical micro-stagger (3 sub-levels)
-       *  so a bunched-up pack reads as distinct beads rather than one
-       *  blob, while staying visibly one line. */}
-      <div
-        role="group"
-        aria-label="Live racetrack"
-        className="relative h-16 sm:h-20"
-      >
-        {/* Ground line — the track surface. */}
-        <div
-          aria-hidden
-          className="absolute inset-x-0 bottom-3 h-px bg-foreground/15"
-        />
-        {/* Your coral trail from the start to your stone (the one spark). */}
-        {you ? (
-          <div
-            aria-hidden
-            className="absolute bottom-3 left-0 h-[2px] rounded-full bg-primary/55 transition-[width] duration-150 ease-out"
-            style={{ width: `${youPct}%` }}
+      <ol className="flex flex-col gap-1.5 sm:gap-2">
+        {lanes.map((r) => (
+          <Lane
+            key={r.id}
+            racer={r}
+            totalChars={totalChars}
+            racing={racing}
+            accent={accentFor(r)}
+            showWpm={showOpponentWpm || r.isYou}
           />
-        ) : null}
-        {/* Finish post + flag cap at the right edge. */}
-        <span
-          aria-hidden
-          className="absolute right-0 bottom-2.5 h-10 w-px bg-foreground/30 sm:h-12"
-        />
-        <span
-          aria-hidden
-          className="absolute right-[-2px] top-0.5 size-2 rounded-[1px] bg-foreground/35"
-        />
-        {/* Stones — opponents first (lower z), you last (on top). */}
-        {[...opponents, ...(you ? [you] : [])].map((r, idx) => {
-          const pct = Math.round(progressOf(r.correctChars, totalChars) * 100);
-          const tier = stoneTierForWpm(r.wpm);
-          const stagger = (idx % 3) * 6; // 0 / 6 / 12 px — micro sub-levels
-          return (
-            <div
-              key={r.id}
-              className={cn(
-                "absolute -translate-x-1/2 transition-[left] duration-150 ease-out",
-                r.disconnected && "opacity-50",
-              )}
-              style={{
-                left: `${pct}%`,
-                bottom: `${6 + stagger}px`,
-                zIndex: r.isYou ? 30 : 10 + idx,
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={stoneSrc(tier)}
-                alt=""
-                aria-hidden
-                draggable={false}
-                className="size-9 select-none sm:size-10 motion-safe:animate-[ft-stone-bob_1.3s_ease-in-out_infinite]"
-                style={
-                  r.isYou
-                    ? {
-                        filter:
-                          "drop-shadow(0 0 7px color-mix(in oklch, var(--primary) 75%, transparent))",
-                      }
-                    : undefined
-                }
-              />
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Legend — the identity the stones can't carry: rank, handle, and
-       *  WPM per racer. Wraps freely so an 8-racer FFA stays a couple of
-       *  lines tall instead of N full lanes. */}
-      <ol className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-        {ordered.map((r, idx) => {
-          const rank = idx + 1;
-          const pct = Math.round(progressOf(r.correctChars, totalChars) * 100);
-          const accent = accentFor(r);
-          const showWpm = showOpponentWpm || r.isYou;
-          return (
-            <li
-              key={r.id}
-              role="progressbar"
-              aria-label={`${r.name} progress`}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={pct}
-              className={cn(
-                "flex items-center gap-1.5 text-[11px] sm:text-[12px]",
-                r.disconnected && "opacity-60",
-              )}
-            >
-              <span
-                aria-hidden
-                className="size-2 shrink-0 rounded-sm"
-                style={{ backgroundColor: accent }}
-              />
-              <span
-                className={cn(
-                  "font-bold tabular-nums",
-                  rank === 1 ? "text-primary" : "text-muted-foreground",
-                )}
-              >
-                {rank.toString().padStart(2, "0")}
-              </span>
-              <span
-                className={cn(
-                  "max-w-[14ch] truncate",
-                  r.disconnected
-                    ? "text-muted-foreground"
-                    : r.isYou
-                      ? "font-semibold text-foreground"
-                      : "text-foreground/85",
-                )}
-              >
-                {r.name}
-              </span>
-              {r.bot != null ? <BotChip /> : null}
-              {r.disconnected ? (
-                <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground/80">
-                  Off
-                </span>
-              ) : r.place != null ? (
-                <span className="text-[10px] font-semibold tabular-nums text-primary">
-                  #{r.place}
-                </span>
-              ) : null}
-              {showWpm ? (
-                <span
-                  className={cn(
-                    "tabular-nums font-bold",
-                    r.isYou ? "text-primary" : "text-foreground",
-                  )}
-                >
-                  {r.wpm}
-                </span>
-              ) : null}
-            </li>
-          );
-        })}
+        ))}
       </ol>
     </section>
+  );
+}
+
+/* ─── One racer's lane ───────────────────────────────────────── */
+
+function Lane({
+  racer: r,
+  totalChars,
+  racing,
+  accent,
+  showWpm,
+}: {
+  racer: Racer;
+  totalChars: number;
+  racing: boolean;
+  accent: string;
+  showWpm: boolean;
+}) {
+  const pct = Math.round(progressOf(r.correctChars, totalChars) * 100);
+  const tier = stoneTierForWpm(r.wpm);
+  return (
+    <li
+      role="progressbar"
+      aria-label={`${r.name} progress`}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={pct}
+      className={cn(
+        "flex items-center gap-2 sm:gap-3",
+        r.disconnected && "opacity-60",
+      )}
+    >
+      {/* Identity — checkbox (lobby) or colour dot (racing) + name. */}
+      <div className="flex w-28 shrink-0 items-center gap-1.5 sm:w-40">
+        <LaneMark racer={r} racing={racing} accent={accent} />
+        <span
+          className={cn(
+            "min-w-0 truncate text-[11px] sm:text-[12px]",
+            r.disconnected
+              ? "text-muted-foreground"
+              : r.isYou
+                ? "font-semibold text-foreground"
+                : "text-foreground/85",
+          )}
+        >
+          {r.name}
+        </span>
+        {r.bot != null ? (
+          <BotChip />
+        ) : !racing && r.isHost ? (
+          <HostTag />
+        ) : null}
+      </div>
+
+      {/* Track — dashed ground line, the racer's stone, finish post. */}
+      <div className="relative h-7 flex-1 sm:h-8">
+        {/* Finish post — stacked across lanes, this reads as one line. */}
+        <span
+          aria-hidden
+          className="absolute inset-y-1 right-0 w-px bg-foreground/25"
+        />
+        {/* Travel area, inset by half a stone so it never overhangs. */}
+        <div aria-hidden className="absolute inset-x-4 inset-y-0">
+          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t border-dashed border-foreground/15" />
+          {r.isYou ? (
+            <div
+              className="absolute top-1/2 left-0 h-px -translate-y-1/2 bg-primary/55 transition-[width] duration-150 ease-out"
+              style={{ width: `${pct}%` }}
+            />
+          ) : null}
+          <div
+            className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 transition-[left] duration-150 ease-out"
+            style={{ left: `${pct}%` }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={stoneSrc(tier)}
+              alt=""
+              aria-hidden
+              draggable={false}
+              className="size-6 select-none sm:size-7 motion-safe:animate-[ft-stone-bob_1.3s_ease-in-out_infinite]"
+              style={
+                r.isYou
+                  ? {
+                      filter:
+                        "drop-shadow(0 0 6px color-mix(in oklch, var(--primary) 75%, transparent))",
+                    }
+                  : undefined
+              }
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Status — WPM / place while racing, ready word in the lobby. */}
+      <div className="flex w-16 shrink-0 justify-end whitespace-nowrap sm:w-20">
+        <LaneStatus racer={r} racing={racing} showWpm={showWpm} />
+      </div>
+    </li>
+  );
+}
+
+/** Left mark on a lane. In the lobby it's a checkbox so ready/not-ready
+ *  reads down the column; while racing it's the racer's colour dot. */
+function LaneMark({
+  racer: r,
+  racing,
+  accent,
+}: {
+  racer: Racer;
+  racing: boolean;
+  accent: string;
+}) {
+  if (racing) {
+    return (
+      <span
+        aria-hidden
+        className="size-2 shrink-0 rounded-sm"
+        style={{ backgroundColor: accent }}
+      />
+    );
+  }
+  const ready = r.ready || r.isHost;
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "flex size-4 shrink-0 items-center justify-center rounded-sm border",
+        ready
+          ? "border-primary bg-primary/15 text-primary"
+          : "border-muted-foreground/40 bg-transparent",
+      )}
+    >
+      {ready ? <Check size={11} strokeWidth={3} /> : null}
+    </span>
+  );
+}
+
+/** Right-hand status on a lane. */
+function LaneStatus({
+  racer: r,
+  racing,
+  showWpm,
+}: {
+  racer: Racer;
+  racing: boolean;
+  showWpm: boolean;
+}) {
+  if (r.disconnected) {
+    return (
+      <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
+        Off
+      </span>
+    );
+  }
+  if (r.place != null) {
+    return (
+      <span className="text-[12px] font-semibold tabular-nums text-primary">
+        #{r.place}
+      </span>
+    );
+  }
+  if (racing) {
+    if (!showWpm) return null;
+    return (
+      <span
+        className={cn(
+          "text-[12px] font-bold tabular-nums",
+          r.isYou ? "text-primary" : "text-foreground",
+        )}
+      >
+        {r.wpm}
+        <span className="ml-0.5 text-[8px] font-medium uppercase tracking-[0.1em] text-muted-foreground/70">
+          wpm
+        </span>
+      </span>
+    );
+  }
+  // Lobby / countdown — the checkbox carries ready/not; spell it out
+  // for the ones that need words (host, and a clear "ready" once set).
+  if (r.isHost) return null;
+  return (
+    <span
+      className={cn(
+        "text-[9px] font-semibold uppercase tracking-[0.14em]",
+        r.ready ? "text-primary" : "text-muted-foreground/70",
+      )}
+    >
+      {r.ready ? "Ready" : "Not ready"}
+    </span>
   );
 }
 
@@ -311,6 +381,15 @@ function PhaseLabel({
     );
   }
   return null;
+}
+
+/** Tiny "HOST" tag beside the host's name in the lobby. */
+function HostTag() {
+  return (
+    <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+      Host
+    </span>
+  );
 }
 
 /** Tiny "BOT" chip painted beside an opponent's name so it's
