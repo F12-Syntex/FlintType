@@ -99,6 +99,38 @@ describe("selectWords", () => {
     expect(counts.get("the")!).toBeGreaterThan(counts.get("and")!);
   });
 
+  it("strongly concentrates on the worst word, not just leans toward it", () => {
+    // 'th' is a heavy weakness; 'an' is comfortably faster. Both words
+    // are warm. With the concentration exponent the weakest word should
+    // dominate the single-word pick by a wide margin (>80%), not merely
+    // edge out the easier one — that's the difference between "adaptive
+    // feels too easy" and "adaptive serves my worst words".
+    const bigramModels = new Map<string, ModelState>([
+      ["th", { mean: 380, variance: 0, n: 60 }],
+      ["he", { mean: 90, variance: 0, n: 60 }],
+      ["an", { mean: 120, variance: 0, n: 60 }],
+      ["nd", { mean: 90, variance: 0, n: 60 }],
+    ]);
+    for (let i = 0; i < 5; i++) {
+      bigramModels.set(`fill_${i}`, { mean: 100, variance: 0, n: 60 });
+    }
+    const counts = new Map<string, number>([["the", 0], ["and", 0]]);
+    const rng = SEED_RNG();
+    const TRIALS = 300;
+    for (let trial = 0; trial < TRIALS; trial++) {
+      const r = selectWords({
+        count: 1,
+        pool: ["the", "and"],
+        ...EMPTY,
+        bigramModels,
+        rng,
+      });
+      const w = r.words[0]!;
+      counts.set(w, (counts.get(w) ?? 0) + 1);
+    }
+    expect(counts.get("the")! / TRIALS).toBeGreaterThan(0.8);
+  });
+
   it("never returns 0 words when count > 0 and pool is non-empty", () => {
     const r = selectWords({
       count: 3,

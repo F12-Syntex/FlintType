@@ -323,11 +323,33 @@ export function recencyMultiplier(testsAgo: number): number {
 
 /** Challenge-band gate. Words whose predicted typing time falls in
  *  [user_baseline × low, user_baseline × high] are the productive
- *  zone — slightly slower than the user's average bigram time, not
- *  so slow that they stall. Past the high end they're frustrating;
- *  below the low end they're already easy. */
+ *  zone — slower than the user's average bigram time, but not so slow
+ *  they stall outright. Below the low end they're already easy.
+ *
+ *  The high end is deliberately generous (2.6×): the whole point of
+ *  adaptive mode is to serve the words you're *worst* at, and those
+ *  are precisely the words that predict well past your average. An
+ *  earlier 1.6× ceiling silently excluded your hardest words from the
+ *  candidate pool — the selector could only ever pick from your
+ *  middling words, which is why the mode felt too easy. 2.6× keeps the
+ *  truly pathological 3×+ outliers out (a word you'd stall on for a
+ *  full second per keystroke isn't productive practice) while letting
+ *  every genuine weakness through. */
 export const CHALLENGE_LOW = 1.05;
-export const CHALLENGE_HIGH = 1.6;
+export const CHALLENGE_HIGH = 2.6;
+
+/** Exponent applied to a candidate's weakness score before the
+ *  weighted-random pick (see `selectWords`). The raw score is roughly
+ *  linear in "how much slower than baseline this word is", so a flat
+ *  weighted pick over ~200 candidates barely concentrates on the
+ *  weakest — a word 3× weaker than another is only 3× as likely, and
+ *  with 200 competitors that still mostly serves middling words. An
+ *  exponent > 1 sharpens the distribution so your actual worst words
+ *  dominate: at 1.8, a word 3× weaker becomes ~7× as likely, 5× weaker
+ *  ~18× as likely. High enough to make adaptive feel pointed at your
+ *  weaknesses, not so high it serves the single worst word every time
+ *  (the coverage pass + recency penalty still spread the passage). */
+export const WEAKNESS_CONCENTRATION = 1.8;
 
 export function inChallengeBand(
   predictedMs: number,

@@ -14,6 +14,7 @@ import {
   recencyMultiplier,
   scoreWord,
   weakness,
+  WEAKNESS_CONCENTRATION,
   type ModelMap,
   type ScoringWeights,
 } from "./scoring";
@@ -80,9 +81,16 @@ export function selectWords(input: SelectionInput): SelectionResult {
       baselines.bigram,
       input.layout,
     );
+    // Sharpen the weakness signal so the weighted pick concentrates on
+    // the user's actual worst words rather than spreading flatly across
+    // every middling candidate. Recency / fatigue stay *linear*
+    // multipliers — a recently-shown word is suppressed proportionally,
+    // not exponentially, so it can still resurface when it's genuinely
+    // the weakest thing left. See WEAKNESS_CONCENTRATION.
+    const concentrated = raw > 0 ? raw ** WEAKNESS_CONCENTRATION : 0;
     return {
       word,
-      weight: Math.max(0, raw * fatigue * recency),
+      weight: Math.max(0, concentrated * fatigue * recency),
       patterns: weakPatternKeys(
         word,
         input.bigramModels,

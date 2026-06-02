@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.134.1 — 2 June 2026
+- Made adaptive mode actually adaptive: it now serves the words you're genuinely worst at instead of feeling too easy. Previously your hardest words were quietly filtered out for being "too difficult", and the rest were picked too evenly — now your weakest words clearly dominate each test.
+
 ## 6.134.0 — 1 June 2026
 - Redesigned the race line-up again, this time TypeRacer-style: every racer now gets their own lane, with their name on the left, their flint stone gliding along its own track toward the finish, and their speed on the right. Much easier to follow who's where than the single shared line.
 - In a lobby, each player's lane shows a clear checkbox — ticked once they've readied up, empty when they haven't — so at a glance you can see exactly who you're waiting on. The lobby card below now just holds the share link and Start button.
