@@ -20,9 +20,11 @@ import { PreviewPracticeProvider } from "../../_components/preview-practice";
 /* ─── Shared height-bounded surface ─────────────────────────────── */
 
 /** Wrap the real <Passage /> in a height-bounded card so it sits
- *  inside the preview pane. Internal clipping does the right thing —
- *  font-scale grows the text and fewer lines fit; smaller scale shows
- *  more. That *is* the 1:1 reflection. */
+ *  inside the preview pane. The passage is fit-to-space: it sizes the
+ *  text to show the user's line target within the box, capped at the
+ *  chosen Size (px). In a short preview box the text is fit-limited, so
+ *  surfaces that demonstrate Size (Typography) pass a taller `height`
+ *  to give the px ceiling room to read. */
 function PreviewSurface({
   height = "h-[180px]",
   withReadouts = false,
@@ -146,7 +148,11 @@ export function MistakesPreview() {
 /* ─── Typography ───────────────────────────────────────────────── */
 
 export function TypographyPreview() {
-  return <PreviewSurface />;
+  // Taller box than the default preview: the passage is fit-to-space, so
+  // a short box would clamp the text to the lines-fit size and the Size
+  // (px) control would look inert. The extra height lets the chosen px
+  // ceiling govern across most of its range, so the slider visibly moves.
+  return <PreviewSurface height="h-[320px]" />;
 }
 
 /* ─── Background ───────────────────────────────────────────────── */

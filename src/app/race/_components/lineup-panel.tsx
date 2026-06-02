@@ -128,7 +128,10 @@ export function RaceLineupPanel({
         ) : null}
       </header>
 
-      <ol className="flex flex-col gap-1.5 sm:gap-2">
+      {/* Cap the lane stack and scroll past ~6 racers so a big FFA lobby
+       *  can't grow tall enough to crowd the passage below. You are
+       *  always lane 1 (top), so your own lane stays visible regardless. */}
+      <ol className="flex max-h-60 flex-col gap-1.5 overflow-y-auto sm:gap-2">
         {lanes.map((r) => (
           <Lane
             key={r.id}

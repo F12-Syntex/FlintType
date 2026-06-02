@@ -321,6 +321,14 @@ function PassageBody({
   // One computed line-height in px. Used as the viewport height in tape
   // mode (single-line layout) and as the unit for vertical scroll math.
   const [lineHeight, setLineHeight] = useState<number | null>(null);
+  // Fit-to-space font size in px. The passage no longer takes a fixed
+  // size off viewport-height media queries (which couldn't see how much
+  // chrome sat above it, so a crowded surface clipped a giant line in
+  // half and the user had to zoom the browser out). Instead we MEASURE
+  // the real available height and pick the largest font that shows the
+  // target whole-line count — shrinking when space is tight, capping at
+  // the comfortable max when there's room. See the measure effect below.
+  const [fontPx, setFontPx] = useState<number | null>(null);
   // Translate-up offset on the inner block. Stays at 0 until the cursor
   // crosses line `floor(cap/2)`, then grows by one line-height per line
   // completed past that point — so once you've reached the midline of
@@ -353,16 +361,33 @@ function PassageBody({
     targetSideRef.current = side;
   };
 
-  // Measure available height vs computed line-height and clamp the
-  // passage to a whole-line multiple. ResizeObserver covers viewport
-  // changes; the appearance dependency below covers font-scale /
-  // family swaps that change line-height without resizing the box.
+  // Fit-to-space sizing. Measure the passage's REAL available height and
+  // pick the font size + whole-line count that fit it — never a size
+  // taken off the viewport's height (which can't see the chrome stacked
+  // above the passage, the root cause of the "zoom the browser out to
+  // read the text" bug: a crowded surface left < 1 line of room, the old
+  // code forced one giant line anyway, and overflow-hidden + centring
+  // sliced it through the middle).
+  //
+  // Algorithm, given available height H (minus the reserved `above`
+  // slot) and the target whole-line count T:
+  //   1. font = H / (T · LINE_RATIO)        — largest size fitting T lines
+  //   2. clamp to [MIN, MAX·scale]          — Size preset raises the ceiling
+  //   3. font = min(font, H / LINE_RATIO)   — but ALWAYS keep ≥1 whole line
+  //   4. show min(T, ⌊H / lineHeight⌋) whole lines, clipped exactly
+  // Step 3 is the guarantee: at least one complete line always fits H, so
+  // a line is never sliced in half regardless of how little room is left.
+  // ResizeObserver covers container/viewport changes; a MutationObserver
+  // on <html> catches Size / palette CSS-var changes that restyle the
+  // passage without resizing its box.
+  const LINE_RATIO = 2.1;
+  const MIN_FONT_PX = 15; // absolute readable floor
+  const MAX_FONT_PX = 40; // comfortable ceiling at scale 1 (≈ 2.5rem)
   useLayoutEffect(() => {
     const outer = outerRef.current;
     const inner = innerRef.current;
     if (!outer || !inner) return;
     const measure = () => {
-      const lh = parseFloat(getComputedStyle(inner).lineHeight);
       // Reserve the above-slot's height (readouts + its gap) so the
       // centred group is `above + N lines`, not `N lines` overflowing
       // it. 0 when the slot is absent or hidden. High-water so a flash
@@ -370,15 +395,42 @@ function PassageBody({
       const aboveNow = aboveRef.current?.offsetHeight ?? 0;
       aboveMaxRef.current = Math.max(aboveMaxRef.current, aboveNow);
       const h = outer.clientHeight - aboveMaxRef.current;
-      if (!Number.isFinite(lh) || lh <= 0 || h <= 0) return;
-      setLineHeight(lh);
+      if (!Number.isFinite(h) || h <= 0) return;
+
+      // The Size preset (`--ft-font-scale`) raises/lowers the ceiling
+      // rather than acting as a fixed multiplier, so a big preset stays
+      // big when there's room but still yields to the fit guarantee when
+      // space is tight. Read the cascaded value so it works on the real
+      // surface (<html>) and inside scoped previews alike.
+      const scaleRaw = getComputedStyle(inner)
+        .getPropertyValue("--ft-font-scale")
+        .trim();
+      const scale = Number.parseFloat(scaleRaw) || 1;
+
+      // Tape mode is a single line, so it sizes to fit ONE line in H;
+      // multi-line sizes to fit the user's line target (default below).
+      const target = tapeOn
+        ? 1
+        : appearance.linesRendered > 0
+          ? appearance.linesRendered
+          : 3;
+
+      let font = h / (target * LINE_RATIO);
+      font = Math.min(font, MAX_FONT_PX * scale);
+      font = Math.max(font, MIN_FONT_PX);
+      // Always keep at least one whole line within H (beats the floor in
+      // pathologically short space) so a line is never sliced.
+      font = Math.min(font, h / LINE_RATIO);
+
+      const lh = font * LINE_RATIO;
       const fits = Math.max(1, Math.floor(h / lh));
-      // 0 = unbounded; otherwise cap to whichever is smaller so a tall
-      // viewport can't sneak past the user's chosen line count.
-      const cap = appearance.linesRendered > 0
-        ? Math.min(fits, appearance.linesRendered)
+      const shown = appearance.linesRendered > 0
+        ? Math.min(appearance.linesRendered, fits)
         : fits;
-      setClipHeight(cap * lh);
+
+      setFontPx(font);
+      setLineHeight(lh);
+      setClipHeight(shown * lh);
     };
     // Reset the high-water reservation per appearance change so a smaller
     // readouts size / a removed slot reclaims the space.
@@ -386,10 +438,19 @@ function PassageBody({
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(outer);
-    ro.observe(inner);
     if (aboveRef.current) ro.observe(aboveRef.current);
-    return () => ro.disconnect();
-  }, [appearance]);
+    // Size / palette changes flip CSS vars on <html> without resizing the
+    // box; observe its attribute mutations so the fit recomputes live.
+    const mo = new MutationObserver(measure);
+    mo.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["style", "class"],
+    });
+    return () => {
+      ro.disconnect();
+      mo.disconnect();
+    };
+  }, [appearance, tapeOn]);
 
   useLayoutEffect(() => {
     const inner = innerRef.current;
@@ -555,30 +616,24 @@ function PassageBody({
         // passage only — bumping it here doesn't enlarge the chrome,
         // sidebar, or every other rem-based size in the app.
         className={cn(
-          // Default passage size is generous on purpose — typing
-          // tests are easier to read and easier on the eyes when
-          // the text is bigger than ordinary copy. Mobile / sm: /
-          // lg: bumps step up roughly proportionally; the
-          // --ft-font-scale multiplier still applies so users can
-          // shrink (or further enlarge) from the customise page.
-          //
-          // BOTH the sm: and lg: bumps are gated on viewport HEIGHT.
-          // 1366×768 laptops (and 1080p with 150% Windows display
-          // scaling, which lands at ~720 CSS px) ate all the
-          // passage's vertical budget when the keyboard widget was
-          // visible — only 2 lines fit. Short viewports now land at
-          // the mobile typography (1.75rem × 2.1) so the third
-          // line clears the keyboard without forcing the user to
-          // zoom the browser out manually.
-          //   - base (any height) : 1.75rem × 2.1
-          //   - sm: + height ≥ 780: 2.125rem × 2.2
-          //   - lg: + height ≥ 900: 2.5rem × 2.3
-          "relative select-none font-normal tracking-[0.04em] text-[calc(var(--ft-font-scale,1)*1.75rem)] leading-[2.1] [@media(min-height:780px)]:sm:text-[calc(var(--ft-font-scale,1)*2.125rem)] [@media(min-height:780px)]:sm:leading-[2.2] [@media(min-height:900px)]:lg:text-[calc(var(--ft-font-scale,1)*2.5rem)] [@media(min-height:900px)]:lg:leading-[2.3]",
+          // Size + line-height are computed (fit-to-space) and applied
+          // inline below — NOT via viewport-height media queries, which
+          // couldn't see the chrome above the passage and clipped a giant
+          // line in half on crowded surfaces (the zoom-out bug). The
+          // --ft-font-scale Size preset now feeds the ceiling in the
+          // measure effect rather than multiplying a fixed base here.
+          "relative select-none font-normal tracking-[0.04em]",
           // Default colour for any untyped span without an explicit
           // class — the wrapper itself paints in the untyped role.
           UNTYPED_TEXT,
         )}
         style={{
+          // Fit-to-space size: the largest font that shows the target
+          // whole-line count in the measured available height (see the
+          // measure effect). Falls back to a sensible size for the single
+          // pre-measure frame (useLayoutEffect fills it in before paint).
+          fontSize: `${fontPx ?? 28}px`,
+          lineHeight: `${lineHeight ?? (fontPx ?? 28) * LINE_RATIO}px`,
           // Same scoping principle for the family override — it lives on
           // the passage, not body. Defaults inherit body's mono.
           fontFamily: "var(--ft-font-family, inherit)",
