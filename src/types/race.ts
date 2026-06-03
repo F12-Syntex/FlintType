@@ -321,6 +321,11 @@ export type StartChallengeOutput = { ok: true };
 export const rematchInputSchema = z.object({
   roomId: z.string().min(1),
   sessionToken: z.string().min(1),
+  /** Host-only override (challenge rooms): skip the ready-vote
+   *  threshold and start the next round immediately, mirroring the
+   *  lobby's Force-start. Ignored from non-host callers and in
+   *  matchmaking rooms. */
+  force: z.boolean().optional(),
 });
 export type RematchInput = z.infer<typeof rematchInputSchema>;
 export type RematchOutput = {

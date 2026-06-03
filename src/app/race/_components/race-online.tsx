@@ -167,9 +167,12 @@ export function OnlineRaceProvider({
     restartShell();
   }, [leave, restartShell]);
 
-  const rematch = useCallback(() => {
-    void rematchRoom();
-  }, [rematchRoom]);
+  const rematch = useCallback(
+    (force = false) => {
+      void rematchRoom(force);
+    },
+    [rematchRoom],
+  );
 
   // Detect when the room transitions into a new round (rematch fired
   // server-side). The shell needs to hear this so it can update its

@@ -14,7 +14,10 @@ export type RaceCtx = {
   startCountdown: () => void;
   restart: () => void;
   abandon: () => void;
-  rematch: () => void;
+  /** Cast a rematch vote. `force=true` is the host's challenge-room
+   *  override that starts the next round immediately, mirroring the
+   *  lobby's Force-start. */
+  rematch: (force?: boolean) => void;
   /** Challenge host action — destroys the lobby for everyone. The
    *  cancel cascades via SSE: every connected client (host included)
    *  receives a final snapshot with `cancelled: true` and the shell

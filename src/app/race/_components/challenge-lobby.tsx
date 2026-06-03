@@ -135,6 +135,7 @@ function ReadyToggle({
       aria-pressed={ready}
       className={cn(
         "inline-flex h-11 items-center gap-2 rounded-md px-7 text-[12px] font-semibold uppercase tracking-[0.18em] transition-colors active:translate-y-[0.5px]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         ready
           ? "border border-primary/40 bg-primary/[0.08] text-primary hover:bg-primary/[0.14]"
           : "bg-primary text-primary-foreground hover:bg-primary/90",
@@ -166,6 +167,7 @@ function CopyLinkButton({ url }: { url: string }) {
         "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-card px-3",
         "text-[11px] tabular-nums text-foreground",
         "transition-colors hover:border-foreground/40 hover:bg-accent",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
       )}
     >
       <span className="truncate max-w-[14rem]">{url}</span>
@@ -226,6 +228,7 @@ function HostBar({
           "inline-flex h-8 items-center gap-2 rounded-md bg-primary px-3.5",
           "text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground",
           "transition-colors hover:bg-primary/90 active:translate-y-[0.5px]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
           (pending || !allReady) && "cursor-not-allowed opacity-50",
         )}
       >
@@ -245,6 +248,7 @@ function HostBar({
             "inline-flex h-8 items-center rounded-md border border-foreground/25 px-3.5",
             "text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground",
             "transition-colors hover:border-foreground/40 hover:bg-accent",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
             pending && "cursor-not-allowed opacity-50",
           )}
         >

@@ -29,6 +29,8 @@ export function RaceResults() {
     rematchReady,
     onlineSessionToken,
     abandon,
+    isHost,
+    isChallenge,
   } = useRace();
   const you = state.racers.find((r) => r.isYou) ?? null;
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -51,6 +53,10 @@ export function RaceResults() {
   const onRematch = useCallback(() => {
     setRematchClicked(true);
     rematch();
+  }, [rematch]);
+  const onForceRematch = useCallback(() => {
+    setRematchClicked(true);
+    rematch(true);
   }, [rematch]);
   const onDownload = useCallback(async () => {
     // Capture the whole content area (data-screenshot-root on
@@ -200,6 +206,25 @@ export function RaceResults() {
               Rematch
             </button>
           )}
+          {/* Host-only force-rematch — mirrors the lobby's "Force start
+           *  now". Lets the host kick off the next round without waiting
+           *  on slower racers to vote. Only meaningful when another real
+           *  player could hold it up (required > 1); with one real racer
+           *  the host's Rematch click already starts instantly. */}
+          {allFinished && isHost && isChallenge && required > 1 ? (
+            <button
+              type="button"
+              onClick={onForceRematch}
+              className={cn(
+                "inline-flex items-center rounded-md border border-foreground/25 px-4 py-2.5",
+                "text-[11px] font-semibold uppercase tracking-[0.22em] text-foreground",
+                "transition-colors hover:border-foreground/40 hover:bg-accent active:translate-y-[1px]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+              )}
+            >
+              Force rematch
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={abandon}

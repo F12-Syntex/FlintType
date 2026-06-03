@@ -152,7 +152,7 @@ const rematch = defineRoute<RematchInput, RematchOutput>({
     if (!room) {
       throw new BackendError(404, "NOT_FOUND", "race room not found");
     }
-    const result = room.markRematchReady(input.sessionToken);
+    const result = room.markRematchReady(input.sessionToken, input.force);
     if (!result.ok) {
       // Wrong phase, wrong token, or caller is a bot — gracefully
       // accept without writing. The UI doesn't need a 4xx for these

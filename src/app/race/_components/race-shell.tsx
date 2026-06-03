@@ -18,6 +18,7 @@ import { clearHostStorage } from "../c/[slug]/_components/challenge-shell";
 import type { RaceModeId } from "./race-data";
 import { RaceProvider } from "./race-state";
 import { LeaveGuard } from "./leave-guard";
+import { TabFocusGuard } from "./tab-focus-guard";
 
 /** Pull a short, race-feed-friendly handle from the Clerk session.
  *  Mirrors the `firstName ?? username ?? email-localpart ?? "you"`
@@ -229,23 +230,11 @@ export function RaceShell({
     };
   }, []);
 
-  // Tab is hard-blocked while the race shell is mounted. Practice's
-  // own keydown handler binds Tab to RESTART the test; on the race
-  // surface that would wipe the user's typed progress mid-race or
-  // bounce them back to word zero on the queue surface. Capture-phase
-  // listener so we win the race against InputCapture's bubble-phase
-  // handler.
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Tab") {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-    window.addEventListener("keydown", handler, { capture: true });
-    return () =>
-      window.removeEventListener("keydown", handler, { capture: true });
-  }, []);
+  // Tab handling is phase-aware now (see <TabFocusGuard> inside the
+  // race tree): it's swallowed only during the countdown / active
+  // racing windows so focus stays on the hidden typing input, and left
+  // alone in the lobby / results so keyboard-only users can Tab to the
+  // Ready / Start / Rematch / Leave controls.
 
   const youName = useYouHandle();
   const words = online?.words ?? [];
@@ -280,6 +269,9 @@ export function RaceShell({
       {/* LeaveGuard reads race phase to silence the prompt once the
        *  race has finished, so the results screen feels lightweight. */}
       <LeaveGuard active={leaveGuardActive} />
+      {/* Keeps Tab focus pinned to the typing input mid-run, but frees
+       *  Tab in the lobby / results for keyboard-only navigation. */}
+      <TabFocusGuard />
       {children}
     </RaceProvider>
   );

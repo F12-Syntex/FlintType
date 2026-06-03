@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.135.0 — 3 June 2026
+- The host can now force-start a rematch too. After a race finishes, if some players haven't pressed Rematch yet, the host gets a "Force rematch" button to start the next round anyway — same as the "Force start now" button in the opening lobby.
+- Made races fully playable without a mouse. You can now Tab to the Ready, Start, Force-start, Rematch, and Leave buttons in the lobby and on the results screen, with a clear focus outline showing where you are. Tab is still held back mid-race so it can't pull you off the passage while you're typing.
+
 ## 6.134.1 — 2 June 2026
 - Made adaptive mode actually adaptive: it now serves the words you're genuinely worst at instead of feeling too easy. Previously your hardest words were quietly filtered out for being "too difficult", and the rest were picked too evenly — now your weakest words clearly dominate each test.
 

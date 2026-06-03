@@ -822,8 +822,17 @@ export class RaceRoom {
    *    - In a room with two+ real players, we need at least two
    *      ready votes before kicking off the new round. The room
    *      doesn't auto-include bots in the multi-real count to avoid
-   *      starting a race before any human is actually ready. */
-  markRematchReady(token: string): { ok: boolean; started: boolean } {
+   *      starting a race before any human is actually ready.
+   *
+   *  `force` is the host's override (challenge rooms only) — it starts
+   *  the next round immediately regardless of how many others have
+   *  voted, mirroring the lobby's Force-start. Ignored from non-host
+   *  callers and in matchmaking rooms, where it falls back to the
+   *  normal vote-threshold path. */
+  markRematchReady(
+    token: string,
+    force = false,
+  ): { ok: boolean; started: boolean } {
     if (this.phase !== "finished" || this.cancelled) {
       return { ok: false, started: false };
     }
@@ -833,6 +842,12 @@ export class RaceRoom {
     }
     this.rematchReady.add(token);
     this.lastTouchedAt = Date.now();
+    // Host force-rematch: the host's explicit "go now" bypasses the
+    // ready-vote threshold, exactly like Force-start in the lobby.
+    if (force && this.kind === "challenge" && racer.isHost) {
+      this.startNewRound();
+      return { ok: true, started: true };
+    }
     const realCount = [...this.racers.values()].filter(
       (r) => !r.isBot && !r.disconnected,
     ).length;

@@ -31,8 +31,9 @@ export type RaceRoomBinding = {
   leave: () => void;
   /** Cast a rematch-ready vote for the current round. Resolves to
    *  `started=true` when this vote met threshold and the new round
-   *  has already kicked off server-side. */
-  rematch: () => Promise<{ started: boolean }>;
+   *  has already kicked off server-side. `force` is the host's
+   *  override that starts the next round immediately (challenge rooms). */
+  rematch: (force?: boolean) => Promise<{ started: boolean }>;
 };
 
 export type UseRaceRoomArgs = {
@@ -170,12 +171,16 @@ export function useRaceRoom({
     void backend.race.leave({ roomId: room, sessionToken: token });
   }, [backend]);
 
-  const rematch = useCallback(async () => {
+  const rematch = useCallback(async (force = false) => {
     const room = roomRef.current;
     const token = tokenRef.current;
     if (!room || !token) return { started: false };
     try {
-      const res = await backend.race.rematch({ roomId: room, sessionToken: token });
+      const res = await backend.race.rematch({
+        roomId: room,
+        sessionToken: token,
+        force,
+      });
       return { started: res.started };
     } catch {
       // Soft-fail — the SSE snapshot is still the source of truth

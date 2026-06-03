@@ -470,6 +470,39 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       expect(second.started).toBe(true);
       expect(room.roundNumber).toBe(2);
     });
+
+    it("the host can force-rematch without waiting on other votes", () => {
+      const room = challenge({ modeId: "ffa" });
+      room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
+      room.addRealRacer({ sessionToken: "s_g", name: "@g", badge: "RACER" });
+      expect(room.hostStart("s_host")).toBe(true);
+      vi.advanceTimersByTime(700 + 3_000);
+      room.setProgress("s_host", room.totalChars, 100, true);
+      room.setProgress("s_g", room.totalChars, 100, true);
+      expect(room.phase).toBe("finished");
+      // The guest never votes — host forces the next round.
+      const res = room.markRematchReady("s_host", true);
+      expect(res.started).toBe(true);
+      expect(room.phase).toBe("lobby");
+      expect(room.roundNumber).toBe(2);
+    });
+
+    it("force is ignored from a non-host caller (still needs the threshold)", () => {
+      const room = challenge({ modeId: "ffa" });
+      room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
+      room.addRealRacer({ sessionToken: "s_g", name: "@g", badge: "RACER" });
+      expect(room.hostStart("s_host")).toBe(true);
+      vi.advanceTimersByTime(700 + 3_000);
+      room.setProgress("s_host", room.totalChars, 100, true);
+      room.setProgress("s_g", room.totalChars, 100, true);
+      expect(room.phase).toBe("finished");
+      // A guest passing force=true gets no override — two-real rooms
+      // still need both votes.
+      const res = room.markRematchReady("s_g", true);
+      expect(res.started).toBe(false);
+      expect(room.phase).toBe("finished");
+      expect(room.roundNumber).toBe(1);
+    });
   });
 
   /* ─── 6 · Misc robustness ───────────────────────────────────── */
