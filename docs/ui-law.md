@@ -718,11 +718,11 @@ flinttype's editorial paper-and-ink default reads well at full chrome, but a siz
 ### 15.1 The two settings sections
 
 - **Surface** (`/customise/appearance#surface`) — `cardSurfaces` (solid / subtle / transparent), `dividers` (hairline / dashed / hidden), `pagePadding` (tight / comfortable / roomy), `backgroundFill` (themed / bare), `monochromeChrome` (off / on). All preserve the user's chosen *palette*; they collapse *containers*. Ships with three preset bundles (Editorial / Minimal / Stripped) so the most common landings are one click.
-- **Chrome** (`/customise/appearance#chrome`) — `topbarStyle` (elevated / flat / text-only), `footerStyle` (visible / compact / hidden), `modeBarStyle` (chips / inline / hidden), `autoHide` (off / dim / fade) for fading sticky chrome while a run is active. Plus a `Focus mode` reminder: press `F` (outside an input) for a session-temporary stripped view; `Esc` restores.
+- **Chrome** (`/customise/appearance#chrome`) — `topbarStyle` (elevated / flat / text-only), `footerStyle` (visible / compact / hidden), `autoHide` (off / dim / fade) for fading sticky chrome while a run is active. Plus a `Focus mode` reminder: press `F` (outside an input) for a session-temporary stripped view; `Esc` restores. (The mode bar on the practice surface is **always** the chips picker — there is no mode-bar style knob.)
 
 ### 15.2 Implementation contract — data attributes only
 
-Every Surface / Chrome knob lands as a `<html data-ft-…>` attribute, applied by `<AppearanceApplier>` in `src/app/appearance-applier.tsx`. globals.css owns every visual rule. **No component reads these prefs at runtime to alter its markup** (except where genuinely needed: ModeBar swaps render trees, Readouts gates rendering on `none`, Passage on caret idle / quote attribution). The contract:
+Every Surface / Chrome knob lands as a `<html data-ft-…>` attribute, applied by `<AppearanceApplier>` in `src/app/appearance-applier.tsx`. globals.css owns every visual rule. **No component reads these prefs at runtime to alter its markup** (except where genuinely needed: Readouts gates rendering on `none`, Passage on caret idle / quote attribution). The contract:
 
 | Pref | HTML attr | Default value (no attr written) |
 |---|---|---|

@@ -42,7 +42,6 @@ export type BackgroundFillMode = "paper" | "bare";
 export type TopbarStyle = "elevated" | "flat" | "text-only";
 export type FooterStyle = "visible" | "compact" | "hidden";
 export type AutoHideMode = "off" | "dim" | "fade";
-export type ModeBarStyle = "chips" | "inline" | "hidden";
 export type StatStripSurface = "card" | "plain" | "none";
 export type ResultChrome = "framed" | "spare";
 export type CaretIdle = "off" | "pulse";
@@ -188,11 +187,6 @@ export type AppearancePrefs = {
    *  Mirrored onto html[data-ft-autohide]; pairs with html[data-ft-running]
    *  set by AutoHideApplier reading PracticeContext. */
   autoHide: AutoHideMode;
-  /** Mode bar on the practice surface. `inline` collapses chips to
-   *  middot-separated text; `hidden` removes it (settings page still
-   *  exposes the same controls). Mirrored onto html[data-ft-modebar]. */
-  modeBarStyle: ModeBarStyle;
-
   // ─── Sub-surface tweaks ───
   /** Live stats container. `card` is the current strip with bg/border;
    *  `plain` drops both so the numbers float on the page; `none` makes
@@ -323,11 +317,10 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   // ─── Chrome ───
   // Flat topbar (no shadow), footer visible, fade chrome on the
   // practice surface while a run is active so it doesn't compete
-  // with the passage. Mode-bar chips stay as the test-mode picker.
+  // with the passage.
   topbarStyle: "flat",
   footerStyle: "visible",
   autoHide: "fade",
-  modeBarStyle: "chips",
 
   // ─── Sub-surface tweaks ───
   // `plain` preserves the historical no-chrome readouts strip; users

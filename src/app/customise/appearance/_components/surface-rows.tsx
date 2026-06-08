@@ -95,7 +95,6 @@ const SURFACE_PRESETS = {
     topbarStyle: "elevated",
     footerStyle: "visible",
     autoHide: "off",
-    modeBarStyle: "chips",
     monochromeChrome: false,
   },
   minimal: {
@@ -107,7 +106,6 @@ const SURFACE_PRESETS = {
     topbarStyle: "flat",
     footerStyle: "compact",
     autoHide: "dim",
-    modeBarStyle: "inline",
     monochromeChrome: false,
   },
   stripped: {
@@ -119,7 +117,6 @@ const SURFACE_PRESETS = {
     topbarStyle: "text-only",
     footerStyle: "hidden",
     autoHide: "fade",
-    modeBarStyle: "hidden",
     monochromeChrome: true,
   },
 } as const;

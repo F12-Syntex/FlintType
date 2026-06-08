@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.0 — 8 June 2026
+- The mode bar above the typing area is now always the chips picker — the "Mode bar" style choice (chips / inline / hidden) has been removed from Customise → Appearance → Chrome.
+- The leaderboard now ranks only two modes: Casual and Adapt. The "All modes" and "Race" filters are gone, so the board compares like-for-like solo runs.
+- Tidied the leaderboard layout on desktop: the top of the rankings panel now lines up flush with the top of the filter sidebar.
+
 ## 6.135.1 — 8 June 2026
 - Trimmed the results screen: the "peak" and "avg" stats are gone, leaving a cleaner row of raw, stall, consistency, errors and time. The ✕ marks on the result graph remain only where you actually made a mistake.
 

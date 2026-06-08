@@ -4,7 +4,6 @@ import {
   type DividerMode,
   type FooterStyle,
   type LiveStatStyle,
-  type ModeBarStyle,
   type PagePaddingMode,
   type StatStripSurface,
   type TopbarStyle,
@@ -142,31 +141,6 @@ export function AutoHideSample({ mode }: { mode: AutoHideMode }) {
         className="block h-1.5 w-6 rounded-[2px]"
         style={{ backgroundColor: "var(--card)", boxShadow: `inset 0 0 0 1px ${INK}`, opacity }}
       />
-    </span>
-  );
-}
-
-/** Mode bar — three chips, three inline dashes, or nothing. */
-export function ModeBarSample({ mode }: { mode: ModeBarStyle }) {
-  if (mode === "hidden")
-    return <span aria-hidden className="block h-2 w-6" />;
-  if (mode === "inline")
-    return (
-      <span aria-hidden className="flex items-center gap-1">
-        {[0, 1, 2].map((i) => (
-          <span key={i} className="block h-0.5 w-1.5" style={{ backgroundColor: INK }} />
-        ))}
-      </span>
-    );
-  return (
-    <span aria-hidden className="flex items-center gap-0.5">
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          className="block h-2 w-2 rounded-[2px]"
-          style={{ boxShadow: `inset 0 0 0 1px ${INK}` }}
-        />
-      ))}
     </span>
   );
 }

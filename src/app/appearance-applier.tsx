@@ -14,7 +14,7 @@ import { useAppearancePrefs } from "@/lib/appearance-prefs";
  *  (e.g. typing speed unit) don't thrash the DOM.
  *
  *  Per-component knobs that don't need a global rule (statStripSurface,
- *  caretIdle, quoteAttribution, modeBarStyle) read appearance prefs
+ *  caretIdle, quoteAttribution) read appearance prefs
  *  directly from inside the component — they're not mirrored here.
  *  Same for `autoHide`'s runtime companion `data-ft-running`, which is
  *  driven from PracticeContext via <AutoHideApplier>. */

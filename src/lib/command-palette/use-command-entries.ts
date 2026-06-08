@@ -560,20 +560,6 @@ export function useCommandEntries(): readonly CommandEntry[] {
         ["chrome", "focus"],
       ),
       enumEntry(
-        "a.modeBarStyle",
-        "Mode bar style",
-        "Chips, inline, or hidden mode bar",
-        "Appearance",
-        ap.modeBarStyle,
-        [
-          { id: "chips", label: "Chips" },
-          { id: "inline", label: "Inline" },
-          { id: "hidden", label: "Hidden" },
-        ] as const,
-        (v) => setAp("modeBarStyle", v),
-        ["modebar"],
-      ),
-      enumEntry(
         "a.borders",
         "Borders",
         "Default, soft (hairline), or hidden",

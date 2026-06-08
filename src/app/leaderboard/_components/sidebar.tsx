@@ -45,7 +45,7 @@ function useLeaderboardParams() {
       const nextWindow = next.window ?? window_;
       const nextPreset = next.preset ?? preset;
       const nextView = next.view ?? view;
-      if (nextScope === "all") sp.delete("scope");
+      if (nextScope === "casual") sp.delete("scope");
       else sp.set("scope", nextScope);
       if (nextWindow === "all_time") sp.delete("window");
       else sp.set("window", nextWindow);
@@ -211,7 +211,7 @@ export function MobileLeaderboardPicker() {
   const { scope, window_, preset, view, setParams } = useLeaderboardParams();
   const [open, setOpen] = useState(false);
 
-  const scopeLabelText = SCOPES.find((s) => s.id === scope)?.label ?? "All modes";
+  const scopeLabelText = SCOPES.find((s) => s.id === scope)?.label ?? "Casual";
   const windowLabelText =
     WINDOWS.find((w) => w.id === window_)?.label ?? "All time";
   const presetLabelText = presetLabel(preset);

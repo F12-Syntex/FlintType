@@ -332,7 +332,7 @@ A single JSON blob per user in the `user_prefs` table. Client-side store at `src
 ### 9.3 Appearance pref surface
 - **47** distinct fields in `AppearancePrefs` covering live stats, passage rendering, result screen, keymap, borders, multiplayer, surface, chrome.
 - **Surface** section (added 6.38.0): `cardSurfaces` (solid / subtle / transparent), `dividers` (hairline / dashed / hidden), `pagePadding` (tight / comfortable / roomy), `backgroundFill` (themed / bare), `monochromeChrome`, plus a three-bundle preset (Editorial / Minimal / Stripped) that writes ten knobs at once.
-- **Chrome** section: `topbarStyle` (elevated / flat / text-only), `footerStyle` (visible / compact / hidden), `modeBarStyle` (chips / inline / hidden), `autoHide` (off / dim / fade — fades sticky chrome while phase === "running", restores on rest / Esc / done).
+- **Chrome** section: `topbarStyle` (elevated / flat / text-only), `footerStyle` (visible / compact / hidden), `autoHide` (off / dim / fade — fades sticky chrome while phase === "running", restores on rest / Esc / done). (The practice mode bar is always the chips picker — the mode-bar style knob was removed.)
 - **Focus mode**: global `F` shortcut (outside an input) toggles `<html data-ft-focus="on">` for a session-only stripped view. `Esc` clears.
 
 ### 9.4 Implementation contract for minimisation knobs (`docs/ui-law.md §15`)

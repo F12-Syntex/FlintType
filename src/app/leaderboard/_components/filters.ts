@@ -4,11 +4,13 @@ import type {
   LeaderboardWindow,
 } from "@/types/leaderboard";
 
+// Only the two solo practice modes rank on the leaderboard: Casual
+// and Adapt (the adaptive "training" mode). Race output and the
+// "all modes" mixed view were removed so the board ranks like-for-like
+// runs that count toward a consistent skill comparison.
 export const SCOPES: readonly { id: LeaderboardScope; label: string }[] = [
-  { id: "all", label: "All modes" },
-  { id: "race", label: "Race" },
-  { id: "training", label: "Training" },
   { id: "casual", label: "Casual" },
+  { id: "training", label: "Adapt" },
 ];
 
 export const WINDOWS: readonly { id: LeaderboardWindow; label: string }[] = [
@@ -72,14 +74,17 @@ export function presetLabel(id: LeaderboardPreset): string {
 
 export const MODE_LABEL: Record<string, string> = {
   race: "race",
-  training: "training",
+  training: "adapt",
   casual: "casual",
   reverse_adaptive: "reverse",
 };
 
+/** The leaderboard ranks only the two solo modes. Legacy `all` / `race`
+ *  scopes (from old shared URLs) degrade to the Casual default rather
+ *  than 404-ing the filter. Default view is Casual. */
 export function parseScope(s: string | null): LeaderboardScope {
-  if (s === "race" || s === "training" || s === "casual" || s === "all") return s;
-  return "all";
+  if (s === "training" || s === "casual") return s;
+  return "casual";
 }
 
 export function parseWindow(s: string | null): LeaderboardWindow {

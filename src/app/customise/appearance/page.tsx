@@ -19,7 +19,6 @@ import {
   AutoHideRow,
   FocusShortcutHint,
   FooterStyleRow,
-  ModeBarStyleRow,
   TopbarStyleRow,
 } from "./_components/chrome-rows";
 import { ColorRow } from "./_components/color-row";
@@ -211,12 +210,11 @@ export default function AppearancePage() {
         id="chrome"
         eyebrow="Layer"
         title="Chrome"
-        description="Topbar, footer, mode bar style + auto-hide while typing. Tune how much of the app gets out of the way during a run."
+        description="Topbar, footer + auto-hide while typing. Tune how much of the app gets out of the way during a run."
         preview={<ChromePreview />}
       >
         <TopbarStyleRow />
         <FooterStyleRow />
-        <ModeBarStyleRow />
         <AutoHideRow />
         <FocusShortcutHint />
       </SettingsSection>

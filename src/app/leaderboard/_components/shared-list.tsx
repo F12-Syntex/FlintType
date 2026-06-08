@@ -37,8 +37,12 @@ export function LeaderboardWrapper({
   error: string | null;
   children: ReactNode;
 }) {
+  // lg:pt-0 makes the header card's top edge sit flush with the
+  // sidebar's top edge — both columns share the grid's lg:py-3 inset,
+  // so dropping the article's own top padding at lg lines the two up.
+  // Mobile keeps its breathing room under the sticky header strip.
   return (
-    <article className="flex w-full flex-col px-5 pt-8 pb-16 sm:px-12 sm:pt-10 sm:pb-20 lg:px-16">
+    <article className="flex w-full flex-col px-5 pt-8 pb-16 sm:px-12 sm:pt-10 sm:pb-20 lg:px-16 lg:pt-0">
       <header className="rounded-md border border-border bg-card px-6 py-7 sm:px-10 sm:py-10">
         <div className="mb-5 flex items-center gap-3">
           <span aria-hidden className="inline-block h-px w-7 bg-primary" />

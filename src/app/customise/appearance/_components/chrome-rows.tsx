@@ -3,18 +3,12 @@
 import {
   type AutoHideMode,
   type FooterStyle,
-  type ModeBarStyle,
   type TopbarStyle,
   useAppearancePrefs,
 } from "@/lib/appearance-prefs";
 import { Chip, ChipGroup } from "../../_components/chip";
 import { SettingsRow } from "../../_components/row";
-import {
-  AutoHideSample,
-  FooterSample,
-  ModeBarSample,
-  TopbarSample,
-} from "./chip-previews";
+import { AutoHideSample, FooterSample, TopbarSample } from "./chip-previews";
 
 const TOPBAR: ReadonlyArray<{ id: TopbarStyle; label: string }> = [
   { id: "elevated", label: "Elevated" },
@@ -32,12 +26,6 @@ const AUTOHIDE: ReadonlyArray<{ id: AutoHideMode; label: string }> = [
   { id: "off", label: "Off" },
   { id: "dim", label: "Dim" },
   { id: "fade", label: "Fade" },
-];
-
-const MODEBAR: ReadonlyArray<{ id: ModeBarStyle; label: string }> = [
-  { id: "chips", label: "Chips" },
-  { id: "inline", label: "Inline" },
-  { id: "hidden", label: "Hidden" },
 ];
 
 export function TopbarStyleRow() {
@@ -98,28 +86,6 @@ export function AutoHideRow() {
               active={prefs.autoHide === p.id}
               onClick={() => update("autoHide", p.id)}
               preview={<AutoHideSample mode={p.id} />}
-            />
-          ))}
-        </ChipGroup>
-      }
-    />
-  );
-}
-
-export function ModeBarStyleRow() {
-  const { prefs, update } = useAppearancePrefs();
-  return (
-    <SettingsRow
-      label="Mode bar"
-      control={
-        <ChipGroup>
-          {MODEBAR.map((p) => (
-            <Chip
-              key={p.id}
-              label={p.label}
-              active={prefs.modeBarStyle === p.id}
-              onClick={() => update("modeBarStyle", p.id)}
-              preview={<ModeBarSample mode={p.id} />}
             />
           ))}
         </ChipGroup>

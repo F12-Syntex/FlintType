@@ -65,7 +65,7 @@ function TableView() {
   );
 
   const entries = data?.entries ?? [];
-  const scopeLabel = SCOPES.find((s) => s.id === scope)?.label ?? "All modes";
+  const scopeLabel = SCOPES.find((s) => s.id === scope)?.label ?? "Casual";
   const windowLabelText =
     WINDOWS.find((w) => w.id === window_)?.label ?? "All time";
   const presetText = preset === "any" ? null : presetLabel(preset);
