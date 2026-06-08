@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.135.1 — 8 June 2026
+- Trimmed the results screen: the "peak" and "avg" stats are gone, leaving a cleaner row of raw, stall, consistency, errors and time. The ✕ marks on the result graph remain only where you actually made a mistake.
+
 ## 6.135.0 — 3 June 2026
 - The host can now force-start a rematch too. After a race finishes, if some players haven't pressed Rematch yet, the host gets a "Force rematch" button to start the next round anyway — same as the "Force start now" button in the opening lobby.
 - Made races fully playable without a mouse. You can now Tab to the Ready, Start, Force-start, Rematch, and Leave buttons in the lobby and on the results screen, with a clear focus outline showing where you are. Tab is still held back mid-race so it can't pull you off the passage while you're typing.

@@ -10,12 +10,7 @@ import { recordIfPb } from "@/lib/pb-cache";
 import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
 import { cn } from "@/lib/utils";
 import { errorCount } from "@/lib/wpm";
-import {
-  avgWpm,
-  consistencyScore,
-  peakWpm,
-  stallWpm,
-} from "@/lib/wpm-stats";
+import { consistencyScore, stallWpm } from "@/lib/wpm-stats";
 import { type KeyEvent, usePractice } from "./practice-state";
 import { reconstructCursor } from "./replay-cursor";
 import { type Bucket, ResultChart } from "./result-chart";
@@ -489,8 +484,6 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
       })),
     [wpmHistory],
   );
-  const peak = Math.round(peakWpm(buckets));
-  const avg = Math.round(avgWpm(buckets));
   const stall = Math.round(stallWpm(buckets));
   const cons = consistencyScore(buckets);
   // Per-character errors (incorrect + extra) from the final typed
@@ -567,10 +560,9 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
           </div>
         </div>
 
-        {/* Inline stats row — all seven on a single line at sm+,
-         *  same shape as the original 4-up strip just wider; mobile
-         *  still wraps in a 2-column grid. */}
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-7 sm:gap-x-5">
+        {/* Inline stats row on a single line at sm+; mobile still
+         *  wraps in a 2-column grid. */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-5 sm:gap-x-5">
           <BigStat
             label="raw"
             value={formatSpeed(
@@ -580,8 +572,6 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
             )}
             accent
           />
-          <BigStat label="peak" value={peak} accent />
-          <BigStat label="avg" value={avg} />
           <BigStat label="stall" value={stall} />
           <BigStat label="consistency" value={`${cons}%`} />
           <BigStat label="errors" value={wrongTotal} />
@@ -634,7 +624,7 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
             <span className="rounded-sm border border-border bg-card px-2 py-1 font-mono normal-case text-foreground">
               tab
             </span>
-            <span>restart · peak {peak}</span>
+            <span>restart</span>
             {state.events.length > 0 ? (
               <Button
                 variant="ghost"
