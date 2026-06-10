@@ -43,3 +43,5 @@ Independently surfaced by 2 finder(s); this report merges them.
 ---
 
 _Found by: lane:pages+race-flow. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-038-results-orphan-mock.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-038-results-orphan-mock.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

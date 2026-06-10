@@ -16,6 +16,14 @@
 
 `<SignOutLink dark={dark} />` is rendered unconditionally — no Clerk auth gate. In the browser at 375x667, signed out (Clerk keyless dev), the hamburger drawer footer shows PROFILE · SETTINGS · SIGN OUT · DISCORD · GITHUB · STATUS · PRIVACY. The mobile TopBar at <md collapses to logo + hamburger only (no Sign in pill), so a signed-out mobile user's only visible auth control is a bogus 'SIGN OUT' button; the only path to sign-in is tapping PROFILE and being redirected. Desktop shows a proper 'Sign in' link.
 
+<!-- evidence-embedded -->
+
+**Captured screenshots:**
+
+![Mobile nav drawer open](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/mobile-nav-drawer.png)
+
+*Mobile nav drawer open.*
+
 ## Steps to reproduce
 
 DevTools 375x667, signed out, open http://localhost:3000/, tap the hamburger, look at the drawer footer.
@@ -43,3 +51,5 @@ Independently surfaced by 2 finder(s); this report merges them.
 ---
 
 _Found by: lane:appearance+responsive, lane:pages+race-flow. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-026-mobile-drawer-signout.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-026-mobile-drawer-signout.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

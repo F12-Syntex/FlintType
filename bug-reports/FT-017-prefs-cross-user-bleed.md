@@ -37,3 +37,5 @@ On Clerk sign-out (and on detecting a userId change at load) call __reset of the
 ---
 
 _Found by: review:stats-progression. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-017-prefs-cross-user-bleed.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-017-prefs-cross-user-bleed.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

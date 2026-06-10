@@ -31,3 +31,5 @@ When publicProfile 404s, replace the hero with the not-found message (or call no
 ---
 
 _Found by: lane:pages+race-flow. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-059-nonexistent-profile-hero.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-059-nonexistent-profile-hero.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

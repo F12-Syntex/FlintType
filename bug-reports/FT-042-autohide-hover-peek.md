@@ -37,3 +37,5 @@ Put the :hover on a wrapper that keeps pointer-events (e.g. a transparent hover 
 ---
 
 _Found by: lane:appearance+responsive. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-042-autohide-hover-peek.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-042-autohide-hover-peek.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

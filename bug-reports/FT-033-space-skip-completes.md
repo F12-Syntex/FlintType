@@ -40,3 +40,5 @@ Ignore SPACE when the current word's typed buffer is empty (Monkeytype behaviour
 ---
 
 _Found by: lane:practice+behaviour. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-033-space-skip-completes.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-033-space-skip-completes.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

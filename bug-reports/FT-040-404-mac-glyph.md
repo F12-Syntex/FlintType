@@ -31,3 +31,5 @@ Detect platform (navigator.platform / userAgentData) and show Ctrl on non-Mac, a
 ---
 
 _Found by: lane:pages+race-flow. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-040-404-mac-glyph.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-040-404-mac-glyph.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

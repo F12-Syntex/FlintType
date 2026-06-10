@@ -37,3 +37,5 @@ At <sm viewports, stack the two (lift the AI pill above the dock by the dock's h
 ---
 
 _Found by: lane:appearance+responsive. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-022-dock-ai-overlap.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-022-dock-ai-overlap.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

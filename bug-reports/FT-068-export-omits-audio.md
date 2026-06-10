@@ -37,3 +37,5 @@ Add 'audio' to KNOWN_SLICES (and document why spectate/profileRank/drillProgress
 ---
 
 _Found by: review:customise-prefs. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-068-export-omits-audio.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-068-export-omits-audio.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

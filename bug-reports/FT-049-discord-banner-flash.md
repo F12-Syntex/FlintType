@@ -31,3 +31,5 @@ Expose a `loaded` flag from useRemotePrefs (cache !== null) and return null unti
 ---
 
 _Found by: review:ui-misc. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-049-discord-banner-flash.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-049-discord-banner-flash.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

@@ -31,3 +31,5 @@ Chunk misses into ≤500-id pages (Clerk getUserList supports offset/paging) ins
 ---
 
 _Found by: review:db-social. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-065-clerk-userlist-limit.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-065-clerk-userlist-limit.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

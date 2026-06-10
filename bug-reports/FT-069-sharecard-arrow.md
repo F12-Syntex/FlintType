@@ -31,3 +31,5 @@ Drop the arrow: 'Take the test'.
 ---
 
 _Found by: review:ui-misc. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-069-sharecard-arrow.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-069-sharecard-arrow.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

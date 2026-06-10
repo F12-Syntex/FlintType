@@ -37,3 +37,5 @@ Rank by r.wpm directly (it is already net), matching the client's byLiveNet, OR 
 ---
 
 _Found by: review:race. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-021-race-placement-double-penalty.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-021-race-placement-double-penalty.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

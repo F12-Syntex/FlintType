@@ -16,6 +16,14 @@ mapPractice: for mt.mode === 'quote' the length falls through to `typeof mt.word
 
 mapPractice: for mt.mode === 'quote' the length falls through to `typeof mt.words === 'number' → out.length = mt.words` (MT stores quote sizes in `quoteLength`, not `words`), so the practice slice becomes e.g. {mode:'QUOTE', length:50}. flinttype quote lengths are QuoteGroup 0|1|2|3 (src/lib/quotes.ts:10). Consequences verified by writing that exact slice and loading '/': the mode bar shows QUOTE with the short/medium/long/thicc selector and NO active length chip (mode-bar.tsx:521 `QUOTE_GROUPS[state.length]?.label ?? ""` yields ''), and on restart loadAndDispatchQuote(50) hits `QUOTE_GROUPS[50]!` → TypeError inside pickQuote (quotes.ts:55), caught and replaced by a generated passage attributed '(quote unavailable)' — so quotes never actually load until the user manually re-picks a length. Bonus: writeSlice('practice', practice) (import-export.ts:275) replaces the whole slice, silently dropping the user's stored adapt=false / custom wordlist back to defaults.
 
+<!-- evidence-embedded -->
+
+**Captured screenshots:**
+
+![Short quote rendering](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/bughunt-quote-short.png)
+
+*Short quote rendering.*
+
 ## Steps to reproduce
 
 Import a MonkeyType settings.json with {"mode":"quote","words":50}. Practice lands in QUOTE mode with no length selected; restarting shows '(quote unavailable)' passages.
@@ -59,3 +67,5 @@ Independently surfaced by 2 finder(s); this report merges them.
 ---
 
 _Found by: lane:appearance+responsive, review:customise-prefs. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-027-mt-import-quote-length.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-027-mt-import-quote-length.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

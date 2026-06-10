@@ -31,3 +31,5 @@ Branch on useIsMobile() and render the mode list in a MobileSheet like leaderboa
 ---
 
 _Found by: lane:appearance+responsive. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-062-race-mode-picker-renders-as-a-desktop-popover-.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-062-race-mode-picker-renders-as-a-desktop-popover-.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

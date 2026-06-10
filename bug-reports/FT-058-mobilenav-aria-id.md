@@ -16,6 +16,14 @@ The toggle button sets `aria-controls="mobile-nav-drawer"` (line 163) while the 
 
 The toggle button sets `aria-controls="mobile-nav-drawer"` (line 163) while the portal'd drawer div (lines 104-115) carries role/aria-modal/aria-label but no `id`, so the reference is dangling — assistive tech can't resolve the relationship and a11y audits flag it.
 
+<!-- evidence-embedded -->
+
+**Captured screenshots:**
+
+![Mobile nav drawer open](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/mobile-nav-drawer.png)
+
+*Mobile nav drawer open.*
+
 ## Steps to reproduce
 
 Open the drawer at <768px and inspect: no element with id 'mobile-nav-drawer' exists in the DOM.
@@ -31,3 +39,5 @@ Add `id="mobile-nav-drawer"` to the drawer container div.
 ---
 
 _Found by: review:ui-misc. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-058-mobilenav-aria-id.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-058-mobilenav-aria-id.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

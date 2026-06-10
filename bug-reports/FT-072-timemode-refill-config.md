@@ -37,3 +37,5 @@ Independently surfaced by 2 finder(s); this report merges them.
 ---
 
 _Found by: lane:practice+behaviour, review:practice-core. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-072-timemode-refill-config.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-072-timemode-refill-config.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

@@ -16,6 +16,14 @@ Observed in the console while signed out: 401 on /api/prefs/get on every page lo
 
 Observed in the console while signed out: 401 on /api/prefs/get on every page load, 401 on /api/prefs/set on every preference change, and 401s on /api/adapt/submit followed by /api/adapt/words after every completed run. The submit effect (practice-state.tsx:533-640) has no auth gate — it calls adapt.submitTest for anonymous users (always 401, swallowed); worse, the post-submit refill at line 584 reads `const adaptOn = state.adapt` (the RAW reducer flag, default true) instead of `effectiveState.adapt` (which is forced false for anonymous users at lines 841-844), so the adapt/words refill fires too even though adapt is disabled for the viewer. Cosmetically this means every anonymous visitor's console accumulates red 401 errors during normal use; functionally it is wasted network and server log noise on the most common (signed-out) path.
 
+<!-- evidence-embedded -->
+
+**Captured screenshots:**
+
+![Race joined while signed out](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/race-joined-signedout.png)
+
+*Race joined while signed out.*
+
 ## Steps to reproduce
 
 1) Open http://localhost:3000/ signed out with the console open (401 prefs/get).
@@ -41,3 +49,5 @@ Independently surfaced by 4 finder(s); this report merges them.
 ---
 
 _Found by: lane:pages+race-flow, lane:practice+behaviour. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-070-signedout-401-noise.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-070-signedout-401-noise.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

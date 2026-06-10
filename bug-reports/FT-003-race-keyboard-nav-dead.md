@@ -39,3 +39,5 @@ In the practice-state onTab handler, skip preventDefault/stopImmediatePropagatio
 ---
 
 _Found by: lane:pages+race-flow. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-003-race-keyboard-nav-dead.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-003-race-keyboard-nav-dead.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

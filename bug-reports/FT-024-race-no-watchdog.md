@@ -37,3 +37,5 @@ Arm a hard max-duration watchdog for word races (like the timed-race buzzer) tha
 ---
 
 _Found by: review:race. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-024-race-no-watchdog.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-024-race-no-watchdog.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

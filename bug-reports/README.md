@@ -15,6 +15,10 @@ Each `FT-NNN-*.md` is written to drop straight into a GitHub issue or a PR descr
 - **Corroborating reports** — when several finders hit the same bug, they're merged and listed.
 - **Suggested labels** — severity / area / security / data-loss / accessibility / ui / multiplayer.
 
+## Evidence images
+
+The Playwright testing agents captured screenshots as visual proof for the UI/visual bugs. They live in [`images/`](./images/) with an index ([`images/README.md`](./images/README.md)) mapping each screenshot to the report(s) it supports. Reports with a captured screenshot embed it inline under their **Evidence** section.
+
 ## How they were produced
 
 - **18 finder agents** — 7 static code reviewers (practice core, customise/prefs, race, backend routes, db/social, stats/progression, UI), 1 live API prober, and 6 Playwright browser testers driving the running app (practice torture, behaviour settings, appearance/typing-area, responsive sweep at 375/768/1280/1440 px, pages/nav, race/drills/results).

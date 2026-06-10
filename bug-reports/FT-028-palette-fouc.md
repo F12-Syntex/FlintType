@@ -16,6 +16,14 @@ PREFS_BOOTSTRAP_SCRIPT (injected pre-hydration) applies only `blob.theme` per-va
 
 PREFS_BOOTSTRAP_SCRIPT (injected pre-hydration) applies only `blob.theme` per-var overrides; picking a named palette stores `palette.activeId` and writes `theme: {}` (presets), so the bootstrap applies nothing. The palette's cssVars are applied only inside PaletteProvider's `useEffect` after React hydrates. Measured headlessly with `{palette:{activeId:'catppuccin'}, theme:{}}` persisted: at DOMContentLoaded and first rAF `--primary` = '#f97316' (default coral) and `--background` = default paper; ~after hydration they become oklch(0.5547 0.2503 297.0156) / oklch(0.9578 ...) (Catppuccin). Every reload/navigation for a user on any community palette paints default-then-palette — exactly the flash ui-law §9.3 declares load-bearing to prevent.
 
+<!-- evidence-embedded -->
+
+**Captured screenshots:**
+
+![Customise page in dark mode](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/bughunt-customise-dark.png)
+
+*Customise page in dark mode.*
+
 ## Steps to reproduce
 
 Pick any community palette (e.g. Catppuccin) in Customise → Appearance → Themes & mode. Reload any page; the chrome and accent paint in the default coral/paper palette for the first frames, then snap to the chosen palette.
@@ -43,3 +51,5 @@ Independently surfaced by 2 finder(s); this report merges them.
 ---
 
 _Found by: lane:appearance+responsive, review:customise-prefs. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-028-palette-fouc.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-028-palette-fouc.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

@@ -45,3 +45,5 @@ Independently surfaced by 2 finder(s); this report merges them.
 ---
 
 _Found by: lane:practice+behaviour, review:customise-prefs. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-014-cmdpalette-app-404.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-014-cmdpalette-app-404.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

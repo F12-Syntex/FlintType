@@ -31,3 +31,5 @@ Focus the panel (or first focusable) on open, trap Tab within the panel, and res
 ---
 
 _Found by: review:ui-misc. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-054-modal-no-focustrap.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-054-modal-no-focustrap.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

@@ -37,3 +37,5 @@ Persist the length mode (e.g. a `lengthMode: 'time'|'words'|'quote'` column or f
 ---
 
 _Found by: review:ui-misc. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-032-share-og-mislabel.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-032-share-og-mislabel.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

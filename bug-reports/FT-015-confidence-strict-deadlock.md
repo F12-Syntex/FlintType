@@ -16,6 +16,14 @@ With confidence='all', Backspace and Ctrl+Backspace are swallowed (input-capture
 
 With confidence='all', Backspace and Ctrl+Backspace are swallowed (input-capture.tsx:201-202 keydown path, :113-114 beforeinput path). With strictSpace, SPACE is a no-op unless typed === target (practice-reducer.ts:500). After any wrong character lands in the typed buffer, the user can neither correct it (backspace disabled) nor advance (space refused) — the run is permanently stuck; only Esc (restart) escapes. Browser-confirmed: set Confidence=All + Strict space=On, typed 'gx' on word 'go', then Backspace (no-op), Space (no-op), 'o ' (buffer 'gxo', still no-op) — WORD readout stayed 1/10. Both settings are offered side-by-side in the same section with no guard or warning.
 
+<!-- evidence-embedded -->
+
+**Captured screenshots:**
+
+![Strict-space + confidence-mode deadlock](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/deadlock-strictspace-confidence.png)
+
+*Strict-space + confidence-mode deadlock.*
+
 ## Steps to reproduce
 
 Customise → Behaviour: Confidence mode=All, Strict space=On. On /, type one wrong char in the first word, then try backspace/space/anything — cursor never advances; only Esc restart works.
@@ -37,3 +45,5 @@ Make the combination impossible (selecting one resets the other, as MonkeyType d
 ---
 
 _Found by: lane:practice+behaviour. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-015-confidence-strict-deadlock.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-015-confidence-strict-deadlock.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

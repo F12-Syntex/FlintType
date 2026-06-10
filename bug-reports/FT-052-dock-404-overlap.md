@@ -31,3 +31,5 @@ Hide the dock on the 404/error pages and /updates/* (extend the dock's hidden-ro
 ---
 
 _Found by: lane:pages+race-flow. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-052-dock-404-overlap.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-052-dock-404-overlap.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

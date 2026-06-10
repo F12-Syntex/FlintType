@@ -37,3 +37,5 @@ Either gate the Tab handler on prefs.quickRestart and add a Behaviour row for it
 ---
 
 _Found by: lane:practice+behaviour. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-043-dead-quickrestart.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-043-dead-quickrestart.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

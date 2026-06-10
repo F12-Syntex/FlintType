@@ -31,3 +31,5 @@ Add `if (await db.blocks.eitherBlocks(me, them)) throw new BackendError(403, 'FO
 ---
 
 _Found by: review:backend-routes. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-053-friends-compare-no-block.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-053-friends-compare-no-block.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

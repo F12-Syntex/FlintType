@@ -16,6 +16,14 @@ META links are hardcoded `{ href: "#status", label: "STATUS" }, { href: "#privac
 
 META links are hardcoded `{ href: "#status", label: "STATUS" }, { href: "#privacy", label: "PRIVACY" }`. Neither anchor exists on any page — clicking them does nothing. The real privacy page exists at /privacy (the desktop footer links it correctly); there is no status page at all.
 
+<!-- evidence-embedded -->
+
+**Captured screenshots:**
+
+![Mobile nav drawer open](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/mobile-nav-drawer.png)
+
+*Mobile nav drawer open.*
+
 ## Steps to reproduce
 
 375px viewport, open the hamburger drawer, tap STATUS or PRIVACY — URL gains #status/#privacy and nothing happens.
@@ -44,3 +52,5 @@ Independently surfaced by 3 finder(s); this report merges them.
 ---
 
 _Found by: lane:appearance+responsive, lane:pages+race-flow, review:ui-misc. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-025-drawer-dead-links.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-025-drawer-dead-links.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

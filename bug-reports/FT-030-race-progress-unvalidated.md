@@ -40,3 +40,5 @@ Validate progress server-side: reject or clamp keystroke posts whose progressCha
 ---
 
 _Found by: review:race. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-030-race-progress-unvalidated.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-030-race-progress-unvalidated.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

@@ -37,3 +37,5 @@ Add `[data-ft-banner]` to the dim/fade selector lists in globals.css (it already
 ---
 
 _Found by: lane:appearance+responsive. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-019-discord-banner-autohide.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-019-discord-banner-autohide.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

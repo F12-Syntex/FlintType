@@ -31,3 +31,5 @@ Add a BURST branch to modeLabel (`burst ${state.length}`), or give BURST its own
 ---
 
 _Found by: review:practice-core. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-045-burst-results-label.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-045-burst-results-label.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

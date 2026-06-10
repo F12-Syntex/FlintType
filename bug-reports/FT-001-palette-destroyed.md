@@ -16,6 +16,18 @@ setVar() writes only the single var to the 'theme' slice and pins `writeSlice("p
 
 setVar() writes only the single var to the 'theme' slice and pins `writeSlice("palette", { activeId: CUSTOM_THEME_ID })`, but never snapshots the base palette's cssVars. On the next load, PaletteProvider (src/lib/themes/use-palette.tsx:86) early-returns for activeId === 'custom' and nothing re-applies the named palette's inline vars (they only existed as in-session inline styles; the pre-hydration bootstrap only replays blob.theme). Verified live in the browser: applied Catppuccin via the Theme dropdown (primary became oklch(0.5547 0.2503 297.0156), background oklch(0.9578 0.0058 264.5321)), clicked the Geometry 'Pillowy' radius chip (palette slice flipped to {activeId:"custom"}, theme slice {--radius:"1.25rem"}), reloaded — primary reverted to #f97316 and background to the Default paper while only the radius override survived; the picker reads 'Custom'. The AI studio has the same hole: useApplyPatch.apply() routes through setVar, and its revert() (src/app/customise/_components/use-apply-patch.ts:102-119) restores vars but never restores the palette slice, so even an undone AI suggestion costs the user their named palette across reloads.
 
+<!-- evidence-embedded -->
+
+**Captured screenshots:**
+
+![Catppuccin palette on home](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/bughunt-dark-catppuccin-home.png)
+
+*Catppuccin palette on home.*
+
+![Customise page in dark mode](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/bughunt-customise-dark.png)
+
+*Customise page in dark mode.*
+
 ## Steps to reproduce
 
 1) /customise/appearance → Theme dropdown → pick Catppuccin (confirm).
@@ -39,3 +51,5 @@ When setVar forks a named palette to 'custom', copy the active palette's resolve
 ---
 
 _Found by: review:customise-prefs. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-001-palette-destroyed.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-001-palette-destroyed.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

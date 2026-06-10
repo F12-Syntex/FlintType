@@ -43,3 +43,5 @@ Independently surfaced by 2 finder(s); this report merges them.
 ---
 
 _Found by: review:stats-progression, review:ui-misc. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-018-streak-dst.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-018-streak-dst.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

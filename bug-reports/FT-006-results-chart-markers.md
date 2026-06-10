@@ -16,6 +16,18 @@
 
 `<Scatter data={merged.filter((b) => b.errors > 0)} dataKey="wpm" shape={<ErrorMark/>}>` — when the run has zero errors the filter yields an empty array, and recharts treats an empty series `data` as 'fall back to the chart-level data', so the destructive ✕ ErrorMark renders at EVERY WPM bucket of a perfect run. Observed live: a words-10 run with acc 100%, errors 0, ribbon 'no mistakes' showed red ✕ marks at 1s,2s,3s,5s,6s,7s (screenshot result-chart-hover.png). The same Scatter also re-registers dataKey 'wpm' (already used by the <Area> at line 183 — the comment at lines 178-181 says merging Area+Line fixed exactly this tooltip-lists-wpm-twice bug, #13), so hovering the chart shows the tooltip rows 'raw 83.5 / wpm 83.5 / sec 4 / wpm 83.5' (wpm twice plus a stray sec row) and the console logs: 'Encountered two children with the same key, `wpm`. Keys should be unique…' (fired twice per hover).
 
+<!-- evidence-embedded -->
+
+**Captured screenshots:**
+
+![Results chart markers / hover state](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/result-chart-hover.png)
+
+*Results chart markers / hover state.*
+
+![Replay running on the results screen](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/replay-running.jpg)
+
+*Replay running on the results screen.*
+
 ## Steps to reproduce
 
 1. http://localhost:3000/ → complete a 10-word test with no mistakes.
@@ -46,3 +58,5 @@ Independently surfaced by 3 finder(s); this report merges them.
 ---
 
 _Found by: lane:appearance+responsive, lane:pages+race-flow, lane:practice+behaviour. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-006-results-chart-markers.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-006-results-chart-markers.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

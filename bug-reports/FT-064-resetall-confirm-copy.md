@@ -31,3 +31,5 @@ Pass a short noun (e.g. the eyebrow's section name: 'Reset Behaviour settings?')
 ---
 
 _Found by: lane:practice+behaviour. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-064-resetall-confirm-copy.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-064-resetall-confirm-copy.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

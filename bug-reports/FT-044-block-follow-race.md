@@ -31,3 +31,5 @@ Either wrap block+unfollow in a transaction AND re-check eitherBlocks inside fol
 ---
 
 _Found by: review:db-social. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-044-block-follow-race.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-044-block-follow-race.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

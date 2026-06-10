@@ -16,6 +16,14 @@ The nav pill has `overflow-hidden` ("inline-flex items-center gap-0.5 overflow-h
 
 The nav pill has `overflow-hidden` ("inline-flex items-center gap-0.5 overflow-hidden rounded-md border p-0.5"). Measured at 768x1024: nav scrollWidth=380 vs clientWidth=274–285, so 'Leaderboard' renders cut mid-word ('Leaderboa') and 'Insights' is fully clipped — both links exist in the DOM (rects extend to x=584, container right edge 482) but are unreachable. Clipping persists through 850px (clientWidth 356) and only resolves at ~900px. The mobile hamburger is md:hidden, so at 768–899px there is NO route to Leaderboard or Insights from the top chrome (the footer also lacks those links).
 
+<!-- evidence-embedded -->
+
+**Captured screenshots:**
+
+![Home page at 375 px](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/home-375.png)
+
+*Home page at 375 px.*
+
 ## Steps to reproduce
 
 Resize browser to 768x1024 (or any width 768–899), load http://localhost:3000/ — observe the nav pill shows 'Practice Drills Races Leaderboa' with Leaderboard cut and Insights missing; no scroll affordance, no hamburger.
@@ -37,3 +45,5 @@ Either keep the hamburger visible until the full nav fits (swap the md: breakpoi
 ---
 
 _Found by: lane:appearance+responsive. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-037-topbar-nav-clip.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-037-topbar-nav-clip.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

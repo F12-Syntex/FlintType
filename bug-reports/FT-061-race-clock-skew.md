@@ -37,3 +37,5 @@ Capture an offset = snapshot.serverNowMs - Date.now() when each snapshot arrives
 ---
 
 _Found by: review:race. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-061-race-clock-skew.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-061-race-clock-skew.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

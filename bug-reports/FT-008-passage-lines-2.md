@@ -16,6 +16,18 @@ Scroll math: `cap = round(clipHeight/lh); trigger = floor(cap/2); desired = max(
 
 Scroll math: `cap = round(clipHeight/lh); trigger = floor(cap/2); desired = max(0, currentLine - trigger) * lh`. For cap=2, trigger=1, which pins the caret to visual line index 1 — the bottom of the two visible lines — so the line above is history and the upcoming line is clipped. cap=2 is the only degenerate value: cap=1 gives trigger=0 (fine), cap>=3 always leaves >=1 lookahead line below. Verified in the browser with linesRendered=2 (screenshot .playwright-mcp/lines2-caret2.png): clip box = 168px = 2×84px lines; after typing past line 0 the caret sits on the bottom visible line with the entire first line already typed and no upcoming text visible. Sibling exposure: the AI design-studio catalog's `lines: compact` option (src/server/routes/appearance/options.ts:159) resolves to exactly linesRendered=2, so the AI can steer users into this state.
 
+<!-- evidence-embedded -->
+
+**Captured screenshots:**
+
+![Caret pinned to the bottom of two visible lines - no lookahead](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/lines2-caret-bottom.png)
+
+*Caret pinned to the bottom of two visible lines - no lookahead.*
+
+![Caret riding the last visible line mid-run](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/bughunt-lines2-caret-last-line.png)
+
+*Caret riding the last visible line mid-run.*
+
 ## Steps to reproduce
 
 Customise → Typing area → Lines rendered = 2 → go to / and type past the first line. The caret rides the bottom line; you can never see the next line.
@@ -47,3 +59,5 @@ Independently surfaced by 6 finder(s); this report merges them.
 ---
 
 _Found by: lane:appearance+responsive, lane:practice+behaviour, review:customise-prefs, review:db-social, review:practice-core, review:stats-progression. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-008-passage-lines-2.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-008-passage-lines-2.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

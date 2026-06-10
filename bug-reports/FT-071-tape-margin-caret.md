@@ -16,6 +16,18 @@ tapeFadeMask clamps only the LEFT fade to the caret margin (`const left = Math.m
 
 tapeFadeMask clamps only the LEFT fade to the caret margin (`const left = Math.min(margin, edge)`); the right side is fixed at `#000 ${100 - edge}%, transparent 100%`. The Customise slider allows tapeMargin 0-100 (tape-row.tsx:130-137). With strong fade (edge=20) and tapeMargin > 80 — or soft (edge=9) and margin > 91 — the caret anchor sits inside the right transparency ramp, so the caret and the active/upcoming text render semi-transparent permanently (fully invisible at margin 100). This violates the function's own contract ("the caret + upcoming text stay crisp"); tape-fade.test.ts:22-29 covers the left clamp only.
 
+<!-- evidence-embedded -->
+
+**Captured screenshots:**
+
+![Tape mode, margin=100 - caret position](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/bughunt-tape-margin100.png)
+
+*Tape mode, margin=100 - caret position.*
+
+![Tape (letter) mode caret rendering](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/bughunt-tape-letter.png)
+
+*Tape (letter) mode caret rendering.*
+
 ## Steps to reproduce
 
 Customise > Typing area > tape mode on, tape fade strong, caret position slider to 90-100%. Start typing: the caret and the text at the anchor are faded/invisible.
@@ -37,3 +49,5 @@ Independently surfaced by 2 finder(s); this report merges them.
 ---
 
 _Found by: lane:appearance+responsive, review:practice-core. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-071-tape-margin-caret.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-071-tape-margin-caret.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

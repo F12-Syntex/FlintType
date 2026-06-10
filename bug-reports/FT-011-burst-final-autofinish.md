@@ -38,3 +38,5 @@ Exclude BURST from the auto-finish: `s.mode !== "TIME" && s.mode !== "BURST"` in
 ---
 
 _Found by: review:practice-core. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-011-burst-final-autofinish.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-011-burst-final-autofinish.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

@@ -37,3 +37,5 @@ Don't allow writeSlice to fabricate a full slice from defaults before the first 
 ---
 
 _Found by: review:customise-prefs. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-013-prefs-pre-get-overwrite.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-013-prefs-pre-get-overwrite.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

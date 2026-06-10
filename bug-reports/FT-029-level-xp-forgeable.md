@@ -47,3 +47,5 @@ Independently surfaced by 2 finder(s); this report merges them.
 ---
 
 _Found by: probe:live-api, review:backend-routes. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-029-level-xp-forgeable.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-029-level-xp-forgeable.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

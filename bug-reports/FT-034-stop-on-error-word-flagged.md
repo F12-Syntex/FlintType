@@ -16,6 +16,18 @@ In the stop-on-error branch (practice-reducer.ts:379-389) the blocked keystroke 
 
 In the stop-on-error branch (practice-reducer.ts:379-389) the blocked keystroke adds cursorWord to errorWords even though the wrong char never enters typed[]. The only clearing path is BACKSPACE's wordErrored() re-evaluation (lines 442-448), which the user never triggers because the buffer is already a correct prefix; SPACE (lines 505-508) only ever ADDS to errorWords, never deletes when typedHere === target. Verified live with behaviour.stopOnError=true: typed first char of "around", pressed a blocked wrong key, finished the word correctly, pressed space — the past word renders via PastErrorWord with `underline ... decoration-[var(--ft-passage-error,...)]` (captured className) despite typed === target. Inconsistent with the documented intent (wordErrored's own comment: correcting a mistake clears the underline) and with non-stop-on-error behaviour, where a typed-then-backspaced mistake clears the flag (covered by the existing '#16' reducer test).
 
+<!-- evidence-embedded -->
+
+**Captured screenshots:**
+
+![Blind-mode typing in progress](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/blind-mode-typing.png)
+
+*Blind-mode typing in progress.*
+
+![Blind-mode behaviour preview](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/behaviour-blind-preview.png)
+
+*Blind-mode behaviour preview.*
+
 ## Steps to reproduce
 
 Enable Customise > Behaviour > stop on error. Mid-word, press one wrong key (blocked), then complete the word correctly and press space. The word stays red-underlined for the rest of the run.
@@ -37,3 +49,5 @@ In SPACE, recompute the flag from the sealed buffer instead of only adding: when
 ---
 
 _Found by: review:practice-core. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-034-stop-on-error-word-flagged.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-034-stop-on-error-word-flagged.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

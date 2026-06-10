@@ -16,6 +16,14 @@ Browser repro (signed-out, default prefs): typed 'qqqqq' (5 wrong chars, live re
 
 Browser repro (signed-out, default prefs): typed 'qqqqq' (5 wrong chars, live readout showed ERR 5 / ACC 0%), backspaced 5 times, then typed the whole 25-word passage perfectly. Results screen: WPM 1458, ACC 100%, ERRORS 0, CONSISTENCY 100%. Both the live stats (practice-state.tsx:739-745) and the submitted/recorded values (practice-state.tsx:561-567, 599-603) compute accuracy/errorCount from countChars()/errorCount() over the FINAL typed[] buffer (src/lib/wpm.ts:108-115), so any mistake that is later backspaced (or blocked by stop-on-error, which never enters typed[]) vanishes. The reducer maintains keystroke-true tallies `totalChars`/`correctChars` explicitly commented '// for accuracy' (practice-reducer.ts:52-53) but they are never read anywhere — dead state evidencing the original intent. The page's own SEO copy says flinttype 'measures ... your accuracy on every keystroke', and signed-in submits persist this inflated accuracy (and the per-run error count) to history/PB records.
 
+<!-- evidence-embedded -->
+
+**Captured screenshots:**
+
+![Mistake/error letter styling on the active word](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/errors-styling.png)
+
+*Mistake/error letter styling on the active word.*
+
 ## Steps to reproduce
 
 1) Open http://localhost:3000/.
@@ -47,3 +55,5 @@ Independently surfaced by 2 finder(s); this report merges them.
 ---
 
 _Found by: lane:practice+behaviour. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-016-accuracy-never-drops.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-016-accuracy-never-drops.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

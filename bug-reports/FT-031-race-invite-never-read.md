@@ -37,3 +37,5 @@ Call backend.notifications.markRead({id}) when a challenge row's Join is clicked
 ---
 
 _Found by: review:db-social. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-031-race-invite-never-read.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-031-race-invite-never-read.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

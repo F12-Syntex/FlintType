@@ -16,6 +16,14 @@ topLeaderboard fetches only the top `limit * 4` rows ordered by netWpm (`.limit(
 
 topLeaderboard fetches only the top `limit * 4` rows ordered by netWpm (`.limit(limit * 4)` at tests.ts:190), then dedupes per (userId, mode, durationOrWordCount) in JS. Every row past the over-fetch window is invisible. With the default limit 25 that's a 100-row window: any user with 100+ completed runs that all out-score another user's best run consumes the entire window, and the slower user is dropped from the result even though the board has empty slots. This is the shared implementation for BOTH the public board (src/server/routes/leaderboard/index.ts:44) and the friends board (src/server/routes/friends/leaderboard.ts:35). On the friends board it is the common case, not an edge: a friends board of {me + one slower friend} where I have >100 completed runs faster than their best will show only my rows — the friend never appears at any rank, defeating the route's stated purpose ('so they can see where they sit among friends'). An active typist easily has hundreds of completed runs.
 
+<!-- evidence-embedded -->
+
+**Captured screenshots:**
+
+![Leaderboard at 375 px](https://github.com/F12-Syntex/flinttype/raw/bug-reports-deep-scan/bug-reports/images/leaderboard-375.png)
+
+*Leaderboard at 375 px.*
+
 ## Steps to reproduce
 
 Two accounts, A follows B mutually. A completes 101+ runs all with netWpm above B's best run; B completes a few runs. Call friends.leaderboard as A (scope all, preset any, limit 25): B is absent from entries despite fewer than 25 distinct (user,bucket) groups existing.
@@ -43,3 +51,5 @@ Rank best-per-user-per-bucket in SQL instead of JS — e.g. SELECT DISTINCT ON (
 ---
 
 _Found by: review:db-social. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-004-leaderboard-friends-starve.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-004-leaderboard-friends-starve.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

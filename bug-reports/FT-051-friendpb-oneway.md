@@ -31,3 +31,5 @@ Either fan out to db.follows.listFriends(userId) (mutuals) to match the copy, or
 ---
 
 _Found by: review:db-social. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-051-friendpb-oneway.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-051-friendpb-oneway.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)

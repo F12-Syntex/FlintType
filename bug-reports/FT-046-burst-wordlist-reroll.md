@@ -31,3 +31,5 @@ Include BURST in the wordlist-resolve re-roll effect's allowed modes (it already
 ---
 
 _Found by: review:practice-core. Generated from scan run `wf_a630179b-84b`._
+
+> **Report file:** [`bug-reports/FT-046-burst-wordlist-reroll.md`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/FT-046-burst-wordlist-reroll.md)  -  **Evidence index:** [`bug-reports/images/`](https://github.com/F12-Syntex/flinttype/blob/bug-reports-deep-scan/bug-reports/images/README.md)
