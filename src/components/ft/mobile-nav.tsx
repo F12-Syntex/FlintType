@@ -104,7 +104,7 @@ export function MobileNav({
   const drawer = open ? (
     <div
       className={cn(
-        "fixed inset-x-0 top-14 bottom-0 z-50 flex flex-col overflow-y-auto md:hidden",
+        "fixed inset-x-0 top-14 bottom-0 z-50 flex flex-col overflow-y-auto lg:hidden",
         dark
           ? "bg-foreground text-background"
           : "bg-background text-foreground",
@@ -163,7 +163,7 @@ export function MobileNav({
         aria-expanded={open}
         aria-controls="mobile-nav-drawer"
         className={cn(
-          "-mr-2 flex size-11 items-center justify-center rounded-md transition-colors md:hidden",
+          "-mr-2 flex size-11 items-center justify-center rounded-md transition-colors lg:hidden",
           dark
             ? "text-ft-paper hover:bg-white/5"
             : "text-foreground hover:bg-foreground/5",

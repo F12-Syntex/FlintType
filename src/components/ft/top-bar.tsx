@@ -92,7 +92,11 @@ export function TopBar({
       <Logo dark={dark} version={resolvedVersion} />
 
       {nav && nav.length > 0 ? (
-        <div className="hidden min-w-0 md:flex">
+        // Desktop nav pill appears only at lg+, where the full five-item
+        // pill fits beside the logo and the right cluster. From md down to
+        // lg the nav lives in the hamburger drawer (the right cluster stays
+        // visible at md), so the pill never clips in the 768–~1024 band.
+        <div className="hidden min-w-0 lg:flex">
           <nav
             data-ft-topbar-pill
             aria-label="Main"
@@ -147,7 +151,12 @@ export function TopBar({
        *  the bar quieter. */}
       <div className="flex items-center gap-3 lg:gap-4">
         {right ? (
-          <div className="hidden items-center gap-2 md:flex">{right}</div>
+          // The wrapper stays visible on every viewport; each child owns
+          // its own responsive visibility. That lets the notifications
+          // bell (the one right-slot control that should reach mobile)
+          // sit next to the hamburger below md, while gear / profile /
+          // sign-in self-hide with their `hidden md:flex` classes.
+          <div className="flex items-center gap-2">{right}</div>
         ) : null}
         <MobileNav nav={nav} drawerExtras={drawerExtras} dark={dark} />
       </div>

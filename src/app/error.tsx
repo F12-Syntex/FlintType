@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { FtButton, Kbd, Logo, Tag } from "@/components/ft";
+import { HideFriendsDock } from "@/components/hide-friends-dock";
 
 export default function ErrorPage({
   error,
@@ -18,6 +19,7 @@ export default function ErrorPage({
 
   return (
     <div className="flex min-h-screen flex-col bg-ft-paper text-ft-ink">
+      <HideFriendsDock />
       <header className="flex h-14 shrink-0 items-center border-b border-ft-line-soft px-5 sm:px-7">
         <Logo />
       </header>
@@ -43,7 +45,7 @@ export default function ErrorPage({
 
             <div className="flex flex-wrap gap-3">
               <FtButton variant="ember" size="lg" onClick={() => reset()}>
-                RELOAD →
+                RELOAD
               </FtButton>
               <FtButton
                 variant="ghost"
@@ -59,7 +61,7 @@ export default function ErrorPage({
                   }
                 }}
               >
-                ← BACK
+                BACK
               </FtButton>
             </div>
           </div>

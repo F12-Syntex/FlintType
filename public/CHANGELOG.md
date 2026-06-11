@@ -8,6 +8,16 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.137.0 — 11 June 2026
+- The notifications bell is now reachable on phones — it sits next to the menu button instead of being hidden away.
+- Fixed the top navigation getting clipped on tablet-width screens: the Practice / Races / Leaderboard links now move into the menu until there's room for the full bar.
+- Visiting a profile that doesn't exist now shows a clean "Profile not found" page instead of an empty, zeroed-out profile.
+- The Discord banner no longer flashes in then out if you've already dismissed it, and now fades away with the rest of the chrome while you're mid-run or in focus mode.
+- The friends dock no longer covers the footer on the 404 / error pages or the update cards, and the "Design with AI" button no longer overlaps it on narrow screens.
+- The 404 page now shows the correct ⌘ or Ctrl shortcut hint for your platform, and stray arrows were removed from the 404 / error buttons.
+- On phones, the race mode picker now opens as a bottom sheet instead of a desktop-style dropdown.
+- Quieted a harmless chart console warning on the customise page.
+
 ## 6.136.1 — 11 June 2026
 - The command palette's "Go to test" now opens the typing screen instead of a dead page, and the Theme palette list now includes "Default" so you can switch back to it (and shows when you're on a custom palette).
 - Exporting and re-importing your settings now keeps your keypress-click sound and hand-layout choices — they were silently dropped before.

@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { FtButton, Kbd, Logo, Tag } from "@/components/ft";
+import { FtButton, Logo, Tag } from "@/components/ft";
+import { HideFriendsDock } from "@/components/hide-friends-dock";
 import { buildPageMetadata } from "@/server/seo";
+import { CommandKeyHint } from "./_components/command-key-hint";
 
 export const metadata = buildPageMetadata({
   title: "404 — passage not found",
@@ -12,6 +14,7 @@ export const metadata = buildPageMetadata({
 export default function NotFound() {
   return (
     <div className="flex min-h-screen flex-col bg-ft-paper text-ft-ink">
+      <HideFriendsDock />
       <header className="flex h-14 shrink-0 items-center border-b border-ft-line-soft px-5 sm:px-7">
         <Logo />
       </header>
@@ -38,7 +41,7 @@ export default function NotFound() {
             <div className="flex flex-wrap gap-3">
               <Link href="/">
                 <FtButton variant="ember" size="lg">
-                  BACK TO PRACTICE →
+                  BACK TO PRACTICE
                 </FtButton>
               </Link>
               <Link href="/">
@@ -97,9 +100,7 @@ export default function NotFound() {
 
       <footer className="border-t border-ft-line-soft px-5 py-5 sm:px-14">
         <div className="flex flex-wrap items-center justify-between gap-3 text-[10px] uppercase tracking-[0.16em] text-ft-dim">
-          <span>
-            tip: press <Kbd>⌘</Kbd>+<Kbd>K</Kbd> to search routes
-          </span>
+          <CommandKeyHint />
           <span className="text-ft-dim-2">STRIKE · SPARK · SHARPEN</span>
         </div>
       </footer>

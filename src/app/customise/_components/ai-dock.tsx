@@ -42,7 +42,10 @@ export function CustomiseAiDock() {
 
   return (
     <div
-      className="pointer-events-none fixed left-1/2 z-40 -translate-x-1/2"
+      // Bottom-left on mobile so it never collides with the bottom-right
+      // friends-dock pill; bottom-centre once there's room (sm+), where the
+      // dock sits far enough to the right to clear it.
+      className="pointer-events-none fixed left-4 z-40 sm:left-1/2 sm:-translate-x-1/2"
       style={{
         bottom: `calc(${footerH}px + 0.75rem + env(safe-area-inset-bottom))`,
       }}

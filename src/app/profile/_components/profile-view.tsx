@@ -1,6 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BackendError, useBackend } from "@/lib/backend";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
@@ -190,6 +191,29 @@ export function ProfileView({ username }: { username?: string }) {
     if (isMtConnected) setManageOpen(true);
     else setImportOpen(true);
   }, [isMtConnected]);
+
+  // A failed load with no data to show (nonexistent user, or an
+  // unauthenticated own-profile view) shouldn't paint a zeroed hero above
+  // an error line — render a clean not-found / message state instead.
+  if (error && !snapshot && !loading) {
+    return (
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 py-16 text-center">
+        <span className="mb-4 inline-block h-px w-7 bg-primary" aria-hidden />
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          Profile not found
+        </h1>
+        <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
+          {error}
+        </p>
+        <Link
+          href="/leaderboard"
+          className="mt-6 inline-flex h-9 items-center rounded-md border border-border bg-card px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground transition-colors hover:bg-accent"
+        >
+          Find people
+        </Link>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-6 sm:gap-4 sm:px-5 sm:py-8 lg:px-8 lg:py-10">

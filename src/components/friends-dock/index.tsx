@@ -20,7 +20,14 @@ const DEV = process.env.NODE_ENV === "development";
  *  cover/landing asset (which is meant to be screenshotted clean, with
  *  no app chrome). Everywhere else (practice, customise, leaderboard,
  *  profile, …) it floats quietly in the corner. */
-const HIDDEN_PREFIXES = ["/race", "/live", "/sign-in", "/sign-up", "/landing"];
+const HIDDEN_PREFIXES = [
+  "/race",
+  "/live",
+  "/sign-in",
+  "/sign-up",
+  "/landing",
+  "/updates",
+];
 
 /** Reads a `data-*` attribute off <html>, kept in sync with a observer so
  *  the dock can step aside while a run is active (`data-ft-running`) or
@@ -98,6 +105,7 @@ export function FriendsDock() {
   const reduce = useReducedMotion();
   const running = useHtmlFlag("data-ft-running");
   const focus = useHtmlFlag("data-ft-focus");
+  const noDock = useHtmlFlag("data-ft-no-dock");
   const footerHeight = useFooterHeight(pathname);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -107,7 +115,12 @@ export function FriendsDock() {
   const hiddenRoute = HIDDEN_PREFIXES.some((p) => pathname.startsWith(p));
   // Real data needs auth; dev shows dummy so the dock is reviewable.
   const visible =
-    isLoaded && !hiddenRoute && !running && !focus && (isSignedIn || DEV);
+    isLoaded &&
+    !hiddenRoute &&
+    !noDock &&
+    !running &&
+    !focus &&
+    (isSignedIn || DEV);
 
   const data = useDockData({ enabled: visible, signedIn: !!isSignedIn });
 

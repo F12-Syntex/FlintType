@@ -20,12 +20,15 @@ const EMPTY_BANNER_STATE = {
 };
 
 export function DiscordBanner() {
-  const { value, update } = useRemotePrefs<{
+  const { value, update, loaded } = useRemotePrefs<{
     monkeytypeDismissed: boolean;
     discordDismissed: boolean;
   }>("banners", EMPTY_BANNER_STATE);
 
-  if (value.discordDismissed) return null;
+  // Until the prefs blob resolves we don't know if this user dismissed
+  // the banner. Render nothing rather than flashing it in then out for
+  // those who already closed it (the gate the doc-comment above promises).
+  if (!loaded || value.discordDismissed) return null;
 
   const dismiss = () => update({ discordDismissed: true });
 

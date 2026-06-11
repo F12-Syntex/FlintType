@@ -48,6 +48,14 @@ function ChartContainer({
 }) {
   const uniqueId = React.useId();
   const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`;
+  // Defer the ResponsiveContainer one frame so it never measures the
+  // wrapper before it's laid out. Inside a just-expanded customise
+  // preview the aspect-video box is still 0×0 on the synchronous first
+  // paint, which makes recharts log width(-1)/height(-1). Mounting after
+  // the first effect tick means the box has a real size by the time the
+  // container measures it (invisible one-frame delay).
+  const [ready, setReady] = React.useState(false);
+  React.useEffect(() => setReady(true), []);
 
   return (
     <ChartContext.Provider value={{ config }}>
@@ -61,17 +69,17 @@ function ChartContainer({
         {...props}
       >
         <ChartStyle id={chartId} config={config} />
-        {/* width="99%" + minHeight={1} dodge recharts' transient -1
-         *  dimensions warning during the first paint inside the
-         *  appearance preview, where the parent's aspect-video hasn't
-         *  finished resolving yet. The container still fills the box. */}
-        <RechartsPrimitive.ResponsiveContainer
-          width="99%"
-          height="100%"
-          minHeight={1}
-        >
-          {children}
-        </RechartsPrimitive.ResponsiveContainer>
+        {ready ? (
+          // width="99%" + minHeight={1} further guard against a transient
+          // -1 measure; the container still fills the box.
+          <RechartsPrimitive.ResponsiveContainer
+            width="99%"
+            height="100%"
+            minHeight={1}
+          >
+            {children}
+          </RechartsPrimitive.ResponsiveContainer>
+        ) : null}
       </div>
     </ChartContext.Provider>
   );
