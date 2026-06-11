@@ -36,11 +36,15 @@ const CONFIDENCE_OPTIONS: readonly {
   { id: "all", label: "All", preview: <ConfidenceSample mode="all" /> },
 ];
 
+// Capped at 6: the embedded English-200 pool only has ~16 words of length
+// 7 and ~4 of length 8, so thresholds above 6 collapsed the pool to a
+// handful of words that repeated all run (FT-057). 6 still meaningfully
+// filters short words while keeping the pool varied.
 const MIN_WORD_OPTIONS: readonly {
   id: number;
   label: string;
   preview: React.ReactNode;
-}[] = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
+}[] = [1, 2, 3, 4, 5, 6].map((n) => ({
   id: n,
   label: String(n),
   preview: <MinWordSample len={n} />,

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { useBackend } from "@/lib/backend";
+import { BackendError, useBackend } from "@/lib/backend";
 import { createLobbyAndInvite } from "@/lib/invite-to-lobby";
 import { useAsyncAction } from "@/lib/use-async-action";
 import { cn } from "@/lib/utils";
@@ -80,11 +80,31 @@ export function FollowButton({
     void action.run();
   }
 
+  // "Invite to a race" — its own async state so it disables + relabels in
+  // flight and surfaces an error line instead of failing silently when the
+  // lobby can't be created (FT-050).
+  const inviteAction = useAsyncAction<string>(async () => {
+    const slug = await createLobbyAndInvite(backend, userId);
+    if (!slug) {
+      throw new BackendError(
+        500,
+        "INTERNAL",
+        "Couldn't start the race. Try again.",
+      );
+    }
+    router.push(`/race/c/${slug}`);
+    return slug;
+  });
+
   // They blocked you: no affordance at all.
   if (rel.blockedBy) return null;
 
   const loading = action.loading;
-  const err = action.result && !action.result.ok ? action.result.message : null;
+  const err =
+    (action.result && !action.result.ok ? action.result.message : null) ??
+    (inviteAction.result && !inviteAction.result.ok
+      ? inviteAction.result.message
+      : null);
   const btnSize = size === "sm" ? "sm" : "default";
   // The repo's Button `default` size is h-8 (32px) — under the §7 44px
   // touch floor for a primary action. The profile CTA bumps to 44 on
@@ -97,14 +117,20 @@ export function FollowButton({
     <DropdownMenuContent align="end" sideOffset={6} className="min-w-48 p-1">
       {rel.mutual ? (
         <DropdownMenuItem
-          onSelect={async () => {
-            const slug = await createLobbyAndInvite(backend, userId);
-            if (slug) router.push(`/race/c/${slug}`);
+          // preventDefault keeps the menu open during the request so the
+          // relabel is visible; success navigates away, failure surfaces
+          // on the button's error line.
+          onSelect={(e) => {
+            e.preventDefault();
+            void inviteAction.run();
           }}
+          disabled={inviteAction.loading}
           className="flex items-center gap-2.5 rounded-sm py-2 pl-2 pr-3 text-[12px] font-medium uppercase tracking-[0.12em]"
         >
           <Swords size={13} aria-hidden />
-          <span>Invite to a race</span>
+          <span>
+            {inviteAction.loading ? "Inviting…" : "Invite to a race"}
+          </span>
         </DropdownMenuItem>
       ) : null}
       {rel.following || rel.mutual ? (

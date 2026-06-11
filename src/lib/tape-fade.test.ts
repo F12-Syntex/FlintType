@@ -30,9 +30,19 @@ describe("tapeFadeMask", () => {
 
   it("clamps the margin into [0,100]", () => {
     expect(tapeFadeMask("soft", -10)).toContain("#000 0%");
-    // margin 200 → clamped 100, left fade = min(100, 9) = 9.
+    // margin 200 → clamped 100: the caret sits at the far right, so the
+    // right band must extend to 100% (no right fade) rather than the fixed
+    // 91% — otherwise the caret would sit inside the fade (FT-071).
     expect(tapeFadeMask("soft", 200)).toBe(
-      "linear-gradient(to right, transparent 0%, #000 9%, #000 91%, transparent 100%)",
+      "linear-gradient(to right, transparent 0%, #000 9%, #000 100%, transparent 100%)",
+    );
+  });
+
+  it("clamps the right band right of a high caret margin (FT-071)", () => {
+    // strong edge 20 would fix the right band at 80%, but a caret pinned
+    // at 90% must stay opaque — the band moves to margin + 5 = 95%.
+    expect(tapeFadeMask("strong", 90)).toBe(
+      "linear-gradient(to right, transparent 0%, #000 20%, #000 95%, transparent 100%)",
     );
   });
 });

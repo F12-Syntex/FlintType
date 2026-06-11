@@ -515,7 +515,12 @@ function PassageBody({
       const lh = lineHeight ?? parseFloat(getComputedStyle(inner).lineHeight);
       if (Number.isFinite(lh) && lh > 0 && clipHeight != null && clipHeight > 0) {
         const cap = Math.max(1, Math.round(clipHeight / lh));
-        const trigger = Math.max(0, Math.floor(cap / 2));
+        // Keep at least one lookahead line visible below the caret: with
+        // cap=2 the old floor(cap/2)=1 trigger pinned the caret to the
+        // bottom visible line, hiding the upcoming line entirely (FT-008).
+        // Clamp to cap-2 so the caret line always leaves room for the next
+        // line; cap=1 (single-line tape) behaviour is unchanged.
+        const trigger = Math.max(0, Math.min(Math.floor(cap / 2), cap - 2));
         const currentLine = Math.max(0, Math.floor(targetTopInInner / lh));
         const desired = Math.max(0, currentLine - trigger) * lh;
         setScrollOffset(desired);

@@ -8,6 +8,12 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.139.1 — 11 June 2026
+- Fixed tape mode going invisible: pushing the caret far to the right no longer fades out the caret and the text you're about to type.
+- With "Lines shown" set to 2, the next line is now visible ahead of the cursor instead of the caret riding the bottom edge with nothing to read.
+- "Invite to a race" on a friend now shows a loading state and an error if it can't start, instead of doing nothing silently.
+- The minimum-word-length setting now stops at 6 — higher values left the word pool with only a handful of words that repeated all run.
+
 ## 6.139.0 — 11 June 2026
 - You can no longer "complete" a test by tapping space through every word — a space with nothing typed for the current word is now ignored, the way it should be.
 - Fixed a stuck red underline: a word you mistyped then corrected before pressing space no longer stays underlined for the rest of the run in stop-on-error mode.

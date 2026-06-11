@@ -15,5 +15,12 @@ export function tapeFadeMask(fade: TapeFade, marginPct: number): string | null {
   const edge = fade === "strong" ? 20 : 9;
   const margin = Math.max(0, Math.min(100, marginPct));
   const left = Math.min(margin, edge);
-  return `linear-gradient(to right, transparent 0%, #000 ${left}%, #000 ${100 - edge}%, transparent 100%)`;
+  // Clamp the right band's start so it never crosses left of the caret
+  // anchor: at a high caret margin the fixed `100 - edge` start would put
+  // the caret (and the upcoming text) inside the right transparency ramp,
+  // rendering them permanently faded / invisible (FT-071). Keep the band
+  // a small buffer to the right of the caret.
+  const BUFFER = 5;
+  const right = Math.max(100 - edge, Math.min(100, margin + BUFFER));
+  return `linear-gradient(to right, transparent 0%, #000 ${left}%, #000 ${right}%, transparent 100%)`;
 }
