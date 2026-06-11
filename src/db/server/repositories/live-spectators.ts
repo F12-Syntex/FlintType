@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, lt, sql } from "drizzle-orm";
 import { liveSpectators } from "@/db/schema/server/live-spectators";
 import type { ServerDrizzle } from "../driver";
 
@@ -30,9 +30,27 @@ export function liveSpectatorsRepo(db: ServerDrizzle) {
         .from(liveSpectators)
         .where(eq(liveSpectators.broadcasterId, broadcasterId));
       const now = Date.now();
-      return rows
+      const fresh = rows
         .filter((r) => now - r.updatedAt.getTime() < ttlMs)
         .map((r) => r.spectatorId);
+      // Lazy reap: drop this broadcaster's stale rows so the table doesn't
+      // only ever grow (it previously deleted only on an explicit stop, so
+      // a spectator who closed the tab left a row forever — issue #1).
+      // Bounded, indexed, and fire-and-forget so it never slows the poll.
+      if (fresh.length !== rows.length) {
+        void db
+          .delete(liveSpectators)
+          .where(
+            and(
+              eq(liveSpectators.broadcasterId, broadcasterId),
+              lt(liveSpectators.updatedAt, new Date(now - ttlMs)),
+            ),
+          )
+          .catch(() => {
+            /* a failed reap is harmless — the rows just age out again */
+          });
+      }
+      return fresh;
     },
 
     /** Drop a single watcher edge — when a spectator explicitly stops. */

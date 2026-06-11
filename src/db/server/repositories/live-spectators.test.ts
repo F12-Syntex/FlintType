@@ -35,6 +35,17 @@ describe("liveSpectatorsRepo", () => {
     expect(await ctx.db.liveSpectators.listFor("caster", 0)).toEqual([]);
   });
 
+  it("lazily reaps stale rows on listFor, not just filters them (#1)", async () => {
+    await ctx.db.liveSpectators.touch("caster", "alice");
+    // ttl 0 → the row is stale; listFor returns none AND reaps the row.
+    expect(await ctx.db.liveSpectators.listFor("caster", 0)).toEqual([]);
+    // Let the fire-and-forget delete land.
+    await new Promise((r) => setTimeout(r, 50));
+    // A generous ttl now returns nothing because the row was deleted,
+    // not merely filtered out — proving the reaper ran.
+    expect(await ctx.db.liveSpectators.listFor("caster", 60_000)).toEqual([]);
+  });
+
   it("ignores a self-watch edge", async () => {
     await ctx.db.liveSpectators.touch("caster", "caster");
     expect(await ctx.db.liveSpectators.listFor("caster", 5_000)).toEqual([]);

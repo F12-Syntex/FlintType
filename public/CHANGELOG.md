@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.143.1 — 11 June 2026
+- Internal changes only — the "who's watching" table now cleans up stale entries instead of only ever growing.
+
 ## 6.143.0 — 11 June 2026
 - Closed a loophole that let someone fake their level and "Top by Level" ranking: drill counts are now tracked on the server as you finish drills, and edited settings can no longer inflate your stats.
 
