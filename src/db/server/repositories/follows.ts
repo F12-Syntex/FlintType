@@ -19,12 +19,25 @@ export function followsRepo(db: ServerDrizzle) {
       followeeId: string,
     ): Promise<{ created: boolean }> {
       if (followerId === followeeId) return { created: false };
-      const inserted = await db
-        .insert(follows)
-        .values({ followerId, followeeId })
-        .onConflictDoNothing()
-        .returning();
-      return { created: inserted.length > 0 };
+      // Insert atomically guarded by a NOT EXISTS block check, so a follow
+      // concurrent with a block can't slip an edge in after the block's
+      // unfollow-both ran (FT-044). The route's eitherBlocks check is a
+      // fast-path 403; this is the race-free backstop at write time.
+      const result = await db.execute(sql`
+        INSERT INTO follows (follower_id, followee_id)
+        SELECT ${followerId}, ${followeeId}
+        WHERE NOT EXISTS (
+          SELECT 1 FROM blocks
+          WHERE (blocker_id = ${followerId} AND blocked_id = ${followeeId})
+             OR (blocker_id = ${followeeId} AND blocked_id = ${followerId})
+        )
+        ON CONFLICT DO NOTHING
+        RETURNING follower_id
+      `);
+      const rows =
+        (result as { rows?: unknown[] }).rows ??
+        (Array.isArray(result) ? (result as unknown[]) : []);
+      return { created: rows.length > 0 };
     },
 
     /** Remove the directed edge. No-op when it doesn't exist. */

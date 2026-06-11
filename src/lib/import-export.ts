@@ -5,7 +5,7 @@ import { DEFAULT_BACKGROUND, type BackgroundPrefs } from "./background-prefs";
 import { DEFAULT_BEHAVIOUR, type BehaviourPrefs } from "./behaviour-prefs";
 import { DEFAULT_CARET, type CaretSettings } from "./caret-settings";
 import { type KeyboardSettings } from "./keyboard-settings";
-import { getCache, loadPrefs, writeSlice } from "./prefs-store";
+import { getCache, loadPrefs, patchSlice, writeSlice } from "./prefs-store";
 
 /** All known slice keys — every flinttype-managed pref slice the
  *  importer/exporter understands. Anything outside this list is left
@@ -283,7 +283,10 @@ export function planMonkeytypeImport(payload: unknown): ImportPlan {
         n += 1;
       }
       if (practice) {
-        writeSlice("practice", practice);
+        // Merge only mode + length so the user's other practice settings
+        // (adapt, wordlist) survive a MonkeyType import instead of being
+        // reset to defaults (FT-027).
+        patchSlice("practice", practice);
         n += 1;
       }
       return n;
@@ -545,9 +548,24 @@ function mapPractice(mt: MonkeytypeSettings): {
     out.mode = mt.mode.toUpperCase() as "WORDS" | "TIME" | "QUOTE";
   }
   // MT keeps the words and time counts as separate top-level fields;
-  // pick the one matching the chosen mode (or fall back to words).
-  if (out.mode === "TIME" && typeof mt.time === "number") out.length = mt.time;
-  else if (typeof mt.words === "number") out.length = mt.words;
+  // pick the one matching the chosen mode.
+  if (out.mode === "TIME" && typeof mt.time === "number") {
+    out.length = mt.time;
+  } else if (out.mode === "QUOTE") {
+    // flinttype's QUOTE length is a single group index 0..3
+    // (short/medium/long/thicc). MT stores `quoteLength` as an array of
+    // selected length ids (same 0..3 scale); pick the lowest selected and
+    // clamp. `mt.words` is a word count — writing it here left QUOTE with
+    // an out-of-range length and no selectable option (FT-027).
+    const ql = Array.isArray(mt.quoteLength)
+      ? (mt.quoteLength as unknown[]).filter(
+          (n): n is number => typeof n === "number",
+        )
+      : [];
+    out.length = ql.length ? clamp(Math.min(...ql), 0, 3) : 0;
+  } else if (typeof mt.words === "number") {
+    out.length = mt.words;
+  }
   if (out.mode == null || out.length == null) return null;
   return { mode: out.mode, length: out.length };
 }

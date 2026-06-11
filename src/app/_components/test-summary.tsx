@@ -180,20 +180,30 @@ function PassageHeatmap({
 }) {
   const latencyByPos = useMemo(() => {
     const map = new Map<string, number>();
-    let w = 0;
+    // Key the walk on each event's own wordIndex (not a running counter
+    // that only advances when a word is fully typed). A skipped word, a
+    // backspace-retype, or an uncorrected error otherwise desynced the
+    // counter from the real cursor and painted latencies onto the wrong
+    // letters (FT-066). The per-word char position resets whenever the
+    // wordIndex changes; the `>= word.length` guard drops overflow from a
+    // backspace-retype rather than misattributing it.
+    let lastWord = -1;
     let c = 0;
     let prevT = 0;
     for (const e of events) {
-      if (!e.correct) continue;
-      const word = words[w];
-      if (!word) break;
-      map.set(`${w}:${c}`, Math.max(0, e.t - prevT));
-      prevT = e.t;
-      c += 1;
-      if (c >= word.length) {
-        w += 1;
+      if (e.wordIndex !== lastWord) {
+        lastWord = e.wordIndex;
         c = 0;
       }
+      if (!e.correct) continue;
+      const word = words[e.wordIndex];
+      if (!word || c >= word.length) {
+        prevT = e.t;
+        continue;
+      }
+      map.set(`${e.wordIndex}:${c}`, Math.max(0, e.t - prevT));
+      prevT = e.t;
+      c += 1;
     }
     return map;
   }, [events, words]);

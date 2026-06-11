@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.142.1 — 11 June 2026
+- The results-screen per-letter speed heatmap now lands on the right letters even when you skip a word, backspace and retype, or leave a mistake uncorrected.
+- Importing MonkeyType settings in quote mode now picks a valid quote length instead of leaving quote mode with nothing selectable, and no longer resets your adaptive / word-list choices.
+- Following and blocking at the same time can no longer leave a stray follow across a block.
+
 ## 6.142.0 — 11 June 2026
 - Races are harder to cheat: the server now rejects impossible jumps to the finish line, so a single forged update can't instantly win.
 - Final race placements now match the speed column you see — accuracy is no longer counted twice when ranking, so the fastest net WPM wins.

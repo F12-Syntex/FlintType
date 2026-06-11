@@ -4,20 +4,28 @@ vi.mock("./prefs-store", () => ({
   loadPrefs: vi.fn(async () => ({})),
   getCache: vi.fn(() => ({})),
   writeSlice: vi.fn(),
+  patchSlice: vi.fn(),
 }));
 
-import { writeSlice } from "./prefs-store";
+import { patchSlice, writeSlice } from "./prefs-store";
 import { importFlinttype, importMonkeytype } from "./import-export";
 
 const mockWrite = vi.mocked(writeSlice);
+const mockPatch = vi.mocked(patchSlice);
 
 beforeEach(() => {
   mockWrite.mockReset();
+  mockPatch.mockReset();
 });
 
+// Both full-slice writes and field-level patches count as "what got
+// written" for these assertions.
 const writes = (): Record<string, unknown> => {
   const out: Record<string, unknown> = {};
   for (const call of mockWrite.mock.calls) {
+    out[call[0] as string] = call[1];
+  }
+  for (const call of mockPatch.mock.calls) {
     out[call[0] as string] = call[1];
   }
   return out;
@@ -153,6 +161,25 @@ describe("importMonkeytype", () => {
     expect((w.appearance as { keymap: string }).keymap).toBe("next");
     expect((w.practice as { mode: string; length: number }).mode).toBe("WORDS");
     expect((w.practice as { length: number }).length).toBe(10);
+  });
+
+  it("maps quote mode to a valid 0-3 group index, not the word count (FT-027)", () => {
+    importMonkeytype({
+      mode: "quote",
+      quoteLength: [1, 2], // MT selected medium + long
+      words: 50, // a word count — must NOT become the quote length
+    });
+    const p = writes().practice as { mode: string; length: number };
+    expect(p.mode).toBe("QUOTE");
+    // Lowest selected, clamped to 0..3.
+    expect(p.length).toBe(1);
+  });
+
+  it("defaults quote length to 0 when MT sends no quoteLength (FT-027)", () => {
+    importMonkeytype({ mode: "quote", words: 50 });
+    const p = writes().practice as { mode: string; length: number };
+    expect(p.mode).toBe("QUOTE");
+    expect(p.length).toBe(0);
   });
 });
 

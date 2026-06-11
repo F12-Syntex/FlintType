@@ -31,6 +31,19 @@ describe("followsRepo", () => {
     expect(await ctx.db.follows.followingCount("a")).toBe(1);
   });
 
+  it("follow is refused at write time when a block exists either way (FT-044)", async () => {
+    // a blocked b: neither direction can create a follow edge, even if the
+    // route-level check were bypassed (this is the atomic write guard).
+    await ctx.db.blocks.block("a", "b");
+    expect((await ctx.db.follows.follow("b", "a")).created).toBe(false);
+    expect(await ctx.db.follows.isFollowing("b", "a")).toBe(false);
+    expect((await ctx.db.follows.follow("a", "b")).created).toBe(false);
+    expect(await ctx.db.follows.isFollowing("a", "b")).toBe(false);
+    // Once unblocked, follows work again.
+    await ctx.db.blocks.unblock("a", "b");
+    expect((await ctx.db.follows.follow("a", "b")).created).toBe(true);
+  });
+
   it("self-follow is refused and writes nothing", async () => {
     const { created } = await ctx.db.follows.follow("a", "a");
     expect(created).toBe(false);
