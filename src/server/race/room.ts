@@ -48,6 +48,19 @@ const ROOM_TTL_MS = 5 * 60_000;
  *  lobby-link share gets killed; short enough that abandoned rooms
  *  don't leak the in-memory store. */
 const CHALLENGE_HOST_IDLE_TTL_MS = 30 * 60_000;
+/** Anti-cheat rate clamp for `setProgress` (FT-030). ~360 gross WPM
+ *  (30 chars/s) is far beyond any human, so a real racer never hits it,
+ *  but it makes an instant jump-to-finish impossible. RATE_GRACE_CHARS
+ *  absorbs the first batched POST so the opening keystrokes aren't
+ *  clipped. A matchmaking-race hard watchdog (FT-024) also lives below. */
+const MAX_CHARS_PER_SEC = 30;
+const RATE_GRACE_CHARS = 15;
+/** Hard cap on how long a word race can stay in `racing` before the room
+ *  force-finishes — stops an AFK racer (no buzzer in word mode, unlike
+ *  timed races) pinning the room and leaking its bot tick forever
+ *  (FT-024). Generous: 200 chars at a slow 20 WPM ≈ 5 min, so no honest
+ *  finisher is cut off. */
+const WORD_RACE_MAX_MS = 6 * 60_000;
 
 type InternalRacer = RoomRacer & {
   sessionToken: string;
@@ -495,6 +508,16 @@ export class RaceRoom {
         this.endRaceByTimeLimit();
       }, this.durationSec * 1000);
       this.timers.add(t);
+    } else {
+      // Word race: no buzzer, so an AFK (or vanished-without-leave) racer
+      // could pin the room in `racing` forever and leak the bot tick.
+      // Arm a hard max-duration watchdog that force-finishes the room the
+      // same way the buzzer does (FT-024).
+      const t = setTimeout(() => {
+        this.timers.delete(t);
+        this.endRaceByTimeLimit();
+      }, WORD_RACE_MAX_MS);
+      this.timers.add(t);
     }
     this.scheduleBroadcast();
   }
@@ -613,7 +636,9 @@ export class RaceRoom {
     // The client reports its own WPM, but we IGNORE it for ranking and
     // recompute server-side below — see the comment on the wpm block.
     _clientWpm: number,
-    finished: boolean,
+    // The client's "I crossed the line" flag — advisory only; finishing is
+    // gated on the rate-clamped progress reaching the end (FT-030).
+    _finished: boolean,
     errors?: number,
     accuracy?: number,
   ): boolean {
@@ -625,7 +650,18 @@ export class RaceRoom {
     // early can ever land. Progress is also clamped to the passage
     // bounds [0, totalChars].
     if (this.phase !== "racing" && this.phase !== "finished") return false;
-    const next = Math.min(this.totalChars, Math.max(0, Math.floor(progressChars)));
+    // Rate-clamp progress to what's physically typable since the gun, so a
+    // single forged keystroke POST can't jump straight to the finish line
+    // and win (FT-030). MAX_CHARS_PER_SEC (~360 gross WPM) is well above
+    // any human, plus a small grace for the first batched POST — a real
+    // racer never hits it, but an instant finish is impossible (a 200-char
+    // passage now takes at least ~6s).
+    let next = Math.min(this.totalChars, Math.max(0, Math.floor(progressChars)));
+    if (this.raceStartedAt != null) {
+      const elapsedSec = Math.max(0, (Date.now() - this.raceStartedAt) / 1000);
+      const maxByRate = Math.ceil(elapsedSec * MAX_CHARS_PER_SEC) + RATE_GRACE_CHARS;
+      next = Math.min(next, maxByRate);
+    }
     if (next !== r.progressChars) r.progressChars = next;
     if (errors != null) {
       const e = Math.max(0, Math.floor(errors));
@@ -655,9 +691,13 @@ export class RaceRoom {
     // any prior disconnected flag set by a stale leave / strict-mode
     // unmount.
     if (r.disconnected) r.disconnected = false;
+    // Finishing is gated on the racer's (rate-clamped) progress actually
+    // reaching the end of the passage — NOT on the client's `finished`
+    // flag (now `_finished`), which a forged POST could set while clamped
+    // well short of the line (FT-030).
     if (
       r.finishedAt == null &&
-      (finished || r.progressChars >= this.totalChars) &&
+      r.progressChars >= this.totalChars &&
       this.raceStartedAt != null
     ) {
       r.finishedAt = Math.floor((Date.now() - this.raceStartedAt) / 1000);
@@ -784,11 +824,12 @@ export class RaceRoom {
    *  the place is final by the time the result panel mounts. */
   private rankByNetWpm() {
     const racers = [...this.racers.values()];
-    const score = (r: (typeof racers)[number]) => {
-      const wpm = Math.max(0, r.wpm);
-      const acc = Math.max(0, Math.min(100, r.accuracy));
-      return Math.round(wpm * (acc / 100));
-    };
+    // r.wpm is ALREADY net — it's computed from correct chars only
+    // ((progressChars - errors) / 5 / minutes). Multiplying by accuracy
+    // again here double-penalised accuracy and disagreed with the WPM
+    // column the racers see (the client ranks by r.wpm directly). Rank by
+    // r.wpm so the final placement matches the displayed net WPM (FT-021).
+    const score = (r: (typeof racers)[number]) => Math.max(0, r.wpm);
     racers.sort((a, b) => {
       if (a.disconnected !== b.disconnected) {
         return a.disconnected ? 1 : -1;

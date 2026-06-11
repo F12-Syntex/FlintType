@@ -581,7 +581,9 @@ describe("RaceRoom", () => {
     vi.advanceTimersByTime(700 + 3_000); // lobby + countdown
     expect(room.phase).toBe("racing");
     // Drive the room to finish: real player completes the passage,
-    // bot tick eventually finishes too.
+    // bot tick eventually finishes too. Let time pass first so the cross
+    // clears the FT-030 rate clamp.
+    vi.advanceTimersByTime(5_000);
     room.setProgress("s_host", room.totalChars, 100, true);
     vi.advanceTimersByTime(60_000); // bot finishes within 60s
     expect(room.phase).toBe("finished");
@@ -636,7 +638,9 @@ describe("RaceRoom", () => {
     vi.advanceTimersByTime(700); // lobby hold
     vi.advanceTimersByTime(3_000); // countdown
     expect(room.phase).toBe("racing");
-    // Alice finishes immediately
+    // Let real time pass so a full-passage cross clears the FT-030 rate
+    // clamp, then Alice finishes.
+    vi.advanceTimersByTime(5_000);
     room.setProgress("s_alice", room.totalChars, 100, true);
     // Tick bots until they cross the line too
     vi.advanceTimersByTime(20_000);
@@ -661,12 +665,21 @@ describe("RaceRoom", () => {
     room.addRealRacer({ sessionToken: "s_bob", name: "@bob", badge: "RACER" });
     vi.advanceTimersByTime(5_000 + 700 + 3_000);
     expect(room.phase).toBe("racing");
+    // Let enough real time pass that crossing the passage is within the
+    // server's anti-cheat rate clamp (FT-030) — an instant cross would be
+    // clamped, which isn't what this ranking test is about.
+    vi.advanceTimersByTime(10_000);
 
-    // Alice crosses first at 50% accuracy (client-reported wpm ignored).
-    room.setProgress("s_alice", room.totalChars, 100, true, undefined, 50);
-    // Bob crosses second at 95% accuracy → higher net.
+    // Net WPM is errors-adjusted server-side ((chars - errors) / 5 / min),
+    // so Alice crossing first with MANY errors has a lower net than Bob
+    // crossing a second later cleanly — even though Alice's gross speed is
+    // higher. (accuracy is a separate displayed field; r.wpm is the net.)
+    const aliceErrors = Math.floor(room.totalChars * 0.5);
+    const bobErrors = Math.floor(room.totalChars * 0.05);
+    room.setProgress("s_alice", room.totalChars, 100, true, aliceErrors, 50);
+    // Bob crosses second cleanly → higher net.
     vi.advanceTimersByTime(1_000);
-    room.setProgress("s_bob", room.totalChars, 142, true, undefined, 95);
+    room.setProgress("s_bob", room.totalChars, 142, true, bobErrors, 95);
     // Drive bots over the line too so phase flips to finished.
     vi.advanceTimersByTime(60_000);
     expect(room.phase).toBe("finished");
@@ -679,6 +692,49 @@ describe("RaceRoom", () => {
     // whether bots placed in between.
     const top = racers.find((r) => r.place === 1);
     expect(top?.id).toBe("s_bob");
+  });
+
+  it("rate-clamps progress so a forged instant cross can't finish (FT-030)", () => {
+    // Challenge room with hostStart so racing begins at a known instant
+    // (countdown end) and the cross POST lands at elapsed ≈ 0.
+    const room = new RaceRoom({
+      id: "r_clamp",
+      slug: "clamp-fox-10",
+      kind: "challenge",
+      modeId: "ffa",
+      raceSeed: 1,
+      wordCount: 10,
+    });
+    room.addRealRacer({ sessionToken: "s_a", name: "@a", badge: "R", isHost: true });
+    room.addRealRacer({ sessionToken: "s_b", name: "@b", badge: "R" });
+    expect(room.hostStart("s_a")).toBe(true);
+    vi.advanceTimersByTime(700 + 3_000); // lobby + countdown → racing at t≈0
+    expect(room.phase).toBe("racing");
+    // A single POST jumping straight to the end at t≈0 is clamped to the
+    // grace and must NOT finish — the clock has to catch up first.
+    room.setProgress("s_a", room.totalChars, 999, true, 0, 100);
+    const a = room.snapshot().racers.find((r) => r.id === "s_a");
+    expect(a?.progressChars).toBeLessThan(room.totalChars);
+    expect(a?.finishedAt).toBeNull();
+  });
+
+  it("force-finishes a stalled word race via the watchdog (FT-024)", () => {
+    const room = new RaceRoom({
+      id: "r_watchdog",
+      slug: null,
+      kind: "matchmaking",
+      modeId: "1v1",
+      raceSeed: 1,
+      wordCount: 50,
+    });
+    room.addRealRacer({ sessionToken: "s_a", name: "@a", badge: "R" });
+    room.addRealRacer({ sessionToken: "s_b", name: "@b", badge: "R" });
+    vi.advanceTimersByTime(5_000 + 700 + 3_000);
+    expect(room.phase).toBe("racing");
+    // Neither real racer ever posts progress (both AFK). Without a
+    // word-race watchdog the room would stay 'racing' forever.
+    vi.advanceTimersByTime(6 * 60_000 + 1_000);
+    expect(room.phase).toBe("finished");
   });
 
   it("an authenticated user can't join their own room twice — they resume their seat", () => {
@@ -782,15 +838,18 @@ describe("RaceRoom", () => {
     expect(room.hostStart("s_host")).toBe(true);
     vi.advanceTimersByTime(700 + 3_000);
     expect(room.phase).toBe("racing");
-    // Host types more (50 chars) but with errors; b types fewer (25)
-    // cleanly. Neither completes the long timed passage early.
+    // Let a few seconds pass so 50/25-char progress clears the anti-cheat
+    // rate clamp (FT-030), then report. Host types more (50 chars) but
+    // with errors; b types fewer (25) cleanly. Neither completes the long
+    // timed passage early.
+    vi.advanceTimersByTime(4_000);
     room.setProgress("s_host", 50, 0, false, 8, 84);
     room.setProgress("s_b", 25, 0, false, 0, 100);
-    // Still racing before the 15s buzzer.
-    vi.advanceTimersByTime(14_000);
+    // Still racing before the 15s buzzer (4s elapsed).
+    vi.advanceTimersByTime(10_000);
     expect(room.phase).toBe("racing");
     // Buzzer fires at 15s — everyone is marked finished and ranked.
-    vi.advanceTimersByTime(1_500);
+    vi.advanceTimersByTime(2_000);
     expect(room.phase).toBe("finished");
     const racers = room.snapshot().racers;
     expect(racers.every((r) => r.finishedAt != null)).toBe(true);

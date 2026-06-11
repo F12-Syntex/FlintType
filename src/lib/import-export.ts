@@ -312,8 +312,6 @@ function describeBehaviour(b: Partial<BehaviourPrefs>): ImportChangeDetail[] {
   if (b.confidence) out.push({ key: "Confidence", value: b.confidence });
   if (b.stopOnError != null)
     out.push({ key: "Stop on error", value: b.stopOnError ? "On" : "Off" });
-  if (b.quickRestart != null)
-    out.push({ key: "Quick restart", value: b.quickRestart ? "On" : "Off" });
   if (b.blindMode != null)
     out.push({ key: "Blind mode", value: b.blindMode ? "On" : "Off" });
   return out;
@@ -385,9 +383,6 @@ const CARET_STYLES = new Set<string>([
 
 function mapBehaviour(mt: MonkeytypeSettings): Partial<BehaviourPrefs> | null {
   const out: Partial<BehaviourPrefs> = {};
-  if (typeof mt.quickRestart === "string") {
-    out.quickRestart = mt.quickRestart !== "off";
-  }
   if (typeof mt.stopOnError === "string") {
     out.stopOnError = mt.stopOnError !== "off";
   }

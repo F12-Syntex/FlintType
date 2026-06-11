@@ -8,6 +8,13 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.142.0 — 11 June 2026
+- Races are harder to cheat: the server now rejects impossible jumps to the finish line, so a single forged update can't instantly win.
+- Final race placements now match the speed column you see — accuracy is no longer counted twice when ranking, so the fastest net WPM wins.
+- Word races that stall (everyone idle) now end automatically instead of hanging forever.
+- Joining a race invite from the friends dock now clears it — the invite and its badge no longer linger after you've joined.
+- Removed the dead "Quick restart" setting that did nothing but still counted toward your customised total.
+
 ## 6.141.1 — 11 June 2026
 - Customising a single colour on top of a community palette no longer wipes the rest of that palette when you reload — your palette now stays put underneath your tweaks.
 

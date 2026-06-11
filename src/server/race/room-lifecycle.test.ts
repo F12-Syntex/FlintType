@@ -123,7 +123,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       });
       room.addRealRacer({ sessionToken: "s_other", name: "@o", badge: "RACER", userId: "user_2" });
       room.hostStart("s_host");
-      vi.advanceTimersByTime(700 + 3_000);
+      vi.advanceTimersByTime(700 + 3_000 + 5_000);
       expect(room.phase).toBe("racing");
       room.removeRacer("s_host"); // mid-race → disconnected (host bit migrates)
       expect(room.snapshot().racers.find((r) => r.id === "s_host")?.disconnected).toBe(true);
@@ -274,7 +274,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       });
       room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
       room.subscribe(() => {}); // a live connection must NOT keep it alive
-      vi.advanceTimersByTime(1_000 + 700 + 3_000); // → racing
+      vi.advanceTimersByTime(1_000 + 700 + 3_000 + 5_000); // → racing (+clamp clearance)
       room.setProgress("s_alice", room.totalChars, 100, true);
       vi.advanceTimersByTime(30_000); // bot finishes → finished, 5-min GC armed
       expect(room.phase).toBe("finished");
@@ -303,7 +303,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
       room.addRealRacer({ sessionToken: "s_g", name: "@g", badge: "RACER" });
       expect(room.hostStart("s_host")).toBe(true);
-      vi.advanceTimersByTime(700 + 3_000);
+      vi.advanceTimersByTime(700 + 3_000 + 5_000);
       expect(room.phase).toBe("racing");
       room.removeRacer("s_g");
       expect(room.snapshot().racers.find((r) => r.id === "s_g")?.disconnected).toBe(true);
@@ -323,7 +323,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       });
       room.addRealRacer({ sessionToken: "s_g", name: "@g", badge: "RACER", userId: "user_2" });
       expect(room.hostStart("s_host")).toBe(true);
-      vi.advanceTimersByTime(700 + 3_000);
+      vi.advanceTimersByTime(700 + 3_000 + 5_000);
       room.removeRacer("s_g");
       expect(room.snapshot().racers.find((r) => r.id === "s_g")?.disconnected).toBe(true);
       const back = room.addRealRacer({
@@ -374,7 +374,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       vi.advanceTimersByTime(10);
       room.addRealRacer({ sessionToken: "s_c", name: "@c", badge: "RACER" });
       expect(room.hostStart("s_host")).toBe(true);
-      vi.advanceTimersByTime(700 + 3_000);
+      vi.advanceTimersByTime(700 + 3_000 + 5_000);
       expect(room.phase).toBe("racing");
       // s_b (the would-be successor by tenure) disconnects first…
       room.removeRacer("s_b");
@@ -407,7 +407,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
       room.addRealRacer({ sessionToken: "s_g", name: "@g", badge: "RACER" });
       expect(room.hostStart("s_host")).toBe(true);
-      vi.advanceTimersByTime(700 + 3_000);
+      vi.advanceTimersByTime(700 + 3_000 + 5_000);
       expect(room.phase).toBe("racing");
       room.removeRacer("s_g"); // mid-race → disconnected, kept in snapshot
       room.setProgress("s_host", room.totalChars, 100, true); // host finishes
@@ -424,7 +424,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
       room.addRealRacer({ sessionToken: "s_g", name: "@g", badge: "RACER" });
       expect(room.hostStart("s_host")).toBe(true);
-      vi.advanceTimersByTime(700 + 3_000);
+      vi.advanceTimersByTime(700 + 3_000 + 5_000);
       room.removeRacer("s_g"); // disconnected — still holds a seat at capacity
       room.setProgress("s_host", room.totalChars, 100, true);
       expect(room.phase).toBe("finished");
@@ -441,7 +441,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
       room.addRealRacer({ sessionToken: "s_g", name: "@g", badge: "RACER" });
       expect(room.hostStart("s_host")).toBe(true);
-      vi.advanceTimersByTime(700 + 3_000);
+      vi.advanceTimersByTime(700 + 3_000 + 5_000);
       room.setProgress("s_host", room.totalChars, 100, true);
       room.setProgress("s_g", room.totalChars, 100, true);
       expect(room.phase).toBe("finished");
@@ -458,7 +458,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
       room.addRealRacer({ sessionToken: "s_g", name: "@g", badge: "RACER" });
       expect(room.hostStart("s_host")).toBe(true);
-      vi.advanceTimersByTime(700 + 3_000);
+      vi.advanceTimersByTime(700 + 3_000 + 5_000);
       room.setProgress("s_host", room.totalChars, 100, true);
       room.setProgress("s_g", room.totalChars, 100, true);
       expect(room.phase).toBe("finished");
@@ -476,7 +476,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
       room.addRealRacer({ sessionToken: "s_g", name: "@g", badge: "RACER" });
       expect(room.hostStart("s_host")).toBe(true);
-      vi.advanceTimersByTime(700 + 3_000);
+      vi.advanceTimersByTime(700 + 3_000 + 5_000);
       room.setProgress("s_host", room.totalChars, 100, true);
       room.setProgress("s_g", room.totalChars, 100, true);
       expect(room.phase).toBe("finished");
@@ -492,7 +492,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
       room.addRealRacer({ sessionToken: "s_g", name: "@g", badge: "RACER" });
       expect(room.hostStart("s_host")).toBe(true);
-      vi.advanceTimersByTime(700 + 3_000);
+      vi.advanceTimersByTime(700 + 3_000 + 5_000);
       room.setProgress("s_host", room.totalChars, 100, true);
       room.setProgress("s_g", room.totalChars, 100, true);
       expect(room.phase).toBe("finished");
@@ -520,7 +520,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       const room = challenge({ modeId: "ffa" });
       room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
       expect(room.hostStart("s_host")).toBe(true);
-      vi.advanceTimersByTime(700 + 3_000);
+      vi.advanceTimersByTime(700 + 3_000 + 5_000);
       room.setProgress("s_host", room.totalChars, 100, true);
       expect(room.phase).toBe("finished");
       expect(room.hostStart("s_host")).toBe(false);
@@ -538,7 +538,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
       room.addRealRacer({ sessionToken: "s_g", name: "@g", badge: "RACER" });
       expect(room.hostStart("s_host")).toBe(true);
-      vi.advanceTimersByTime(700 + 3_000);
+      vi.advanceTimersByTime(700 + 3_000 + 5_000);
       room.removeRacer("s_g"); // disconnected
       room.setProgress("s_host", room.totalChars, 100, true); // host finishes
       expect(room.phase).toBe("finished");
@@ -550,7 +550,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
       room.addRealRacer({ sessionToken: "s_g", name: "@g", badge: "RACER" });
       expect(room.hostStart("s_host")).toBe(true);
-      vi.advanceTimersByTime(700 + 3_000);
+      vi.advanceTimersByTime(700 + 3_000 + 5_000);
       room.removeRacer("s_g");
       expect(idle).toBe(false);
       expect(room.snapshot().cancelled).toBeUndefined();

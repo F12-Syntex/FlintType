@@ -4,6 +4,7 @@ import { Plus, Search, Swords, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 import { Avatar, UserTag } from "@/components/ft";
+import { useBackend } from "@/lib/backend";
 import { cn } from "@/lib/utils";
 import type { UserTagId } from "@/types/user-tag";
 import type { DockData } from "./use-dock-data";
@@ -20,13 +21,28 @@ type Member = {
   caption: { label: string; dotClass: string | null } | null;
   action: string | null;
   bucket: number;
+  /** The race_invite notification id for a challenge row — marked read on
+   *  Join so the dock challenge + Swords badge don't persist pointing at a
+   *  joined/dead lobby (FT-031). */
+  notifId?: string;
 };
 
-function MemberRow({ m, onNavigate }: { m: Member; onNavigate: () => void }) {
+function MemberRow({
+  m,
+  onNavigate,
+  onAction,
+}: {
+  m: Member;
+  onNavigate: () => void;
+  onAction?: (m: Member) => void;
+}) {
   return (
     <Link
       href={m.href}
-      onClick={onNavigate}
+      onClick={() => {
+        onAction?.(m);
+        onNavigate();
+      }}
       className="group flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
     >
       {m.icon === "swords" ? (
@@ -69,17 +85,19 @@ function MemberRow({ m, onNavigate }: { m: Member; onNavigate: () => void }) {
 function MemberList({
   rows,
   onNavigate,
+  onAction,
   className,
 }: {
   rows: Member[];
   onNavigate: () => void;
+  onAction?: (m: Member) => void;
   className?: string;
 }) {
   return (
     <ul className={cn("divide-y divide-border/60", className)}>
       {rows.map((m) => (
         <li key={m.key}>
-          <MemberRow m={m} onNavigate={onNavigate} />
+          <MemberRow m={m} onNavigate={onNavigate} onAction={onAction} />
         </li>
       ))}
     </ul>
@@ -139,6 +157,15 @@ export function DockPanelBody({
   withHeader?: boolean;
 }) {
   const { live, challenges, directory, presenceById, loading } = data;
+  const backend = useBackend();
+
+  // Joining a challenge marks its race_invite notification read so the
+  // dock challenge row + the collapsed-pill Swords badge clear instead of
+  // lingering on a lobby you've already joined (FT-031). Fire-and-forget;
+  // the next dock poll reflects it.
+  const onAction = (m: Member) => {
+    if (m.notifId) void backend.notifications.markRead({ id: m.notifId });
+  };
 
   const members = useMemo<Member[]>(() => {
     const liveIds = new Set(live.map((u) => u.userId));
@@ -158,6 +185,7 @@ export function DockPanelBody({
         },
         action: "Join",
         bucket: 0,
+        notifId: c.id,
       });
     }
     for (const u of live) {
@@ -250,11 +278,11 @@ export function DockPanelBody({
             return matches.length === 0 ? (
               <NoMatch query={query} />
             ) : (
-              <MemberList rows={matches} onNavigate={onNavigate} className="border-y border-border/60" />
+              <MemberList rows={matches} onNavigate={onNavigate} onAction={onAction} className="border-y border-border/60" />
             );
           })()
         ) : (
-          <MemberList rows={rows} onNavigate={onNavigate} className="border-y border-border/60" />
+          <MemberList rows={rows} onNavigate={onNavigate} onAction={onAction} className="border-y border-border/60" />
         )}
       </div>
     </>
