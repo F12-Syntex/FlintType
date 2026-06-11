@@ -20,7 +20,7 @@ import { useIsMobile } from "@/lib/use-is-mobile";
 import { isRaceInputCurrentlyLocked } from "@/lib/race-input";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { useWordlist } from "@/lib/wordlists/use-wordlist";
-import { calcWpmAndRaw, countChars, errorCount as computeErrorCount } from "@/lib/wpm";
+import { calcWpmAndRaw, errorCount as computeErrorCount } from "@/lib/wpm";
 import {
   avgWpm as computeAvgWpm,
   consistencyScore as computeConsistency,
@@ -567,12 +567,15 @@ export function PracticeProvider({
     // threshold (behaviour.burstThreshold = 0). Pure localStorage,
     // capped to the last 20 samples; see src/lib/avg-wpm-cache.ts.
     recordWpmSample(wpm);
-    const counts = countChars(state.typed, state.words, true);
-    const correctChars = counts.allCorrectChars;
-    const incorrectChars = counts.incorrectChars + counts.extraChars;
+    // Keystroke accuracy (Monkeytype-style): correct presses over total
+    // presses. The reducer tracks these on every TYPE_CHAR, including
+    // stop-on-error-blocked and corrected mistakes — so a mistake you
+    // fixed (or one the strict mode blocked) still lowers accuracy. The
+    // old buffer-based figure read 100% for any run you cleaned up before
+    // the end (FT-016).
     const accuracy =
-      correctChars + incorrectChars > 0
-        ? (correctChars / (correctChars + incorrectChars)) * 100
+      state.totalChars > 0
+        ? (state.correctChars / state.totalChars) * 100
         : 100;
     const wordsActuallyTyped = state.words.slice(
       0,
@@ -745,12 +748,12 @@ export function PracticeProvider({
         isFinal,
         s.events.length,
       );
-      const counts = countChars(s.typed, s.words, isFinal);
-      const correct = counts.allCorrectChars;
-      const incorrect = counts.incorrectChars + counts.extraChars;
+      // Keystroke accuracy (Monkeytype-style) — correct presses / total
+      // presses, tracked by the reducer so corrected and stop-on-error
+      // blocked mistakes count against it (FT-016).
       const acc =
-        correct + incorrect > 0
-          ? Math.round((correct / (correct + incorrect)) * 1000) / 10
+        s.totalChars > 0
+          ? Math.round((s.correctChars / s.totalChars) * 1000) / 10
           : 100;
       return {
         wpm: Math.round(rawWpm),
@@ -1043,7 +1046,13 @@ export function PracticeProvider({
       // reset. Swallow the space here so this handler can't bypass that
       // gate and double-dispatch SPACE (FT-012).
       if (s.mode === "BURST") return;
-      dispatch({ type: "SPACE", now: Date.now(), strictSpace: p.strictSpace });
+      // Relax strict-space when backspace is fully disabled (confidence
+      // "all") so a typo can't deadlock the run (FT-015).
+      dispatch({
+        type: "SPACE",
+        now: Date.now(),
+        strictSpace: p.strictSpace && p.confidence !== "all",
+      });
       return;
     }
     if (e.key === "Backspace") {

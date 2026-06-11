@@ -129,7 +129,11 @@ export function InputCapture({ children }: { children: ReactNode }) {
             const p = prefsRef.current;
             const stopOnError = p.stopOnError;
             const allowExtras = p.allowExtras;
-            const strictSpace = p.strictSpace;
+            // Relax strict-space when backspace is fully disabled
+            // (confidence "all"): otherwise a single typo can never be
+            // fixed (no backspace) and can never be passed (strict space
+            // refuses to advance), deadlocking the run until Esc (FT-015).
+            const strictSpace = p.strictSpace && p.confidence !== "all";
             const isBurst = modeRef.current === "BURST";
             for (const ch of data) {
               if (ch === " " || ch === "\n") {
@@ -217,7 +221,8 @@ export function InputCapture({ children }: { children: ReactNode }) {
             dispatch({
               type: "SPACE",
               now: Date.now(),
-              strictSpace: p.strictSpace,
+              // See FT-015 note above — relaxed when backspace is off.
+              strictSpace: p.strictSpace && p.confidence !== "all",
             });
             playClick();
             return;

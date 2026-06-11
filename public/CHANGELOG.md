@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.140.0 — 11 June 2026
+- Accuracy is now honest: mistakes you corrected (or that stop-on-error blocked) now count against your accuracy, instead of every cleaned-up run reading 100%. This applies to the live readout and your saved results.
+- Fixed a deadlock: with backspace fully off and strict spacing on, a single typo no longer froze the run — you can now space past it (it's marked wrong) instead of being stuck until Escape.
+- Guest personal-best detection now uses your true final speed, not the last live sample, so first-run crowns are accurate.
+
 ## 6.139.1 — 11 June 2026
 - Fixed tape mode going invisible: pushing the caret far to the right no longer fades out the caret and the text you're about to type.
 - With "Lines shown" set to 2, the next line is now visible ahead of the cursor instead of the caret riding the bottom edge with nothing to read.

@@ -9,7 +9,7 @@ import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { recordIfPb } from "@/lib/pb-cache";
 import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
 import { cn } from "@/lib/utils";
-import { errorCount } from "@/lib/wpm";
+import { calcWpmAndRaw, errorCount } from "@/lib/wpm";
 import { consistencyScore, stallWpm } from "@/lib/wpm-stats";
 import { type KeyEvent, usePractice } from "./practice-state";
 import { reconstructCursor } from "./replay-cursor";
@@ -467,9 +467,26 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
       if (lastTestIsPb === true) setIsNewPb(true);
       return;
     }
-    // Anonymous fallback — per-browser localStorage cache.
+    // Anonymous fallback — per-browser localStorage cache. Recompute the
+    // final WPM from state rather than reading the throttled live `wpm`
+    // from context: when this effect fires on phase→done, the context
+    // value is still the last ~1 Hz sample (the snap-to-final re-render
+    // hasn't landed yet), so the cached PB would store a stale figure
+    // (FT-023). This mirrors the submit path, which recomputes from state.
     const mode = state.mode.toLowerCase();
-    if (recordIfPb(mode, state.length, wpm)) setIsNewPb(true);
+    const finalWpm =
+      state.startTime != null && state.endTime != null
+        ? Math.round(
+            calcWpmAndRaw(
+              state.typed,
+              state.words,
+              state.endTime - state.startTime,
+              true,
+              state.events.length,
+            ).wpm * 10,
+          ) / 10
+        : wpm;
+    if (recordIfPb(mode, state.length, finalWpm)) setIsNewPb(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.phase, userLoaded, isSignedIn, lastTestIsPb]);
   // Convert the live wpmHistory samples into chart buckets keyed by
