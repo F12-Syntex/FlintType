@@ -128,6 +128,7 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
           input.mode,
           input.durationOrWordCount,
           input.startedAt,
+          input.lengthKind,
         )
       : null;
     // Authoritative PB flag — the very same condition that gates the
@@ -183,6 +184,7 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
       completedAt: new Date(input.completedAt),
       mode: input.mode,
       durationOrWordCount: input.durationOrWordCount,
+      lengthKind: input.lengthKind ?? null,
       wpm: input.wpm,
       accuracy: input.accuracy,
       errorCount: input.errorCount,
@@ -247,7 +249,7 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
           const displays = await resolveUserDisplays(db, [userId]);
           const me = displays.get(userId);
           const name = me?.name ?? "A friend";
-          const where = formatLength(input.mode, input.durationOrWordCount);
+          const where = formatLength(input.lengthKind, input.durationOrWordCount);
           await Promise.all(
             friends.map((f) =>
               db.notifications.createIfAbsent({
@@ -307,7 +309,7 @@ export function formatPbBody(
   input: SubmitTestInput,
   previousWpm: number | null,
 ): string {
-  const lengthLabel = formatLength(input.mode, input.durationOrWordCount);
+  const lengthLabel = formatLength(input.lengthKind, input.durationOrWordCount);
   const modeLabel = input.mode === "training" ? "Training" : "Casual";
   const head = `${modeLabel} ${lengthLabel} · ${Math.round(input.wpm)} wpm · ${input.accuracy.toFixed(1)}% acc`;
   if (previousWpm == null) return head;
@@ -321,10 +323,10 @@ export function formatPbBody(
   return head + deltaTail;
 }
 
-function formatLength(mode: string, amount: number): string {
-  // Time-mode lengths read as seconds; everything else as a count.
-  if (mode === "time" || (typeof amount === "number" && amount >= 5 && amount <= 600 && /time/i.test(mode))) {
-    return `${amount}s`;
-  }
+function formatLength(lengthKind: string | null | undefined, amount: number): string {
+  // Time-mode lengths read as seconds; everything else as a count. Driven
+  // by the persisted lengthKind — the algorithmic mode couldn't tell a
+  // TIME run from a WORDS run (FT-036). Legacy rows (null) read as a count.
+  if (lengthKind === "time") return `${amount}s`;
   return String(amount);
 }

@@ -119,19 +119,24 @@ export function testsRepo(db: ServerDrizzle) {
       mode: string,
       durationOrWordCount: number,
       beforeMs: number,
+      lengthKind?: string,
     ): Promise<number | null> {
+      const filters = [
+        eq(tests.userId, userId),
+        eq(tests.mode, mode),
+        eq(tests.durationOrWordCount, durationOrWordCount),
+        eq(tests.wasCompleted, true),
+        lt(tests.startedAt, new Date(beforeMs)),
+      ];
+      // Scope the PB bucket to the same length-kind when the run carries
+      // one, so a TIME-60 best isn't compared against a WORDS-60 best
+      // (FT-036). Legacy rows have a null lengthKind and simply don't
+      // match — the first run of a given kind becomes its own first PB.
+      if (lengthKind) filters.push(eq(tests.lengthKind, lengthKind));
       const rows = await db
         .select({ wpm: max(tests.wpm) })
         .from(tests)
-        .where(
-          and(
-            eq(tests.userId, userId),
-            eq(tests.mode, mode),
-            eq(tests.durationOrWordCount, durationOrWordCount),
-            eq(tests.wasCompleted, true),
-            lt(tests.startedAt, new Date(beforeMs)),
-          ),
-        );
+        .where(and(...filters));
       const v = rows[0]?.wpm;
       return v == null ? null : Number(v);
     },

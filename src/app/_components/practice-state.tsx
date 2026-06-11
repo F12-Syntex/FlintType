@@ -607,6 +607,16 @@ export function PracticeProvider({
         completedAt: endTime,
         mode: submitMode,
         durationOrWordCount: length,
+        // The practice length-kind, so PB / share surfaces can tell a
+        // TIME run from a WORDS run (the algorithmic `mode` can't).
+        lengthKind:
+          state.mode === "TIME"
+            ? "time"
+            : state.mode === "QUOTE"
+              ? "quote"
+              : state.mode === "BURST"
+                ? "burst"
+                : "words",
         wpm,
         accuracy,
         // Per-character errors (incorrect + extra), the same metric the

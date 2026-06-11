@@ -87,6 +87,7 @@ export async function loadSharedTest(
     testId: row.id,
     mode: row.mode,
     durationOrWordCount: row.durationOrWordCount,
+    lengthKind: row.lengthKind ?? null,
     wpm: row.wpm,
     accuracy: row.accuracy,
     errorCount: row.errorCount,

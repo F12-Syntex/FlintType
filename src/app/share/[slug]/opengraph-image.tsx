@@ -65,7 +65,7 @@ export default async function RunOpengraphImage({
   const wpm = Math.round(data.wpm);
   const acc = roundDecimal(data.accuracy);
   const initials = data.handle.replace(/^@/, "").slice(0, 2).toUpperCase();
-  const lengthLabel = formatLengthLabel(data.mode, data.durationOrWordCount);
+  const lengthLabel = formatLengthLabel(data.lengthKind, data.durationOrWordCount);
   const durationLabel = formatClock(data.durationSec);
 
   return new ImageResponse(
@@ -396,7 +396,7 @@ function Body({
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            {formatLengthLabel(data.mode, data.durationOrWordCount).toLowerCase()}
+            {formatLengthLabel(data.lengthKind, data.durationOrWordCount).toLowerCase()}
           </span>
         </div>
       </div>
@@ -741,9 +741,10 @@ async function loadAvatarFromUrl(url: string | null): Promise<string | null> {
   }
 }
 
-function formatLengthLabel(mode: string, amount: number): string {
-  if (mode === "time" || /time/i.test(mode)) return `Time · ${amount}s`;
-  if (/quote/i.test(mode)) return `Quote · ${amount}`;
+function formatLengthLabel(lengthKind: string | null, amount: number): string {
+  if (lengthKind === "time") return `Time · ${amount}s`;
+  if (lengthKind === "quote") return `Quote · ${amount}`;
+  if (lengthKind === "burst") return `Burst · ${amount}`;
   return `Words · ${amount}`;
 }
 

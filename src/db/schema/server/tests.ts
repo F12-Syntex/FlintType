@@ -30,6 +30,14 @@ export const tests = pgTable(
      *  QUOTE mode → group index. The algorithm doesn't read this
      *  field; it's for history. */
     durationOrWordCount: integer("duration_or_word_count").notNull(),
+    /** The practice length-kind the run was: 'time' | 'words' | 'quote'
+     *  | 'burst'. `mode` above is the *algorithmic* axis (casual /
+     *  training / race), which can't tell a TIME-60 run from a WORDS-60
+     *  run — so without this both collapse to the same PB / leaderboard
+     *  bucket and the share card mislabels them (FT-036 / FT-032). Null on
+     *  legacy rows submitted before this column shipped; readers treat
+     *  null as the historical "words" assumption. */
+    lengthKind: text("length_kind"),
     wpm: doublePrecision("wpm").notNull(),
     accuracy: doublePrecision("accuracy").notNull(),
     errorCount: integer("error_count").notNull(),

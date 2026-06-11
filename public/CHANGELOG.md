@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.141.0 — 11 June 2026
+- Timed runs and word-count runs of the same number are no longer treated as the same thing: a 60-second run and a 60-word run now keep separate personal bests instead of competing as one.
+- Share cards and link previews now label the run correctly — "Time · 60s", "Quote · 3" or "Burst · 20" instead of always saying "Words · N".
+
 ## 6.140.0 — 11 June 2026
 - Accuracy is now honest: mistakes you corrected (or that stop-on-error blocked) now count against your accuracy, instead of every cleaned-up run reading 100%. This applies to the live readout and your saved results.
 - Fixed a deadlock: with backspace fully off and strict spacing on, a single typo no longer froze the run — you can now space past it (it's marked wrong) instead of being stuck until Escape.

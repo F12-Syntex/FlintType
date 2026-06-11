@@ -14,10 +14,14 @@ function modeLabel(mode: string): string {
 }
 
 /** Length label — matches the OG card style: "Words · 50", "Time ·
- *  60s", "Quote · 3". Time mode is detected by the mode string. */
-function lengthLabel(mode: string, amount: number): string {
-  if (mode === "time" || /time/i.test(mode)) return `Time · ${amount}s`;
-  if (/quote/i.test(mode)) return `Quote · ${amount}`;
+ *  60s", "Quote · 3". Driven by the persisted `lengthKind` (the
+ *  algorithmic `mode` couldn't tell time from words, so every run read
+ *  "Words · N" — FT-032). Legacy rows (null lengthKind) keep the old
+ *  "Words" assumption rather than mislabel. */
+function lengthLabel(lengthKind: string | null, amount: number): string {
+  if (lengthKind === "time") return `Time · ${amount}s`;
+  if (lengthKind === "quote") return `Quote · ${amount}`;
+  if (lengthKind === "burst") return `Burst · ${amount}`;
   return `Words · ${amount}`;
 }
 
@@ -98,7 +102,7 @@ export function ShareCard({ data }: { data: SharedTest }) {
             tags={data.tags}
           />
           <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.22em] text-ft-warm-3">
-            <span>{lengthLabel(data.mode, data.durationOrWordCount)}</span>
+            <span>{lengthLabel(data.lengthKind, data.durationOrWordCount)}</span>
             <span className="tabular-nums text-ft-warm-1">
               {formatClock(data.durationSec)}
             </span>

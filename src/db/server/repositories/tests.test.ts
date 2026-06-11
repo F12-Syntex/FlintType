@@ -123,6 +123,24 @@ describe("testsRepo", () => {
     expect(rows[0]?.testId).toBe("t_u1_b");
   });
 
+  it("bestBefore scopes the PB bucket to lengthKind (FT-036)", async () => {
+    const t0 = new Date("2026-01-01T00:00:00Z");
+    const later = new Date("2026-01-02T00:00:00Z");
+    // A fast WORDS-60 run and a slow TIME-60 run share (mode, amount).
+    await ctx.db.tests.insert(
+      row({ id: "w", mode: "casual", durationOrWordCount: 60, lengthKind: "words", wpm: 150, startedAt: t0 }),
+    );
+    await ctx.db.tests.insert(
+      row({ id: "t", mode: "casual", durationOrWordCount: 60, lengthKind: "time", wpm: 80, startedAt: t0 }),
+    );
+    // The TIME bucket's best must NOT see the WORDS run's 150.
+    const timeBest = await ctx.db.tests.bestBefore("u1", "casual", 60, later.getTime(), "time");
+    expect(timeBest).toBe(80);
+    // Without a lengthKind the bucket is the legacy combined one.
+    const combined = await ctx.db.tests.bestBefore("u1", "casual", 60, later.getTime());
+    expect(combined).toBe(150);
+  });
+
   it("topLeaderboard does not starve a slower user behind a prolific faster one", async () => {
     // u1 has many fast runs; u2 has a single slower run. The SQL dedupe
     // must rank u1's best ONCE and still surface u2 — the old JS dedupe

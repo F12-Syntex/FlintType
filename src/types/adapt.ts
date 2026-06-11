@@ -84,6 +84,11 @@ export const submitTestInputSchema = z.object({
   completedAt: z.number().int().nonnegative(),
   mode: testModeSchema,
   durationOrWordCount: z.number().int().nonnegative(),
+  /** The practice length-kind the run was. Distinguishes a TIME-60 run
+   *  from a WORDS-60 run, which `mode` (the algorithmic axis) can't —
+   *  keeps PB / leaderboard buckets and share labels from conflating
+   *  seconds with word counts. Optional so older clients still validate. */
+  lengthKind: z.enum(["time", "words", "quote", "burst"]).optional(),
   wpm: z.number().nonnegative().max(MAX_PLAUSIBLE_WPM),
   accuracy: z.number().min(0).max(100),
   errorCount: z.number().int().nonnegative(),

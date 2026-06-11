@@ -24,8 +24,13 @@ export type SharedTest = {
    *  client maps to a friendly label. */
   mode: string;
   /** WORDS → word count, TIME → seconds, QUOTE → group index. The
-   *  consumer pairs this with `mode` to format. */
+   *  consumer pairs this with `lengthKind` to format. */
   durationOrWordCount: number;
+  /** The practice length-kind: 'time' | 'words' | 'quote' | 'burst', or
+   *  null on legacy rows. Tells the label whether `durationOrWordCount`
+   *  is seconds or a word count — `mode` (the algorithmic axis) can't
+   *  (FT-032). */
+  lengthKind: string | null;
   wpm: number;
   accuracy: number;
   errorCount: number;
