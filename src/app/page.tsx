@@ -103,8 +103,9 @@ export default function PracticePage() {
           word count from the bar at the top of the page, or click into{" "}
           <a href="/race">races</a>,{" "}
           <a href="/drills">drills</a>, or{" "}
-          <a href="/insights">insights</a> from the navigation. Sign in
-          to keep your history; everything else works without an account.
+          <a href="/insights">insights</a> from the navigation. Practice and
+          races work without an account; sign in to keep your history and
+          unlock drills and insights.
         </p>
       </section>
     </AppChrome>

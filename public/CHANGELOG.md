@@ -8,6 +8,15 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.138.1 — 11 June 2026
+- Personal-best notifications now go only to people you're actually friends with (mutual follows), matching the "a friend hit a personal best" wording — one-way followers no longer get them.
+- Head-to-head compare now respects blocks: you can't pull stats on someone you've blocked or who has blocked you.
+- Daily streaks and the activity heatmap now count calendar days correctly across daylight-saving changes, so a streak can't be wrongly broken (or padded) by the clocks shifting.
+- "Reset all" on the Behaviour page now also clears your click-sound settings, and on Appearance it now clears (and counts) your caret, keyboard and background customisations too.
+- Homepage copy now correctly says drills and insights need an account, while practice and races don't.
+- Removed an unused internal mockup page.
+- Friend/leaderboard lookups now page correctly for very large follow lists.
+
 ## 6.138.0 — 11 June 2026
 - Fixed settings leaking between accounts on a shared computer: signing into a different account now starts from that account's own settings instead of inheriting the previous person's, and personal-best crowns no longer carry over between accounts.
 - Your adaptive-training progress (and other behind-the-scenes data) is no longer accidentally reverted when you change a setting right after finishing a run.

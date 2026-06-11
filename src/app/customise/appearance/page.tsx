@@ -4,6 +4,9 @@ import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { ModeSwitcher } from "@/components/ui/mode-switcher";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
+import { useBackgroundPrefs } from "@/lib/background-prefs";
+import { useCaretSettings } from "@/lib/caret-settings";
+import { useKeyboardSettings } from "@/lib/keyboard-settings";
 import {
   type ThemeVar,
   useThemeOverrides,
@@ -119,11 +122,29 @@ export default function AppearancePage() {
   const { overrides, setVar, clearVar, reset } = useThemeOverrides();
   const { customizedCount: appearanceCustomized, reset: resetAppearance } =
     useAppearancePrefs();
-  const customizedCount = overrideCount(overrides) + appearanceCustomized;
+  // Caret, Keyboard and Background sections all live on this page, so
+  // their customisations must count toward "N customised" and clear on
+  // Reset all — otherwise the stat under-reports and a reset leaves them
+  // untouched (FT-009).
+  const { isCustomised: caretCustomised, reset: resetCaret } =
+    useCaretSettings();
+  const { isCustomised: keyboardCustomised, reset: resetKeyboard } =
+    useKeyboardSettings();
+  const { isCustomised: backgroundCustomised, reset: resetBackground } =
+    useBackgroundPrefs();
+  const customizedCount =
+    overrideCount(overrides) +
+    appearanceCustomized +
+    (caretCustomised ? 1 : 0) +
+    (keyboardCustomised ? 1 : 0) +
+    (backgroundCustomised ? 1 : 0);
 
   function handleResetAll() {
     reset();
     resetAppearance();
+    resetCaret();
+    resetKeyboard();
+    resetBackground();
   }
 
   return (

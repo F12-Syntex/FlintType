@@ -396,6 +396,16 @@ describe("friends routes", () => {
     ).rejects.toMatchObject({ code: "VALIDATION" });
   });
 
+  it("compare 403s when either party blocks the other (FT-053)", async () => {
+    await insertRun("me", 90);
+    await insertRun("alice", 130);
+    await ctx.db.blocks.block("me", "alice");
+    signedInAs("me");
+    await expect(
+      callRoute(["friends", "compare"], { db: ctx.db, input: { userId: "alice" } }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("leaderboard requires auth", async () => {
     mockAuth.mockResolvedValue({
       userId: null,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { HistoryTest } from "@/types/history";
-import { deriveSkills, deriveTotals } from "./derive-stats";
+import { deriveSkills, deriveStreak, deriveTotals } from "./derive-stats";
 
 const mk = (over: Partial<HistoryTest> = {}): HistoryTest => ({
   id: Math.random().toString(36).slice(2),
@@ -53,5 +53,41 @@ describe("deriveSkills", () => {
     const long = [mk({ wpm: 125, completedAtMs: 60_000 })];
     expect(axis(short, "endurance").value).toBe(0);
     expect(axis(long, "endurance").value).toBe(50); // 125 / 250
+  });
+});
+
+describe("deriveStreak (calendar-day stepping, FT-018)", () => {
+  // Build a local-midnight timestamp `daysAgo` calendar days before today,
+  // so the test is independent of the machine's clock/timezone.
+  function daysAgoMs(daysAgo: number): number {
+    const d = new Date();
+    d.setHours(12, 0, 0, 0); // midday avoids any DST edge at midnight
+    d.setDate(d.getDate() - daysAgo);
+    return d.getTime();
+  }
+  const run = (daysAgo: number) => mk({ startedAtMs: daysAgoMs(daysAgo) });
+
+  it("counts a run of consecutive calendar days", () => {
+    const s = deriveStreak([run(0), run(1), run(2)]);
+    expect(s.current).toBe(3);
+    expect(s.longest).toBe(3);
+  });
+
+  it("breaks the current streak on a gap but keeps the longest run", () => {
+    // today + yesterday, then a gap, then a 2-day run earlier.
+    const s = deriveStreak([run(0), run(1), run(4), run(5)]);
+    expect(s.current).toBe(2);
+    expect(s.longest).toBe(2);
+  });
+
+  it("allows a one-day grace when the last activity was yesterday", () => {
+    const s = deriveStreak([run(1), run(2)]);
+    expect(s.current).toBe(2);
+  });
+
+  it("is zero when the most recent activity is older than yesterday", () => {
+    const s = deriveStreak([run(3), run(4)]);
+    expect(s.current).toBe(0);
+    expect(s.longest).toBe(2);
   });
 });

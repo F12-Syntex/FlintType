@@ -21,6 +21,12 @@ export const compare = defineRoute<FriendTargetInput, CompareOutput>({
       throw new BackendError(400, "VALIDATION", "Nothing to compare here.");
     }
 
+    // Don't surface a user's stats to (or about) someone either party has
+    // blocked — mirrors live.watch / lobby.invite (FT-053).
+    if (await db.blocks.eitherBlocks(me, them)) {
+      throw new BackendError(403, "FORBIDDEN", "That user is unavailable.");
+    }
+
     const displays = await resolveUserDisplays(db, [me, them]);
     const themDisplay = displays.get(them);
     if (!themDisplay) {

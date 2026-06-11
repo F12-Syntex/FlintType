@@ -134,10 +134,19 @@ export async function resolveUserDisplays(
   if (misses.length === 0) return out;
 
   const client = await clerkClient();
-  const { data } = await client.users.getUserList({
-    userId: misses,
-    limit: misses.length,
-  });
+  // Clerk's getUserList caps `limit` at 500 and silently ignores ids past
+  // it, so page the misses in ≤500-id chunks (FT-065) — a follow list of
+  // 500+ would otherwise drop everyone beyond the first page.
+  const CLERK_PAGE = 500;
+  const data: Awaited<ReturnType<typeof client.users.getUserList>>["data"] = [];
+  for (let i = 0; i < misses.length; i += CLERK_PAGE) {
+    const page = misses.slice(i, i + CLERK_PAGE);
+    const res = await client.users.getUserList({
+      userId: page,
+      limit: page.length,
+    });
+    data.push(...res.data);
+  }
   // One bulk prefs read for the missed users so each user's tag-display
   // selection is honoured without an N+1.
   const prefsByUserId = await db.userPrefs.bulkGet(misses);

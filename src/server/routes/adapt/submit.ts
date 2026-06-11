@@ -234,20 +234,22 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
         });
       }
 
-      // Fan the PB out to the user's followers — "a friend hit a PB",
-      // the social half of the activity feed. Its own try so a Clerk
-      // hiccup, zero followers, or anything else here can never turn a
-      // good submit into a 5xx. Deduped on the run id so a follower
-      // gets at most one row per PB.
+      // Fan the PB out to the user's FRIENDS (mutual follows) — "a friend
+      // hit a PB", the social half of the activity feed. Fanning to
+      // one-way followers contradicted the "friend" copy and leaked a PB
+      // to people the user hasn't friended back (FT-051). Its own try so a
+      // Clerk hiccup, zero friends, or anything else here can never turn a
+      // good submit into a 5xx. Deduped on the run id so a friend gets at
+      // most one row per PB.
       try {
-        const followers = await db.follows.listFollowers(userId);
-        if (followers.length > 0) {
+        const friends = await db.follows.listFriends(userId);
+        if (friends.length > 0) {
           const displays = await resolveUserDisplays(db, [userId]);
           const me = displays.get(userId);
           const name = me?.name ?? "A friend";
           const where = formatLength(input.mode, input.durationOrWordCount);
           await Promise.all(
-            followers.map((f) =>
+            friends.map((f) =>
               db.notifications.createIfAbsent({
                 userId: f.userId,
                 kind: "friend_pb",

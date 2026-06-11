@@ -125,43 +125,63 @@ export function deriveStreak(tests: readonly HistoryTest[]): StreakStats {
     })
     .sort((a, b) => b - a);
 
-  // Walk forward through consecutive days from the most recent.
+  // Walk forward through consecutive days from the oldest. Adjacency is
+  // a calendar-day comparison (prev day + 1 === current day), not an
+  // exact-ms delta, so a streak isn't broken (or fabricated) by a DST
+  // transition (FT-018).
   let longest = 0;
   let run = 0;
-  let prev: number | null = null;
+  let prevDate: Date | null = null;
   for (const ts of [...sortedDays].reverse()) {
-    if (prev != null && ts - prev === 86_400_000) {
+    const cur = new Date(ts);
+    if (
+      prevDate != null &&
+      dateKeyFromDate(addCalendarDays(prevDate, 1)) === dateKeyFromDate(cur)
+    ) {
       run += 1;
     } else {
       run = 1;
     }
     if (run > longest) longest = run;
-    prev = ts;
+    prevDate = cur;
   }
 
   // Current streak counts back from today (or the most recent day if
-  // we haven't typed today).
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  let cursor = today.getTime();
+  // we haven't typed today), stepping one calendar day at a time.
+  let cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
   let current = 0;
   // Allow a one-day grace if the most recent activity was yesterday.
-  if (!days.has(dateKey(cursor))) {
-    cursor -= 86_400_000;
-    if (!days.has(dateKey(cursor))) {
+  if (!days.has(dateKeyFromDate(cursor))) {
+    cursor = addCalendarDays(cursor, -1);
+    if (!days.has(dateKeyFromDate(cursor))) {
       return { current: 0, longest, lastTestMs: lastTestMs || null };
     }
   }
-  while (days.has(dateKey(cursor))) {
+  while (days.has(dateKeyFromDate(cursor))) {
     current += 1;
-    cursor -= 86_400_000;
+    cursor = addCalendarDays(cursor, -1);
   }
   return { current, longest, lastTestMs: lastTestMs || null };
 }
 
 function dateKey(ms: number): string {
-  const d = new Date(ms);
+  return dateKeyFromDate(new Date(ms));
+}
+
+function dateKeyFromDate(d: Date): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+/** Step a local calendar date by `n` days, normalised to local midnight.
+ *  `setDate` walks the calendar (handling month/year rollover) and is
+ *  immune to DST: adding a day across a 23h/25h transition still lands on
+ *  the next calendar date, unlike adding a fixed 86,400,000 ms (FT-018). */
+function addCalendarDays(d: Date, n: number): Date {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  r.setHours(0, 0, 0, 0);
+  return r;
 }
 
 /** Bucket key like "TIME · 30" / "WORDS · 50" — we group personal
@@ -231,15 +251,17 @@ export function deriveActivity(
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const dayOfWeek = (today.getDay() + 6) % 7; // Monday = 0
-  const lastMonday = today.getTime() - dayOfWeek * 86_400_000;
-  const startMs = lastMonday - (weeks - 1) * 7 * 86_400_000;
+  // First Monday of the window. Step by calendar days so the grid stays
+  // aligned across a DST transition rather than drifting an hour and
+  // mislabeling a cell's day (FT-018).
+  const start = addCalendarDays(today, -dayOfWeek - (weeks - 1) * 7);
 
   const out: DayCell[] = [];
+  const todayMs = today.getTime();
   for (let i = 0; i < weeks * 7; i++) {
-    const ms = startMs + i * 86_400_000;
-    if (ms > today.getTime()) break;
-    const d = new Date(ms);
-    out.push({ date: d, tests: counts.get(dateKey(ms)) ?? 0 });
+    const d = addCalendarDays(start, i);
+    if (d.getTime() > todayMs) break;
+    out.push({ date: d, tests: counts.get(dateKeyFromDate(d)) ?? 0 });
   }
   return out;
 }
