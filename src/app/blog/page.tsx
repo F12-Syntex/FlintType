@@ -12,13 +12,16 @@ export const metadata = buildPageMetadata({
 
 /** Static blog index. POSTS is the source of truth — add an entry
  *  here, then create `/blog/<slug>/page.tsx` with the matching
- *  metadata. Kept inline (not a CMS) until the post count justifies
- *  one; small, readable, no build-time complexity. */
+ *  metadata and flip `published: true`. Until a post page ships it stays
+ *  `published: false` and renders as plain text (no link) so the index
+ *  never points at a 404. Kept inline (not a CMS) until the post count
+ *  justifies one; small, readable, no build-time complexity. */
 const POSTS: readonly {
   slug: string;
   title: string;
   excerpt: string;
   publishedAt: string;
+  published: boolean;
 }[] = [
   {
     slug: "why-adaptive-drills-work",
@@ -26,6 +29,7 @@ const POSTS: readonly {
     excerpt:
       "Motor learning research has a clear answer on how to get faster: practice the things you're slowest at, not the things you're already good at. Here's how flinttype puts that into code.",
     publishedAt: "Coming soon",
+    published: false,
   },
   {
     slug: "net-wpm-vs-raw-wpm",
@@ -33,6 +37,7 @@ const POSTS: readonly {
     excerpt:
       "The leaderboard ranks by net WPM (raw × accuracy). Why we picked that over raw, and what each number is honestly measuring.",
     publishedAt: "Coming soon",
+    published: false,
   },
   {
     slug: "building-the-race-engine",
@@ -40,6 +45,7 @@ const POSTS: readonly {
     excerpt:
       "An engineering write-up on the multiplayer race surface: friendly-slug challenge links, deterministic bots, the fixed three-second countdown, and how we keep rooms alive across React strict-mode remounts.",
     publishedAt: "Coming soon",
+    published: false,
   },
 ];
 
@@ -58,12 +64,16 @@ export default function BlogIndexPage() {
                 <article className="flex flex-col gap-2">
                   <div className="flex items-baseline justify-between gap-3">
                     <h2 className="text-[18px] font-semibold tracking-tight text-foreground sm:text-[20px]">
-                      <Link
-                        href={`/blog/${p.slug}`}
-                        className="transition-colors hover:text-primary"
-                      >
-                        {p.title}
-                      </Link>
+                      {p.published ? (
+                        <Link
+                          href={`/blog/${p.slug}`}
+                          className="transition-colors hover:text-primary"
+                        >
+                          {p.title}
+                        </Link>
+                      ) : (
+                        p.title
+                      )}
                     </h2>
                     <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                       {p.publishedAt}

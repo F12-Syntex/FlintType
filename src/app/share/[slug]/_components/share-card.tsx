@@ -124,7 +124,7 @@ export function ShareCard({ data }: { data: SharedTest }) {
 
       <div className="flex flex-wrap items-center justify-center gap-3">
         <Link href="/" className={ftButtonVariants({ variant: "ember", size: "md" })}>
-          Take the test →
+          Take the test
         </Link>
         <Link
           href={`/profile/${data.username ?? data.handle.replace(/^@/, "")}`}

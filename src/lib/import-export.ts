@@ -21,7 +21,18 @@ const KNOWN_SLICES = [
   "theme",
   "palette",
   "practice",
+  "audio",
+  "handLayout",
 ] as const;
+
+// Deliberately excluded from the settings round-trip:
+//   - "spectate"  — carries a per-friend privacy blocklist; a relationship
+//                   decision, not a portable visual/behaviour setting.
+//   - "profileRank", "drillProgress", "monkeytypeStats", "lifetimeStats",
+//     "monkeytypeDismissed" — identity / progress / one-shot UI state, not
+//                   "settings" the user means to carry between machines.
+// Anything not in KNOWN_SLICES is left untouched on import (never blown
+// away) and omitted from export.
 
 // ─── Export ──────────────────────────────────────────────────────────
 

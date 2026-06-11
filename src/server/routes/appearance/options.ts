@@ -157,7 +157,8 @@ export const KNOBS: Record<string, Knob> = {
     label: "Lines shown",
     options: [
       { id: "compact", label: "Compact", patch: ap("linesRendered", 2) },
-      { id: "default", label: "Default", patch: ap("linesRendered", 3) },
+      // Matches DEFAULT_APPEARANCE.linesRendered (4) in appearance-prefs.ts.
+      { id: "default", label: "Default", patch: ap("linesRendered", 4) },
       { id: "tall", label: "Tall", patch: ap("linesRendered", 5) },
       { id: "all", label: "All", patch: ap("linesRendered", 0) },
     ],

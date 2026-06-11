@@ -27,6 +27,12 @@ export function SettingsPageHeader({
   onResetAll?: () => void;
   description?: string;
 }) {
+  // The reset confirm needs a short noun, not the editorial headline
+  // ("Make it act the way you think"). Derive it from the eyebrow's section
+  // segment ("Customise · Behaviour" → "Behaviour"); fall back to the eyebrow.
+  const resetNoun = eyebrow.includes("·")
+    ? eyebrow.split("·").pop()!.trim()
+    : eyebrow.trim();
   return (
     <header className="mb-10 border-b border-border pb-8 sm:mb-12 sm:pb-10">
       <div className="mb-4 flex items-center gap-3">
@@ -58,7 +64,7 @@ export function SettingsPageHeader({
                 onClick={onResetAll}
                 disabled={customizedCount === 0}
                 confirm={{
-                  title: `Reset ${title.toLowerCase()}?`,
+                  title: `Reset ${resetNoun} settings?`,
                   description: (
                     <p className="text-sm text-muted-foreground">
                       This clears every customisation on this page and

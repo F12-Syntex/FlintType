@@ -91,7 +91,12 @@ export function useCommandEntries(): readonly CommandEntry[] {
   const { prefs: bp, update: setBp } = useBehaviourPrefs();
   const { settings: cs, update: setCs } = useCaretSettings();
   const { settings: ks, update: setKs } = useKeyboardSettings();
-  const { themes, activeId: paletteId, apply: applyPalette } = usePalette();
+  const {
+    themes,
+    activeId: paletteId,
+    apply: applyPalette,
+    reset: resetPalette,
+  } = usePalette();
   const { theme: mode, setTheme: setMode } = useNextTheme();
 
   return useMemo<readonly CommandEntry[]>(() => {
@@ -137,10 +142,24 @@ export function useCommandEntries(): readonly CommandEntry[] {
         "Theme palette",
         "Switch the community palette",
         "Theme",
+        // activeId is null for the Default palette and "custom" once the
+        // user forks a palette with per-var overrides. Map both onto
+        // selectable option ids so the active value always highlights.
         (paletteId ?? "default") as string,
-        themes.map((t) => ({ id: t.id, label: t.name })),
-        (next) => applyPalette(next),
-        ["theme", "palette", "colours", "colors"],
+        [
+          { id: "default", label: "Default" },
+          ...themes.map((t) => ({ id: t.id, label: t.name })),
+          // Only offer "Custom" as a representable value while it's the
+          // active state — it can't be picked into from scratch.
+          ...(paletteId === "custom"
+            ? [{ id: "custom", label: "Custom (current overrides)" }]
+            : []),
+        ],
+        (next) => {
+          if (next === "default") resetPalette();
+          else if (next !== "custom") applyPalette(next);
+        },
+        ["theme", "palette", "colours", "colors", "default", "custom"],
       ),
 
       /* ─── Behaviour ────────────────────────────────────────────── */
@@ -821,7 +840,7 @@ export function useCommandEntries(): readonly CommandEntry[] {
         hint: "Open the practice surface",
         group: "Navigate",
         kind: "action",
-        run: navigate("/app"),
+        run: navigate("/"),
         keywords: ["practice", "type", "test"],
       },
       {

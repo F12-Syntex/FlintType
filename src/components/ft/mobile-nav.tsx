@@ -109,6 +109,7 @@ export function MobileNav({
           ? "bg-foreground text-background"
           : "bg-background text-foreground",
       )}
+      id="mobile-nav-drawer"
       role="dialog"
       aria-modal="true"
       aria-label="Mobile navigation"

@@ -501,7 +501,9 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
       ? `time ${state.length}`
       : state.mode === "QUOTE"
         ? "quote"
-        : `words ${state.length}`;
+        : state.mode === "BURST"
+          ? `burst ${state.length}`
+          : `words ${state.length}`;
 
   if (replaying) {
     return (

@@ -8,6 +8,15 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.1 — 11 June 2026
+- The command palette's "Go to test" now opens the typing screen instead of a dead page, and the Theme palette list now includes "Default" so you can switch back to it (and shows when you're on a custom palette).
+- Exporting and re-importing your settings now keeps your keypress-click sound and hand-layout choices — they were silently dropped before.
+- The mobile menu now shows "Sign in" when you're signed out (instead of "Sign out" / "Profile"), and its footer links to real Privacy and Terms pages (the dead "Status" link is gone). Added a Terms link to the main footer too.
+- Burst runs now read "burst N" on the results screen instead of "words N".
+- The "Reset all" confirmation on the customise pages now asks a clear question ("Reset Appearance settings?") instead of mangled copy.
+- Blog posts that aren't published yet are no longer clickable links that lead to a missing page.
+- The share-result button now reads "Take the test" without a stray arrow, and jumping between pages reliably scrolls back to the top.
+
 ## 6.136.0 — 8 June 2026
 - The mode bar above the typing area is now always the chips picker — the "Mode bar" style choice (chips / inline / hidden) has been removed from Customise → Appearance → Chrome.
 - The leaderboard now ranks only two modes: Casual and Adapt. The "All modes" and "Race" filters are gone, so the board compares like-for-like solo runs.
