@@ -8,6 +8,14 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.139.0 — 11 June 2026
+- You can no longer "complete" a test by tapping space through every word — a space with nothing typed for the current word is now ignored, the way it should be.
+- Fixed a stuck red underline: a word you mistyped then corrected before pressing space no longer stays underlined for the rest of the run in stop-on-error mode.
+- In a race, Tab now reaches the Ready / Start / Rematch / Leave buttons in the lobby and on the results screen (it's still held back while you're actually typing).
+- Pressing Tab no longer restarts the test underneath an open dialog, and Escape mid-run now just restarts — it no longer also pops open the command palette.
+- Burst mode fixes: the final word no longer ends the run the instant its last letter lands (it waits for the speed/reps check), space presses no longer slip past the burst gate, and picking a new word list now re-rolls the burst passage.
+- Timed runs that exhaust their word buffer now keep your chosen word list instead of briefly falling back to the default words.
+
 ## 6.138.1 — 11 June 2026
 - Personal-best notifications now go only to people you're actually friends with (mutual follows), matching the "a friend hit a personal best" wording — one-way followers no longer get them.
 - Head-to-head compare now respects blocks: you can't pull stats on someone you've blocked or who has blocked you.

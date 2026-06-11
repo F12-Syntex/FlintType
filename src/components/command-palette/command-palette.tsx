@@ -94,6 +94,12 @@ export function CommandPalette() {
         if (document.documentElement.getAttribute("data-ft-focus") === "on") {
           return; // let the focus-mode shortcut clear it
         }
+        if (document.documentElement.getAttribute("data-ft-running") === "1") {
+          // A practice run is active: Escape restarts the test (owned by
+          // the practice surface). The palette must NOT also open, or one
+          // Escape both restarts AND opens it (FT-020).
+          return;
+        }
         // An open overlay/disclosure should get Escape to close itself
         // first. Each of these is present in the DOM only while open:
         // Radix dialogs/alertdialogs + the notifications popover

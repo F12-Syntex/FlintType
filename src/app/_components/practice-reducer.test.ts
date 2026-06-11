@@ -278,9 +278,11 @@ describe("practice reducer — APPEND_WORDS (TIME buffer top-up)", () => {
 
 describe("practice reducer — TIME mode never finishes on word count", () => {
   it("advances past the last word instead of ending the run", () => {
-    // SPACE on the final word in TIME mode keeps the run going (the
-    // timer ends it) — the legacy emergency append still tops the
-    // buffer up so the cursor always has a word to land on.
+    // SPACE on the final word in TIME mode keeps the run going (the timer
+    // ends it). The reducer no longer generates the refill itself (that
+    // dropped the user's wordlist cfg, FT-072) — it just advances; the
+    // provider's APPEND_WORDS effect tops the buffer up with the correct
+    // cfg, so words.length is unchanged by this dispatch.
     const s = seed({
       mode: "TIME",
       words: ["the"],
@@ -292,7 +294,7 @@ describe("practice reducer — TIME mode never finishes on word count", () => {
     expect(next.phase).toBe("running");
     expect(next.endTime).toBeNull();
     expect(next.cursorWord).toBe(1);
-    expect(next.words.length).toBeGreaterThan(1);
+    expect(next.words.length).toBe(1);
   });
 });
 
@@ -361,5 +363,83 @@ describe("practice reducer — SPACE is a no-op at rest (leading space ignored)"
     const s = { ...initialState, words: ["hello", "world"], phase: "rest" as const };
     const next = reducer(s, { type: "SPACE", now: 1000, strictSpace: false });
     expect(next).toBe(s);
+  });
+});
+
+describe("practice reducer — SPACE on an empty word is a no-op (FT-033)", () => {
+  it("does not advance when nothing is typed for the current word", () => {
+    // Spacing through an untyped word must do nothing — otherwise a user
+    // can space through a whole run and report a pristine 100% / 0-error
+    // scoreline.
+    const s = seed({
+      words: ["hello", "world"],
+      cursorWord: 0,
+      cursorChar: 0,
+      typed: [],
+    });
+    const next = reducer(s, { type: "SPACE", now: 1000, strictSpace: false });
+    expect(next).toBe(s);
+  });
+
+  it("still advances once the user has typed something", () => {
+    const s = seed({
+      words: ["hello", "world"],
+      cursorWord: 0,
+      cursorChar: 5,
+      typed: ["hello"],
+    });
+    const next = reducer(s, { type: "SPACE", now: 1000, strictSpace: false });
+    expect(next.cursorWord).toBe(1);
+  });
+});
+
+describe("practice reducer — SPACE clears a stale stop-on-error underline (FT-034)", () => {
+  it("removes the error mark when the word is correct at space time", () => {
+    // A stop-on-error block flags the word, then the user types it
+    // correctly. Pressing space must drop the red underline.
+    const s = seed({
+      words: ["hello", "world"],
+      cursorWord: 0,
+      cursorChar: 5,
+      typed: ["hello"],
+      errorWords: new Set([0]), // left over from a blocked wrong keystroke
+    });
+    const next = reducer(s, { type: "SPACE", now: 1000, strictSpace: false });
+    expect(next.errorWords.has(0)).toBe(false);
+    expect(next.cursorWord).toBe(1);
+  });
+
+  it("keeps the error mark when the typed word is wrong", () => {
+    const s = seed({
+      words: ["hello", "world"],
+      cursorWord: 0,
+      cursorChar: 4,
+      typed: ["helo"],
+    });
+    const next = reducer(s, { type: "SPACE", now: 1000, strictSpace: false });
+    expect(next.errorWords.has(0)).toBe(true);
+  });
+});
+
+describe("practice reducer — BURST does not auto-finish on the last char (FT-011)", () => {
+  it("keeps running when the final char of the final burst item lands", () => {
+    const s = seed({
+      mode: "BURST",
+      words: ["go"],
+      cursorWord: 0,
+      cursorChar: 1,
+      typed: ["g"],
+    });
+    const next = reducer(s, {
+      type: "TYPE_CHAR",
+      char: "o",
+      now: 100,
+      stopOnError: false,
+      allowExtras: false,
+    });
+    // Still running — BurstProvider's gated SPACE ends the run, not the
+    // bare last keystroke.
+    expect(next.phase).toBe("running");
+    expect(next.endTime).toBeNull();
   });
 });

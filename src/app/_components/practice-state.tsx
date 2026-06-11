@@ -264,7 +264,16 @@ export function PracticeProvider({
     if (lockedWordsRef.current) return;
     if (wordlistWords == null) return;
     if (state.phase !== "rest") return;
-    if (state.mode !== "WORDS" && state.mode !== "TIME") return;
+    // WORDS, TIME and BURST all draw their passage from the wordlist pool,
+    // so a wordlist pick at rest should re-roll any of them (and let Tab
+    // apply it). QUOTE comes from a separate fetch and is excluded (FT-046).
+    if (
+      state.mode !== "WORDS" &&
+      state.mode !== "TIME" &&
+      state.mode !== "BURST"
+    ) {
+      return;
+    }
     const cfg: WordCfg = {
       minWordLength: prefsRef.current.minWordLength,
       showSecondary: prefsRef.current.showSecondary,
@@ -1029,6 +1038,11 @@ export function PracticeProvider({
     if (e.key === " ") {
       e.preventDefault();
       if (s.phase === "rest") return;
+      // BURST: <BurstPractice /> owns a window-level space listener that
+      // runs the threshold + reps gate before deciding to advance or
+      // reset. Swallow the space here so this handler can't bypass that
+      // gate and double-dispatch SPACE (FT-012).
+      if (s.mode === "BURST") return;
       dispatch({ type: "SPACE", now: Date.now(), strictSpace: p.strictSpace });
       return;
     }
@@ -1081,14 +1095,18 @@ export function PracticeProvider({
     function onTab(e: KeyboardEvent) {
       if (e.key !== "Tab") return;
       if (e.ctrlKey || e.altKey || e.metaKey) return;
+      // In a multiplayer race, do NOT swallow Tab here — the lobby and
+      // results buttons (Ready / Start / Rematch / Leave) must stay
+      // keyboard-reachable. TabFocusGuard owns the phase-aware swallow
+      // that holds Tab back only during the actual race (FT-003). Bail
+      // BEFORE preventDefault so the native focus-shift survives.
+      if (raceMode) return;
+      // A modal dialog owns Tab (its focus trap). Don't restart the test
+      // underneath it — bail without preventDefault so the trap cycles
+      // focus as expected (FT-035).
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      // In a multiplayer race, Tab is inert: a mid-race restart would
-      // wipe your progress, and the room owns the passage so there's no
-      // fresh set to roll. Swallow it (the preventDefault above already
-      // killed the native focus-shift). Rematch is the visible
-      // "Race again" button on the results panel.
-      if (raceMode) return;
       // In BURST, Tab retries the CURRENT word (clears the typed buffer),
       // it does NOT re-roll a whole new set — a burst is a repeat-until-
       // clean drill, so "again" means this word, not a fresh passage.

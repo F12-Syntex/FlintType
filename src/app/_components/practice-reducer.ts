@@ -400,6 +400,12 @@ export function reducer(s: State, a: Action): State {
       const finishedRun =
         correct &&
         s.mode !== "TIME" &&
+        // BURST never auto-finishes on the last char: BurstProvider's
+        // handleSpace runs the threshold + reps gate first and only then
+        // dispatches the run-ending SPACE for the final item. Without this
+        // the final item ended the run the instant its last char landed,
+        // bypassing the gate (FT-011).
+        s.mode !== "BURST" &&
         isLastWord &&
         nextCursorChar === word.length;
 
@@ -494,18 +500,24 @@ export function reducer(s: State, a: Action): State {
       if (s.phase === "done" || s.phase === "rest") return s;
       const target = s.words[s.cursorWord] ?? "";
       const typedHere = s.typed[s.cursorWord] ?? "";
+      // Monkeytype behaviour: a space with nothing typed for the current
+      // word is a no-op — you can't skip a word you haven't started.
+      // Without this, spacing through every word "completes" a run with a
+      // pristine 100% / 0-error / 100%-consistency scoreline (FT-033).
+      if (typedHere === "") return s;
       // strictSpace=true → refuse to advance unless the word is fully
       // typed correctly. The user must finish or backspace; no event,
       // no errorWord mark, the keystroke is a no-op.
       if (a.strictSpace && typedHere !== target) return s;
       // Space always advances the cursor — the user explicitly asked
-      // to skip past mistakes. If the typed word doesn't match the
-      // target, mark it as an error word so the summary still
-      // accounts for it (and it underlines in the passage).
-      const wordHasError = typedHere !== target;
-      const errorWords = wordHasError
-        ? new Set([...s.errorWords, s.cursorWord])
-        : s.errorWords;
+      // to skip past mistakes. Recompute the current word's error flag
+      // from the sealed buffer: ADD the mark when the typed word doesn't
+      // match the target, REMOVE it when it does. Removing is what clears
+      // a stale red underline left by a stop-on-error block on a word the
+      // user then corrected before pressing space (FT-034).
+      const errorWords = new Set(s.errorWords);
+      if (typedHere !== target) errorWords.add(s.cursorWord);
+      else errorWords.delete(s.cursorWord);
       const next = s.cursorWord + 1;
       // Make sure typed has an entry for the just-completed word (the
       // monkeytype WPM walk wants every position present).
@@ -514,10 +526,15 @@ export function reducer(s: State, a: Action): State {
         : pushTyped(s.typed, s.cursorWord, "");
       if (next >= s.words.length) {
         if (s.mode === "TIME") {
-          const more = generateWords(TIME_BUFFER, Date.now());
+          // Don't generate the refill here: with no cfg it falls back to
+          // the embedded English pool, dropping the user's wordlist /
+          // min-length / decoration prefs (FT-072). Just advance into the
+          // buffer — the provider's refill effect tops it up ahead of the
+          // cursor with the correct cfg via APPEND_WORDS. (Near-
+          // unreachable: the refill keeps ~120 words ahead in steady
+          // state; this is the failsafe path.)
           return {
             ...s,
-            words: [...s.words, ...more],
             cursorWord: next,
             cursorChar: 0,
             typed: sealedTyped,
