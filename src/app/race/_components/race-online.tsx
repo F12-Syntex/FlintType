@@ -268,13 +268,26 @@ export function OnlineRaceProvider({
     return () => clearInterval(id);
   }, [snapshot?.phase]);
 
+  // Offset between the server clock and this device's clock, sampled on
+  // each snapshot (serverNowMs - local now). The countdown/elapsed math
+  // compares against server timestamps (countdownStartedAt / raceStartedAt),
+  // so the 200ms local tick must run on the *server* clock — using a raw
+  // Date.now() here reintroduced device-clock skew the server timing was
+  // designed to be immune to (FT-061).
+  const clockOffsetRef = useRef(0);
+  useEffect(() => {
+    if (snapshot?.serverNowMs != null) {
+      clockOffsetRef.current = snapshot.serverNowMs - Date.now();
+    }
+  }, [snapshot?.serverNowMs]);
+
   const derived = useMemo(
     // Recompute against the live wall clock so the countdown digit
     // re-renders every 200ms even while the server snapshot is idle.
     () =>
       deriveTimings(
         snapshot?.phase === "countdown" || snapshot?.phase === "racing"
-          ? { ...state, nowMs: Date.now() }
+          ? { ...state, nowMs: Date.now() + clockOffsetRef.current }
           : state,
       ),
     // `tick` is read implicitly via Date.now() above — list it in the

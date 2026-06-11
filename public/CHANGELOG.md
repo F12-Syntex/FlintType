@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.142.2 — 11 June 2026
+- Fixed a flash of the wrong chrome on first load for people who haven't customised the appearance — the page now paints your real defaults straight away.
+- When chrome auto-hide is set to fade, moving your mouse to the top or bottom edge mid-run now brings the bar back (it couldn't before).
+- The race countdown and elapsed timer now stay accurate even if your device clock is off, matching the server's clock.
+
 ## 6.142.1 — 11 June 2026
 - The results-screen per-letter speed heatmap now lands on the right letters even when you skip a word, backspace and retype, or leave a mistake uncorrected.
 - Importing MonkeyType settings in quote mode now picks a valid quote length instead of leaving quote mode with nothing selectable, and no longer resets your adaptive / word-list choices.

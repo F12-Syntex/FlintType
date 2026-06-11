@@ -719,6 +719,15 @@
     opacity: 1;
     pointer-events: auto;
   }
+  /* Under `fade` the chrome is pointer-events:none, so the :hover rule
+     above can never fire — AutoHideApplier sets data-ft-peek when the
+     pointer is near a viewport edge mid-run, and we reveal + re-enable
+     the chrome here so the peek affordance works under fade too (FT-042). */
+  html[data-ft-autohide][data-ft-running="1"][data-ft-peek] [data-ft-topbar],
+  html[data-ft-autohide][data-ft-running="1"][data-ft-peek] [data-ft-footer] {
+    opacity: 1;
+    pointer-events: auto;
+  }
   [data-ft-chrome],
   [data-ft-topbar],
   [data-ft-banner],

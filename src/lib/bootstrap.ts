@@ -31,35 +31,44 @@ export const PREFS_BOOTSTRAP_SCRIPT = `
     var root = document.documentElement;
 
     // Appearance: data-ft-* attrs that drive the global CSS cascade.
-    // Mirrors src/app/appearance-applier.tsx.
-    var ap = blob.appearance;
-    if (ap && typeof ap === 'object') {
-      var setAttr = function (key, value, defaultValue) {
-        if (value && value !== defaultValue) {
-          root.setAttribute(key, String(value));
-        } else {
-          root.removeAttribute(key);
-        }
-      };
-      setAttr('data-ft-cards', ap.cardSurfaces, 'solid');
-      setAttr('data-ft-dividers', ap.dividers, 'hairline');
-      setAttr('data-ft-padding', ap.pagePadding, 'comfortable');
-      setAttr('data-ft-bg-fill', ap.backgroundFill, 'paper');
-      setAttr('data-ft-topbar-style', ap.topbarStyle, 'elevated');
-      setAttr('data-ft-footer-style', ap.footerStyle, 'visible');
-      setAttr('data-ft-autohide', ap.autoHide, 'off');
-      setAttr('data-ft-result', ap.resultChrome, 'framed');
-      if (ap.monochromeChrome) {
-        root.setAttribute('data-ft-monochrome', 'on');
+    // Mirrors src/app/appearance-applier.tsx + borders-applier.tsx.
+    //
+    // CRITICAL: the per-field fallback below MUST equal DEFAULT_APPEARANCE
+    // in src/lib/appearance-prefs.ts. The globals.css attr-absent base
+    // (the setAttr 3rd arg) is NOT the shipped default - e.g. cards render
+    // solid with no attr, but the default is "subtle". So for an untouched
+    // user (no/partial appearance slice) we apply the real DEFAULT here,
+    // otherwise the chrome paints the attr-absent base then flashes to the
+    // default once AppearanceApplier hydrates (FT-060).
+    var ap = (blob.appearance && typeof blob.appearance === 'object')
+      ? blob.appearance : {};
+    var setAttr = function (key, value, defaultValue) {
+      if (value && value !== defaultValue) {
+        root.setAttribute(key, String(value));
       } else {
-        root.removeAttribute('data-ft-monochrome');
+        root.removeAttribute(key);
       }
-      // Borders — see src/app/borders-applier.tsx
-      if (ap.borders && ap.borders !== 'default') {
-        root.setAttribute('data-ft-borders', String(ap.borders));
-      } else {
-        root.removeAttribute('data-ft-borders');
-      }
+    };
+    setAttr('data-ft-cards', ap.cardSurfaces || 'subtle', 'solid');
+    setAttr('data-ft-dividers', ap.dividers || 'hidden', 'hairline');
+    setAttr('data-ft-padding', ap.pagePadding || 'comfortable', 'comfortable');
+    setAttr('data-ft-bg-fill', ap.backgroundFill || 'paper', 'paper');
+    setAttr('data-ft-topbar-style', ap.topbarStyle || 'flat', 'elevated');
+    setAttr('data-ft-footer-style', ap.footerStyle || 'visible', 'visible');
+    setAttr('data-ft-autohide', ap.autoHide || 'fade', 'off');
+    setAttr('data-ft-result', ap.resultChrome || 'framed', 'framed');
+    if (ap.monochromeChrome) {
+      root.setAttribute('data-ft-monochrome', 'on');
+    } else {
+      root.removeAttribute('data-ft-monochrome');
+    }
+    // Borders — DEFAULT_APPEARANCE.borders === 'soft'; 'default' is the
+    // attr-absent base. See src/app/borders-applier.tsx.
+    var borders = ap.borders || 'soft';
+    if (borders !== 'default') {
+      root.setAttribute('data-ft-borders', String(borders));
+    } else {
+      root.removeAttribute('data-ft-borders');
     }
 
     // Theme overrides: per-CSS-var values stored under blob.theme.
