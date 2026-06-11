@@ -104,6 +104,40 @@ describe("prefs routes", () => {
     expect(getRes.selectedTags).toEqual(["og"]);
   });
 
+  it("drillComplete bumps the server-authoritative count and is auth-gated (FT-029)", async () => {
+    mockAuth.mockResolvedValue({
+      userId: null,
+      sessionClaims: null,
+    } as unknown as Awaited<ReturnType<typeof auth>>);
+    await expect(
+      callRoute(["prefs", "drillComplete"], { db: ctx.db }),
+    ).rejects.toBeInstanceOf(BackendError);
+
+    signedInAs("user_d");
+    const r1 = await callRoute<{ drillsCompleted: number }>(
+      ["prefs", "drillComplete"],
+      { db: ctx.db },
+    );
+    expect(r1.drillsCompleted).toBe(1);
+    const r2 = await callRoute<{ drillsCompleted: number }>(
+      ["prefs", "drillComplete"],
+      { db: ctx.db },
+    );
+    expect(r2.drillsCompleted).toBe(2);
+
+    // A client `set` can't forge the count — server-owned key is preserved.
+    await callRoute(["prefs", "set"], {
+      db: ctx.db,
+      input: { data: { lifetimeStats: { drillsCompleted: 9999 } } },
+    });
+    const got = await callRoute<GetUserPrefsOutput>(["prefs", "get"], {
+      db: ctx.db,
+    });
+    expect(
+      (got.lifetimeStats as { drillsCompleted: number }).drillsCompleted,
+    ).toBe(2);
+  });
+
   it("validates the wire shape", async () => {
     signedInAs("user_a");
     // Pipeline rethrows ZodError as-is; the dispatcher is what maps it

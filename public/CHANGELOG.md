@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.143.0 — 11 June 2026
+- Closed a loophole that let someone fake their level and "Top by Level" ranking: drill counts are now tracked on the server as you finish drills, and edited settings can no longer inflate your stats.
+
 ## 6.142.2 — 11 June 2026
 - Fixed a flash of the wrong chrome on first load for people who haven't customised the appearance — the page now paints your real defaults straight away.
 - When chrome auto-hide is set to fade, moving your mouse to the top or bottom edge mid-run now brings the bar back (it couldn't before).

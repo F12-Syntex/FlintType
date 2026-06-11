@@ -86,4 +86,23 @@ describe("userPrefsRepo", () => {
       selectedTags: ["owner", "og"],
     });
   });
+
+  it("incrementDrillsCompleted bumps server-side from no row (FT-029)", async () => {
+    await ctx.db.userPrefs.incrementDrillsCompleted("u_d");
+    await ctx.db.userPrefs.incrementDrillsCompleted("u_d");
+    const blob = await ctx.db.userPrefs.get("u_d");
+    expect((blob.lifetimeStats as { drillsCompleted: number }).drillsCompleted).toBe(2);
+  });
+
+  it("incrementDrillsCompleted preserves other slices + lifetimeStats fields", async () => {
+    await ctx.db.userPrefs.set("u_d2", {
+      caret: { style: "block" },
+      lifetimeStats: { drillsCompleted: 5, racesWon: 3 },
+    });
+    await ctx.db.userPrefs.incrementDrillsCompleted("u_d2");
+    expect(await ctx.db.userPrefs.get("u_d2")).toEqual({
+      caret: { style: "block" },
+      lifetimeStats: { drillsCompleted: 6, racesWon: 3 },
+    });
+  });
 });

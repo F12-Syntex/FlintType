@@ -50,6 +50,33 @@ export function userPrefsRepo(db: ServerDrizzle) {
         });
     },
 
+    /** Atomically bump `lifetimeStats.drillsCompleted` by 1, server-side.
+     *  Drill counts feed the public level / Top-by-Level ranking, so they
+     *  must NOT be writable from the client prefs blob (FT-029) — this is
+     *  the only path that mutates them. Preserves any other lifetimeStats
+     *  fields and works whether or not the slice/row exists yet. */
+    async incrementDrillsCompleted(userId: string): Promise<void> {
+      await db
+        .insert(userPrefs)
+        .values({
+          userId,
+          data: { lifetimeStats: { drillsCompleted: 1 } },
+        })
+        .onConflictDoUpdate({
+          target: userPrefs.userId,
+          set: {
+            data: sql`coalesce(${userPrefs.data}, '{}'::jsonb) || jsonb_build_object(
+              'lifetimeStats',
+              coalesce(${userPrefs.data} -> 'lifetimeStats', '{}'::jsonb) || jsonb_build_object(
+                'drillsCompleted',
+                coalesce((${userPrefs.data} #>> '{lifetimeStats,drillsCompleted}')::int, 0) + 1
+              )
+            )`,
+            updatedAt: sql`now()`,
+          },
+        });
+    },
+
     /** Merge a partial shape into the stored blob. One query under
      *  Postgres `jsonb || $patch` semantics so we don't race a
      *  concurrent reader against a wholesale `set`. Used by routes

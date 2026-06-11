@@ -37,6 +37,11 @@ const SERVER_OWNED_KEYS = [
   "adaptRecency",
   "adaptFingerMapHash",
   "selectedTags",
+  // Lifetime counters feed the public level / Top-by-Level ranking, so
+  // they must be server-authoritative — only trusted server events
+  // (drill completion via prefs.drillComplete, the race authority later)
+  // may write them. A client prefs.set can no longer forge them (FT-029).
+  "lifetimeStats",
 ] as const;
 
 const set = defineRoute<SetUserPrefsInput, SetUserPrefsOutput>({
@@ -54,10 +59,25 @@ const set = defineRoute<SetUserPrefsInput, SetUserPrefsOutput>({
   },
 });
 
+/** Trusted server event: a drill was completed. Atomically bumps the
+ *  server-authoritative `lifetimeStats.drillsCompleted` (FT-029) — the
+ *  only path that mutates it. Rate-limited so it can't be spammed to farm
+ *  level/XP faster than drills can realistically be finished. */
+const drillComplete = defineRoute<void, { drillsCompleted: number }>({
+  middleware: [rateLimit({ limit: 30, windowMs: 60_000 })],
+  handler: async ({ db, meta }) => {
+    const userId = meta.userId as string;
+    await db.userPrefs.incrementDrillsCompleted(userId);
+    const blob = await db.userPrefs.get(userId);
+    const ls = (blob.lifetimeStats ?? {}) as { drillsCompleted?: number };
+    return { drillsCompleted: Math.max(0, Math.floor(ls.drillsCompleted ?? 0)) };
+  },
+});
+
 /** 120/min covers a heavy customise session (the page debounces
  *  writes per setting, so changing 5 chips fast is still <10 writes
  *  per second). Anything beyond that is automated and worth slowing. */
 export const prefs = defineNamespace({
   middleware: [requireAuth, rateLimit({ limit: 120, windowMs: 60_000 })],
-  routes: { get, set },
+  routes: { get, set, drillComplete },
 });
