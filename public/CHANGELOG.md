@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.141.1 — 11 June 2026
+- Customising a single colour on top of a community palette no longer wipes the rest of that palette when you reload — your palette now stays put underneath your tweaks.
+
 ## 6.141.0 — 11 June 2026
 - Timed runs and word-count runs of the same number are no longer treated as the same thing: a 60-second run and a 60-word run now keep separate personal bests instead of competing as one.
 - Share cards and link previews now label the run correctly — "Time · 60s", "Quote · 3" or "Burst · 20" instead of always saying "Words · N".

@@ -73,21 +73,35 @@ const ALL_VAR_NAMES: readonly string[] = (() => {
  *  away from the active theme so its colors don't bleed into the next.
  *  No-op on null so callers can hand in the resolved root without a
  *  manual guard. */
-export function clearThemeVars(root: HTMLElement | null) {
+export function clearThemeVars(
+  root: HTMLElement | null,
+  skip?: ReadonlySet<string>,
+) {
   if (!root) return;
-  for (const k of ALL_VAR_NAMES) root.style.removeProperty(`--${k}`);
+  for (const k of ALL_VAR_NAMES) {
+    const name = `--${k}`;
+    // Leave user-overridden vars alone so a palette swap underneath a
+    // custom fork doesn't wipe them (FT-001).
+    if (skip?.has(name)) continue;
+    root.style.removeProperty(name);
+  }
 }
 
 export function applyTheme(
   root: HTMLElement | null,
   theme: Theme,
   mode: "light" | "dark",
+  skip?: ReadonlySet<string>,
 ) {
   if (!root) return;
-  clearThemeVars(root);
+  clearThemeVars(root, skip);
   const vars = mode === "dark" ? theme.cssVars.dark : theme.cssVars.light;
   for (const [k, v] of Object.entries(vars)) {
-    root.style.setProperty(`--${k}`, v);
+    const name = `--${k}`;
+    // Don't paint over a key the user has overridden — their inline value
+    // is the source of truth for that var (FT-001).
+    if (skip?.has(name)) continue;
+    root.style.setProperty(name, v);
   }
 }
 

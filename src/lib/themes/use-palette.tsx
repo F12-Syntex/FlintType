@@ -9,7 +9,7 @@ import {
   useEffect,
 } from "react";
 import { useBackgroundPrefs } from "../background-prefs";
-import { clearSlice, writeSlice } from "../prefs-store";
+import { clearSlice, readSlice, writeSlice } from "../prefs-store";
 import { useRemotePrefs } from "../use-remote-prefs";
 import {
   applyReactivePalette,
@@ -43,7 +43,15 @@ type Ctx = {
   reset: () => void;
 };
 
-type PaletteSlice = { activeId: string | null };
+type PaletteSlice = {
+  activeId: string | null;
+  /** When `activeId === 'custom'`, the named/reactive palette the user
+   *  forked from. The provider paints it underneath the per-var overrides
+   *  so a single tweak no longer destroys the rest of the palette on
+   *  reload (FT-001). Empty / absent means the fork sits on the Default
+   *  (globals.css :root), which is always present. */
+  baseId?: string;
+};
 // Fresh accounts land on the real Default theme — `activeId: null`, no
 // overrides. The brand baseline (the orange --primary / --ring, the
 // 0.5rem radius) now lives in `globals.css :root` / `.dark` as the
@@ -65,6 +73,7 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     DEFAULT_PALETTE,
   );
   const activeId = value.activeId;
+  const baseId = value.baseId;
   const { effectiveImage } = useBackgroundPrefs();
 
   useEffect(() => {
@@ -74,16 +83,30 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     const root = getThemeRoot();
     if (!root) return;
 
-    // "custom" — the user has per-var overrides applied via
-    // useThemeOverrides. Don't touch ANY vars: the inline overrides
-    // from useThemeOverrides are the source of truth for the keys
-    // they cover, and the rest of whatever base palette the user
-    // forked from (reactive sample, named theme) should keep
-    // painting underneath. Earlier versions called
-    // clearReactivePalette() here, which wiped the sampled reactive
-    // colours the moment the user nudged a single colour / radius /
-    // font scale — read as "changing any value resets the colours".
-    if (activeId === CUSTOM_THEME_ID) return;
+    // The set of vars the user has overridden (inline, via
+    // useThemeOverrides). We must NOT clear or repaint these when we
+    // (re)apply a palette underneath them — their inline value is the
+    // source of truth (FT-001).
+    const overrideKeys = new Set(
+      Object.keys(readSlice<Record<string, unknown>>("theme", {})),
+    );
+
+    // "custom" — the user forked a palette and applied per-var overrides.
+    // Paint the palette they forked from (baseId) UNDERNEATH the
+    // overrides, skipping the overridden keys, so the rest of the palette
+    // survives a reload instead of collapsing to the Default. A blank
+    // baseId means the fork sits on globals.css :root (always present).
+    if (activeId === CUSTOM_THEME_ID) {
+      const base = findTheme(baseId);
+      const mode = resolvedTheme === "dark" ? "dark" : "light";
+      if (base) {
+        applyTheme(root, base, mode, overrideKeys);
+        clearReactivePalette(root);
+      }
+      // baseId === reactive or blank: leave whatever's underneath
+      // (sampled reactive vars / :root) plus the user's overrides.
+      return;
+    }
 
     if (activeId === BACKGROUND_REACTIVE_ID) {
       // Reactive is async — sampling takes a frame or two. If we
@@ -111,13 +134,16 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     }
 
     // Non-reactive paths are synchronous — clear and apply in one
-    // pass so the swap repaints every surface at once.
+    // pass so the swap repaints every surface at once. A named palette
+    // normally has no overrides (selecting one resets the slice), but
+    // pass the skip set defensively so a preset-seeded override isn't
+    // clobbered.
     const theme = findTheme(activeId);
     const mode = resolvedTheme === "dark" ? "dark" : "light";
-    clearThemeVars(root);
+    clearThemeVars(root, overrideKeys);
     clearReactivePalette(root);
-    if (theme) applyTheme(root, theme, mode);
-  }, [activeId, resolvedTheme, effectiveImage]);
+    if (theme) applyTheme(root, theme, mode, overrideKeys);
+  }, [activeId, baseId, resolvedTheme, effectiveImage]);
 
   const apply = useCallback(
     (id: string) => {
@@ -144,7 +170,9 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
           writeSlice("keyboard", theme.presets.keyboard);
         }
       }
-      update({ activeId: id });
+      // Clear any prior fork base — picking a real palette is no longer
+      // a custom fork.
+      update({ activeId: id, baseId: "" });
     },
     [update],
   );

@@ -127,8 +127,17 @@ export function useThemeOverrides() {
       // Any per-var override forks the user off whatever named palette
       // they were on — mark the palette slice as "custom" so the theme
       // picker reads as Custom instead of misleadingly still saying
-      // "Cosmic Night" (etc.) once the colours diverge.
-      writeSlice("palette", { activeId: CUSTOM_THEME_ID });
+      // "Cosmic Night" (etc.) once the colours diverge. Record the palette
+      // being forked from as `baseId` so PaletteProvider keeps painting it
+      // underneath the overrides on reload — otherwise a single tweak
+      // collapsed the rest of the palette to the Default (FT-001).
+      const cur = readSlice<{ activeId: string | null; baseId?: string }>(
+        "palette",
+        { activeId: null },
+      );
+      const baseId =
+        cur.activeId === CUSTOM_THEME_ID ? (cur.baseId ?? "") : (cur.activeId ?? "");
+      writeSlice("palette", { activeId: CUSTOM_THEME_ID, baseId });
     },
     [updateRaw],
   );
