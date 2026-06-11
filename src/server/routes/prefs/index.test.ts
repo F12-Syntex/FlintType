@@ -71,6 +71,39 @@ describe("prefs routes", () => {
     expect(getRes).toEqual(blob);
   });
 
+  it("set cannot clobber server-owned keys (FT-007)", async () => {
+    signedInAs("user_a");
+    // A server event writes the adapt model + a granted tag selection.
+    await ctx.db.userPrefs.merge("user_a", {
+      adaptRecency: { the: 2 },
+      adaptFingerMapHash: "h1",
+      selectedTags: ["og"],
+    });
+    // The client later flushes its blob snapshot, which carries STALE
+    // (or absent) values for those server-owned keys.
+    const setRes = await callRoute<SetUserPrefsOutput>(["prefs", "set"], {
+      db: ctx.db,
+      input: {
+        data: {
+          caret: { style: "line" },
+          adaptRecency: { stale: 99 },
+          // selectedTags omitted entirely by the client
+        },
+      },
+    });
+    // Client-owned slice is written; server-owned keys keep their stored
+    // values regardless of what the client sent.
+    expect(setRes.caret).toEqual({ style: "line" });
+    expect(setRes.adaptRecency).toEqual({ the: 2 });
+    expect(setRes.selectedTags).toEqual(["og"]);
+    expect(setRes.adaptFingerMapHash).toBe("h1");
+    const getRes = await callRoute<GetUserPrefsOutput>(["prefs", "get"], {
+      db: ctx.db,
+    });
+    expect(getRes.adaptRecency).toEqual({ the: 2 });
+    expect(getRes.selectedTags).toEqual(["og"]);
+  });
+
   it("validates the wire shape", async () => {
     signedInAs("user_a");
     // Pipeline rethrows ZodError as-is; the dispatcher is what maps it

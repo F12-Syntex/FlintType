@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.138.0 — 11 June 2026
+- Fixed settings leaking between accounts on a shared computer: signing into a different account now starts from that account's own settings instead of inheriting the previous person's, and personal-best crowns no longer carry over between accounts.
+- Your adaptive-training progress (and other behind-the-scenes data) is no longer accidentally reverted when you change a setting right after finishing a run.
+- Changing a setting the instant a fresh device loads no longer resets your other settings in that group back to defaults.
+
 ## 6.137.1 — 11 June 2026
 - Closed a leaderboard cheat: submitted runs are now sanity-checked against the actual keystrokes and capped to a human range, so impossible scores can no longer top the board.
 - Fixed the friends and global leaderboards dropping people: a faster player with lots of runs no longer pushes slower players off the board when there's still room.

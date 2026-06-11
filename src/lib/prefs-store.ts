@@ -52,6 +52,14 @@ let loadPromise: Promise<PrefsBlob> | null = null;
 const listeners = new Set<Listener>();
 let writeTimer: ReturnType<typeof setTimeout> | null = null;
 let writeInFlight: Promise<void> | null = null;
+// Whether localStorage held a blob when the (current) load began. Drives
+// the FT-013 fresh-device merge: on a device with no prior blob, an edit
+// made before the backend GET resolves is a PARTIAL slice that must be
+// field-merged over the authoritative remote, not allowed to replace it.
+let seededOnLoad = false;
+// Slice keys explicitly written this session (writeSlice / patchSlice),
+// so the fresh-device merge knows which slices carry real local edits.
+const dirtySlices = new Set<string>();
 
 const WRITE_DEBOUNCE_MS = 400;
 
@@ -138,6 +146,7 @@ export function loadPrefs(): Promise<PrefsBlob> {
   // (or even when the user is anonymous and the GET 401s).
   ensureMeta();
   const seeded = lsRead();
+  seededOnLoad = seeded != null;
   if (seeded) {
     cache = seeded;
     notify();
@@ -158,7 +167,30 @@ export function loadPrefs(): Promise<PrefsBlob> {
       // server converges. When the device is in sync, the backend stays
       // authoritative so cross-device changes still flow in.
       if (localVersion > syncedVersion) {
-        cache = { ...remote, ...local };
+        if (seededOnLoad) {
+          // Returning device with possibly-unsynced edits across reloads
+          // (we don't track which slices) — keep the original behaviour:
+          // the whole local blob wins, backend fills missing slices.
+          cache = { ...remote, ...local };
+        } else {
+          // Fresh device (no prior localStorage): the only local slices
+          // are this session's in-flight edits, which patchSlice stores
+          // as PARTIAL slices. Field-merge each over the authoritative
+          // remote so an edited slice keeps its untouched server fields
+          // instead of resetting them to defaults (FT-013); slices the
+          // user never touched come straight from remote.
+          const merged: PrefsBlob = { ...remote };
+          for (const key of Object.keys(local)) {
+            const rv = remote[key];
+            const lv = local[key];
+            if (isPlainObject(rv) && isPlainObject(lv)) {
+              merged[key] = { ...rv, ...lv };
+            } else {
+              merged[key] = lv;
+            }
+          }
+          cache = merged;
+        }
         scheduleWrite();
       } else {
         cache = { ...local, ...remote };
@@ -192,12 +224,40 @@ export function readSlice<T extends object>(key: string, defaults: T): T {
   return defaults;
 }
 
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return v != null && typeof v === "object" && !Array.isArray(v);
+}
+
 /** Write a slice. Updates the in-memory cache, mirrors to
  *  localStorage so anon users keep their edits across reloads, and
- *  schedules a debounced backend save (silent 401 on anon). */
+ *  schedules a debounced backend save (silent 401 on anon). Replaces
+ *  the slice wholesale — used for functional updates and reset/import
+ *  flows. Field-level edits should go through `patchSlice`. */
 export function writeSlice<T>(key: string, value: T): void {
   ensureMeta();
   cache = { ...(cache ?? {}), [key]: value as unknown };
+  dirtySlices.add(key);
+  localVersion++;
+  lsWrite(cache);
+  metaWrite();
+  notify();
+  scheduleWrite();
+}
+
+/** Merge a field-level patch into a slice WITHOUT fabricating default
+ *  fields. Before the first backend GET resolves on a fresh device the
+ *  cache has no slice yet, so `writeSlice` (via the hook's
+ *  `{ ...readSlice(defaults), ...patch }`) would persist a full
+ *  defaults-derived slice that then overwrites the real server slice
+ *  when the GET lands (FT-013). `patchSlice` stores only the changed
+ *  fields; `readSlice` still layers defaults at read time, and the
+ *  fresh-device load merge field-merges these partials over remote. */
+export function patchSlice(key: string, patch: Record<string, unknown>): void {
+  ensureMeta();
+  const cur = cache?.[key];
+  const base = isPlainObject(cur) ? cur : {};
+  cache = { ...(cache ?? {}), [key]: { ...base, ...patch } };
+  dirtySlices.add(key);
   localVersion++;
   lsWrite(cache);
   metaWrite();
@@ -257,6 +317,73 @@ async function flush(): Promise<void> {
   await writeInFlight;
 }
 
+const OWNER_KEY = "flinttype:prefs:owner";
+
+/** Keep the client-side prefs cache tied to the signed-in account so one
+ *  user's blob never seeds the next user's session on a shared browser
+ *  (FT-017). Called by `<ClientCacheGate>` whenever the Clerk user
+ *  resolves or changes.
+ *
+ *  - anon (or first visit) → a signed-in user: the local blob is THIS
+ *    person's just-made settings carrying across the sign-in boundary
+ *    (intended); we keep it and stamp ownership.
+ *  - a real user → a different user / sign-out: wipe the cache + the two
+ *    localStorage keys and reload, so the next account starts from its
+ *    own server blob, never the previous account's. */
+export function reconcileUser(userId: string | null): void {
+  if (typeof window === "undefined") return;
+  let prev: string | null = null;
+  try {
+    prev = window.localStorage.getItem(OWNER_KEY);
+  } catch {
+    /* ignore */
+  }
+  const next = userId ?? "anon";
+  if (prev === next) return;
+  const stamp = () => {
+    try {
+      window.localStorage.setItem(OWNER_KEY, next);
+    } catch {
+      /* ignore */
+    }
+  };
+  if (prev == null || prev === "anon") {
+    stamp();
+    return;
+  }
+  // Owner changed away from a real account — clear everything and reload
+  // for the new owner.
+  hardReset();
+  stamp();
+  void loadPrefs();
+}
+
+/** Drop every in-memory + persisted trace of the current account's prefs
+ *  blob. Listeners are kept (mounted components stay subscribed and
+ *  re-read defaults until the reload repopulates the cache). */
+function hardReset(): void {
+  cache = null;
+  loadPromise = null;
+  localVersion = 0;
+  syncedVersion = 0;
+  metaLoaded = false;
+  seededOnLoad = false;
+  dirtySlices.clear();
+  if (writeTimer) {
+    clearTimeout(writeTimer);
+    writeTimer = null;
+  }
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.removeItem(LS_KEY);
+      window.localStorage.removeItem(META_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+  notify();
+}
+
 /** Test-only escape hatch — drops the cache so the next load goes to
  *  the network again. Not exported through any barrel. */
 export function __resetForTests(): void {
@@ -265,6 +392,8 @@ export function __resetForTests(): void {
   localVersion = 0;
   syncedVersion = 0;
   metaLoaded = false;
+  seededOnLoad = false;
+  dirtySlices.clear();
   if (writeTimer) {
     clearTimeout(writeTimer);
     writeTimer = null;

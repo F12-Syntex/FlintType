@@ -17,7 +17,9 @@ vi.mock("@/lib/backend", () => ({
 import {
   __resetForTests,
   loadPrefs,
+  patchSlice,
   readSlice,
+  reconcileUser,
   writeSlice,
 } from "./prefs-store";
 
@@ -123,5 +125,56 @@ describe("prefs-store conflict resolution", () => {
     await loadPrefs();
 
     expect(readSlice("theme", {})).toEqual({ "--primary": "#00ff00" });
+  });
+
+  it("fresh-device edit before the GET resolves keeps untouched server fields (FT-013)", async () => {
+    // Fresh device: no localStorage seed. The GET is held open while the
+    // user changes one field — the classic race the old fabricate-from-
+    // defaults path mishandled.
+    let resolveGet: (v: unknown) => void = () => {};
+    mockGet = () =>
+      new Promise<unknown>((r) => {
+        resolveGet = r;
+      });
+    const p = loadPrefs(); // seededOnLoad=false captured, GET pending
+    patchSlice("caret", { style: "block" }); // edit a single field
+    resolveGet({ caret: { style: "line", thickness: 3, blink: true } });
+    await p;
+    // The edited field wins; the server's other caret fields survive.
+    expect(readSlice("caret", {})).toEqual({
+      style: "block",
+      thickness: 3,
+      blink: true,
+    });
+  });
+});
+
+describe("prefs-store cross-user reconciliation (FT-017)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    localStorage.clear();
+    __resetForTests();
+    mockGet = async () => ({});
+    mockSet = async () => undefined;
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("carries the blob across anon → sign-in but wipes on account switch", async () => {
+    writeSlice("caret", { style: "block" });
+
+    // anon → user A: the just-made settings carry across the boundary.
+    reconcileUser("userA");
+    expect(localStorage.getItem("flinttype:prefs:owner")).toBe("userA");
+    expect(readSlice("caret", {})).toEqual({ style: "block" });
+
+    // user A → user B: wipe so B never inherits A's blob.
+    reconcileUser("userB");
+    expect(localStorage.getItem(BLOB_KEY)).toBeNull();
+    expect(localStorage.getItem(META_KEY)).toBeNull();
+    expect(readSlice("caret", {})).toEqual({});
+    expect(localStorage.getItem("flinttype:prefs:owner")).toBe("userB");
+    await vi.runAllTimersAsync();
   });
 });

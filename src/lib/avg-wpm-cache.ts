@@ -8,9 +8,18 @@
  *  practice provider since that's the one place that observes test
  *  completions in the right scope. */
 
-const KEY = "ft:avg-wpm-samples";
+import { getCacheOwner } from "./cache-owner";
+
+const KEY_PREFIX = "ft:avg-wpm-samples";
 const MAX_SAMPLES = 20;
 const DEFAULT_FALLBACK = 50;
+
+// Namespaced by the signed-in user so one account's rolling average
+// can't seed another account's BURST threshold on a shared browser
+// (FT-041).
+function keyFor(): string {
+  return `${KEY_PREFIX}:${getCacheOwner()}`;
+}
 
 function isBrowser(): boolean {
   return typeof window !== "undefined" && typeof localStorage !== "undefined";
@@ -18,7 +27,7 @@ function isBrowser(): boolean {
 
 function read(): number[] {
   if (!isBrowser()) return [];
-  const raw = localStorage.getItem(KEY);
+  const raw = localStorage.getItem(keyFor());
   if (!raw) return [];
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -34,7 +43,7 @@ function read(): number[] {
 function write(samples: number[]): void {
   if (!isBrowser()) return;
   try {
-    localStorage.setItem(KEY, JSON.stringify(samples.slice(-MAX_SAMPLES)));
+    localStorage.setItem(keyFor(), JSON.stringify(samples.slice(-MAX_SAMPLES)));
   } catch {
     // Quota / private window — fail closed; threshold falls back to
     // DEFAULT_FALLBACK until the user opts a custom value.

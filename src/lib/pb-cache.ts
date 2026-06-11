@@ -1,17 +1,20 @@
 "use client";
 
-/** Client-only PB cache. Lives in localStorage keyed by mode + length
- *  so the TestSummary can detect a new highscore the instant a run
- *  finishes — no backend round-trip, no race condition with the
+/** Client-only PB cache. Lives in localStorage keyed by owner + mode +
+ *  length so the TestSummary can detect a new highscore the instant a
+ *  run finishes — no backend round-trip, no race condition with the
  *  test-submission effect that may or may not have landed yet.
  *
  *  Treats unknown keys as 0 so the first run on any (mode, length)
- *  bucket is always recorded as a PB. Reset on logout / clear-site-
- *  data via standard localStorage semantics. */
+ *  bucket is always recorded as a PB. Namespaced by the signed-in user
+ *  (see cache-owner.ts) so one account's crowns can't bleed into the
+ *  next account on a shared browser (FT-041). */
+import { getCacheOwner } from "./cache-owner";
+
 const KEY_PREFIX = "ft:pb:";
 
 function keyFor(mode: string, amount: number): string {
-  return `${KEY_PREFIX}${mode}|${amount}`;
+  return `${KEY_PREFIX}${getCacheOwner()}|${mode}|${amount}`;
 }
 
 function isBrowser(): boolean {

@@ -26,11 +26,31 @@ const get = defineRoute<void, GetUserPrefsOutput>({
   },
 });
 
+/** Top-level prefs-blob keys the SERVER owns — written only by trusted
+ *  server events (the adapt model after a run, the tag-grant route), never
+ *  by the client's UI. The client's wholesale `prefs.set` snapshot still
+ *  carries whatever value it loaded for these, so without this guard a
+ *  debounced client save could revert a server write that landed in
+ *  between (FT-007 lost-update). We re-apply the stored values on top of
+ *  the client blob so the client can never clobber them. */
+const SERVER_OWNED_KEYS = [
+  "adaptRecency",
+  "adaptFingerMapHash",
+  "selectedTags",
+] as const;
+
 const set = defineRoute<SetUserPrefsInput, SetUserPrefsOutput>({
   input: setUserPrefsInputSchema,
   handler: async ({ db, meta, input }) => {
-    await db.userPrefs.set(meta.userId as string, input.data);
-    return input.data;
+    const userId = meta.userId as string;
+    const current = await db.userPrefs.get(userId);
+    const data: Record<string, unknown> = { ...input.data };
+    for (const key of SERVER_OWNED_KEYS) {
+      if (key in current) data[key] = current[key];
+      else delete data[key];
+    }
+    await db.userPrefs.set(userId, data);
+    return data;
   },
 });
 

@@ -51,10 +51,17 @@ export async function persistAdaptPrefs(
   prefs: AdaptPrefs,
   patch: { adaptRecency?: Map<string, number>; adaptFingerMapHash?: string },
 ): Promise<void> {
-  const next: Record<string, unknown> = { ...prefs.raw };
+  // Merge ONLY the two server-owned keys via jsonb `||` rather than
+  // reading the whole blob and writing it back. The previous read-raw +
+  // wholesale `set` raced the client's debounced `prefs.set`: a setting
+  // the user changed while a run was in flight could be reverted to the
+  // value `prefs.raw` was loaded with (FT-007 lost-update). A merge
+  // touches adaptRecency / adaptFingerMapHash and nothing else.
+  const next: Record<string, unknown> = {};
   if (patch.adaptRecency)
     next.adaptRecency = Object.fromEntries(patch.adaptRecency);
   if (patch.adaptFingerMapHash !== undefined)
     next.adaptFingerMapHash = patch.adaptFingerMapHash;
-  await db.userPrefs.set(userId, next);
+  if (Object.keys(next).length === 0) return;
+  await db.userPrefs.merge(userId, next);
 }

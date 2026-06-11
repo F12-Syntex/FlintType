@@ -11,6 +11,7 @@ import { WhatsNewDialog } from "./_components/whats-new-dialog";
 import { AppearanceApplier } from "./appearance-applier";
 import { BackgroundApplier } from "./background-applier";
 import { BordersApplier } from "./borders-applier";
+import { ClientCacheGate } from "./_components/client-cache-gate";
 import { FocusShortcut } from "./focus-shortcut";
 import { PresenceHeartbeat } from "./_components/presence-heartbeat";
 
@@ -23,6 +24,11 @@ export function Providers({ children }: { children: ReactNode }) {
       disableTransitionOnChange
     >
       <PaletteProvider>
+        {/* Tie the browser-local caches to the signed-in account so one
+            user's prefs / PB crowns never bleed into the next on a
+            shared browser. Mounted high so it reconciles as soon as
+            Clerk resolves the user. */}
+        <ClientCacheGate />
         <ApplyThemeOverrides />
         <BackgroundApplier />
         <BordersApplier />

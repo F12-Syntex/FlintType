@@ -5,6 +5,7 @@ import {
   clearSlice,
   getCache,
   loadPrefs,
+  patchSlice,
   readSlice,
   subscribe,
   writeSlice,
@@ -58,12 +59,17 @@ export function useRemotePrefs<T extends object>(
 
   const update = useCallback(
     (patch: Partial<T> | ((prev: T) => T)) => {
-      const cur = readSlice(key, defaults);
-      const next =
-        typeof patch === "function"
-          ? (patch as (p: T) => T)(cur)
-          : { ...cur, ...patch };
-      writeSlice(key, next);
+      if (typeof patch === "function") {
+        // Functional update needs the current full value; readSlice
+        // layers defaults so the function sees a complete object.
+        const cur = readSlice(key, defaults);
+        writeSlice(key, (patch as (p: T) => T)(cur));
+      } else {
+        // Field-level patch — merge only the changed fields so a write
+        // before the first load can't fabricate a full defaults-derived
+        // slice that later clobbers the server slice (FT-013).
+        patchSlice(key, patch as Record<string, unknown>);
+      }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [key],
