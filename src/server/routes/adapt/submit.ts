@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { BackendError } from "@/lib/errors";
 import { defineRoute } from "@/server";
 import {
   bigramRowsToStates,
@@ -136,6 +137,44 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
     // run (and re-crowns after a cache clear).
     const isPersonalBest =
       pbEligible && (previousWpm == null || input.wpm > previousWpm);
+
+    // Physical-plausibility guard: a reported WPM can never exceed what
+    // the run's own keystrokes allow — (keystrokes / 5) over the span the
+    // keystrokes actually took. Real practice/drill/race submits carry
+    // the genuine per-keystroke `timings` (and a WPM derived from them),
+    // so reported ≤ bound always; this rejects only forged payloads —
+    // notably the trivial `{ wpm: 9999, timings: [] }` POST that
+    // otherwise crowns rank 1 on the leaderboard. The Zod
+    // `MAX_PLAUSIBLE_WPM` cap is the coarse first line; this is the
+    // per-run check. Generous tolerance (1.3x + 10) so honest runs never
+    // trip it.
+    if (input.wasCompleted && input.wpm > 0) {
+      const keystrokes = input.timings.length;
+      const first = input.timings[0]?.t ?? 0;
+      const last = input.timings[keystrokes - 1]?.t ?? 0;
+      const spanMs = last - first;
+      const reject = (reason: string) => {
+        log.warn("rejected implausible test submit", {
+          userId,
+          claimedWpm: input.wpm,
+          keystrokes,
+          spanMs,
+        });
+        throw new BackendError(400, "VALIDATION", reason);
+      };
+      if (keystrokes === 0) {
+        reject("completed run reports a WPM with no keystrokes");
+      } else if (spanMs <= 0) {
+        reject("run keystrokes have a non-positive time span");
+      } else {
+        const maxWpm = keystrokes / 5 / (spanMs / 60000);
+        if (input.wpm > maxWpm * 1.3 + 10) {
+          reject(
+            "reported wpm exceeds what the run's keystrokes and timing allow",
+          );
+        }
+      }
+    }
 
     await db.tests.insert({
       id: testId,

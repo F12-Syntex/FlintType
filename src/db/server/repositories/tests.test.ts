@@ -123,6 +123,25 @@ describe("testsRepo", () => {
     expect(rows[0]?.testId).toBe("t_u1_b");
   });
 
+  it("topLeaderboard does not starve a slower user behind a prolific faster one", async () => {
+    // u1 has many fast runs; u2 has a single slower run. The SQL dedupe
+    // must rank u1's best ONCE and still surface u2 — the old JS dedupe
+    // over an over-fetch window dropped u2 entirely once u1 had enough
+    // rows to fill the window.
+    for (let i = 0; i < 60; i++) {
+      await ctx.db.tests.insert(
+        row({ id: `t_u1_${i}`, userId: "u1", wpm: 120, accuracy: 100 }),
+      );
+    }
+    await ctx.db.tests.insert(
+      row({ id: "t_u2", userId: "u2", wpm: 50, accuracy: 100 }),
+    );
+    const rows = await ctx.db.tests.topLeaderboard({ limit: 25 });
+    // u1 appears exactly once (deduped), u2 still appears.
+    expect(rows.filter((r) => r.userId === "u1").length).toBe(1);
+    expect(rows.some((r) => r.userId === "u2")).toBe(true);
+  });
+
   it("topLeaderboard restricts to a userIds allowlist (friends board)", async () => {
     await ctx.db.tests.insert(
       row({ id: "t_u1", userId: "u1", wpm: 120, accuracy: 100 }),

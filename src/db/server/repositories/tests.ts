@@ -165,6 +165,11 @@ export function testsRepo(db: ServerDrizzle) {
       // `sql<number>` template gives us a typed projection.
       const netExpr = sql<number>`(${tests.wpm} * ${tests.accuracy} / 100.0)`;
       const filters = [eq(tests.wasCompleted, true)];
+      // Belt-and-braces against a forged headline figure slipping onto the
+      // public board: never display a net WPM beyond the human ceiling.
+      // The submit path already caps + plausibility-checks every row; this
+      // is the last guard at read time. 500 mirrors MAX_PLAUSIBLE_WPM.
+      filters.push(sql`(${tests.wpm} * ${tests.accuracy} / 100.0) <= 500`);
       if (mode && mode !== "all") filters.push(eq(tests.mode, mode));
       if (since > 0) filters.push(gte(tests.completedAt, new Date(since)));
       if (amount != null && amount > 0) {
@@ -173,7 +178,14 @@ export function testsRepo(db: ServerDrizzle) {
       if (opts.userIds != null) {
         filters.push(inArray(tests.userId, [...opts.userIds]));
       }
-      const rows = await db
+      // Dedupe per (user, mode, bucket) IN SQL with a row_number window
+      // so each user's *best* run per bucket is what competes, then rank
+      // the deduped set globally and apply the limit. The previous JS
+      // dedupe over an over-fetched `limit * 4` window silently dropped
+      // any user whose best run ranked below that window — so one
+      // prolific user with 100+ fast runs could starve a slower user off
+      // the (especially friends-scoped) board even with empty slots.
+      const ranked = db
         .select({
           testId: tests.id,
           userId: tests.userId,
@@ -182,40 +194,48 @@ export function testsRepo(db: ServerDrizzle) {
           mode: tests.mode,
           durationOrWordCount: tests.durationOrWordCount,
           completedAt: tests.completedAt,
-          netWpm: netExpr,
+          netWpm: netExpr.as("net_wpm"),
+          rn: sql<number>`row_number() over (partition by ${tests.userId}, ${tests.mode}, ${tests.durationOrWordCount} order by ${netExpr} desc, ${tests.completedAt} desc)`.as(
+            "rn",
+          ),
         })
         .from(tests)
         .where(and(...filters))
-        .orderBy(desc(netExpr))
-        .limit(limit * 4); // over-fetch so we can dedupe by user
-      // Dedupe so each user only appears once per (mode, bucket) —
-      // keeps the table from filling with a single user's PB attempts.
-      const seen = new Set<string>();
-      const out: LeaderboardRow[] = [];
-      for (const r of rows) {
-        const key = `${r.userId}|${r.mode}|${r.durationOrWordCount}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        out.push({
-          testId: r.testId,
-          userId: r.userId,
-          wpm: Number(r.wpm),
-          accuracy: Number(r.accuracy),
-          netWpm: Number(r.netWpm),
-          mode: r.mode,
-          durationOrWordCount: r.durationOrWordCount,
-          // `gte(tests.completedAt, ...)` filters guarantee non-null
-          // even when sinceMs=0; defensive fallback keeps TS happy.
-          completedAt:
-            r.completedAt instanceof Date
-              ? r.completedAt
-              : r.completedAt != null
-                ? new Date(r.completedAt)
-                : new Date(0),
-        });
-        if (out.length >= limit) break;
-      }
-      return out;
+        .as("ranked");
+
+      const rows = await db
+        .select({
+          testId: ranked.testId,
+          userId: ranked.userId,
+          wpm: ranked.wpm,
+          accuracy: ranked.accuracy,
+          mode: ranked.mode,
+          durationOrWordCount: ranked.durationOrWordCount,
+          completedAt: ranked.completedAt,
+          netWpm: ranked.netWpm,
+        })
+        .from(ranked)
+        .where(eq(ranked.rn, 1))
+        .orderBy(desc(ranked.netWpm))
+        .limit(limit);
+
+      return rows.map((r) => ({
+        testId: r.testId,
+        userId: r.userId,
+        wpm: Number(r.wpm),
+        accuracy: Number(r.accuracy),
+        netWpm: Number(r.netWpm),
+        mode: r.mode,
+        durationOrWordCount: r.durationOrWordCount,
+        // `gte(tests.completedAt, ...)` filters guarantee non-null
+        // even when sinceMs=0; defensive fallback keeps TS happy.
+        completedAt:
+          r.completedAt instanceof Date
+            ? r.completedAt
+            : r.completedAt != null
+              ? new Date(r.completedAt)
+              : new Date(0),
+      }));
     },
 
     /** Headline aggregates for one user's completed runs — the

@@ -140,6 +140,40 @@ describe("adapt routes", () => {
     ).rejects.toBeInstanceOf(ZodError);
   });
 
+  // ── anti-forgery (FT-002) ──────────────────────────────────────────
+
+  it("submit rejects a WPM above the plausibility ceiling", async () => {
+    signedInAs("u1");
+    await expect(
+      callRoute(["adapt", "submit"], {
+        db: ctx.db,
+        input: submitInput({ wpm: 9999 }),
+      }),
+    ).rejects.toBeInstanceOf(ZodError);
+  });
+
+  it("submit rejects a WPM the run's keystrokes can't support", async () => {
+    signedInAs("u1");
+    // Fixture timings (6 keystrokes over 600ms) imply ~120 WPM; 400 is
+    // physically impossible for that keystroke stream.
+    await expect(
+      callRoute(["adapt", "submit"], {
+        db: ctx.db,
+        input: submitInput({ wpm: 400 }),
+      }),
+    ).rejects.toBeInstanceOf(BackendError);
+  });
+
+  it("submit rejects a completed run reporting WPM with no keystrokes", async () => {
+    signedInAs("u1");
+    await expect(
+      callRoute(["adapt", "submit"], {
+        db: ctx.db,
+        input: submitInput({ wpm: 100, timings: [] }),
+      }),
+    ).rejects.toBeInstanceOf(BackendError);
+  });
+
   // ── happy path ─────────────────────────────────────────────────────
 
   it("submit persists a test row and returns measurement counts", async () => {
@@ -551,7 +585,7 @@ describe("adapt routes", () => {
     signedInAs("u1");
     const out = await callRoute<SubmitTestOutput>(["adapt", "submit"], {
       db: ctx.db,
-      input: submitInput({ wasCompleted: false, wpm: 999 }),
+      input: submitInput({ wasCompleted: false, wpm: 100 }),
     });
     expect(out.isPersonalBest).toBe(false);
   });

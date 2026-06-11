@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.137.1 — 11 June 2026
+- Closed a leaderboard cheat: submitted runs are now sanity-checked against the actual keystrokes and capped to a human range, so impossible scores can no longer top the board.
+- Fixed the friends and global leaderboards dropping people: a faster player with lots of runs no longer pushes slower players off the board when there's still room.
+- The results graph no longer shows ✗ mistake marks on a flawless run, and hovering it no longer lists your speed twice.
+
 ## 6.137.0 — 11 June 2026
 - The notifications bell is now reachable on phones — it sits next to the menu button instead of being hidden away.
 - Fixed the top navigation getting clipped on tablet-width screens: the Practice / Races / Leaderboard links now move into the menu until there's room for the full bar.

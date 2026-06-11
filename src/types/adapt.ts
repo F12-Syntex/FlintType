@@ -72,12 +72,19 @@ export const wpmSampleSchema = z.object({
 });
 export type WpmSamplePayload = z.infer<typeof wpmSampleSchema>;
 
+/** Hard plausibility ceiling for any reported WPM. No human sustains
+ *  beyond this (the world record gross WPM is ~305); the race authority
+ *  caps keystroke-derived WPM at the same value. Used as the Zod upper
+ *  bound on every submitted WPM field AND as the public-leaderboard
+ *  display ceiling, so a forged headline figure can't crown rank 1. */
+export const MAX_PLAUSIBLE_WPM = 500;
+
 export const submitTestInputSchema = z.object({
   startedAt: z.number().int().nonnegative(),
   completedAt: z.number().int().nonnegative(),
   mode: testModeSchema,
   durationOrWordCount: z.number().int().nonnegative(),
-  wpm: z.number().nonnegative(),
+  wpm: z.number().nonnegative().max(MAX_PLAUSIBLE_WPM),
   accuracy: z.number().min(0).max(100),
   errorCount: z.number().int().nonnegative(),
   resetCount: z.number().int().nonnegative(),
@@ -92,10 +99,10 @@ export const submitTestInputSchema = z.object({
   // clients (and the race/drill submit paths that haven't been
   // updated) still validate. Server persists them as-is for the
   // share-card renderer.
-  rawWpm: z.number().nonnegative().optional(),
-  peakWpm: z.number().nonnegative().optional(),
-  avgWpm: z.number().nonnegative().optional(),
-  stallWpm: z.number().nonnegative().optional(),
+  rawWpm: z.number().nonnegative().max(MAX_PLAUSIBLE_WPM).optional(),
+  peakWpm: z.number().nonnegative().max(MAX_PLAUSIBLE_WPM).optional(),
+  avgWpm: z.number().nonnegative().max(MAX_PLAUSIBLE_WPM).optional(),
+  stallWpm: z.number().nonnegative().max(MAX_PLAUSIBLE_WPM).optional(),
   consistency: z.number().min(0).max(100).optional(),
   wpmHistory: z.array(wpmSampleSchema).max(600).optional(),
 });

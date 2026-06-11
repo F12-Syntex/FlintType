@@ -56,30 +56,33 @@ export function ResultChart({
   startAtZero: boolean;
   height?: string;
 }) {
-  const { merged, avgWpm, errorBuckets, maxErrors } = useMemo(() => {
-    if (buckets.length < 2) {
+  const { merged, errorPoints, avgWpm, errorBuckets, maxErrors } =
+    useMemo(() => {
+      if (buckets.length < 2) {
+        return {
+          merged: [] as MergedBucket[],
+          errorPoints: [] as MergedBucket[],
+          avgWpm: 0,
+          errorBuckets: new Map<number, number>(),
+          maxErrors: 0,
+        };
+      }
+      const errs = bucketErrors(events);
+      const merged: MergedBucket[] = buckets.map((b) => ({
+        ...b,
+        errors: errs.get(b.sec) ?? 0,
+        gap: Math.max(0, b.raw - b.wpm),
+      }));
+      const avg = merged.reduce((s, b) => s + b.wpm, 0) / merged.length;
+      const maxErr = [...errs.values()].reduce((m, v) => (v > m ? v : m), 0);
       return {
-        merged: [] as MergedBucket[],
-        avgWpm: 0,
-        errorBuckets: new Map<number, number>(),
-        maxErrors: 0,
+        merged,
+        errorPoints: merged.filter((b) => b.errors > 0),
+        avgWpm: avg,
+        errorBuckets: errs,
+        maxErrors: maxErr,
       };
-    }
-    const errs = bucketErrors(events);
-    const merged: MergedBucket[] = buckets.map((b) => ({
-      ...b,
-      errors: errs.get(b.sec) ?? 0,
-      gap: Math.max(0, b.raw - b.wpm),
-    }));
-    const avg = merged.reduce((s, b) => s + b.wpm, 0) / merged.length;
-    const maxErr = [...errs.values()].reduce((m, v) => (v > m ? v : m), 0);
-    return {
-      merged,
-      avgWpm: avg,
-      errorBuckets: errs,
-      maxErrors: maxErr,
-    };
-  }, [buckets, events]);
+    }, [buckets, events]);
 
   if (buckets.length < 2) {
     return (
@@ -197,14 +200,26 @@ export function ResultChart({
           {/* Mistake markers — a destructive ✕ on the WPM line at each
            *  second a wrong key was pressed, so the user can see where
            *  on the speed curve they slipped (errors usually sit in a
-           *  dip). The count detail lives in the tooltip + the ribbon
-           *  below; these are aria-hidden so they don't double-announce. */}
-          <Scatter
-            data={merged.filter((b) => b.errors > 0)}
-            dataKey="wpm"
-            shape={<ErrorMark />}
-            isAnimationActive={false}
-          />
+           *  dip). The count detail lives in the ribbon below; these are
+           *  aria-hidden so they don't double-announce.
+           *
+           *  Rendered ONLY when there are error points: recharts treats an
+           *  empty series `data` as "fall back to the chart-level data",
+           *  which painted a ✕ at every bucket of a perfect run (#FT-006).
+           *  `name="errors"` + `tooltipType="none"` keep it off the
+           *  tooltip so its `dataKey="wpm"` (needed only to position the
+           *  mark on the WPM curve) can't collide with the Area's "wpm"
+           *  series and re-list wpm / log a duplicate-key warning. */}
+          {errorPoints.length > 0 ? (
+            <Scatter
+              data={errorPoints}
+              dataKey="wpm"
+              name="errors"
+              tooltipType="none"
+              shape={<ErrorMark />}
+              isAnimationActive={false}
+            />
+          ) : null}
 
           {/* Peak / stall numbers live in the stat strip under the
            *  chart — no on-chart markers; the wpm trace already shows
