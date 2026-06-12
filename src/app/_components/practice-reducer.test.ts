@@ -352,14 +352,95 @@ describe("practice reducer — BACKSPACE clears the error underline on fix (#16)
   });
 });
 
-describe("practice reducer — SPACE is a no-op at rest (leading space ignored)", () => {
-  it("does not advance or start the run on a leading space", () => {
-    // Matches monkeytype: a space before any typing is ignored, so the
-    // run only starts on a real character. (The skipped-word *error
-    // count* half of #17 is fixed separately by the shared errorCount
-    // metric — see wpm.test.ts.)
+describe("practice reducer — SPACE skips the first word like any other (#17a)", () => {
+  it("starts the run and skips word 0 on a leading space", () => {
+    // Issue #17a: the first word must be skippable with space exactly
+    // like every later word. A space at rest starts the run (startTime
+    // minted) and advances past word 0, marking it errored.
     const s = { ...initialState, words: ["hello", "world"], phase: "rest" as const };
     const next = reducer(s, { type: "SPACE", now: 1000, strictSpace: false });
-    expect(next).toBe(s);
+    expect(next.phase).toBe("running");
+    expect(next.startTime).toBe(1000);
+    expect(next.cursorWord).toBe(1);
+    expect(next.cursorChar).toBe(0);
+    expect(next.errorWords.has(0)).toBe(true);
+    // typed[] sealed with an entry for the skipped word.
+    expect(next.typed[0]).toBe("");
+  });
+
+  it("skips the first word identically to a middle word", () => {
+    // Same skip applied to word 0 (from rest) and to word 1 (mid-run)
+    // must produce the same per-word outcome: empty sealed buffer,
+    // error flag set, cursor advanced one word.
+    const base = { ...initialState, words: ["aaa", "bbb", "ccc"] };
+    const afterFirst = reducer(
+      { ...base, phase: "rest" as const },
+      { type: "SPACE", now: 5, strictSpace: false },
+    );
+    const afterMiddle = reducer(
+      { ...base, phase: "running" as const, cursorWord: 1, typed: ["aaa"], startTime: 0 },
+      { type: "SPACE", now: 5, strictSpace: false },
+    );
+    expect(afterFirst.cursorWord).toBe(1);
+    expect(afterMiddle.cursorWord).toBe(2);
+    expect(afterFirst.typed[0]).toBe("");
+    expect(afterMiddle.typed[1]).toBe("");
+    expect(afterFirst.errorWords.has(0)).toBe(true);
+    expect(afterMiddle.errorWords.has(1)).toBe(true);
+  });
+
+  it("strictSpace still blocks the skip — including at rest", () => {
+    // The strict-space gate is identical across all words: an
+    // unfinished word can't be skipped, and at rest a bare space
+    // neither skips nor starts the run.
+    const rest = { ...initialState, words: ["hello", "world"], phase: "rest" as const };
+    expect(reducer(rest, { type: "SPACE", now: 1, strictSpace: true })).toBe(rest);
+    const running = { ...rest, phase: "running" as const, typed: ["hel"], cursorChar: 3, startTime: 0 };
+    expect(reducer(running, { type: "SPACE", now: 1, strictSpace: true })).toBe(running);
+  });
+
+  it("strictSpace still advances on a fully-correct word", () => {
+    const s = seed({
+      words: ["hello", "world"],
+      cursorWord: 0,
+      cursorChar: 5,
+      typed: ["hello"],
+      startTime: 0,
+    });
+    const next = reducer(s, { type: "SPACE", now: 10, strictSpace: true });
+    expect(next.cursorWord).toBe(1);
+    expect(next.errorWords.has(0)).toBe(false);
+  });
+
+  it("space on the final word still finishes the run (and from rest on a 1-word passage)", () => {
+    const s = { ...initialState, words: ["solo"], phase: "rest" as const };
+    const next = reducer(s, { type: "SPACE", now: 42, strictSpace: false });
+    expect(next.phase).toBe("done");
+    expect(next.startTime).toBe(42);
+    expect(next.endTime).toBe(42);
+  });
+});
+
+describe("practice reducer — skipped words count errors the same live and final (#17b)", () => {
+  it("a skipped word's untyped tail yields the same errorCount live and on results", async () => {
+    const { errorCount } = await import("@/lib/wpm");
+    // Type "hel", skip "hello", then fully type "world" + finish.
+    let s = seed({ words: ["hello", "world"], typed: [], startTime: 0 });
+    for (const ch of "hel") {
+      s = reducer(s, { type: "TYPE_CHAR", char: ch, now: 1, stopOnError: false, allowExtras: true });
+    }
+    s = reducer(s, { type: "SPACE", now: 2, strictSpace: false });
+    for (const ch of "world") {
+      s = reducer(s, { type: "TYPE_CHAR", char: ch, now: 3, stopOnError: false, allowExtras: true });
+    }
+    expect(s.phase).toBe("done");
+    // Live readout uses final=false, results uses final=true — both
+    // must charge the skipped "lo" tail (2 missed chars) identically.
+    const live = errorCount(s.typed, s.words, false);
+    const final = errorCount(s.typed, s.words, true);
+    expect(live).toBe(2);
+    expect(final).toBe(2);
+    // …and the reducer flagged the skipped word for the live underline.
+    expect(s.errorWords.has(0)).toBe(true);
   });
 });
