@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.8 — 12 June 2026
+- Fixed a nasty settings bug: picking a community palette and then tweaking any single option (a colour, the corner radius, a font) no longer wipes the palette when you reload. Your chosen palette now survives underneath your tweaks, "Reset" returns you to it, and undoing an AI design suggestion no longer costs you your palette either.
+
 ## 6.136.0 — 8 June 2026
 - The mode bar above the typing area is now always the chips picker — the "Mode bar" style choice (chips / inline / hidden) has been removed from Customise → Appearance → Chrome.
 - The leaderboard now ranks only two modes: Casual and Adapt. The "All modes" and "Race" filters are gone, so the board compares like-for-like solo runs.
