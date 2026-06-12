@@ -79,4 +79,99 @@ describe("prefs routes", () => {
       callRoute(["prefs", "set"], { db: ctx.db, input: { data: "nope" } }),
     ).rejects.toBeInstanceOf(ZodError);
   });
+
+  it("set strips server-owned keys from client input", async () => {
+    signedInAs("user_a");
+    const res = await callRoute<SetUserPrefsOutput>(["prefs", "set"], {
+      db: ctx.db,
+      input: {
+        data: {
+          caret: { style: "block" },
+          selectedTags: ["owner"], // client must not be able to write this
+          adaptRecency: { th: 1 },
+        },
+      },
+    });
+    expect(res).toEqual({ caret: { style: "block" } });
+    const stored = await ctx.db.userPrefs.get("user_a");
+    expect(stored.selectedTags).toBeUndefined();
+    expect(stored.adaptRecency).toBeUndefined();
+  });
+
+  it("set preserves stored server-owned slices across a wholesale replace", async () => {
+    signedInAs("user_a");
+    // Server-side writers landed these.
+    await ctx.db.userPrefs.merge("user_a", {
+      selectedTags: ["og"],
+      adaptRecency: { th: 2 },
+      monkeytypeStats: { completedTests: 5 },
+      caret: { style: "line" },
+    });
+    // Client reset-all / import replaces the client-owned blob.
+    await callRoute(["prefs", "set"], {
+      db: ctx.db,
+      input: { data: { behaviour: { stopOnError: true } } },
+    });
+    const stored = await ctx.db.userPrefs.get("user_a");
+    expect(stored.caret).toBeUndefined(); // client-owned slice replaced away
+    expect(stored.behaviour).toEqual({ stopOnError: true });
+    expect(stored.selectedTags).toEqual(["og"]); // server state survives
+    expect(stored.adaptRecency).toEqual({ th: 2 });
+    expect(stored.monkeytypeStats).toEqual({ completedTests: 5 });
+  });
+
+  it("merge requires auth", async () => {
+    mockAuth.mockResolvedValue({
+      userId: null,
+      sessionClaims: null,
+    } as unknown as Awaited<ReturnType<typeof auth>>);
+    await expect(
+      callRoute(["prefs", "merge"], { db: ctx.db, input: { data: {} } }),
+    ).rejects.toBeInstanceOf(BackendError);
+  });
+
+  it("merge validates the wire shape", async () => {
+    signedInAs("user_a");
+    await expect(
+      callRoute(["prefs", "merge"], {
+        db: ctx.db,
+        input: { data: {}, remove: [123] },
+      }),
+    ).rejects.toBeInstanceOf(ZodError);
+  });
+
+  it("merge patches only the sent slices and honours remove", async () => {
+    signedInAs("user_a");
+    await ctx.db.userPrefs.set("user_a", {
+      caret: { style: "line" },
+      behaviour: { stopOnError: false },
+      theme: { "--primary": "#fff" },
+    });
+    await callRoute(["prefs", "merge"], {
+      db: ctx.db,
+      input: {
+        data: { behaviour: { stopOnError: true } },
+        remove: ["theme"],
+      },
+    });
+    const stored = await ctx.db.userPrefs.get("user_a");
+    expect(stored.caret).toEqual({ style: "line" }); // untouched
+    expect(stored.behaviour).toEqual({ stopOnError: true });
+    expect(stored.theme).toBeUndefined();
+  });
+
+  it("merge strips server-owned keys from both data and remove", async () => {
+    signedInAs("user_a");
+    await ctx.db.userPrefs.merge("user_a", { selectedTags: ["og"] });
+    await callRoute(["prefs", "merge"], {
+      db: ctx.db,
+      input: {
+        data: { monkeytypeStats: { completedTests: 999 } },
+        remove: ["selectedTags"],
+      },
+    });
+    const stored = await ctx.db.userPrefs.get("user_a");
+    expect(stored.monkeytypeStats).toBeUndefined(); // not client-writable
+    expect(stored.selectedTags).toEqual(["og"]); // not client-removable
+  });
 });
