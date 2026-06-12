@@ -16,6 +16,7 @@ vi.mock("@/lib/backend", () => ({
 
 import {
   __resetForTests,
+  getCache,
   loadPrefs,
   readSlice,
   writeSlice,
@@ -38,6 +39,34 @@ describe("prefs-store conflict resolution", () => {
   });
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it("getCache is null before load and non-null after (the `loaded` gate)", async () => {
+    // Before any load, the store reports "still loading" — this is
+    // what useRemotePrefs' `loaded` flag (and flash-guarded UI like
+    // the Discord banner) hangs off.
+    expect(getCache()).toBeNull();
+    expect(readSlice("banners", { discordDismissed: false })).toEqual({
+      discordDismissed: false,
+    });
+
+    mockGet = async () => ({ banners: { discordDismissed: true } });
+    await loadPrefs();
+
+    expect(getCache()).not.toBeNull();
+    expect(readSlice("banners", { discordDismissed: false })).toEqual({
+      discordDismissed: true,
+    });
+  });
+
+  it("getCache becomes non-null even on a failed backend GET (anon path)", async () => {
+    mockGet = async () => {
+      throw new Error("network down");
+    };
+    await loadPrefs();
+    // The store must still resolve to a usable (empty) blob so `loaded`
+    // flips and gated UI doesn't stay hidden forever for anon users.
+    expect(getCache()).toEqual({});
   });
 
   it("clean state: the backend copy is authoritative on load", async () => {
