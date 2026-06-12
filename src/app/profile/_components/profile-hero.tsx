@@ -19,6 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { clearUserScopedStorage } from "@/lib/sign-out-cleanup";
 import { cn } from "@/lib/utils";
 import type { FriendRelationship, FriendStats } from "@/types/friends";
 import type { RankId } from "@/types/rank";
@@ -174,7 +175,10 @@ export function ProfileHero({
               isMtConnected={isMtConnected}
               onEdit={() => setEditOpen(true)}
               onOpenMt={onOpenMt ?? (() => undefined)}
-              onSignOut={() => void signOut({ redirectUrl: "/" })}
+              onSignOut={() => {
+                clearUserScopedStorage();
+                void signOut({ redirectUrl: "/" });
+              }}
             />
           ) : relationship && subjectUserId ? (
             <>
