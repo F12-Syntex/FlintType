@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.1 — 13 June 2026
+- Fixed race results sometimes crowning the wrong winner: the final placement double-counted accuracy, so a racer with the highest speed shown in the WPM column could still drop a place at the finish. Placement now matches the WPM column (which already accounts for your mistakes), so whoever leads on speed wins.
+
 ## 6.136.0 — 8 June 2026
 - The mode bar above the typing area is now always the chips picker — the "Mode bar" style choice (chips / inline / hidden) has been removed from Customise → Appearance → Chrome.
 - The leaderboard now ranks only two modes: Casual and Adapt. The "All modes" and "Race" filters are gone, so the board compares like-for-like solo runs.

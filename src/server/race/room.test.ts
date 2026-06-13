@@ -644,41 +644,69 @@ describe("RaceRoom", () => {
     return room;
   }
 
-  it("places racers by net WPM, not by finish order", () => {
-    // Two real racers cross at a similar server-computed raw WPM, so the
-    // WINNER is decided by net (raw × accuracy). Alice crosses the line
-    // FIRST but at low accuracy; Bob crosses after with a cleaner run.
-    // Bob's higher net must win despite finishing second.
+  it("places racers by net WPM, not by finish order — and never double-counts accuracy", () => {
+    // `r.wpm` is ALREADY net: setProgress computes it from CORRECT chars
+    // only — (progressChars − errors) / 5 / elapsed-minutes. Final
+    // placement must rank by that net WPM directly, NOT by net × accuracy
+    // (which subtracts errors a second time and disagrees with the WPM
+    // column the user sees — issue FT-021).
+    //
+    // Scenario (T = room.totalChars = 29 chars for this seed):
+    //   Alice — finishes FIRST at elapsed 3s with 9 errors:
+    //           correct 20 → net = 20/5 × (60/3)  = 80 wpm, acc 60%.
+    //   Bob   — finishes SECOND at elapsed 5s with 2 errors:
+    //           correct 27 → net = 27/5 × (60/5)  = 65 wpm, acc 93%.
+    // Alice has the HIGHER net WPM but the LOWER accuracy; Bob the lower
+    // net but cleaner. Net-WPM ranking (the fix) awards Alice 1st — she
+    // matches the higher WPM column. The OLD net × accuracy score would
+    // have given Alice 80 × 0.60 = 48 and Bob 65 × 0.93 ≈ 60, wrongly
+    // crowning the slower-but-cleaner Bob — so this test FAILS on the old
+    // `score = round(wpm × acc/100)` and PASSES on the fix.
+    // A challenge FFA room (no bot fill) keeps the lineup to exactly the
+    // two real racers, so placement is fully deterministic.
     const room = new RaceRoom({
       id: "r_netwpm",
-      slug: null,
-      kind: "matchmaking",
-      modeId: "1v1",
+      slug: "net-wpm-otter-1",
+      kind: "challenge",
+      modeId: "ffa",
       raceSeed: 1,
       wordCount: 5,
     });
-    room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
+    room.addRealRacer({
+      sessionToken: "s_alice",
+      name: "@alice",
+      badge: "RACER",
+      isHost: true,
+    });
     room.addRealRacer({ sessionToken: "s_bob", name: "@bob", badge: "RACER" });
-    vi.advanceTimersByTime(5_000 + 700 + 3_000);
+    expect(room.hostStart("s_alice")).toBe(true);
+    vi.advanceTimersByTime(700 + 3_000);
     expect(room.phase).toBe("racing");
+    const T = room.totalChars;
+    expect(T).toBe(29); // guards the hand-computed net WPMs above
 
-    // Alice crosses first at 50% accuracy (client-reported wpm ignored).
-    room.setProgress("s_alice", room.totalChars, 100, true, undefined, 50);
-    // Bob crosses second at 95% accuracy → higher net.
-    vi.advanceTimersByTime(1_000);
-    room.setProgress("s_bob", room.totalChars, 142, true, undefined, 95);
-    // Drive bots over the line too so phase flips to finished.
-    vi.advanceTimersByTime(60_000);
+    // Alice crosses first at elapsed 3s with 9 errors (low accuracy).
+    vi.advanceTimersByTime(3_000);
+    room.setProgress("s_alice", T, 0, true, 9, 60);
+    // Bob crosses second at elapsed 5s with 2 errors (high accuracy).
+    vi.advanceTimersByTime(2_000);
+    room.setProgress("s_bob", T, 0, true, 2, 93);
     expect(room.phase).toBe("finished");
 
     const racers = room.snapshot().racers;
     const alice = racers.find((r) => r.id === "s_alice");
     const bob = racers.find((r) => r.id === "s_bob");
-    expect(bob?.place).toBeLessThan(alice?.place ?? 99);
-    // First place must belong to Bob (highest net), regardless of
-    // whether bots placed in between.
-    const top = racers.find((r) => r.place === 1);
-    expect(top?.id).toBe("s_bob");
+    // Server-computed net WPM: Alice genuinely higher (80) than Bob (65),
+    // even though Bob finished cleaner and Alice finished first with errors.
+    expect(alice?.wpm).toBe(80);
+    expect(bob?.wpm).toBe(65);
+    // Net WPM wins → Alice is 1st, despite her lower accuracy. (Finish
+    // order is incidental here: Alice also crossed first, but the ranking
+    // is driven by net WPM — see the buzzer test for net beating a racer
+    // who finished first with a lower net.)
+    expect(alice?.place).toBe(1);
+    expect(bob?.place).toBe(2);
+    expect(room.snapshot().racers.find((r) => r.place === 1)?.id).toBe("s_alice");
   });
 
   it("an authenticated user can't join their own room twice — they resume their seat", () => {

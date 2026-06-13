@@ -772,23 +772,26 @@ export class RaceRoom {
     this.scheduleGc();
   }
 
-  /** Re-rank every racer's `place` by net WPM (raw_wpm × accuracy /
-   *  100) descending. Finish order alone is a misleading winner — a
-   *  cracked typist who finished cleanly at 177 net deserves first
-   *  even if a sloppier 100-wpm racer crossed the line a second
-   *  earlier with half their typing being backspaces. Ties (rare —
-   *  two racers at the same integer net) break on `finishedAt`
+  /** Re-rank every racer's `place` by net WPM descending. `r.wpm` is
+   *  ALREADY net — `setProgress` (and the bot tick) compute it from
+   *  *correct* chars only (`(progressChars − errors) / 5 / minutes`),
+   *  so errors are subtracted exactly once, at the source. Ranking
+   *  must therefore use `r.wpm` directly; multiplying by accuracy here
+   *  would penalise accuracy a SECOND time and make the awarded winner
+   *  disagree with the WPM column shown to users (the client live
+   *  standings rank by `r.wpm` directly — see race-results.tsx, whose
+   *  comment notes applying accuracy again "would penalize accuracy
+   *  twice"). Finish order alone is a misleading winner — a cracked
+   *  typist who finished cleanly at 177 net deserves first even if a
+   *  sloppier 100-net racer crossed the line a second earlier. Ties
+   *  (rare — two racers at the same integer net) break on `finishedAt`
    *  ascending so the earlier finisher edges out. Bots and real
    *  players rank against each other the same way; disconnected
    *  racers slot to the back. Called once from `maybeFinishRace` so
    *  the place is final by the time the result panel mounts. */
   private rankByNetWpm() {
     const racers = [...this.racers.values()];
-    const score = (r: (typeof racers)[number]) => {
-      const wpm = Math.max(0, r.wpm);
-      const acc = Math.max(0, Math.min(100, r.accuracy));
-      return Math.round(wpm * (acc / 100));
-    };
+    const score = (r: (typeof racers)[number]) => Math.round(Math.max(0, r.wpm));
     racers.sort((a, b) => {
       if (a.disconnected !== b.disconnected) {
         return a.disconnected ? 1 : -1;
