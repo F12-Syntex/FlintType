@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.1 — 13 June 2026
+- Fixed Burst mode finishing too early: the last word used to end the drill the moment you typed its final letter, skipping the speed and reps requirement (so a single slow word could "complete" a burst). Now the final word is held to the same threshold and reps as every other — you finish it with space once you've cleared the bar.
+
 ## 6.136.0 — 8 June 2026
 - The mode bar above the typing area is now always the chips picker — the "Mode bar" style choice (chips / inline / hidden) has been removed from Customise → Appearance → Chrome.
 - The leaderboard now ranks only two modes: Casual and Adapt. The "All modes" and "Race" filters are gone, so the board compares like-for-like solo runs.
