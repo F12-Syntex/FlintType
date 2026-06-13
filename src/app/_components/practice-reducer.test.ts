@@ -140,7 +140,7 @@ describe("practice reducer — sequential Ctrl+Backspace", () => {
         allowExtras: true,
       });
     }
-    s = reducer(s, { type: "SPACE", now: 0, strictSpace: false });
+    s = reducer(s, { type: "SPACE", now: 0, strictSpace: false, backspaceLocked: false });
     for (const ch of "world") {
       s = reducer(s, {
         type: "TYPE_CHAR",
@@ -288,7 +288,7 @@ describe("practice reducer — TIME mode never finishes on word count", () => {
       cursorChar: 3,
       typed: ["the"],
     });
-    const next = reducer(s, { type: "SPACE", now: 100, strictSpace: false });
+    const next = reducer(s, { type: "SPACE", now: 100, strictSpace: false, backspaceLocked: false });
     expect(next.phase).toBe("running");
     expect(next.endTime).toBeNull();
     expect(next.cursorWord).toBe(1);
@@ -359,7 +359,88 @@ describe("practice reducer — SPACE is a no-op at rest (leading space ignored)"
     // count* half of #17 is fixed separately by the shared errorCount
     // metric — see wpm.test.ts.)
     const s = { ...initialState, words: ["hello", "world"], phase: "rest" as const };
-    const next = reducer(s, { type: "SPACE", now: 1000, strictSpace: false });
+    const next = reducer(s, { type: "SPACE", now: 1000, strictSpace: false, backspaceLocked: false });
     expect(next).toBe(s);
+  });
+});
+
+describe("practice reducer — strictSpace yields when backspace is locked (#50)", () => {
+  it("strictSpace + backspaceLocked=false + wrong word → SPACE is a no-op", () => {
+    // confidence off/word: the user CAN backspace to fix, so strictSpace
+    // is enforced — Space refuses to advance past a wrong word.
+    const s = seed({
+      words: ["hello", "world"],
+      cursorWord: 0,
+      cursorChar: 5,
+      typed: ["helxo", ""],
+      errorWords: new Set([0]),
+    });
+    const next = reducer(s, {
+      type: "SPACE",
+      now: 100,
+      strictSpace: true,
+      backspaceLocked: false,
+    });
+    expect(next).toBe(s);
+    expect(next.cursorWord).toBe(0);
+  });
+
+  it("strictSpace + backspaceLocked=false + incomplete word → SPACE is a no-op", () => {
+    const s = seed({
+      words: ["hello", "world"],
+      cursorWord: 0,
+      cursorChar: 3,
+      typed: ["hel", ""],
+    });
+    const next = reducer(s, {
+      type: "SPACE",
+      now: 100,
+      strictSpace: true,
+      backspaceLocked: false,
+    });
+    expect(next).toBe(s);
+    expect(next.cursorWord).toBe(0);
+  });
+
+  it("strictSpace + backspaceLocked=true + wrong word → SPACE advances (the fix)", () => {
+    // confidence="all": no correction path, so strictSpace must yield —
+    // Space advances past the word and marks it errored, breaking the
+    // deadlock.
+    const s = seed({
+      words: ["hello", "world"],
+      cursorWord: 0,
+      cursorChar: 5,
+      typed: ["helxo", ""],
+      errorWords: new Set([0]),
+    });
+    const next = reducer(s, {
+      type: "SPACE",
+      now: 100,
+      strictSpace: true,
+      backspaceLocked: true,
+    });
+    expect(next.cursorWord).toBe(1);
+    expect(next.cursorChar).toBe(0);
+    expect(next.errorWords.has(0)).toBe(true);
+  });
+
+  it("strictSpace + correct word → SPACE advances regardless of backspaceLocked", () => {
+    for (const backspaceLocked of [false, true]) {
+      const s = seed({
+        words: ["hello", "world"],
+        cursorWord: 0,
+        cursorChar: 5,
+        typed: ["hello", ""],
+      });
+      const next = reducer(s, {
+        type: "SPACE",
+        now: 100,
+        strictSpace: true,
+        backspaceLocked,
+      });
+      expect(next.cursorWord).toBe(1);
+      expect(next.cursorChar).toBe(0);
+      expect(next.errorWords.has(0)).toBe(false);
+    }
   });
 });

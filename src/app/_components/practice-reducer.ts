@@ -86,7 +86,7 @@ export type Action =
     }
   | { type: "BACKSPACE" }
   | { type: "BACKSPACE_WORD" }
-  | { type: "SPACE"; now: number; strictSpace: boolean }
+  | { type: "SPACE"; now: number; strictSpace: boolean; backspaceLocked: boolean }
   | { type: "RESTART"; words: string[]; quoteSource: string | null }
   | { type: "REGENERATE"; cfg: WordCfg }
   | { type: "FINISH_TIME"; now: number }
@@ -497,7 +497,12 @@ export function reducer(s: State, a: Action): State {
       // strictSpace=true → refuse to advance unless the word is fully
       // typed correctly. The user must finish or backspace; no event,
       // no errorWord mark, the keystroke is a no-op.
-      if (a.strictSpace && typedHere !== target) return s;
+      //
+      // Exception: when backspace is fully locked (confidence="all") the
+      // user has NO correction path — strictSpace would deadlock the run
+      // after one wrong char. So strictSpace yields and Space advances
+      // (the word is marked errored below as usual).
+      if (a.strictSpace && !a.backspaceLocked && typedHere !== target) return s;
       // Space always advances the cursor — the user explicitly asked
       // to skip past mistakes. If the typed word doesn't match the
       // target, mark it as an error word so the summary still

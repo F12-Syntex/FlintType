@@ -142,7 +142,12 @@ export function InputCapture({ children }: { children: ReactNode }) {
                   continue;
                 }
                 if (phaseRef.current !== "rest") {
-                  dispatch({ type: "SPACE", now, strictSpace });
+                  dispatch({
+                    type: "SPACE",
+                    now,
+                    strictSpace,
+                    backspaceLocked: p.confidence === "all",
+                  });
                 }
               } else {
                 dispatch({
@@ -218,6 +223,7 @@ export function InputCapture({ children }: { children: ReactNode }) {
               type: "SPACE",
               now: Date.now(),
               strictSpace: p.strictSpace,
+              backspaceLocked: p.confidence === "all",
             });
             playClick();
             return;

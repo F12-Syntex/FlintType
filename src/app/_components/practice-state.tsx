@@ -1029,7 +1029,12 @@ export function PracticeProvider({
     if (e.key === " ") {
       e.preventDefault();
       if (s.phase === "rest") return;
-      dispatch({ type: "SPACE", now: Date.now(), strictSpace: p.strictSpace });
+      dispatch({
+        type: "SPACE",
+        now: Date.now(),
+        strictSpace: p.strictSpace,
+        backspaceLocked: p.confidence === "all",
+      });
       return;
     }
     if (e.key === "Backspace") {
