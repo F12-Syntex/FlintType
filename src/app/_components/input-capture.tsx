@@ -185,12 +185,15 @@ export function InputCapture({ children }: { children: ReactNode }) {
           const p = prefsRef.current;
           if (e.key === "Escape") {
             e.preventDefault();
-            restart();
+            // In race phases where input is locked (lobby, countdown,
+            // matching, results), Esc is a no-op — there is no room-leave
+            // wired here. Use the Leave button or Tab to the controls.
+            if (!isRaceInputCurrentlyLocked()) restart();
             return;
           }
           if (phaseRef.current === "done") return;
           // Race countdown / lobby / matching — block typing keys until
-          // the race starts. Escape (above) still leaves the room.
+          // the race starts.
           if (isRaceInputCurrentlyLocked()) {
             e.preventDefault();
             return;

@@ -1081,14 +1081,13 @@ export function PracticeProvider({
     function onTab(e: KeyboardEvent) {
       if (e.key !== "Tab") return;
       if (e.ctrlKey || e.altKey || e.metaKey) return;
+      // In raceMode, TabFocusGuard owns phase-aware Tab swallowing
+      // (countdown + racing: swallow; lobby/results: leave alone for
+      // keyboard-only nav). Return without preventDefault so native
+      // focus traversal works in every non-typing phase.
+      if (raceMode) return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      // In a multiplayer race, Tab is inert: a mid-race restart would
-      // wipe your progress, and the room owns the passage so there's no
-      // fresh set to roll. Swallow it (the preventDefault above already
-      // killed the native focus-shift). Rematch is the visible
-      // "Race again" button on the results panel.
-      if (raceMode) return;
       // In BURST, Tab retries the CURRENT word (clears the typed buffer),
       // it does NOT re-roll a whole new set — a burst is a repeat-until-
       // clean drill, so "again" means this word, not a fresh passage.
