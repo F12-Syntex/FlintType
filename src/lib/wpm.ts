@@ -114,6 +114,36 @@ export function errorCount(
   return c.incorrectChars + c.extraChars;
 }
 
+/** Keystroke-true accuracy + errors for the practice surface.
+ *
+ *  The buffer-based `countChars`/`errorCount` above walk the FINAL
+ *  `typed[]` array, so a mistake that's later backspaced — or one
+ *  blocked by stop-on-error (never enters `typed[]`) — vanishes: the
+ *  run reads 100% / 0 errors even after many wrong keystrokes. That's
+ *  the wrong contract for the headline accuracy/error stats.
+ *
+ *  Monkeytype (this file's alignment target) and the race surface both
+ *  compute accuracy from the *keystroke stream*: every counted keypress
+ *  is a denominator, every correct one a numerator, and a corrected or
+ *  blocked mistake still counts. These two helpers operate on the
+ *  reducer's `KeyEvent[]` log (`{ correct }[]`), which records one event
+ *  per counted keystroke — correct, incorrect, AND stop-on-error-blocked.
+ *  (Equivalent to the reducer's running `correctChars`/`totalChars`
+ *  counters the race surface reads; events is the richer single source.)
+ *
+ *  `countChars`/`errorCount` stay buffer-based for their other callers
+ *  (the net-WPM walk, the passage's per-word underline). */
+export function keystrokeAccuracy(events: readonly { correct: boolean }[]): number {
+  const total = events.length;
+  if (total === 0) return 100;
+  const correct = events.filter((e) => e.correct).length;
+  return (correct / total) * 100;
+}
+
+export function keystrokeErrors(events: readonly { correct: boolean }[]): number {
+  return events.reduce((n, e) => (e.correct ? n : n + 1), 0);
+}
+
 export type WpmResult = {
   wpm: number;
   raw: number;

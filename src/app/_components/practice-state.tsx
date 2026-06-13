@@ -20,7 +20,7 @@ import { useIsMobile } from "@/lib/use-is-mobile";
 import { isRaceInputCurrentlyLocked } from "@/lib/race-input";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { useWordlist } from "@/lib/wordlists/use-wordlist";
-import { calcWpmAndRaw, countChars, errorCount as computeErrorCount } from "@/lib/wpm";
+import { calcWpmAndRaw, keystrokeAccuracy, keystrokeErrors } from "@/lib/wpm";
 import {
   avgWpm as computeAvgWpm,
   consistencyScore as computeConsistency,
@@ -558,13 +558,12 @@ export function PracticeProvider({
     // threshold (behaviour.burstThreshold = 0). Pure localStorage,
     // capped to the last 20 samples; see src/lib/avg-wpm-cache.ts.
     recordWpmSample(wpm);
-    const counts = countChars(state.typed, state.words, true);
-    const correctChars = counts.allCorrectChars;
-    const incorrectChars = counts.incorrectChars + counts.extraChars;
-    const accuracy =
-      correctChars + incorrectChars > 0
-        ? (correctChars / (correctChars + incorrectChars)) * 100
-        : 100;
+    // Accuracy + errors are KEYSTROKE-TRUE (derived from the recorded
+    // KeyEvent stream), so a backspaced or stop-on-error-blocked mistake
+    // still counts — matching monkeytype and the race surface. The old
+    // countChars-over-typed[] calc read 100%/0 errors for a fully
+    // corrected run, inflating the persisted accuracy + PB.
+    const accuracy = keystrokeAccuracy(state.events);
     const wordsActuallyTyped = state.words.slice(
       0,
       Math.min(state.cursorWord + 1, state.words.length),
@@ -597,10 +596,11 @@ export function PracticeProvider({
         durationOrWordCount: length,
         wpm,
         accuracy,
-        // Per-character errors (incorrect + extra), the same metric the
-        // results + live readouts show — so the persisted/history figure
-        // matches what the user saw (was errorWords.size, a per-word count).
-        errorCount: computeErrorCount(state.typed, state.words),
+        // Keystroke-true error count (incorrect keystrokes, including
+        // ones later backspaced or blocked by stop-on-error) — the same
+        // metric the results + live readouts show, so the persisted /
+        // history figure matches what the user saw.
+        errorCount: keystrokeErrors(state.events),
         resetCount: 0,
         wasCompleted: true,
         words: wordsActuallyTyped,
@@ -736,13 +736,10 @@ export function PracticeProvider({
         isFinal,
         s.events.length,
       );
-      const counts = countChars(s.typed, s.words, isFinal);
-      const correct = counts.allCorrectChars;
-      const incorrect = counts.incorrectChars + counts.extraChars;
-      const acc =
-        correct + incorrect > 0
-          ? Math.round((correct / (correct + incorrect)) * 1000) / 10
-          : 100;
+      // Keystroke-true accuracy (corrected + stop-on-error-blocked
+      // mistakes count) — see keystrokeAccuracy. Matches the recorded
+      // value so live == results == persisted.
+      const acc = Math.round(keystrokeAccuracy(s.events) * 10) / 10;
       return {
         wpm: Math.round(rawWpm),
         raw: Math.round(rawRaw),
