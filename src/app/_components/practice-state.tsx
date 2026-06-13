@@ -1029,6 +1029,14 @@ export function PracticeProvider({
     if (e.key === " ") {
       e.preventDefault();
       if (s.phase === "rest") return;
+      // BURST: BurstProvider's own window listener owns Space — it runs
+      // the threshold/reps gate (burst-practice.tsx handleSpace) before
+      // dispatching the run-advancing SPACE. Dispatching a raw, ungated
+      // SPACE here (this fallback fires when focus is off the hidden
+      // input, e.g. on <body>) would bypass that gate AND double-dispatch
+      // with BurstProvider's listener. Swallow it and let BurstProvider
+      // own it, mirroring input-capture's BURST suppression (#47/FT-012).
+      if (s.mode === "BURST") return;
       dispatch({ type: "SPACE", now: Date.now(), strictSpace: p.strictSpace });
       return;
     }
