@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.1 — 13 June 2026
+- Fixed the results graph putting a red ✕ on every point of a flawless run: mistake marks now appear only where you actually mistyped, matching the "no mistakes" note. Also cleaned up the graph's hover tooltip, which was listing your speed twice.
+
 ## 6.136.0 — 8 June 2026
 - The mode bar above the typing area is now always the chips picker — the "Mode bar" style choice (chips / inline / hidden) has been removed from Customise → Appearance → Chrome.
 - The leaderboard now ranks only two modes: Casual and Adapt. The "All modes" and "Race" filters are gone, so the board compares like-for-like solo runs.
