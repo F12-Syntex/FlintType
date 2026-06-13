@@ -9,7 +9,7 @@ User-facing changes to flinttype, newest first — one section per version. Also
 ---
 
 ## 6.136.1 — 13 June 2026
-- Internal changes only.
+- Fixed the friends leaderboard dropping people: a slower friend could vanish from the board entirely if you (or another friend) had lots of faster runs. Every friend now shows at their correct rank, and the same fix applies to the global board and top-players list.
 
 ## 6.136.0 — 8 June 2026
 - The mode bar above the typing area is now always the chips picker — the "Mode bar" style choice (chips / inline / hidden) has been removed from Customise → Appearance → Chrome.
