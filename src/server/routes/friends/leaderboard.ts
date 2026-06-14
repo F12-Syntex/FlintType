@@ -3,6 +3,7 @@ import { modeFor, sinceFor } from "@/server/leaderboard-window";
 import { resolveUserDisplays } from "@/server/user-display";
 import {
   leaderboardInputSchema,
+  lengthModeForPreset,
   PRESET_AMOUNT,
   type LeaderboardEntry,
   type LeaderboardInput,
@@ -36,6 +37,7 @@ export const leaderboard = defineRoute<LeaderboardInput, LeaderboardOutput>({
       mode: modeFor(scope),
       sinceMs: sinceFor(window),
       amount: PRESET_AMOUNT[preset],
+      lengthMode: lengthModeForPreset(preset),
       limit,
       userIds,
     });

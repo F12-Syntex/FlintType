@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.2 — 14 June 2026
+- Timed and word tests of the same number (e.g. a 60-second run vs a 60-word run) are now kept apart for personal bests and the leaderboard, instead of being lumped together. The timed leaderboards no longer rank short custom-word sprints against real timed runs.
+
 ## 6.136.1 — 14 June 2026
 - Fixed the share page and its social-preview image mislabelling timed and quote runs as "Words". A 60-second test now reads "Time · 60s" and a quote run shows its length (e.g. "Quote · long") instead of "Words · 60".
 

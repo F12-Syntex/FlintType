@@ -1,4 +1,16 @@
-import { and, desc, eq, gte, inArray, like, lt, max, sql } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  like,
+  lt,
+  max,
+  or,
+  sql,
+} from "drizzle-orm";
 import { tests } from "@/db/schema/server/tests";
 import type { NewTestRow, TestRow } from "@/types/adapt";
 import type { ServerDrizzle } from "../driver";
@@ -14,6 +26,11 @@ export type LeaderboardRow = {
   netWpm: number;
   mode: string;
   durationOrWordCount: number;
+  /** Length unit for `durationOrWordCount` — `"words"|"time"|"quote"`,
+   *  or null on legacy rows. Carried so the dedupe key separates a
+   *  60-word run from a 60-second run, and so consumers can label the
+   *  bucket unambiguously. */
+  lengthMode: string | null;
   completedAt: Date;
 };
 
@@ -104,11 +121,19 @@ export function testsRepo(db: ServerDrizzle) {
         .limit(limit);
     },
 
-    /** Previous best WPM for one (mode, durationOrWordCount) bucket
-     *  among *completed* runs that started *before* `beforeMs`.
+    /** Previous best WPM for one (mode, lengthMode, durationOrWordCount)
+     *  bucket among *completed* runs that started *before* `beforeMs`.
      *  Returns `null` if the user has no prior completed run in that
      *  bucket — used by adapt.submit to decide whether the just-
      *  inserted test is a fresh personal best.
+     *
+     *  `lengthMode` is the time/words/quote discriminator: a new run
+     *  always carries a non-null value, so this cleanly buckets a
+     *  60-second time run apart from a custom 60-word run (which
+     *  otherwise collided on `durationOrWordCount` alone). Legacy
+     *  null-lengthMode rows never match a typed run's filter, so a
+     *  new typed PB is compared only against prior runs of the same
+     *  length-mode — acceptable: legacy rows pre-date the unit split.
      *
      *  `beforeMs` lets the caller pass the just-inserted run's
      *  `startedAt`; the query stays oblivious to whether the row is
@@ -118,6 +143,7 @@ export function testsRepo(db: ServerDrizzle) {
       userId: string,
       mode: string,
       durationOrWordCount: number,
+      lengthMode: string | null,
       beforeMs: number,
     ): Promise<number | null> {
       const rows = await db
@@ -128,6 +154,9 @@ export function testsRepo(db: ServerDrizzle) {
             eq(tests.userId, userId),
             eq(tests.mode, mode),
             eq(tests.durationOrWordCount, durationOrWordCount),
+            lengthMode == null
+              ? isNull(tests.lengthMode)
+              : eq(tests.lengthMode, lengthMode),
             eq(tests.wasCompleted, true),
             lt(tests.startedAt, new Date(beforeMs)),
           ),
@@ -147,6 +176,14 @@ export function testsRepo(db: ServerDrizzle) {
       mode?: string;
       sinceMs?: number;
       amount?: number | null;
+      /** Length-unit filter for the preset board. When set, the query
+       *  keeps rows of exactly this length-mode PLUS legacy null-mode
+       *  rows (which stay on their amount-matched board — time/words
+       *  amount sets are disjoint, so a legacy null never double-lists).
+       *  This excludes a *new* explicit-words run from a time board,
+       *  closing the inflated-WPM gaming vector where a 15-word sprint
+       *  posts a huge number on the `t15` (15-second) board. */
+      lengthMode?: "words" | "time" | "quote";
       limit?: number;
       /** When provided, restrict the ranking to this set of user ids
        *  (the friends-scoped leaderboard). An empty array means "no
@@ -170,6 +207,16 @@ export function testsRepo(db: ServerDrizzle) {
       if (amount != null && amount > 0) {
         filters.push(eq(tests.durationOrWordCount, amount));
       }
+      if (opts.lengthMode != null) {
+        // Include rows of this exact length-mode OR legacy null rows.
+        // `or(...)` can be undefined per drizzle's types; both operands
+        // are always present here, but assert for the compiler.
+        const lengthFilter = or(
+          eq(tests.lengthMode, opts.lengthMode),
+          isNull(tests.lengthMode),
+        );
+        if (lengthFilter) filters.push(lengthFilter);
+      }
       if (opts.userIds != null) {
         filters.push(inArray(tests.userId, [...opts.userIds]));
       }
@@ -181,6 +228,7 @@ export function testsRepo(db: ServerDrizzle) {
           accuracy: tests.accuracy,
           mode: tests.mode,
           durationOrWordCount: tests.durationOrWordCount,
+          lengthMode: tests.lengthMode,
           completedAt: tests.completedAt,
           netWpm: netExpr,
         })
@@ -190,6 +238,11 @@ export function testsRepo(db: ServerDrizzle) {
         .limit(limit * 4); // over-fetch so we can dedupe by user
       // Dedupe so each user only appears once per (mode, bucket) —
       // keeps the table from filling with a single user's PB attempts.
+      // The `lengthMode` filter above already segregates the board to a
+      // single length-mode (+ legacy null), so the key must NOT include
+      // lengthMode: a user with both a typed `time/60` row AND a legacy
+      // `null/60` row would otherwise take TWO slots on the t60 board.
+      // Keying on (user, mode, amount) keeps their single best run.
       const seen = new Set<string>();
       const out: LeaderboardRow[] = [];
       for (const r of rows) {
@@ -204,6 +257,7 @@ export function testsRepo(db: ServerDrizzle) {
           netWpm: Number(r.netWpm),
           mode: r.mode,
           durationOrWordCount: r.durationOrWordCount,
+          lengthMode: r.lengthMode ?? null,
           // `gte(tests.completedAt, ...)` filters guarantee non-null
           // even when sinceMs=0; defensive fallback keeps TS happy.
           completedAt:
