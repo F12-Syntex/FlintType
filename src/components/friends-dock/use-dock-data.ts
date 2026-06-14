@@ -47,6 +47,9 @@ export type DockData = {
   /** People in the directory who are online right now. */
   onlineCount: number;
   loading: boolean;
+  /** Mark a challenge's source race_invite notification read, clearing
+   *  it from the dock + bell (called when its Join is clicked). */
+  markChallengeRead: (id: string) => void;
   reload: () => void;
 };
 
@@ -198,6 +201,19 @@ export function useDockData({
     [directory, presenceById],
   );
 
+  // Joining (or dismissing) a challenge marks its source race_invite
+  // notification read, so it clears from the dock + the bell instead of
+  // lingering on a dead lobby forever (FT-031). Optimistically drop it
+  // locally; the backend call is fire-and-forget (the next poll
+  // reconciles on failure).
+  const markChallengeRead = useCallback(
+    (id: string) => {
+      setChallenges((cs) => cs.filter((c) => c.id !== id));
+      void backend.notifications.markRead({ id }).catch(() => {});
+    },
+    [backend],
+  );
+
   return {
     live,
     challenges,
@@ -205,6 +221,7 @@ export function useDockData({
     presenceById,
     onlineCount,
     loading,
+    markChallengeRead,
     reload: () => void loadLists(),
   };
 }
