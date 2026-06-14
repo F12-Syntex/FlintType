@@ -19,6 +19,7 @@
  *    - src/app/appearance-applier.tsx (data-ft-* mapping)
  *    - src/app/borders-applier.tsx
  *    - src/lib/apply-theme-overrides.tsx (theme CSS-var overrides)
+ *    - src/lib/themes/use-palette.tsx (palette.varsLight/varsDark + applyTheme)
  *    - src/app/_components/discord-banner.tsx (banners.discordDismissed) */
 
 export const PREFS_BOOTSTRAP_SCRIPT = `
@@ -59,6 +60,43 @@ export const PREFS_BOOTSTRAP_SCRIPT = `
         root.setAttribute('data-ft-borders', String(ap.borders));
       } else {
         root.removeAttribute('data-ft-borders');
+      }
+    }
+
+    // Named palette: paint the active community palette's resolved
+    // cssVars before first paint, so it doesn't flash the default
+    // coral/paper for the first frames (ui-law §9.3). Mirrors applyTheme
+    // in src/lib/themes/use-palette.tsx. The mode is resolved the same
+    // way next-themes does (storageKey 'theme', defaultTheme 'system',
+    // enableSystem) since this runs before next-themes sets the dark
+    // class. Applied BEFORE the theme block so custom per-var overrides
+    // still layer on top.
+    var palette = blob.palette;
+    if (palette && typeof palette === 'object') {
+      var mode = 'light';
+      try {
+        var stored = window.localStorage.getItem('theme');
+        if (stored === 'dark') {
+          mode = 'dark';
+        } else if (
+          stored !== 'light' &&
+          window.matchMedia &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches
+        ) {
+          mode = 'dark';
+        }
+      } catch (_m) {
+        /* matchMedia / storage unavailable — default to light */
+      }
+      var pvars = mode === 'dark' ? palette.varsDark : palette.varsLight;
+      if (pvars && typeof pvars === 'object') {
+        for (var pk in pvars) {
+          if (!Object.prototype.hasOwnProperty.call(pvars, pk)) continue;
+          var pv = pvars[pk];
+          if (typeof pv !== 'string' || !pv) continue;
+          if (pk.charAt(0) !== '-' || pk.charAt(1) !== '-') continue;
+          root.style.setProperty(pk, pv);
+        }
       }
     }
 

@@ -9,7 +9,7 @@ import {
   useEffect,
 } from "react";
 import { useBackgroundPrefs } from "../background-prefs";
-import { clearSlice, writeSlice } from "../prefs-store";
+import { clearSlice, readSlice, writeSlice } from "../prefs-store";
 import { useRemotePrefs } from "../use-remote-prefs";
 import {
   applyReactivePalette,
@@ -23,6 +23,7 @@ import {
   CUSTOM_THEME_ID,
   findTheme,
   getThemeRoot,
+  prefixCssVars,
   THEMES,
   type Theme,
 } from "./registry";
@@ -43,7 +44,18 @@ type Ctx = {
   reset: () => void;
 };
 
-type PaletteSlice = { activeId: string | null };
+type PaletteSlice = {
+  activeId: string | null;
+  /** Resolved cssVars of the active *named static* palette, persisted so
+   *  the pre-hydration bootstrap (src/lib/bootstrap.ts) can paint the
+   *  palette on `<html>` BEFORE first paint — otherwise a community
+   *  palette flashes the default coral/paper for the first frames on
+   *  every load (the FOUC ui-law §9.3 declares load-bearing to prevent).
+   *  Absent for Default (null), custom (uses the theme-overrides slice
+   *  the bootstrap already paints), and reactive (sampled async). */
+  varsLight?: Record<string, string>;
+  varsDark?: Record<string, string>;
+};
 // Fresh accounts land on the real Default theme — `activeId: null`, no
 // overrides. The brand baseline (the orange --primary / --ring, the
 // 0.5rem radius) now lives in `globals.css :root` / `.dark` as the
@@ -116,7 +128,23 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     const mode = resolvedTheme === "dark" ? "dark" : "light";
     clearThemeVars(root);
     clearReactivePalette(root);
-    if (theme) applyTheme(root, theme, mode);
+    if (theme) {
+      applyTheme(root, theme, mode);
+      // One-time self-heal: users who picked this palette before its vars
+      // were persisted have a `palette` slice with no varsLight/varsDark,
+      // so they'd still flash the default palette on load. Backfill them
+      // straight to storage — the bootstrap reads localStorage, not React
+      // state, so this needs no setState (no effect loop). The readSlice
+      // guard stops it re-writing once the vars are present.
+      const persisted = readSlice<PaletteSlice>("palette", DEFAULT_PALETTE);
+      if (persisted.activeId === activeId && persisted.varsLight == null) {
+        writeSlice("palette", {
+          activeId,
+          varsLight: prefixCssVars(theme.cssVars.light),
+          varsDark: prefixCssVars(theme.cssVars.dark),
+        });
+      }
+    }
   }, [activeId, resolvedTheme, effectiveImage]);
 
   const apply = useCallback(
@@ -144,7 +172,26 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
           writeSlice("keyboard", theme.presets.keyboard);
         }
       }
-      update({ activeId: id });
+      // Persist the named static palette's resolved cssVars so the
+      // pre-hydration bootstrap can paint them before first paint (no
+      // default-palette FOUC). A functional replace (not a merge) so
+      // switching to Default / custom / reactive drops any stale vars —
+      // custom paints from the theme-overrides slice and reactive samples
+      // async, so neither carries a static set here. `findTheme` only
+      // resolves registry themes, so synthetic ids fall through to none.
+      const named =
+        id !== CUSTOM_THEME_ID && id !== BACKGROUND_REACTIVE_ID
+          ? findTheme(id)
+          : undefined;
+      update(() =>
+        named
+          ? {
+              activeId: id,
+              varsLight: prefixCssVars(named.cssVars.light),
+              varsDark: prefixCssVars(named.cssVars.dark),
+            }
+          : { activeId: id },
+      );
     },
     [update],
   );
