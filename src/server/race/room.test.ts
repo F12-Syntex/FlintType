@@ -143,6 +143,30 @@ describe("RaceRoom", () => {
     expect(bots.some((b) => b.progressChars > 0)).toBe(true);
   });
 
+  // RACE_WATCHDOG_MIN_MS in room.ts — a word/quote race's hard
+  // max-duration cap is `clamp(totalChars * 1.2s, MIN, MAX)`; a tiny
+  // 5-word passage scales below MIN, so the watchdog fires at MIN.
+  const WATCHDOG_MIN_MS = 4 * 60_000;
+
+  it("word race watchdog ends a room pinned in racing by an AFK racer", () => {
+    const room = makeRoom();
+    room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
+    vi.advanceTimersByTime(5_000 + 700 + 3_000);
+    expect(room.phase).toBe("racing");
+    // The bot finishes the 5-word passage in seconds; @alice never
+    // types. maybeFinishRace can't finish (a connected racer is
+    // unfinished), so without the watchdog the room would stay
+    // "racing" forever with the 100ms bot tick leaking.
+    vi.advanceTimersByTime(30_000);
+    expect(room.phase).toBe("racing");
+    // The watchdog fires at the clamped minimum and force-ends the race.
+    vi.advanceTimersByTime(WATCHDOG_MIN_MS);
+    expect(room.phase).toBe("finished");
+    // The AFK racer is ranked (marked finished at the limit), not left
+    // dangling — every seat has a place.
+    expect(room.snapshot().racers.every((r) => r.place != null)).toBe(true);
+  });
+
   it("real-player progress updates land via setProgress", () => {
     const room = makeRoom();
     room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
