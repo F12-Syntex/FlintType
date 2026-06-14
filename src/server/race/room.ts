@@ -49,6 +49,12 @@ const ROOM_TTL_MS = 5 * 60_000;
  *  don't leak the in-memory store. */
 const CHALLENGE_HOST_IDLE_TTL_MS = 30 * 60_000;
 
+/** Generous ceiling on a racer's server-computed WPM — above the ~300
+ *  human record so honest play is never frozen, but it bounds the
+ *  anti-cheat progress clamp below. (wpm-limits.ts isn't on this branch,
+ *  so this is self-contained.) */
+const MAX_PLAUSIBLE_RACE_WPM = 500;
+
 type InternalRacer = RoomRacer & {
   sessionToken: string;
   /** Clerk user id for a signed-in racer (undefined for guests). Used to
@@ -625,7 +631,15 @@ export class RaceRoom {
     // early can ever land. Progress is also clamped to the passage
     // bounds [0, totalChars].
     if (this.phase !== "racing" && this.phase !== "finished") return false;
-    const next = Math.min(this.totalChars, Math.max(0, Math.floor(progressChars)));
+    let next = Math.min(this.totalChars, Math.max(0, Math.floor(progressChars)));
+    if (this.raceStartedAt != null) {
+      const elapsedSec = Math.max(1, (Date.now() - this.raceStartedAt) / 1000);
+      // Cap to MAX_PLAUSIBLE_RACE_WPM worth of chars since the gun. Same
+      // floored window as the wpm calc, so r.wpm can't exceed the ceiling —
+      // and a single POST can't jump to the finish (FT-030).
+      const maxChars = Math.floor((MAX_PLAUSIBLE_RACE_WPM * 5 * elapsedSec) / 60);
+      next = Math.min(next, maxChars);
+    }
     if (next !== r.progressChars) r.progressChars = next;
     if (errors != null) {
       const e = Math.max(0, Math.floor(errors));
@@ -655,9 +669,13 @@ export class RaceRoom {
     // any prior disconnected flag set by a stale leave / strict-mode
     // unmount.
     if (r.disconnected) r.disconnected = false;
+    // Finish is gated on the BOUNDED server progress reaching the end —
+    // never the client `finished` flag (which let a single forged POST win,
+    // FT-030). The flag is still accepted in the signature for wire-compat
+    // but, like `_clientWpm`, the server ignores it for the finish decision.
     if (
       r.finishedAt == null &&
-      (finished || r.progressChars >= this.totalChars) &&
+      r.progressChars >= this.totalChars &&
       this.raceStartedAt != null
     ) {
       r.finishedAt = Math.floor((Date.now() - this.raceStartedAt) / 1000);

@@ -215,6 +215,65 @@ describe("RaceRoom", () => {
     expect(alice?.errors).toBe(2);
   });
 
+  /* ─── Anti-cheat: progress / finish clamp (FT-030) ─────────── */
+
+  describe("anti-cheat progress clamp (FT-030)", () => {
+    /** A 50-word challenge so totalChars comfortably exceeds the ~41
+     *  chars a 500-WPM typist could produce in the 1s floor window —
+     *  the forged "finish at the gun" post is provably clamped below. */
+    function bigRoom() {
+      const room = new RaceRoom({
+        id: "r_anticheat",
+        slug: "anti-cheat-1",
+        kind: "challenge",
+        modeId: "1v1",
+        raceSeed: 1,
+        wordCount: 50,
+      });
+      room.addRealRacer({
+        sessionToken: "s_cheat",
+        name: "@cheat",
+        badge: "RACER",
+        isHost: true,
+      });
+      expect(room.hostStart("s_cheat")).toBe(true);
+      vi.advanceTimersByTime(700 + 3_000); // lobby hold + countdown → racing
+      expect(room.phase).toBe("racing");
+      return room;
+    }
+
+    it("a forged totalChars+finished post at the gun does NOT finish the racer", () => {
+      const room = bigRoom();
+      // The classic exploit: one POST claiming the whole passage is done
+      // the instant racing starts.
+      room.setProgress("s_cheat", room.totalChars, 1, true);
+      const cheat = room.snapshot().racers.find((r) => r.id === "s_cheat");
+      expect(cheat?.finishedAt ?? null).toBeNull();
+      expect(room.phase).toBe("racing");
+      // Progress is clamped below the end — the win can't be claimed.
+      expect(cheat?.progressChars).toBeLessThan(room.totalChars);
+    });
+
+    it("the server-computed WPM never exceeds the plausible ceiling even when forged", () => {
+      const room = bigRoom();
+      room.setProgress("s_cheat", room.totalChars, 1, true);
+      const cheat = room.snapshot().racers.find((r) => r.id === "s_cheat");
+      // MAX_PLAUSIBLE_RACE_WPM is 500; the clamp guarantees r.wpm ≤ it.
+      expect(cheat?.wpm ?? 0).toBeLessThanOrEqual(500);
+    });
+
+    it("once enough time has honestly elapsed, posting totalChars DOES finish", () => {
+      const room = bigRoom();
+      // Let the clamp window grow past the whole passage, then finish.
+      vi.advanceTimersByTime(10_000);
+      room.setProgress("s_cheat", room.totalChars, 100, true);
+      const cheat = room.snapshot().racers.find((r) => r.id === "s_cheat");
+      expect(cheat?.progressChars).toBe(room.totalChars);
+      expect(cheat?.finishedAt ?? null).not.toBeNull();
+      expect(cheat?.place).toBe(1);
+    });
+  });
+
   it("removeRacer pre-race drops the seat outright", () => {
     const room = makeRoom();
     room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
@@ -581,7 +640,9 @@ describe("RaceRoom", () => {
     vi.advanceTimersByTime(700 + 3_000); // lobby + countdown
     expect(room.phase).toBe("racing");
     // Drive the room to finish: real player completes the passage,
-    // bot tick eventually finishes too.
+    // bot tick eventually finishes too. Let enough time pass since the
+    // gun that the anti-cheat clamp allows the full passage (FT-030).
+    vi.advanceTimersByTime(10_000);
     room.setProgress("s_host", room.totalChars, 100, true);
     vi.advanceTimersByTime(60_000); // bot finishes within 60s
     expect(room.phase).toBe("finished");
@@ -636,7 +697,9 @@ describe("RaceRoom", () => {
     vi.advanceTimersByTime(700); // lobby hold
     vi.advanceTimersByTime(3_000); // countdown
     expect(room.phase).toBe("racing");
-    // Alice finishes immediately
+    // Let enough time elapse since the gun that the anti-cheat clamp
+    // allows the full passage, then Alice finishes (FT-030).
+    vi.advanceTimersByTime(10_000);
     room.setProgress("s_alice", room.totalChars, 100, true);
     // Tick bots until they cross the line too
     vi.advanceTimersByTime(20_000);
@@ -662,6 +725,9 @@ describe("RaceRoom", () => {
     vi.advanceTimersByTime(5_000 + 700 + 3_000);
     expect(room.phase).toBe("racing");
 
+    // Let enough time elapse since the gun that the anti-cheat clamp
+    // allows the full passage (FT-030).
+    vi.advanceTimersByTime(10_000);
     // Alice crosses first at 50% accuracy (client-reported wpm ignored).
     room.setProgress("s_alice", room.totalChars, 100, true, undefined, 50);
     // Bob crosses second at 95% accuracy → higher net.
@@ -782,12 +848,15 @@ describe("RaceRoom", () => {
     expect(room.hostStart("s_host")).toBe(true);
     vi.advanceTimersByTime(700 + 3_000);
     expect(room.phase).toBe("racing");
+    // Let a couple seconds pass since the gun so the anti-cheat clamp
+    // admits 50 chars (FT-030); both posts stay under the ceiling.
+    vi.advanceTimersByTime(2_000);
     // Host types more (50 chars) but with errors; b types fewer (25)
     // cleanly. Neither completes the long timed passage early.
     room.setProgress("s_host", 50, 0, false, 8, 84);
     room.setProgress("s_b", 25, 0, false, 0, 100);
     // Still racing before the 15s buzzer.
-    vi.advanceTimersByTime(14_000);
+    vi.advanceTimersByTime(12_000);
     expect(room.phase).toBe("racing");
     // Buzzer fires at 15s — everyone is marked finished and ranked.
     vi.advanceTimersByTime(1_500);
