@@ -363,3 +363,40 @@ describe("practice reducer — SPACE is a no-op at rest (leading space ignored)"
     expect(next).toBe(s);
   });
 });
+
+describe("practice reducer — stop-on-error keeps a corrected word unflagged (FT-034)", () => {
+  const typeChar = (char: string): Action => ({
+    type: "TYPE_CHAR",
+    char,
+    now: 0,
+    stopOnError: true,
+    allowExtras: true,
+  });
+
+  it("a blocked wrong keystroke does not underline a word that ends up correct", () => {
+    let s = seed({ words: ["around", "the"], typed: [] });
+    s = reducer(s, typeChar("a"));
+    // A blocked wrong key mid-word: the buffer + cursor stay put, the
+    // attempt is recorded as an event, but the word is NOT flagged.
+    s = reducer(s, typeChar("z"));
+    expect(s.typed[0] ?? "").toBe("a");
+    expect(s.cursorChar).toBe(1);
+    expect(s.events.at(-1)?.correct).toBe(false);
+    expect(s.errorWords.has(0)).toBe(false);
+    // Finish the word correctly, then space — the completed word must
+    // not carry a stale red underline.
+    for (const ch of "round") s = reducer(s, typeChar(ch));
+    s = reducer(s, { type: "SPACE", now: 0, strictSpace: false });
+    expect(s.typed[0]).toBe("around");
+    expect(s.errorWords.has(0)).toBe(false);
+  });
+
+  it("still flags a genuinely-skipped incomplete word (regression guard)", () => {
+    // The fix must not stop flagging words the user actually left wrong:
+    // type one char then space past the rest.
+    let s = seed({ words: ["around", "the"], typed: [] });
+    s = reducer(s, typeChar("a"));
+    s = reducer(s, { type: "SPACE", now: 0, strictSpace: false });
+    expect(s.errorWords.has(0)).toBe(true);
+  });
+});

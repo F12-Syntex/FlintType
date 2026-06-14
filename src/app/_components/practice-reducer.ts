@@ -378,13 +378,20 @@ export function reducer(s: State, a: Action): State {
 
       if (!correct && a.stopOnError) {
         // stop-on-error blocks the wrong char from being entered; typed
-        // doesn't grow, cursor doesn't advance.
+        // doesn't grow, cursor doesn't advance. The buffer therefore
+        // stays a correct prefix, so DON'T flag the word in errorWords:
+        // the red underline is buffer-based everywhere else, and flagging
+        // it here left a perfectly-typed word underlined for the rest of
+        // the run with no path to clear it (BACKSPACE never fires on a
+        // correct prefix; SPACE never deletes) — FT-034. The blocked
+        // attempt is still recorded as an event for stats / replay, and
+        // `...s` preserves any flag a genuinely-incomplete word already
+        // carries.
         return {
           ...s,
           phase: s.phase === "rest" ? "running" : s.phase,
           startTime,
           totalChars: s.totalChars + 1,
-          errorWords: new Set([...s.errorWords, s.cursorWord]),
           events: [...s.events, event],
         };
       }
