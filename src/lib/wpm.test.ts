@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calcWpmAndRaw, countChars, errorCount } from "./wpm";
+import { accuracyPercent, calcWpmAndRaw, countChars, errorCount } from "./wpm";
 
 const MIN = 60_000; // one minute in ms
 
@@ -55,6 +55,46 @@ describe("countChars", () => {
     const c = countChars(["helloxx"], ["hello"], true);
     expect(c.allCorrectChars).toBe(5);
     expect(c.extraChars).toBe(2);
+  });
+});
+
+describe("accuracyPercent (missed chars count against accuracy, FT-033)", () => {
+  it("is 100 for a fully-correct complete run", () => {
+    expect(accuracyPercent(["hello", "world"], ["hello", "world"], true)).toBe(
+      100,
+    );
+  });
+
+  it("penalises a space-skipped word's missed tail (non-final word)", () => {
+    // First word typed partially-correct ("th" of "the") then space-skipped,
+    // so its untyped tail is a missedChar; second word perfect.
+    // countChars: allCorrect = 2 + 3 = 5, missed = 1 → 5/6 * 100.
+    const typed = ["th", "the"];
+    const target = ["the", "the"];
+    const c = countChars(typed, target, true);
+    expect(c.allCorrectChars).toBe(5);
+    expect(c.missedChars).toBe(1);
+    expect(c.incorrectChars).toBe(0);
+    expect(c.extraChars).toBe(0);
+    const acc = accuracyPercent(typed, target, true);
+    expect(acc).toBeLessThan(100);
+    expect(acc).toBeCloseTo((5 / 6) * 100, 5);
+  });
+
+  it("is 100 when nothing countable was typed", () => {
+    expect(accuracyPercent([""], ["hello"], true)).toBe(100);
+    expect(accuracyPercent([], ["hello"], true)).toBe(100);
+  });
+
+  it("forgives the last word's untyped tail (timed-buzzer parity)", () => {
+    // Fully-correct so far, last word still in progress, final=true, no
+    // errors → its missing chars are NOT penalised.
+    const typed = ["hello", "wor"];
+    const target = ["hello", "world"];
+    const c = countChars(typed, target, true);
+    expect(c.missedChars).toBe(0);
+    expect(c.incorrectChars).toBe(0);
+    expect(accuracyPercent(typed, target, true)).toBe(100);
   });
 });
 
