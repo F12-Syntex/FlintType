@@ -363,3 +363,53 @@ describe("practice reducer — SPACE is a no-op at rest (leading space ignored)"
     expect(next).toBe(s);
   });
 });
+
+describe("practice reducer — SPACE on an empty word buffer is ignored (FT-033)", () => {
+  it("does NOT advance when the current word buffer is empty mid-run", () => {
+    // A space pressed with nothing typed for the current word must not
+    // skip the word. Without this, repeating/holding space (or a stray
+    // double-space) skips whole words and "completes" the run with
+    // perfect-looking stats. phase is "running", not "rest".
+    const s = seed({
+      words: ["hello", "world"],
+      cursorWord: 0,
+      cursorChar: 0,
+      typed: [],
+    });
+    const next = reducer(s, { type: "SPACE", now: 1000, strictSpace: false });
+    expect(next).toBe(s);
+    expect(next.cursorWord).toBe(0);
+  });
+
+  it("ignores a double-space after a completed word (second space is a no-op)", () => {
+    // First space advances past the perfectly-typed "hello"; the second
+    // space lands on the empty "world" buffer and must be ignored.
+    let s = seed({
+      words: ["hello", "world"],
+      cursorWord: 0,
+      cursorChar: 5,
+      typed: ["hello"],
+    });
+    s = reducer(s, { type: "SPACE", now: 1000, strictSpace: false });
+    expect(s.cursorWord).toBe(1);
+    const before = s;
+    s = reducer(s, { type: "SPACE", now: 1000, strictSpace: false });
+    expect(s).toBe(before);
+    expect(s.cursorWord).toBe(1);
+  });
+
+  it("still advances and marks the word errored on a partially-typed word", () => {
+    // A space on a non-empty (but incomplete) buffer still skips, marking
+    // the word as an error — existing behaviour preserved.
+    const s = seed({
+      words: ["hello", "world"],
+      cursorWord: 0,
+      cursorChar: 3,
+      typed: ["hel"],
+    });
+    const next = reducer(s, { type: "SPACE", now: 1000, strictSpace: false });
+    expect(next.cursorWord).toBe(1);
+    expect(next.cursorChar).toBe(0);
+    expect(next.errorWords.has(0)).toBe(true);
+  });
+});

@@ -114,6 +114,25 @@ export function errorCount(
   return c.incorrectChars + c.extraChars;
 }
 
+/** Typing accuracy as a percent (0..100): correct chars over correct +
+ *  incorrect + extra + MISSED. Missed chars — the untyped tail of a word
+ *  the user space-skipped — count against accuracy, so typing one letter
+ *  of a word then spacing past the rest costs accuracy instead of reading
+ *  100% (FT-033). countChars only tallies missedChars for space-SKIPPED
+ *  words (the last/in-progress word's untyped tail is forgiven), so a
+ *  timed run cut mid-word by the buzzer is NOT penalised. Returns 100
+ *  when nothing countable was typed. */
+export function accuracyPercent(
+  typed: readonly string[],
+  target: readonly string[],
+  final = true,
+): number {
+  const c = countChars(typed, target, final);
+  const denom =
+    c.allCorrectChars + c.incorrectChars + c.extraChars + c.missedChars;
+  return denom > 0 ? (c.allCorrectChars / denom) * 100 : 100;
+}
+
 export type WpmResult = {
   wpm: number;
   raw: number;

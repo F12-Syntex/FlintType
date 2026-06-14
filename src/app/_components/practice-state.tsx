@@ -20,7 +20,11 @@ import { useIsMobile } from "@/lib/use-is-mobile";
 import { isRaceInputCurrentlyLocked } from "@/lib/race-input";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { useWordlist } from "@/lib/wordlists/use-wordlist";
-import { calcWpmAndRaw, countChars, errorCount as computeErrorCount } from "@/lib/wpm";
+import {
+  accuracyPercent,
+  calcWpmAndRaw,
+  errorCount as computeErrorCount,
+} from "@/lib/wpm";
 import {
   avgWpm as computeAvgWpm,
   consistencyScore as computeConsistency,
@@ -558,13 +562,7 @@ export function PracticeProvider({
     // threshold (behaviour.burstThreshold = 0). Pure localStorage,
     // capped to the last 20 samples; see src/lib/avg-wpm-cache.ts.
     recordWpmSample(wpm);
-    const counts = countChars(state.typed, state.words, true);
-    const correctChars = counts.allCorrectChars;
-    const incorrectChars = counts.incorrectChars + counts.extraChars;
-    const accuracy =
-      correctChars + incorrectChars > 0
-        ? (correctChars / (correctChars + incorrectChars)) * 100
-        : 100;
+    const accuracy = accuracyPercent(state.typed, state.words, true);
     const wordsActuallyTyped = state.words.slice(
       0,
       Math.min(state.cursorWord + 1, state.words.length),
@@ -736,13 +734,7 @@ export function PracticeProvider({
         isFinal,
         s.events.length,
       );
-      const counts = countChars(s.typed, s.words, isFinal);
-      const correct = counts.allCorrectChars;
-      const incorrect = counts.incorrectChars + counts.extraChars;
-      const acc =
-        correct + incorrect > 0
-          ? Math.round((correct / (correct + incorrect)) * 1000) / 10
-          : 100;
+      const acc = Math.round(accuracyPercent(s.typed, s.words, isFinal) * 10) / 10;
       return {
         wpm: Math.round(rawWpm),
         raw: Math.round(rawRaw),

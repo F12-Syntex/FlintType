@@ -498,6 +498,12 @@ export function reducer(s: State, a: Action): State {
       // typed correctly. The user must finish or backspace; no event,
       // no errorWord mark, the keystroke is a no-op.
       if (a.strictSpace && typedHere !== target) return s;
+      // Monkeytype parity: a space on an EMPTY word buffer is ignored — it
+      // must not skip the word. Without this, repeating/holding space (or an
+      // accidental double-space) skips whole words, and space-skipping every
+      // word "completes" the run with perfect-looking stats (FT-033). The
+      // phase==="rest" guard above only covers the pre-start case.
+      if (typedHere.length === 0) return s;
       // Space always advances the cursor — the user explicitly asked
       // to skip past mistakes. If the typed word doesn't match the
       // target, mark it as an error word so the summary still
