@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.1 — 14 June 2026
+- Fixed importing MonkeyType settings while it was set to Quote mode: it now picks a valid quote length (so quotes actually load instead of showing "quote unavailable"), and the import no longer quietly resets your adaptive mode and word-list choices.
+
 ## 6.136.0 — 8 June 2026
 - The mode bar above the typing area is now always the chips picker — the "Mode bar" style choice (chips / inline / hidden) has been removed from Customise → Appearance → Chrome.
 - The leaderboard now ranks only two modes: Casual and Adapt. The "All modes" and "Race" filters are gone, so the board compares like-for-like solo runs.
