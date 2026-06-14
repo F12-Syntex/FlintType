@@ -79,4 +79,32 @@ describe("prefs routes", () => {
       callRoute(["prefs", "set"], { db: ctx.db, input: { data: "nope" } }),
     ).rejects.toBeInstanceOf(ZodError);
   });
+
+  it("drops a client-forged monkeytypeStats slice (server-owned)", async () => {
+    signedInAs("user_a");
+    const res = await callRoute<SetUserPrefsOutput>(["prefs", "set"], {
+      db: ctx.db,
+      input: {
+        data: {
+          caret: { style: "block" },
+          monkeytypeStats: { completedTests: 1_000_000 },
+        },
+      },
+    });
+    expect((res as { monkeytypeStats?: unknown }).monkeytypeStats).toBeUndefined();
+    expect((res as { caret?: unknown }).caret).toEqual({ style: "block" });
+  });
+
+  it("clamps a forged lifetimeStats jump to the per-write delta", async () => {
+    signedInAs("user_a");
+    const res = await callRoute<SetUserPrefsOutput>(["prefs", "set"], {
+      db: ctx.db,
+      input: { data: { lifetimeStats: { drillsCompleted: 1_000_000 } } },
+    });
+    // From a zero baseline, the forged value is clamped to the delta cap.
+    expect(
+      (res as { lifetimeStats: { drillsCompleted: number } }).lifetimeStats
+        .drillsCompleted,
+    ).toBe(50);
+  });
 });

@@ -2,6 +2,7 @@ import { defineNamespace, defineRoute } from "@/server";
 import { ensureUser } from "@/server/ensure-user";
 import { requireAuth } from "@/server/middleware/auth";
 import { rateLimit } from "@/server/middleware/rate-limit";
+import { sanitizePrefsWrite } from "@/server/prefs-sanitize";
 import {
   type GetUserPrefsOutput,
   type SetUserPrefsInput,
@@ -29,8 +30,15 @@ const get = defineRoute<void, GetUserPrefsOutput>({
 const set = defineRoute<SetUserPrefsInput, SetUserPrefsOutput>({
   input: setUserPrefsInputSchema,
   handler: async ({ db, meta, input }) => {
-    await db.userPrefs.set(meta.userId as string, input.data);
-    return input.data;
+    const userId = meta.userId as string;
+    // The blob is client-supplied and opaque, but a couple of slices feed
+    // public ranking + profile display (Top-by-Level, the profile level/
+    // XP). Sanitize those against the stored value so they can't be
+    // forged through this write path — see src/server/prefs-sanitize.ts.
+    const stored = await db.userPrefs.get(userId);
+    const sanitized = sanitizePrefsWrite(stored, input.data);
+    await db.userPrefs.set(userId, sanitized);
+    return sanitized;
   },
 });
 
