@@ -77,6 +77,11 @@ export const submitTestInputSchema = z.object({
   completedAt: z.number().int().nonnegative(),
   mode: testModeSchema,
   durationOrWordCount: z.number().int().nonnegative(),
+  /** Length unit for `durationOrWordCount` — the words-vs-time-vs-quote
+   *  discriminator the share label branches on. Optional so older
+   *  clients (and the race/drill submit paths) still validate; persisted
+   *  as null when absent (legacy rows drop the share unit prefix). */
+  lengthMode: z.enum(["words", "time", "quote"]).optional(),
   wpm: z.number().nonnegative(),
   accuracy: z.number().min(0).max(100),
   errorCount: z.number().int().nonnegative(),

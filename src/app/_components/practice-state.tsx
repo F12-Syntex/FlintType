@@ -595,6 +595,15 @@ export function PracticeProvider({
         completedAt: endTime,
         mode: submitMode,
         durationOrWordCount: length,
+        // Length-unit discriminator for the share label — separate from
+        // the adapt `mode` above (casual/training/race), which never
+        // carries words-vs-time-vs-quote. BURST already returned above.
+        lengthMode:
+          state.mode === "TIME"
+            ? "time"
+            : state.mode === "QUOTE"
+              ? "quote"
+              : "words",
         wpm,
         accuracy,
         // Per-character errors (incorrect + extra), the same metric the
