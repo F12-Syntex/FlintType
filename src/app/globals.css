@@ -709,11 +709,17 @@
     opacity: 0;
     pointer-events: none;
   }
-  /* Hover the very top edge of the viewport to peek the chrome back
-     during dim/fade. Lets the user reach the topbar without breaking
-     the run. */
-  html[data-ft-autohide][data-ft-running="1"] [data-ft-topbar]:hover,
-  html[data-ft-autohide][data-ft-running="1"] [data-ft-footer]:hover {
+  /* Move the pointer to the top/bottom viewport edge to peek the chrome
+     back during dim/fade. AutoHideApplier writes the edge zone to
+     <html data-ft-peek="top|bottom"> from the pointer position — :hover
+     can't drive this because under `fade` the chrome is pointer-events:none
+     and is never hit-tested (FT-042). pointer-events restore only while the
+     pointer is parked at the edge, so a stray mid-passage click can't land
+     on the topbar (ui-law §15.3). */
+  html[data-ft-autohide][data-ft-running="1"][data-ft-peek="top"]
+    [data-ft-topbar],
+  html[data-ft-autohide][data-ft-running="1"][data-ft-peek="bottom"]
+    [data-ft-footer] {
     opacity: 1;
     pointer-events: auto;
   }
