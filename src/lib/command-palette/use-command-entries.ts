@@ -9,6 +9,7 @@ import { useAudioPrefs } from "@/lib/audio-prefs";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { useCaretSettings } from "@/lib/caret-settings";
 import { useKeyboardSettings } from "@/lib/keyboard-settings";
+import { CUSTOM_THEME_ID } from "@/lib/themes/registry";
 import { usePalette } from "@/lib/themes/use-palette";
 import type {
   CommandEntry,
@@ -91,7 +92,12 @@ export function useCommandEntries(): readonly CommandEntry[] {
   const { prefs: bp, update: setBp } = useBehaviourPrefs();
   const { settings: cs, update: setCs } = useCaretSettings();
   const { settings: ks, update: setKs } = useKeyboardSettings();
-  const { themes, activeId: paletteId, apply: applyPalette } = usePalette();
+  const {
+    themes,
+    activeId: paletteId,
+    apply: applyPalette,
+    reset: resetPalette,
+  } = usePalette();
   const { theme: mode, setTheme: setMode } = useNextTheme();
 
   return useMemo<readonly CommandEntry[]>(() => {
@@ -137,10 +143,24 @@ export function useCommandEntries(): readonly CommandEntry[] {
         "Theme palette",
         "Switch the community palette",
         "Theme",
+        // activeId is null on the Default palette and CUSTOM_THEME_ID once
+        // the user has overridden any single value — map both to a real
+        // option id so the current state always reads as selected.
         (paletteId ?? "default") as string,
-        themes.map((t) => ({ id: t.id, label: t.name })),
-        (next) => applyPalette(next),
-        ["theme", "palette", "colours", "colors"],
+        [
+          // Default isn't a `themes` entry (it's activeId === null), so
+          // prepend it explicitly — otherwise there's no row back to it.
+          { id: "default", label: "Default" },
+          ...themes.map((t) => ({ id: t.id, label: t.name })),
+          // Surface "Custom" only while it's the active state, so it reads
+          // as current. You can't switch *to* custom (it's a side effect of
+          // overriding a value), so re-selecting it is a harmless no-op.
+          ...(paletteId === CUSTOM_THEME_ID
+            ? [{ id: CUSTOM_THEME_ID, label: "Custom" }]
+            : []),
+        ],
+        (next) => (next === "default" ? resetPalette() : applyPalette(next)),
+        ["theme", "palette", "colours", "colors", "default", "custom"],
       ),
 
       /* ─── Behaviour ────────────────────────────────────────────── */
@@ -868,6 +888,7 @@ export function useCommandEntries(): readonly CommandEntry[] {
     paletteId,
     themes,
     applyPalette,
+    resetPalette,
     ap,
     setAp,
     audio,
