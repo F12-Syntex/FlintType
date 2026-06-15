@@ -45,6 +45,10 @@ export function ProfileView({ username }: { username?: string }) {
 
   const [snapshot, setSnapshot] = useState<HistorySummaryOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // True when the requested username has no profile at all (publicProfile
+  // 404). Distinct from `error` so the render can drop the hero entirely
+  // instead of fabricating a zeroed one above the message (FT-059).
+  const [missing, setMissing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [importOpen, setImportOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
@@ -58,6 +62,7 @@ export function ProfileView({ username }: { username?: string }) {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setMissing(false);
     const fetcher = isOwner
       ? backend.history.summary()
       : backend.history.publicProfile({ username: username! });
@@ -72,6 +77,7 @@ export function ProfileView({ username }: { username?: string }) {
           setError("Sign in to view your profile.");
         } else if (err instanceof BackendError && err.code === "NOT_FOUND") {
           setError(`No flinttype profile for @${username}.`);
+          setMissing(true);
         } else {
           setError(
             err instanceof Error ? err.message : "Failed to load profile.",
@@ -190,6 +196,18 @@ export function ProfileView({ username }: { username?: string }) {
     if (isMtConnected) setManageOpen(true);
     else setImportOpen(true);
   }, [isMtConnected]);
+
+  // No such profile — render the message alone, never a fabricated zeroed
+  // hero for a username that doesn't exist (FT-059).
+  if (missing) {
+    return (
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-10 sm:px-5 sm:py-16 lg:px-8 lg:py-20">
+        <div className="rounded-md border border-border bg-card px-4 py-3 text-sm text-primary">
+          {error ?? `No flinttype profile for @${username}.`}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-6 sm:gap-4 sm:px-5 sm:py-8 lg:px-8 lg:py-10">
