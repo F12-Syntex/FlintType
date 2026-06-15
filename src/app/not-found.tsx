@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FtButton, Kbd, Logo, Tag } from "@/components/ft";
+import { HideFriendsDock } from "@/app/_components/hide-friends-dock";
 import { buildPageMetadata } from "@/server/seo";
 
 export const metadata = buildPageMetadata({
@@ -12,6 +13,7 @@ export const metadata = buildPageMetadata({
 export default function NotFound() {
   return (
     <div className="flex min-h-screen flex-col bg-ft-paper text-ft-ink">
+      <HideFriendsDock />
       <header className="flex h-14 shrink-0 items-center border-b border-ft-line-soft px-5 sm:px-7">
         <Logo />
       </header>
