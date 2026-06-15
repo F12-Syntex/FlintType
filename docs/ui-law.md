@@ -733,8 +733,10 @@ Every Surface / Chrome knob lands as a `<html data-ft-…>` attribute, applied b
 | `monochromeChrome` | `data-ft-monochrome` | (off; attr absent) |
 | `topbarStyle` | `data-ft-topbar-style` | `elevated` (note the `-style` suffix — `data-ft-topbar` is the self-marker on the TopBar element) |
 | `footerStyle` | `data-ft-footer-style` | `visible` (`-style` suffix for the same reason — `data-ft-footer` is the AppFooter self-marker) |
-| `autoHide` | `data-ft-autohide` + runtime `data-ft-running` | `off` |
+| `autoHide` | `data-ft-autohide` + runtime `data-ft-running` (+ runtime `data-ft-peek="top\|bottom"`) | `off` |
 | `(Focus shortcut)` | `data-ft-focus="on"` | (off; attr absent) |
+
+`data-ft-peek` is the **edge-peek** marker: while a run is active, `AutoHideApplier` tracks the pointer and writes `data-ft-peek="top"` / `"bottom"` when the cursor reaches a viewport edge (zone maths in `src/lib/autohide-peek.ts`), and globals.css reveals the topbar / footer for that edge. It is **not** a CSS `:hover` — under `fade` the chrome is `pointer-events:none` and is never hit-tested, so `:hover` can never fire (FT-042). This stays within the §15.3 first rule: the component only computes the pointer zone and writes an attribute; the visual is still pure globals.css.
 
 Component self-markers that the CSS rules attach to:
 
@@ -753,7 +755,8 @@ Component self-markers that the CSS rules attach to:
 - **Don't** add a Surface / Chrome knob whose visual effect requires reading the pref inside a React component when a `<html data-ft-…>` attribute + a globals.css rule can deliver the same effect. Data-attr knobs are zero-cost to toggle and don't re-render components.
 - **Don't** rename `data-ft-topbar-style` / `data-ft-footer-style` to drop the `-style` suffix. The unsuffixed forms are taken by component self-markers; the suffix is load-bearing.
 - **Don't** animate the auto-hide transition beyond the 240ms opacity tween already defined. The user is mid-keystroke; the chrome should disappear quickly enough that they don't notice, not slowly enough to distract.
-- **Don't** drop `pointer-events: none` from the `fade` autohide rule. Without it, a stray click on the invisible topbar mid-run can cancel the test.
+- **Don't** drop `pointer-events: none` from the `fade` autohide rule. Without it, a stray click on the invisible topbar mid-run can cancel the test. The edge-peek (`data-ft-peek`, above) restores `pointer-events: auto` **only** while the pointer is parked at the matching viewport edge, so a mid-passage click never lands on the topbar — keep that gating.
+- **Don't** revive the old `:hover` peek rule on the faded chrome. `pointer-events:none` removes it from hit-testing, so `:hover` is dead under `fade` (FT-042) — peek must be driven by `data-ft-peek` from the pointer position.
 
 ## 16. Command palette
 
