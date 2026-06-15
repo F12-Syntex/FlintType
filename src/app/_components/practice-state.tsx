@@ -264,7 +264,16 @@ export function PracticeProvider({
     if (lockedWordsRef.current) return;
     if (wordlistWords == null) return;
     if (state.phase !== "rest") return;
-    if (state.mode !== "WORDS" && state.mode !== "TIME") return;
+    // WORDS, TIME and BURST all draw their items from the wordlist (the
+    // mode bar offers the picker in all three), so a fresh pool re-rolls
+    // each of them. QUOTE is excluded — its passage comes from an async
+    // quote fetch, not the wordlist (FT-046).
+    if (
+      state.mode !== "WORDS" &&
+      state.mode !== "TIME" &&
+      state.mode !== "BURST"
+    )
+      return;
     const cfg: WordCfg = {
       minWordLength: prefsRef.current.minWordLength,
       showSecondary: prefsRef.current.showSecondary,
