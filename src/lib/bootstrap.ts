@@ -24,42 +24,52 @@
 export const PREFS_BOOTSTRAP_SCRIPT = `
 (function () {
   try {
-    var raw = window.localStorage.getItem('flinttype:prefs:v1');
-    if (!raw) return;
-    var blob = JSON.parse(raw);
-    if (!blob || typeof blob !== 'object') return;
     var root = document.documentElement;
+    // Parse tolerantly and ALWAYS continue with an object — even a fresh
+    // visitor with no stored blob must get the shipped appearance defaults
+    // pre-paint (below), so we can't early-return on a missing blob.
+    var blob = {};
+    var raw = window.localStorage.getItem('flinttype:prefs:v1');
+    if (raw) {
+      try {
+        var parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') blob = parsed;
+      } catch (_p) { /* corrupted blob — fall through to defaults */ }
+    }
 
     // Appearance: data-ft-* attrs that drive the global CSS cascade.
-    // Mirrors src/app/appearance-applier.tsx.
-    var ap = blob.appearance;
-    if (ap && typeof ap === 'object') {
-      var setAttr = function (key, value, defaultValue) {
-        if (value && value !== defaultValue) {
-          root.setAttribute(key, String(value));
-        } else {
-          root.removeAttribute(key);
-        }
-      };
-      setAttr('data-ft-cards', ap.cardSurfaces, 'solid');
-      setAttr('data-ft-dividers', ap.dividers, 'hairline');
-      setAttr('data-ft-padding', ap.pagePadding, 'comfortable');
-      setAttr('data-ft-bg-fill', ap.backgroundFill, 'paper');
-      setAttr('data-ft-topbar-style', ap.topbarStyle, 'elevated');
-      setAttr('data-ft-footer-style', ap.footerStyle, 'visible');
-      setAttr('data-ft-autohide', ap.autoHide, 'off');
-      setAttr('data-ft-result', ap.resultChrome, 'framed');
-      if (ap.monochromeChrome) {
-        root.setAttribute('data-ft-monochrome', 'on');
-      } else {
-        root.removeAttribute('data-ft-monochrome');
-      }
-      // Borders — see src/app/borders-applier.tsx
-      if (ap.borders && ap.borders !== 'default') {
-        root.setAttribute('data-ft-borders', String(ap.borders));
-      } else {
-        root.removeAttribute('data-ft-borders');
-      }
+    // Mirrors src/app/appearance-applier.tsx, which applies the EFFECTIVE
+    // prefs (stored value ?? DEFAULT_APPEARANCE) via setOrRemove. We must
+    // do the same: each field falls back to its DEFAULT_APPEARANCE value,
+    // then set-or-remove against the CSS attr-absent literal. Otherwise an
+    // untouched user shows the attr-absent (editorial) state on first
+    // paint, then flips to the Monkeytype-leaning shipped defaults after
+    // hydration (FT-060). 3rd arg = DEFAULT_APPEARANCE value (keep in sync
+    // with src/lib/appearance-prefs.ts), 4th = CSS attr-absent state.
+    var ap = (blob.appearance && typeof blob.appearance === 'object') ? blob.appearance : {};
+    var setAttr = function (key, stored, shipped, cssAbsent) {
+      var v = stored || shipped;
+      if (v === cssAbsent) root.removeAttribute(key);
+      else root.setAttribute(key, String(v));
+    };
+    setAttr('data-ft-cards', ap.cardSurfaces, 'subtle', 'solid');
+    setAttr('data-ft-dividers', ap.dividers, 'hidden', 'hairline');
+    setAttr('data-ft-padding', ap.pagePadding, 'comfortable', 'comfortable');
+    setAttr('data-ft-bg-fill', ap.backgroundFill, 'paper', 'paper');
+    setAttr('data-ft-topbar-style', ap.topbarStyle, 'flat', 'elevated');
+    setAttr('data-ft-footer-style', ap.footerStyle, 'visible', 'visible');
+    setAttr('data-ft-autohide', ap.autoHide, 'fade', 'off');
+    setAttr('data-ft-result', ap.resultChrome, 'framed', 'framed');
+    if (ap.monochromeChrome) {
+      root.setAttribute('data-ft-monochrome', 'on');
+    } else {
+      root.removeAttribute('data-ft-monochrome');
+    }
+    // Borders — see src/app/borders-applier.tsx (default 'default' = absent).
+    if (ap.borders && ap.borders !== 'default') {
+      root.setAttribute('data-ft-borders', String(ap.borders));
+    } else {
+      root.removeAttribute('data-ft-borders');
     }
 
     // Theme overrides: per-CSS-var values stored under blob.theme.
