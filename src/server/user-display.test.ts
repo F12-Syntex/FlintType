@@ -105,6 +105,35 @@ describe("resolveUserDisplays", () => {
     expect(out.get("u1")?.tags).toEqual(["og"]);
   });
 
+  it("pages the Clerk lookup into ≤500-id chunks past the limit (FT-065)", async () => {
+    // Echo back exactly the requested page so we can assert every id
+    // resolves across the chunks.
+    const getUserList = vi.fn(
+      async (args: { userId: string[]; limit: number }) => ({
+        data: args.userId.map((id) => ({ id, username: id })),
+        totalCount: args.userId.length,
+      }),
+    );
+    mockClerkClient.mockResolvedValue({
+      users: { getUserList },
+    } as unknown as Awaited<ReturnType<typeof clerkClient>>);
+
+    const ids = Array.from({ length: 1100 }, (_, i) => `u${i}`);
+    const out = await resolveUserDisplays(ctx.db, ids);
+
+    // 1100 ids → 3 pages (500 + 500 + 100); none may exceed Clerk's cap.
+    expect(getUserList).toHaveBeenCalledTimes(3);
+    for (const call of getUserList.mock.calls) {
+      const arg = call[0] as { userId: string[]; limit: number };
+      expect(arg.userId.length).toBeLessThanOrEqual(500);
+      expect(arg.limit).toBeLessThanOrEqual(500);
+    }
+    // Every id resolved across the pages — nothing silently dropped.
+    expect(out.size).toBe(1100);
+    expect(out.get("u0")?.username).toBe("u0");
+    expect(out.get("u1099")?.username).toBe("u1099");
+  });
+
   it("serves a repeated resolve from cache without hitting Clerk again", async () => {
     const getUserList = mockUsers([{ id: "u1", username: "ada" }]);
     const first = await resolveUserDisplays(ctx.db, ["u1"]);
