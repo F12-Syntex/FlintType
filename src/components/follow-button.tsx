@@ -80,6 +80,18 @@ export function FollowButton({
     void action.run();
   }
 
+  // "Invite to a race" — createLobbyAndInvite returns null on any failure
+  // (it swallows the BackendError), so treat null as an error and surface
+  // loading + error below the control instead of silently doing nothing
+  // (ui-law §6.3 / FT-050). Navigates into the lobby on success.
+  const invite = useAsyncAction<void>(async () => {
+    const slug = await createLobbyAndInvite(backend, userId);
+    if (!slug) throw new Error("Couldn't start the race. Try again.");
+    router.push(`/race/c/${slug}`);
+  });
+  const inviteErr =
+    invite.result && !invite.result.ok ? invite.result.message : null;
+
   // They blocked you: no affordance at all.
   if (rel.blockedBy) return null;
 
@@ -97,14 +109,18 @@ export function FollowButton({
     <DropdownMenuContent align="end" sideOffset={6} className="min-w-48 p-1">
       {rel.mutual ? (
         <DropdownMenuItem
-          onSelect={async () => {
-            const slug = await createLobbyAndInvite(backend, userId);
-            if (slug) router.push(`/race/c/${slug}`);
+          disabled={invite.loading}
+          // Keep the menu open so the in-flight relabel is visible; on
+          // success we navigate away, on failure the error line below the
+          // control shows. preventDefault stops Radix closing on select.
+          onSelect={(e) => {
+            e.preventDefault();
+            void invite.run();
           }}
           className="flex items-center gap-2.5 rounded-sm py-2 pl-2 pr-3 text-[12px] font-medium uppercase tracking-[0.12em]"
         >
           <Swords size={13} aria-hidden />
-          <span>Invite to a race</span>
+          <span>{invite.loading ? "Starting race…" : "Invite to a race"}</span>
         </DropdownMenuItem>
       ) : null}
       {rel.following || rel.mutual ? (
@@ -219,6 +235,9 @@ export function FollowButton({
         <span className="text-[11px] text-destructive">
           Couldn&apos;t update. Try again.
         </span>
+      ) : null}
+      {inviteErr ? (
+        <span className="text-[11px] text-destructive">{inviteErr}</span>
       ) : null}
 
       <ConfirmDialog
