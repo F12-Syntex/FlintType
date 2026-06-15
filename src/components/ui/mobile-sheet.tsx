@@ -1,8 +1,9 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 import { cn } from "@/lib/utils";
 
 /** Bottom-anchored mobile modal — slides up from the bottom edge with a
@@ -47,6 +48,12 @@ export function MobileSheet({
   //   `render` controls portal mount; `entered` controls the transform/opacity.
   const [render, setRender] = useState(false);
   const [entered, setEntered] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Move focus into the sheet on open, trap Tab inside it, restore on
+  // close — the aria-modal surface must not let focus walk the page
+  // behind it (FT-054). Active only while the sheet is actually mounted.
+  useFocusTrap(open && render, panelRef);
 
   useEffect(() => setMounted(true), []);
 
@@ -113,6 +120,10 @@ export function MobileSheet({
       <button
         type="button"
         aria-label="Close"
+        // Out of the Tab order — sibling of the trapped panel; the in-sheet
+        // close affordances + Escape cover keyboard dismissal. Click still
+        // closes (FT-054).
+        tabIndex={-1}
         onClick={() => onOpenChange(false)}
         className={cn(
           "absolute inset-0 bg-foreground/45 backdrop-blur-sm transition-opacity ease-out",
@@ -122,8 +133,10 @@ export function MobileSheet({
       />
       {/* Sheet — fixed height, slides up from bottom. */}
       <div
+        ref={panelRef}
+        tabIndex={-1}
         className={cn(
-          "absolute inset-x-0 bottom-0 flex h-[75dvh] flex-col",
+          "absolute inset-x-0 bottom-0 flex h-[75dvh] flex-col focus:outline-none",
           "rounded-t-2xl border-t border-border bg-background text-foreground shadow-[0_-12px_48px_-12px_rgba(0,0,0,0.35)]",
           "safe-pb transition-transform ease-out will-change-transform",
           entered ? "translate-y-0" : "translate-y-full",

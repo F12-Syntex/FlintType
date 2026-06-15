@@ -1,9 +1,10 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 import { cn } from "@/lib/utils";
 
 /** Responsive confirmation dialog. On mobile it slides up from the
@@ -64,6 +65,12 @@ export function ConfirmDialog({
   const [mounted, setMounted] = useState(false);
   const [render, setRender] = useState(false);
   const [entered, setEntered] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Focus into the panel on open, trap Tab inside it, restore on close —
+  // the aria-modal surface must not let focus walk the page behind it
+  // (FT-054). Active only while the panel is actually mounted.
+  useFocusTrap(open && render, panelRef);
 
   useEffect(() => setMounted(true), []);
 
@@ -120,6 +127,10 @@ export function ConfirmDialog({
       <button
         type="button"
         aria-label="Close"
+        // Out of the Tab order — it's a sibling of the trapped panel, and
+        // the in-panel close affordances + Escape already cover keyboard
+        // dismissal. Mouse click still closes (FT-054).
+        tabIndex={-1}
         onClick={() => onOpenChange(false)}
         className={cn(
           "absolute inset-0 bg-foreground/45 backdrop-blur-sm transition-opacity ease-out",
@@ -128,8 +139,10 @@ export function ConfirmDialog({
         style={{ transitionDuration: `${ANIM_MS}ms` }}
       />
       <div
+        ref={panelRef}
+        tabIndex={-1}
         className={cn(
-          "relative flex w-full flex-col overflow-hidden",
+          "relative flex w-full flex-col overflow-hidden focus:outline-none",
           // Mobile: bottom sheet, fixed height.
           "h-[75dvh] rounded-t-2xl border-t safe-pb",
           // Desktop: centered, capped width + height, full rounded.
