@@ -5,8 +5,12 @@ User-facing changes to flinttype, newest first — one section per version. Also
 - Write each line in plain language: what the user now **sees** or **can do**. No jargon, no file / function / symbol names.
 - Versions whose changes don't concern the user (refactors, tests, tooling, internal fixes) get a single brief line, e.g. `- Internal changes only.`
 - Updated on every version bump — see `CLAUDE.md` → **Commit discipline**.
+- In the version sections below, write **plain text only** — no inline markdown (`**bold**`, `[links]()`, backticks). The `/changelog` page and the What's New dialog render each entry line literally, so any markdown syntax shows up as raw characters on screen. (This intro is not rendered, so its own emphasis is fine.)
 
 ---
+
+## 6.136.7 — 15 June 2026
+- Fixed a few older changelog entries that showed stray asterisks around words like "Ready" — they now read as plain text on the changelog page and in the What's New popup.
 
 ## 6.136.0 — 8 June 2026
 - The mode bar above the typing area is now always the chips picker — the "Mode bar" style choice (chips / inline / hidden) has been removed from Customise → Appearance → Chrome.
@@ -156,7 +160,7 @@ User-facing changes to flinttype, newest first — one section per version. Also
 - Plainer copy in a couple of spots: the Drills page now reads "Drill your weak spots · Short, focused sets on the letter pairs and words you're slowest at", and the race-finished line just states your placement and time ("Won in 0:24. Race again to defend it.") instead of the wordier version.
 
 ## 6.118.0 — 29 May 2026
-- Race lobbies now have a ready-up step. Each player presses **Ready**, the lobby shows who's set, and the host can only start once everyone's ready (bots are always ready). The host's Start button waits — "Waiting for everyone to ready up · 1/2" — until the whole lobby is good to go, so a race can't begin before you're set.
+- Race lobbies now have a ready-up step. Each player presses "Ready", the lobby shows who's set, and the host can only start once everyone's ready (bots are always ready). The host's Start button waits — "Waiting for everyone to ready up · 1/2" — until the whole lobby is good to go, so a race can't begin before you're set.
 
 ## 6.117.9 — 29 May 2026
 - Multiplayer: signed-in racers now show their real handle instead of "Guest". (The race server wasn't being told who you were on the hosted setup.)
@@ -254,7 +258,7 @@ User-facing changes to flinttype, newest first — one section per version. Also
 - On the practice screen, the live stats (WPM, accuracy, word, elapsed) now sit directly above the typing text and stay grouped with it in the centre of the screen, instead of being pinned to the top with a gap below them.
 
 ## 6.109.5 — 23 May 2026
-- You can now press **Escape** to open the command palette (the Cmd/Ctrl+K search panel), as well as Cmd/Ctrl+K. Escape only opens it when it wouldn't otherwise close something — so it still closes open menus, dialogs, the friends panel, and focus mode first, and never interrupts typing.
+- You can now press Escape to open the command palette (the Cmd/Ctrl+K search panel), as well as Cmd/Ctrl+K. Escape only opens it when it wouldn't otherwise close something — so it still closes open menus, dialogs, the friends panel, and focus mode first, and never interrupts typing.
 
 ## 6.109.4 — 23 May 2026
 - Internal changes only (the lobby migration is complete; removed its working notes).
@@ -391,7 +395,7 @@ User-facing changes to flinttype, newest first — one section per version. Also
 - Fixed: opening an old or expired race-challenge link — or returning to one whose lobby has already closed — no longer leaves you stuck on a blank screen. It now sends you back to the race menu.
 
 ## 6.99.0 — 21 May 2026
-- New **Free-for-all** race: share one lobby and up to 8 people race the same passage at once — real players only, no bots.
+- New "Free-for-all" race: share one lobby and up to 8 people race the same passage at once — real players only, no bots.
 - When you create a race lobby you can now set it up: pick the word list (English or common words), and choose either a word-count race (10 / 25 / 50 / 100 words) or a timed race (15 / 30 / 60 seconds).
 
 ## 6.98.5 — 21 May 2026
