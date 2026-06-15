@@ -123,6 +123,16 @@ function seededRandom(seed: number) {
 
 const PUNCTUATION = [".", ",", ";", ":", "!", "?"] as const;
 
+/** Floor on the post-filter pool size. A min-word-length the active
+ *  wordlist can't satisfy starves the passage into cycling the same
+ *  handful of words — ≥8 chars over the embedded English-200 leaves just 4
+ *  ("increase possible consider…" on loop), ≥7 leaves 16 (FT-057). When the
+ *  filter collapses the pool below this, fall back to the full pool:
+ *  variety beats a degenerate loop. Large wordlists keep their long words
+ *  (their filtered pool clears the floor easily); only a starved filter
+ *  falls back. Roughly one short passage's worth of distinct words. */
+const MIN_FILTERED_POOL = 24;
+
 function filteredList(cfg: WordCfg): readonly string[] {
   // Casual mode has no length-skew preference — just respect the user's
   // minimum-word-length floor. Adaptive mode picks purely on bigram
@@ -133,7 +143,7 @@ function filteredList(cfg: WordCfg): readonly string[] {
   const pool: readonly string[] =
     cfg.wordPool && cfg.wordPool.length > 0 ? cfg.wordPool : WORD_POOL;
   const list = pool.filter((w) => w.length >= cfg.minWordLength);
-  return list.length > 0 ? list : pool;
+  return list.length >= MIN_FILTERED_POOL ? list : pool;
 }
 
 export function generateWords(
