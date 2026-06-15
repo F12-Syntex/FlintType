@@ -348,9 +348,11 @@ describe("adapt routes", () => {
     expect(data.wpm).toBe(100);
   });
 
-  it("fans a PB out to the actor's followers as a friend_pb notification", async () => {
-    // u2 follows u1; u1 sets a PB.
+  it("fans a PB out to the actor's friends (mutual follows), not one-way followers", async () => {
+    // u1 <-> u2 are mutual friends; u3 only follows u1 (one-way). u1 sets a PB.
     await ctx.db.follows.follow("u2", "u1");
+    await ctx.db.follows.follow("u1", "u2");
+    await ctx.db.follows.follow("u3", "u1");
     mockClerkClient.mockResolvedValue({
       users: {
         getUserList: vi.fn(async () => ({
@@ -366,12 +368,15 @@ describe("adapt routes", () => {
       db: ctx.db,
       input: submitInput({ mode: "casual" }),
     });
-    // The follower (u2) sees a friend_pb; the actor (u1) sees their own PB.
-    const followerFeed = await ctx.db.notifications.listForUser("u2");
-    const pb = followerFeed.find((n) => n.kind === "friend_pb");
+    // The mutual friend (u2) sees a friend_pb.
+    const friendFeed = await ctx.db.notifications.listForUser("u2");
+    const pb = friendFeed.find((n) => n.kind === "friend_pb");
     expect(pb).toBeTruthy();
     expect(pb?.body).toContain("@Ace");
-    // Non-followers get nothing.
+    // The one-way follower (u3) does NOT — "friend" means mutual (FT-051).
+    const followerFeed = await ctx.db.notifications.listForUser("u3");
+    expect(followerFeed.some((n) => n.kind === "friend_pb")).toBe(false);
+    // The actor (u1) doesn't get their own friend_pb.
     const actorFeed = await ctx.db.notifications.listForUser("u1");
     expect(actorFeed.some((n) => n.kind === "friend_pb")).toBe(false);
   });
