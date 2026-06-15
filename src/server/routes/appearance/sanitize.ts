@@ -90,7 +90,6 @@ export const APPEARANCE_FIELDS: Record<string, EnumSpec | BoolSpec | IntSpec> = 
 /** Behaviour settings the AI may touch (curated subset of BehaviourPrefs).
  *  Same enum/bool/int validation as appearance. */
 export const BEHAVIOUR_FIELDS: Record<string, EnumSpec | BoolSpec | IntSpec> = {
-  quickRestart: { kind: "bool" },
   stopOnError: { kind: "bool" },
   confidence: { kind: "enum", values: ["off", "word", "all"] },
   allowExtras: { kind: "bool" },

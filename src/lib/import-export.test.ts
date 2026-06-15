@@ -119,7 +119,6 @@ describe("importMonkeytype", () => {
     importMonkeytype({
       smoothCaret: "medium",
       caretStyle: "default",
-      quickRestart: "tab",
       stopOnError: "off",
       confidenceMode: "off",
       difficulty: "normal",
@@ -148,7 +147,6 @@ describe("importMonkeytype", () => {
     const w = writes();
     expect((w.caret as { smoothSpeed: number }).smoothSpeed).toBe(250);
     expect((w.caret as { style: string }).style).toBe("line");
-    expect((w.behaviour as { quickRestart: boolean }).quickRestart).toBe(true);
     expect((w.appearance as { typedEffect: string }).typedEffect).toBe("off");
     expect((w.appearance as { keymap: string }).keymap).toBe("next");
     expect((w.practice as { mode: string; length: number }).mode).toBe("WORDS");

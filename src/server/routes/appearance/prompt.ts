@@ -35,7 +35,7 @@ ${describeCatalog()}
 GUIDE:
 - accent = the single highlight colour (caret, active state). surface = the whole page palette; the "(dark)" surfaces are dark themes. font / fontSize / radius / wordSpacing style the typing passage.
 - tape, highlight, typedEffect, mistakes, caretIdle, cards, dividers, fill, padding, monochrome, smoothScroll, markIncomplete, lines, width = how the typing area looks.
-- quickRestart, stopOnError, confidence, allowExtras, strictSpace, blindMode = how the test behaves.
+- stopOnError, confidence, allowExtras, strictSpace, blindMode = how the test behaves.
 - "minimal" / "clean" → cards transparent, dividers hidden, fill bare. "serif" / "elegant" → font serif or elegant. "forgiving" → stopOnError off, confidence off, allowExtras on. "hardcore" / "strict" → stopOnError on, strictSpace on, confidence all.`;
 
 /** Filter an object to known keys (and only when present) so the prompt's
