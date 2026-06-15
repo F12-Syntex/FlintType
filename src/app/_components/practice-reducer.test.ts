@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 // import from here too. Per UI law §1.3 (the pure-reducer exception),
 // this is the canonical home for the unit suite.
 import {
+  adaptPool,
   generateWords,
   initialState,
   reducer,
@@ -317,6 +318,39 @@ describe("practice reducer — generateWords adjacency", () => {
       wordPool: ["only"],
     });
     expect(words).toEqual(["only", "only", "only", "only", "only"]);
+  });
+});
+
+describe("practice reducer — minWordLength pool starvation fallback (FT-057)", () => {
+  it("keeps the long-word filter when it leaves a varied pool", () => {
+    // 30 distinct 8-char words — comfortably above MIN_FILTERED_POOL.
+    const pool = Array.from(
+      { length: 30 },
+      (_, i) => `length${String(i).padStart(2, "0")}`,
+    );
+    const out = adaptPool({
+      minWordLength: 8,
+      showSecondary: false,
+      wordPool: pool,
+    });
+    expect(out.length).toBe(30);
+    expect(out.every((w) => w.length >= 8)).toBe(true);
+  });
+
+  it("falls back to the full pool when the filter starves it", () => {
+    // 30 short words + only 3 long ones: the ≥8 filter leaves 3, far below
+    // MIN_FILTERED_POOL, so honouring it would loop the same few words.
+    // Fall back to the full pool for variety instead.
+    const shortWords = Array.from({ length: 30 }, (_, i) => `s${i}`);
+    const longWords = ["mountains", "wonderful", "telephone"];
+    const pool = [...shortWords, ...longWords];
+    const out = adaptPool({
+      minWordLength: 8,
+      showSecondary: false,
+      wordPool: pool,
+    });
+    expect(out.length).toBe(pool.length);
+    expect(out.some((w) => w.length < 8)).toBe(true);
   });
 });
 
