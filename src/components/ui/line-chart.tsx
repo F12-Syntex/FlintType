@@ -61,13 +61,17 @@ function ChartContainer({
         {...props}
       >
         <ChartStyle id={chartId} config={config} />
-        {/* width="99%" + minHeight={1} dodge recharts' transient -1
-         *  dimensions warning during the first paint inside the
-         *  appearance preview, where the parent's aspect-video hasn't
-         *  finished resolving yet. The container still fills the box. */}
+        {/* minWidth + minHeight={1} dodge recharts' transient width(-1) /
+         *  height(-1) warning during the first paint inside the appearance
+         *  preview, where the parent's aspect-video hasn't finished
+         *  resolving yet. Both floors are needed — minHeight alone left
+         *  width="99%" of an unmeasured (0-width) parent resolving to -1,
+         *  which still logged the warning (FT-063). A 1px floor never
+         *  affects real layout; the container still fills the box. */}
         <RechartsPrimitive.ResponsiveContainer
           width="99%"
           height="100%"
+          minWidth={1}
           minHeight={1}
         >
           {children}
