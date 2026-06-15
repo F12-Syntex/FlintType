@@ -100,11 +100,11 @@ export default function PracticePage() {
         <p>
           Start typing — the test begins on your first keystroke and
           ends when you reach the last word. Pick a different mode or
-          word count from the bar at the top of the page, or click into{" "}
-          <a href="/race">races</a>,{" "}
-          <a href="/drills">drills</a>, or{" "}
-          <a href="/insights">insights</a> from the navigation. Sign in
-          to keep your history; everything else works without an account.
+          word count from the bar at the top of the page, or jump into
+          multiplayer <a href="/race">races</a> right away — no account
+          needed. <a href="/drills">Drills</a> and{" "}
+          <a href="/insights">insights</a> need a free account, which also
+          keeps your typing history across sessions.
         </p>
       </section>
     </AppChrome>
