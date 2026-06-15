@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FtButton, Kbd, Logo, Tag } from "@/components/ft";
+import { ModKey } from "@/components/mod-key";
 import { buildPageMetadata } from "@/server/seo";
 
 export const metadata = buildPageMetadata({
@@ -98,7 +99,7 @@ export default function NotFound() {
       <footer className="border-t border-ft-line-soft px-5 py-5 sm:px-14">
         <div className="flex flex-wrap items-center justify-between gap-3 text-[10px] uppercase tracking-[0.16em] text-ft-dim">
           <span>
-            tip: press <Kbd>⌘</Kbd>+<Kbd>K</Kbd> to search routes
+            tip: press <ModKey />+<Kbd>K</Kbd> to search routes
           </span>
           <span className="text-ft-dim-2">STRIKE · SPARK · SHARPEN</span>
         </div>
