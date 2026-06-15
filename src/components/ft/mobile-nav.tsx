@@ -103,6 +103,9 @@ export function MobileNav({
   // No enter/exit animation per request — instant show/hide.
   const drawer = open ? (
     <div
+      // Matches the toggle button's aria-controls so assistive tech can
+      // resolve the trigger→drawer relationship (FT-058).
+      id="mobile-nav-drawer"
       className={cn(
         "fixed inset-x-0 top-14 bottom-0 z-50 flex flex-col overflow-y-auto md:hidden",
         dark
