@@ -27,6 +27,12 @@ export function SettingsPageHeader({
   onResetAll?: () => void;
   description?: string;
 }) {
+  // The reset-confirm heading needs a short noun, not the editorial
+  // headline — interpolating `title` produced "Reset make it act the way
+  // you think?" (FT-064). Use the eyebrow's section name instead
+  // ("Customise · Appearance" → "Reset Appearance settings?").
+  const section = eyebrow.split("·").pop()?.trim() || "these";
+
   return (
     <header className="mb-10 border-b border-border pb-8 sm:mb-12 sm:pb-10">
       <div className="mb-4 flex items-center gap-3">
@@ -58,7 +64,7 @@ export function SettingsPageHeader({
                 onClick={onResetAll}
                 disabled={customizedCount === 0}
                 confirm={{
-                  title: `Reset ${title.toLowerCase()}?`,
+                  title: `Reset ${section} settings?`,
                   description: (
                     <p className="text-sm text-muted-foreground">
                       This clears every customisation on this page and
