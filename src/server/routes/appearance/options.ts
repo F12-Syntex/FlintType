@@ -157,7 +157,11 @@ export const KNOBS: Record<string, Knob> = {
     label: "Lines shown",
     options: [
       { id: "compact", label: "Compact", patch: ap("linesRendered", 2) },
-      { id: "default", label: "Default", patch: ap("linesRendered", 3) },
+      // Keep in sync with DEFAULT_APPEARANCE.linesRendered (4) — a server
+      // file can't import the "use client" appearance-prefs module, so the
+      // value is mirrored here. Was 3, which silently changed the line
+      // count when the user asked the AI for "the default" (FT-056).
+      { id: "default", label: "Default", patch: ap("linesRendered", 4) },
       { id: "tall", label: "Tall", patch: ap("linesRendered", 5) },
       { id: "all", label: "All", patch: ap("linesRendered", 0) },
     ],

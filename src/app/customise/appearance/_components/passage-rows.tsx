@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { Input } from "@/components/ui/input";
 import {
+  DEFAULT_APPEARANCE,
   type HighlightMode,
   type TypedEffect,
   useAppearancePrefs,
@@ -119,9 +120,12 @@ function LinesRenderedControl({
 }) {
   const isAll = value === 0;
   // Stash the last numeric value so the All chip can act as a toggle.
-  // Seeded with 3 to match the default; updated whenever the user types
-  // something else.
-  const lastNRef = useRef<number>(value > 0 ? value : 3);
+  // Seeded with the shipping default so toggling All off on an untouched
+  // numeric state restores the real default, not a stale literal (FT-056);
+  // updated whenever the user types something else.
+  const lastNRef = useRef<number>(
+    value > 0 ? value : DEFAULT_APPEARANCE.linesRendered,
+  );
   if (value > 0) lastNRef.current = value;
 
   return (
