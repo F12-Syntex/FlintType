@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.13 — 15 June 2026
+- Confirmation dialogs (like "Block @user?") and the mobile pop-up sheets now keep your keyboard focus inside them: Tab cycles through the dialog's own buttons instead of wandering onto the page behind it, and focus returns to where you were when you close.
+
 ## 6.136.0 — 8 June 2026
 - The mode bar above the typing area is now always the chips picker — the "Mode bar" style choice (chips / inline / hidden) has been removed from Customise → Appearance → Chrome.
 - The leaderboard now ranks only two modes: Casual and Adapt. The "All modes" and "Race" filters are gone, so the board compares like-for-like solo runs.

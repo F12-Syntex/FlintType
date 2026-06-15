@@ -264,6 +264,7 @@ This is a structural rule. The *visual* (classes) lives in §§2–5 per applica
 - Every `<input>` has an associated `<label>` or `aria-label`.
 - Icon-only buttons have `aria-label`.
 - Don't override the keyboard behavior shadcn primitives ship with.
+- **A hand-rolled `role="dialog" aria-modal="true"` modal** (one not built on Radix's `Dialog`, which traps focus for free) must use `useFocusTrap` (`src/lib/use-focus-trap.ts`) + `tabIndex={-1}` on the panel element: move focus into the panel on open, trap Tab / Shift+Tab inside it, and restore focus to the opener on close. `aria-modal` without a focus trap lies to keyboard + screen-reader users (FT-054). `<ConfirmDialog>` and `<MobileSheet>` are the canonical pair; prefer the Radix `Dialog` for new modals so you get this automatically.
 - Never rely on color alone to convey state — pair with icon or text.
 - **Touch targets ≥ 44×44 px** on any viewport a phone might load (i.e. unconditionally). Use shadcn `Button` `size="default"` (`h-9` + horizontal padding clears the finger target on mobile once it's the full-width stacked CTA; on dense inline toolbars, keep `size="sm"` but reserve those for secondary actions, not primary CTAs). Icon-only buttons set `size="icon"` and override to `h-11 w-11` on mobile (`h-11 w-11 sm:h-9 sm:w-9` if you want them compact on desktop).
 
