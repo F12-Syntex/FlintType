@@ -88,7 +88,7 @@ export type AppearancePrefs = {
   /** Maximum lines rendered in the passage. `0` means unbounded —
    *  show every line that fits in the available height. Otherwise
    *  the passage is clipped to `min(linesRendered, fits)` whole
-   *  lines. Default `3`, mirroring the original cap. */
+   *  lines. Default `4` (see DEFAULT_APPEARANCE.linesRendered). */
   linesRendered: number;
   /** Width in characters; 0 = align to content edges. */
   maxLineWidth: number;
