@@ -45,6 +45,9 @@ export type UserDisplay = {
  *  "other people" views where ≤30s lag on a renamed handle is fine. */
 const DISPLAY_TTL_MS = 30_000;
 const MAX_ENTRIES = 2_000;
+/** Clerk's getUserList caps `limit` at 500, so id batches are paged at
+ *  this size (FT-065). */
+const CLERK_USERLIST_MAX = 500;
 
 type Entry = { display: UserDisplay; addedAt: number };
 const cache = new Map<string, Entry>();
@@ -134,10 +137,22 @@ export async function resolveUserDisplays(
   if (misses.length === 0) return out;
 
   const client = await clerkClient();
-  const { data } = await client.users.getUserList({
-    userId: misses,
-    limit: misses.length,
-  });
+  // Clerk's getUserList caps `limit` (and the practical id-batch size) at
+  // 500, so a user following / followed-by 500+ accounts would otherwise
+  // pass an out-of-range limit and either error or silently drop the
+  // remainder (FT-065). Page the misses into ≤500-id chunks; the common
+  // case (≤500) is a single call, unchanged.
+  const data: Awaited<
+    ReturnType<typeof client.users.getUserList>
+  >["data"] = [];
+  for (let i = 0; i < misses.length; i += CLERK_USERLIST_MAX) {
+    const page = misses.slice(i, i + CLERK_USERLIST_MAX);
+    const res = await client.users.getUserList({
+      userId: page,
+      limit: page.length,
+    });
+    data.push(...res.data);
+  }
   // One bulk prefs read for the missed users so each user's tag-display
   // selection is honoured without an N+1.
   const prefsByUserId = await db.userPrefs.bulkGet(misses);
