@@ -39,7 +39,6 @@ export type PreviewKind =
   | "wpm"
   | "accuracy"
   | "keyboard"
-  | "restart-hint"
   | "error-stop"
   | "caret"
   | "theme"
@@ -61,14 +60,6 @@ export const SECTIONS: readonly Section[] = [
     id: "behaviour",
     name: "BEHAVIOUR",
     settings: [
-      {
-        type: "toggle",
-        id: "quick-restart",
-        label: "Quick restart",
-        desc: "Press Tab to restart instantly without losing focus",
-        value: true,
-        preview: "restart-hint",
-      },
       {
         type: "toggle",
         id: "live-wpm",

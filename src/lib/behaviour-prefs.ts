@@ -7,7 +7,6 @@ import { useRemotePrefs } from "./use-remote-prefs";
 export type Confidence = "off" | "word" | "all";
 
 export type BehaviourPrefs = {
-  quickRestart: boolean;
   stopOnError: boolean;
   confidence: Confidence;
   /** When false, characters typed past the target word's length are
@@ -35,10 +34,6 @@ export type BehaviourPrefs = {
 };
 
 export const DEFAULT_BEHAVIOUR: BehaviourPrefs = {
-  // Quick restart off by default — users have to tab+enter to start
-  // a fresh run, which prevents accidental restarts mid-stream from
-  // a stray Tab keypress.
-  quickRestart: false,
   stopOnError: false,
   confidence: "off",
   allowExtras: true,

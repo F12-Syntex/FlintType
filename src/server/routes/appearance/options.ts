@@ -171,7 +171,6 @@ export const KNOBS: Record<string, Knob> = {
       { id: "full", label: "Full", patch: ap("maxLineWidth", 0) },
     ],
   },
-  quickRestart: { label: "Quick restart", options: boolOpts("quickRestart", "behaviour") },
   stopOnError: { label: "Stop on error", options: boolOpts("stopOnError", "behaviour") },
   confidence: { label: "Confidence", options: enumOpts("confidence", "behaviour", [["off", "Off"], ["word", "Per word"], ["all", "All"]]) },
   allowExtras: { label: "Allow extras", options: boolOpts("allowExtras", "behaviour") },
