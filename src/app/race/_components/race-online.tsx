@@ -268,13 +268,30 @@ export function OnlineRaceProvider({
     return () => clearInterval(id);
   }, [snapshot?.phase]);
 
+  // Keep the countdown / elapsed math on the SERVER clock even though we
+  // tick against the local one. `countdownStartedAt` / `raceStartedAt` are
+  // server-clock values, so subtracting a raw local `Date.now()` mixes
+  // clocks — a device whose clock is skewed from the server shows a wrong /
+  // frozen / jumping 3-2-1 (FT-061). Capture the offset each time a snapshot
+  // arrives and add it back below, so `Date.now() + offset` ≈ the server's
+  // wall clock. Updated during render (keyed on snapshot identity) so the
+  // derived memo never reads a stale offset on the first frame after a new
+  // snapshot.
+  const clockOffsetRef = useRef(0);
+  const offsetSnapRef = useRef<RoomSnapshot | null>(null);
+  if (snapshot && snapshot !== offsetSnapRef.current) {
+    offsetSnapRef.current = snapshot;
+    clockOffsetRef.current = snapshot.serverNowMs - Date.now();
+  }
+
   const derived = useMemo(
-    // Recompute against the live wall clock so the countdown digit
-    // re-renders every 200ms even while the server snapshot is idle.
+    // Recompute against the server-aligned wall clock (Date.now() + offset)
+    // so the countdown digit re-renders every 200ms even while the server
+    // snapshot is idle, without drifting on a skewed device clock.
     () =>
       deriveTimings(
         snapshot?.phase === "countdown" || snapshot?.phase === "racing"
-          ? { ...state, nowMs: Date.now() }
+          ? { ...state, nowMs: Date.now() + clockOffsetRef.current }
           : state,
       ),
     // `tick` is read implicitly via Date.now() above — list it in the
