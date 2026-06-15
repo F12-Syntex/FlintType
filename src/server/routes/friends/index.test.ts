@@ -396,6 +396,23 @@ describe("friends routes", () => {
     ).rejects.toMatchObject({ code: "VALIDATION" });
   });
 
+  it("compare 403s when a block exists in either direction", async () => {
+    await insertRun("me", 90);
+    await insertRun("alice", 130);
+    signedInAs("me");
+    // me blocked alice.
+    await ctx.db.blocks.block("me", "alice");
+    await expect(
+      callRoute(["friends", "compare"], { db: ctx.db, input: { userId: "alice" } }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    // …and the reverse direction (alice blocked me).
+    await ctx.db.blocks.unblock("me", "alice");
+    await ctx.db.blocks.block("alice", "me");
+    await expect(
+      callRoute(["friends", "compare"], { db: ctx.db, input: { userId: "alice" } }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("leaderboard requires auth", async () => {
     mockAuth.mockResolvedValue({
       userId: null,
