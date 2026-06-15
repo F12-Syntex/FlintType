@@ -26,6 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useCommandEntries } from "@/lib/command-palette/use-command-entries";
+import { isApplePlatform } from "@/lib/platform";
 import type {
   CommandEntry,
   CommandGroup as CommandGroupId,
@@ -455,7 +456,7 @@ function Footer({ view }: { view: View }) {
         </span>
       </div>
       <div className="flex items-center gap-1">
-        <Kbd>⌘</Kbd>
+        <ModKbd />
         <Kbd>K</Kbd>
       </div>
     </div>
@@ -482,4 +483,18 @@ function Kbd({ children }: { children: React.ReactNode }) {
       {children}
     </kbd>
   );
+}
+
+/** The Cmd/Ctrl keycap in the footer hint — ⌘ on macOS / iOS, Ctrl elsewhere,
+ *  matching the palette's own `metaKey || ctrlKey` binding. Ctrl is rendered on
+ *  the server and first client paint so the markup is stable; Apple clients swap
+ *  to ⌘ after mount (no hydration mismatch). Renders the palette's *local* `Kbd`
+ *  (different visual style from the ft `<Kbd>`) — don't swap it for the shared
+ *  `<ModKey>`, which would change the keycap styling inside the palette. */
+function ModKbd() {
+  const [isMac, setIsMac] = useState(false);
+  useEffect(() => {
+    setIsMac(isApplePlatform(navigator.platform || navigator.userAgent));
+  }, []);
+  return <Kbd>{isMac ? "⌘" : "Ctrl"}</Kbd>;
 }
