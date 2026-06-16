@@ -12,6 +12,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { BackendError } from "@/lib/errors";
 import { createTestDatabase } from "@/db/server/testing";
 import { callRoute } from "@/server/testing";
+import { persistAdaptPrefs } from "./prefs";
 import type {
   AdaptSnapshotOutput,
   KeystrokeTiming,
@@ -455,6 +456,37 @@ describe("adapt routes", () => {
     const list = await ctx.db.notifications.listForUser("u1");
     expect(list.length).toBe(1);
     expect(list[0]!.kind).toBe("personal_best");
+  });
+
+  it("persistAdaptPrefs merges its slices — a write landing after the load survives", async () => {
+    // Simulates the lost-update race: the client flushes a slice while
+    // adapt.submit is between its prefs read and its prefs write. With
+    // the old read-modify-write the concurrent slice was reverted;
+    // with the atomic merge it survives.
+    await ctx.db.userPrefs.set("u1", { caret: { style: "block" } });
+    // "Concurrent" client write after adapt loaded its snapshot.
+    await ctx.db.userPrefs.merge("u1", { theme: { "--primary": "#1e90ff" } });
+    await persistAdaptPrefs(ctx.db, "u1", {
+      adaptRecency: new Map([["the", 1]]),
+      adaptFingerMapHash: "h1",
+    });
+    const stored = await ctx.db.userPrefs.get("u1");
+    expect(stored.caret).toEqual({ style: "block" });
+    expect(stored.theme).toEqual({ "--primary": "#1e90ff" }); // not reverted
+    expect(stored.adaptRecency).toEqual({ the: 1 });
+    expect(stored.adaptFingerMapHash).toBe("h1");
+  });
+
+  it("submit preserves unrelated prefs slices while writing adapt state", async () => {
+    signedInAs("u1");
+    await ctx.db.userPrefs.set("u1", { caret: { style: "underline" } });
+    await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({ mode: "training" }),
+    });
+    const stored = await ctx.db.userPrefs.get("u1");
+    expect(stored.caret).toEqual({ style: "underline" });
+    expect(stored.adaptRecency).toBeTruthy();
   });
 
   it("excludeCasualFromAdapt skips the model update for casual runs", async () => {

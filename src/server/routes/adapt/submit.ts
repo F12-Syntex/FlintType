@@ -393,7 +393,7 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
       input.words,
       RECENCY_RECOVERY_TESTS,
     );
-    await persistAdaptPrefs(db, userId, prefs, {
+    await persistAdaptPrefs(db, userId, {
       adaptRecency: nextRecency,
       adaptFingerMapHash: currentHash,
     });

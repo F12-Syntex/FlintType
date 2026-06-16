@@ -9,7 +9,13 @@ import {
   migrateThemeState,
   setOverride,
 } from "./themes/overrides";
-import { CUSTOM_THEME_ID, getThemeRoot } from "./themes/registry";
+import {
+  forkPaletteToCustom,
+  paletteAfterReset,
+  type PaletteBase,
+  type PaletteSlice,
+} from "./themes/palette-fork";
+import { CUSTOM_THEME_ID, findTheme, getThemeRoot } from "./themes/registry";
 import { useRemotePrefs } from "./use-remote-prefs";
 
 /** Every CSS variable the user can override from the appearance page.
@@ -68,6 +74,14 @@ function applyVar(name: ThemeVar, value: string | undefined) {
   }
 }
 
+/** Resolve a named palette id to a fork snapshot (both mode var maps).
+ *  Reactive / unknown ids resolve to undefined — those fork baseless. */
+function resolvePaletteBase(id: string): PaletteBase | undefined {
+  const t = findTheme(id);
+  if (!t) return undefined;
+  return { id: t.id, light: t.cssVars.light, dark: t.cssVars.dark };
+}
+
 /** Run the one-shot migration off the pre-2026-05 fake-default state
  *  (orange force-applied as an override + palette pinned to "custom")
  *  onto the real Default theme. Module-level guard so it fires once per
@@ -80,7 +94,7 @@ function runThemeMigrationOnce() {
   themeMigrationRan = true;
   void loadPrefs().then(() => {
     const storedTheme = readSlice<ThemeOverrides>("theme", EMPTY_OVERRIDES);
-    const storedPalette = readSlice<{ activeId: string | null }>("palette", {
+    const storedPalette = readSlice<PaletteSlice>("palette", {
       activeId: null,
     });
     const m = migrateThemeState(storedPalette, storedTheme, CUSTOM_THEME_ID);
@@ -127,8 +141,18 @@ export function useThemeOverrides() {
       // Any per-var override forks the user off whatever named palette
       // they were on — mark the palette slice as "custom" so the theme
       // picker reads as Custom instead of misleadingly still saying
-      // "Cosmic Night" (etc.) once the colours diverge.
-      writeSlice("palette", { activeId: CUSTOM_THEME_ID });
+      // "Cosmic Night" (etc.) once the colours diverge. The fork
+      // snapshots the named palette's cssVars (`base`) so the rest of
+      // the palette keeps painting after a reload — without it the
+      // bootstrap script replays only blob.theme and the named palette
+      // was silently destroyed (it persisted as nothing but its id).
+      const palette = readSlice<PaletteSlice>("palette", { activeId: null });
+      const forked = forkPaletteToCustom(
+        palette,
+        resolvePaletteBase,
+        CUSTOM_THEME_ID,
+      );
+      if (forked !== palette) writeSlice("palette", forked);
     },
     [updateRaw],
   );
@@ -148,9 +172,11 @@ export function useThemeOverrides() {
   const reset = useCallback(() => {
     for (const v of THEME_VARS) applyVar(v, undefined);
     resetRaw();
-    // No more overrides — demote the palette back to Default. Picking
-    // a non-default palette afterwards is one click in the picker.
-    writeSlice("palette", { activeId: null });
+    // No more overrides — a custom fork off a named palette goes back
+    // to that palette (the user dropped their nudges, not the palette
+    // they picked); everything else demotes to Default.
+    const palette = readSlice<PaletteSlice>("palette", { activeId: null });
+    writeSlice("palette", paletteAfterReset(palette, CUSTOM_THEME_ID));
   }, [resetRaw]);
 
   return { overrides, setVar, clearVar, reset };
