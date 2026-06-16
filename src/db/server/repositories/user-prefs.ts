@@ -50,20 +50,58 @@ export function userPrefsRepo(db: ServerDrizzle) {
         });
     },
 
-    /** Merge a partial shape into the stored blob. One query under
-     *  Postgres `jsonb || $patch` semantics so we don't race a
-     *  concurrent reader against a wholesale `set`. Used by routes
-     *  that own a single slot inside the blob (e.g. `profile.setTags`
-     *  writing only `selectedTags`) and don't want to clobber
-     *  unrelated slots written by the client. */
-    async merge(userId: string, patch: UserPrefsBlob): Promise<void> {
+    /** Merge a partial shape into the stored blob, optionally deleting
+     *  top-level keys. One query under Postgres `jsonb || $patch` (and
+     *  `- $key`) semantics so we don't race a concurrent reader against
+     *  a wholesale `set`. Used by routes that own specific slots inside
+     *  the blob (adapt model state, `selectedTags`, `monkeytypeStats`)
+     *  and by the client flush path (`prefs.merge`) so writers can't
+     *  clobber each other's slots. */
+    async merge(
+      userId: string,
+      patch: UserPrefsBlob,
+      remove: readonly string[] = [],
+    ): Promise<void> {
+      let expr = sql`coalesce(${userPrefs.data}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`;
+      for (const key of remove) {
+        expr = sql`(${expr}) - ${key}::text`;
+      }
       await db
         .insert(userPrefs)
         .values({ userId, data: patch })
         .onConflictDoUpdate({
           target: userPrefs.userId,
           set: {
-            data: sql`coalesce(${userPrefs.data}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
+            data: expr,
+            updatedAt: sql`now()`,
+          },
+        });
+    },
+
+    /** Replace the stored blob with `data` while keeping the current
+     *  values of `preserve` keys (server-owned slices). Atomic — the
+     *  preserved slices are read inside the same statement, so a
+     *  concurrent server-side merge can't be lost to a read-modify-write
+     *  window. Keys in `preserve` absent from the stored blob simply
+     *  stay absent. */
+    async replacePreserving(
+      userId: string,
+      data: UserPrefsBlob,
+      preserve: readonly string[],
+    ): Promise<void> {
+      let expr = sql`${JSON.stringify(data)}::jsonb`;
+      for (const key of preserve) {
+        // jsonb_build_object(k, data->k) is {k: null} when the key is
+        // missing; strip_nulls drops it so absence stays absence.
+        expr = sql`(${expr}) || jsonb_strip_nulls(jsonb_build_object(${key}::text, coalesce(${userPrefs.data}, '{}'::jsonb) -> ${key}::text))`;
+      }
+      await db
+        .insert(userPrefs)
+        .values({ userId, data })
+        .onConflictDoUpdate({
+          target: userPrefs.userId,
+          set: {
+            data: expr,
             updatedAt: sql`now()`,
           },
         });

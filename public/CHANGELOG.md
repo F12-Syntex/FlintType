@@ -8,8 +8,66 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
-## 6.136.1 — 13 June 2026
+## 6.136.20 — 16 June 2026
 - Fixed the Blog page: the "Coming soon" posts were clickable links that led to a 404 page. They now show as plain headings until the actual post is published.
+
+## 6.136.19 — 16 June 2026
+- "Reset all" on the Customise pages now truly resets everything it counts. On Behaviour it also clears your sound settings; on Appearance it also clears your caret, on-screen keyboard and background settings — so the "customised" count and the button no longer get stuck after a reset.
+
+## 6.136.18 — 16 June 2026
+- Fixed the typing area showing no upcoming text when "Lines rendered" is set to 2 (or only two lines fit): the cursor now rides the top line so you can always see the line you're about to type, instead of being stuck on the bottom line.
+
+## 6.136.17 — 16 June 2026
+- Fixed the results graph putting a red ✕ on every point of a flawless run: mistake marks now appear only where you actually mistyped, matching the "no mistakes" note. Also cleaned up the graph's hover tooltip, which was listing your speed twice.
+
+## 6.136.16 — 16 June 2026
+- Fixed the notifications bell vanishing on phones: signed in on a small screen, the bell now stays in the top bar next to the menu, so you can finally see personal-best, follow, mutual-friend and announcement notifications on mobile.
+
+## 6.136.15 — 16 June 2026
+- Fixed the friends leaderboard dropping people: a slower friend could vanish from the board entirely if you (or another friend) had lots of faster runs. Every friend now shows at their correct rank, and the same fix applies to the global board and top-players list.
+
+## 6.136.14 — 16 June 2026
+- Fixed keyboard navigation on the multiplayer race screen: in the lobby and on the results screen you can now Tab to reach Ready, Start, Rematch, Copy link, Save image and Leave — previously Tab did nothing there, so those controls were mouse-only. Esc in the lobby no longer silently re-shuffles your words.
+
+## 6.136.13 — 16 June 2026
+- Hardened the leaderboard against fake scores: a finished run's speed now has to be backed up by the actual typing it recorded, so fabricated world-record submissions are rejected. Your real runs are unaffected.
+
+## 6.136.12 — 16 June 2026
+- The Discord banner no longer flashes briefly on every page load after you've dismissed it.
+
+## 6.136.11 — 16 June 2026
+- The results screen now labels burst runs as "burst N" under TEST TYPE instead of mislabelling them as a words test.
+
+## 6.136.10 — 16 June 2026
+- Signing out now clears the on-device personal-best and average-speed caches, so the next person on a shared computer starts fresh instead of inheriting your PB crown and burst threshold.
+
+## 6.136.9 — 16 June 2026
+- Settings no longer revert on their own. Changing any option used to silently undo things saved in the background — your adaptive-practice progress, profile tag selection, or MonkeyType import could quietly roll back. Saves are now precise: only the settings you actually changed are written.
+
+## 6.136.8 — 16 June 2026
+- Fixed a nasty settings bug: picking a community palette and then tweaking any single option (a colour, the corner radius, a font) no longer wipes the palette when you reload. Your chosen palette now survives underneath your tweaks, "Reset" returns you to it, and undoing an AI design suggestion no longer costs you your palette either.
+
+## 6.136.7 — 16 June 2026
+- The sign-in screen now explains when an account has no password (for example one created with Discord), instead of silently hiding the password option.
+
+## 6.136.6 — 16 June 2026
+- You can now skip the very first word with space, just like any other word — pressing space before typing starts the test and moves on. Strict space still blocks skipping everywhere.
+- Skipped words now count toward the errors stat on the results screen, matching the red underline you saw during the test.
+
+## 6.136.5 — 16 June 2026
+- Accuracy is now honest: every wrong keypress counts against your accuracy, even if you correct it (and even if stop-on-error blocked it). 100% accuracy now genuinely means a clean run, so raw and actual WPM line up. The errors stat still counts only mistakes left in the text.
+
+## 6.136.4 — 16 June 2026
+- Fixed the race spectate view: the "Spectating @name" header can no longer be squeezed under the racer line-up strip, and the name / progress / wpm row now wraps neatly on small screens instead of clipping.
+
+## 6.136.3 — 16 June 2026
+- The race countdown is now smooth and fair: every racer's 3-2-1 ticks to zero at the same instant, anchored to the server's clock instead of each device's own time, and the digits flip exactly on the second instead of stuttering. The in-race elapsed timer uses the same clock.
+
+## 6.136.2 — 16 June 2026
+- Private lobbies are now guaranteed human-only: bots can no longer sneak into a challenge race, and any bot left over in an old lobby is removed at the next rematch. Public matchmaking still fills with bots as before.
+
+## 6.136.1 — 12 June 2026
+- Internal changes only.
 
 ## 6.136.0 — 8 June 2026
 - The mode bar above the typing area is now always the chips picker — the "Mode bar" style choice (chips / inline / hidden) has been removed from Customise → Appearance → Chrome.

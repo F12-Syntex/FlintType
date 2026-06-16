@@ -86,4 +86,59 @@ describe("userPrefsRepo", () => {
       selectedTags: ["owner", "og"],
     });
   });
+
+  it("merge deletes the listed keys while applying the patch", async () => {
+    await ctx.db.userPrefs.set("u1", {
+      caret: { style: "block" },
+      theme: { "--primary": "#fff" },
+      monkeytypeStats: { completedTests: 5 },
+    });
+    await ctx.db.userPrefs.merge(
+      "u1",
+      { caret: { style: "line" } },
+      ["theme", "monkeytypeStats"],
+    );
+    expect(await ctx.db.userPrefs.get("u1")).toEqual({
+      caret: { style: "line" },
+    });
+  });
+
+  it("merge remove is a no-op for keys that don't exist", async () => {
+    await ctx.db.userPrefs.set("u1", { caret: { style: "block" } });
+    await ctx.db.userPrefs.merge("u1", {}, ["nonexistent"]);
+    expect(await ctx.db.userPrefs.get("u1")).toEqual({
+      caret: { style: "block" },
+    });
+  });
+
+  it("replacePreserving replaces the blob but keeps the preserved keys' stored values", async () => {
+    await ctx.db.userPrefs.set("u1", {
+      caret: { style: "block" },
+      selectedTags: ["og"],
+      adaptRecency: { th: 2 },
+    });
+    await ctx.db.userPrefs.replacePreserving(
+      "u1",
+      // Even if the caller's payload tries to smuggle a preserved key,
+      // the stored value wins (it's concatenated after the input).
+      { behaviour: { strictSpace: true }, selectedTags: ["owner"] },
+      ["selectedTags", "adaptRecency", "monkeytypeStats"],
+    );
+    expect(await ctx.db.userPrefs.get("u1")).toEqual({
+      behaviour: { strictSpace: true },
+      selectedTags: ["og"],
+      adaptRecency: { th: 2 },
+    });
+  });
+
+  it("replacePreserving creates the row when none exists", async () => {
+    await ctx.db.userPrefs.replacePreserving(
+      "u_new",
+      { caret: { style: "line" } },
+      ["selectedTags"],
+    );
+    expect(await ctx.db.userPrefs.get("u_new")).toEqual({
+      caret: { style: "line" },
+    });
+  });
 });

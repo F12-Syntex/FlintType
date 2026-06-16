@@ -69,20 +69,36 @@ let localVersion = 0;
 let syncedVersion = 0;
 let metaLoaded = false;
 
-function metaRead(): { v: number; sv: number } {
-  if (typeof window === "undefined") return { v: 0, sv: 0 };
+/** Per-slice dirty tracking. The flush only sends the slices the
+ *  client actually changed (`dirtyKeys`, merged server-side) and the
+ *  ones it deleted (`removedKeys`) — never the whole blob, so it can't
+ *  revert server-owned slices (adaptRecency, selectedTags, …) or a
+ *  slice another device just saved. Persisted in the meta record so a
+ *  reload with unsynced edits re-flushes only those slices. */
+const dirtyKeys = new Set<string>();
+const removedKeys = new Set<string>();
+
+function metaRead(): { v: number; sv: number; d: string[]; r: string[] } {
+  if (typeof window === "undefined") return { v: 0, sv: 0, d: [], r: [] };
   try {
     const raw = window.localStorage.getItem(META_KEY);
     if (raw) {
-      const p = JSON.parse(raw) as { v?: unknown; sv?: unknown };
+      const p = JSON.parse(raw) as {
+        v?: unknown;
+        sv?: unknown;
+        d?: unknown;
+        r?: unknown;
+      };
       if (typeof p?.v === "number" && typeof p?.sv === "number") {
-        return { v: p.v, sv: p.sv };
+        const strings = (a: unknown): string[] =>
+          Array.isArray(a) ? a.filter((k): k is string => typeof k === "string") : [];
+        return { v: p.v, sv: p.sv, d: strings(p.d), r: strings(p.r) };
       }
     }
   } catch {
     /* corrupted — treat as clean (backend authoritative) */
   }
-  return { v: 0, sv: 0 };
+  return { v: 0, sv: 0, d: [], r: [] };
 }
 
 function metaWrite(): void {
@@ -90,7 +106,12 @@ function metaWrite(): void {
   try {
     window.localStorage.setItem(
       META_KEY,
-      JSON.stringify({ v: localVersion, sv: syncedVersion }),
+      JSON.stringify({
+        v: localVersion,
+        sv: syncedVersion,
+        d: [...dirtyKeys],
+        r: [...removedKeys],
+      }),
     );
   } catch {
     /* quota / private mode — fail silent */
@@ -104,6 +125,8 @@ function ensureMeta(): void {
   const m = metaRead();
   localVersion = m.v;
   syncedVersion = m.sv;
+  for (const k of m.d) dirtyKeys.add(k);
+  for (const k of m.r) removedKeys.add(k);
 }
 
 /** Subscribe to store changes. Returns an unsubscribe fn. */
@@ -159,6 +182,13 @@ export function loadPrefs(): Promise<PrefsBlob> {
       // authoritative so cross-device changes still flow in.
       if (localVersion > syncedVersion) {
         cache = { ...remote, ...local };
+        // Legacy meta (pre per-slice tracking) carries no dirty-key
+        // list — fall back to treating every locally-held slice as
+        // dirty so the re-flush still converges. It goes through the
+        // merge route either way, so server-owned slices are safe.
+        if (dirtyKeys.size === 0 && removedKeys.size === 0) {
+          for (const k of Object.keys(local)) dirtyKeys.add(k);
+        }
         scheduleWrite();
       } else {
         cache = { ...local, ...remote };
@@ -198,6 +228,8 @@ export function readSlice<T extends object>(key: string, defaults: T): T {
 export function writeSlice<T>(key: string, value: T): void {
   ensureMeta();
   cache = { ...(cache ?? {}), [key]: value as unknown };
+  dirtyKeys.add(key);
+  removedKeys.delete(key);
   localVersion++;
   lsWrite(cache);
   metaWrite();
@@ -212,6 +244,8 @@ export function clearSlice(key: string): void {
   const next = { ...cache };
   delete next[key];
   cache = next;
+  removedKeys.add(key);
+  dirtyKeys.delete(key);
   localVersion++;
   lsWrite(cache);
   metaWrite();
@@ -237,10 +271,26 @@ async function flush(): Promise<void> {
   if (!cache) return;
   const snapshot = cache;
   const sending = localVersion;
+  // Per-slice patch: only the slices the client changed travel. The
+  // server merges them (jsonb ||) instead of replacing the row, so a
+  // flush can never revert server-owned slices or another device's
+  // saves. Snapshot + clear the sets up front — a write that lands
+  // mid-flight re-dirties its key and reschedules.
+  const sendDirty = [...dirtyKeys].filter((k) => k in snapshot);
+  const sendRemoved = [...removedKeys];
+  dirtyKeys.clear();
+  removedKeys.clear();
+  const data: PrefsBlob = {};
+  for (const k of sendDirty) data[k] = snapshot[k];
   writeInFlight = (async () => {
     try {
-      const backend = useBackend();
-      await backend.prefs.set({ data: snapshot });
+      if (sendDirty.length > 0 || sendRemoved.length > 0) {
+        const backend = useBackend();
+        await backend.prefs.merge({
+          data,
+          ...(sendRemoved.length > 0 ? { remove: sendRemoved } : {}),
+        });
+      }
       // Confirmed persisted — advance the synced stamp so a later load
       // treats the backend as authoritative again. On failure we leave
       // it behind, so the unsaved edits keep winning until a save lands.
@@ -249,7 +299,21 @@ async function flush(): Promise<void> {
         metaWrite();
       }
     } catch {
-      /* unauthenticated / transient — local state stays current */
+      // Unauthenticated / transient — keep the keys marked dirty so a
+      // later flush (or the post-reload re-flush) retries them. A key
+      // must live in at most ONE of dirtyKeys/removedKeys: a clearSlice
+      // (or writeSlice) that raced this in-flight flush expresses newer
+      // user intent, so never restore a key into the opposite set.
+      for (const k of sendDirty) {
+        if (!removedKeys.has(k)) dirtyKeys.add(k);
+      }
+      for (const k of sendRemoved) {
+        // A concurrent writeSlice supersedes the older remove.
+        if (!dirtyKeys.has(k)) removedKeys.add(k);
+      }
+      // NOTE: META_KEY is not per-user; cross-user isolation on a shared
+      // browser profile is tracked separately (issue #52 / FT-017).
+      metaWrite();
     } finally {
       writeInFlight = null;
     }
@@ -265,6 +329,8 @@ export function __resetForTests(): void {
   localVersion = 0;
   syncedVersion = 0;
   metaLoaded = false;
+  dirtyKeys.clear();
+  removedKeys.clear();
   if (writeTimer) {
     clearTimeout(writeTimer);
     writeTimer = null;

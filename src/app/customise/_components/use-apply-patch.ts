@@ -13,11 +13,17 @@ import {
   type BehaviourPrefs,
   useBehaviourPrefs,
 } from "@/lib/behaviour-prefs";
+import { readSlice, writeSlice } from "@/lib/prefs-store";
 import { type ThemeVar, useThemeOverrides } from "@/lib/theme-customization";
+import type { PaletteSlice } from "@/lib/themes/palette-fork";
 import type { AppearancePatch } from "@/types/appearance-ai";
 
 type Snapshot = {
   theme: Record<string, string | undefined>;
+  /** The palette slice as it was before the first apply — setVar forks
+   *  it to "custom", so an undone suggestion must put the user's named
+   *  palette back, not leave them stranded on Custom. */
+  palette: PaletteSlice;
   appearance: Partial<Record<keyof AppearancePrefs, unknown>>;
   background: Partial<Record<keyof BackgroundPrefs, unknown>>;
   behaviour: Partial<Record<keyof BehaviourPrefs, unknown>>;
@@ -50,6 +56,7 @@ export function useApplyPatch() {
     (patch: AppearancePatch) => {
       const snap: Snapshot = {
         theme: {},
+        palette: readSlice<PaletteSlice>("palette", { activeId: null }),
         appearance: {},
         background: {},
         behaviour: {},
@@ -75,6 +82,8 @@ export function useApplyPatch() {
       if (snapshotRef.current) {
         snapshotRef.current = {
           theme: { ...snap.theme, ...snapshotRef.current.theme },
+          // The FIRST apply's palette is the one to restore.
+          palette: snapshotRef.current.palette,
           appearance: { ...snap.appearance, ...snapshotRef.current.appearance },
           background: { ...snap.background, ...snapshotRef.current.background },
           behaviour: { ...snap.behaviour, ...snapshotRef.current.behaviour },
@@ -115,6 +124,10 @@ export function useApplyPatch() {
     for (const [k, v] of Object.entries(snap.behaviour)) {
       updateBehaviour(k as keyof BehaviourPrefs, v as never);
     }
+    // Last — the setVar calls above re-fork the palette to "custom";
+    // restoring the snapshot afterwards puts the named palette (and any
+    // fork base) back exactly as it was before the first apply.
+    writeSlice("palette", snap.palette);
     snapshotRef.current = null;
   }, [setVar, clearVar, updateAppearance, updateBackground, updateBehaviour]);
 
