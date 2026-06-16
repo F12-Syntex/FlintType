@@ -449,8 +449,9 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
   //    a cache clear / on a new device) falsely crowned.
   //
   //  • Anonymous viewers have no server history, so they fall back to the
-  //    per-session localStorage cache — the best we can do without an
-  //    account, and harmless since it resets each session.
+  //    per-browser localStorage cache — the best we can do without an
+  //    account. The cache is cleared on sign-out (sign-out-cleanup.ts)
+  //    so it never carries a previous user's baseline.
   //
   // Reset to false whenever we leave the done screen so a stale crown
   // never carries into the next run.

@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.10 — 16 June 2026
+- Signing out now clears the on-device personal-best and average-speed caches, so the next person on a shared computer starts fresh instead of inheriting your PB crown and burst threshold.
+
 ## 6.136.9 — 16 June 2026
 - Settings no longer revert on their own. Changing any option used to silently undo things saved in the background — your adaptive-practice progress, profile tag selection, or MonkeyType import could quietly roll back. Saves are now precise: only the settings you actually changed are written.
 
