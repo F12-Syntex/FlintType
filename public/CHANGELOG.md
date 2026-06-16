@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.19 — 16 June 2026
+- "Reset all" on the Customise pages now truly resets everything it counts. On Behaviour it also clears your sound settings; on Appearance it also clears your caret, on-screen keyboard and background settings — so the "customised" count and the button no longer get stuck after a reset.
+
 ## 6.136.18 — 16 June 2026
 - Fixed the typing area showing no upcoming text when "Lines rendered" is set to 2 (or only two lines fit): the cursor now rides the top line so you can always see the line you're about to type, instead of being stuck on the bottom line.
 
