@@ -103,6 +103,12 @@ export function countChars(
  *  exempts the last typed entry when `final = false`), so the live
  *  readout doesn't penalise an in-progress word.
  *
+ *  Note: this is deliberately NOT the accuracy source. Accuracy is
+ *  keystroke-based (the practice reducer's `correctChars` /
+ *  `totalChars`, counted at press time) so a corrected or
+ *  stop-on-error-blocked mistake lowers accuracy permanently —
+ *  while `errorCount` stays "uncorrected errors left in the buffer".
+ *
  *  Shared by the live readout (`errs`) and the results screen
  *  (`errors`) so the two always agree. They previously diverged: the
  *  live readout counted *words* with any error (`errorWords.size`)

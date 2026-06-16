@@ -352,6 +352,116 @@ describe("practice reducer — BACKSPACE clears the error underline on fix (#16)
   });
 });
 
+describe("practice reducer — keystroke-based accuracy counters (#14 / #51)", () => {
+  // The provider derives accuracy as correctChars / totalChars — both
+  // counted at keypress time, monkeytype-style. These tests pin the
+  // counter semantics the accuracy figure depends on.
+  const typeChar = (
+    char: string,
+    over: Partial<{ stopOnError: boolean; allowExtras: boolean }> = {},
+  ): Action => ({
+    type: "TYPE_CHAR",
+    char,
+    now: 1000,
+    stopOnError: over.stopOnError ?? false,
+    allowExtras: over.allowExtras ?? true,
+  });
+  const accuracyOf = (s: State): number =>
+    s.totalChars > 0 ? (s.correctChars / s.totalChars) * 100 : 100;
+
+  it("a corrected mistake still lowers accuracy permanently", () => {
+    let s = seed({ words: ["cat"], typed: [] });
+    // c, a, X (wrong), backspace, t — final buffer is "cat" (perfect)
+    s = run(
+      s,
+      typeChar("c"),
+      typeChar("a"),
+      typeChar("x"),
+      { type: "BACKSPACE" },
+      typeChar("t"),
+    );
+    expect(s.typed[0]).toBe("cat");
+    expect(s.totalChars).toBe(4); // 4 char keypresses; backspace not counted
+    expect(s.correctChars).toBe(3);
+    expect(accuracyOf(s)).toBe(75);
+  });
+
+  it("a stop-on-error-blocked wrong keystroke lowers accuracy", () => {
+    let s = seed({ words: ["cat"], typed: [] });
+    s = run(
+      s,
+      typeChar("c", { stopOnError: true }),
+      typeChar("x", { stopOnError: true }), // blocked — never lands in typed
+      typeChar("a", { stopOnError: true }),
+      typeChar("t", { stopOnError: true }),
+    );
+    expect(s.typed[0]).toBe("cat"); // blocked char never entered the buffer
+    expect(s.totalChars).toBe(4);
+    expect(s.correctChars).toBe(3);
+    expect(accuracyOf(s)).toBe(75);
+  });
+
+  it("backspace is neutral — never counts as a keystroke", () => {
+    let s = seed({ words: ["cat"], typed: [] });
+    s = run(
+      s,
+      typeChar("c"),
+      typeChar("a"),
+      { type: "BACKSPACE" },
+      { type: "BACKSPACE" },
+      typeChar("c"),
+      typeChar("a"),
+      typeChar("t"),
+    );
+    expect(s.totalChars).toBe(5);
+    expect(s.correctChars).toBe(5);
+    expect(accuracyOf(s)).toBe(100);
+  });
+
+  it("an extra char (past word end) counts as incorrect", () => {
+    let s = seed({ words: ["hi", "yo"], typed: [] });
+    s = run(s, typeChar("h"), typeChar("i"), typeChar("z"));
+    expect(s.totalChars).toBe(3);
+    expect(s.correctChars).toBe(2);
+  });
+
+  it("space-skipping a word does not inflate accuracy (skipped chars are not keystrokes)", () => {
+    let s = seed({ words: ["hello", "world"], typed: [] });
+    s = run(
+      s,
+      typeChar("h"),
+      typeChar("e"),
+      { type: "SPACE", now: 1000, strictSpace: false },
+      typeChar("w"),
+    );
+    // 3 char keypresses, all correct — space itself is not a char
+    // keystroke and the skipped tail is missed, not wrong.
+    expect(s.totalChars).toBe(3);
+    expect(s.correctChars).toBe(3);
+    expect(accuracyOf(s)).toBe(100);
+  });
+
+  it("100% accuracy implies raw == net WPM (within rounding)", async () => {
+    const { calcWpmAndRaw } = await import("@/lib/wpm");
+    let s = seed({ words: ["the", "cat", "sat"], typed: [] });
+    for (const word of ["the", "cat"]) {
+      for (const ch of word) s = run(s, typeChar(ch));
+      s = run(s, { type: "SPACE", now: 1000, strictSpace: false });
+    }
+    for (const ch of "sat") s = run(s, typeChar(ch));
+    expect(s.phase).toBe("done");
+    expect(s.correctChars).toBe(s.totalChars); // 100% accuracy
+    const { wpm, raw } = calcWpmAndRaw(
+      s.typed,
+      s.words,
+      10_000,
+      true,
+      s.events.length,
+    );
+    expect(raw).toBeCloseTo(wpm, 6);
+  });
+});
+
 describe("practice reducer — SPACE skips the first word like any other (#17a)", () => {
   it("starts the run and skips word 0 on a leading space", () => {
     // Issue #17a: the first word must be skippable with space exactly

@@ -20,7 +20,7 @@ import { useIsMobile } from "@/lib/use-is-mobile";
 import { isRaceInputCurrentlyLocked } from "@/lib/race-input";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { useWordlist } from "@/lib/wordlists/use-wordlist";
-import { calcWpmAndRaw, countChars, errorCount as computeErrorCount } from "@/lib/wpm";
+import { calcWpmAndRaw, errorCount as computeErrorCount } from "@/lib/wpm";
 import {
   avgWpm as computeAvgWpm,
   consistencyScore as computeConsistency,
@@ -558,12 +558,13 @@ export function PracticeProvider({
     // threshold (behaviour.burstThreshold = 0). Pure localStorage,
     // capped to the last 20 samples; see src/lib/avg-wpm-cache.ts.
     recordWpmSample(wpm);
-    const counts = countChars(state.typed, state.words, true);
-    const correctChars = counts.allCorrectChars;
-    const incorrectChars = counts.incorrectChars + counts.extraChars;
+    // Keystroke-based accuracy — same source as the live readout
+    // (reducer counters), so the live ACC and the recorded/results
+    // figure always agree. Corrected and stop-on-error-blocked
+    // mistakes both lower it; backspace is neutral.
     const accuracy =
-      correctChars + incorrectChars > 0
-        ? (correctChars / (correctChars + incorrectChars)) * 100
+      state.totalChars > 0
+        ? (state.correctChars / state.totalChars) * 100
         : 100;
     const wordsActuallyTyped = state.words.slice(
       0,
@@ -736,12 +737,16 @@ export function PracticeProvider({
         isFinal,
         s.events.length,
       );
-      const counts = countChars(s.typed, s.words, isFinal);
-      const correct = counts.allCorrectChars;
-      const incorrect = counts.incorrectChars + counts.extraChars;
+      // Keystroke-based accuracy (monkeytype semantics): every character
+      // keypress counts at press time — a wrong key lowers accuracy
+      // permanently even if it's later corrected (and even when
+      // stop-on-error blocked it from landing). Backspace / space are
+      // never counted. This is what makes 100% accuracy genuinely mean
+      // "zero wrong keypresses", so raw == net at 100%. The counters
+      // live in the reducer (`totalChars` / `correctChars`).
       const acc =
-        correct + incorrect > 0
-          ? Math.round((correct / (correct + incorrect)) * 1000) / 10
+        s.totalChars > 0
+          ? Math.round((s.correctChars / s.totalChars) * 1000) / 10
           : 100;
       return {
         wpm: Math.round(rawWpm),
