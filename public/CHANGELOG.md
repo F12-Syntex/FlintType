@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.17 — 16 June 2026
+- Fixed the results graph putting a red ✕ on every point of a flawless run: mistake marks now appear only where you actually mistyped, matching the "no mistakes" note. Also cleaned up the graph's hover tooltip, which was listing your speed twice.
+
 ## 6.136.16 — 16 June 2026
 - Fixed the notifications bell vanishing on phones: signed in on a small screen, the bell now stays in the top bar next to the menu, so you can finally see personal-best, follow, mutual-friend and announcement notifications on mobile.
 
