@@ -11,6 +11,7 @@ import {
   type LiveFriend,
   type LiveProgressInput,
   type LiveProgressOutput,
+  type LiveScreen,
   type LiveSpectator,
   type SpectatorsOutput,
   type StopLiveOutput,
@@ -65,7 +66,7 @@ const progress = defineRoute<LiveProgressInput, LiveProgressOutput>({
     // behaviour/theme vars) only every Nth frame to keep pushes lean. On a
     // lean frame, backfill it from the last stored snapshot so spectators
     // (and late joiners) always read a complete screen.
-    let screen = input.screen;
+    let screen: LiveScreen | undefined = input.screen;
     if (screen && screen.appearance === undefined) {
       const prev = (await db.liveSessions.get(me))?.snapshot.screen;
       screen = {
