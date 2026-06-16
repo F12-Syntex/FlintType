@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.24 — 16 June 2026
+- Fixed the command palette's "Go to test" (Ctrl/Cmd+K) landing on a 404 page; it now opens the practice surface.
+
 ## 6.136.23 — 16 June 2026
 - Fixed settings loss on a fresh device: if you changed one setting in the moment right after opening the app (before your saved settings finished loading), it could wipe your other settings in that group. Now only the setting you actually changed is updated, and the rest of your saved preferences are kept.
 
