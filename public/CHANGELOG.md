@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.13 — 16 June 2026
+- Hardened the leaderboard against fake scores: a finished run's speed now has to be backed up by the actual typing it recorded, so fabricated world-record submissions are rejected. Your real runs are unaffected.
+
 ## 6.136.12 — 16 June 2026
 - The Discord banner no longer flashes briefly on every page load after you've dismissed it.
 
