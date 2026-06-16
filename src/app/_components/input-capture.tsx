@@ -143,7 +143,12 @@ export function InputCapture({ children }: { children: ReactNode }) {
                 }
                 // No rest-phase guard — space as the first key starts
                 // the run and skips word 0 (issue #17a); reducer owns it.
-                dispatch({ type: "SPACE", now, strictSpace });
+                dispatch({
+                  type: "SPACE",
+                  now,
+                  strictSpace,
+                  backspaceLocked: p.confidence === "all",
+                });
               } else {
                 dispatch({
                   type: "TYPE_CHAR",
@@ -222,6 +227,7 @@ export function InputCapture({ children }: { children: ReactNode }) {
               type: "SPACE",
               now: Date.now(),
               strictSpace: p.strictSpace,
+              backspaceLocked: p.confidence === "all",
             });
             playClick();
             return;

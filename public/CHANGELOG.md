@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.25 — 16 June 2026
+- Fixed a typing deadlock: with Confidence set to "All" (backspace fully locked) and Strict space on, one typo used to freeze the run — you couldn't fix it or move on, only restart. Now, when backspace is locked, space lets you move past the word so the run keeps going.
+
 ## 6.136.24 — 16 June 2026
 - Fixed the command palette's "Go to test" (Ctrl/Cmd+K) landing on a 404 page; it now opens the practice surface.
 

@@ -1044,7 +1044,12 @@ export function PracticeProvider({
       // No rest-phase guard: space as the very first key starts the run
       // and skips word 0, same as skipping any later word (issue #17a).
       // The reducer owns the start; strictSpace still gates the skip.
-      dispatch({ type: "SPACE", now: Date.now(), strictSpace: p.strictSpace });
+      dispatch({
+        type: "SPACE",
+        now: Date.now(),
+        strictSpace: p.strictSpace,
+        backspaceLocked: p.confidence === "all",
+      });
       return;
     }
     if (e.key === "Backspace") {
