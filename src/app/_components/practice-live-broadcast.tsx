@@ -10,6 +10,7 @@ import { broadcastPlan } from "@/lib/live-cadence";
 import { setWatcherCount } from "@/lib/live-watchers";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { LIVE_MAX_WORDS } from "@/types/live";
+import { CLONE_THEME_VARS } from "@/types/live-screen-meta";
 import { liveSnapshotWindow } from "./practice-progress";
 import type { State } from "./practice-state";
 /** Module-level stable default — useRemotePrefs captures it once.
@@ -18,36 +19,9 @@ const SPECTATE_DEFAULT: { enabled?: boolean } = { enabled: true };
 
 /** Resolved CSS custom properties sent so the spectator's clone matches
  *  the broadcaster's colours + typography exactly. Read from <html> at
- *  push time so a theme switch mid-session flows through. */
-const CLONE_THEME_VARS = [
-  "--background",
-  "--foreground",
-  "--card",
-  "--card-foreground",
-  "--popover",
-  "--popover-foreground",
-  "--primary",
-  "--primary-foreground",
-  "--secondary",
-  "--secondary-foreground",
-  "--accent",
-  "--accent-foreground",
-  "--muted",
-  "--muted-foreground",
-  "--border",
-  "--input",
-  "--ring",
-  "--radius",
-  "--destructive",
-  "--destructive-foreground",
-  "--ft-font-family",
-  "--ft-font-scale",
-  "--ft-word-spacing",
-  "--ft-passage-typed",
-  "--ft-passage-untyped",
-  "--ft-passage-error",
-] as const;
-
+ *  push time so a theme switch mid-session flows through. The list is
+ *  the wire allowlist (`CLONE_THEME_VARS` in src/types/live-screen-meta)
+ *  — single source, so the sender and the schema can't drift. */
 function readThemeVars(): Record<string, string> {
   const cs = getComputedStyle(document.documentElement);
   const out: Record<string, string> = {};
@@ -168,8 +142,8 @@ export function PracticeLiveBroadcast({
         raw: s.raw,
         ...(includeMeta
           ? {
-              appearance: s.appearance as unknown as Record<string, unknown>,
-              caret: s.caret as unknown as Record<string, unknown>,
+              appearance: s.appearance,
+              caret: s.caret,
               behaviour: { blindMode: s.behaviour.blindMode },
               themeVars: readThemeVars(),
             }

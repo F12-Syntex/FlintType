@@ -3,13 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /** Backend stubs the store calls into. Tests reassign these per case. */
 let mockGet: () => Promise<unknown>;
-let mockSet: (input: unknown) => Promise<unknown>;
+let mockMerge: (input: unknown) => Promise<unknown>;
 
 vi.mock("@/lib/backend", () => ({
   useBackend: () => ({
     prefs: {
       get: () => mockGet(),
-      set: (input: unknown) => mockSet(input),
+      merge: (input: unknown) => mockMerge(input),
     },
   }),
 }));
@@ -17,6 +17,7 @@ vi.mock("@/lib/backend", () => ({
 import {
   __resetForTests,
   getCache,
+  clearSlice,
   loadPrefs,
   readSlice,
   writeSlice,
@@ -25,7 +26,7 @@ import {
 const BLOB_KEY = "flinttype:prefs:v1";
 const META_KEY = "flinttype:prefs:meta";
 
-function readMeta(): { v: number; sv: number } {
+function readMeta(): { v: number; sv: number; d?: string[]; r?: string[] } {
   return JSON.parse(localStorage.getItem(META_KEY) ?? '{"v":0,"sv":0}');
 }
 
@@ -35,7 +36,7 @@ describe("prefs-store conflict resolution", () => {
     localStorage.clear();
     __resetForTests();
     mockGet = async () => ({});
-    mockSet = async () => undefined;
+    mockMerge = async () => ({ ok: true });
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -128,9 +129,9 @@ describe("prefs-store conflict resolution", () => {
   it("once a save lands, the backend is authoritative again", async () => {
     mockGet = async () => ({ theme: { "--primary": "#f97316" } });
     let saved: unknown = null;
-    mockSet = async (input) => {
+    mockMerge = async (input) => {
       saved = input;
-      return undefined;
+      return { ok: true };
     };
     await loadPrefs();
 
@@ -152,5 +153,120 @@ describe("prefs-store conflict resolution", () => {
     await loadPrefs();
 
     expect(readSlice("theme", {})).toEqual({ "--primary": "#00ff00" });
+  });
+
+  it("flush sends only the dirty slices, never the whole blob", async () => {
+    // The server holds slices the client never touched (incl. a
+    // server-owned one) — they must not travel back in the patch.
+    mockGet = async () => ({
+      caret: { style: "line" },
+      selectedTags: ["og"],
+    });
+    const sent: unknown[] = [];
+    mockMerge = async (input) => {
+      sent.push(input);
+      return { ok: true };
+    };
+    await loadPrefs();
+
+    writeSlice("theme", { "--primary": "#1e90ff" });
+    await vi.runAllTimersAsync();
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toEqual({ data: { theme: { "--primary": "#1e90ff" } } });
+  });
+
+  it("clearSlice flushes a remove instead of resending the slice", async () => {
+    mockGet = async () => ({ caret: { style: "block" } });
+    const sent: unknown[] = [];
+    mockMerge = async (input) => {
+      sent.push(input);
+      return { ok: true };
+    };
+    await loadPrefs();
+
+    clearSlice("caret");
+    await vi.runAllTimersAsync();
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toEqual({ data: {}, remove: ["caret"] });
+  });
+
+  it("a failed flush keeps the slice dirty so the next flush retries it", async () => {
+    mockGet = async () => ({});
+    const sent: unknown[] = [];
+    let fail = true;
+    mockMerge = async (input) => {
+      if (fail) throw new Error("offline");
+      sent.push(input);
+      return { ok: true };
+    };
+    await loadPrefs();
+
+    writeSlice("theme", { "--primary": "#1e90ff" });
+    await vi.runAllTimersAsync(); // flush fails
+
+    fail = false;
+    writeSlice("behaviour", { stopOnError: true });
+    await vi.runAllTimersAsync();
+
+    // Retry carries both the previously-failed slice and the new one.
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toEqual({
+      data: {
+        theme: { "--primary": "#1e90ff" },
+        behaviour: { stopOnError: true },
+      },
+    });
+  });
+
+  it("a clearSlice racing a failed in-flight flush leaves the key removed-only", async () => {
+    mockGet = async () => ({});
+    // Deferred merge so we can clear the slice while the flush is in flight.
+    let rejectMerge: (e: Error) => void = () => {};
+    mockMerge = () =>
+      new Promise((_resolve, reject) => {
+        rejectMerge = reject;
+      });
+    await loadPrefs();
+
+    writeSlice("theme", { "--primary": "#1e90ff" });
+    await vi.advanceTimersByTimeAsync(500); // flush starts, merge pending
+
+    // User resets the slice while the dirty flush is still in flight.
+    clearSlice("theme");
+    rejectMerge(new Error("offline"));
+    await Promise.resolve(); // let the catch block settle
+    await Promise.resolve();
+
+    // The latest intent is "removed" — the failed dirty send must not
+    // resurrect the key into dirtyKeys.
+    const meta = readMeta();
+    expect(meta.r).toEqual(["theme"]);
+    expect(meta.d).toEqual([]);
+  });
+
+  it("a writeSlice racing a failed in-flight remove leaves the key dirty-only", async () => {
+    mockGet = async () => ({ theme: { "--primary": "#f97316" } });
+    let rejectMerge: (e: Error) => void = () => {};
+    mockMerge = () =>
+      new Promise((_resolve, reject) => {
+        rejectMerge = reject;
+      });
+    await loadPrefs();
+
+    clearSlice("theme");
+    await vi.advanceTimersByTimeAsync(500); // remove flush in flight
+
+    // User writes the slice again while the remove is still in flight.
+    writeSlice("theme", { "--primary": "#1e90ff" });
+    rejectMerge(new Error("offline"));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // The newer write supersedes the older remove.
+    const meta = readMeta();
+    expect(meta.d).toEqual(["theme"]);
+    expect(meta.r).toEqual([]);
   });
 });
