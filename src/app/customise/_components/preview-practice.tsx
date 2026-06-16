@@ -221,6 +221,7 @@ export function PreviewPracticeProvider({
       toggleAdapt: () => {},
       setWordlist: () => {},
       wordlist: "english",
+      refillCfg: { minWordLength: 1, showSecondary: false },
       restart: () => {},
       elapsedMs: elapsedMs ?? sample.elapsedMs,
       wpm: wpm ?? sample.wpm,

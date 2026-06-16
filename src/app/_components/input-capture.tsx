@@ -24,10 +24,15 @@ const INTERACTIVE_SELECTOR =
  *  the visible RestHint controls.
  */
 export function InputCapture({ children }: { children: ReactNode }) {
-  const { state, dispatch, restart } = usePractice();
+  const { state, dispatch, restart, refillCfg } = usePractice();
   const { prefs } = useBehaviourPrefs();
   const playClick = useKeyClickSound();
   const inputRef = useRef<HTMLInputElement>(null);
+  // The reducer's TIME end-of-buffer safety-net refill needs the user's
+  // word config; mirror it in a ref so the event handlers read the
+  // current value without re-binding (FT-072).
+  const refillCfgRef = useRef(refillCfg);
+  refillCfgRef.current = refillCfg;
 
   const phaseRef = useRef(state.phase);
   phaseRef.current = state.phase;
@@ -142,7 +147,12 @@ export function InputCapture({ children }: { children: ReactNode }) {
                   continue;
                 }
                 if (phaseRef.current !== "rest") {
-                  dispatch({ type: "SPACE", now, strictSpace });
+                  dispatch({
+                    type: "SPACE",
+                    now,
+                    strictSpace,
+                    refillCfg: refillCfgRef.current,
+                  });
                 }
               } else {
                 dispatch({
@@ -218,6 +228,7 @@ export function InputCapture({ children }: { children: ReactNode }) {
               type: "SPACE",
               now: Date.now(),
               strictSpace: p.strictSpace,
+              refillCfg: refillCfgRef.current,
             });
             playClick();
             return;

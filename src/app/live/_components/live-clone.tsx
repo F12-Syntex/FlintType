@@ -85,6 +85,7 @@ export function LiveClone({
       toggleAdapt: () => {},
       setWordlist: () => {},
       wordlist: "english",
+      refillCfg: { minWordLength: 1, showSecondary: false },
       restart: () => {},
       elapsedMs: screen.elapsedMs,
       wpm,

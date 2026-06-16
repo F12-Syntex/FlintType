@@ -108,6 +108,12 @@ type PracticeCtx = {
   setWordlist: (id: string) => void;
   /** Currently-selected wordlist id (read from the persisted slice). */
   wordlist: string;
+  /** Resolved word config (min-length / show-secondary / active
+   *  wordlist pool) for the current run. Surfaced so the input layer
+   *  can hand it to the reducer's TIME end-of-buffer safety-net refill,
+   *  keeping a custom-wordlist TIME run on the user's pool even if that
+   *  defensive path fires (FT-072). */
+  refillCfg: WordCfg;
   restart: () => void;
   elapsedMs: number;
   wpm: number;
@@ -854,6 +860,7 @@ export function PracticeProvider({
       suddenDeathRestarts,
       lastTestId,
       lastTestIsPb,
+      refillCfg: buildCfg(),
       setMode: (mode) => {
         const length = defaultLengthFor(mode);
         const cfg = buildCfg();
