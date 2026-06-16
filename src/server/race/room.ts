@@ -290,6 +290,13 @@ export class RaceRoom {
   }
 
   private addBot(botId: BotId): InternalRacer | null {
+    // INVARIANT — bots exist ONLY in matchmaking rooms. Challenge
+    // (private) lobbies are real-players-only by design
+    // (docs/multiplayer.md); enforcing it here, at the single
+    // insertion chokepoint, means no call site (initial fill, lock
+    // timer, hostStart, any future path) can ever leak a bot into a
+    // challenge room, regardless of where it's called from.
+    if (this.kind !== "matchmaking") return null;
     if (this.racers.size >= this.capacity) return null;
     if (this.botRacerByBotId(botId)) return null;
     const bot = BOTS[botId];
@@ -329,6 +336,9 @@ export class RaceRoom {
   /* ─── Matchmaking ────────────────────────────────────────── */
 
   private scheduleMatchmakingFill() {
+    // Matchmaking-only — a challenge room must never arm the bot-fill
+    // schedule. Defensive twin of the `addBot` kind invariant.
+    if (this.kind !== "matchmaking") return;
     const fillBots = BOT_LINEUP[this.modeId] ?? ["selan"];
     this.matchmakingEndsAt = this.matchmakingStartedAt + MATCHMAKING_WINDOW_MS;
     for (let i = 0; i < fillBots.length; i += 1) {
@@ -890,6 +900,18 @@ export class RaceRoom {
       );
     }
     this.totalChars = totalCharsOf(this.words);
+    // Bots never belong in a challenge room (see the `addBot`
+    // invariant). A rematch re-seeds every retained racer into the new
+    // round, so if a bot ever slipped into a challenge room (old code
+    // paths seeded bots in `hostStart` before the real-players-only
+    // rule), the rematch would carry it forward forever — purge any
+    // bot here so a new round of a non-matchmaking room is guaranteed
+    // human-only at the source, not just filtered at display.
+    if (this.kind !== "matchmaking") {
+      for (const r of [...this.racers.values()]) {
+        if (r.isBot) this.racers.delete(r.id);
+      }
+    }
     // Purge real racers who disconnected during the round that just
     // finished — they left and aren't coming back for this rematch.
     // Leaving them in would hold a seat against `capacity` and render a

@@ -491,13 +491,19 @@ export function reducer(s: State, a: Action): State {
       };
     }
     case "SPACE": {
-      if (s.phase === "done" || s.phase === "rest") return s;
+      if (s.phase === "done") return s;
       const target = s.words[s.cursorWord] ?? "";
       const typedHere = s.typed[s.cursorWord] ?? "";
       // strictSpace=true → refuse to advance unless the word is fully
       // typed correctly. The user must finish or backspace; no event,
-      // no errorWord mark, the keystroke is a no-op.
+      // no errorWord mark, the keystroke is a no-op. (At rest this also
+      // means a bare space never starts a strict run.)
       if (a.strictSpace && typedHere !== target) return s;
+      // Space as the very first key starts the run and skips word 0 —
+      // the first word behaves exactly like every later word (issue
+      // #17a). strictSpace above still blocks it, same as mid-run.
+      const startTime = s.startTime ?? a.now;
+      const runningPhase = s.phase === "rest" ? "running" : s.phase;
       // Space always advances the cursor — the user explicitly asked
       // to skip past mistakes. If the typed word doesn't match the
       // target, mark it as an error word so the summary still
@@ -517,6 +523,8 @@ export function reducer(s: State, a: Action): State {
           const more = generateWords(TIME_BUFFER, Date.now());
           return {
             ...s,
+            phase: runningPhase,
+            startTime,
             words: [...s.words, ...more],
             cursorWord: next,
             cursorChar: 0,
@@ -527,6 +535,7 @@ export function reducer(s: State, a: Action): State {
         return {
           ...s,
           phase: "done",
+          startTime,
           endTime: a.now,
           typed: sealedTyped,
           errorWords,
@@ -534,6 +543,8 @@ export function reducer(s: State, a: Action): State {
       }
       return {
         ...s,
+        phase: runningPhase,
+        startTime,
         cursorWord: next,
         cursorChar: 0,
         typed: sealedTyped,
