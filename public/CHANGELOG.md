@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.5 — 16 June 2026
+- Accuracy is now honest: every wrong keypress counts against your accuracy, even if you correct it (and even if stop-on-error blocked it). 100% accuracy now genuinely means a clean run, so raw and actual WPM line up. The errors stat still counts only mistakes left in the text.
+
 ## 6.136.4 — 16 June 2026
 - Fixed the race spectate view: the "Spectating @name" header can no longer be squeezed under the racer line-up strip, and the name / progress / wpm row now wraps neatly on small screens instead of clipping.
 
