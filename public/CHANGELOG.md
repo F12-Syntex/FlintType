@@ -19,7 +19,6 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ## 6.136.1 — 12 June 2026
 - Internal changes only.
->>>>>>> origin/master
 
 ## 6.136.0 — 8 June 2026
 - The mode bar above the typing area is now always the chips picker — the "Mode bar" style choice (chips / inline / hidden) has been removed from Customise → Appearance → Chrome.
