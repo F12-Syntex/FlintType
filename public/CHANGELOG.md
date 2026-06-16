@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.21 — 16 June 2026
+- Fixed Burst mode finishing too early: the last word used to end the drill the moment you typed its final letter, skipping the speed and reps requirement (so a single slow word could "complete" a burst). Now the final word is held to the same threshold and reps as every other — you finish it with space once you've cleared the bar.
+
 ## 6.136.20 — 16 June 2026
 - Fixed the Blog page: the "Coming soon" posts were clickable links that led to a 404 page. They now show as plain headings until the actual post is published.
 

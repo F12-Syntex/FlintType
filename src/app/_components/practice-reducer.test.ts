@@ -296,6 +296,68 @@ describe("practice reducer — TIME mode never finishes on word count", () => {
   });
 });
 
+describe("practice reducer — BURST does not auto-finish on the last char (#46)", () => {
+  it("BURST: a correct final char of the last item stays running (gate not bypassed)", () => {
+    // Typing the last correct character of the only item must NOT end
+    // the run — BURST commits via SPACE after BurstProvider's
+    // threshold + reps gate. Auto-finishing here would skip the gate
+    // and grant drill XP for a single under-threshold attempt.
+    const s = seed({
+      mode: "BURST",
+      words: ["go"],
+      cursorWord: 0,
+      cursorChar: 1,
+      typed: ["g"],
+    });
+    const next = reducer(s, {
+      type: "TYPE_CHAR",
+      char: "o",
+      now: 100,
+      stopOnError: false,
+      allowExtras: true,
+    });
+    expect(next.phase).toBe("running");
+    expect(next.endTime).toBeNull();
+    expect(next.cursorChar).toBe(2);
+  });
+
+  it("WORDS: the same final char DOES finish the run (non-BURST regression guard)", () => {
+    const s = seed({
+      mode: "WORDS",
+      words: ["go"],
+      cursorWord: 0,
+      cursorChar: 1,
+      typed: ["g"],
+    });
+    const next = reducer(s, {
+      type: "TYPE_CHAR",
+      char: "o",
+      now: 100,
+      stopOnError: false,
+      allowExtras: true,
+    });
+    expect(next.phase).toBe("done");
+    expect(next.endTime).toBe(100);
+  });
+
+  it("BURST: SPACE on the final item ends the run (the burst finish path)", () => {
+    // BurstProvider dispatches plain SPACE once the gate (wpm >=
+    // threshold && reps >= required) passes on the last item; the
+    // reducer's SPACE branch is what sets phase done — BURST is not
+    // excluded there.
+    const s = seed({
+      mode: "BURST",
+      words: ["go"],
+      cursorWord: 0,
+      cursorChar: 2,
+      typed: ["go"],
+    });
+    const next = reducer(s, { type: "SPACE", now: 200, strictSpace: false });
+    expect(next.phase).toBe("done");
+    expect(next.endTime).toBe(200);
+  });
+});
+
 describe("practice reducer — generateWords adjacency", () => {
   it("never emits the same word twice in a row", () => {
     // Seed loop a handful of seeds to catch the rare back-to-back roll.

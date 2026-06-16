@@ -393,13 +393,19 @@ export function reducer(s: State, a: Action): State {
       const nextCursorChar = s.cursorChar + 1;
       // Auto-finish: a correct keystroke that completes the final char of
       // the final word ends the run for WORDS / QUOTE — TIME ignores the
-      // word boundary and lets the timer end the run instead. Extras past
-      // word.length never auto-finish: the user must backspace the extras
-      // and hit space (or land exactly on word.length) to advance.
+      // word boundary and lets the timer end the run instead. BURST is
+      // also excluded: a burst item only commits via SPACE *after*
+      // BurstProvider's threshold + reps gate passes (#46), so finishing
+      // on the final char here would bypass that gate (and grant drill XP
+      // for an under-threshold / single-rep run). The run instead ends on
+      // the SPACE branch below when the gate lets the final item through.
+      // Extras past word.length never auto-finish: the user must backspace
+      // the extras and hit space (or land exactly on word.length) to advance.
       const isLastWord = s.cursorWord === s.words.length - 1;
       const finishedRun =
         correct &&
         s.mode !== "TIME" &&
+        s.mode !== "BURST" &&
         isLastWord &&
         nextCursorChar === word.length;
 
