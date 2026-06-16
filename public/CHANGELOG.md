@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.29 — 16 June 2026
+- Signed-out visitors no longer fire pointless account-only requests on every page load, settings change, and finished test — removing the stream of errors in the browser console and the wasted network traffic. Your settings still save locally and sync up once you sign in.
+
 ## 6.136.0 — 8 June 2026
 - The mode bar above the typing area is now always the chips picker — the "Mode bar" style choice (chips / inline / hidden) has been removed from Customise → Appearance → Chrome.
 - The leaderboard now ranks only two modes: Casual and Adapt. The "All modes" and "Race" filters are gone, so the board compares like-for-like solo runs.

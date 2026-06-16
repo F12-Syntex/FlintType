@@ -15,6 +15,10 @@ vi.mock("@/lib/backend", () => ({
 }));
 
 import {
+  __resetClientAuthForTests,
+  setClientSignedIn,
+} from "./client-auth";
+import {
   __resetForTests,
   loadPrefs,
   readSlice,
@@ -33,6 +37,10 @@ describe("prefs-store conflict resolution", () => {
     vi.useFakeTimers();
     localStorage.clear();
     __resetForTests();
+    __resetClientAuthForTests();
+    // Default to the signed-in path for the conflict-resolution suite —
+    // those cases are all about the backend GET/POST being authoritative.
+    setClientSignedIn(true);
     mockGet = async () => ({});
     mockSet = async () => undefined;
   });
@@ -123,5 +131,54 @@ describe("prefs-store conflict resolution", () => {
     await loadPrefs();
 
     expect(readSlice("theme", {})).toEqual({ "--primary": "#00ff00" });
+  });
+});
+
+describe("prefs-store signed-out path (FT-070)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    localStorage.clear();
+    __resetForTests();
+    __resetClientAuthForTests();
+    setClientSignedIn(false);
+    mockGet = async () => ({});
+    mockSet = async () => undefined;
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("does not hit the backend GET on load (no doomed 401)", async () => {
+    let getCalls = 0;
+    mockGet = async () => {
+      getCalls += 1;
+      return {};
+    };
+    localStorage.setItem(
+      BLOB_KEY,
+      JSON.stringify({ theme: { "--primary": "#1e90ff" } }),
+    );
+
+    await loadPrefs();
+
+    expect(getCalls).toBe(0);
+    // localStorage stays the source of truth for the anonymous user.
+    expect(readSlice("theme", {})).toEqual({ "--primary": "#1e90ff" });
+  });
+
+  it("does not hit the backend POST on a pref change (no doomed 401)", async () => {
+    let setCalls = 0;
+    mockSet = async () => {
+      setCalls += 1;
+      return undefined;
+    };
+    await loadPrefs();
+
+    writeSlice("theme", { "--primary": "#1e90ff" });
+    await vi.runAllTimersAsync(); // drain the debounced flush
+
+    expect(setCalls).toBe(0);
+    // The edit still lives locally for the anonymous user.
+    expect(readSlice("theme", {})).toEqual({ "--primary": "#1e90ff" });
   });
 });
