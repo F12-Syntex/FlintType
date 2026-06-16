@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.8 — 16 June 2026
+- Fixed a nasty settings bug: picking a community palette and then tweaking any single option (a colour, the corner radius, a font) no longer wipes the palette when you reload. Your chosen palette now survives underneath your tweaks, "Reset" returns you to it, and undoing an AI design suggestion no longer costs you your palette either.
+
 ## 6.136.7 — 16 June 2026
 - The sign-in screen now explains when an account has no password (for example one created with Discord), instead of silently hiding the password option.
 
