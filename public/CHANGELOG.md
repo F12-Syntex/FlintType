@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.9 — 16 June 2026
+- Settings no longer revert on their own. Changing any option used to silently undo things saved in the background — your adaptive-practice progress, profile tag selection, or MonkeyType import could quietly roll back. Saves are now precise: only the settings you actually changed are written.
+
 ## 6.136.8 — 16 June 2026
 - Fixed a nasty settings bug: picking a community palette and then tweaking any single option (a colour, the corner radius, a font) no longer wipes the palette when you reload. Your chosen palette now survives underneath your tweaks, "Reset" returns you to it, and undoing an AI design suggestion no longer costs you your palette either.
 
