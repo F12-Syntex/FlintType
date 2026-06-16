@@ -397,6 +397,68 @@ describe("live routes", () => {
     }
   });
 
+  it("strips unknown themeVars / appearance / caret keys from the clone payload", async () => {
+    await befriend(ctx);
+    signedInAs("alice");
+    await callRoute(["live", "progress"], {
+      db: ctx.db,
+      input: {
+        ...SNAP,
+        screen: {
+          ...SCREEN,
+          appearance: { tapeMode: "off", evilInjected: "x" },
+          caret: { style: "block", nope: 1 },
+          themeVars: {
+            "--primary": "oklch(0.6 0.2 30)",
+            "--evil-var": "url(javascript:alert(1))",
+          },
+        },
+      },
+    });
+    signedInAs("me");
+    const w = await callRoute<WatchOutput>(["live", "watch"], {
+      db: ctx.db,
+      input: { userId: "alice" },
+    });
+    expect(w.live).toBe(true);
+    if (w.live) {
+      expect(w.snapshot.screen?.appearance).toEqual({ tapeMode: "off" });
+      expect(w.snapshot.screen?.caret).toEqual({ style: "block" });
+      expect(w.snapshot.screen?.themeVars).toEqual({
+        "--primary": "oklch(0.6 0.2 30)",
+      });
+    }
+  });
+
+  it("an invalid meta value degrades to undefined instead of rejecting the push", async () => {
+    await befriend(ctx);
+    signedInAs("alice");
+    await callRoute(["live", "progress"], {
+      db: ctx.db,
+      input: {
+        ...SNAP,
+        screen: {
+          ...SCREEN,
+          appearance: { tapeMode: "not-a-mode", highlightMode: "word" },
+          caret: { style: "block", width: 9_999 },
+        },
+      },
+    });
+    signedInAs("me");
+    const w = await callRoute<WatchOutput>(["live", "watch"], {
+      db: ctx.db,
+      input: { userId: "alice" },
+    });
+    expect(w.live).toBe(true);
+    if (w.live) {
+      // The invalid fields dropped; the valid ones survived.
+      expect(w.snapshot.screen?.appearance?.tapeMode).toBeUndefined();
+      expect(w.snapshot.screen?.appearance?.highlightMode).toBe("word");
+      expect(w.snapshot.screen?.caret?.style).toBe("block");
+      expect(w.snapshot.screen?.caret?.width).toBeUndefined();
+    }
+  });
+
   it("stop clears the broadcaster's live snapshot", async () => {
     await befriend(ctx);
     await ctx.db.userPrefs.merge("alice", { spectate: { enabled: true } });

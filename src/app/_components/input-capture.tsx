@@ -141,9 +141,9 @@ export function InputCapture({ children }: { children: ReactNode }) {
                   playClick();
                   continue;
                 }
-                if (phaseRef.current !== "rest") {
-                  dispatch({ type: "SPACE", now, strictSpace });
-                }
+                // No rest-phase guard — space as the first key starts
+                // the run and skips word 0 (issue #17a); reducer owns it.
+                dispatch({ type: "SPACE", now, strictSpace });
               } else {
                 dispatch({
                   type: "TYPE_CHAR",
@@ -210,7 +210,8 @@ export function InputCapture({ children }: { children: ReactNode }) {
           }
           if (e.key === " ") {
             e.preventDefault();
-            if (phaseRef.current === "rest") return;
+            // No rest-phase guard — space as the first key starts the
+            // run and skips word 0 (issue #17a); the reducer owns it.
             // BURST owns SPACE via its own controller — playClick still
             // fires so the audio toggle works the same on every key.
             if (modeRef.current === "BURST") {

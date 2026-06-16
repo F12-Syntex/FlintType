@@ -19,6 +19,8 @@
  *    - src/app/appearance-applier.tsx (data-ft-* mapping)
  *    - src/app/borders-applier.tsx
  *    - src/lib/apply-theme-overrides.tsx (theme CSS-var overrides)
+ *    - src/lib/themes/palette-fork.ts (custom+base override layering)
+ *    - src/lib/themes/registry.ts (CUSTOM_THEME_ID — hardcoded as "custom" below)
  *    - src/app/_components/discord-banner.tsx (banners.discordDismissed) */
 
 export const PREFS_BOOTSTRAP_SCRIPT = `
@@ -59,6 +61,35 @@ export const PREFS_BOOTSTRAP_SCRIPT = `
         root.setAttribute('data-ft-borders', String(ap.borders));
       } else {
         root.removeAttribute('data-ft-borders');
+      }
+    }
+
+    // Custom-fork base palette: when the user nudged a var while on a
+    // named palette, the palette slice pins activeId 'custom' and keeps
+    // a snapshot of the named palette's cssVars under base (see
+    // src/lib/themes/palette-fork.ts). Paint it BEFORE blob.theme so
+    // the per-var overrides win where names collide. Mode resolution
+    // mirrors next-themes: localStorage 'theme' key, else system.
+    var pal = blob.palette;
+    if (pal && typeof pal === 'object' && pal.activeId === 'custom' &&
+        pal.base && typeof pal.base === 'object') {
+      var mode = 'light';
+      try {
+        var stored = window.localStorage.getItem('theme');
+        if (stored === 'dark') mode = 'dark';
+        else if (stored !== 'light' &&
+                 window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          mode = 'dark';
+        }
+      } catch (_m) { /* keep light */ }
+      var baseVars = mode === 'dark' ? pal.base.dark : pal.base.light;
+      if (baseVars && typeof baseVars === 'object') {
+        for (var bk in baseVars) {
+          if (!Object.prototype.hasOwnProperty.call(baseVars, bk)) continue;
+          var bv = baseVars[bk];
+          if (typeof bv !== 'string' || !bv) continue;
+          root.style.setProperty('--' + bk, bv);
+        }
       }
     }
 
