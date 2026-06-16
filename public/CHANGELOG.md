@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.15 — 16 June 2026
+- Fixed the friends leaderboard dropping people: a slower friend could vanish from the board entirely if you (or another friend) had lots of faster runs. Every friend now shows at their correct rank, and the same fix applies to the global board and top-players list.
+
 ## 6.136.14 — 16 June 2026
 - Fixed keyboard navigation on the multiplayer race screen: in the lobby and on the results screen you can now Tab to reach Ready, Start, Rematch, Copy link, Save image and Leave — previously Tab did nothing there, so those controls were mouse-only. Esc in the lobby no longer silently re-shuffles your words.
 
