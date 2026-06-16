@@ -294,6 +294,31 @@ describe("practice reducer — TIME mode never finishes on word count", () => {
     expect(next.cursorWord).toBe(1);
     expect(next.words.length).toBeGreaterThan(1);
   });
+
+  it("refills from the SPACE action's cfg, not the default pool (FT-072)", () => {
+    // The end-of-buffer safety net must honour the user's wordlist +
+    // min-length instead of falling back to DEFAULT_BEHAVIOUR's
+    // embedded English-200 pool.
+    const pool = ["zzqualm", "vortexed", "glyphwork"];
+    const s = seed({
+      mode: "TIME",
+      words: ["zzqualm"],
+      cursorWord: 0,
+      cursorChar: 7,
+      typed: ["zzqualm"],
+    });
+    const next = reducer(s, {
+      type: "SPACE",
+      now: 100,
+      strictSpace: false,
+      refillCfg: { minWordLength: 1, showSecondary: false, wordPool: pool },
+    });
+    // Every appended word past the original single word must come from
+    // the custom pool — never the default English set.
+    const appended = next.words.slice(1);
+    expect(appended.length).toBeGreaterThan(0);
+    for (const w of appended) expect(pool).toContain(w);
+  });
 });
 
 describe("practice reducer — generateWords adjacency", () => {

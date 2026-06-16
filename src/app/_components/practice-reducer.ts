@@ -86,7 +86,18 @@ export type Action =
     }
   | { type: "BACKSPACE" }
   | { type: "BACKSPACE_WORD" }
-  | { type: "SPACE"; now: number; strictSpace: boolean }
+  | {
+      type: "SPACE";
+      now: number;
+      strictSpace: boolean;
+      /** Word config for the TIME-mode end-of-buffer safety-net refill
+       *  (the provider's APPEND_WORDS effect normally tops up well
+       *  ahead; this only fires if the cursor reaches the very end).
+       *  Carries the user's wordlist / min-length / show-secondary so a
+       *  custom-wordlist TIME run can't silently fall back to the
+       *  default English pool mid-run (FT-072). Absent → DEFAULT_BEHAVIOUR. */
+      refillCfg?: WordCfg;
+    }
   | { type: "RESTART"; words: string[]; quoteSource: string | null }
   | { type: "REGENERATE"; cfg: WordCfg }
   | { type: "FINISH_TIME"; now: number }
@@ -514,7 +525,7 @@ export function reducer(s: State, a: Action): State {
         : pushTyped(s.typed, s.cursorWord, "");
       if (next >= s.words.length) {
         if (s.mode === "TIME") {
-          const more = generateWords(TIME_BUFFER, Date.now());
+          const more = generateWords(TIME_BUFFER, Date.now(), a.refillCfg);
           return {
             ...s,
             words: [...s.words, ...more],
