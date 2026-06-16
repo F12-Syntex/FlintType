@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.18 — 16 June 2026
+- Fixed the typing area showing no upcoming text when "Lines rendered" is set to 2 (or only two lines fit): the cursor now rides the top line so you can always see the line you're about to type, instead of being stuck on the bottom line.
+
 ## 6.136.17 — 16 June 2026
 - Fixed the results graph putting a red ✕ on every point of a flawless run: mistake marks now appear only where you actually mistyped, matching the "no mistakes" note. Also cleaned up the graph's hover tooltip, which was listing your speed twice.
 
