@@ -1,7 +1,7 @@
 "use client";
 
-import { BackendError } from "@/lib/errors";
 import { useBackend } from "@/lib/backend";
+import { awaitClientAuth } from "@/lib/client-auth";
 
 /** Singleton client-side store for the user's preferences blob. Every
  *  pref slice (caret, behaviour, appearance, keyboard, theme, palette)
@@ -144,6 +144,17 @@ export function loadPrefs(): Promise<PrefsBlob> {
   }
   loadPromise = (async () => {
     try {
+      // Wait for Clerk to resolve, then skip the GET entirely for
+      // anonymous visitors — `/api/prefs/get` is auth-gated and would
+      // just 401 (console + server-log noise on the most common path).
+      // localStorage is already seeded above and is the source of truth
+      // for anon users; their edits merge into the server copy on the
+      // first load after they sign in (the stale-backend guard below).
+      const signedIn = await awaitClientAuth();
+      if (!signedIn) {
+        if (!cache) cache = {};
+        return cache;
+      }
       const backend = useBackend();
       const blob = await backend.prefs.get();
       const local = cache ?? {};
@@ -151,11 +162,11 @@ export function loadPrefs(): Promise<PrefsBlob> {
       // Stale-backend guard. If the device has local edits the server
       // hasn't confirmed (localVersion > syncedVersion), those edits
       // win — the server copy may be behind (a debounced save that
-      // never landed, or one that 401'd / failed), and letting it
-      // overwrite would silently wipe a setting the user just changed
-      // (the theme-reverts-on-its-own bug). Local wins, the backend
-      // fills in slices the device doesn't have, and we re-flush so the
-      // server converges. When the device is in sync, the backend stays
+      // never landed, or one that failed), and letting it overwrite
+      // would silently wipe a setting the user just changed (the
+      // theme-reverts-on-its-own bug). Local wins, the backend fills in
+      // slices the device doesn't have, and we re-flush so the server
+      // converges. When the device is in sync, the backend stays
       // authoritative so cross-device changes still flow in.
       if (localVersion > syncedVersion) {
         cache = { ...remote, ...local };
@@ -164,11 +175,8 @@ export function loadPrefs(): Promise<PrefsBlob> {
         cache = { ...local, ...remote };
       }
       lsWrite(cache);
-    } catch (err) {
-      // Anon / 401 — keep the seeded cache (or the empty one).
-      if (!(err instanceof BackendError && err.code === "UNAUTHORIZED")) {
-        // Network blip, etc. — same fallback.
-      }
+    } catch {
+      // Network blip / transient — keep the seeded cache (or empty one).
       if (!cache) cache = {};
     } finally {
       loadPromise = null;
@@ -219,6 +227,16 @@ export function clearSlice(key: string): void {
   scheduleWrite();
 }
 
+/** Push any edits the server hasn't acknowledged yet. Called on
+ *  sign-in (by `<ClientAuthSync>`) so settings a user changed while
+ *  anonymous — where the POST was skipped — flush to the server now
+ *  that the call will succeed, without waiting for a reload. No-op when
+ *  the device is already in sync. */
+export function requestSyncIfDirty(): void {
+  ensureMeta();
+  if (localVersion > syncedVersion) scheduleWrite();
+}
+
 function scheduleWrite(): void {
   if (typeof window === "undefined") return;
   if (writeTimer) clearTimeout(writeTimer);
@@ -239,6 +257,13 @@ async function flush(): Promise<void> {
   const sending = localVersion;
   writeInFlight = (async () => {
     try {
+      // Skip the POST for anonymous visitors — `/api/prefs/set` is
+      // auth-gated and would just 401 on every pref change. The write
+      // already landed in localStorage (writeSlice), and `syncedVersion`
+      // stays behind so these edits flush to the server on the user's
+      // next signed-in session (requestSyncIfDirty / the load guard).
+      const signedIn = await awaitClientAuth();
+      if (!signedIn) return;
       const backend = useBackend();
       await backend.prefs.set({ data: snapshot });
       // Confirmed persisted — advance the synced stamp so a later load
@@ -249,7 +274,7 @@ async function flush(): Promise<void> {
         metaWrite();
       }
     } catch {
-      /* unauthenticated / transient — local state stays current */
+      /* transient — local state stays current, edits keep winning */
     } finally {
       writeInFlight = null;
     }

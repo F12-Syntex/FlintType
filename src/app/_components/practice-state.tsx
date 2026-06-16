@@ -581,7 +581,12 @@ export function PracticeProvider({
     const stallWpm = Math.round(computeStallWpm(history));
     const consistency = computeConsistency(history);
 
-    const adaptOn = state.adapt;
+    // Effective adapt — mirrors `effectiveState.adapt`: the stored flag
+    // only engages when the viewer is signed in (adapt is auth-gated)
+    // and not on a phone-sized viewport. Using the raw `state.adapt`
+    // here mislabelled signed-out / mobile runs as "training" and fired
+    // a doomed adapt/words refill.
+    const adaptOn = adaptAuthAllowed && !isMobile && state.adapt;
     const wordsMode = state.mode === "WORDS";
     const length = state.length;
     const submitMode = raceMode
@@ -589,6 +594,10 @@ export function PracticeProvider({
       : adaptOn
         ? "training"
         : "casual";
+    // Skip the submit entirely for anonymous visitors — `adapt.submit`
+    // is auth-gated and would just 401 (then trigger a doomed
+    // adapt/words refill). Their run isn't recorded server-side anyway.
+    if (!adaptAuthAllowed) return;
     void (async () => {
       const result = await adaptRef.current.submitTest({
         startedAt: startTime,

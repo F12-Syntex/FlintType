@@ -9,6 +9,7 @@ import { ApplyThemeOverrides } from "@/lib/apply-theme-overrides";
 import { PaletteProvider } from "@/lib/themes/use-palette";
 import { WhatsNewDialog } from "./_components/whats-new-dialog";
 import { AppearanceApplier } from "./appearance-applier";
+import { ClientAuthSync } from "./_components/client-auth-sync";
 import { BackgroundApplier } from "./background-applier";
 import { BordersApplier } from "./borders-applier";
 import { FocusShortcut } from "./focus-shortcut";
@@ -28,6 +29,11 @@ export function Providers({ children }: { children: ReactNode }) {
         <BordersApplier />
         <AppearanceApplier />
         <FocusShortcut />
+        {/* Publishes Clerk's resolved auth state to the module-level
+            client-auth store so the prefs singleton skips the
+            guaranteed-401 /api/prefs calls while signed out. Renders
+            nothing. */}
+        <ClientAuthSync />
         {/* Global presence heartbeat — marks the signed-in user online
             for their friends. Self-mounting, renders nothing. */}
         <PresenceHeartbeat />
