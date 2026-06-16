@@ -53,28 +53,40 @@ export default function BlogIndexPage() {
       >
         <EditorialSection>
           <ul className="flex flex-col divide-y divide-border border-y border-border">
-            {POSTS.map((p) => (
-              <li key={p.slug} className="py-5 sm:py-6">
-                <article className="flex flex-col gap-2">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <h2 className="text-[18px] font-semibold tracking-tight text-foreground sm:text-[20px]">
-                      <Link
-                        href={`/blog/${p.slug}`}
-                        className="transition-colors hover:text-primary"
-                      >
-                        {p.title}
-                      </Link>
-                    </h2>
-                    <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                      {p.publishedAt}
-                    </span>
-                  </div>
-                  <p className="text-[14px] leading-relaxed text-foreground/85">
-                    {p.excerpt}
-                  </p>
-                </article>
-              </li>
-            ))}
+            {POSTS.map((p) => {
+              // Only link posts that actually have a page. Unpublished
+              // ("Coming soon") entries have no `/blog/<slug>/page.tsx`
+              // yet, so linking them dead-ends on the 404 page — and
+              // /blog is crawlable (in the sitemap). Render those titles
+              // as plain text until their post ships (#45 / FT-010).
+              const published = p.publishedAt !== "Coming soon";
+              return (
+                <li key={p.slug} className="py-5 sm:py-6">
+                  <article className="flex flex-col gap-2">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <h2 className="text-[18px] font-semibold tracking-tight text-foreground sm:text-[20px]">
+                        {published ? (
+                          <Link
+                            href={`/blog/${p.slug}`}
+                            className="transition-colors hover:text-primary"
+                          >
+                            {p.title}
+                          </Link>
+                        ) : (
+                          p.title
+                        )}
+                      </h2>
+                      <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                        {p.publishedAt}
+                      </span>
+                    </div>
+                    <p className="text-[14px] leading-relaxed text-foreground/85">
+                      {p.excerpt}
+                    </p>
+                  </article>
+                </li>
+              );
+            })}
           </ul>
         </EditorialSection>
 

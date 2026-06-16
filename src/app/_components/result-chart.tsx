@@ -66,11 +66,21 @@ export function ResultChart({
       };
     }
     const errs = bucketErrors(events);
-    const merged: MergedBucket[] = buckets.map((b) => ({
-      ...b,
-      errors: errs.get(b.sec) ?? 0,
-      gap: Math.max(0, b.raw - b.wpm),
-    }));
+    const merged: MergedBucket[] = buckets.map((b) => {
+      const errors = errs.get(b.sec) ?? 0;
+      return {
+        ...b,
+        errors,
+        gap: Math.max(0, b.raw - b.wpm),
+        // ✕-marker y-value: the wpm at this second ONLY when a mistake
+        // happened, else null. The Scatter plots over the FULL merged
+        // array off this key — recharts skips null points (null cx/cy),
+        // so a clean second renders no mark, and a zero-error run renders
+        // none at all. (A filtered `data=[]` would fall back to chart
+        // data and stamp a ✕ at every bucket — FT-006.)
+        errorWpm: errors > 0 ? b.wpm : null,
+      };
+    });
     const avg = merged.reduce((s, b) => s + b.wpm, 0) / merged.length;
     const maxErr = [...errs.values()].reduce((m, v) => (v > m ? v : m), 0);
     return {
@@ -198,10 +208,15 @@ export function ResultChart({
            *  second a wrong key was pressed, so the user can see where
            *  on the speed curve they slipped (errors usually sit in a
            *  dip). The count detail lives in the tooltip + the ribbon
-           *  below; these are aria-hidden so they don't double-announce. */}
+           *  below; these are aria-hidden so they don't double-announce.
+           *  Keyed off `errorWpm` (NOT `wpm`) over the full merged array:
+           *  null at clean seconds so recharts skips those points, and a
+           *  unique dataKey so it never collides with the <Area>'s "wpm"
+           *  tooltip row. `errorWpm` is absent from chartConfig, so the
+           *  tooltip filters this decorative series out entirely (#13). */}
           <Scatter
-            data={merged.filter((b) => b.errors > 0)}
-            dataKey="wpm"
+            data={merged}
+            dataKey="errorWpm"
             shape={<ErrorMark />}
             isAnimationActive={false}
           />
@@ -221,7 +236,13 @@ export function ResultChart({
   );
 }
 
-type MergedBucket = Bucket & { errors: number; gap: number };
+type MergedBucket = Bucket & {
+  errors: number;
+  gap: number;
+  /** wpm at this second when errors > 0, else null — the ✕ scatter's
+   *  dedicated y-key (null points are skipped by recharts). */
+  errorWpm: number | null;
+};
 
 /** A small destructive ✕ plotted on the WPM line at a second where a
  *  mistake occurred. Recharts hands the resolved pixel centre as
