@@ -184,4 +184,23 @@ describe("importFlinttype", () => {
     expect(w.behaviour).toEqual({ confidence: "word" });
     expect(w.unknown).toBeUndefined();
   });
+
+  it("round-trips the audio and handLayout slices (FT-068)", () => {
+    const n = importFlinttype({
+      app: "flinttype",
+      version: 1,
+      exportedAt: "2026-01-01T00:00:00Z",
+      slices: {
+        audio: { keypressClickEnabled: true, keypressClickVolume: 0.4 },
+        handLayout: { mapping: "qwerty" },
+      },
+    });
+    expect(n).toBe(2);
+    const w = writes();
+    expect(w.audio).toEqual({
+      keypressClickEnabled: true,
+      keypressClickVolume: 0.4,
+    });
+    expect(w.handLayout).toEqual({ mapping: "qwerty" });
+  });
 });
