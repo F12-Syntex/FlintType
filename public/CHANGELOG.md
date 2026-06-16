@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.12 — 16 June 2026
+- The Discord banner no longer flashes briefly on every page load after you've dismissed it.
+
 ## 6.136.11 — 16 June 2026
 - The results screen now labels burst runs as "burst N" under TEST TYPE instead of mislabelling them as a words test.
 
