@@ -11,7 +11,18 @@ import { getCache, loadPrefs, writeSlice } from "./prefs-store";
  *  importer/exporter understands. Anything outside this list is left
  *  alone on import (so we never blow away a slice we don't recognize)
  *  and dropped on export (so old experiments don't leak into a JSON the
- *  user might paste into a different machine). */
+ *  user might paste into a different machine).
+ *
+ *  Some slices are deliberately excluded:
+ *   - `spectate` — carries a per-friend privacy blocklist (keyed by other
+ *     users' ids); those references are meaningless on another account and
+ *     a privacy setting shouldn't ride along in a portable settings file.
+ *   - `profileRank` / `drillProgress` — account-scoped state (a chosen
+ *     rank flair, per-drill progress), not look-and-feel preferences, so
+ *     they don't belong in a settings export.
+ *  Visual/behavioural prefs that DO travel with the user belong here —
+ *  including `audio` (keypress click) and `handLayout`, which round-trip
+ *  through the same prefs-store blob the exporter snapshots. */
 const KNOWN_SLICES = [
   "caret",
   "appearance",
@@ -21,6 +32,8 @@ const KNOWN_SLICES = [
   "theme",
   "palette",
   "practice",
+  "audio",
+  "handLayout",
 ] as const;
 
 // ─── Export ──────────────────────────────────────────────────────────
@@ -162,6 +175,8 @@ const SLICE_LABELS: Record<string, string> = {
   theme: "Theme overrides",
   palette: "Palette",
   practice: "Practice mode",
+  audio: "Audio",
+  handLayout: "Hand layout",
 };
 
 function isFlinttypeExport(v: unknown): v is FlinttypeExport {
