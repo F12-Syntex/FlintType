@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.30 — 16 June 2026
+- Fixed the tape-mode caret going faint or invisible when the caret-position slider was pushed near the right edge — the caret and the next few characters now stay crisp at every position.
+
 ## 6.136.0 — 8 June 2026
 - The mode bar above the typing area is now always the chips picker — the "Mode bar" style choice (chips / inline / hidden) has been removed from Customise → Appearance → Chrome.
 - The leaderboard now ranks only two modes: Casual and Adapt. The "All modes" and "Race" filters are gone, so the board compares like-for-like solo runs.
