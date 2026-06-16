@@ -926,3 +926,171 @@ describe("ready-up gate — challenge lobby (#26)", () => {
     expect(room.snapshot().racers.find((r) => r.id === "s_host")?.ready).toBe(true);
   });
 });
+
+describe("challenge rooms never gain bots (issue #5)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function challengeRoom(modeId = "1v1") {
+    return new RaceRoom({
+      id: "r_nobots",
+      slug: "no-bots-1",
+      kind: "challenge",
+      modeId: modeId as "1v1",
+      raceSeed: 1,
+      wordCount: 5,
+    });
+  }
+
+  function botCount(room: RaceRoom): number {
+    return room.snapshot().racers.filter((r) => r.isBot).length;
+  }
+
+  /** Reach the private bot-insertion internals. The cast is the point:
+   *  these tests prove the invariant holds even when an internal path
+   *  is invoked directly (regression net for any future call site). */
+  function internals(room: RaceRoom) {
+    return room as unknown as {
+      addBot(botId: string): unknown;
+      scheduleMatchmakingFill(): void;
+    };
+  }
+
+  it("addBot itself refuses to insert a bot into a challenge room", () => {
+    const room = challengeRoom();
+    expect(internals(room).addBot("selan")).toBeNull();
+    expect(internals(room).addBot("mireille")).toBeNull();
+    expect(botCount(room)).toBe(0);
+  });
+
+  it("a re-armed matchmaking fill schedule adds no bots to a challenge room", () => {
+    const room = challengeRoom();
+    room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
+    // Even if some future code path arms the fill timers on a
+    // challenge room, the schedule bails (and addBot refuses anyway).
+    internals(room).scheduleMatchmakingFill();
+    vi.advanceTimersByTime(10_000);
+    expect(botCount(room)).toBe(0);
+  });
+
+  it("full challenge lifecycle stays human-only: create → join → ready → start → finish", () => {
+    const room = challengeRoom();
+    room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
+    expect(botCount(room)).toBe(0);
+    room.addRealRacer({ sessionToken: "s_bob", name: "@bob", badge: "RACER" });
+    expect(botCount(room)).toBe(0);
+    room.setReady("s_bob", true);
+    expect(room.hostStart("s_host")).toBe(true);
+    expect(botCount(room)).toBe(0);
+    vi.advanceTimersByTime(700); // lobby hold
+    expect(room.phase).toBe("countdown");
+    vi.advanceTimersByTime(3_000); // countdown
+    expect(room.phase).toBe("racing");
+    expect(botCount(room)).toBe(0);
+    // Finish both humans; room finishes with zero bots having raced.
+    room.setProgress("s_host", room.totalChars, 0, true, 0, 100);
+    room.setProgress("s_bob", room.totalChars, 0, true, 0, 100);
+    expect(room.phase).toBe("finished");
+    expect(botCount(room)).toBe(0);
+  });
+
+  it("force-start (solo host) races alone — no bot fill", () => {
+    const room = challengeRoom();
+    room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
+    // The route's force flag only bypasses the ready gate; the room's
+    // hostStart is the same code path either way.
+    expect(room.hostStart("s_host")).toBe(true);
+    vi.advanceTimersByTime(700 + 3_000);
+    expect(room.phase).toBe("racing");
+    expect(room.snapshot().racers.length).toBe(1);
+    expect(botCount(room)).toBe(0);
+  });
+
+  it("rematch (vote + host force) never seeds bots into the new round", () => {
+    const room = challengeRoom();
+    room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
+    expect(room.hostStart("s_host")).toBe(true);
+    vi.advanceTimersByTime(700 + 3_000);
+    room.setProgress("s_host", room.totalChars, 0, true, 0, 100);
+    expect(room.phase).toBe("finished");
+    // Round 2 via the solo vote-threshold path.
+    expect(room.markRematchReady("s_host").started).toBe(true);
+    expect(room.roundNumber).toBe(2);
+    expect(botCount(room)).toBe(0);
+    vi.advanceTimersByTime(700 + 3_000);
+    expect(room.phase).toBe("racing");
+    expect(botCount(room)).toBe(0);
+    room.setProgress("s_host", room.totalChars, 0, true, 0, 100);
+    expect(room.phase).toBe("finished");
+    // Round 3 via the host force-rematch path.
+    expect(room.markRematchReady("s_host", true).started).toBe(true);
+    expect(room.roundNumber).toBe(3);
+    vi.advanceTimersByTime(700 + 3_000);
+    expect(room.phase).toBe("racing");
+    expect(botCount(room)).toBe(0);
+  });
+
+  it("a bot that somehow leaked into a challenge room is purged at the next rematch", () => {
+    const room = challengeRoom();
+    room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
+    // Simulate a legacy leak by planting a bot racer directly into the
+    // private map (bypassing addBot's invariant on purpose).
+    const racers = (
+      room as unknown as { racers: Map<string, { isBot: boolean; id: string }> }
+    ).racers;
+    racers.set("bot:selan", {
+      id: "bot:selan",
+      sessionToken: "bot:selan",
+      name: "@selan",
+      flag: "🇨🇦",
+      badge: "ADEPT",
+      isBot: true,
+      isHost: false,
+      ready: true,
+      joinedAt: Date.now(),
+      progressChars: 0,
+      errors: 0,
+      wpm: 0,
+      raw: 0,
+      accuracy: 100,
+      finishedAt: null,
+      place: null,
+      botCharProgress: 0,
+      disconnected: false,
+    } as never);
+    expect(botCount(room)).toBe(1);
+    expect(room.hostStart("s_host")).toBe(true);
+    vi.advanceTimersByTime(700 + 3_000);
+    room.setProgress("s_host", room.totalChars, 0, true, 0, 100);
+    // The planted bot has no botProfile so it never ticks; finish the
+    // race by treating it as done is unnecessary — the room finishes
+    // when every racer is finished/disconnected, so mark it done.
+    const bot = racers.get("bot:selan") as unknown as { finishedAt: number | null };
+    bot.finishedAt = 1;
+    room.setProgress("s_host", room.totalChars, 0, true, 0, 100);
+    expect(room.phase).toBe("finished");
+    // Rematch — startNewRound purges the leaked bot at the source.
+    expect(room.markRematchReady("s_host", true).started).toBe(true);
+    expect(room.roundNumber).toBe(2);
+    expect(botCount(room)).toBe(0);
+  });
+
+  it("matchmaking rooms still fill with bots exactly as before", () => {
+    const room = new RaceRoom({
+      id: "r_mm_baseline",
+      slug: null,
+      kind: "matchmaking",
+      modeId: "1v1",
+      raceSeed: 1,
+      wordCount: 5,
+    });
+    room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
+    vi.advanceTimersByTime(1_000);
+    expect(room.snapshot().racers.filter((r) => r.isBot).length).toBe(1);
+    expect(room.phase).toBe("lobby");
+  });
+});

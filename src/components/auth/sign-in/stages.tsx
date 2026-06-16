@@ -112,6 +112,12 @@ export function MethodStage({
           />
         ) : null}
       </div>
+      {!available.includes("password") ? (
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          This account has no password set, so password sign-in isn&apos;t
+          offered — use one of the options above.
+        </p>
+      ) : null}
       <UtilityButton onClick={onBack}>Use a different email</UtilityButton>
     </div>
   );
