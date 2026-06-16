@@ -11,6 +11,7 @@ import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
 import { cn } from "@/lib/utils";
 import { errorCount } from "@/lib/wpm";
 import { consistencyScore, stallWpm } from "@/lib/wpm-stats";
+import { buildHeatmapLatencies } from "./heatmap-latencies";
 import { type KeyEvent, usePractice } from "./practice-state";
 import { reconstructCursor } from "./replay-cursor";
 import { type Bucket, ResultChart } from "./result-chart";
@@ -178,25 +179,10 @@ function PassageHeatmap({
   words: readonly string[];
   events: readonly KeyEvent[];
 }) {
-  const latencyByPos = useMemo(() => {
-    const map = new Map<string, number>();
-    let w = 0;
-    let c = 0;
-    let prevT = 0;
-    for (const e of events) {
-      if (!e.correct) continue;
-      const word = words[w];
-      if (!word) break;
-      map.set(`${w}:${c}`, Math.max(0, e.t - prevT));
-      prevT = e.t;
-      c += 1;
-      if (c >= word.length) {
-        w += 1;
-        c = 0;
-      }
-    }
-    return map;
-  }, [events, words]);
+  const latencyByPos = useMemo(
+    () => buildHeatmapLatencies(words, events),
+    [events, words],
+  );
 
   const [lo, hi] = useMemo(() => {
     const sorted = [...latencyByPos.values()].sort((a, b) => a - b);
