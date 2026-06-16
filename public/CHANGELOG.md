@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.6 — 16 June 2026
+- You can now skip the very first word with space, just like any other word — pressing space before typing starts the test and moves on. Strict space still blocks skipping everywhere.
+- Skipped words now count toward the errors stat on the results screen, matching the red underline you saw during the test.
+
 ## 6.136.5 — 16 June 2026
 - Accuracy is now honest: every wrong keypress counts against your accuracy, even if you correct it (and even if stop-on-error blocked it). 100% accuracy now genuinely means a clean run, so raw and actual WPM line up. The errors stat still counts only mistakes left in the text.
 

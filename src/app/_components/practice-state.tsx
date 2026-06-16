@@ -1033,7 +1033,13 @@ export function PracticeProvider({
 
     if (e.key === " ") {
       e.preventDefault();
-      if (s.phase === "rest") return;
+      // BURST owns SPACE via its own controller (threshold + reps check
+      // in <BurstPractice />) — suppress here so a window-level space
+      // can't start or corrupt a BURST run. Mirrors input-capture.tsx.
+      if (s.mode === "BURST") return;
+      // No rest-phase guard: space as the very first key starts the run
+      // and skips word 0, same as skipping any later word (issue #17a).
+      // The reducer owns the start; strictSpace still gates the skip.
       dispatch({ type: "SPACE", now: Date.now(), strictSpace: p.strictSpace });
       return;
     }

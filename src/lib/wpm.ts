@@ -93,11 +93,15 @@ export function countChars(
   };
 }
 
-/** The run's error count — incorrect + extra characters in the typed
- *  buffer (monkeytype's "errors"). Final-buffer based: corrected
+/** The run's error count — incorrect + extra + missed characters in the
+ *  typed buffer (monkeytype's "errors"). Final-buffer based: corrected
  *  mistakes don't count and a 100%-accuracy run reports 0 errors. A
- *  skipped word's untyped chars are `missedChars`, not errors, so they
- *  don't count here either.
+ *  skipped word's untyped tail counts via `missedChars` (issue #17b) —
+ *  skipping a word is an error the user saw underlined live, so the
+ *  stat reflects it both live and on the results screen. The word
+ *  currently being typed never accrues missed chars (`countChars`
+ *  exempts the last typed entry when `final = false`), so the live
+ *  readout doesn't penalise an in-progress word.
  *
  *  Note: this is deliberately NOT the accuracy source. Accuracy is
  *  keystroke-based (the practice reducer's `correctChars` /
@@ -117,7 +121,7 @@ export function errorCount(
   final = true,
 ): number {
   const c = countChars(typed, target, final);
-  return c.incorrectChars + c.extraChars;
+  return c.incorrectChars + c.extraChars + c.missedChars;
 }
 
 export type WpmResult = {
