@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.7 — 16 June 2026
+- The sign-in screen now explains when an account has no password (for example one created with Discord), instead of silently hiding the password option.
+
 ## 6.136.6 — 16 June 2026
 - You can now skip the very first word with space, just like any other word — pressing space before typing starts the test and moves on. Strict space still blocks skipping everywhere.
 - Skipped words now count toward the errors stat on the results screen, matching the red underline you saw during the test.
