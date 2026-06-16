@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.4 — 16 June 2026
+- Fixed the race spectate view: the "Spectating @name" header can no longer be squeezed under the racer line-up strip, and the name / progress / wpm row now wraps neatly on small screens instead of clipping.
+
 ## 6.136.3 — 16 June 2026
 - The race countdown is now smooth and fair: every racer's 3-2-1 ticks to zero at the same instant, anchored to the server's clock instead of each device's own time, and the digits flip exactly on the second instead of stuttering. The in-race elapsed timer uses the same clock.
 

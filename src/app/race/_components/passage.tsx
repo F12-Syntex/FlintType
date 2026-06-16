@@ -142,7 +142,11 @@ export function RacePassage() {
           <div className="mb-4 shrink-0 sm:mb-6">{lineupEl}</div>
         ) : null}
         <div className="flex min-h-0 flex-1 flex-col gap-3">
-          <div className="min-h-0 flex-1">
+          {/* overflow-hidden is load-bearing: when the roster + a short
+           *  viewport squeeze this slot, the spectator header/passage must
+           *  clip at the slot boundary instead of painting under the
+           *  translucent roster card (the FT spectate-overlap bug). */}
+          <div className="min-h-0 flex-1 overflow-hidden">
             {showSpectator ? (
               <SpectatorPassage words={state.words} racers={state.racers} />
             ) : (
