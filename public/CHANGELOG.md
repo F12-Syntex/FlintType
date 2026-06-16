@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.11 — 16 June 2026
+- The results screen now labels burst runs as "burst N" under TEST TYPE instead of mislabelling them as a words test.
+
 ## 6.136.10 — 16 June 2026
 - Signing out now clears the on-device personal-best and average-speed caches, so the next person on a shared computer starts fresh instead of inheriting your PB crown and burst threshold.
 
