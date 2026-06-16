@@ -393,13 +393,19 @@ export function reducer(s: State, a: Action): State {
       const nextCursorChar = s.cursorChar + 1;
       // Auto-finish: a correct keystroke that completes the final char of
       // the final word ends the run for WORDS / QUOTE — TIME ignores the
-      // word boundary and lets the timer end the run instead. Extras past
-      // word.length never auto-finish: the user must backspace the extras
-      // and hit space (or land exactly on word.length) to advance.
+      // word boundary and lets the timer end the run instead. BURST is
+      // also excluded: a burst item only commits via SPACE *after*
+      // BurstProvider's threshold + reps gate passes (#46), so finishing
+      // on the final char here would bypass that gate (and grant drill XP
+      // for an under-threshold / single-rep run). The run instead ends on
+      // the SPACE branch below when the gate lets the final item through.
+      // Extras past word.length never auto-finish: the user must backspace
+      // the extras and hit space (or land exactly on word.length) to advance.
       const isLastWord = s.cursorWord === s.words.length - 1;
       const finishedRun =
         correct &&
         s.mode !== "TIME" &&
+        s.mode !== "BURST" &&
         isLastWord &&
         nextCursorChar === word.length;
 
@@ -491,13 +497,19 @@ export function reducer(s: State, a: Action): State {
       };
     }
     case "SPACE": {
-      if (s.phase === "done" || s.phase === "rest") return s;
+      if (s.phase === "done") return s;
       const target = s.words[s.cursorWord] ?? "";
       const typedHere = s.typed[s.cursorWord] ?? "";
       // strictSpace=true → refuse to advance unless the word is fully
       // typed correctly. The user must finish or backspace; no event,
-      // no errorWord mark, the keystroke is a no-op.
+      // no errorWord mark, the keystroke is a no-op. (At rest this also
+      // means a bare space never starts a strict run.)
       if (a.strictSpace && typedHere !== target) return s;
+      // Space as the very first key starts the run and skips word 0 —
+      // the first word behaves exactly like every later word (issue
+      // #17a). strictSpace above still blocks it, same as mid-run.
+      const startTime = s.startTime ?? a.now;
+      const runningPhase = s.phase === "rest" ? "running" : s.phase;
       // Space always advances the cursor — the user explicitly asked
       // to skip past mistakes. If the typed word doesn't match the
       // target, mark it as an error word so the summary still
@@ -517,6 +529,8 @@ export function reducer(s: State, a: Action): State {
           const more = generateWords(TIME_BUFFER, Date.now());
           return {
             ...s,
+            phase: runningPhase,
+            startTime,
             words: [...s.words, ...more],
             cursorWord: next,
             cursorChar: 0,
@@ -527,6 +541,7 @@ export function reducer(s: State, a: Action): State {
         return {
           ...s,
           phase: "done",
+          startTime,
           endTime: a.now,
           typed: sealedTyped,
           errorWords,
@@ -534,6 +549,8 @@ export function reducer(s: State, a: Action): State {
       }
       return {
         ...s,
+        phase: runningPhase,
+        startTime,
         cursorWord: next,
         cursorChar: 0,
         typed: sealedTyped,

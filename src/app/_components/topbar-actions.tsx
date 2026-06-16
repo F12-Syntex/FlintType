@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ModeSwitcher } from "@/components/ui/mode-switcher";
+import { clearUserScopedStorage } from "@/lib/sign-out-cleanup";
 import { cn } from "@/lib/utils";
 import { NotificationsPopover } from "./notifications-popover";
 
@@ -144,6 +145,7 @@ function ProfileLink({ dark }: { dark: boolean }) {
   };
 
   const handleSignOut = () => {
+    clearUserScopedStorage();
     void clerk.signOut().then(() => router.push("/"));
   };
 
