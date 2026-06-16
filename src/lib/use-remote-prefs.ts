@@ -59,11 +59,23 @@ export function useRemotePrefs<T extends object>(
   const update = useCallback(
     (patch: Partial<T> | ((prev: T) => T)) => {
       const cur = readSlice(key, defaults);
-      const next =
-        typeof patch === "function"
-          ? (patch as (p: T) => T)(cur)
-          : { ...cur, ...patch };
-      writeSlice(key, next);
+      let next: T;
+      let changedFields: string[];
+      if (typeof patch === "function") {
+        next = (patch as (p: T) => T)(cur);
+        // Functional patch: we don't know what the caller touched, so
+        // diff next vs cur and treat the changed fields as dirty.
+        const nextRec = next as Record<string, unknown>;
+        const curRec = cur as Record<string, unknown>;
+        changedFields = Object.keys(nextRec).filter(
+          (k) => nextRec[k] !== curRec[k],
+        );
+      } else {
+        next = { ...cur, ...patch };
+        // Object patch: exactly the patched keys are the user's edits.
+        changedFields = Object.keys(patch);
+      }
+      writeSlice(key, next, changedFields);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [key],

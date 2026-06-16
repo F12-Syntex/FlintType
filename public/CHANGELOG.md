@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.23 — 16 June 2026
+- Fixed settings loss on a fresh device: if you changed one setting in the moment right after opening the app (before your saved settings finished loading), it could wipe your other settings in that group. Now only the setting you actually changed is updated, and the rest of your saved preferences are kept.
+
 ## 6.136.22 — 16 June 2026
 - Fixed a Burst-mode loophole: if you clicked away from the typing area (so the page itself had focus), pressing space could push a too-slow word through instead of resetting it. Space in Burst now always goes through the speed/reps check, wherever the focus is.
 

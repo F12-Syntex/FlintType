@@ -270,3 +270,124 @@ describe("prefs-store conflict resolution", () => {
     expect(meta.r).toEqual([]);
   });
 });
+
+describe("prefs-store field-granular dirty tracking (FT-013)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    localStorage.clear();
+    __resetForTests();
+    mockGet = async () => ({});
+    mockMerge = async () => ({ ok: true });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("fresh device, one field edited during GET in flight: untouched remote fields survive", async () => {
+    // Fresh device: empty localStorage, cache null. The GET returns a
+    // populated slice but resolves only after we make a local edit.
+    let resolveGet: (v: unknown) => void = () => {};
+    const getReady = new Promise<unknown>((res) => {
+      resolveGet = res;
+    });
+    mockGet = () => getReady;
+
+    // Kick off the load; do NOT await yet (GET is in flight).
+    const loaded = loadPrefs();
+
+    // User flips ONE field while the GET is in flight. cache is null, so
+    // readSlice returns bare defaults; writeSlice persists defaults+patch
+    // and bumps localVersion 0 -> 1, marking only `fontSize` dirty.
+    const defaults = { a: 0, b: 0, c: 0, fontSize: "normal" };
+    writeSlice(
+      "appearance",
+      { ...defaults, fontSize: "large" },
+      ["fontSize"],
+    );
+
+    // Now the server responds with the user's real, populated slice.
+    resolveGet({ appearance: { a: 1, b: 2, c: 3, fontSize: "normal" } });
+    await loaded;
+
+    const slice = readSlice("appearance", {});
+    // The single user edit is applied...
+    expect(slice).toMatchObject({ fontSize: "large" });
+    // ...and every OTHER server-populated field survives (the FT-013 bug
+    // would have replaced the whole slice with defaults+patch, losing
+    // a/b/c's real values).
+    expect(slice).toMatchObject({ a: 1, b: 2, c: 3 });
+  });
+
+  it("theme-revert still preserved: an unsynced edited field wins over a stale remote value", async () => {
+    localStorage.setItem(
+      BLOB_KEY,
+      JSON.stringify({ theme: { "--primary": "#1e90ff", "--bg": "#000000" } }),
+    );
+    // Field-granular meta: only --primary was touched.
+    localStorage.setItem(
+      META_KEY,
+      JSON.stringify({
+        v: 1,
+        sv: 0,
+        dirty: { theme: ["--primary"] },
+        removed: [],
+      }),
+    );
+    // Server is behind on --primary but newer on --bg.
+    mockGet = async () => ({ theme: { "--primary": "#f97316", "--bg": "#222222" } });
+
+    await loadPrefs();
+
+    const slice = readSlice("theme", {});
+    // The touched field still wins over the stale server copy...
+    expect(slice).toMatchObject({ "--primary": "#1e90ff" });
+    // ...while the untouched field flows in from the (newer) server.
+    expect(slice).toMatchObject({ "--bg": "#222222" });
+  });
+
+  it("post-sync: dirty cleared, a newer remote value for an untouched field flows in", async () => {
+    mockGet = async () => ({ appearance: { fontSize: "normal", theme: "x" } });
+    await loadPrefs();
+
+    // Edit one field; flush the debounced save.
+    writeSlice("appearance", { fontSize: "large", theme: "x" }, ["fontSize"]);
+    await vi.runAllTimersAsync();
+
+    const meta = readMeta();
+    expect(meta.sv).toBe(meta.v); // synced — dirty should now be cleared
+
+    // Reload: the server (e.g. another device) now has a different value
+    // for the SAME field we edited. Since dirty was cleared on confirm,
+    // the device is clean and the server is authoritative again.
+    __resetForTests();
+    mockGet = async () => ({ appearance: { fontSize: "huge", theme: "y" } });
+    await loadPrefs();
+
+    expect(readSlice("appearance", {})).toEqual({ fontSize: "huge", theme: "y" });
+  });
+
+  it("functional-patch update marks only the changed field dirty", async () => {
+    mockGet = async () => ({ appearance: { a: 1, b: 2, c: 3 } });
+    await loadPrefs();
+    await vi.runAllTimersAsync();
+    __resetForTests();
+
+    // Re-seed as a fresh device whose GET is in flight, mirroring the
+    // hook's functional-update path via writeSlice with a diffed field.
+    let resolveGet: (v: unknown) => void = () => {};
+    const getReady = new Promise<unknown>((res) => {
+      resolveGet = res;
+    });
+    mockGet = () => getReady;
+    const loaded = loadPrefs();
+
+    // Functional update touched only `b` (cur is bare defaults here).
+    writeSlice("appearance", { a: 0, b: 9, c: 0 }, ["b"]);
+
+    resolveGet({ appearance: { a: 1, b: 2, c: 3 } });
+    await loaded;
+
+    const slice = readSlice("appearance", {});
+    expect(slice).toMatchObject({ a: 1, b: 9, c: 3 });
+  });
+});
