@@ -59,8 +59,10 @@ function streamFor(words: string[], gapMs = 120): KeystrokeTiming[] {
 function submitInput(over: Partial<SubmitTestInput> = {}): SubmitTestInput {
   const words = ["the", "and"];
   return {
+    // 1s elapsed keeps the claimed 100 wpm inside the submit
+    // plausibility ceiling for this small fixture payload (#38).
     startedAt: 1_700_000_000_000,
-    completedAt: 1_700_000_010_000,
+    completedAt: 1_700_000_001_000,
     mode: "training",
     durationOrWordCount: 25,
     wpm: 100,
@@ -212,8 +214,13 @@ describe("history routes", () => {
         await callRoute<SubmitTestOutput>(["adapt", "submit"], {
           db: ctx.db,
           input: submitInput({
+            // 6s elapsed spans the 10-word keystroke stream (last `t`
+            // ~5.8s at the default 120ms gap) while keeping the default
+            // 100-wpm claim under the stream-derived ceiling (40
+            // keystrokes / 6s → ~120 credible) (#38). Runs are staggered
+            // 10s apart, wider than the elapsed, so they never overlap.
             startedAt: 1_700_000_000_000 + i * 10_000,
-            completedAt: 1_700_000_010_000 + i * 10_000,
+            completedAt: 1_700_000_006_000 + i * 10_000,
             words: ws,
             timings: streamFor(ws),
           }),
