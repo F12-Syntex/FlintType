@@ -8,8 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
-## 6.136.2 — 12 June 2026
+## 6.136.2 — 16 June 2026
 - Private lobbies are now guaranteed human-only: bots can no longer sneak into a challenge race, and any bot left over in an old lobby is removed at the next rematch. Public matchmaking still fills with bots as before.
+
+## 6.136.1 — 12 June 2026
+- Internal changes only.
 
 ## 6.136.0 — 8 June 2026
 - The mode bar above the typing area is now always the chips picker — the "Mode bar" style choice (chips / inline / hidden) has been removed from Customise → Appearance → Chrome.
