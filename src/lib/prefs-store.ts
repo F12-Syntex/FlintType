@@ -69,53 +69,73 @@ let localVersion = 0;
 let syncedVersion = 0;
 let metaLoaded = false;
 
-/** Field-granular dirty tracking. `dirty[sliceKey]` is the set of field
- *  names *within* that slice the user has actually modified since the
- *  last confirmed sync. On a load where local edits win (localVersion >
- *  syncedVersion) we overlay ONLY these fields on top of the remote
- *  slice, so an unconfirmed one-field edit on a fresh device no longer
- *  blows away every other (server-populated) field in the slice.
- *  `removed` holds slices the user explicitly reset (clearSlice) while
- *  unsynced — those should be dropped from the merge even though the
- *  remote still has them. Both are persisted in META_KEY so they survive
- *  a reload (the secondary cross-device-shield case). */
+/** Per-slice dirty tracking (the flush transport). The flush only sends
+ *  the slices the client actually changed (`dirtyKeys`, merged
+ *  server-side) and the ones it deleted (`removedKeys`) — never the whole
+ *  blob, so it can't revert server-owned slices (adaptRecency,
+ *  selectedTags, …) or a slice another device just saved. Persisted in
+ *  the meta record (`d`/`r`) so a reload with unsynced edits re-flushes
+ *  only those slices. */
+const dirtyKeys = new Set<string>();
+const removedKeys = new Set<string>();
+
+/** Field-granular dirty tracking (the merge-on-load refinement).
+ *  `dirty[sliceKey]` is the set of field names *within* that slice the
+ *  user has actually modified since the last confirmed sync. On a load
+ *  where local edits win (localVersion > syncedVersion) we overlay ONLY
+ *  these fields on top of the remote slice, so an unconfirmed one-field
+ *  edit on a fresh device no longer blows away every other
+ *  (server-populated) field in the slice. `removed` holds slices the
+ *  user explicitly reset (clearSlice) while unsynced — those should be
+ *  dropped from the merge even though the remote still has them. Both are
+ *  persisted in META_KEY (`dirty`/`removed`) so they survive a reload. */
 let dirty: Record<string, string[]> = {};
 let removed: Set<string> = new Set();
 
 function metaRead(): {
   v: number;
   sv: number;
+  d: string[];
+  r: string[];
   dirty: Record<string, string[]>;
   removed: string[];
 } {
   if (typeof window === "undefined")
-    return { v: 0, sv: 0, dirty: {}, removed: [] };
+    return { v: 0, sv: 0, d: [], r: [], dirty: {}, removed: [] };
   try {
     const raw = window.localStorage.getItem(META_KEY);
     if (raw) {
       const p = JSON.parse(raw) as {
         v?: unknown;
         sv?: unknown;
+        d?: unknown;
+        r?: unknown;
         dirty?: unknown;
         removed?: unknown;
       };
       if (typeof p?.v === "number" && typeof p?.sv === "number") {
-        const d: Record<string, string[]> = {};
+        const strings = (a: unknown): string[] =>
+          Array.isArray(a) ? a.filter((k): k is string => typeof k === "string") : [];
+        const fieldDirty: Record<string, string[]> = {};
         if (p.dirty && typeof p.dirty === "object" && !Array.isArray(p.dirty)) {
           for (const [k, val] of Object.entries(p.dirty)) {
-            if (Array.isArray(val)) d[k] = val.filter((x) => typeof x === "string");
+            if (Array.isArray(val)) fieldDirty[k] = val.filter((x) => typeof x === "string");
           }
         }
-        const r = Array.isArray(p.removed)
-          ? p.removed.filter((x): x is string => typeof x === "string")
-          : [];
-        return { v: p.v, sv: p.sv, dirty: d, removed: r };
+        return {
+          v: p.v,
+          sv: p.sv,
+          d: strings(p.d),
+          r: strings(p.r),
+          dirty: fieldDirty,
+          removed: strings(p.removed),
+        };
       }
     }
   } catch {
     /* corrupted — treat as clean (backend authoritative) */
   }
-  return { v: 0, sv: 0, dirty: {}, removed: [] };
+  return { v: 0, sv: 0, d: [], r: [], dirty: {}, removed: [] };
 }
 
 function metaWrite(): void {
@@ -126,6 +146,8 @@ function metaWrite(): void {
       JSON.stringify({
         v: localVersion,
         sv: syncedVersion,
+        d: [...dirtyKeys],
+        r: [...removedKeys],
         dirty,
         removed: [...removed],
       }),
@@ -143,8 +165,17 @@ function ensureMeta(): void {
   const m = metaRead();
   localVersion = m.v;
   syncedVersion = m.sv;
+  for (const k of m.d) dirtyKeys.add(k);
+  for (const k of m.r) removedKeys.add(k);
   dirty = m.dirty;
   removed = new Set(m.removed);
+  // Legacy meta from before per-slice tracking carries field-granular
+  // dirty/removed but no d/r — backfill the slice-level sets so the
+  // re-flush transport still converges.
+  if (m.d.length === 0 && m.r.length === 0) {
+    for (const k of Object.keys(dirty)) dirtyKeys.add(k);
+    for (const k of removed) removedKeys.add(k);
+  }
 }
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -246,6 +277,14 @@ export function loadPrefs(): Promise<PrefsBlob> {
           delete merged[key];
         }
         cache = merged;
+        // Legacy meta (pre per-slice tracking) carries no dirty-key
+        // list — fall back to treating every locally-held slice as
+        // dirty so the re-flush transport still converges. It goes
+        // through the merge route either way, so server-owned slices
+        // are safe.
+        if (dirtyKeys.size === 0 && removedKeys.size === 0) {
+          for (const k of Object.keys(local)) dirtyKeys.add(k);
+        }
         scheduleWrite();
       } else {
         cache = { ...local, ...remote };
@@ -289,6 +328,8 @@ export function writeSlice<T>(
 ): void {
   ensureMeta();
   cache = { ...(cache ?? {}), [key]: value as unknown };
+  dirtyKeys.add(key);
+  removedKeys.delete(key);
   localVersion++;
   // Track which fields the user touched. When the caller doesn't say
   // (legacy callers), fall back to the whole slice's own keys —
@@ -313,6 +354,8 @@ export function clearSlice(key: string): void {
   const next = { ...cache };
   delete next[key];
   cache = next;
+  removedKeys.add(key);
+  dirtyKeys.delete(key);
   localVersion++;
   // A reset is an explicit user intent that must win over the remote
   // copy on the next load — record it so the merge drops the slice
@@ -344,6 +387,17 @@ async function flush(): Promise<void> {
   if (!cache) return;
   const snapshot = cache;
   const sending = localVersion;
+  // Per-slice patch: only the slices the client changed travel. The
+  // server merges them (jsonb ||) instead of replacing the row, so a
+  // flush can never revert server-owned slices or another device's
+  // saves. Snapshot + clear the sets up front — a write that lands
+  // mid-flight re-dirties its key and reschedules.
+  const sendDirty = [...dirtyKeys].filter((k) => k in snapshot);
+  const sendRemoved = [...removedKeys];
+  dirtyKeys.clear();
+  removedKeys.clear();
+  const data: PrefsBlob = {};
+  for (const k of sendDirty) data[k] = snapshot[k];
   // Snapshot the dirty fields being persisted by this write. On success
   // we clear exactly these (set-difference) and NOT any field edits that
   // happened after the snapshot was captured (during the in-flight POST,
@@ -354,8 +408,13 @@ async function flush(): Promise<void> {
   const removedSnapshot = new Set(removed);
   writeInFlight = (async () => {
     try {
-      const backend = useBackend();
-      await backend.prefs.set({ data: snapshot });
+      if (sendDirty.length > 0 || sendRemoved.length > 0) {
+        const backend = useBackend();
+        await backend.prefs.merge({
+          data,
+          ...(sendRemoved.length > 0 ? { remove: sendRemoved } : {}),
+        });
+      }
       // Confirmed persisted — advance the synced stamp so a later load
       // treats the backend as authoritative again. On failure we leave
       // it behind, so the unsaved edits keep winning until a save lands.
@@ -381,7 +440,21 @@ async function flush(): Promise<void> {
         metaWrite();
       }
     } catch {
-      /* unauthenticated / transient — local state stays current */
+      // Unauthenticated / transient — keep the keys marked dirty so a
+      // later flush (or the post-reload re-flush) retries them. A key
+      // must live in at most ONE of dirtyKeys/removedKeys: a clearSlice
+      // (or writeSlice) that raced this in-flight flush expresses newer
+      // user intent, so never restore a key into the opposite set.
+      for (const k of sendDirty) {
+        if (!removedKeys.has(k)) dirtyKeys.add(k);
+      }
+      for (const k of sendRemoved) {
+        // A concurrent writeSlice supersedes the older remove.
+        if (!dirtyKeys.has(k)) removedKeys.add(k);
+      }
+      // NOTE: META_KEY is not per-user; cross-user isolation on a shared
+      // browser profile is tracked separately (issue #52 / FT-017).
+      metaWrite();
     } finally {
       writeInFlight = null;
     }
@@ -397,6 +470,8 @@ export function __resetForTests(): void {
   localVersion = 0;
   syncedVersion = 0;
   metaLoaded = false;
+  dirtyKeys.clear();
+  removedKeys.clear();
   dirty = {};
   removed = new Set();
   if (writeTimer) {
