@@ -1033,9 +1033,13 @@ export function PracticeProvider({
 
     if (e.key === " ") {
       e.preventDefault();
-      // BURST owns SPACE via its own controller (threshold + reps check
-      // in <BurstPractice />) — suppress here so a window-level space
-      // can't start or corrupt a BURST run. Mirrors input-capture.tsx.
+      // BURST: BurstProvider's own window listener owns Space — it runs
+      // the threshold/reps gate (burst-practice.tsx handleSpace) before
+      // dispatching the run-advancing SPACE. Dispatching a raw, ungated
+      // SPACE here (this fallback fires when focus is off the hidden
+      // input, e.g. on <body>) would bypass that gate AND double-dispatch
+      // with BurstProvider's listener. Swallow it and let BurstProvider
+      // own it, mirroring input-capture's BURST suppression (#47/FT-012).
       if (s.mode === "BURST") return;
       // No rest-phase guard: space as the very first key starts the run
       // and skips word 0, same as skipping any later word (issue #17a).

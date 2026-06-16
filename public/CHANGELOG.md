@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.22 — 16 June 2026
+- Fixed a Burst-mode loophole: if you clicked away from the typing area (so the page itself had focus), pressing space could push a too-slow word through instead of resetting it. Space in Burst now always goes through the speed/reps check, wherever the focus is.
+
 ## 6.136.21 — 16 June 2026
 - Fixed Burst mode finishing too early: the last word used to end the drill the moment you typed its final letter, skipping the speed and reps requirement (so a single slow word could "complete" a burst). Now the final word is held to the same threshold and reps as every other — you finish it with space once you've cleared the bar.
 
