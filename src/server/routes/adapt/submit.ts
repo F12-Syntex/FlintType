@@ -295,6 +295,7 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
       completedAt: new Date(input.completedAt),
       mode: input.mode,
       durationOrWordCount: input.durationOrWordCount,
+      lengthMode: input.lengthMode ?? null,
       wpm: input.wpm,
       accuracy: input.accuracy,
       errorCount: input.errorCount,

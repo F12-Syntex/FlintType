@@ -83,6 +83,11 @@ export const submitTestInputSchema = z.object({
   // 10k covers the longest sane bucket (600s time mode, 2000-word
   // passages) with headroom; an unbounded int was forgeable noise.
   durationOrWordCount: z.number().int().nonnegative().max(10_000),
+  /** Length unit for `durationOrWordCount` — the words-vs-time-vs-quote
+   *  discriminator the share label branches on. Optional so older
+   *  clients (and the race/drill submit paths) still validate; persisted
+   *  as null when absent (legacy rows drop the share unit prefix). */
+  lengthMode: z.enum(["words", "time", "quote"]).optional(),
   // Hard ceiling mirrors the race authority's gross-WPM cap — claims
   // above MAX_PLAUSIBLE_WPM are rejected at the wire. The submit
   // handler additionally cross-checks the claim against the run's

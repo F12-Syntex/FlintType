@@ -40,6 +40,20 @@ describe("testsRepo", () => {
     expect(inserted.wpm).toBe(100);
   });
 
+  it("round-trips a lengthMode discriminator", async () => {
+    await ctx.db.tests.insert(row({ id: "t_time", lengthMode: "time" }));
+    const found = await ctx.db.tests.findById("t_time");
+    expect(found?.lengthMode).toBe("time");
+  });
+
+  it("persists null lengthMode for legacy-style rows", async () => {
+    // A row submitted without the discriminator (older client) — the
+    // column defaults to null, never guessed.
+    await ctx.db.tests.insert(row({ id: "t_legacy" }));
+    const found = await ctx.db.tests.findById("t_legacy");
+    expect(found?.lengthMode).toBeNull();
+  });
+
   it("recentForUser returns rows newest-first", async () => {
     const t1 = new Date(2026, 0, 1);
     const t2 = new Date(2026, 0, 2);

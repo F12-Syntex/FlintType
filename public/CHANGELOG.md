@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.42 — 17 June 2026
+- Fixed the share page and its social-preview image mislabelling timed and quote runs as "Words". A 60-second test now reads "Time · 60s" and a quote run shows its length (e.g. "Quote · long") instead of "Words · 60".
+
 ## 6.136.41 — 17 June 2026
 - Race invites now clear once you act on them: joining a race from the friends dock (or opening the invite from the bell) marks it read, so old invites and the swords badge no longer linger pointing at races that have already ended.
 

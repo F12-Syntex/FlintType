@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { getDatabase } from "@/db/server";
 import { BackendError } from "@/lib/errors";
 import { formatClock } from "@/lib/format-duration";
+import { shareLengthLabel } from "@/lib/share-length-label";
 import { logger } from "@/server/logger";
 import { loadSharedTest } from "@/server/routes/share/load";
 import type { SharedTest } from "@/types/share";
@@ -65,7 +66,7 @@ export default async function RunOpengraphImage({
   const wpm = Math.round(data.wpm);
   const acc = roundDecimal(data.accuracy);
   const initials = data.handle.replace(/^@/, "").slice(0, 2).toUpperCase();
-  const lengthLabel = formatLengthLabel(data.mode, data.durationOrWordCount);
+  const lengthLabel = shareLengthLabel(data.lengthMode, data.durationOrWordCount);
   const durationLabel = formatClock(data.durationSec);
 
   return new ImageResponse(
@@ -396,7 +397,7 @@ function Body({
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            {formatLengthLabel(data.mode, data.durationOrWordCount).toLowerCase()}
+            {shareLengthLabel(data.lengthMode, data.durationOrWordCount).toLowerCase()}
           </span>
         </div>
       </div>
@@ -739,12 +740,6 @@ async function loadAvatarFromUrl(url: string | null): Promise<string | null> {
   } catch {
     return null;
   }
-}
-
-function formatLengthLabel(mode: string, amount: number): string {
-  if (mode === "time" || /time/i.test(mode)) return `Time · ${amount}s`;
-  if (/quote/i.test(mode)) return `Quote · ${amount}`;
-  return `Words · ${amount}`;
 }
 
 function modeLabel(mode: string): string {

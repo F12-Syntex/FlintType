@@ -158,6 +158,26 @@ describe("adapt routes", () => {
     expect(recent[0]!.id).toBe(out.testId);
   });
 
+  it("submit persists the lengthMode discriminator onto the row", async () => {
+    signedInAs("u1");
+    const out = await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({ lengthMode: "time" }),
+    });
+    const row = await ctx.db.tests.findById(out.testId);
+    expect(row?.lengthMode).toBe("time");
+  });
+
+  it("submit persists null lengthMode when the client omits it", async () => {
+    signedInAs("u1");
+    const out = await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput(),
+    });
+    const row = await ctx.db.tests.findById(out.testId);
+    expect(row?.lengthMode).toBeNull();
+  });
+
   it("submit folds samples into the bigram model", async () => {
     signedInAs("u1");
     await callRoute<SubmitTestOutput>(["adapt", "submit"], {
