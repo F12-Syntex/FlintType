@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.37 — 17 June 2026
+- Fixed importing MonkeyType settings while it was set to Quote mode: it now picks a valid quote length (so quotes actually load instead of showing "quote unavailable"), and the import no longer quietly resets your adaptive mode and word-list choices.
+
 ## 6.136.36 — 17 June 2026
 - Fixed the mobile menu when signed out: it no longer shows a useless "Sign out" button and now offers a proper "Sign in" link, so you can actually sign in from your phone.
 
