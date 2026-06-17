@@ -275,6 +275,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
       room.subscribe(() => {}); // a live connection must NOT keep it alive
       vi.advanceTimersByTime(1_000 + 700 + 3_000); // → racing
+      vi.advanceTimersByTime(10_000); // anti-cheat clamp admits the passage (FT-030)
       room.setProgress("s_alice", room.totalChars, 100, true);
       vi.advanceTimersByTime(30_000); // bot finishes → finished, 5-min GC armed
       expect(room.phase).toBe("finished");
@@ -410,6 +411,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       vi.advanceTimersByTime(700 + 3_000);
       expect(room.phase).toBe("racing");
       room.removeRacer("s_g"); // mid-race → disconnected, kept in snapshot
+      vi.advanceTimersByTime(10_000); // anti-cheat clamp admits the passage (FT-030)
       room.setProgress("s_host", room.totalChars, 100, true); // host finishes
       expect(room.phase).toBe("finished");
       expect(room.snapshot().racers.find((r) => r.id === "s_g")?.disconnected).toBe(true);
@@ -426,6 +428,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       expect(room.hostStart("s_host")).toBe(true);
       vi.advanceTimersByTime(700 + 3_000);
       room.removeRacer("s_g"); // disconnected — still holds a seat at capacity
+      vi.advanceTimersByTime(10_000); // anti-cheat clamp admits the passage (FT-030)
       room.setProgress("s_host", room.totalChars, 100, true);
       expect(room.phase).toBe("finished");
       room.markRematchReady("s_host"); // → lobby, ghost purged
@@ -442,6 +445,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       room.addRealRacer({ sessionToken: "s_g", name: "@g", badge: "RACER" });
       expect(room.hostStart("s_host")).toBe(true);
       vi.advanceTimersByTime(700 + 3_000);
+      vi.advanceTimersByTime(10_000); // anti-cheat clamp admits the passage (FT-030)
       room.setProgress("s_host", room.totalChars, 100, true);
       room.setProgress("s_g", room.totalChars, 100, true);
       expect(room.phase).toBe("finished");
@@ -459,6 +463,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       room.addRealRacer({ sessionToken: "s_g", name: "@g", badge: "RACER" });
       expect(room.hostStart("s_host")).toBe(true);
       vi.advanceTimersByTime(700 + 3_000);
+      vi.advanceTimersByTime(10_000); // anti-cheat clamp admits the passage (FT-030)
       room.setProgress("s_host", room.totalChars, 100, true);
       room.setProgress("s_g", room.totalChars, 100, true);
       expect(room.phase).toBe("finished");
@@ -477,6 +482,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       room.addRealRacer({ sessionToken: "s_g", name: "@g", badge: "RACER" });
       expect(room.hostStart("s_host")).toBe(true);
       vi.advanceTimersByTime(700 + 3_000);
+      vi.advanceTimersByTime(10_000); // anti-cheat clamp admits the passage (FT-030)
       room.setProgress("s_host", room.totalChars, 100, true);
       room.setProgress("s_g", room.totalChars, 100, true);
       expect(room.phase).toBe("finished");
@@ -493,6 +499,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       room.addRealRacer({ sessionToken: "s_g", name: "@g", badge: "RACER" });
       expect(room.hostStart("s_host")).toBe(true);
       vi.advanceTimersByTime(700 + 3_000);
+      vi.advanceTimersByTime(10_000); // anti-cheat clamp admits the passage (FT-030)
       room.setProgress("s_host", room.totalChars, 100, true);
       room.setProgress("s_g", room.totalChars, 100, true);
       expect(room.phase).toBe("finished");
@@ -521,6 +528,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
       expect(room.hostStart("s_host")).toBe(true);
       vi.advanceTimersByTime(700 + 3_000);
+      vi.advanceTimersByTime(10_000); // anti-cheat clamp admits the passage (FT-030)
       room.setProgress("s_host", room.totalChars, 100, true);
       expect(room.phase).toBe("finished");
       expect(room.hostStart("s_host")).toBe(false);
@@ -540,6 +548,7 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
       expect(room.hostStart("s_host")).toBe(true);
       vi.advanceTimersByTime(700 + 3_000);
       room.removeRacer("s_g"); // disconnected
+      vi.advanceTimersByTime(10_000); // anti-cheat clamp admits the passage (FT-030)
       room.setProgress("s_host", room.totalChars, 100, true); // host finishes
       expect(room.phase).toBe("finished");
     });

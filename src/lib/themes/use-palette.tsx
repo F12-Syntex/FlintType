@@ -9,8 +9,11 @@ import {
   useEffect,
 } from "react";
 import { useBackgroundPrefs } from "../background-prefs";
-import { clearSlice, writeSlice } from "../prefs-store";
+import { clearSlice, readSlice, writeSlice } from "../prefs-store";
+import type { ThemeOverrides } from "../theme-customization";
 import { useRemotePrefs } from "../use-remote-prefs";
+import { EMPTY_OVERRIDES } from "./overrides";
+import type { PaletteSlice } from "./palette-fork";
 import {
   applyReactivePalette,
   BACKGROUND_REACTIVE_ID,
@@ -23,6 +26,7 @@ import {
   CUSTOM_THEME_ID,
   findTheme,
   getThemeRoot,
+  prefixCssVars,
   THEMES,
   type Theme,
 } from "./registry";
@@ -43,7 +47,6 @@ type Ctx = {
   reset: () => void;
 };
 
-type PaletteSlice = { activeId: string | null };
 // Fresh accounts land on the real Default theme — `activeId: null`, no
 // overrides. The brand baseline (the orange --primary / --ring, the
 // 0.5rem radius) now lives in `globals.css :root` / `.dark` as the
@@ -65,6 +68,11 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     DEFAULT_PALETTE,
   );
   const activeId = value.activeId;
+  // Snapshot of the named palette a "custom" fork came off (see
+  // palette-fork.ts). Stable reference — only replaced on a new fork —
+  // so it's safe as an effect dep without thrashing on unrelated
+  // pref-store notifies.
+  const base = value.base;
   const { effectiveImage } = useBackgroundPrefs();
 
   useEffect(() => {
@@ -83,7 +91,27 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     // clearReactivePalette() here, which wiped the sampled reactive
     // colours the moment the user nudged a single colour / radius /
     // font scale — read as "changing any value resets the colours".
-    if (activeId === CUSTOM_THEME_ID) return;
+    if (activeId === CUSTOM_THEME_ID) {
+      // A fork off a NAMED palette carries a `base` snapshot — repaint
+      // it (for the current mode) so the palette survives reloads and
+      // light/dark flips, then re-assert the per-var overrides on top
+      // so they keep winning where the names collide. Baseless customs
+      // (forked from Default / reactive) keep the old hands-off path.
+      if (base) {
+        const mode = resolvedTheme === "dark" ? "dark" : "light";
+        const vars = mode === "dark" ? base.dark : base.light;
+        for (const [k, v] of Object.entries(vars)) {
+          if (typeof v === "string" && v) root.style.setProperty(`--${k}`, v);
+        }
+        const overrides = readSlice<ThemeOverrides>("theme", EMPTY_OVERRIDES);
+        for (const [k, v] of Object.entries(overrides)) {
+          if (typeof v === "string" && v) {
+            root.style.setProperty(k, v);
+          }
+        }
+      }
+      return;
+    }
 
     if (activeId === BACKGROUND_REACTIVE_ID) {
       // Reactive is async — sampling takes a frame or two. If we
@@ -116,8 +144,24 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     const mode = resolvedTheme === "dark" ? "dark" : "light";
     clearThemeVars(root);
     clearReactivePalette(root);
-    if (theme) applyTheme(root, theme, mode);
-  }, [activeId, resolvedTheme, effectiveImage]);
+    if (theme) {
+      applyTheme(root, theme, mode);
+      // One-time self-heal: users who picked this palette before its vars
+      // were persisted have a `palette` slice with no varsLight/varsDark,
+      // so they'd still flash the default palette on load. Backfill them
+      // straight to storage — the bootstrap reads localStorage, not React
+      // state, so this needs no setState (no effect loop). The readSlice
+      // guard stops it re-writing once the vars are present.
+      const persisted = readSlice<PaletteSlice>("palette", DEFAULT_PALETTE);
+      if (persisted.activeId === activeId && persisted.varsLight == null) {
+        writeSlice("palette", {
+          activeId,
+          varsLight: prefixCssVars(theme.cssVars.light),
+          varsDark: prefixCssVars(theme.cssVars.dark),
+        });
+      }
+    }
+  }, [activeId, base, resolvedTheme, effectiveImage]);
 
   const apply = useCallback(
     (id: string) => {
@@ -144,7 +188,29 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
           writeSlice("keyboard", theme.presets.keyboard);
         }
       }
-      update({ activeId: id });
+      if (id === CUSTOM_THEME_ID) {
+        // Re-picking Custom keeps the fork's `base` snapshot intact.
+        update({ activeId: id });
+      } else {
+        // Persist the named static palette's resolved cssVars so the
+        // pre-hydration bootstrap can paint them before first paint (no
+        // default-palette FOUC). Function-form so a stale `base` snapshot
+        // (and any prior vars) from a previous custom fork is dropped
+        // rather than merged along (update() merges object patches).
+        // `findTheme` only resolves registry themes, so synthetic ids
+        // (reactive) fall through to a bare { activeId }.
+        const named =
+          id !== BACKGROUND_REACTIVE_ID ? findTheme(id) : undefined;
+        update(() =>
+          named
+            ? {
+                activeId: id,
+                varsLight: prefixCssVars(named.cssVars.light),
+                varsDark: prefixCssVars(named.cssVars.dark),
+              }
+            : { activeId: id },
+        );
+      }
     },
     [update],
   );

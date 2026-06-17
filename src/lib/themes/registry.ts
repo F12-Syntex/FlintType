@@ -91,6 +91,21 @@ export function applyTheme(
   }
 }
 
+/** A theme's `cssVars` store bare names (`background`, `primary`); the
+ *  `--` prefix is prepended at apply time (see `applyTheme`). This maps a
+ *  bare cssVars map to the `--`-prefixed form used when persisting a
+ *  palette for the pre-hydration bootstrap, so the stored keys match what
+ *  `setProperty` expects (and the bootstrap's `--`-prefix guard). */
+export function prefixCssVars(
+  vars: Record<string, string>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(vars)) {
+    out[k.startsWith("--") ? k : `--${k}`] = v;
+  }
+  return out;
+}
+
 export function findTheme(id: string | null | undefined): Theme | undefined {
   if (!id) return undefined;
   return THEMES.find((t) => t.id === id);
