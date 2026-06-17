@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.39 — 17 June 2026
+- Hardened the leaderboard and profile against tampering: your level, XP, and imported-test stats can no longer be inflated by editing local data, so the Top-by-Level board stays fair.
+
 ## 6.136.38 — 17 June 2026
 - Fixed community palettes (Catppuccin, Cosmic Night, and the rest) briefly flashing the default coral/paper colours every time a page loaded — your chosen palette now paints immediately, before the first frame.
 

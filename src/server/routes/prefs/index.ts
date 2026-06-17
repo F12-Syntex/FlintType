@@ -2,6 +2,7 @@ import { defineNamespace, defineRoute } from "@/server";
 import { ensureUser } from "@/server/ensure-user";
 import { requireAuth } from "@/server/middleware/auth";
 import { rateLimit } from "@/server/middleware/rate-limit";
+import { sanitizePrefsWrite } from "@/server/prefs-sanitize";
 import {
   type GetUserPrefsOutput,
   type MergeUserPrefsInput,
@@ -48,12 +49,17 @@ const get = defineRoute<void, GetUserPrefsOutput>({
 const set = defineRoute<SetUserPrefsInput, SetUserPrefsOutput>({
   input: setUserPrefsInputSchema,
   handler: async ({ db, meta, input }) => {
-    const data = stripServerOwned(input.data);
-    await db.userPrefs.replacePreserving(
-      meta.userId as string,
-      data,
-      SERVER_OWNED_PREF_KEYS,
-    );
+    const userId = meta.userId as string;
+    // The blob is client-supplied and opaque, but a couple of slices feed
+    // public ranking + profile display (Top-by-Level, the profile level/
+    // XP). Sanitize those against the stored value so they can't be
+    // forged through this write path — see src/server/prefs-sanitize.ts.
+    // Server-owned slices are then stripped and preserved atomically via
+    // replacePreserving so a stale client snapshot can't revert them.
+    const stored = await db.userPrefs.get(userId);
+    const sanitized = sanitizePrefsWrite(stored, input.data);
+    const data = stripServerOwned(sanitized);
+    await db.userPrefs.replacePreserving(userId, data, SERVER_OWNED_PREF_KEYS);
     return data;
   },
 });
