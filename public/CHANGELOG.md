@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.28 — 17 June 2026
+- Fixed daily streaks and the activity heatmap miscounting around daylight-saving changes: a streak spanning a clock change no longer resets a day short, and the heatmap no longer skips or doubles a day that week. Day boundaries now follow the calendar, not a fixed 24-hour step.
+
 ## 6.136.27 — 17 June 2026
 - Fixed settings leaking between accounts on a shared computer: after one person signed out and another signed in, the second person could see (and accidentally overwrite their account with) the first person's settings. Signing out or switching accounts now clears the local settings, so each account only ever sees its own — while a brand-new account you create from a signed-out session still keeps the settings you'd set up first.
 
