@@ -9,7 +9,7 @@ import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { recordIfPb } from "@/lib/pb-cache";
 import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
 import { cn } from "@/lib/utils";
-import { calcWpmAndRaw, errorCount } from "@/lib/wpm";
+import { calcWpmAndRaw, keystrokeErrors } from "@/lib/wpm";
 import { consistencyScore, stallWpm } from "@/lib/wpm-stats";
 import { type KeyEvent, usePractice } from "./practice-state";
 import { reconstructCursor } from "./replay-cursor";
@@ -449,8 +449,9 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
   //    a cache clear / on a new device) falsely crowned.
   //
   //  • Anonymous viewers have no server history, so they fall back to the
-  //    per-session localStorage cache — the best we can do without an
-  //    account, and harmless since it resets each session.
+  //    per-browser localStorage cache — the best we can do without an
+  //    account. The cache is cleared on sign-out (sign-out-cleanup.ts)
+  //    so it never carries a previous user's baseline.
   //
   // Reset to false whenever we leave the done screen so a stale crown
   // never carries into the next run.
@@ -508,12 +509,12 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
   );
   const stall = Math.round(stallWpm(buckets));
   const cons = consistencyScore(buckets);
-  // Per-character errors (incorrect + extra) from the final typed
-  // buffer — the SAME metric the live ERR readout now shows, so the two
-  // agree. (Was a per-keystroke wrong-event count, which also disagreed
-  // with the countChars-based accuracy: a fully-corrected run read 100%
-  // accuracy yet a non-zero error total.)
-  const wrongTotal = errorCount(state.typed, state.words, true);
+  // Keystroke-true error count — the SAME metric the live ERR readout
+  // and the recorded/persisted value now use (incorrect keystrokes,
+  // including ones later backspaced or blocked by stop-on-error). The
+  // old countChars-over-typed[] count read 0 for a fully-corrected run
+  // while accuracy is keystroke-true, so the two disagreed.
+  const wrongTotal = keystrokeErrors(state.events);
   const elapsedSec = Math.max(1, Math.round(elapsedMs / 1000));
   // Raw comes straight from the practice state now — same monkeytype
   // formula as WPM but without the "only-perfect-words" filter.
@@ -523,7 +524,9 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
       ? `time ${state.length}`
       : state.mode === "QUOTE"
         ? "quote"
-        : `words ${state.length}`;
+        : state.mode === "BURST"
+          ? `burst ${state.length}`
+          : `words ${state.length}`;
 
   if (replaying) {
     return (

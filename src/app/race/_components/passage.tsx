@@ -38,7 +38,13 @@ export function RacePassage() {
     totalChars > 0 && correctChars >= totalChars
       ? state.words.length
       : Math.min(practice.cursorWord, state.words.length);
-  const acc = isSpectator ? 100 : liveAccuracy(practice.typed, practice.words);
+  // Keystroke-based accuracy from the practice reducer's counters —
+  // same semantics as the solo readout (corrected + stop-on-error-
+  // blocked mistakes both count; backspace neutral).
+  const acc =
+    isSpectator || practice.totalChars === 0
+      ? 100
+      : Math.round((practice.correctChars / practice.totalChars) * 1000) / 10;
   const wpm = you?.wpm ?? 0;
   const showColors = appearance.multiplayerPlayerColors;
   const marker = appearance.multiplayerOpponentMarker;
@@ -142,7 +148,11 @@ export function RacePassage() {
           <div className="mb-4 shrink-0 sm:mb-6">{lineupEl}</div>
         ) : null}
         <div className="flex min-h-0 flex-1 flex-col gap-3">
-          <div className="min-h-0 flex-1">
+          {/* overflow-hidden is load-bearing: when the roster + a short
+           *  viewport squeeze this slot, the spectator header/passage must
+           *  clip at the slot boundary instead of painting under the
+           *  translucent roster card (the FT spectate-overlap bug). */}
+          <div className="min-h-0 flex-1 overflow-hidden">
             {showSpectator ? (
               <SpectatorPassage words={state.words} racers={state.racers} />
             ) : (
@@ -279,25 +289,5 @@ function RacePoster({
       ) : null}
     </div>
   );
-}
-
-function liveAccuracy(
-  typed: readonly string[],
-  words: readonly string[],
-): number {
-  let correct = 0;
-  let total = 0;
-  for (let wi = 0; wi < typed.length; wi++) {
-    const t = typed[wi] ?? "";
-    const w = words[wi] ?? "";
-    const len = Math.max(t.length, w.length);
-    for (let ci = 0; ci < len; ci++) {
-      if (ci < t.length && ci < w.length && t[ci] === w[ci]) correct++;
-      else if (ci < t.length) total++; // wrong or extra
-      if (ci < t.length) total++;
-    }
-  }
-  if (total === 0) return 100;
-  return Math.round((correct / total) * 1000) / 10;
 }
 
