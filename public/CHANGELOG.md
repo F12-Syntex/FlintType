@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.26 — 17 June 2026
+- Fixed accuracy and error count ignoring mistakes you corrected: typing a wrong letter then backspacing (or having it blocked by stop-on-error) used to leave you at 100% accuracy with 0 errors. Accuracy now counts every keystroke, like the live readout during the test — so the number reflects what you actually typed, and the live error count, the results screen, and your saved history all agree.
+
 ## 6.136.25 — 16 June 2026
 - Fixed a typing deadlock: with Confidence set to "All" (backspace fully locked) and Strict space on, one typo used to freeze the run — you couldn't fix it or move on, only restart. Now, when backspace is locked, space lets you move past the word so the run keeps going.
 
