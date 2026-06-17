@@ -10,22 +10,26 @@ import { DISCORD_URL } from "@/lib/version";
  *  in user prefs (same row that drives the MonkeyType import nudge)
  *  so closing once stays closed across sessions and devices.
  *
- *  Server render: while the prefs slice hasn't loaded yet, returns
- *  null so the banner doesn't flash in then out for users who've
- *  already dismissed. The first render after hydration paints it
- *  iff the slice is loaded AND dismissed === false. */
+ *  Flash + hydration guard: `loaded` from useRemotePrefs is false on
+ *  the server and on the first client render (it flips inside an
+ *  effect), so the banner renders null in both — SSR markup and
+ *  hydration agree, and a user who dismissed it never sees it flash
+ *  in then out while the prefs blob loads. It paints only once the
+ *  blob is available AND dismissed === false; for non-dismissed
+ *  users that means it appears just after hydration, which is the
+ *  acceptable trade. */
 const EMPTY_BANNER_STATE = {
   monkeytypeDismissed: false,
   discordDismissed: false,
 };
 
 export function DiscordBanner() {
-  const { value, update } = useRemotePrefs<{
+  const { value, loaded, update } = useRemotePrefs<{
     monkeytypeDismissed: boolean;
     discordDismissed: boolean;
   }>("banners", EMPTY_BANNER_STATE);
 
-  if (value.discordDismissed) return null;
+  if (!loaded || value.discordDismissed) return null;
 
   const dismiss = () => update({ discordDismissed: true });
 

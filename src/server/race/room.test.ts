@@ -644,41 +644,69 @@ describe("RaceRoom", () => {
     return room;
   }
 
-  it("places racers by net WPM, not by finish order", () => {
-    // Two real racers cross at a similar server-computed raw WPM, so the
-    // WINNER is decided by net (raw × accuracy). Alice crosses the line
-    // FIRST but at low accuracy; Bob crosses after with a cleaner run.
-    // Bob's higher net must win despite finishing second.
+  it("places racers by net WPM, not by finish order — and never double-counts accuracy", () => {
+    // `r.wpm` is ALREADY net: setProgress computes it from CORRECT chars
+    // only — (progressChars − errors) / 5 / elapsed-minutes. Final
+    // placement must rank by that net WPM directly, NOT by net × accuracy
+    // (which subtracts errors a second time and disagrees with the WPM
+    // column the user sees — issue FT-021).
+    //
+    // Scenario (T = room.totalChars = 29 chars for this seed):
+    //   Alice — finishes FIRST at elapsed 3s with 9 errors:
+    //           correct 20 → net = 20/5 × (60/3)  = 80 wpm, acc 60%.
+    //   Bob   — finishes SECOND at elapsed 5s with 2 errors:
+    //           correct 27 → net = 27/5 × (60/5)  = 65 wpm, acc 93%.
+    // Alice has the HIGHER net WPM but the LOWER accuracy; Bob the lower
+    // net but cleaner. Net-WPM ranking (the fix) awards Alice 1st — she
+    // matches the higher WPM column. The OLD net × accuracy score would
+    // have given Alice 80 × 0.60 = 48 and Bob 65 × 0.93 ≈ 60, wrongly
+    // crowning the slower-but-cleaner Bob — so this test FAILS on the old
+    // `score = round(wpm × acc/100)` and PASSES on the fix.
+    // A challenge FFA room (no bot fill) keeps the lineup to exactly the
+    // two real racers, so placement is fully deterministic.
     const room = new RaceRoom({
       id: "r_netwpm",
-      slug: null,
-      kind: "matchmaking",
-      modeId: "1v1",
+      slug: "net-wpm-otter-1",
+      kind: "challenge",
+      modeId: "ffa",
       raceSeed: 1,
       wordCount: 5,
     });
-    room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
+    room.addRealRacer({
+      sessionToken: "s_alice",
+      name: "@alice",
+      badge: "RACER",
+      isHost: true,
+    });
     room.addRealRacer({ sessionToken: "s_bob", name: "@bob", badge: "RACER" });
-    vi.advanceTimersByTime(5_000 + 700 + 3_000);
+    expect(room.hostStart("s_alice")).toBe(true);
+    vi.advanceTimersByTime(700 + 3_000);
     expect(room.phase).toBe("racing");
+    const T = room.totalChars;
+    expect(T).toBe(29); // guards the hand-computed net WPMs above
 
-    // Alice crosses first at 50% accuracy (client-reported wpm ignored).
-    room.setProgress("s_alice", room.totalChars, 100, true, undefined, 50);
-    // Bob crosses second at 95% accuracy → higher net.
-    vi.advanceTimersByTime(1_000);
-    room.setProgress("s_bob", room.totalChars, 142, true, undefined, 95);
-    // Drive bots over the line too so phase flips to finished.
-    vi.advanceTimersByTime(60_000);
+    // Alice crosses first at elapsed 3s with 9 errors (low accuracy).
+    vi.advanceTimersByTime(3_000);
+    room.setProgress("s_alice", T, 0, true, 9, 60);
+    // Bob crosses second at elapsed 5s with 2 errors (high accuracy).
+    vi.advanceTimersByTime(2_000);
+    room.setProgress("s_bob", T, 0, true, 2, 93);
     expect(room.phase).toBe("finished");
 
     const racers = room.snapshot().racers;
     const alice = racers.find((r) => r.id === "s_alice");
     const bob = racers.find((r) => r.id === "s_bob");
-    expect(bob?.place).toBeLessThan(alice?.place ?? 99);
-    // First place must belong to Bob (highest net), regardless of
-    // whether bots placed in between.
-    const top = racers.find((r) => r.place === 1);
-    expect(top?.id).toBe("s_bob");
+    // Server-computed net WPM: Alice genuinely higher (80) than Bob (65),
+    // even though Bob finished cleaner and Alice finished first with errors.
+    expect(alice?.wpm).toBe(80);
+    expect(bob?.wpm).toBe(65);
+    // Net WPM wins → Alice is 1st, despite her lower accuracy. (Finish
+    // order is incidental here: Alice also crossed first, but the ranking
+    // is driven by net WPM — see the buzzer test for net beating a racer
+    // who finished first with a lower net.)
+    expect(alice?.place).toBe(1);
+    expect(bob?.place).toBe(2);
+    expect(room.snapshot().racers.find((r) => r.place === 1)?.id).toBe("s_alice");
   });
 
   it("an authenticated user can't join their own room twice — they resume their seat", () => {
@@ -924,5 +952,173 @@ describe("ready-up gate — challenge lobby (#26)", () => {
     room.setReady("s_host", true);
     // host can ready too; the gate only checks NON-host humans
     expect(room.snapshot().racers.find((r) => r.id === "s_host")?.ready).toBe(true);
+  });
+});
+
+describe("challenge rooms never gain bots (issue #5)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function challengeRoom(modeId = "1v1") {
+    return new RaceRoom({
+      id: "r_nobots",
+      slug: "no-bots-1",
+      kind: "challenge",
+      modeId: modeId as "1v1",
+      raceSeed: 1,
+      wordCount: 5,
+    });
+  }
+
+  function botCount(room: RaceRoom): number {
+    return room.snapshot().racers.filter((r) => r.isBot).length;
+  }
+
+  /** Reach the private bot-insertion internals. The cast is the point:
+   *  these tests prove the invariant holds even when an internal path
+   *  is invoked directly (regression net for any future call site). */
+  function internals(room: RaceRoom) {
+    return room as unknown as {
+      addBot(botId: string): unknown;
+      scheduleMatchmakingFill(): void;
+    };
+  }
+
+  it("addBot itself refuses to insert a bot into a challenge room", () => {
+    const room = challengeRoom();
+    expect(internals(room).addBot("selan")).toBeNull();
+    expect(internals(room).addBot("mireille")).toBeNull();
+    expect(botCount(room)).toBe(0);
+  });
+
+  it("a re-armed matchmaking fill schedule adds no bots to a challenge room", () => {
+    const room = challengeRoom();
+    room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
+    // Even if some future code path arms the fill timers on a
+    // challenge room, the schedule bails (and addBot refuses anyway).
+    internals(room).scheduleMatchmakingFill();
+    vi.advanceTimersByTime(10_000);
+    expect(botCount(room)).toBe(0);
+  });
+
+  it("full challenge lifecycle stays human-only: create → join → ready → start → finish", () => {
+    const room = challengeRoom();
+    room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
+    expect(botCount(room)).toBe(0);
+    room.addRealRacer({ sessionToken: "s_bob", name: "@bob", badge: "RACER" });
+    expect(botCount(room)).toBe(0);
+    room.setReady("s_bob", true);
+    expect(room.hostStart("s_host")).toBe(true);
+    expect(botCount(room)).toBe(0);
+    vi.advanceTimersByTime(700); // lobby hold
+    expect(room.phase).toBe("countdown");
+    vi.advanceTimersByTime(3_000); // countdown
+    expect(room.phase).toBe("racing");
+    expect(botCount(room)).toBe(0);
+    // Finish both humans; room finishes with zero bots having raced.
+    room.setProgress("s_host", room.totalChars, 0, true, 0, 100);
+    room.setProgress("s_bob", room.totalChars, 0, true, 0, 100);
+    expect(room.phase).toBe("finished");
+    expect(botCount(room)).toBe(0);
+  });
+
+  it("force-start (solo host) races alone — no bot fill", () => {
+    const room = challengeRoom();
+    room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
+    // The route's force flag only bypasses the ready gate; the room's
+    // hostStart is the same code path either way.
+    expect(room.hostStart("s_host")).toBe(true);
+    vi.advanceTimersByTime(700 + 3_000);
+    expect(room.phase).toBe("racing");
+    expect(room.snapshot().racers.length).toBe(1);
+    expect(botCount(room)).toBe(0);
+  });
+
+  it("rematch (vote + host force) never seeds bots into the new round", () => {
+    const room = challengeRoom();
+    room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
+    expect(room.hostStart("s_host")).toBe(true);
+    vi.advanceTimersByTime(700 + 3_000);
+    room.setProgress("s_host", room.totalChars, 0, true, 0, 100);
+    expect(room.phase).toBe("finished");
+    // Round 2 via the solo vote-threshold path.
+    expect(room.markRematchReady("s_host").started).toBe(true);
+    expect(room.roundNumber).toBe(2);
+    expect(botCount(room)).toBe(0);
+    vi.advanceTimersByTime(700 + 3_000);
+    expect(room.phase).toBe("racing");
+    expect(botCount(room)).toBe(0);
+    room.setProgress("s_host", room.totalChars, 0, true, 0, 100);
+    expect(room.phase).toBe("finished");
+    // Round 3 via the host force-rematch path.
+    expect(room.markRematchReady("s_host", true).started).toBe(true);
+    expect(room.roundNumber).toBe(3);
+    vi.advanceTimersByTime(700 + 3_000);
+    expect(room.phase).toBe("racing");
+    expect(botCount(room)).toBe(0);
+  });
+
+  it("a bot that somehow leaked into a challenge room is purged at the next rematch", () => {
+    const room = challengeRoom();
+    room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
+    // Simulate a legacy leak by planting a bot racer directly into the
+    // private map (bypassing addBot's invariant on purpose).
+    const racers = (
+      room as unknown as { racers: Map<string, { isBot: boolean; id: string }> }
+    ).racers;
+    racers.set("bot:selan", {
+      id: "bot:selan",
+      sessionToken: "bot:selan",
+      name: "@selan",
+      flag: "🇨🇦",
+      badge: "ADEPT",
+      isBot: true,
+      isHost: false,
+      ready: true,
+      joinedAt: Date.now(),
+      progressChars: 0,
+      errors: 0,
+      wpm: 0,
+      raw: 0,
+      accuracy: 100,
+      finishedAt: null,
+      place: null,
+      botCharProgress: 0,
+      disconnected: false,
+    } as never);
+    expect(botCount(room)).toBe(1);
+    expect(room.hostStart("s_host")).toBe(true);
+    vi.advanceTimersByTime(700 + 3_000);
+    room.setProgress("s_host", room.totalChars, 0, true, 0, 100);
+    // The planted bot has no botProfile so it never ticks; finish the
+    // race by treating it as done is unnecessary — the room finishes
+    // when every racer is finished/disconnected, so mark it done.
+    const bot = racers.get("bot:selan") as unknown as { finishedAt: number | null };
+    bot.finishedAt = 1;
+    room.setProgress("s_host", room.totalChars, 0, true, 0, 100);
+    expect(room.phase).toBe("finished");
+    // Rematch — startNewRound purges the leaked bot at the source.
+    expect(room.markRematchReady("s_host", true).started).toBe(true);
+    expect(room.roundNumber).toBe(2);
+    expect(botCount(room)).toBe(0);
+  });
+
+  it("matchmaking rooms still fill with bots exactly as before", () => {
+    const room = new RaceRoom({
+      id: "r_mm_baseline",
+      slug: null,
+      kind: "matchmaking",
+      modeId: "1v1",
+      raceSeed: 1,
+      wordCount: 5,
+    });
+    room.addRealRacer({ sessionToken: "s_alice", name: "@alice", badge: "RACER" });
+    vi.advanceTimersByTime(1_000);
+    expect(room.snapshot().racers.filter((r) => r.isBot).length).toBe(1);
+    expect(room.phase).toBe("lobby");
   });
 });
