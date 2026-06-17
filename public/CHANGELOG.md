@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.31 — 17 June 2026
+- Fixed race results sometimes crowning the wrong winner: the final placement double-counted accuracy, so a racer with the highest speed shown in the WPM column could still drop a place at the finish. Placement now matches the WPM column (which already accounts for your mistakes), so whoever leads on speed wins.
+
 ## 6.136.30 — 17 June 2026
 - Fixed Escape during a test both restarting the run and popping open the command palette at the same time (when focus had drifted off the typing area). While a test is in progress, Escape now just restarts — it no longer also opens the palette.
 

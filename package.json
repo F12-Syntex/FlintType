@@ -1,6 +1,6 @@
 {
   "name": "FlintType",
-  "version": "6.136.30",
+  "version": "6.136.31",
   "private": true,
   "packageManager": "yarn@1.22.22",
   "scripts": {
