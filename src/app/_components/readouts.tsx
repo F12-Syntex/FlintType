@@ -8,7 +8,7 @@ import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { formatClock } from "@/lib/format-duration";
 import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
 import { cn } from "@/lib/utils";
-import { errorCount } from "@/lib/wpm";
+import { keystrokeErrors } from "@/lib/wpm";
 import { usePractice } from "./practice-state";
 
 // Readouts hold milliseconds; the shared m:ss formatter takes seconds.
@@ -88,11 +88,14 @@ function useStatsProps(): StatsProps {
     wpm,
     accuracy,
     burst,
-    // Per-character error count (incorrect + extra), the SAME metric the
-    // results screen shows — so the live ERR and the final ERRORS always
-    // agree. (Was errorWords.size, a per-word count that diverged from
-    // the results' per-keystroke total.)
-    errs: errorCount(state.typed, state.words, false),
+    // Keystroke-true error count — every incorrect keypress, including
+    // ones later backspaced or blocked by stop-on-error. The SAME metric
+    // (keystrokeErrors over state.events) the results screen and the
+    // recorded run use, so live ERR, results ERRORS, and the saved value
+    // always agree, and a corrected mistake still shows as an error
+    // (#51 / FT-016). Must not regress to a typed[]-buffer walk, which
+    // structurally reads 0 after a correction.
+    errs: keystrokeErrors(state.events),
     wordIdx,
     wordCount,
     elapsedMs,

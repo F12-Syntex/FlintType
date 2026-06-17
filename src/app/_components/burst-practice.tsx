@@ -153,7 +153,7 @@ export function BurstProvider({ children }: { children: ReactNode }) {
       return;
     }
     setReps(0);
-    dispatch({ type: "SPACE", now, strictSpace: false });
+    dispatch({ type: "SPACE", now, strictSpace: false, backspaceLocked: false });
   }, [
     state.phase,
     state.cursorWord,

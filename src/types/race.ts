@@ -191,9 +191,10 @@ export const keystrokeInputSchema = z.object({
   progressChars: z.number().int().min(0),
   /** Live WPM mirrored from the client's practice calc. The server
    *  IGNORES this for ranking — it recomputes WPM server-side from
-   *  bounded progress over the gun-anchored window and caps it — so this
-   *  bound is only a sanity guard, set far above human range so honest
-   *  fast typists are never rejected (FT-030). */
+   *  bounded progress over the gun-anchored window and caps it
+   *  (MAX_PLAUSIBLE_RACE_WPM in room.ts) — so this bound is only a
+   *  sanity guard, set far above human range so honest fast typists are
+   *  never rejected at the wire (FT-030 / #65). */
   wpm: z.number().int().min(0).max(100_000),
   /** Accumulated mistype count (wrong + extra chars). Optional so
    *  callers from older builds keep working without an explicit 0. */
