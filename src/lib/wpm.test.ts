@@ -60,11 +60,18 @@ describe("errorCount (shared live + results error metric)", () => {
     expect(errorCount(["helloo"], ["hello"])).toBe(1);
   });
 
-  it("does NOT count a skipped (short) word's missing chars", () => {
-    // A word skipped with space leaves missedChars, not incorrect — so a
-    // pure skip contributes 0 errors in both the live and results views
-    // (previously it bumped the live per-word count but not the results).
-    expect(errorCount(["hel", "world"], ["hello", "world"])).toBe(0);
+  it("counts a skipped (short) word's missing chars as errors", () => {
+    // A word skipped with space leaves missedChars — issue #17b: the
+    // skip underlines as an error live, so the error stat counts the
+    // untyped tail too, identically live (final=false) and on results.
+    expect(errorCount(["hel", "world"], ["hello", "world"], true)).toBe(2);
+    expect(errorCount(["hel", "world"], ["hello", "world"], false)).toBe(2);
+  });
+
+  it("does not penalise the word currently being typed (live)", () => {
+    // The in-progress word is the last typed entry — with final=false its
+    // untyped tail is not missed yet, so live ERR stays quiet mid-word.
+    expect(errorCount(["hel"], ["hello", "world"], false)).toBe(0);
   });
 });
 
