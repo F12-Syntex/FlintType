@@ -31,6 +31,7 @@ import type {
   CommandGroup as CommandGroupId,
   EnumEntry,
 } from "@/lib/command-palette/types";
+import { isTypingSurfaceActive } from "@/lib/typing-surface";
 
 /** Group order in the rendered list — Practice actions at the top
  *  (Restart test is the highest-frequency command), then high-impact
@@ -91,6 +92,12 @@ export function CommandPalette() {
       if (e.key === "Escape") {
         if (openRef.current) return;
         if (isEditableTarget(document.activeElement)) return;
+        // A mounted typing-capture surface (practice / burst / race)
+        // owns Escape as a restart gesture via its own window handler,
+        // even when focus sits on <body> (clicking dead chrome mid-run).
+        // Escape there "does something", so per ui-law §16 the palette
+        // must NOT also open (#55 / FT-020).
+        if (isTypingSurfaceActive()) return;
         if (document.documentElement.getAttribute("data-ft-focus") === "on") {
           return; // let the focus-mode shortcut clear it
         }

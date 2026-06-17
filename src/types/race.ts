@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_PLAUSIBLE_WPM } from "@/lib/wpm-limits";
 
 /** Race modes the client can request. Keeps this list aligned with
  *  `src/app/race/_components/race-data.ts` — the server only validates
@@ -190,7 +191,7 @@ export const keystrokeInputSchema = z.object({
   /** Char position in the passage. Capped server-side at totalChars. */
   progressChars: z.number().int().min(0),
   /** Live WPM mirrored from the client's practice calc. */
-  wpm: z.number().int().min(0).max(500),
+  wpm: z.number().int().min(0).max(MAX_PLAUSIBLE_WPM),
   /** Accumulated mistype count (wrong + extra chars). Optional so
    *  callers from older builds keep working without an explicit 0. */
   errors: z.number().int().min(0).max(10_000).optional(),
