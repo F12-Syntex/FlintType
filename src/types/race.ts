@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { MAX_PLAUSIBLE_WPM } from "@/lib/wpm-limits";
 
 /** Race modes the client can request. Keeps this list aligned with
  *  `src/app/race/_components/race-data.ts` — the server only validates
@@ -190,8 +189,13 @@ export const keystrokeInputSchema = z.object({
   sessionToken: z.string().min(1),
   /** Char position in the passage. Capped server-side at totalChars. */
   progressChars: z.number().int().min(0),
-  /** Live WPM mirrored from the client's practice calc. */
-  wpm: z.number().int().min(0).max(MAX_PLAUSIBLE_WPM),
+  /** Live WPM mirrored from the client's practice calc. The server
+   *  IGNORES this for ranking — it recomputes WPM server-side from
+   *  bounded progress over the gun-anchored window and caps it
+   *  (MAX_PLAUSIBLE_RACE_WPM in room.ts) — so this bound is only a
+   *  sanity guard, set far above human range so honest fast typists are
+   *  never rejected at the wire (FT-030 / #65). */
+  wpm: z.number().int().min(0).max(100_000),
   /** Accumulated mistype count (wrong + extra chars). Optional so
    *  callers from older builds keep working without an explicit 0. */
   errors: z.number().int().min(0).max(10_000).optional(),
