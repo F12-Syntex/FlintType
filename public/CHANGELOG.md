@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.27 — 17 June 2026
+- Fixed settings leaking between accounts on a shared computer: after one person signed out and another signed in, the second person could see (and accidentally overwrite their account with) the first person's settings. Signing out or switching accounts now clears the local settings, so each account only ever sees its own — while a brand-new account you create from a signed-out session still keeps the settings you'd set up first.
+
 ## 6.136.26 — 17 June 2026
 - Fixed accuracy and error count ignoring mistakes you corrected: typing a wrong letter then backspacing (or having it blocked by stop-on-error) used to leave you at 100% accuracy with 0 errors. Accuracy now counts every keystroke, like the live readout during the test — so the number reflects what you actually typed, and the live error count, the results screen, and your saved history all agree.
 

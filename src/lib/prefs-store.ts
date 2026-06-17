@@ -49,6 +49,12 @@ export type Listener = () => void;
 
 let cache: PrefsBlob | null = null;
 let loadPromise: Promise<PrefsBlob> | null = null;
+/** Set by `syncPrefsOwner` on the anon→sign-in carry-over: the local
+ *  cache survives as the merge baseline, but the next `loadPrefs()` must
+ *  still re-run the GET so the new account's remote merges on top — even
+ *  though `cache` is already populated (which would normally short-circuit
+ *  the load). One-shot: cleared as soon as that load starts. */
+let forceReload = false;
 const listeners = new Set<Listener>();
 let writeTimer: ReturnType<typeof setTimeout> | null = null;
 let writeInFlight: Promise<void> | null = null;
@@ -68,6 +74,13 @@ const META_KEY = "flinttype:prefs:meta";
 let localVersion = 0;
 let syncedVersion = 0;
 let metaLoaded = false;
+
+/** The Clerk userId that the current `cache` / localStorage belongs to.
+ *  `null` means anon/unknown. Tracked so a sign-out or an account switch
+ *  on a shared browser resets the store (see `syncPrefsOwner`) instead of
+ *  bleeding user A's settings into user B's account. Persisted in META_KEY
+ *  alongside the version stamps. */
+let owner: string | null = null;
 
 /** Per-slice dirty tracking (the flush transport). The flush only sends
  *  the slices the client actually changed (`dirtyKeys`, merged
@@ -95,19 +108,21 @@ let removed: Set<string> = new Set();
 function metaRead(): {
   v: number;
   sv: number;
+  owner: string | null;
   d: string[];
   r: string[];
   dirty: Record<string, string[]>;
   removed: string[];
 } {
   if (typeof window === "undefined")
-    return { v: 0, sv: 0, d: [], r: [], dirty: {}, removed: [] };
+    return { v: 0, sv: 0, owner: null, d: [], r: [], dirty: {}, removed: [] };
   try {
     const raw = window.localStorage.getItem(META_KEY);
     if (raw) {
       const p = JSON.parse(raw) as {
         v?: unknown;
         sv?: unknown;
+        owner?: unknown;
         d?: unknown;
         r?: unknown;
         dirty?: unknown;
@@ -122,9 +137,12 @@ function metaRead(): {
             if (Array.isArray(val)) fieldDirty[k] = val.filter((x) => typeof x === "string");
           }
         }
+        // Defensive: an OLD `{v,sv}`-only blob has no `owner` — treat the
+        // missing field as null (anon/unknown).
         return {
           v: p.v,
           sv: p.sv,
+          owner: typeof p.owner === "string" ? p.owner : null,
           d: strings(p.d),
           r: strings(p.r),
           dirty: fieldDirty,
@@ -135,7 +153,7 @@ function metaRead(): {
   } catch {
     /* corrupted — treat as clean (backend authoritative) */
   }
-  return { v: 0, sv: 0, d: [], r: [], dirty: {}, removed: [] };
+  return { v: 0, sv: 0, owner: null, d: [], r: [], dirty: {}, removed: [] };
 }
 
 function metaWrite(): void {
@@ -146,6 +164,7 @@ function metaWrite(): void {
       JSON.stringify({
         v: localVersion,
         sv: syncedVersion,
+        owner,
         d: [...dirtyKeys],
         r: [...removedKeys],
         dirty,
@@ -157,14 +176,15 @@ function metaWrite(): void {
   }
 }
 
-/** Hydrate the version stamps + dirty tracking from localStorage once
- *  per session. */
+/** Hydrate the version stamps + owner + dirty tracking from localStorage
+ *  once per session. */
 function ensureMeta(): void {
   if (metaLoaded) return;
   metaLoaded = true;
   const m = metaRead();
   localVersion = m.v;
   syncedVersion = m.sv;
+  owner = m.owner;
   for (const k of m.d) dirtyKeys.add(k);
   for (const k of m.r) removedKeys.add(k);
   dirty = m.dirty;
@@ -176,6 +196,66 @@ function ensureMeta(): void {
     for (const k of Object.keys(dirty)) dirtyKeys.add(k);
     for (const k of removed) removedKeys.add(k);
   }
+}
+
+/** Reconcile the store with the currently signed-in user. Called from
+ *  `<PrefsOwnerSync>` whenever Clerk's `userId` changes (sign-in,
+ *  sign-out, account switch).
+ *
+ *  Three outcomes:
+ *    - same owner → no-op (don't wipe a user's local mirror needlessly).
+ *    - signed in while owner was anon/null → CARRY OVER: keep the cache +
+ *      localStorage (the intentional anon→signin path documented at the
+ *      top of this module) and re-run the GET so the new account's remote
+ *      merges on top of the carried-over local blob.
+ *    - any other change (A→B account switch, A→sign-out) → RESET: drop the
+ *      cache + localStorage entirely so the next load seeds nothing local
+ *      and GETs the correct user's blob. Kills both the cross-user bleed
+ *      and the soft-nav stale-cache short-circuit (cache is now null, so
+ *      the GET fires). */
+export function syncPrefsOwner(userId: string | null): void {
+  ensureMeta();
+  const prev = owner;
+  if (userId === prev) return;
+
+  if (userId !== null && prev === null) {
+    // Carry-over: a brand-new anonymous user (or unknown owner) signs in.
+    // Keep the local cache as the merge baseline, claim the new owner, and
+    // force a fresh GET so the account's remote merges on top.
+    owner = userId;
+    metaWrite();
+    loadPromise = null;
+    forceReload = true;
+    return;
+  }
+
+  // Reset: account switch (A→B) or sign-out (A→null). Nothing of the prior
+  // owner may survive in cache or localStorage.
+  cache = null;
+  loadPromise = null;
+  localVersion = 0;
+  syncedVersion = 0;
+  dirtyKeys.clear();
+  removedKeys.clear();
+  dirty = {};
+  removed = new Set();
+  if (writeTimer) {
+    clearTimeout(writeTimer);
+    writeTimer = null;
+  }
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.removeItem(LS_KEY);
+      window.localStorage.removeItem(META_KEY);
+    } catch {
+      /* quota / private mode — fail silent */
+    }
+  }
+  owner = userId;
+  metaWrite();
+  // Drop the prior user's values from any mounted hooks immediately rather
+  // than leaving them stale until the next GET resolves.
+  notify();
 }
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -218,8 +298,11 @@ export function getCache(): PrefsBlob | null {
  *  unauthenticated / network errors so client UX never blocks on the
  *  signed-out path. */
 export function loadPrefs(): Promise<PrefsBlob> {
-  if (cache) return Promise.resolve(cache);
+  if (cache && !forceReload) return Promise.resolve(cache);
   if (loadPromise) return loadPromise;
+  // Consume the one-shot carry-over flag — the GET below merges the new
+  // account's remote on top of the carried-over local cache.
+  forceReload = false;
   // Seed the cache from localStorage *synchronously* so the first
   // render after page load shows the user's stored choices instead
   // of the bare defaults — even before the backend GET resolves
@@ -467,9 +550,11 @@ async function flush(): Promise<void> {
 export function __resetForTests(): void {
   cache = null;
   loadPromise = null;
+  forceReload = false;
   localVersion = 0;
   syncedVersion = 0;
   metaLoaded = false;
+  owner = null;
   dirtyKeys.clear();
   removedKeys.clear();
   dirty = {};
