@@ -821,7 +821,9 @@ export function useCommandEntries(): readonly CommandEntry[] {
         hint: "Open the practice surface",
         group: "Navigate",
         kind: "action",
-        run: navigate("/app"),
+        // The practice surface is at "/" (route was flattened from
+        // /app/* → /*); "/app" 404s (#49 / FT-014).
+        run: navigate("/"),
         keywords: ["practice", "type", "test"],
       },
       {
