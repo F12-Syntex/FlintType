@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.33 — 17 June 2026
+- Fixed personal-best detection for signed-out players: the saved best for each test now stores your actual final speed instead of a stale mid-run reading, so the best-run crown appears on the right runs and a faster run always updates your best.
+
 ## 6.136.32 — 17 June 2026
 - Fixed the "Design with AI" button overlapping the friends pill at the bottom of the Customise screens on narrow phones — the button now sits just above the friends pill so both stay readable and tappable.
 
