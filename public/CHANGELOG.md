@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.36 — 17 June 2026
+- Fixed the mobile menu when signed out: it no longer shows a useless "Sign out" button and now offers a proper "Sign in" link, so you can actually sign in from your phone.
+
 ## 6.136.35 — 17 June 2026
 - Fixed the mobile menu's footer links: "Status" (which went nowhere) is now "Changelog", and "Privacy" now opens the privacy page instead of doing nothing.
 
