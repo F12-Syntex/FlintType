@@ -42,10 +42,15 @@ export function CustomiseAiDock() {
 
   return (
     <div
-      className="pointer-events-none fixed left-1/2 z-40 -translate-x-1/2"
-      style={{
-        bottom: `calc(${footerH}px + 0.75rem + env(safe-area-inset-bottom))`,
-      }}
+      // On narrow viewports the centred pill is wide enough to reach the
+      // right edge and collide with the friends dock (also bottom-anchored,
+      // z-40). Raise the launcher to stack above the dock's h-11 pill there
+      // (still bottom-centre, ui-law §12.8); from sm+ the centred pill no
+      // longer reaches the corner dock, so fall back to the normal gap.
+      // `--ft-ai-footer` carries the dynamic footer height so `bottom` can
+      // stay a responsive class (inline style would override the breakpoint).
+      className="pointer-events-none fixed left-1/2 z-40 -translate-x-1/2 bottom-[calc(var(--ft-ai-footer)_+_3.75rem_+_env(safe-area-inset-bottom))] sm:bottom-[calc(var(--ft-ai-footer)_+_0.75rem_+_env(safe-area-inset-bottom))]"
+      style={{ ["--ft-ai-footer" as string]: `${footerH}px` }}
     >
       <Link
         href="/customise/appearance/ai"

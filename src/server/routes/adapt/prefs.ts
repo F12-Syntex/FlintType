@@ -15,8 +15,9 @@ import { ensureHandLayout, type HandLayoutPrefs } from "@/lib/hand-layout";
  *   - `adaptFingerMapHash`— hash of the current finger map; bumping
  *     wipes the motor-feature model since its keys describe a layout
  *     that no longer exists.
- *   - `raw`               — the original blob, kept for write-through
- *     so persistAdaptPrefs doesn't trample unrelated slices. */
+ *   - `raw`               — the original blob, for read-only access to
+ *     other slices (e.g. behaviour flags). Never used as a write
+ *     baseline — persistAdaptPrefs merges atomically instead. */
 export type AdaptPrefs = {
   handLayout: HandLayoutPrefs;
   adaptRecency: Map<string, number>;
@@ -45,16 +46,19 @@ export async function loadAdaptPrefs(
   };
 }
 
+/** Persist only the adapt-owned slices via an atomic jsonb merge —
+ *  never a wholesale replace, which raced concurrent client flushes
+ *  and other server writers (the user_prefs lost-update bug). */
 export async function persistAdaptPrefs(
   db: Database,
   userId: string,
-  prefs: AdaptPrefs,
   patch: { adaptRecency?: Map<string, number>; adaptFingerMapHash?: string },
 ): Promise<void> {
-  const next: Record<string, unknown> = { ...prefs.raw };
+  const next: Record<string, unknown> = {};
   if (patch.adaptRecency)
     next.adaptRecency = Object.fromEntries(patch.adaptRecency);
   if (patch.adaptFingerMapHash !== undefined)
     next.adaptFingerMapHash = patch.adaptFingerMapHash;
-  await db.userPrefs.set(userId, next);
+  if (Object.keys(next).length === 0) return;
+  await db.userPrefs.merge(userId, next);
 }

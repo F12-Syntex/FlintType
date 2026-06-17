@@ -1,4 +1,5 @@
 import type { ThemeOverrides, ThemeVar } from "../theme-customization";
+import type { PaletteSlice } from "./palette-fork";
 
 /** Pure logic for the per-CSS-var theme override layer — the colours,
  *  radius, font and word-spacing a user can nudge on the appearance
@@ -108,26 +109,30 @@ export function stripLegacyBaked(o: ThemeOverrides): ThemeOverrides {
 /** One-shot migration of a user's stored {palette, theme} off the old
  *  fake-default state. Strips the legacy baked overrides; if that
  *  leaves no overrides AND the palette was only "custom" because of
- *  them, demote the palette to Default (null). `changed` tells the
- *  caller whether to write anything back. Pure — `customId` is injected
- *  so this stays free of the registry import. */
+ *  them, demote the palette — back to the fork's base palette when one
+ *  was snapshotted (palette-fork.ts), else to Default (null). A custom
+ *  fork that still carries real overrides keeps its `base` untouched.
+ *  `changed` tells the caller whether to write anything back. Pure —
+ *  `customId` is injected so this stays free of the registry import. */
 export function migrateThemeState(
-  palette: { activeId: string | null },
+  palette: PaletteSlice,
   theme: ThemeOverrides,
   customId: string,
 ): {
-  palette: { activeId: string | null };
+  palette: PaletteSlice;
   theme: ThemeOverrides;
   changed: boolean;
 } {
   const cleanedTheme = stripLegacyBaked(theme);
   const themeChanged = cleanedTheme !== theme;
   let activeId = palette.activeId;
+  let base = palette.base;
   if (activeId === customId && overrideCount(cleanedTheme) === 0) {
-    activeId = null;
+    activeId = base?.id ?? null;
+    base = undefined;
   }
   return {
-    palette: { activeId },
+    palette: base ? { activeId, base } : { activeId },
     theme: cleanedTheme,
     changed: themeChanged || activeId !== palette.activeId,
   };
