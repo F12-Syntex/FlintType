@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.29 — 17 June 2026
+- The "Join our Discord" banner now fades away with the rest of the chrome while you're typing (and in focus mode), instead of staying on screen with a clickable button that could pull you off a run.
+
 ## 6.136.28 — 17 June 2026
 - Fixed daily streaks and the activity heatmap miscounting around daylight-saving changes: a streak spanning a clock change no longer resets a day short, and the heatmap no longer skips or doubles a day that week. Day boundaries now follow the calendar, not a fixed 24-hour step.
 
