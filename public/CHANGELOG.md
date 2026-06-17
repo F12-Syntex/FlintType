@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.32 — 17 June 2026
+- Fixed the "Design with AI" button overlapping the friends pill at the bottom of the Customise screens on narrow phones — the button now sits just above the friends pill so both stay readable and tappable.
+
 ## 6.136.31 — 17 June 2026
 - Fixed race results sometimes crowning the wrong winner: the final placement double-counted accuracy, so a racer with the highest speed shown in the WPM column could still drop a place at the finish. Placement now matches the WPM column (which already accounts for your mistakes), so whoever leads on speed wins.
 
