@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.34 — 17 June 2026
+- Fixed online word races that could get stuck "racing" forever when someone joined and never typed (or their tab crashed): a race now always ends within a sensible time limit, ranks everyone, and frees the room — so abandoned races can't pile up and block new ones from starting.
+
 ## 6.136.33 — 17 June 2026
 - Fixed personal-best detection for signed-out players: the saved best for each test now stores your actual final speed instead of a stale mid-run reading, so the best-run crown appears on the right runs and a faster run always updates your best.
 
