@@ -183,6 +183,32 @@ describe("migrateThemeState (off the fake-default)", () => {
     expect(r.theme).toEqual({});
   });
 
+  it("a custom fork keeps its base snapshot while real overrides remain", () => {
+    const base = {
+      id: "catppuccin",
+      light: { primary: "#8839ef" },
+      dark: { primary: "#ca9ee6" },
+    };
+    const r = migrateThemeState(
+      { activeId: CUSTOM, base },
+      { "--primary": "#123456" },
+      CUSTOM,
+    );
+    expect(r.changed).toBe(false);
+    expect(r.palette).toEqual({ activeId: CUSTOM, base });
+  });
+
+  it("a custom fork with no overrides left demotes back to its base palette", () => {
+    const base = {
+      id: "catppuccin",
+      light: { primary: "#8839ef" },
+      dark: { primary: "#ca9ee6" },
+    };
+    const r = migrateThemeState({ activeId: CUSTOM, base }, {}, CUSTOM);
+    expect(r.changed).toBe(true);
+    expect(r.palette).toEqual({ activeId: "catppuccin" });
+  });
+
   it("is idempotent — running twice changes nothing the second time", () => {
     const first = migrateThemeState(
       { activeId: CUSTOM },

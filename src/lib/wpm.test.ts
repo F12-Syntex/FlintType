@@ -1,5 +1,41 @@
 import { describe, expect, it } from "vitest";
-import { calcWpmAndRaw, countChars, errorCount } from "./wpm";
+import {
+  calcWpmAndRaw,
+  countChars,
+  errorCount,
+  keystrokeAccuracy,
+  keystrokeErrors,
+} from "./wpm";
+
+const ev = (...correct: boolean[]) => correct.map((c) => ({ correct: c }));
+
+describe("keystrokeAccuracy / keystrokeErrors (keystroke-true practice stats)", () => {
+  it("is 100% / 0 errors for an empty stream", () => {
+    expect(keystrokeAccuracy([])).toBe(100);
+    expect(keystrokeErrors([])).toBe(0);
+  });
+
+  it("is 100% / 0 errors when every keystroke is correct", () => {
+    const e = ev(true, true, true, true, true);
+    expect(keystrokeAccuracy(e)).toBe(100);
+    expect(keystrokeErrors(e)).toBe(0);
+  });
+
+  it("computes the keystroke ratio for a mix (2 of 5 wrong → 60% / 2)", () => {
+    const e = ev(true, false, true, false, true);
+    expect(keystrokeAccuracy(e)).toBeCloseTo(60, 5);
+    expect(keystrokeErrors(e)).toBe(2);
+  });
+
+  it("still counts a CORRECTED mistake (a false event before later correct ones)", () => {
+    // Repro of the bug: type wrong, then (after a backspace) type the
+    // rest correctly. The wrong keystroke was recorded as a false event
+    // before the correction, so it must still drag accuracy down.
+    const e = ev(false, true, true, true, true); // 'qqqqq'→backspace→correct
+    expect(keystrokeAccuracy(e)).toBeCloseTo(80, 5);
+    expect(keystrokeErrors(e)).toBe(1);
+  });
+});
 
 const MIN = 60_000; // one minute in ms
 
@@ -24,11 +60,18 @@ describe("errorCount (shared live + results error metric)", () => {
     expect(errorCount(["helloo"], ["hello"])).toBe(1);
   });
 
-  it("does NOT count a skipped (short) word's missing chars", () => {
-    // A word skipped with space leaves missedChars, not incorrect — so a
-    // pure skip contributes 0 errors in both the live and results views
-    // (previously it bumped the live per-word count but not the results).
-    expect(errorCount(["hel", "world"], ["hello", "world"])).toBe(0);
+  it("counts a skipped (short) word's missing chars as errors", () => {
+    // A word skipped with space leaves missedChars — issue #17b: the
+    // skip underlines as an error live, so the error stat counts the
+    // untyped tail too, identically live (final=false) and on results.
+    expect(errorCount(["hel", "world"], ["hello", "world"], true)).toBe(2);
+    expect(errorCount(["hel", "world"], ["hello", "world"], false)).toBe(2);
+  });
+
+  it("does not penalise the word currently being typed (live)", () => {
+    // The in-progress word is the last typed entry — with final=false its
+    // untyped tail is not missed yet, so live ERR stays quiet mid-word.
+    expect(errorCount(["hel"], ["hello", "world"], false)).toBe(0);
   });
 });
 
