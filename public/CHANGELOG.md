@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.30 — 17 June 2026
+- Fixed Escape during a test both restarting the run and popping open the command palette at the same time (when focus had drifted off the typing area). While a test is in progress, Escape now just restarts — it no longer also opens the palette.
+
 ## 6.136.29 — 17 June 2026
 - The "Join our Discord" banner now fades away with the rest of the chrome while you're typing (and in focus mode), instead of staying on screen with a clickable button that could pull you off a run.
 
