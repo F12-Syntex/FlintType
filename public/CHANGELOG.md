@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.35 — 17 June 2026
+- Fixed the mobile menu's footer links: "Status" (which went nowhere) is now "Changelog", and "Privacy" now opens the privacy page instead of doing nothing.
+
 ## 6.136.34 — 17 June 2026
 - Fixed online word races that could get stuck "racing" forever when someone joined and never typed (or their tab crashed): a race now always ends within a sensible time limit, ranks everyone, and frees the room — so abandoned races can't pile up and block new ones from starting.
 

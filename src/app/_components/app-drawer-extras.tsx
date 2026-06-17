@@ -15,11 +15,14 @@ const ACCOUNT: Item[] = [
   { href: "/customise", label: "SETTINGS" },
 ];
 
+// Mirrors the desktop footer's meta links (app-footer.tsx) — real
+// destinations, no placeholder anchors. SETTINGS is already in ACCOUNT
+// above, so it's omitted here.
 const META: Item[] = [
   { href: DISCORD_URL, label: "DISCORD", external: true },
   { href: GITHUB_URL, label: "GITHUB", external: true },
-  { href: "#status", label: "STATUS" },
-  { href: "#privacy", label: "PRIVACY" },
+  { href: "/changelog", label: "CHANGELOG" },
+  { href: "/privacy", label: "PRIVACY" },
 ];
 
 function FooterLink({
