@@ -1,6 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { HistoryTest } from "@/types/history";
-import { deriveSkills, deriveTotals } from "./derive-stats";
+import {
+  dayOrdinal,
+  deriveActivity,
+  deriveSkills,
+  deriveStreak,
+  deriveTotals,
+} from "./derive-stats";
+
+const DAY_MS = 86_400_000;
 
 const mk = (over: Partial<HistoryTest> = {}): HistoryTest => ({
   id: Math.random().toString(36).slice(2),
@@ -53,5 +61,104 @@ describe("deriveSkills", () => {
     const long = [mk({ wpm: 125, completedAtMs: 60_000 })];
     expect(axis(short, "endurance").value).toBe(0);
     expect(axis(long, "endurance").value).toBe(50); // 125 / 250
+  });
+});
+
+describe("dayOrdinal (DST-immune adjacency)", () => {
+  // Date.UTC has no DST, so consecutive local calendar dates always map
+  // to ordinals exactly 1 apart — even across a DST transition. These
+  // are timezone-independent assertions.
+  it("US spring-forward (Mar 9 → 10, 2025) is one day apart", () => {
+    expect(dayOrdinal(2025, 2, 10) - dayOrdinal(2025, 2, 9)).toBe(1);
+  });
+
+  it("EU fall-back (Oct 26 → 27, 2025) is one day apart", () => {
+    expect(dayOrdinal(2025, 9, 27) - dayOrdinal(2025, 9, 26)).toBe(1);
+  });
+});
+
+describe("deriveStreak", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // Noon timestamps keep us clear of midnight / DST edges.
+  const noon = (daysAgo: number, base: number) =>
+    base - daysAgo * DAY_MS + 12 * 3_600_000;
+
+  it("counts 3 consecutive days (current and longest)", () => {
+    const base = new Date(2025, 5, 13, 0, 0, 0).getTime();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(base + 12 * 3_600_000));
+    const tests = [
+      mk({ startedAtMs: noon(0, base) }),
+      mk({ startedAtMs: noon(1, base) }),
+      mk({ startedAtMs: noon(2, base) }),
+    ];
+    const s = deriveStreak(tests);
+    expect(s.current).toBe(3);
+    expect(s.longest).toBe(3);
+  });
+
+  it("breaks the current streak on a gap but keeps the longer longest", () => {
+    const base = new Date(2025, 5, 13, 0, 0, 0).getTime();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(base + 12 * 3_600_000));
+    const tests = [
+      // unbroken tail of 2 (today + yesterday)
+      mk({ startedAtMs: noon(0, base) }),
+      mk({ startedAtMs: noon(1, base) }),
+      // gap at day 2, then a run of 3
+      mk({ startedAtMs: noon(3, base) }),
+      mk({ startedAtMs: noon(4, base) }),
+      mk({ startedAtMs: noon(5, base) }),
+    ];
+    const s = deriveStreak(tests);
+    expect(s.current).toBe(2);
+    expect(s.longest).toBe(3);
+  });
+
+  it("returns zeros on no tests", () => {
+    expect(deriveStreak([])).toEqual({
+      current: 0,
+      longest: 0,
+      lastTestMs: null,
+    });
+  });
+});
+
+describe("deriveActivity", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const ord = (d: Date) =>
+    dayOrdinal(d.getFullYear(), d.getMonth(), d.getDate());
+
+  it("fills weeks*7 cells, ends on today, no dup/skip, seeded counts show", () => {
+    const today = new Date(2025, 5, 13, 0, 0, 0); // Fri Jun 13 2025
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(today.getTime() + 12 * 3_600_000));
+    const weeks = 2;
+    // Seed 3 tests on today.
+    const tests = [
+      mk({ startedAtMs: today.getTime() + 12 * 3_600_000 }),
+      mk({ startedAtMs: today.getTime() + 13 * 3_600_000 }),
+      mk({ startedAtMs: today.getTime() + 14 * 3_600_000 }),
+    ];
+    const cells = deriveActivity(tests, weeks);
+
+    // Monday-aligned, today included → continuous run ending today.
+    expect(cells.length).toBeGreaterThan(0);
+    const last = cells[cells.length - 1]!;
+    expect(ord(last.date)).toBe(ord(today));
+
+    // Strictly ascending by exactly one calendar day — no dup, no skip.
+    for (let i = 1; i < cells.length; i++) {
+      expect(ord(cells[i]!.date) - ord(cells[i - 1]!.date)).toBe(1);
+    }
+
+    // The seeded day shows its count.
+    expect(last.tests).toBe(3);
   });
 });
