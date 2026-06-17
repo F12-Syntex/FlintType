@@ -511,11 +511,20 @@ function PassageBody({
       // Multi-line — keep the cursor at the mid-line of the viewport
       // once it's typed past it. cap = round(clipHeight/lh), trigger =
       // floor(cap/2), scroll = max(0, currentLine - trigger) * lh.
+      //
+      // The trigger is also clamped to `cap - 2` so at least one
+      // lookahead line stays below the caret. Without it, cap=2 gives
+      // trigger=1, which pins the caret to the BOTTOM of the two visible
+      // lines — the line above is already-typed history and the upcoming
+      // line is clipped, so the user has zero lookahead (#43 / FT-008).
+      // The clamp only affects cap=2 (1→0); cap=1 and cap>=3 are
+      // unchanged (cap-2 >= floor(cap/2) there), and max(0,…) keeps it
+      // non-negative for cap=1.
       setScrollX(0);
       const lh = lineHeight ?? parseFloat(getComputedStyle(inner).lineHeight);
       if (Number.isFinite(lh) && lh > 0 && clipHeight != null && clipHeight > 0) {
         const cap = Math.max(1, Math.round(clipHeight / lh));
-        const trigger = Math.max(0, Math.floor(cap / 2));
+        const trigger = Math.max(0, Math.min(Math.floor(cap / 2), cap - 2));
         const currentLine = Math.max(0, Math.floor(targetTopInInner / lh));
         const desired = Math.max(0, currentLine - trigger) * lh;
         setScrollOffset(desired);

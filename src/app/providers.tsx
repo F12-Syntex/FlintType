@@ -12,6 +12,7 @@ import { AppearanceApplier } from "./appearance-applier";
 import { BackgroundApplier } from "./background-applier";
 import { BordersApplier } from "./borders-applier";
 import { FocusShortcut } from "./focus-shortcut";
+import { PrefsOwnerSync } from "./_components/prefs-owner-sync";
 import { PresenceHeartbeat } from "./_components/presence-heartbeat";
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -23,6 +24,10 @@ export function Providers({ children }: { children: ReactNode }) {
       disableTransitionOnChange
     >
       <PaletteProvider>
+        {/* Reconcile the prefs store with the signed-in user before any
+            surface reads it — prevents one user's settings bleeding into
+            another's on a shared browser (prefs-store.ts syncPrefsOwner). */}
+        <PrefsOwnerSync />
         <ApplyThemeOverrides />
         <BackgroundApplier />
         <BordersApplier />

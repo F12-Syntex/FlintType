@@ -191,7 +191,28 @@ function ChartTooltipContent({
     return null;
   }
 
-  const nestLabel = payload.length === 1 && indicator !== "dot";
+  // A shared-axis tooltip can receive stray rows from decorative
+  // graphical items (e.g. a <Scatter> contributes its x/y dataKeys on
+  // top of the line series). recharts keys the y-entry by the scatter's
+  // own dataKey and the x-entry by the axis dataKey — neither belongs in
+  // a config-driven readout, and two series sharing a dataKey would
+  // collide on the React `key={item.dataKey}` below. Render only items
+  // whose dataKey is a configured metric, de-duped by dataKey.
+  const seen = new Set<string>();
+  const visiblePayload = payload.filter((item) => {
+    const dk = item.dataKey ? String(item.dataKey) : undefined;
+    if (!dk || !(dk in config) || seen.has(dk)) {
+      return false;
+    }
+    seen.add(dk);
+    return true;
+  });
+
+  if (!visiblePayload.length) {
+    return null;
+  }
+
+  const nestLabel = visiblePayload.length === 1 && indicator !== "dot";
 
   return (
     <div
@@ -202,7 +223,7 @@ function ChartTooltipContent({
     >
       {!nestLabel ? tooltipLabel : null}
       <div className="grid gap-1.5">
-        {payload.map((item, index) => {
+        {visiblePayload.map((item, index) => {
           const key = `${nameKey || item.name || item.dataKey || "value"}`;
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
           const indicatorColor = color || item.payload?.fill || item.color;
