@@ -305,6 +305,13 @@ export class RaceRoom {
   }
 
   private addBot(botId: BotId): InternalRacer | null {
+    // INVARIANT — bots exist ONLY in matchmaking rooms. Challenge
+    // (private) lobbies are real-players-only by design
+    // (docs/multiplayer.md); enforcing it here, at the single
+    // insertion chokepoint, means no call site (initial fill, lock
+    // timer, hostStart, any future path) can ever leak a bot into a
+    // challenge room, regardless of where it's called from.
+    if (this.kind !== "matchmaking") return null;
     if (this.racers.size >= this.capacity) return null;
     if (this.botRacerByBotId(botId)) return null;
     const bot = BOTS[botId];
@@ -344,6 +351,9 @@ export class RaceRoom {
   /* ─── Matchmaking ────────────────────────────────────────── */
 
   private scheduleMatchmakingFill() {
+    // Matchmaking-only — a challenge room must never arm the bot-fill
+    // schedule. Defensive twin of the `addBot` kind invariant.
+    if (this.kind !== "matchmaking") return;
     const fillBots = BOT_LINEUP[this.modeId] ?? ["selan"];
     this.matchmakingEndsAt = this.matchmakingStartedAt + MATCHMAKING_WINDOW_MS;
     for (let i = 0; i < fillBots.length; i += 1) {
@@ -806,23 +816,26 @@ export class RaceRoom {
     this.scheduleGc();
   }
 
-  /** Re-rank every racer's `place` by net WPM (raw_wpm × accuracy /
-   *  100) descending. Finish order alone is a misleading winner — a
-   *  cracked typist who finished cleanly at 177 net deserves first
-   *  even if a sloppier 100-wpm racer crossed the line a second
-   *  earlier with half their typing being backspaces. Ties (rare —
-   *  two racers at the same integer net) break on `finishedAt`
+  /** Re-rank every racer's `place` by net WPM descending. `r.wpm` is
+   *  ALREADY net — `setProgress` (and the bot tick) compute it from
+   *  *correct* chars only (`(progressChars − errors) / 5 / minutes`),
+   *  so errors are subtracted exactly once, at the source. Ranking
+   *  must therefore use `r.wpm` directly; multiplying by accuracy here
+   *  would penalise accuracy a SECOND time and make the awarded winner
+   *  disagree with the WPM column shown to users (the client live
+   *  standings rank by `r.wpm` directly — see race-results.tsx, whose
+   *  comment notes applying accuracy again "would penalize accuracy
+   *  twice"). Finish order alone is a misleading winner — a cracked
+   *  typist who finished cleanly at 177 net deserves first even if a
+   *  sloppier 100-net racer crossed the line a second earlier. Ties
+   *  (rare — two racers at the same integer net) break on `finishedAt`
    *  ascending so the earlier finisher edges out. Bots and real
    *  players rank against each other the same way; disconnected
    *  racers slot to the back. Called once from `maybeFinishRace` so
    *  the place is final by the time the result panel mounts. */
   private rankByNetWpm() {
     const racers = [...this.racers.values()];
-    const score = (r: (typeof racers)[number]) => {
-      const wpm = Math.max(0, r.wpm);
-      const acc = Math.max(0, Math.min(100, r.accuracy));
-      return Math.round(wpm * (acc / 100));
-    };
+    const score = (r: (typeof racers)[number]) => Math.round(Math.max(0, r.wpm));
     racers.sort((a, b) => {
       if (a.disconnected !== b.disconnected) {
         return a.disconnected ? 1 : -1;
@@ -924,6 +937,18 @@ export class RaceRoom {
       );
     }
     this.totalChars = totalCharsOf(this.words);
+    // Bots never belong in a challenge room (see the `addBot`
+    // invariant). A rematch re-seeds every retained racer into the new
+    // round, so if a bot ever slipped into a challenge room (old code
+    // paths seeded bots in `hostStart` before the real-players-only
+    // rule), the rematch would carry it forward forever — purge any
+    // bot here so a new round of a non-matchmaking room is guaranteed
+    // human-only at the source, not just filtered at display.
+    if (this.kind !== "matchmaking") {
+      for (const r of [...this.racers.values()]) {
+        if (r.isBot) this.racers.delete(r.id);
+      }
+    }
     // Purge real racers who disconnected during the round that just
     // finished — they left and aren't coming back for this rematch.
     // Leaving them in would hold a seat against `capacity` and render a

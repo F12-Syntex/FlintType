@@ -1,4 +1,12 @@
 import { z } from "zod";
+import {
+  liveAppearanceSchema,
+  liveCaretSchema,
+  liveThemeVarsSchema,
+  type LiveAppearance,
+  type LiveCaret,
+  type LiveThemeVars,
+} from "./live-screen-meta";
 import type { UserTagId } from "./user-tag";
 
 /** The extra payload that lets a spectator render a faithful CLONE of
@@ -7,10 +15,11 @@ import type { UserTagId } from "./user-tag";
  *  vars. Optional: an old client (or a future lighter mode) can omit it,
  *  and the spectator falls back to the read-only progress mirror.
  *
- *  `appearance` / `caret` are opaque pref blobs (merged over the client
- *  defaults on render); `themeVars` is a map of resolved CSS custom
- *  properties (e.g. `--background`, `--ft-passage-typed`) applied to the
- *  clone container so colours + fonts match. */
+ *  `appearance` / `caret` are schema-validated partial pref shapes
+ *  (merged over the client defaults on render); `themeVars` is an
+ *  allowlisted map of resolved CSS custom properties (e.g.
+ *  `--background`, `--ft-passage-typed`) applied to the clone container
+ *  so colours + fonts match. */
 /** One keystroke in a finished run's event log — drives the results
  *  chart + heatmap. `wordIndex` is rebased to the windowed `words`. */
 export type LiveKeyEvent = {
@@ -42,10 +51,10 @@ export type LiveScreen = {
    *  only every ~8th frame; the server backfills lean frames from the
    *  last stored value, and consumers merge over client defaults, so a
    *  rare gap degrades to defaults rather than breaking. */
-  appearance?: Record<string, unknown>;
-  caret?: Record<string, unknown>;
+  appearance?: LiveAppearance;
+  caret?: LiveCaret;
   behaviour?: { blindMode?: boolean };
-  themeVars?: Record<string, string>;
+  themeVars?: LiveThemeVars;
   /** Sent on the `done` frame so the spectator's results report (chart,
    *  heatmap, per-letter) renders from the broadcaster's real run. */
   wpmHistory?: LiveWpmSample[];
@@ -83,14 +92,16 @@ const liveScreenSchema = z.object({
   elapsedMs: z.number().min(0).max(86_400_000),
   raw: z.number().min(0).max(1000),
   // The static "meta" block (appearance, caret, behaviour, resolved
-  // theme vars). Opaque pref blobs, bounded but not shape-validated.
+  // theme vars) — shape-validated against the real pref types (see
+  // live-screen-meta.ts): unknown keys are stripped, invalid values
+  // degrade to the field's default on the clone rather than 400ing.
   // OPTIONAL on the wire: the broadcaster only sends them every ~8th
   // frame, and the server backfills the lean frames in between from the
   // last stored value — so the steady-state push is tiny.
-  appearance: z.record(z.string(), z.unknown()).optional(),
-  caret: z.record(z.string(), z.unknown()).optional(),
+  appearance: liveAppearanceSchema.optional(),
+  caret: liveCaretSchema.optional(),
   behaviour: z.object({ blindMode: z.boolean().optional() }).optional(),
-  themeVars: z.record(z.string().max(64), z.string().max(200)).optional(),
+  themeVars: liveThemeVarsSchema.optional(),
   wpmHistory: z
     .array(
       z.object({
