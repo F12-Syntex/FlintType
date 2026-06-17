@@ -6,8 +6,10 @@
  *  test-submission effect that may or may not have landed yet.
  *
  *  Treats unknown keys as 0 so the first run on any (mode, length)
- *  bucket is always recorded as a PB. Reset on logout / clear-site-
- *  data via standard localStorage semantics. */
+ *  bucket is always recorded as a PB. localStorage persists across
+ *  sessions, so these keys are explicitly cleared on sign-out via
+ *  `clearUserScopedStorage()` (src/lib/sign-out-cleanup.ts) — otherwise
+ *  the next user on this browser would inherit the crown baseline. */
 const KEY_PREFIX = "ft:pb:";
 
 function keyFor(mode: string, amount: number): string {

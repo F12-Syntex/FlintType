@@ -4,6 +4,9 @@ import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { ModeSwitcher } from "@/components/ui/mode-switcher";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
+import { useBackgroundPrefs } from "@/lib/background-prefs";
+import { useCaretSettings } from "@/lib/caret-settings";
+import { useKeyboardSettings } from "@/lib/keyboard-settings";
 import {
   type ThemeVar,
   useThemeOverrides,
@@ -119,11 +122,28 @@ export default function AppearancePage() {
   const { overrides, setVar, clearVar, reset } = useThemeOverrides();
   const { customizedCount: appearanceCustomized, reset: resetAppearance } =
     useAppearancePrefs();
-  const customizedCount = overrideCount(overrides) + appearanceCustomized;
+  const { isCustomised: caretCustomised, reset: resetCaret } = useCaretSettings();
+  const { isCustomised: keyboardCustomised, reset: resetKeyboard } =
+    useKeyboardSettings();
+  const {
+    isCustomised: backgroundCustomised,
+    reset: resetBackground,
+    clearLocalImage,
+  } = useBackgroundPrefs();
+  const customizedCount =
+    overrideCount(overrides) +
+    appearanceCustomized +
+    (caretCustomised ? 1 : 0) +
+    (keyboardCustomised ? 1 : 0) +
+    (backgroundCustomised ? 1 : 0);
 
   function handleResetAll() {
     reset();
     resetAppearance();
+    resetCaret();
+    resetKeyboard();
+    resetBackground();
+    clearLocalImage();
   }
 
   return (
