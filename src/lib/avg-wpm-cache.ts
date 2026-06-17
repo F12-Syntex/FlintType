@@ -6,7 +6,12 @@
  *
  *  Pure storage helpers — no React. The hook lives next to the
  *  practice provider since that's the one place that observes test
- *  completions in the right scope. */
+ *  completions in the right scope.
+ *
+ *  localStorage persists across sessions, so this key is cleared on
+ *  sign-out via `clearUserScopedStorage()` (src/lib/sign-out-cleanup.ts)
+ *  so the next user on this browser doesn't inherit the previous
+ *  user's BURST auto-threshold. */
 
 const KEY = "ft:avg-wpm-samples";
 const MAX_SAMPLES = 20;

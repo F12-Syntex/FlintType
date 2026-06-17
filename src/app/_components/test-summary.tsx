@@ -9,7 +9,7 @@ import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { recordIfPb } from "@/lib/pb-cache";
 import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
 import { cn } from "@/lib/utils";
-import { errorCount } from "@/lib/wpm";
+import { calcWpmAndRaw, keystrokeErrors } from "@/lib/wpm";
 import { consistencyScore, stallWpm } from "@/lib/wpm-stats";
 import { type KeyEvent, usePractice } from "./practice-state";
 import { reconstructCursor } from "./replay-cursor";
@@ -449,8 +449,9 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
   //    a cache clear / on a new device) falsely crowned.
   //
   //  • Anonymous viewers have no server history, so they fall back to the
-  //    per-session localStorage cache — the best we can do without an
-  //    account, and harmless since it resets each session.
+  //    per-browser localStorage cache — the best we can do without an
+  //    account. The cache is cleared on sign-out (sign-out-cleanup.ts)
+  //    so it never carries a previous user's baseline.
   //
   // Reset to false whenever we leave the done screen so a stale crown
   // never carries into the next run.
@@ -468,8 +469,30 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
       return;
     }
     // Anonymous fallback — per-browser localStorage cache.
+    //
+    // Recompute the final WPM straight from state rather than reading the
+    // context `wpm`. The context value is the provider's 1 Hz-throttled
+    // liveStats, only snapped to the exact final value by the provider's
+    // own effect — and React runs this child effect BEFORE that parent
+    // effect on the commit where phase flips to "done", so `wpm` here is
+    // the last (up-to-1s-stale) mid-run sample. That stale value was being
+    // cached as the PB, causing both false crowns and missed crowns on the
+    // next run. This mirrors the submission path (practice-state.tsx),
+    // which also recomputes from state directly, and rounds to match the
+    // headline stat the user sees.
     const mode = state.mode.toLowerCase();
-    if (recordIfPb(mode, state.length, wpm)) setIsNewPb(true);
+    const durationMs =
+      state.startTime != null && state.endTime != null
+        ? state.endTime - state.startTime
+        : 0;
+    const { wpm: finalWpm } = calcWpmAndRaw(
+      state.typed,
+      state.words,
+      durationMs,
+      true,
+      state.events.length,
+    );
+    if (recordIfPb(mode, state.length, Math.round(finalWpm))) setIsNewPb(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.phase, userLoaded, isSignedIn, lastTestIsPb]);
   // Convert the live wpmHistory samples into chart buckets keyed by
@@ -486,12 +509,12 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
   );
   const stall = Math.round(stallWpm(buckets));
   const cons = consistencyScore(buckets);
-  // Per-character errors (incorrect + extra) from the final typed
-  // buffer — the SAME metric the live ERR readout now shows, so the two
-  // agree. (Was a per-keystroke wrong-event count, which also disagreed
-  // with the countChars-based accuracy: a fully-corrected run read 100%
-  // accuracy yet a non-zero error total.)
-  const wrongTotal = errorCount(state.typed, state.words, true);
+  // Keystroke-true error count — the SAME metric the live ERR readout
+  // and the recorded/persisted value now use (incorrect keystrokes,
+  // including ones later backspaced or blocked by stop-on-error). The
+  // old countChars-over-typed[] count read 0 for a fully-corrected run
+  // while accuracy is keystroke-true, so the two disagreed.
+  const wrongTotal = keystrokeErrors(state.events);
   const elapsedSec = Math.max(1, Math.round(elapsedMs / 1000));
   // Raw comes straight from the practice state now — same monkeytype
   // formula as WPM but without the "only-perfect-words" filter.
@@ -501,7 +524,9 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
       ? `time ${state.length}`
       : state.mode === "QUOTE"
         ? "quote"
-        : `words ${state.length}`;
+        : state.mode === "BURST"
+          ? `burst ${state.length}`
+          : `words ${state.length}`;
 
   if (replaying) {
     return (
