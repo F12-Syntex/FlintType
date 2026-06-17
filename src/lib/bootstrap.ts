@@ -19,6 +19,7 @@
  *    - src/app/appearance-applier.tsx (data-ft-* mapping)
  *    - src/app/borders-applier.tsx
  *    - src/lib/apply-theme-overrides.tsx (theme CSS-var overrides)
+ *    - src/lib/themes/use-palette.tsx (palette.varsLight/varsDark + applyTheme)
  *    - src/lib/themes/palette-fork.ts (custom+base override layering)
  *    - src/lib/themes/registry.ts (CUSTOM_THEME_ID — hardcoded as "custom" below)
  *    - src/app/_components/discord-banner.tsx (banners.discordDismissed) */
@@ -64,6 +65,43 @@ export const PREFS_BOOTSTRAP_SCRIPT = `
       }
     }
 
+    // Named palette: paint the active community palette's resolved
+    // cssVars before first paint, so it doesn't flash the default
+    // coral/paper for the first frames (ui-law §9.3). Mirrors applyTheme
+    // in src/lib/themes/use-palette.tsx. The mode is resolved the same
+    // way next-themes does (storageKey 'theme', defaultTheme 'system',
+    // enableSystem) since this runs before next-themes sets the dark
+    // class. Applied BEFORE the theme block so custom per-var overrides
+    // still layer on top.
+    var palette = blob.palette;
+    if (palette && typeof palette === 'object') {
+      var mode = 'light';
+      try {
+        var stored = window.localStorage.getItem('theme');
+        if (stored === 'dark') {
+          mode = 'dark';
+        } else if (
+          stored !== 'light' &&
+          window.matchMedia &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches
+        ) {
+          mode = 'dark';
+        }
+      } catch (_m) {
+        /* matchMedia / storage unavailable — default to light */
+      }
+      var pvars = mode === 'dark' ? palette.varsDark : palette.varsLight;
+      if (pvars && typeof pvars === 'object') {
+        for (var pk in pvars) {
+          if (!Object.prototype.hasOwnProperty.call(pvars, pk)) continue;
+          var pv = pvars[pk];
+          if (typeof pv !== 'string' || !pv) continue;
+          if (pk.charAt(0) !== '-' || pk.charAt(1) !== '-') continue;
+          root.style.setProperty(pk, pv);
+        }
+      }
+    }
+
     // Custom-fork base palette: when the user nudged a var while on a
     // named palette, the palette slice pins activeId 'custom' and keeps
     // a snapshot of the named palette's cssVars under base (see
@@ -73,16 +111,16 @@ export const PREFS_BOOTSTRAP_SCRIPT = `
     var pal = blob.palette;
     if (pal && typeof pal === 'object' && pal.activeId === 'custom' &&
         pal.base && typeof pal.base === 'object') {
-      var mode = 'light';
+      var cmode = 'light';
       try {
-        var stored = window.localStorage.getItem('theme');
-        if (stored === 'dark') mode = 'dark';
-        else if (stored !== 'light' &&
+        var cstored = window.localStorage.getItem('theme');
+        if (cstored === 'dark') cmode = 'dark';
+        else if (cstored !== 'light' &&
                  window.matchMedia('(prefers-color-scheme: dark)').matches) {
-          mode = 'dark';
+          cmode = 'dark';
         }
       } catch (_m) { /* keep light */ }
-      var baseVars = mode === 'dark' ? pal.base.dark : pal.base.light;
+      var baseVars = cmode === 'dark' ? pal.base.dark : pal.base.light;
       if (baseVars && typeof baseVars === 'object') {
         for (var bk in baseVars) {
           if (!Object.prototype.hasOwnProperty.call(baseVars, bk)) continue;

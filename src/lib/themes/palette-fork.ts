@@ -27,10 +27,21 @@ export type PaletteBase = {
 
 /** The persisted "palette" prefs slice. `base` is present only while
  *  `activeId === CUSTOM_THEME_ID` and the fork came off a named
- *  palette; Default (null) and reactive forks carry no base. */
+ *  palette; Default (null) and reactive forks carry no base.
+ *
+ *  `varsLight` / `varsDark` are the resolved cssVars of the active
+ *  *named static* palette (var names WITH the `--` prefix), persisted so
+ *  the pre-hydration bootstrap (src/lib/bootstrap.ts) can paint a
+ *  community palette on `<html>` BEFORE first paint — otherwise it
+ *  flashes the default coral/paper for the first frames on every load
+ *  (the FOUC ui-law §9.3 declares load-bearing to prevent). Absent for
+ *  Default (null), custom (uses `base` + the theme-overrides slice the
+ *  bootstrap already paints), and reactive (sampled async). */
 export type PaletteSlice = {
   activeId: string | null;
   base?: PaletteBase;
+  varsLight?: Record<string, string>;
+  varsDark?: Record<string, string>;
 };
 
 /** Fork the palette slice to "custom" because a per-var override was

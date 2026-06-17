@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.38 — 17 June 2026
+- Fixed community palettes (Catppuccin, Cosmic Night, and the rest) briefly flashing the default coral/paper colours every time a page loaded — your chosen palette now paints immediately, before the first frame.
+
 ## 6.136.37 — 17 June 2026
 - Fixed importing MonkeyType settings while it was set to Quote mode: it now picks a valid quote length (so quotes actually load instead of showing "quote unavailable"), and the import no longer quietly resets your adaptive mode and word-list choices.
 

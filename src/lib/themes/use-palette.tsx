@@ -26,6 +26,7 @@ import {
   CUSTOM_THEME_ID,
   findTheme,
   getThemeRoot,
+  prefixCssVars,
   THEMES,
   type Theme,
 } from "./registry";
@@ -143,7 +144,23 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     const mode = resolvedTheme === "dark" ? "dark" : "light";
     clearThemeVars(root);
     clearReactivePalette(root);
-    if (theme) applyTheme(root, theme, mode);
+    if (theme) {
+      applyTheme(root, theme, mode);
+      // One-time self-heal: users who picked this palette before its vars
+      // were persisted have a `palette` slice with no varsLight/varsDark,
+      // so they'd still flash the default palette on load. Backfill them
+      // straight to storage — the bootstrap reads localStorage, not React
+      // state, so this needs no setState (no effect loop). The readSlice
+      // guard stops it re-writing once the vars are present.
+      const persisted = readSlice<PaletteSlice>("palette", DEFAULT_PALETTE);
+      if (persisted.activeId === activeId && persisted.varsLight == null) {
+        writeSlice("palette", {
+          activeId,
+          varsLight: prefixCssVars(theme.cssVars.light),
+          varsDark: prefixCssVars(theme.cssVars.dark),
+        });
+      }
+    }
   }, [activeId, base, resolvedTheme, effectiveImage]);
 
   const apply = useCallback(
@@ -175,10 +192,24 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
         // Re-picking Custom keeps the fork's `base` snapshot intact.
         update({ activeId: id });
       } else {
-        // Function-form so a stale `base` snapshot from a previous
-        // custom fork is dropped rather than merged along (update()
-        // merges object patches).
-        update(() => ({ activeId: id }));
+        // Persist the named static palette's resolved cssVars so the
+        // pre-hydration bootstrap can paint them before first paint (no
+        // default-palette FOUC). Function-form so a stale `base` snapshot
+        // (and any prior vars) from a previous custom fork is dropped
+        // rather than merged along (update() merges object patches).
+        // `findTheme` only resolves registry themes, so synthetic ids
+        // (reactive) fall through to a bare { activeId }.
+        const named =
+          id !== BACKGROUND_REACTIVE_ID ? findTheme(id) : undefined;
+        update(() =>
+          named
+            ? {
+                activeId: id,
+                varsLight: prefixCssVars(named.cssVars.light),
+                varsDark: prefixCssVars(named.cssVars.dark),
+              }
+            : { activeId: id },
+        );
       }
     },
     [update],
