@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.48 — 17 June 2026
+- The footer now has a "Terms" link, so you can reach the Terms of Service page from anywhere in the app.
+
 ## 6.136.47 — 17 June 2026
 - Removed an unfinished internal "run report" page that lived at a guessable address and showed the same fake, placeholder results to everyone. Your real test results are unaffected (they show on the results screen after a test).
 

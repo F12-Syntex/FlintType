@@ -53,6 +53,9 @@ export function AppFooter({
         <FooterLink href="/privacy" dark={dark}>
           Privacy
         </FooterLink>
+        <FooterLink href="/terms" dark={dark}>
+          Terms
+        </FooterLink>
       </nav>
     </footer>
   );
