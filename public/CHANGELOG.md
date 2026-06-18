@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.47 — 17 June 2026
+- Removed an unfinished internal "run report" page that lived at a guessable address and showed the same fake, placeholder results to everyone. Your real test results are unaffected (they show on the results screen after a test).
+
 ## 6.136.46 — 17 June 2026
 - Fixed the top navigation on portrait tablets (around 768–1000px wide): "Leaderboard" and "Insights" were getting cut off the bar with no menu to reach them. The hamburger menu now appears at those widths, so every page is reachable.
 
