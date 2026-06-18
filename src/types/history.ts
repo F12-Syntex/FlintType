@@ -23,6 +23,10 @@ export type HistoryTest = {
   mode: string;
   /** Words for WORDS mode, seconds for TIME mode. */
   durationOrWordCount: number;
+  /** Length unit for `durationOrWordCount` — distinguishes a 60-word
+   *  run from a 60-second run so PB / leaderboard buckets don't merge
+   *  them. Null on legacy rows persisted before the column existed. */
+  lengthMode: "words" | "time" | "quote" | null;
   wpm: number;
   accuracy: number;
   errorCount: number;

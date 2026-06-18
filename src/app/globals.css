@@ -700,11 +700,13 @@
      existing interior chrome layers use plus the TopBar + footer. */
   html[data-ft-autohide="dim"][data-ft-running="1"] [data-ft-chrome],
   html[data-ft-autohide="dim"][data-ft-running="1"] [data-ft-topbar],
+  html[data-ft-autohide="dim"][data-ft-running="1"] [data-ft-banner],
   html[data-ft-autohide="dim"][data-ft-running="1"] [data-ft-footer] {
     opacity: 0.2;
   }
   html[data-ft-autohide="fade"][data-ft-running="1"] [data-ft-chrome],
   html[data-ft-autohide="fade"][data-ft-running="1"] [data-ft-topbar],
+  html[data-ft-autohide="fade"][data-ft-running="1"] [data-ft-banner],
   html[data-ft-autohide="fade"][data-ft-running="1"] [data-ft-footer] {
     opacity: 0;
     pointer-events: none;
@@ -719,6 +721,7 @@
   }
   [data-ft-chrome],
   [data-ft-topbar],
+  [data-ft-banner],
   [data-ft-footer] {
     transition: opacity 240ms cubic-bezier(0.22, 1, 0.36, 1);
   }
@@ -750,6 +753,7 @@
   }
   html[data-ft-focus="on"] [data-ft-chrome],
   html[data-ft-focus="on"] [data-ft-topbar],
+  html[data-ft-focus="on"] [data-ft-banner],
   html[data-ft-focus="on"] [data-ft-footer] {
     opacity: 0;
     pointer-events: none;

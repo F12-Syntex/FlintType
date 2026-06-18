@@ -16,6 +16,7 @@ import {
 import { computeTotalXp } from "@/lib/xp-rewards";
 import {
   leaderboardInputSchema,
+  lengthModeForPreset,
   PRESET_AMOUNT,
   topByLevelInputSchema,
   topPlayersInputSchema,
@@ -45,6 +46,7 @@ const list = defineRoute<LeaderboardInput, LeaderboardOutput>({
       mode: modeFor(scope),
       sinceMs: sinceFor(window),
       amount: PRESET_AMOUNT[preset],
+      lengthMode: lengthModeForPreset(preset),
       limit,
     });
     if (rows.length === 0) {

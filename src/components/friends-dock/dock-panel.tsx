@@ -20,13 +20,27 @@ type Member = {
   caption: { label: string; dotClass: string | null } | null;
   action: string | null;
   bucket: number;
+  /** When set, clicking the row marks this notification read (challenge
+   *  rows — clears the dead invite from the dock + bell, FT-031). */
+  markReadId?: string;
 };
 
-function MemberRow({ m, onNavigate }: { m: Member; onNavigate: () => void }) {
+function MemberRow({
+  m,
+  onNavigate,
+  onMarkRead,
+}: {
+  m: Member;
+  onNavigate: () => void;
+  onMarkRead: (id: string) => void;
+}) {
   return (
     <Link
       href={m.href}
-      onClick={onNavigate}
+      onClick={() => {
+        if (m.markReadId) onMarkRead(m.markReadId);
+        onNavigate();
+      }}
       className="group flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
     >
       {m.icon === "swords" ? (
@@ -69,17 +83,19 @@ function MemberRow({ m, onNavigate }: { m: Member; onNavigate: () => void }) {
 function MemberList({
   rows,
   onNavigate,
+  onMarkRead,
   className,
 }: {
   rows: Member[];
   onNavigate: () => void;
+  onMarkRead: (id: string) => void;
   className?: string;
 }) {
   return (
     <ul className={cn("divide-y divide-border/60", className)}>
       {rows.map((m) => (
         <li key={m.key}>
-          <MemberRow m={m} onNavigate={onNavigate} />
+          <MemberRow m={m} onNavigate={onNavigate} onMarkRead={onMarkRead} />
         </li>
       ))}
     </ul>
@@ -138,7 +154,8 @@ export function DockPanelBody({
   onClose: () => void;
   withHeader?: boolean;
 }) {
-  const { live, challenges, directory, presenceById, loading } = data;
+  const { live, challenges, directory, presenceById, loading, markChallengeRead } =
+    data;
 
   const members = useMemo<Member[]>(() => {
     const liveIds = new Set(live.map((u) => u.userId));
@@ -158,6 +175,7 @@ export function DockPanelBody({
         },
         action: "Join",
         bucket: 0,
+        markReadId: c.id,
       });
     }
     for (const u of live) {
@@ -250,11 +268,21 @@ export function DockPanelBody({
             return matches.length === 0 ? (
               <NoMatch query={query} />
             ) : (
-              <MemberList rows={matches} onNavigate={onNavigate} className="border-y border-border/60" />
+              <MemberList
+                rows={matches}
+                onNavigate={onNavigate}
+                onMarkRead={markChallengeRead}
+                className="border-y border-border/60"
+              />
             );
           })()
         ) : (
-          <MemberList rows={rows} onNavigate={onNavigate} className="border-y border-border/60" />
+          <MemberList
+            rows={rows}
+            onNavigate={onNavigate}
+            onMarkRead={markChallengeRead}
+            className="border-y border-border/60"
+          />
         )}
       </div>
     </>

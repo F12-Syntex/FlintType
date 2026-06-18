@@ -177,16 +177,13 @@ const importRoute = defineRoute<MonkeytypeImportInput, MonkeytypeImportOutput>({
       pbs: { time: pbsTime, words: pbsWords },
       ...(encryptedApiKey ? { encryptedApiKey } : {}),
     };
-    // Read-merge-write so unrelated prefs slices survive. We
-    // already pulled `existingPrefs` above for the key-resolution
-    // branch — reuse it. Specific error message on failure so the
-    // dialog tells the user something useful (the dispatcher's
+    // Atomic jsonb merge of just our slice so unrelated prefs slices
+    // survive even against a concurrent client flush (the old
+    // read-modify-write raced it). Specific error message on failure
+    // so the dialog tells the user something useful (the dispatcher's
     // fallback would just say "Internal error" without context).
     try {
-      await db.userPrefs.set(userId, {
-        ...existingPrefs,
-        monkeytypeStats: slice,
-      });
+      await db.userPrefs.merge(userId, { monkeytypeStats: slice });
     } catch (err) {
       log.error("monkeytype.import prefs save failed", err, { userId });
       throw new BackendError(
@@ -220,10 +217,8 @@ const disconnectRoute = defineRoute<void, { ok: true }>({
   middleware: [requireAuth],
   handler: async ({ db, meta, log }) => {
     const userId = meta.userId as string;
-    const existing = await db.userPrefs.get(userId);
-    const next = { ...existing };
-    delete (next as Record<string, unknown>).monkeytypeStats;
-    await db.userPrefs.set(userId, next);
+    // Atomic key delete — no read-modify-write window.
+    await db.userPrefs.merge(userId, {}, ["monkeytypeStats"]);
     log.info("monkeytype.disconnect cleared slice", { userId });
     return { ok: true };
   },

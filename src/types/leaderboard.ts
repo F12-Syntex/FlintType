@@ -52,6 +52,21 @@ export const PRESET_AMOUNT: Record<LeaderboardPreset, number | null> = {
   t120: 120,
 };
 
+/** Length-mode discriminator for a preset, or undefined for "any"
+ *  (no length filter). `t…` presets are TIME boards, `w…` presets are
+ *  WORDS boards, a future `q…` preset would be QUOTE. Passed to
+ *  `topLeaderboard({ lengthMode })` so a custom 60-word run can't gate
+ *  onto the `t60` (60-second) board and inflate its WPM ranking. */
+export function lengthModeForPreset(
+  preset: LeaderboardPreset,
+): "words" | "time" | "quote" | undefined {
+  if (preset === "any") return undefined;
+  if (preset.startsWith("t")) return "time";
+  if (preset.startsWith("w")) return "words";
+  if (preset.startsWith("q")) return "quote";
+  return undefined;
+}
+
 export const leaderboardInputSchema = z.object({
   scope: leaderboardScopeSchema.optional(),
   window: leaderboardWindowSchema.optional(),

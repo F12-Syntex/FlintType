@@ -2,12 +2,28 @@ import { defineNamespace, defineRoute } from "@/server";
 import { ensureUser } from "@/server/ensure-user";
 import { requireAuth } from "@/server/middleware/auth";
 import { rateLimit } from "@/server/middleware/rate-limit";
+import { sanitizePrefsWrite } from "@/server/prefs-sanitize";
 import {
   type GetUserPrefsOutput,
+  type MergeUserPrefsInput,
+  type MergeUserPrefsOutput,
+  SERVER_OWNED_PREF_KEYS,
   type SetUserPrefsInput,
   type SetUserPrefsOutput,
+  type UserPrefsBlob,
+  mergeUserPrefsInputSchema,
   setUserPrefsInputSchema,
 } from "@/types/user-prefs";
+
+/** Server-owned slices (adapt model state, selectedTags, monkeytype
+ *  stats) are never client-writable — drop them from any client
+ *  payload so a stale client snapshot can't revert what a server
+ *  route just wrote (the user_prefs lost-update bug). */
+function stripServerOwned(data: UserPrefsBlob): UserPrefsBlob {
+  const out: UserPrefsBlob = { ...data };
+  for (const key of SERVER_OWNED_PREF_KEYS) delete out[key];
+  return out;
+}
 
 const get = defineRoute<void, GetUserPrefsOutput>({
   handler: async (ctx) => {
@@ -26,11 +42,41 @@ const get = defineRoute<void, GetUserPrefsOutput>({
   },
 });
 
+/** Wholesale replace of the CLIENT-owned blob. Server-owned slices
+ *  are stripped from the input and the stored values preserved
+ *  atomically — a client "reset all" / import must not wipe server
+ *  state (adapt model, tags, MT import). */
 const set = defineRoute<SetUserPrefsInput, SetUserPrefsOutput>({
   input: setUserPrefsInputSchema,
   handler: async ({ db, meta, input }) => {
-    await db.userPrefs.set(meta.userId as string, input.data);
-    return input.data;
+    const userId = meta.userId as string;
+    // The blob is client-supplied and opaque, but a couple of slices feed
+    // public ranking + profile display (Top-by-Level, the profile level/
+    // XP). Sanitize those against the stored value so they can't be
+    // forged through this write path — see src/server/prefs-sanitize.ts.
+    // Server-owned slices are then stripped and preserved atomically via
+    // replacePreserving so a stale client snapshot can't revert them.
+    const stored = await db.userPrefs.get(userId);
+    const sanitized = sanitizePrefsWrite(stored, input.data);
+    const data = stripServerOwned(sanitized);
+    await db.userPrefs.replacePreserving(userId, data, SERVER_OWNED_PREF_KEYS);
+    return data;
+  },
+});
+
+/** Per-slice merge — the client flush path. Only the dirty slices
+ *  travel; removed slices come through `remove`. Server-owned keys
+ *  are stripped from both so the client can never touch them. */
+const merge = defineRoute<MergeUserPrefsInput, MergeUserPrefsOutput>({
+  input: mergeUserPrefsInputSchema,
+  handler: async ({ db, meta, input }) => {
+    const data = stripServerOwned(input.data);
+    const serverOwned = new Set<string>(SERVER_OWNED_PREF_KEYS);
+    const remove = (input.remove ?? []).filter((k) => !serverOwned.has(k));
+    if (Object.keys(data).length > 0 || remove.length > 0) {
+      await db.userPrefs.merge(meta.userId as string, data, remove);
+    }
+    return { ok: true };
   },
 });
 
@@ -39,5 +85,5 @@ const set = defineRoute<SetUserPrefsInput, SetUserPrefsOutput>({
  *  per second). Anything beyond that is automated and worth slowing. */
 export const prefs = defineNamespace({
   middleware: [requireAuth, rateLimit({ limit: 120, windowMs: 60_000 })],
-  routes: { get, set },
+  routes: { get, set, merge },
 });

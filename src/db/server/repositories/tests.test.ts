@@ -40,6 +40,20 @@ describe("testsRepo", () => {
     expect(inserted.wpm).toBe(100);
   });
 
+  it("round-trips a lengthMode discriminator", async () => {
+    await ctx.db.tests.insert(row({ id: "t_time", lengthMode: "time" }));
+    const found = await ctx.db.tests.findById("t_time");
+    expect(found?.lengthMode).toBe("time");
+  });
+
+  it("persists null lengthMode for legacy-style rows", async () => {
+    // A row submitted without the discriminator (older client) — the
+    // column defaults to null, never guessed.
+    await ctx.db.tests.insert(row({ id: "t_legacy" }));
+    const found = await ctx.db.tests.findById("t_legacy");
+    expect(found?.lengthMode).toBeNull();
+  });
+
   it("recentForUser returns rows newest-first", async () => {
     const t1 = new Date(2026, 0, 1);
     const t2 = new Date(2026, 0, 2);
@@ -197,6 +211,156 @@ describe("testsRepo", () => {
     expect(race.map((r) => r.testId)).toEqual(["t_race"]);
   });
 
+  it("bestBefore buckets by lengthMode — a words run can't see a time PB", async () => {
+    const t0 = new Date(2026, 0, 1).getTime();
+    // A prior completed 60-second TIME run at 130 wpm.
+    await ctx.db.tests.insert(
+      row({
+        id: "t_time60",
+        userId: "u1",
+        mode: "casual",
+        durationOrWordCount: 60,
+        lengthMode: "time",
+        wpm: 130,
+        startedAt: new Date(t0),
+      }),
+    );
+    // A new 60-WORD run looking for its prior best must NOT see the
+    // time run (different length unit, same amount) — closing the
+    // cross-bucket PB collision (issue #71).
+    const wordsPrev = await ctx.db.tests.bestBefore(
+      "u1",
+      "casual",
+      60,
+      "words",
+      t0 + 1000,
+    );
+    expect(wordsPrev).toBeNull();
+    // The time bucket still sees its own prior best.
+    const timePrev = await ctx.db.tests.bestBefore(
+      "u1",
+      "casual",
+      60,
+      "time",
+      t0 + 1000,
+    );
+    expect(timePrev).toBe(130);
+  });
+
+  it("bestBefore does not return legacy null rows for a typed run", async () => {
+    const t0 = new Date(2026, 0, 1).getTime();
+    // Legacy row with no length discriminator.
+    await ctx.db.tests.insert(
+      row({
+        id: "t_legacy60",
+        userId: "u1",
+        mode: "casual",
+        durationOrWordCount: 60,
+        lengthMode: null,
+        wpm: 140,
+        startedAt: new Date(t0),
+      }),
+    );
+    // A new typed run (lengthMode = "words") is not compared against
+    // the legacy null row.
+    const prev = await ctx.db.tests.bestBefore(
+      "u1",
+      "casual",
+      60,
+      "words",
+      t0 + 1000,
+    );
+    expect(prev).toBeNull();
+    // …but a legacy-style lookup (lengthMode null) still finds it.
+    const legacyPrev = await ctx.db.tests.bestBefore(
+      "u1",
+      "casual",
+      60,
+      null,
+      t0 + 1000,
+    );
+    expect(legacyPrev).toBe(140);
+  });
+
+  it("topLeaderboard lengthMode filter excludes a words run from a time board", async () => {
+    // A genuine 60-second TIME run, a custom 60-WORD sprint (the
+    // exploit), and a legacy null-mode 60 row. The time board (amount
+    // 60, lengthMode "time") must keep the time + legacy rows and drop
+    // the words sprint.
+    await ctx.db.tests.insert(
+      row({
+        id: "t_time",
+        userId: "u_time",
+        durationOrWordCount: 60,
+        lengthMode: "time",
+        wpm: 90,
+        accuracy: 100,
+      }),
+    );
+    await ctx.db.tests.insert(
+      row({
+        id: "t_words",
+        userId: "u_words",
+        durationOrWordCount: 60,
+        lengthMode: "words",
+        wpm: 250,
+        accuracy: 100,
+      }),
+    );
+    await ctx.db.tests.insert(
+      row({
+        id: "t_legacy",
+        userId: "u_legacy",
+        durationOrWordCount: 60,
+        lengthMode: null,
+        wpm: 80,
+        accuracy: 100,
+      }),
+    );
+    const rows = await ctx.db.tests.topLeaderboard({
+      amount: 60,
+      lengthMode: "time",
+    });
+    const ids = rows.map((r) => r.testId).sort();
+    expect(ids).toEqual(["t_legacy", "t_time"]);
+    // The inflated words sprint never reaches the time board.
+    expect(rows.some((r) => r.testId === "t_words")).toBe(false);
+  });
+
+  it("topLeaderboard gives a user one slot per board, even with a legacy row", async () => {
+    // Length-mode separation is the BOARD FILTER's job, not the dedupe
+    // key's: a user with both a typed `time/60` row and a legacy
+    // `null/60` row (both admitted to the time board) must take ONE
+    // slot — their best run — not two (FT-036 regression guard).
+    await ctx.db.tests.insert(
+      row({
+        id: "t_t",
+        userId: "u1",
+        durationOrWordCount: 60,
+        lengthMode: "time",
+        wpm: 100,
+        accuracy: 100,
+      }),
+    );
+    await ctx.db.tests.insert(
+      row({
+        id: "t_legacy",
+        userId: "u1",
+        durationOrWordCount: 60,
+        lengthMode: null,
+        wpm: 140,
+        accuracy: 100,
+      }),
+    );
+    const rows = await ctx.db.tests.topLeaderboard({
+      amount: 60,
+      lengthMode: "time",
+    });
+    const u1 = rows.filter((r) => r.userId === "u1");
+    expect(u1).toHaveLength(1); // one slot, not two
+    expect(u1[0]?.testId).toBe("t_legacy"); // their best (140 net)
+  });
+
   it("topLeaderboard sinceMs filters older runs", async () => {
     await ctx.db.tests.insert(
       row({
@@ -218,5 +382,101 @@ describe("testsRepo", () => {
       sinceMs: new Date(2025, 6, 1).getTime(),
     });
     expect(rows.map((r) => r.testId)).toEqual(["t_new"]);
+  });
+
+  // ── Regression: FT-004 — JS over-fetch window starved slow users ──
+
+  it("topLeaderboard: a user with many high-wpm runs does not crowd out a slower user (friends board case)", async () => {
+    // User A has 120 completed runs, all with net WPM ≈ 200 (200 wpm × 100%).
+    // User B has 1 run with net WPM ≈ 50 (50 wpm × 100%).
+    // With the old limit*4=100 over-fetch window, A's 120 rows swamp
+    // the window and B's single run never appears in the output.
+    // After the fix (DISTINCT ON in SQL), A appears exactly once and
+    // B appears too.
+    for (let i = 0; i < 120; i++) {
+      await ctx.db.tests.insert(
+        row({
+          id: `t_a_${i}`,
+          userId: "userA",
+          wpm: 200,
+          accuracy: 100,
+        }),
+      );
+    }
+    await ctx.db.tests.insert(
+      row({ id: "t_b_best", userId: "userB", wpm: 50, accuracy: 100 }),
+    );
+
+    const results = await ctx.db.tests.topLeaderboard({ limit: 25, userIds: ["userA", "userB"] });
+
+    // Both users must appear.
+    const userIds = results.map((r) => r.userId);
+    expect(userIds).toContain("userA");
+    expect(userIds).toContain("userB");
+
+    // A is first (higher net WPM).
+    expect(results[0]?.userId).toBe("userA");
+
+    // A appears exactly once per bucket (same mode + durationOrWordCount
+    // for all 120 runs → only 1 deduped row).
+    const aRows = results.filter((r) => r.userId === "userA");
+    expect(aRows.length).toBe(1);
+  });
+
+  it("topLeaderboard: each user appears once per (mode, durationOrWordCount) bucket even with many runs", async () => {
+    // Two buckets: (training, 25) and (casual, 50).
+    // User A has 60 runs in each bucket; user B has 1 run in each.
+    for (let i = 0; i < 60; i++) {
+      await ctx.db.tests.insert(row({ id: `t_a_tr_${i}`, userId: "uA", mode: "training", durationOrWordCount: 25, wpm: 150, accuracy: 100 }));
+      await ctx.db.tests.insert(row({ id: `t_a_ca_${i}`, userId: "uA", mode: "casual",   durationOrWordCount: 50, wpm: 140, accuracy: 100 }));
+    }
+    await ctx.db.tests.insert(row({ id: "t_b_tr", userId: "uB", mode: "training", durationOrWordCount: 25, wpm: 60, accuracy: 100 }));
+    await ctx.db.tests.insert(row({ id: "t_b_ca", userId: "uB", mode: "casual",   durationOrWordCount: 50, wpm: 55, accuracy: 100 }));
+
+    const results = await ctx.db.tests.topLeaderboard({ limit: 25 });
+
+    // Exactly 4 rows: uA×training, uA×casual, uB×training, uB×casual.
+    expect(results.length).toBe(4);
+
+    const aRows = results.filter((r) => r.userId === "uA");
+    const bRows = results.filter((r) => r.userId === "uB");
+    expect(aRows.length).toBe(2);
+    expect(bRows.length).toBe(2);
+
+    // uB must be present despite uA having 60× more runs per bucket.
+    expect(bRows.map((r) => r.testId).sort()).toEqual(["t_b_ca", "t_b_tr"]);
+  });
+
+  it("topPlayers: a user with many runs does not crowd out a slower user", async () => {
+    // User X has 120 completed runs all at net WPM ≈ 180.
+    // User Y has 1 run at net WPM ≈ 40.
+    // Old limit*50 window (10*50=500) is large enough here, but the
+    // DISTINCT ON fix eliminates the window entirely — verify both
+    // appear and X appears exactly once.
+    for (let i = 0; i < 120; i++) {
+      await ctx.db.tests.insert(
+        row({ id: `t_x_${i}`, userId: "userX", wpm: 180, accuracy: 100 }),
+      );
+    }
+    await ctx.db.tests.insert(
+      row({ id: "t_y_best", userId: "userY", wpm: 40, accuracy: 100 }),
+    );
+
+    const results = await ctx.db.tests.topPlayers({ limit: 10 });
+
+    const userIds = results.map((r) => r.userId);
+    expect(userIds).toContain("userX");
+    expect(userIds).toContain("userY");
+
+    // X leads on net WPM.
+    expect(results[0]?.userId).toBe("userX");
+
+    // X appears exactly once (all 120 runs collapse to 1 best).
+    const xRows = results.filter((r) => r.userId === "userX");
+    expect(xRows.length).toBe(1);
+
+    // Verify the attached testsCompleted count is correct.
+    expect(xRows[0]?.testsCompleted).toBe(120);
+    expect(results.find((r) => r.userId === "userY")?.testsCompleted).toBe(1);
   });
 });

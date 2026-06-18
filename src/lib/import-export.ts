@@ -5,7 +5,7 @@ import { DEFAULT_BACKGROUND, type BackgroundPrefs } from "./background-prefs";
 import { DEFAULT_BEHAVIOUR, type BehaviourPrefs } from "./behaviour-prefs";
 import { DEFAULT_CARET, type CaretSettings } from "./caret-settings";
 import { type KeyboardSettings } from "./keyboard-settings";
-import { getCache, loadPrefs, writeSlice } from "./prefs-store";
+import { getCache, loadPrefs, readSlice, writeSlice } from "./prefs-store";
 
 /** All known slice keys — every flinttype-managed pref slice the
  *  importer/exporter understands. Anything outside this list is left
@@ -272,7 +272,12 @@ export function planMonkeytypeImport(payload: unknown): ImportPlan {
         n += 1;
       }
       if (practice) {
-        writeSlice("practice", practice);
+        // Merge the mapped mode/length onto the EXISTING practice slice
+        // rather than replacing it. A MT import only specifies mode +
+        // length; writing just {mode, length} dropped the user's stored
+        // adapt / wordlist back to defaults on the next readSlice merge.
+        const current = readSlice<Record<string, unknown>>("practice", {});
+        writeSlice("practice", { ...current, ...practice });
         n += 1;
       }
       return n;
@@ -538,10 +543,27 @@ function mapPractice(mt: MonkeytypeSettings): {
   if (mt.mode === "words" || mt.mode === "time" || mt.mode === "quote") {
     out.mode = mt.mode.toUpperCase() as "WORDS" | "TIME" | "QUOTE";
   }
-  // MT keeps the words and time counts as separate top-level fields;
-  // pick the one matching the chosen mode (or fall back to words).
-  if (out.mode === "TIME" && typeof mt.time === "number") out.length = mt.time;
-  else if (typeof mt.words === "number") out.length = mt.words;
+  // MT keeps each mode's size in a different field. Quote mode stores
+  // its sizes in `quoteLength` (an array of 0..3 ids that line up with
+  // our QuoteGroup short/medium/long/thicc) — NOT in `words`, which MT
+  // always carries regardless of the active mode. Reading `words` here
+  // wrote an out-of-range quote length (e.g. 50), which left QUOTE with
+  // no selectable length chip and made every quote load fall back to
+  // "(quote unavailable)". So: quote → lowest valid quoteLength id
+  // (default short/0 when none is a real group, e.g. MT's "all" = -1);
+  // time → mt.time; words → mt.words.
+  if (out.mode === "QUOTE") {
+    const ids = Array.isArray(mt.quoteLength)
+      ? (mt.quoteLength as unknown[]).filter(
+          (v): v is number => typeof v === "number" && v >= 0 && v <= 3,
+        )
+      : [];
+    out.length = ids.length ? Math.min(...ids) : 0;
+  } else if (out.mode === "TIME" && typeof mt.time === "number") {
+    out.length = mt.time;
+  } else if (typeof mt.words === "number") {
+    out.length = mt.words;
+  }
   if (out.mode == null || out.length == null) return null;
   return { mode: out.mode, length: out.length };
 }

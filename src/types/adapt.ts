@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { HandLayoutPrefs } from "@/lib/hand-layout";
+import { MAX_PLAUSIBLE_WPM } from "@/lib/wpm-limits";
 
 export type {
   BigramModelRow,
@@ -67,8 +68,11 @@ export type TestMode = z.infer<typeof testModeSchema>;
  *  so payloads stay small even for absurd-length runs. */
 export const wpmSampleSchema = z.object({
   t: z.number().nonnegative(),
-  wpm: z.number(),
-  raw: z.number(),
+  // Per-second instantaneous samples can spike above the run average
+  // (first-second jitter), so they get double the hard cap — they're
+  // display-only chart data, never leaderboard input.
+  wpm: z.number().min(0).max(MAX_PLAUSIBLE_WPM * 2),
+  raw: z.number().min(0).max(MAX_PLAUSIBLE_WPM * 2),
 });
 export type WpmSamplePayload = z.infer<typeof wpmSampleSchema>;
 
@@ -76,11 +80,24 @@ export const submitTestInputSchema = z.object({
   startedAt: z.number().int().nonnegative(),
   completedAt: z.number().int().nonnegative(),
   mode: testModeSchema,
-  durationOrWordCount: z.number().int().nonnegative(),
-  wpm: z.number().nonnegative(),
+  // 10k covers the longest sane bucket (600s time mode, 2000-word
+  // passages) with headroom; an unbounded int was forgeable noise.
+  durationOrWordCount: z.number().int().nonnegative().max(10_000),
+  /** Length unit for `durationOrWordCount` — the words-vs-time-vs-quote
+   *  discriminator the share label branches on. Optional so older
+   *  clients (and the race/drill submit paths) still validate; persisted
+   *  as null when absent (legacy rows drop the share unit prefix). */
+  lengthMode: z.enum(["words", "time", "quote"]).optional(),
+  // Hard ceiling mirrors the race authority's gross-WPM cap — claims
+  // above MAX_PLAUSIBLE_WPM are rejected at the wire. The submit
+  // handler additionally cross-checks the claim against the run's
+  // verifiable payload (issue #38).
+  wpm: z.number().nonnegative().max(MAX_PLAUSIBLE_WPM),
   accuracy: z.number().min(0).max(100),
-  errorCount: z.number().int().nonnegative(),
-  resetCount: z.number().int().nonnegative(),
+  // Errors are bounded by the keystroke cap (20k timings) plus
+  // generous slack for clients that don't ship timings.
+  errorCount: z.number().int().nonnegative().max(100_000),
+  resetCount: z.number().int().nonnegative().max(10_000),
   wasCompleted: z.boolean(),
   // Per-word string cap mirrors the longest single token we'd ever
   // place in a passage (long English words top out around 30 chars;
@@ -92,10 +109,12 @@ export const submitTestInputSchema = z.object({
   // clients (and the race/drill submit paths that haven't been
   // updated) still validate. Server persists them as-is for the
   // share-card renderer.
-  rawWpm: z.number().nonnegative().optional(),
-  peakWpm: z.number().nonnegative().optional(),
-  avgWpm: z.number().nonnegative().optional(),
-  stallWpm: z.number().nonnegative().optional(),
+  rawWpm: z.number().nonnegative().max(MAX_PLAUSIBLE_WPM).optional(),
+  // Peak is a per-second instantaneous figure — same 2× display-only
+  // headroom as wpmHistory samples.
+  peakWpm: z.number().nonnegative().max(MAX_PLAUSIBLE_WPM * 2).optional(),
+  avgWpm: z.number().nonnegative().max(MAX_PLAUSIBLE_WPM).optional(),
+  stallWpm: z.number().nonnegative().max(MAX_PLAUSIBLE_WPM).optional(),
   consistency: z.number().min(0).max(100).optional(),
   wpmHistory: z.array(wpmSampleSchema).max(600).optional(),
 });
