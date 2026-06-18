@@ -12,6 +12,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { BackendError } from "@/lib/errors";
 import { createTestDatabase } from "@/db/server/testing";
 import { callRoute } from "@/server/testing";
+import { persistAdaptPrefs } from "./prefs";
 import type {
   AdaptSnapshotOutput,
   KeystrokeTiming,
@@ -61,8 +62,10 @@ function submitInput(
 ): SubmitTestInput {
   const words = ["the", "and"];
   return {
+    // 1s elapsed keeps the claimed 100 wpm inside the submit
+    // plausibility ceiling for this small fixture payload (#38).
     startedAt: 1_700_000_000_000,
-    completedAt: 1_700_000_010_000,
+    completedAt: 1_700_000_001_000,
     mode: "training",
     durationOrWordCount: 25,
     wpm: 100,
@@ -404,7 +407,7 @@ describe("adapt routes", () => {
       input: submitInput({
         mode: "casual",
         startedAt: 1_700_000_000_000,
-        completedAt: 1_700_000_010_000,
+        completedAt: 1_700_000_001_000,
         wpm: 80,
       }),
     });
@@ -414,7 +417,7 @@ describe("adapt routes", () => {
       input: submitInput({
         mode: "casual",
         startedAt: 1_700_000_020_000,
-        completedAt: 1_700_000_030_000,
+        completedAt: 1_700_000_021_000,
         wpm: 100,
       }),
     });
@@ -424,7 +427,7 @@ describe("adapt routes", () => {
       input: submitInput({
         mode: "casual",
         startedAt: 1_700_000_040_000,
-        completedAt: 1_700_000_050_000,
+        completedAt: 1_700_000_041_000,
         wpm: 95,
       }),
     });
@@ -473,6 +476,37 @@ describe("adapt routes", () => {
     const list = await ctx.db.notifications.listForUser("u1");
     expect(list.length).toBe(1);
     expect(list[0]!.kind).toBe("personal_best");
+  });
+
+  it("persistAdaptPrefs merges its slices — a write landing after the load survives", async () => {
+    // Simulates the lost-update race: the client flushes a slice while
+    // adapt.submit is between its prefs read and its prefs write. With
+    // the old read-modify-write the concurrent slice was reverted;
+    // with the atomic merge it survives.
+    await ctx.db.userPrefs.set("u1", { caret: { style: "block" } });
+    // "Concurrent" client write after adapt loaded its snapshot.
+    await ctx.db.userPrefs.merge("u1", { theme: { "--primary": "#1e90ff" } });
+    await persistAdaptPrefs(ctx.db, "u1", {
+      adaptRecency: new Map([["the", 1]]),
+      adaptFingerMapHash: "h1",
+    });
+    const stored = await ctx.db.userPrefs.get("u1");
+    expect(stored.caret).toEqual({ style: "block" });
+    expect(stored.theme).toEqual({ "--primary": "#1e90ff" }); // not reverted
+    expect(stored.adaptRecency).toEqual({ the: 1 });
+    expect(stored.adaptFingerMapHash).toBe("h1");
+  });
+
+  it("submit preserves unrelated prefs slices while writing adapt state", async () => {
+    signedInAs("u1");
+    await ctx.db.userPrefs.set("u1", { caret: { style: "underline" } });
+    await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({ mode: "training" }),
+    });
+    const stored = await ctx.db.userPrefs.get("u1");
+    expect(stored.caret).toEqual({ style: "underline" });
+    expect(stored.adaptRecency).toBeTruthy();
   });
 
   it("excludeCasualFromAdapt skips the model update for casual runs", async () => {
@@ -537,7 +571,7 @@ describe("adapt routes", () => {
       input: submitInput({
         mode: "casual",
         startedAt: 1_700_000_000_000,
-        completedAt: 1_700_000_010_000,
+        completedAt: 1_700_000_001_000,
         wpm: 80,
       }),
     });
@@ -546,7 +580,7 @@ describe("adapt routes", () => {
       input: submitInput({
         mode: "casual",
         startedAt: 1_700_000_020_000,
-        completedAt: 1_700_000_030_000,
+        completedAt: 1_700_000_021_000,
         wpm: 100,
       }),
     });
@@ -557,7 +591,7 @@ describe("adapt routes", () => {
       input: submitInput({
         mode: "casual",
         startedAt: 1_700_000_040_000,
-        completedAt: 1_700_000_050_000,
+        completedAt: 1_700_000_041_000,
         wpm: 95,
       }),
     });
@@ -569,6 +603,10 @@ describe("adapt routes", () => {
 
   it("PB verdict buckets by lengthMode — a words run isn't crowned by a prior time run", async () => {
     signedInAs("u1");
+    // A payload big enough to back the claimed WPM over the default 1s
+    // elapsed (issue #38's wpm-vs-payload check); the run's identity for
+    // bucketing comes from lengthMode, not its absolute speed.
+    const payload = Array.from({ length: 6 }, () => "speed");
     // A fast 60-second TIME run lands first.
     await callRoute<SubmitTestOutput>(["adapt", "submit"], {
       db: ctx.db,
@@ -576,9 +614,9 @@ describe("adapt routes", () => {
         mode: "casual",
         durationOrWordCount: 60,
         lengthMode: "time",
-        startedAt: 1_700_000_000_000,
-        completedAt: 1_700_000_060_000,
-        wpm: 130,
+        wpm: 120,
+        words: payload,
+        timings: streamFor(payload, 25),
       }),
     });
     // A slower custom 60-WORD run at the same amount: it must still
@@ -590,9 +628,9 @@ describe("adapt routes", () => {
         mode: "casual",
         durationOrWordCount: 60,
         lengthMode: "words",
-        startedAt: 1_700_000_120_000,
-        completedAt: 1_700_000_130_000,
         wpm: 95,
+        words: payload,
+        timings: streamFor(payload, 25),
       }),
     });
     expect(words.previousBest).toBeNull();
@@ -603,7 +641,234 @@ describe("adapt routes", () => {
     signedInAs("u1");
     const out = await callRoute<SubmitTestOutput>(["adapt", "submit"], {
       db: ctx.db,
-      input: submitInput({ wasCompleted: false, wpm: 999 }),
+      input: submitInput({ wasCompleted: false, wpm: 450 }),
+    });
+    expect(out.isPersonalBest).toBe(false);
+  });
+
+  // ── anti-forgery (issue #38) ─────────────────────────────────────
+
+  it("schema rejects wpm above the hard 500 cap", async () => {
+    signedInAs("u1");
+    await expect(
+      callRoute(["adapt", "submit"], {
+        db: ctx.db,
+        input: submitInput({ wpm: 501 }),
+      }),
+    ).rejects.toBeInstanceOf(ZodError);
+  });
+
+  it("schema rejects unbounded errorCount / resetCount / durationOrWordCount", async () => {
+    signedInAs("u1");
+    for (const over of [
+      { errorCount: 100_001 },
+      { resetCount: 10_001 },
+      { durationOrWordCount: 10_001 },
+    ]) {
+      await expect(
+        callRoute(["adapt", "submit"], {
+          db: ctx.db,
+          input: submitInput(over),
+        }),
+      ).rejects.toBeInstanceOf(ZodError);
+    }
+  });
+
+  it("rejects a completed run whose claimed wpm exceeds what the payload could produce", async () => {
+    signedInAs("u1");
+    // 7 chars of payload over 10s can credit ~13 wpm at most — a
+    // claimed 300 is a clear forgery. Nothing may be written.
+    await expect(
+      callRoute(["adapt", "submit"], {
+        db: ctx.db,
+        input: submitInput({
+          wpm: 300,
+          startedAt: 1_700_000_000_000,
+          completedAt: 1_700_000_010_000,
+        }),
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    expect(await ctx.db.tests.recentForUser("u1", 10)).toEqual([]);
+    expect(await ctx.db.notifications.listForUser("u1")).toEqual([]);
+  });
+
+  it("rejects a completed high-wpm run with empty words and timings", async () => {
+    signedInAs("u1");
+    await expect(
+      callRoute(["adapt", "submit"], {
+        db: ctx.db,
+        input: submitInput({ wpm: 200, words: [], timings: [] }),
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    expect(await ctx.db.tests.recentForUser("u1", 10)).toEqual([]);
+  });
+
+  it("rejects the padded-words bypass: long fabricated words + empty timings + 500 wpm", async () => {
+    signedInAs("u1");
+    // The #38 bypass: `words` is client-controlled and unverified, so a
+    // forger pads it to inflate the volume past the ceiling while
+    // POSTing an empty keystroke stream. The ceiling now comes from
+    // `timings` only, so volume is 0 → ceiling 0 → the 500-wpm claim is
+    // rejected and nothing is written.
+    await expect(
+      callRoute(["adapt", "submit"], {
+        db: ctx.db,
+        input: submitInput({
+          wpm: 500,
+          startedAt: 1_700_000_000_000,
+          completedAt: 1_700_000_060_000,
+          words: Array.from({ length: 2000 }, () => "padding"),
+          timings: [],
+        }),
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    expect(await ctx.db.tests.recentForUser("u1", 10)).toEqual([]);
+    expect(await ctx.db.notifications.listForUser("u1")).toEqual([]);
+  });
+
+  it("rejects the elapsed-compression bypass: a sub-second completed run", async () => {
+    signedInAs("u1");
+    // A 1 ms elapsed would make the volume ceiling explode (one keystroke
+    // "credits" thousands of wpm). The MIN_COMPLETED_RUN_MS floor rejects
+    // any fast completed run that claims to have finished this quickly.
+    await expect(
+      callRoute(["adapt", "submit"], {
+        db: ctx.db,
+        input: submitInput({
+          wpm: 499,
+          startedAt: 1_700_000_000_000,
+          completedAt: 1_700_000_000_100, // 100 ms elapsed
+          words: ["the"],
+          timings: [
+            { t: 0, expected: "t", typed: "t", correct: true, wordIndex: 0 },
+          ],
+        }),
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    expect(await ctx.db.tests.recentForUser("u1", 10)).toEqual([]);
+    expect(await ctx.db.notifications.listForUser("u1")).toEqual([]);
+  });
+
+  it("rejects the all-t=0 padding bypass: volume cleared, keystrokes packed into an instant", async () => {
+    signedInAs("u1");
+    // A forger pads `timings` with enough entries to clear the volume
+    // ceiling, but times every keystroke at t=0 to dodge the monotonic /
+    // within-elapsed check. The keystroke-density cap catches it: 2000
+    // keystrokes spanning 0 ms is an infinite raw rate — physically
+    // impossible — so the 499-wpm claim is rejected and nothing is written.
+    const timings = Array.from({ length: 2000 }, () => ({
+      t: 0,
+      expected: "a",
+      typed: "a",
+      correct: true,
+      wordIndex: 0,
+    }));
+    await expect(
+      callRoute(["adapt", "submit"], {
+        db: ctx.db,
+        input: submitInput({
+          wpm: 499,
+          startedAt: 1_700_000_000_000,
+          completedAt: 1_700_000_060_000, // 60 s elapsed
+          words: ["the", "and"],
+          timings,
+        }),
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    expect(await ctx.db.tests.recentForUser("u1", 10)).toEqual([]);
+    expect(await ctx.db.notifications.listForUser("u1")).toEqual([]);
+  });
+
+  it("rejects a completed run whose timings are timed beyond the run's elapsed", async () => {
+    signedInAs("u1");
+    // A fabricated stream whose `t` values run far past the claimed 1s
+    // elapsed is inconsistent and bounced before the volume check.
+    const timings = streamFor(["the", "and"], 5_000); // span ~30s
+    await expect(
+      callRoute(["adapt", "submit"], {
+        db: ctx.db,
+        input: submitInput({
+          wpm: 100,
+          startedAt: 1_700_000_000_000,
+          completedAt: 1_700_000_001_000,
+          timings,
+        }),
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    expect(await ctx.db.tests.recentForUser("u1", 10)).toEqual([]);
+  });
+
+  it("rejects a completed run with completedAt before startedAt", async () => {
+    signedInAs("u1");
+    await expect(
+      callRoute(["adapt", "submit"], {
+        db: ctx.db,
+        input: submitInput({
+          startedAt: 1_700_000_010_000,
+          completedAt: 1_700_000_000_000,
+        }),
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+  });
+
+  it("accepts a legitimate fast run whose payload supports the claim, and it PBs", async () => {
+    signedInAs("u1");
+    // ~300 wpm for 12s: 60 four-letter words = 299 passage chars,
+    // keystrokes at 40ms gaps — exactly what a real elite run ships.
+    const words = Array.from({ length: 60 }, (_, i) =>
+      ["pack", "ship", "work", "hold", "sing", "dial"][i % 6]!,
+    );
+    const out = await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({
+        mode: "casual",
+        wpm: 300,
+        startedAt: 1_700_000_000_000,
+        completedAt: 1_700_000_012_000,
+        words,
+        timings: streamFor(words, 40),
+      }),
+    });
+    expect(out.testId).toBeTruthy();
+    expect(out.isPersonalBest).toBe(true);
+    expect((await ctx.db.tests.recentForUser("u1", 10)).length).toBe(1);
+  });
+
+  it("accepts a legitimate race-mode run (the live race submit path)", async () => {
+    signedInAs("u1");
+    const out = await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({ mode: "race" }),
+    });
+    expect(out.testId).toBeTruthy();
+    const recent = await ctx.db.tests.recentForUser("u1", 10);
+    expect(recent[0]!.mode).toBe("race");
+  });
+
+  it("skips the plausibility check below the verify floor (sparse slow runs stay friction-free)", async () => {
+    signedInAs("u1");
+    const out = await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      // 30 wpm claim with an empty payload over 60s — unverifiable but
+      // harmless; must not bounce.
+      input: submitInput({
+        wpm: 30,
+        words: [],
+        timings: [],
+        startedAt: 1_700_000_000_000,
+        completedAt: 1_700_000_060_000,
+      }),
+    });
+    expect(out.testId).toBeTruthy();
+  });
+
+  it("incomplete runs skip the plausibility check entirely", async () => {
+    signedInAs("u1");
+    // Abandoned-run telemetry can carry whatever partial stats the
+    // client had — it's never leaderboard- or PB-eligible anyway.
+    const out = await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({ wasCompleted: false, wpm: 400, timings: [] }),
     });
     expect(out.isPersonalBest).toBe(false);
   });

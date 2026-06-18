@@ -90,6 +90,7 @@ export default function BehaviourPage() {
   const {
     prefs: audio,
     update: updateAudio,
+    reset: resetAudio,
     customizedCount: audioCustomized,
   } = useAudioPrefs();
 
@@ -98,13 +99,18 @@ export default function BehaviourPage() {
     value: BehaviourPrefs[K],
   ) => update(key, value);
 
+  function handleResetAll() {
+    reset();
+    resetAudio();
+  }
+
   return (
     <section className="text-foreground">
       <SettingsPageHeader
         eyebrow="Customise · Behaviour"
         title="Make it act the way you think"
         customizedCount={customizedCount + audioCustomized}
-        onResetAll={reset}
+        onResetAll={handleResetAll}
         description="Tune how the test reacts while you type — restart shortcuts, error handling, and word-list shape. Live-signal styling moved to Appearance > Live stats; this page is purely about input behaviour."
       />
 

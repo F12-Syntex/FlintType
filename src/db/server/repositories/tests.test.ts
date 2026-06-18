@@ -383,4 +383,100 @@ describe("testsRepo", () => {
     });
     expect(rows.map((r) => r.testId)).toEqual(["t_new"]);
   });
+
+  // ── Regression: FT-004 — JS over-fetch window starved slow users ──
+
+  it("topLeaderboard: a user with many high-wpm runs does not crowd out a slower user (friends board case)", async () => {
+    // User A has 120 completed runs, all with net WPM ≈ 200 (200 wpm × 100%).
+    // User B has 1 run with net WPM ≈ 50 (50 wpm × 100%).
+    // With the old limit*4=100 over-fetch window, A's 120 rows swamp
+    // the window and B's single run never appears in the output.
+    // After the fix (DISTINCT ON in SQL), A appears exactly once and
+    // B appears too.
+    for (let i = 0; i < 120; i++) {
+      await ctx.db.tests.insert(
+        row({
+          id: `t_a_${i}`,
+          userId: "userA",
+          wpm: 200,
+          accuracy: 100,
+        }),
+      );
+    }
+    await ctx.db.tests.insert(
+      row({ id: "t_b_best", userId: "userB", wpm: 50, accuracy: 100 }),
+    );
+
+    const results = await ctx.db.tests.topLeaderboard({ limit: 25, userIds: ["userA", "userB"] });
+
+    // Both users must appear.
+    const userIds = results.map((r) => r.userId);
+    expect(userIds).toContain("userA");
+    expect(userIds).toContain("userB");
+
+    // A is first (higher net WPM).
+    expect(results[0]?.userId).toBe("userA");
+
+    // A appears exactly once per bucket (same mode + durationOrWordCount
+    // for all 120 runs → only 1 deduped row).
+    const aRows = results.filter((r) => r.userId === "userA");
+    expect(aRows.length).toBe(1);
+  });
+
+  it("topLeaderboard: each user appears once per (mode, durationOrWordCount) bucket even with many runs", async () => {
+    // Two buckets: (training, 25) and (casual, 50).
+    // User A has 60 runs in each bucket; user B has 1 run in each.
+    for (let i = 0; i < 60; i++) {
+      await ctx.db.tests.insert(row({ id: `t_a_tr_${i}`, userId: "uA", mode: "training", durationOrWordCount: 25, wpm: 150, accuracy: 100 }));
+      await ctx.db.tests.insert(row({ id: `t_a_ca_${i}`, userId: "uA", mode: "casual",   durationOrWordCount: 50, wpm: 140, accuracy: 100 }));
+    }
+    await ctx.db.tests.insert(row({ id: "t_b_tr", userId: "uB", mode: "training", durationOrWordCount: 25, wpm: 60, accuracy: 100 }));
+    await ctx.db.tests.insert(row({ id: "t_b_ca", userId: "uB", mode: "casual",   durationOrWordCount: 50, wpm: 55, accuracy: 100 }));
+
+    const results = await ctx.db.tests.topLeaderboard({ limit: 25 });
+
+    // Exactly 4 rows: uA×training, uA×casual, uB×training, uB×casual.
+    expect(results.length).toBe(4);
+
+    const aRows = results.filter((r) => r.userId === "uA");
+    const bRows = results.filter((r) => r.userId === "uB");
+    expect(aRows.length).toBe(2);
+    expect(bRows.length).toBe(2);
+
+    // uB must be present despite uA having 60× more runs per bucket.
+    expect(bRows.map((r) => r.testId).sort()).toEqual(["t_b_ca", "t_b_tr"]);
+  });
+
+  it("topPlayers: a user with many runs does not crowd out a slower user", async () => {
+    // User X has 120 completed runs all at net WPM ≈ 180.
+    // User Y has 1 run at net WPM ≈ 40.
+    // Old limit*50 window (10*50=500) is large enough here, but the
+    // DISTINCT ON fix eliminates the window entirely — verify both
+    // appear and X appears exactly once.
+    for (let i = 0; i < 120; i++) {
+      await ctx.db.tests.insert(
+        row({ id: `t_x_${i}`, userId: "userX", wpm: 180, accuracy: 100 }),
+      );
+    }
+    await ctx.db.tests.insert(
+      row({ id: "t_y_best", userId: "userY", wpm: 40, accuracy: 100 }),
+    );
+
+    const results = await ctx.db.tests.topPlayers({ limit: 10 });
+
+    const userIds = results.map((r) => r.userId);
+    expect(userIds).toContain("userX");
+    expect(userIds).toContain("userY");
+
+    // X leads on net WPM.
+    expect(results[0]?.userId).toBe("userX");
+
+    // X appears exactly once (all 120 runs collapse to 1 best).
+    const xRows = results.filter((r) => r.userId === "userX");
+    expect(xRows.length).toBe(1);
+
+    // Verify the attached testsCompleted count is correct.
+    expect(xRows[0]?.testsCompleted).toBe(120);
+    expect(results.find((r) => r.userId === "userY")?.testsCompleted).toBe(1);
+  });
 });
