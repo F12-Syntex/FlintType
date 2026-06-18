@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.44 — 17 June 2026
+- Fixed Tab restarting your test (and jumping focus back to the typing area) while a pop-up dialog was open on the typing screen. Tab now moves between the dialog's buttons and links as expected, and your in-progress test is left alone.
+
 ## 6.136.43 — 17 June 2026
 - Fixed "stop on error" leaving a word permanently red-underlined: hitting a wrong key (which it blocks) and then finishing the word correctly no longer marks that perfectly-typed word as an error for the rest of the test.
 

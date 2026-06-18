@@ -1106,6 +1106,13 @@ export function PracticeProvider({
     function onTab(e: KeyboardEvent) {
       if (e.key !== "Tab") return;
       if (e.ctrlKey || e.altKey || e.metaKey) return;
+      // A modal dialog owns the screen (the Adapt details + hand-layout
+      // modal, etc.) — let Tab do its native focus traversal between the
+      // dialog's controls instead of swallowing it to restart the test
+      // and yanking focus back to the hidden input (FT-035). Mirrors the
+      // sibling typing-suppress gate and input-capture.tsx. Checked
+      // BEFORE preventDefault so the native focus-shift survives.
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
       // In raceMode, TabFocusGuard owns phase-aware Tab swallowing
       // (countdown + racing: swallow; lobby/results: leave alone for
       // keyboard-only nav). Return without preventDefault so native
