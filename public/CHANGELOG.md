@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.43 — 17 June 2026
+- Fixed "stop on error" leaving a word permanently red-underlined: hitting a wrong key (which it blocks) and then finishing the word correctly no longer marks that perfectly-typed word as an error for the rest of the test.
+
 ## 6.136.42 — 17 June 2026
 - Fixed the share page and its social-preview image mislabelling timed and quote runs as "Words". A 60-second test now reads "Time · 60s" and a quote run shows its length (e.g. "Quote · long") instead of "Words · 60".
 
