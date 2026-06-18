@@ -1,4 +1,14 @@
-import { and, desc, eq, gte, inArray, like, lt, max, sql } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  like,
+  lt,
+  max,
+  sql,
+} from "drizzle-orm";
 import { tests } from "@/db/schema/server/tests";
 import type { NewTestRow, TestRow } from "@/types/adapt";
 import type { ServerDrizzle } from "../driver";
@@ -14,6 +24,11 @@ export type LeaderboardRow = {
   netWpm: number;
   mode: string;
   durationOrWordCount: number;
+  /** Length unit for `durationOrWordCount` — `"words"|"time"|"quote"`,
+   *  or null on legacy rows. Carried so the dedupe key separates a
+   *  60-word run from a 60-second run, and so consumers can label the
+   *  bucket unambiguously. */
+  lengthMode: string | null;
   completedAt: Date;
 };
 
@@ -104,11 +119,19 @@ export function testsRepo(db: ServerDrizzle) {
         .limit(limit);
     },
 
-    /** Previous best WPM for one (mode, durationOrWordCount) bucket
-     *  among *completed* runs that started *before* `beforeMs`.
+    /** Previous best WPM for one (mode, lengthMode, durationOrWordCount)
+     *  bucket among *completed* runs that started *before* `beforeMs`.
      *  Returns `null` if the user has no prior completed run in that
      *  bucket — used by adapt.submit to decide whether the just-
      *  inserted test is a fresh personal best.
+     *
+     *  `lengthMode` is the time/words/quote discriminator: a new run
+     *  always carries a non-null value, so this cleanly buckets a
+     *  60-second time run apart from a custom 60-word run (which
+     *  otherwise collided on `durationOrWordCount` alone). Legacy
+     *  null-lengthMode rows never match a typed run's filter, so a
+     *  new typed PB is compared only against prior runs of the same
+     *  length-mode — acceptable: legacy rows pre-date the unit split.
      *
      *  `beforeMs` lets the caller pass the just-inserted run's
      *  `startedAt`; the query stays oblivious to whether the row is
@@ -118,6 +141,7 @@ export function testsRepo(db: ServerDrizzle) {
       userId: string,
       mode: string,
       durationOrWordCount: number,
+      lengthMode: string | null,
       beforeMs: number,
     ): Promise<number | null> {
       const rows = await db
@@ -128,6 +152,9 @@ export function testsRepo(db: ServerDrizzle) {
             eq(tests.userId, userId),
             eq(tests.mode, mode),
             eq(tests.durationOrWordCount, durationOrWordCount),
+            lengthMode == null
+              ? isNull(tests.lengthMode)
+              : eq(tests.lengthMode, lengthMode),
             eq(tests.wasCompleted, true),
             lt(tests.startedAt, new Date(beforeMs)),
           ),
@@ -147,6 +174,14 @@ export function testsRepo(db: ServerDrizzle) {
       mode?: string;
       sinceMs?: number;
       amount?: number | null;
+      /** Length-unit filter for the preset board. When set, the query
+       *  keeps rows of exactly this length-mode PLUS legacy null-mode
+       *  rows (which stay on their amount-matched board — time/words
+       *  amount sets are disjoint, so a legacy null never double-lists).
+       *  This excludes a *new* explicit-words run from a time board,
+       *  closing the inflated-WPM gaming vector where a 15-word sprint
+       *  posts a huge number on the `t15` (15-second) board. */
+      lengthMode?: "words" | "time" | "quote";
       limit?: number;
       /** When provided, restrict the ranking to this set of user ids
        *  (the friends-scoped leaderboard). An empty array means "no
@@ -160,57 +195,102 @@ export function testsRepo(db: ServerDrizzle) {
       const limit = Math.max(1, Math.min(100, opts.limit ?? 25));
       // A friends board scoped to an empty set has nothing to rank.
       if (opts.userIds != null && opts.userIds.length === 0) return [];
-      // Net WPM expressed in SQL so we can sort + cap in one query
-      // rather than pulling everything and sorting in JS. Drizzle's
-      // `sql<number>` template gives us a typed projection.
-      const netExpr = sql<number>`(${tests.wpm} * ${tests.accuracy} / 100.0)`;
-      const filters = [eq(tests.wasCompleted, true)];
-      if (mode && mode !== "all") filters.push(eq(tests.mode, mode));
-      if (since > 0) filters.push(gte(tests.completedAt, new Date(since)));
+      // Build incremental WHERE conditions as sql<> fragments so they
+      // compose safely with the Drizzle sql`` tagged template below.
+      // This keeps parameterization in Drizzle's hands (no string
+      // interpolation of user-controlled values).
+      let whereCondition = sql`${tests.wasCompleted} = true`;
+      if (mode && mode !== "all") {
+        whereCondition = sql`${whereCondition} AND ${tests.mode} = ${mode}`;
+      }
+      if (since > 0) {
+        whereCondition = sql`${whereCondition} AND ${tests.completedAt} >= ${new Date(since)}`;
+      }
       if (amount != null && amount > 0) {
-        filters.push(eq(tests.durationOrWordCount, amount));
+        whereCondition = sql`${whereCondition} AND ${tests.durationOrWordCount} = ${amount}`;
+      }
+      if (opts.lengthMode != null) {
+        // Include rows of this exact length-mode OR legacy null rows
+        // (which stay on their amount-matched board). This excludes a
+        // *new* explicit-words run from a time board, closing the
+        // inflated-WPM gaming vector (issue #71).
+        whereCondition = sql`${whereCondition} AND (${tests.lengthMode} = ${opts.lengthMode} OR ${tests.lengthMode} IS NULL)`;
       }
       if (opts.userIds != null) {
-        filters.push(inArray(tests.userId, [...opts.userIds]));
+        whereCondition = sql`${whereCondition} AND ${tests.userId} = ANY(ARRAY[${sql.join([...opts.userIds].map((id) => sql`${id}`), sql`, `)}])`;
       }
-      const rows = await db
-        .select({
-          testId: tests.id,
-          userId: tests.userId,
-          wpm: tests.wpm,
-          accuracy: tests.accuracy,
-          mode: tests.mode,
-          durationOrWordCount: tests.durationOrWordCount,
-          completedAt: tests.completedAt,
-          netWpm: netExpr,
-        })
-        .from(tests)
-        .where(and(...filters))
-        .orderBy(desc(netExpr))
-        .limit(limit * 4); // over-fetch so we can dedupe by user
-      // Dedupe so each user only appears once per (mode, bucket) —
-      // keeps the table from filling with a single user's PB attempts.
-      const seen = new Set<string>();
+
+      // Small over-fetch buffer: post-SQL Clerk resolution may still
+      // drop a row; we ask for slightly more than needed. The dedupe
+      // is now in SQL (DISTINCT ON), so no user is ever starved by
+      // another user's high run volume.
+      const sqlLimit = limit + 20;
+
+      // DISTINCT ON picks the best run per (user_id, mode,
+      // duration_or_word_count) bucket entirely in SQL, then the outer
+      // query orders that deduped set by net_wpm DESC and applies the
+      // final limit. Both PGlite (dev/test) and Neon (prod) are
+      // Postgres and support DISTINCT ON.
+      //
+      // The dedupe key deliberately OMITS length_mode: the WHERE filter
+      // above already scopes the board to a single length-mode (+ legacy
+      // null), so a user with both a typed `time/60` row AND a legacy
+      // `null/60` row must collapse to ONE slot — keying on (user, mode,
+      // amount) keeps their single best run (issue #71).
+      const raw = await db.execute(
+        sql`SELECT test_id, user_id, wpm, accuracy, mode,
+                   duration_or_word_count, length_mode, completed_at,
+                   (wpm * accuracy / 100.0) AS net_wpm
+            FROM (
+              SELECT DISTINCT ON (user_id, mode, duration_or_word_count)
+                     id              AS test_id,
+                     user_id,
+                     wpm,
+                     accuracy,
+                     mode,
+                     duration_or_word_count,
+                     length_mode,
+                     completed_at
+              FROM   tests
+              WHERE  ${whereCondition}
+              ORDER  BY user_id, mode, duration_or_word_count,
+                        (wpm * accuracy / 100.0) DESC
+            ) best
+            ORDER  BY net_wpm DESC
+            LIMIT  ${sqlLimit}`,
+      );
+
+      type RawLeaderboardRow = {
+        test_id: string;
+        user_id: string;
+        wpm: string | number;
+        accuracy: string | number;
+        mode: string;
+        duration_or_word_count: string | number;
+        length_mode: string | null;
+        completed_at: Date | string | null;
+        net_wpm: string | number;
+      };
+      const rows = (raw.rows ?? raw) as RawLeaderboardRow[];
+
       const out: LeaderboardRow[] = [];
       for (const r of rows) {
-        const key = `${r.userId}|${r.mode}|${r.durationOrWordCount}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
         out.push({
-          testId: r.testId,
-          userId: r.userId,
+          testId: r.test_id,
+          userId: r.user_id,
           wpm: Number(r.wpm),
           accuracy: Number(r.accuracy),
-          netWpm: Number(r.netWpm),
+          netWpm: Number(r.net_wpm),
           mode: r.mode,
-          durationOrWordCount: r.durationOrWordCount,
-          // `gte(tests.completedAt, ...)` filters guarantee non-null
-          // even when sinceMs=0; defensive fallback keeps TS happy.
+          durationOrWordCount: Number(r.duration_or_word_count),
+          lengthMode: r.length_mode ?? null,
+          // Defensive fallback: completed_at may arrive as a string
+          // from some drivers; ensure we always store a Date object.
           completedAt:
-            r.completedAt instanceof Date
-              ? r.completedAt
-              : r.completedAt != null
-                ? new Date(r.completedAt)
+            r.completed_at instanceof Date
+              ? r.completed_at
+              : r.completed_at != null
+                ? new Date(r.completed_at)
                 : new Date(0),
         });
         if (out.length >= limit) break;
@@ -291,40 +371,59 @@ export function testsRepo(db: ServerDrizzle) {
      *  blowing the row budget. */
     async topPlayers(opts: { limit?: number }): Promise<TopPlayerRow[]> {
       const limit = Math.max(1, Math.min(50, opts.limit ?? 10));
-      const netExpr = sql<number>`(${tests.wpm} * ${tests.accuracy} / 100.0)`;
-      // Pass 1: pull rows ordered by net-WPM desc; pluck the first
-      // (best) row per user. Cap the scan at limit * 50 so cold
-      // tables with many users still surface the top few quickly.
-      const rows = await db
-        .select({
-          testId: tests.id,
-          userId: tests.userId,
-          wpm: tests.wpm,
-          accuracy: tests.accuracy,
-          mode: tests.mode,
-          durationOrWordCount: tests.durationOrWordCount,
-          netWpm: netExpr,
-        })
-        .from(tests)
-        .where(eq(tests.wasCompleted, true))
-        .orderBy(desc(netExpr))
-        .limit(limit * 50);
-      const seen = new Set<string>();
-      const top: Omit<TopPlayerRow, "testsCompleted">[] = [];
-      for (const r of rows) {
-        if (seen.has(r.userId)) continue;
-        seen.add(r.userId);
-        top.push({
-          userId: r.userId,
-          bestNetWpm: Number(r.netWpm),
+      // Small over-fetch buffer: post-SQL Clerk resolution may still
+      // drop a user, so request slightly more than needed. The dedupe
+      // (one row per user_id) is now done in SQL via DISTINCT ON so no
+      // user is starved by another user's volume of runs.
+      const sqlLimit = limit + 10;
+      // DISTINCT ON picks each user's single best run (highest
+      // net_wpm) entirely in SQL; the outer query ranks those bests
+      // globally. No JS over-fetch window — correctness is guaranteed
+      // regardless of how many runs any one user has submitted.
+      const raw = await db.execute(
+        sql`SELECT test_id, user_id, wpm, accuracy, mode,
+                   duration_or_word_count,
+                   (wpm * accuracy / 100.0) AS net_wpm
+            FROM (
+              SELECT DISTINCT ON (user_id)
+                     id              AS test_id,
+                     user_id,
+                     wpm,
+                     accuracy,
+                     mode,
+                     duration_or_word_count
+              FROM   tests
+              WHERE  was_completed = true
+              ORDER  BY user_id,
+                        (wpm * accuracy / 100.0) DESC
+            ) best
+            ORDER  BY net_wpm DESC
+            LIMIT  ${sqlLimit}`,
+      );
+
+      type RawPlayerRow = {
+        test_id: string;
+        user_id: string;
+        wpm: string | number;
+        accuracy: string | number;
+        mode: string;
+        duration_or_word_count: string | number;
+        net_wpm: string | number;
+      };
+      const rawRows = (raw.rows ?? raw) as RawPlayerRow[];
+
+      const top: Omit<TopPlayerRow, "testsCompleted">[] = rawRows
+        .slice(0, limit)
+        .map((r) => ({
+          userId: r.user_id,
+          bestNetWpm: Number(r.net_wpm),
           bestWpm: Number(r.wpm),
           bestAccuracy: Number(r.accuracy),
-          testId: r.testId,
+          testId: r.test_id,
           mode: r.mode,
-          durationOrWordCount: r.durationOrWordCount,
-        });
-        if (top.length >= limit) break;
-      }
+          durationOrWordCount: Number(r.duration_or_word_count),
+        }));
+
       if (top.length === 0) return [];
       // Pass 2: completed-test count per surfaced user. Done in a
       // single grouped query — keeps the round trip count flat

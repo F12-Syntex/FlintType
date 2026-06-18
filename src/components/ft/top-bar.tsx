@@ -153,7 +153,7 @@ export function TopBar({
        *  the bar quieter. */}
       <div className="flex items-center gap-3 lg:gap-4">
         {right ? (
-          <div className="hidden items-center gap-2 md:flex">{right}</div>
+          <div className="flex items-center gap-2">{right}</div>
         ) : null}
         <MobileNav nav={nav} drawerExtras={drawerExtras} dark={dark} />
       </div>
