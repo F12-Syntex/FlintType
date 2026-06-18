@@ -30,6 +30,11 @@ export const tests = pgTable(
      *  QUOTE mode → group index. The algorithm doesn't read this
      *  field; it's for history. */
     durationOrWordCount: integer("duration_or_word_count").notNull(),
+    /** Length unit for `durationOrWordCount`: 'words' (word count),
+     *  'time' (seconds), or 'quote' (quote-group index). Null on legacy
+     *  rows submitted before this column existed — the share label drops
+     *  its unit prefix in that case rather than guessing. */
+    lengthMode: text("length_mode"),
     wpm: doublePrecision("wpm").notNull(),
     accuracy: doublePrecision("accuracy").notNull(),
     errorCount: integer("error_count").notNull(),

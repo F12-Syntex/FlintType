@@ -140,7 +140,7 @@ describe("practice reducer — sequential Ctrl+Backspace", () => {
         allowExtras: true,
       });
     }
-    s = reducer(s, { type: "SPACE", now: 0, strictSpace: false });
+    s = reducer(s, { type: "SPACE", now: 0, strictSpace: false, backspaceLocked: false });
     for (const ch of "world") {
       s = reducer(s, {
         type: "TYPE_CHAR",
@@ -288,11 +288,73 @@ describe("practice reducer — TIME mode never finishes on word count", () => {
       cursorChar: 3,
       typed: ["the"],
     });
-    const next = reducer(s, { type: "SPACE", now: 100, strictSpace: false });
+    const next = reducer(s, { type: "SPACE", now: 100, strictSpace: false, backspaceLocked: false });
     expect(next.phase).toBe("running");
     expect(next.endTime).toBeNull();
     expect(next.cursorWord).toBe(1);
     expect(next.words.length).toBeGreaterThan(1);
+  });
+});
+
+describe("practice reducer — BURST does not auto-finish on the last char (#46)", () => {
+  it("BURST: a correct final char of the last item stays running (gate not bypassed)", () => {
+    // Typing the last correct character of the only item must NOT end
+    // the run — BURST commits via SPACE after BurstProvider's
+    // threshold + reps gate. Auto-finishing here would skip the gate
+    // and grant drill XP for a single under-threshold attempt.
+    const s = seed({
+      mode: "BURST",
+      words: ["go"],
+      cursorWord: 0,
+      cursorChar: 1,
+      typed: ["g"],
+    });
+    const next = reducer(s, {
+      type: "TYPE_CHAR",
+      char: "o",
+      now: 100,
+      stopOnError: false,
+      allowExtras: true,
+    });
+    expect(next.phase).toBe("running");
+    expect(next.endTime).toBeNull();
+    expect(next.cursorChar).toBe(2);
+  });
+
+  it("WORDS: the same final char DOES finish the run (non-BURST regression guard)", () => {
+    const s = seed({
+      mode: "WORDS",
+      words: ["go"],
+      cursorWord: 0,
+      cursorChar: 1,
+      typed: ["g"],
+    });
+    const next = reducer(s, {
+      type: "TYPE_CHAR",
+      char: "o",
+      now: 100,
+      stopOnError: false,
+      allowExtras: true,
+    });
+    expect(next.phase).toBe("done");
+    expect(next.endTime).toBe(100);
+  });
+
+  it("BURST: SPACE on the final item ends the run (the burst finish path)", () => {
+    // BurstProvider dispatches plain SPACE once the gate (wpm >=
+    // threshold && reps >= required) passes on the last item; the
+    // reducer's SPACE branch is what sets phase done — BURST is not
+    // excluded there.
+    const s = seed({
+      mode: "BURST",
+      words: ["go"],
+      cursorWord: 0,
+      cursorChar: 2,
+      typed: ["go"],
+    });
+    const next = reducer(s, { type: "SPACE", now: 200, strictSpace: false });
+    expect(next.phase).toBe("done");
+    expect(next.endTime).toBe(200);
   });
 });
 
@@ -352,15 +414,287 @@ describe("practice reducer — BACKSPACE clears the error underline on fix (#16)
   });
 });
 
-describe("practice reducer — SPACE is a no-op at rest (leading space ignored)", () => {
-  it("does not advance or start the run on a leading space", () => {
-    // Matches monkeytype: a space before any typing is ignored, so the
-    // run only starts on a real character. (The skipped-word *error
-    // count* half of #17 is fixed separately by the shared errorCount
-    // metric — see wpm.test.ts.)
+describe("practice reducer — keystroke-based accuracy counters (#14 / #51)", () => {
+  // The provider derives accuracy as correctChars / totalChars — both
+  // counted at keypress time, monkeytype-style. These tests pin the
+  // counter semantics the accuracy figure depends on.
+  const typeChar = (
+    char: string,
+    over: Partial<{ stopOnError: boolean; allowExtras: boolean }> = {},
+  ): Action => ({
+    type: "TYPE_CHAR",
+    char,
+    now: 1000,
+    stopOnError: over.stopOnError ?? false,
+    allowExtras: over.allowExtras ?? true,
+  });
+  const accuracyOf = (s: State): number =>
+    s.totalChars > 0 ? (s.correctChars / s.totalChars) * 100 : 100;
+
+  it("a corrected mistake still lowers accuracy permanently", () => {
+    let s = seed({ words: ["cat"], typed: [] });
+    // c, a, X (wrong), backspace, t — final buffer is "cat" (perfect)
+    s = run(
+      s,
+      typeChar("c"),
+      typeChar("a"),
+      typeChar("x"),
+      { type: "BACKSPACE" },
+      typeChar("t"),
+    );
+    expect(s.typed[0]).toBe("cat");
+    expect(s.totalChars).toBe(4); // 4 char keypresses; backspace not counted
+    expect(s.correctChars).toBe(3);
+    expect(accuracyOf(s)).toBe(75);
+  });
+
+  it("a stop-on-error-blocked wrong keystroke lowers accuracy", () => {
+    let s = seed({ words: ["cat"], typed: [] });
+    s = run(
+      s,
+      typeChar("c", { stopOnError: true }),
+      typeChar("x", { stopOnError: true }), // blocked — never lands in typed
+      typeChar("a", { stopOnError: true }),
+      typeChar("t", { stopOnError: true }),
+    );
+    expect(s.typed[0]).toBe("cat"); // blocked char never entered the buffer
+    expect(s.totalChars).toBe(4);
+    expect(s.correctChars).toBe(3);
+    expect(accuracyOf(s)).toBe(75);
+  });
+
+  it("backspace is neutral — never counts as a keystroke", () => {
+    let s = seed({ words: ["cat"], typed: [] });
+    s = run(
+      s,
+      typeChar("c"),
+      typeChar("a"),
+      { type: "BACKSPACE" },
+      { type: "BACKSPACE" },
+      typeChar("c"),
+      typeChar("a"),
+      typeChar("t"),
+    );
+    expect(s.totalChars).toBe(5);
+    expect(s.correctChars).toBe(5);
+    expect(accuracyOf(s)).toBe(100);
+  });
+
+  it("an extra char (past word end) counts as incorrect", () => {
+    let s = seed({ words: ["hi", "yo"], typed: [] });
+    s = run(s, typeChar("h"), typeChar("i"), typeChar("z"));
+    expect(s.totalChars).toBe(3);
+    expect(s.correctChars).toBe(2);
+  });
+
+  it("space-skipping a word does not inflate accuracy (skipped chars are not keystrokes)", () => {
+    let s = seed({ words: ["hello", "world"], typed: [] });
+    s = run(
+      s,
+      typeChar("h"),
+      typeChar("e"),
+      { type: "SPACE", now: 1000, strictSpace: false },
+      typeChar("w"),
+    );
+    // 3 char keypresses, all correct — space itself is not a char
+    // keystroke and the skipped tail is missed, not wrong.
+    expect(s.totalChars).toBe(3);
+    expect(s.correctChars).toBe(3);
+    expect(accuracyOf(s)).toBe(100);
+  });
+
+  it("100% accuracy implies raw == net WPM (within rounding)", async () => {
+    const { calcWpmAndRaw } = await import("@/lib/wpm");
+    let s = seed({ words: ["the", "cat", "sat"], typed: [] });
+    for (const word of ["the", "cat"]) {
+      for (const ch of word) s = run(s, typeChar(ch));
+      s = run(s, { type: "SPACE", now: 1000, strictSpace: false });
+    }
+    for (const ch of "sat") s = run(s, typeChar(ch));
+    expect(s.phase).toBe("done");
+    expect(s.correctChars).toBe(s.totalChars); // 100% accuracy
+    const { wpm, raw } = calcWpmAndRaw(
+      s.typed,
+      s.words,
+      10_000,
+      true,
+      s.events.length,
+    );
+    expect(raw).toBeCloseTo(wpm, 6);
+  });
+});
+
+describe("practice reducer — SPACE skips the first word like any other (#17a)", () => {
+  it("starts the run and skips word 0 on a leading space", () => {
+    // Issue #17a: the first word must be skippable with space exactly
+    // like every later word. A space at rest starts the run (startTime
+    // minted) and advances past word 0, marking it errored.
     const s = { ...initialState, words: ["hello", "world"], phase: "rest" as const };
     const next = reducer(s, { type: "SPACE", now: 1000, strictSpace: false });
+    expect(next.phase).toBe("running");
+    expect(next.startTime).toBe(1000);
+    expect(next.cursorWord).toBe(1);
+    expect(next.cursorChar).toBe(0);
+    expect(next.errorWords.has(0)).toBe(true);
+    // typed[] sealed with an entry for the skipped word.
+    expect(next.typed[0]).toBe("");
+  });
+
+  it("skips the first word identically to a middle word", () => {
+    // Same skip applied to word 0 (from rest) and to word 1 (mid-run)
+    // must produce the same per-word outcome: empty sealed buffer,
+    // error flag set, cursor advanced one word.
+    const base = { ...initialState, words: ["aaa", "bbb", "ccc"] };
+    const afterFirst = reducer(
+      { ...base, phase: "rest" as const },
+      { type: "SPACE", now: 5, strictSpace: false },
+    );
+    const afterMiddle = reducer(
+      { ...base, phase: "running" as const, cursorWord: 1, typed: ["aaa"], startTime: 0 },
+      { type: "SPACE", now: 5, strictSpace: false },
+    );
+    expect(afterFirst.cursorWord).toBe(1);
+    expect(afterMiddle.cursorWord).toBe(2);
+    expect(afterFirst.typed[0]).toBe("");
+    expect(afterMiddle.typed[1]).toBe("");
+    expect(afterFirst.errorWords.has(0)).toBe(true);
+    expect(afterMiddle.errorWords.has(1)).toBe(true);
+  });
+
+  it("strictSpace still blocks the skip — including at rest", () => {
+    // The strict-space gate is identical across all words: an
+    // unfinished word can't be skipped, and at rest a bare space
+    // neither skips nor starts the run.
+    const rest = { ...initialState, words: ["hello", "world"], phase: "rest" as const };
+    expect(reducer(rest, { type: "SPACE", now: 1, strictSpace: true })).toBe(rest);
+    const running = { ...rest, phase: "running" as const, typed: ["hel"], cursorChar: 3, startTime: 0 };
+    expect(reducer(running, { type: "SPACE", now: 1, strictSpace: true })).toBe(running);
+  });
+
+  it("strictSpace still advances on a fully-correct word", () => {
+    const s = seed({
+      words: ["hello", "world"],
+      cursorWord: 0,
+      cursorChar: 5,
+      typed: ["hello"],
+      startTime: 0,
+    });
+    const next = reducer(s, { type: "SPACE", now: 10, strictSpace: true });
+    expect(next.cursorWord).toBe(1);
+    expect(next.errorWords.has(0)).toBe(false);
+  });
+
+  it("space on the final word still finishes the run (and from rest on a 1-word passage)", () => {
+    const s = { ...initialState, words: ["solo"], phase: "rest" as const };
+    const next = reducer(s, { type: "SPACE", now: 42, strictSpace: false });
+    expect(next.phase).toBe("done");
+    expect(next.startTime).toBe(42);
+    expect(next.endTime).toBe(42);
+  });
+});
+
+describe("practice reducer — skipped words count errors the same live and final (#17b)", () => {
+  it("a skipped word's untyped tail yields the same errorCount live and on results", async () => {
+    const { errorCount } = await import("@/lib/wpm");
+    // Type "hel", skip "hello", then fully type "world" + finish.
+    let s = seed({ words: ["hello", "world"], typed: [], startTime: 0 });
+    for (const ch of "hel") {
+      s = reducer(s, { type: "TYPE_CHAR", char: ch, now: 1, stopOnError: false, allowExtras: true });
+    }
+    s = reducer(s, { type: "SPACE", now: 2, strictSpace: false });
+    for (const ch of "world") {
+      s = reducer(s, { type: "TYPE_CHAR", char: ch, now: 3, stopOnError: false, allowExtras: true });
+    }
+    expect(s.phase).toBe("done");
+    // Live readout uses final=false, results uses final=true — both
+    // must charge the skipped "lo" tail (2 missed chars) identically.
+    const live = errorCount(s.typed, s.words, false);
+    const final = errorCount(s.typed, s.words, true);
+    expect(live).toBe(2);
+    expect(final).toBe(2);
+    // …and the reducer flagged the skipped word for the live underline.
+    expect(s.errorWords.has(0)).toBe(true);
+  });
+});
+
+describe("practice reducer — strictSpace yields when backspace is locked (#50)", () => {
+  it("strictSpace + backspaceLocked=false + wrong word → SPACE is a no-op", () => {
+    // confidence off/word: the user CAN backspace to fix, so strictSpace
+    // is enforced — Space refuses to advance past a wrong word.
+    const s = seed({
+      words: ["hello", "world"],
+      cursorWord: 0,
+      cursorChar: 5,
+      typed: ["helxo", ""],
+      errorWords: new Set([0]),
+    });
+    const next = reducer(s, {
+      type: "SPACE",
+      now: 100,
+      strictSpace: true,
+      backspaceLocked: false,
+    });
     expect(next).toBe(s);
+    expect(next.cursorWord).toBe(0);
+  });
+
+  it("strictSpace + backspaceLocked=false + incomplete word → SPACE is a no-op", () => {
+    const s = seed({
+      words: ["hello", "world"],
+      cursorWord: 0,
+      cursorChar: 3,
+      typed: ["hel", ""],
+    });
+    const next = reducer(s, {
+      type: "SPACE",
+      now: 100,
+      strictSpace: true,
+      backspaceLocked: false,
+    });
+    expect(next).toBe(s);
+    expect(next.cursorWord).toBe(0);
+  });
+
+  it("strictSpace + backspaceLocked=true + wrong word → SPACE advances (the fix)", () => {
+    // confidence="all": no correction path, so strictSpace must yield —
+    // Space advances past the word and marks it errored, breaking the
+    // deadlock.
+    const s = seed({
+      words: ["hello", "world"],
+      cursorWord: 0,
+      cursorChar: 5,
+      typed: ["helxo", ""],
+      errorWords: new Set([0]),
+    });
+    const next = reducer(s, {
+      type: "SPACE",
+      now: 100,
+      strictSpace: true,
+      backspaceLocked: true,
+    });
+    expect(next.cursorWord).toBe(1);
+    expect(next.cursorChar).toBe(0);
+    expect(next.errorWords.has(0)).toBe(true);
+  });
+
+  it("strictSpace + correct word → SPACE advances regardless of backspaceLocked", () => {
+    for (const backspaceLocked of [false, true]) {
+      const s = seed({
+        words: ["hello", "world"],
+        cursorWord: 0,
+        cursorChar: 5,
+        typed: ["hello", ""],
+      });
+      const next = reducer(s, {
+        type: "SPACE",
+        now: 100,
+        strictSpace: true,
+        backspaceLocked,
+      });
+      expect(next.cursorWord).toBe(1);
+      expect(next.cursorChar).toBe(0);
+      expect(next.errorWords.has(0)).toBe(false);
+    }
   });
 });
 

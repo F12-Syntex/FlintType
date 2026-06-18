@@ -36,6 +36,7 @@ function makeTestRow(over: Partial<TestRow>): TestRow {
     completedAt: new Date(),
     mode: "training",
     durationOrWordCount: 25,
+    lengthMode: null,
     wpm: 100,
     accuracy: 98,
     errorCount: 0,

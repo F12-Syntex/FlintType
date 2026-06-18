@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ftButtonVariants, Stat, Tag, UserTag } from "@/components/ft";
 import { formatClock } from "@/lib/format-duration";
+import { shareLengthLabel } from "@/lib/share-length-label";
 import type { SharedTest } from "@/types/share";
 
 /** Friendly mode label for the eyebrow strip. The DB stores `casual`
@@ -11,14 +12,6 @@ function modeLabel(mode: string): string {
   if (mode === "training") return "Training";
   if (mode === "reverse_adaptive") return "Reverse";
   return "Casual";
-}
-
-/** Length label — matches the OG card style: "Words · 50", "Time ·
- *  60s", "Quote · 3". Time mode is detected by the mode string. */
-function lengthLabel(mode: string, amount: number): string {
-  if (mode === "time" || /time/i.test(mode)) return `Time · ${amount}s`;
-  if (/quote/i.test(mode)) return `Quote · ${amount}`;
-  return `Words · ${amount}`;
 }
 
 /** Linked handle pill — points at `/profile/<username>` when a Clerk
@@ -98,7 +91,7 @@ export function ShareCard({ data }: { data: SharedTest }) {
             tags={data.tags}
           />
           <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.22em] text-ft-warm-3">
-            <span>{lengthLabel(data.mode, data.durationOrWordCount)}</span>
+            <span>{shareLengthLabel(data.lengthMode, data.durationOrWordCount)}</span>
             <span className="tabular-nums text-ft-warm-1">
               {formatClock(data.durationSec)}
             </span>
