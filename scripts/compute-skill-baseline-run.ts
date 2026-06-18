@@ -37,6 +37,7 @@ export async function run() {
       completedAtMs: (r.completedAt ?? r.startedAt).getTime(),
       mode: r.mode,
       durationOrWordCount: r.durationOrWordCount,
+      lengthMode: (r.lengthMode as "words" | "time" | "quote" | null) ?? null,
       wpm: r.wpm,
       accuracy: r.accuracy,
       errorCount: r.errorCount,

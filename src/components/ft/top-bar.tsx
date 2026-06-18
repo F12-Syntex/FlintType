@@ -92,7 +92,13 @@ export function TopBar({
       <Logo dark={dark} version={resolvedVersion} />
 
       {nav && nav.length > 0 ? (
-        <div className="hidden min-w-0 md:flex">
+        // Inline nav pill only from lg (1024px) up — below that the 5
+        // mono links (~380px) overflow the available middle column and
+        // the pill's overflow-hidden clipped Leaderboard/Insights with no
+        // scroll or wrap. <lg hands off to the hamburger drawer instead
+        // (FT-037). The handoff was previously at md (768), leaving the
+        // 768–~900px band with a clipped pill AND no hamburger.
+        <div className="hidden min-w-0 lg:flex">
           <nav
             data-ft-topbar-pill
             aria-label="Main"
@@ -147,7 +153,7 @@ export function TopBar({
        *  the bar quieter. */}
       <div className="flex items-center gap-3 lg:gap-4">
         {right ? (
-          <div className="hidden items-center gap-2 md:flex">{right}</div>
+          <div className="flex items-center gap-2">{right}</div>
         ) : null}
         <MobileNav nav={nav} drawerExtras={drawerExtras} dark={dark} />
       </div>

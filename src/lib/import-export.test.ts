@@ -4,15 +4,21 @@ vi.mock("./prefs-store", () => ({
   loadPrefs: vi.fn(async () => ({})),
   getCache: vi.fn(() => ({})),
   writeSlice: vi.fn(),
+  // Default: an empty existing slice (so merges behave like a fresh
+  // user). Individual tests override to assert slice preservation.
+  readSlice: vi.fn((_key: string, defaults: unknown) => defaults),
 }));
 
-import { writeSlice } from "./prefs-store";
+import { readSlice, writeSlice } from "./prefs-store";
 import { importFlinttype, importMonkeytype } from "./import-export";
 
 const mockWrite = vi.mocked(writeSlice);
+const mockRead = vi.mocked(readSlice);
 
 beforeEach(() => {
   mockWrite.mockReset();
+  mockRead.mockReset();
+  mockRead.mockImplementation((_key: string, defaults: object) => defaults);
 });
 
 const writes = (): Record<string, unknown> => {
@@ -153,6 +159,45 @@ describe("importMonkeytype", () => {
     expect((w.appearance as { keymap: string }).keymap).toBe("next");
     expect((w.practice as { mode: string; length: number }).mode).toBe("WORDS");
     expect((w.practice as { length: number }).length).toBe(10);
+  });
+
+  it("maps quote mode from quoteLength (not words) to a valid QuoteGroup", () => {
+    // MT always carries a numeric `words` regardless of the active mode;
+    // a quote export must take its size from `quoteLength` (0..3), not
+    // `words`, or QUOTE lands on an out-of-range length (e.g. 50) with no
+    // selectable chip and "(quote unavailable)" passages.
+    importMonkeytype({ mode: "quote", words: 50, quoteLength: [1, 2] });
+    const p = writes().practice as { mode: string; length: number };
+    expect(p.mode).toBe("QUOTE");
+    expect(p.length).toBe(1); // lowest valid id, NOT 50
+  });
+
+  it("defaults quote length to short (0) when quoteLength has no real group", () => {
+    // MT's "all" is -1 (and favourites -2/-3) — none map to a single
+    // group, so fall back to short rather than writing an invalid id.
+    importMonkeytype({ mode: "quote", words: 25, quoteLength: [-1] });
+    expect((writes().practice as { length: number }).length).toBe(0);
+  });
+
+  it("merges the practice slice, preserving the user's adapt / wordlist", () => {
+    // The import only specifies mode + length; it must not reset the
+    // user's stored adapt=false / custom wordlist back to defaults.
+    mockRead.mockImplementation((key: string, defaults: object) =>
+      key === "practice"
+        ? { mode: "WORDS", length: 25, adapt: false, wordlist: "code" }
+        : defaults,
+    );
+    importMonkeytype({ mode: "words", words: 50 });
+    const p = writes().practice as {
+      mode: string;
+      length: number;
+      adapt: boolean;
+      wordlist: string;
+    };
+    expect(p.mode).toBe("WORDS");
+    expect(p.length).toBe(50); // imported value wins
+    expect(p.adapt).toBe(false); // preserved
+    expect(p.wordlist).toBe("code"); // preserved
   });
 });
 

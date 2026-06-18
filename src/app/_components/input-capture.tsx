@@ -141,9 +141,14 @@ export function InputCapture({ children }: { children: ReactNode }) {
                   playClick();
                   continue;
                 }
-                if (phaseRef.current !== "rest") {
-                  dispatch({ type: "SPACE", now, strictSpace });
-                }
+                // No rest-phase guard — space as the first key starts
+                // the run and skips word 0 (issue #17a); reducer owns it.
+                dispatch({
+                  type: "SPACE",
+                  now,
+                  strictSpace,
+                  backspaceLocked: p.confidence === "all",
+                });
               } else {
                 dispatch({
                   type: "TYPE_CHAR",
@@ -185,12 +190,15 @@ export function InputCapture({ children }: { children: ReactNode }) {
           const p = prefsRef.current;
           if (e.key === "Escape") {
             e.preventDefault();
-            restart();
+            // In race phases where input is locked (lobby, countdown,
+            // matching, results), Esc is a no-op — there is no room-leave
+            // wired here. Use the Leave button or Tab to the controls.
+            if (!isRaceInputCurrentlyLocked()) restart();
             return;
           }
           if (phaseRef.current === "done") return;
           // Race countdown / lobby / matching — block typing keys until
-          // the race starts. Escape (above) still leaves the room.
+          // the race starts.
           if (isRaceInputCurrentlyLocked()) {
             e.preventDefault();
             return;
@@ -207,7 +215,8 @@ export function InputCapture({ children }: { children: ReactNode }) {
           }
           if (e.key === " ") {
             e.preventDefault();
-            if (phaseRef.current === "rest") return;
+            // No rest-phase guard — space as the first key starts the
+            // run and skips word 0 (issue #17a); the reducer owns it.
             // BURST owns SPACE via its own controller — playClick still
             // fires so the audio toggle works the same on every key.
             if (modeRef.current === "BURST") {
@@ -218,6 +227,7 @@ export function InputCapture({ children }: { children: ReactNode }) {
               type: "SPACE",
               now: Date.now(),
               strictSpace: p.strictSpace,
+              backspaceLocked: p.confidence === "all",
             });
             playClick();
             return;

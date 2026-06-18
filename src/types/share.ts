@@ -24,8 +24,12 @@ export type SharedTest = {
    *  client maps to a friendly label. */
   mode: string;
   /** WORDS → word count, TIME → seconds, QUOTE → group index. The
-   *  consumer pairs this with `mode` to format. */
+   *  consumer pairs this with `lengthMode` to format. */
   durationOrWordCount: number;
+  /** Length unit for `durationOrWordCount` — the words-vs-time-vs-quote
+   *  discriminator the share label branches on. Null on legacy rows
+   *  submitted before this column existed. */
+  lengthMode: "words" | "time" | "quote" | null;
   wpm: number;
   accuracy: number;
   errorCount: number;
