@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.136.46 — 17 June 2026
+- Fixed the top navigation on portrait tablets (around 768–1000px wide): "Leaderboard" and "Insights" were getting cut off the bar with no menu to reach them. The hamburger menu now appears at those widths, so every page is reachable.
+
 ## 6.136.45 — 17 June 2026
 - Timed and word tests of the same number (e.g. a 60-second run vs a 60-word run) are now kept apart for personal bests and the leaderboard, instead of being lumped together. The timed leaderboards no longer rank short custom-word sprints against real timed runs.
 
