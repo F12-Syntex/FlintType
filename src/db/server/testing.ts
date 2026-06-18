@@ -59,6 +59,7 @@ const SCHEMA_DDL = `
     completed_at             timestamp,
     mode                     text NOT NULL,
     duration_or_word_count   integer NOT NULL,
+    length_mode              text,
     wpm                      double precision NOT NULL,
     accuracy                 double precision NOT NULL,
     error_count              integer NOT NULL,

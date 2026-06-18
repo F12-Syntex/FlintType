@@ -105,6 +105,27 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
     }
   }
 
+  // Mark a single notification read — wired to the race-invite row so
+  // clicking through to the lobby clears it from the bell AND the
+  // friends dock (whose challenges derive from unread race_invite
+  // notifications), instead of pointing at a dead lobby forever
+  // (ui-law §17.5 / multiplayer doc). Optimistic, like markAllRead.
+  const markOneRead = useCallback(
+    (id: string) => {
+      let wasUnread = false;
+      setItems((prev) =>
+        prev.map((n) => {
+          if (n.id !== id || n.readAtMs != null) return n;
+          wasUnread = true;
+          return { ...n, readAtMs: Date.now() };
+        }),
+      );
+      if (wasUnread) setUnreadCount((c) => Math.max(0, c - 1));
+      void backend.notifications.markRead({ id }).catch(() => void refresh());
+    },
+    [backend, refresh],
+  );
+
   // Anonymous viewers: no bell at all. Avoids a permanently-empty
   // affordance that does nothing on click.
   if (!isLoaded || isSignedIn !== true) return null;
@@ -220,7 +241,7 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
                     dark ? "border-ft-ink-line" : "border-border",
                   )}
                 >
-                  <Row item={n} dark={dark} />
+                  <Row item={n} dark={dark} onMarkRead={markOneRead} />
                 </li>
               ))}
             </ul>
@@ -231,7 +252,15 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
   );
 }
 
-function Row({ item, dark }: { item: Notification; dark: boolean }) {
+function Row({
+  item,
+  dark,
+  onMarkRead,
+}: {
+  item: Notification;
+  dark: boolean;
+  onMarkRead: (id: string) => void;
+}) {
   const accent = item.kind === "personal_best" || item.kind === "mutual";
   const unread = item.readAtMs == null;
   const href = isAnnouncement(item)
@@ -307,6 +336,12 @@ function Row({ item, dark }: { item: Notification; dark: boolean }) {
     return (
       <Link
         href={href}
+        // Clicking a race invite through to the lobby marks it read, so
+        // it stops haunting the dock + bell (FT-031). Other kinds keep
+        // their unread state until Mark all read.
+        onClick={
+          isRaceInvite(item) ? () => onMarkRead(item.id) : undefined
+        }
         className={cn(
           "block transition-colors",
           dark ? "hover:bg-white/[0.04]" : "hover:bg-foreground/[0.03]",

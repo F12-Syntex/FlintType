@@ -1,0 +1,1 @@
+ALTER TABLE "tests" ADD COLUMN "length_mode" text;

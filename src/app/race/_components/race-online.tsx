@@ -3,12 +3,20 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react";
 import { useBackend } from "@/lib/backend";
+import {
+  countdownDigit,
+  elapsedSeconds,
+  mergeOffset,
+  offsetSample,
+  serverNow,
+} from "@/lib/race-clock";
 import { isRaceInputLocked, setRaceInputLocked } from "@/lib/race-input";
 import { calcWpmAndRaw } from "@/lib/wpm";
 import { usePractice } from "../../_components/practice-state";
@@ -254,34 +262,92 @@ export function OnlineRaceProvider({
     return () => clearTimeout(t);
   }, [room, roomState, snapshot, onRoomCancelled]);
 
-  // Local-clock tick during countdown / racing. The server snapshot
-  // only re-broadcasts on state changes; during the 3-second
-  // countdown nothing changes server-side, so `snapshot.serverNowMs`
-  // stays fixed and the derived countdownNumber would freeze at 3.
-  // A 200ms local tick keeps the digit honest (and the racing
-  // elapsed-second readouts ticking) without depending on the server
-  // pushing time updates we'd just throw away.
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    if (snapshot?.phase !== "countdown" && snapshot?.phase !== "racing") return;
-    const id = setInterval(() => setTick((t) => (t + 1) & 0x7fffffff), 200);
-    return () => clearInterval(id);
-  }, [snapshot?.phase]);
+  // Server-anchored clock. The snapshot's anchors
+  // (countdownStartedAt / raceStartedAt) live on the SERVER's wall
+  // clock, so comparing them against raw local Date.now() shifts the
+  // countdown by the full device-clock skew — every client used to
+  // start at a different moment. Instead we estimate
+  // offset = serverClock − localClock from each snapshot's
+  // serverNowMs stamp (mergeOffset keeps the lowest-latency sample)
+  // and derive all timings from Date.now() + offset.
+  const offsetRef = useRef<number | null>(null);
+  const serverNowMs = snapshot?.serverNowMs ?? null;
+  // Sample in a layout effect — never during render, where a discarded
+  // concurrent render (or Strict Mode's double-invoke) would record a
+  // sample non-deterministically. Layout effects run before regular
+  // effects, so the rAF loop below always reads an anchored offset.
+  useLayoutEffect(() => {
+    if (serverNowMs == null) return;
+    offsetRef.current = mergeOffset(
+      offsetRef.current,
+      offsetSample(serverNowMs, Date.now()),
+    );
+  }, [serverNowMs]);
 
-  const derived = useMemo(
-    // Recompute against the live wall clock so the countdown digit
-    // re-renders every 200ms even while the server snapshot is idle.
-    () =>
-      deriveTimings(
-        snapshot?.phase === "countdown" || snapshot?.phase === "racing"
-          ? { ...state, nowMs: Date.now() }
-          : state,
-      ),
-    // `tick` is read implicitly via Date.now() above — list it in the
-    // deps so the memo invalidates on each interval fire.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state, tick],
-  );
+  // Live timings during countdown / racing. The server snapshot only
+  // re-broadcasts on state changes; during the 3-second countdown
+  // nothing changes server-side, so the digit must tick locally. A
+  // requestAnimationFrame loop recomputes the digit / elapsed second
+  // from the anchored server clock and commits state only when a
+  // rendered value actually flips — smooth, frame-accurate digit
+  // changes with no 200ms quantisation stutter.
+  const livePhase =
+    snapshot?.phase === "countdown" || snapshot?.phase === "racing";
+  const countdownStartedAt = snapshot?.countdownStartedAt ?? null;
+  const raceStartedAt = snapshot?.raceStartedAt ?? null;
+  const [liveTimings, setLiveTimings] = useState<{
+    countdownNumber: number | null;
+    elapsedSeconds: number;
+  } | null>(null);
+  useEffect(() => {
+    if (!livePhase) {
+      setLiveTimings(null);
+      return;
+    }
+    let raf = 0;
+    const loop = () => {
+      const now = serverNow(offsetRef.current, Date.now());
+      const next = {
+        countdownNumber: countdownDigit(countdownStartedAt, now),
+        elapsedSeconds: elapsedSeconds(raceStartedAt, now),
+      };
+      setLiveTimings((prev) =>
+        prev != null &&
+        prev.countdownNumber === next.countdownNumber &&
+        prev.elapsedSeconds === next.elapsedSeconds
+          ? prev
+          : next,
+      );
+      raf = requestAnimationFrame(loop);
+    };
+    loop();
+    return () => cancelAnimationFrame(raf);
+  }, [livePhase, countdownStartedAt, raceStartedAt]);
+
+  const derived = useMemo(() => {
+    if (!livePhase) return deriveTimings(state);
+    if (liveTimings != null) return liveTimings;
+    // First live frame: the rAF effect hasn't committed yet (liveTimings
+    // is still null), so seed from the anchored clock right here instead
+    // of falling through to deriveTimings' stale snapshot stamp. Pure
+    // compute — fold the snapshot's own sample without writing the ref.
+    const offset =
+      serverNowMs != null
+        ? mergeOffset(offsetRef.current, offsetSample(serverNowMs, Date.now()))
+        : offsetRef.current;
+    const now = serverNow(offset, Date.now());
+    return {
+      countdownNumber: countdownDigit(countdownStartedAt, now),
+      elapsedSeconds: elapsedSeconds(raceStartedAt, now),
+    };
+  }, [
+    livePhase,
+    liveTimings,
+    state,
+    serverNowMs,
+    countdownStartedAt,
+    raceStartedAt,
+  ]);
 
   const ctx = useMemo<RaceCtx>(
     () => ({
@@ -550,18 +616,15 @@ function serverRacerToClient(
 
 /* ─── Derived timings (countdown digit, elapsed seconds) ─────── */
 
+/** Static fallback for non-live phases (queue / lobby / finished):
+ *  derives from the snapshot's own serverNowMs stamp — same clock as
+ *  the anchors, so no skew. Live phases use the rAF loop above. */
 function deriveTimings(state: RaceState) {
-  let countdownNumber: number | null = null;
-  if (state.phase === "countdown" && state.countdownStartedAt != null) {
-    // Server-fixed 3s countdown. We use the server-supplied wall
-    // clock (nowMs) so two clients with skewed device clocks still
-    // see the same digit at the same moment.
-    const left = 3_000 - (state.nowMs - state.countdownStartedAt);
-    countdownNumber = Math.max(0, Math.ceil(left / 1000));
-  }
-  const elapsedSeconds =
-    state.raceStartedAt != null
-      ? Math.max(0, Math.floor((state.nowMs - state.raceStartedAt) / 1000))
-      : 0;
-  return { countdownNumber, elapsedSeconds };
+  return {
+    countdownNumber:
+      state.phase === "countdown"
+        ? countdownDigit(state.countdownStartedAt, state.nowMs)
+        : null,
+    elapsedSeconds: elapsedSeconds(state.raceStartedAt, state.nowMs),
+  };
 }

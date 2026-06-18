@@ -20,7 +20,7 @@ import { useIsMobile } from "@/lib/use-is-mobile";
 import { isRaceInputCurrentlyLocked } from "@/lib/race-input";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { useWordlist } from "@/lib/wordlists/use-wordlist";
-import { calcWpmAndRaw, countChars, errorCount as computeErrorCount } from "@/lib/wpm";
+import { calcWpmAndRaw, keystrokeAccuracy, keystrokeErrors } from "@/lib/wpm";
 import {
   avgWpm as computeAvgWpm,
   consistencyScore as computeConsistency,
@@ -558,13 +558,14 @@ export function PracticeProvider({
     // threshold (behaviour.burstThreshold = 0). Pure localStorage,
     // capped to the last 20 samples; see src/lib/avg-wpm-cache.ts.
     recordWpmSample(wpm);
-    const counts = countChars(state.typed, state.words, true);
-    const correctChars = counts.allCorrectChars;
-    const incorrectChars = counts.incorrectChars + counts.extraChars;
-    const accuracy =
-      correctChars + incorrectChars > 0
-        ? (correctChars / (correctChars + incorrectChars)) * 100
-        : 100;
+    // Accuracy + errors are KEYSTROKE-TRUE (derived from the recorded
+    // KeyEvent stream), so a backspaced or stop-on-error-blocked mistake
+    // still counts — matching monkeytype and the race surface. The old
+    // countChars-over-typed[] calc read 100%/0 errors for a fully
+    // corrected run, inflating the persisted accuracy + PB. Equivalent to
+    // the reducer's correctChars/totalChars counters; events is the
+    // richer single source (see keystrokeAccuracy).
+    const accuracy = keystrokeAccuracy(state.events);
     const wordsActuallyTyped = state.words.slice(
       0,
       Math.min(state.cursorWord + 1, state.words.length),
@@ -595,12 +596,22 @@ export function PracticeProvider({
         completedAt: endTime,
         mode: submitMode,
         durationOrWordCount: length,
+        // Length-unit discriminator for the share label — separate from
+        // the adapt `mode` above (casual/training/race), which never
+        // carries words-vs-time-vs-quote. BURST already returned above.
+        lengthMode:
+          state.mode === "TIME"
+            ? "time"
+            : state.mode === "QUOTE"
+              ? "quote"
+              : "words",
         wpm,
         accuracy,
-        // Per-character errors (incorrect + extra), the same metric the
-        // results + live readouts show — so the persisted/history figure
-        // matches what the user saw (was errorWords.size, a per-word count).
-        errorCount: computeErrorCount(state.typed, state.words),
+        // Keystroke-true error count (incorrect keystrokes, including
+        // ones later backspaced or blocked by stop-on-error) — the same
+        // metric the results + live readouts show, so the persisted /
+        // history figure matches what the user saw.
+        errorCount: keystrokeErrors(state.events),
         resetCount: 0,
         wasCompleted: true,
         words: wordsActuallyTyped,
@@ -736,13 +747,12 @@ export function PracticeProvider({
         isFinal,
         s.events.length,
       );
-      const counts = countChars(s.typed, s.words, isFinal);
-      const correct = counts.allCorrectChars;
-      const incorrect = counts.incorrectChars + counts.extraChars;
-      const acc =
-        correct + incorrect > 0
-          ? Math.round((correct / (correct + incorrect)) * 1000) / 10
-          : 100;
+      // Keystroke-true accuracy (corrected + stop-on-error-blocked
+      // mistakes count) — see keystrokeAccuracy. Every character keypress
+      // counts at press time so 100% genuinely means "zero wrong
+      // keypresses" (raw == net at 100%); backspace / space are neutral.
+      // Matches the recorded value so live == results == persisted.
+      const acc = Math.round(keystrokeAccuracy(s.events) * 10) / 10;
       return {
         wpm: Math.round(rawWpm),
         raw: Math.round(rawRaw),
@@ -1028,8 +1038,23 @@ export function PracticeProvider({
 
     if (e.key === " ") {
       e.preventDefault();
-      if (s.phase === "rest") return;
-      dispatch({ type: "SPACE", now: Date.now(), strictSpace: p.strictSpace });
+      // BURST: BurstProvider's own window listener owns Space — it runs
+      // the threshold/reps gate (burst-practice.tsx handleSpace) before
+      // dispatching the run-advancing SPACE. Dispatching a raw, ungated
+      // SPACE here (this fallback fires when focus is off the hidden
+      // input, e.g. on <body>) would bypass that gate AND double-dispatch
+      // with BurstProvider's listener. Swallow it and let BurstProvider
+      // own it, mirroring input-capture's BURST suppression (#47/FT-012).
+      if (s.mode === "BURST") return;
+      // No rest-phase guard: space as the very first key starts the run
+      // and skips word 0, same as skipping any later word (issue #17a).
+      // The reducer owns the start; strictSpace still gates the skip.
+      dispatch({
+        type: "SPACE",
+        now: Date.now(),
+        strictSpace: p.strictSpace,
+        backspaceLocked: p.confidence === "all",
+      });
       return;
     }
     if (e.key === "Backspace") {
@@ -1088,14 +1113,13 @@ export function PracticeProvider({
       // sibling typing-suppress gate and input-capture.tsx. Checked
       // BEFORE preventDefault so the native focus-shift survives.
       if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+      // In raceMode, TabFocusGuard owns phase-aware Tab swallowing
+      // (countdown + racing: swallow; lobby/results: leave alone for
+      // keyboard-only nav). Return without preventDefault so native
+      // focus traversal works in every non-typing phase.
+      if (raceMode) return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      // In a multiplayer race, Tab is inert: a mid-race restart would
-      // wipe your progress, and the room owns the passage so there's no
-      // fresh set to roll. Swallow it (the preventDefault above already
-      // killed the native focus-shift). Rematch is the visible
-      // "Race again" button on the results panel.
-      if (raceMode) return;
       // In BURST, Tab retries the CURRENT word (clears the typed buffer),
       // it does NOT re-roll a whole new set — a burst is a repeat-until-
       // clean drill, so "again" means this word, not a fresh passage.
