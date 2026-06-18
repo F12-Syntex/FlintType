@@ -179,6 +179,11 @@ function dateKey(ms: number): string {
 export type PersonalBest = {
   mode: string;
   amount: number;
+  /** Length unit for `amount` — keeps a 60-word run in a separate
+   *  bucket from a 60-second run. `null` for legacy rows persisted
+   *  before the discriminator existed (and for MT-overlay rows, which
+   *  the merge layer keys on (mode, amount) alone). */
+  lengthMode: "words" | "time" | "quote" | null;
   bestWpm: number;
   bestAccuracy: number;
   testsCount: number;
@@ -190,7 +195,7 @@ export function derivePersonalBests(
   const buckets = new Map<string, PersonalBest>();
   for (const t of tests) {
     if (!t.wasCompleted) continue;
-    const key = `${normalizeMode(t.mode)}|${t.durationOrWordCount}`;
+    const key = `${normalizeMode(t.mode)}|${t.lengthMode ?? "legacy"}|${t.durationOrWordCount}`;
     const existing = buckets.get(key);
     if (existing) {
       if (t.wpm > existing.bestWpm) {
@@ -202,6 +207,7 @@ export function derivePersonalBests(
       buckets.set(key, {
         mode: normalizeMode(t.mode),
         amount: t.durationOrWordCount,
+        lengthMode: t.lengthMode ?? null,
         bestWpm: t.wpm,
         bestAccuracy: t.accuracy,
         testsCount: 1,
@@ -345,6 +351,10 @@ export function mergePersonalBestsWithMt(
         out.push({
           mode: "casual",
           amount,
+          // MT only knows the time/words distinction implicitly via the
+          // pbs.time / pbs.words split; the merge keys on (mode, amount)
+          // alone, so leave the discriminator null on overlay rows.
+          lengthMode: null,
           bestWpm: pb.wpm,
           bestAccuracy: pb.acc,
           testsCount: 0, // MT PBs aren't backed by individual local rows

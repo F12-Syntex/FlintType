@@ -211,6 +211,156 @@ describe("testsRepo", () => {
     expect(race.map((r) => r.testId)).toEqual(["t_race"]);
   });
 
+  it("bestBefore buckets by lengthMode — a words run can't see a time PB", async () => {
+    const t0 = new Date(2026, 0, 1).getTime();
+    // A prior completed 60-second TIME run at 130 wpm.
+    await ctx.db.tests.insert(
+      row({
+        id: "t_time60",
+        userId: "u1",
+        mode: "casual",
+        durationOrWordCount: 60,
+        lengthMode: "time",
+        wpm: 130,
+        startedAt: new Date(t0),
+      }),
+    );
+    // A new 60-WORD run looking for its prior best must NOT see the
+    // time run (different length unit, same amount) — closing the
+    // cross-bucket PB collision (issue #71).
+    const wordsPrev = await ctx.db.tests.bestBefore(
+      "u1",
+      "casual",
+      60,
+      "words",
+      t0 + 1000,
+    );
+    expect(wordsPrev).toBeNull();
+    // The time bucket still sees its own prior best.
+    const timePrev = await ctx.db.tests.bestBefore(
+      "u1",
+      "casual",
+      60,
+      "time",
+      t0 + 1000,
+    );
+    expect(timePrev).toBe(130);
+  });
+
+  it("bestBefore does not return legacy null rows for a typed run", async () => {
+    const t0 = new Date(2026, 0, 1).getTime();
+    // Legacy row with no length discriminator.
+    await ctx.db.tests.insert(
+      row({
+        id: "t_legacy60",
+        userId: "u1",
+        mode: "casual",
+        durationOrWordCount: 60,
+        lengthMode: null,
+        wpm: 140,
+        startedAt: new Date(t0),
+      }),
+    );
+    // A new typed run (lengthMode = "words") is not compared against
+    // the legacy null row.
+    const prev = await ctx.db.tests.bestBefore(
+      "u1",
+      "casual",
+      60,
+      "words",
+      t0 + 1000,
+    );
+    expect(prev).toBeNull();
+    // …but a legacy-style lookup (lengthMode null) still finds it.
+    const legacyPrev = await ctx.db.tests.bestBefore(
+      "u1",
+      "casual",
+      60,
+      null,
+      t0 + 1000,
+    );
+    expect(legacyPrev).toBe(140);
+  });
+
+  it("topLeaderboard lengthMode filter excludes a words run from a time board", async () => {
+    // A genuine 60-second TIME run, a custom 60-WORD sprint (the
+    // exploit), and a legacy null-mode 60 row. The time board (amount
+    // 60, lengthMode "time") must keep the time + legacy rows and drop
+    // the words sprint.
+    await ctx.db.tests.insert(
+      row({
+        id: "t_time",
+        userId: "u_time",
+        durationOrWordCount: 60,
+        lengthMode: "time",
+        wpm: 90,
+        accuracy: 100,
+      }),
+    );
+    await ctx.db.tests.insert(
+      row({
+        id: "t_words",
+        userId: "u_words",
+        durationOrWordCount: 60,
+        lengthMode: "words",
+        wpm: 250,
+        accuracy: 100,
+      }),
+    );
+    await ctx.db.tests.insert(
+      row({
+        id: "t_legacy",
+        userId: "u_legacy",
+        durationOrWordCount: 60,
+        lengthMode: null,
+        wpm: 80,
+        accuracy: 100,
+      }),
+    );
+    const rows = await ctx.db.tests.topLeaderboard({
+      amount: 60,
+      lengthMode: "time",
+    });
+    const ids = rows.map((r) => r.testId).sort();
+    expect(ids).toEqual(["t_legacy", "t_time"]);
+    // The inflated words sprint never reaches the time board.
+    expect(rows.some((r) => r.testId === "t_words")).toBe(false);
+  });
+
+  it("topLeaderboard gives a user one slot per board, even with a legacy row", async () => {
+    // Length-mode separation is the BOARD FILTER's job, not the dedupe
+    // key's: a user with both a typed `time/60` row and a legacy
+    // `null/60` row (both admitted to the time board) must take ONE
+    // slot — their best run — not two (FT-036 regression guard).
+    await ctx.db.tests.insert(
+      row({
+        id: "t_t",
+        userId: "u1",
+        durationOrWordCount: 60,
+        lengthMode: "time",
+        wpm: 100,
+        accuracy: 100,
+      }),
+    );
+    await ctx.db.tests.insert(
+      row({
+        id: "t_legacy",
+        userId: "u1",
+        durationOrWordCount: 60,
+        lengthMode: null,
+        wpm: 140,
+        accuracy: 100,
+      }),
+    );
+    const rows = await ctx.db.tests.topLeaderboard({
+      amount: 60,
+      lengthMode: "time",
+    });
+    const u1 = rows.filter((r) => r.userId === "u1");
+    expect(u1).toHaveLength(1); // one slot, not two
+    expect(u1[0]?.testId).toBe("t_legacy"); // their best (140 net)
+  });
+
   it("topLeaderboard sinceMs filters older runs", async () => {
     await ctx.db.tests.insert(
       row({

@@ -277,6 +277,7 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
           userId,
           input.mode,
           input.durationOrWordCount,
+          input.lengthMode ?? null,
           input.startedAt,
         )
       : null;

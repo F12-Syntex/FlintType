@@ -601,6 +601,42 @@ describe("adapt routes", () => {
     expect(slower.previousBest).toBe(100);
   });
 
+  it("PB verdict buckets by lengthMode — a words run isn't crowned by a prior time run", async () => {
+    signedInAs("u1");
+    // A payload big enough to back the claimed WPM over the default 1s
+    // elapsed (issue #38's wpm-vs-payload check); the run's identity for
+    // bucketing comes from lengthMode, not its absolute speed.
+    const payload = Array.from({ length: 6 }, () => "speed");
+    // A fast 60-second TIME run lands first.
+    await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({
+        mode: "casual",
+        durationOrWordCount: 60,
+        lengthMode: "time",
+        wpm: 120,
+        words: payload,
+        timings: streamFor(payload, 25),
+      }),
+    });
+    // A slower custom 60-WORD run at the same amount: it must still
+    // read as a first-of-its-kind PB (previousBest null), because the
+    // time run lives in a different length-mode bucket (issue #71).
+    const words = await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      input: submitInput({
+        mode: "casual",
+        durationOrWordCount: 60,
+        lengthMode: "words",
+        wpm: 95,
+        words: payload,
+        timings: streamFor(payload, 25),
+      }),
+    });
+    expect(words.previousBest).toBeNull();
+    expect(words.isPersonalBest).toBe(true);
+  });
+
   it("returns isPersonalBest=false for an incomplete run", async () => {
     signedInAs("u1");
     const out = await callRoute<SubmitTestOutput>(["adapt", "submit"], {

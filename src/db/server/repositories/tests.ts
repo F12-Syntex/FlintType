@@ -1,4 +1,14 @@
-import { and, desc, eq, gte, inArray, like, lt, max, sql } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  like,
+  lt,
+  max,
+  sql,
+} from "drizzle-orm";
 import { tests } from "@/db/schema/server/tests";
 import type { NewTestRow, TestRow } from "@/types/adapt";
 import type { ServerDrizzle } from "../driver";
@@ -14,6 +24,11 @@ export type LeaderboardRow = {
   netWpm: number;
   mode: string;
   durationOrWordCount: number;
+  /** Length unit for `durationOrWordCount` — `"words"|"time"|"quote"`,
+   *  or null on legacy rows. Carried so the dedupe key separates a
+   *  60-word run from a 60-second run, and so consumers can label the
+   *  bucket unambiguously. */
+  lengthMode: string | null;
   completedAt: Date;
 };
 
@@ -104,11 +119,19 @@ export function testsRepo(db: ServerDrizzle) {
         .limit(limit);
     },
 
-    /** Previous best WPM for one (mode, durationOrWordCount) bucket
-     *  among *completed* runs that started *before* `beforeMs`.
+    /** Previous best WPM for one (mode, lengthMode, durationOrWordCount)
+     *  bucket among *completed* runs that started *before* `beforeMs`.
      *  Returns `null` if the user has no prior completed run in that
      *  bucket — used by adapt.submit to decide whether the just-
      *  inserted test is a fresh personal best.
+     *
+     *  `lengthMode` is the time/words/quote discriminator: a new run
+     *  always carries a non-null value, so this cleanly buckets a
+     *  60-second time run apart from a custom 60-word run (which
+     *  otherwise collided on `durationOrWordCount` alone). Legacy
+     *  null-lengthMode rows never match a typed run's filter, so a
+     *  new typed PB is compared only against prior runs of the same
+     *  length-mode — acceptable: legacy rows pre-date the unit split.
      *
      *  `beforeMs` lets the caller pass the just-inserted run's
      *  `startedAt`; the query stays oblivious to whether the row is
@@ -118,6 +141,7 @@ export function testsRepo(db: ServerDrizzle) {
       userId: string,
       mode: string,
       durationOrWordCount: number,
+      lengthMode: string | null,
       beforeMs: number,
     ): Promise<number | null> {
       const rows = await db
@@ -128,6 +152,9 @@ export function testsRepo(db: ServerDrizzle) {
             eq(tests.userId, userId),
             eq(tests.mode, mode),
             eq(tests.durationOrWordCount, durationOrWordCount),
+            lengthMode == null
+              ? isNull(tests.lengthMode)
+              : eq(tests.lengthMode, lengthMode),
             eq(tests.wasCompleted, true),
             lt(tests.startedAt, new Date(beforeMs)),
           ),
@@ -147,6 +174,14 @@ export function testsRepo(db: ServerDrizzle) {
       mode?: string;
       sinceMs?: number;
       amount?: number | null;
+      /** Length-unit filter for the preset board. When set, the query
+       *  keeps rows of exactly this length-mode PLUS legacy null-mode
+       *  rows (which stay on their amount-matched board — time/words
+       *  amount sets are disjoint, so a legacy null never double-lists).
+       *  This excludes a *new* explicit-words run from a time board,
+       *  closing the inflated-WPM gaming vector where a 15-word sprint
+       *  posts a huge number on the `t15` (15-second) board. */
+      lengthMode?: "words" | "time" | "quote";
       limit?: number;
       /** When provided, restrict the ranking to this set of user ids
        *  (the friends-scoped leaderboard). An empty array means "no
@@ -174,6 +209,13 @@ export function testsRepo(db: ServerDrizzle) {
       if (amount != null && amount > 0) {
         whereCondition = sql`${whereCondition} AND ${tests.durationOrWordCount} = ${amount}`;
       }
+      if (opts.lengthMode != null) {
+        // Include rows of this exact length-mode OR legacy null rows
+        // (which stay on their amount-matched board). This excludes a
+        // *new* explicit-words run from a time board, closing the
+        // inflated-WPM gaming vector (issue #71).
+        whereCondition = sql`${whereCondition} AND (${tests.lengthMode} = ${opts.lengthMode} OR ${tests.lengthMode} IS NULL)`;
+      }
       if (opts.userIds != null) {
         whereCondition = sql`${whereCondition} AND ${tests.userId} = ANY(ARRAY[${sql.join([...opts.userIds].map((id) => sql`${id}`), sql`, `)}])`;
       }
@@ -189,9 +231,15 @@ export function testsRepo(db: ServerDrizzle) {
       // query orders that deduped set by net_wpm DESC and applies the
       // final limit. Both PGlite (dev/test) and Neon (prod) are
       // Postgres and support DISTINCT ON.
+      //
+      // The dedupe key deliberately OMITS length_mode: the WHERE filter
+      // above already scopes the board to a single length-mode (+ legacy
+      // null), so a user with both a typed `time/60` row AND a legacy
+      // `null/60` row must collapse to ONE slot — keying on (user, mode,
+      // amount) keeps their single best run (issue #71).
       const raw = await db.execute(
         sql`SELECT test_id, user_id, wpm, accuracy, mode,
-                   duration_or_word_count, completed_at,
+                   duration_or_word_count, length_mode, completed_at,
                    (wpm * accuracy / 100.0) AS net_wpm
             FROM (
               SELECT DISTINCT ON (user_id, mode, duration_or_word_count)
@@ -201,6 +249,7 @@ export function testsRepo(db: ServerDrizzle) {
                      accuracy,
                      mode,
                      duration_or_word_count,
+                     length_mode,
                      completed_at
               FROM   tests
               WHERE  ${whereCondition}
@@ -218,6 +267,7 @@ export function testsRepo(db: ServerDrizzle) {
         accuracy: string | number;
         mode: string;
         duration_or_word_count: string | number;
+        length_mode: string | null;
         completed_at: Date | string | null;
         net_wpm: string | number;
       };
@@ -233,6 +283,7 @@ export function testsRepo(db: ServerDrizzle) {
           netWpm: Number(r.net_wpm),
           mode: r.mode,
           durationOrWordCount: Number(r.duration_or_word_count),
+          lengthMode: r.length_mode ?? null,
           // Defensive fallback: completed_at may arrive as a string
           // from some drivers; ensure we always store a Date object.
           completedAt:
