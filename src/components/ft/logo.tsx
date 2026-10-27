@@ -2,22 +2,20 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 export function Logo({
-  dark = false,
   version,
   href,
   size = "md",
   className,
 }: {
-  dark?: boolean;
   version?: string;
   href?: string;
   size?: "sm" | "md";
   className?: string;
 }) {
   const targetHref = href ?? "/";
-  const flameClass = size === "sm" ? "h-4 w-auto" : "h-5 w-auto sm:h-6";
+  const flameClass = size === "sm" ? "h-4 w-auto" : "h-6 w-auto";
   const wordClass =
-    size === "sm" ? "text-xs tracking-[0.04em]" : "text-sm tracking-[0.04em]";
+    size === "sm" ? "text-sm tracking-tight" : "text-[17px] tracking-tight";
 
   return (
     <Link
@@ -36,14 +34,9 @@ export function Logo({
         aria-hidden
         className={flameClass}
       />
-      <span className={cn("font-bold", wordClass)}>FLINTTYPE</span>
+      <span className={cn("font-bold", wordClass)}>flinttype</span>
       {version ? (
-        <span
-          className={cn(
-            "hidden text-[11px] tracking-[0.06em] sm:inline",
-            dark ? "text-ft-warm-3" : "text-muted-foreground",
-          )}
-        >
+        <span className="hidden text-xs text-muted-foreground sm:inline">
           {version}
         </span>
       ) : null}

@@ -3,8 +3,8 @@
 import { motion } from "framer-motion";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
 import type { ComponentType } from "react";
+import { useMounted } from "@/lib/use-mounted";
 import { cn } from "@/lib/utils";
 
 const OPTIONS: {
@@ -19,13 +19,12 @@ const OPTIONS: {
 
 export function ModeSwitcher({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useMounted();
 
   if (!mounted) {
     // Reserve the same footprint so the topbar layout doesn't shift
     // on hydration.
-    return <div className={cn("inline-flex h-8 w-24", className)} />;
+    return <div className={cn("inline-flex h-9 w-[6.5rem]", className)} />;
   }
 
   return (
@@ -37,7 +36,7 @@ export function ModeSwitcher({ className }: { className?: string }) {
       role="radiogroup"
       aria-label="Theme mode"
       className={cn(
-        "inline-flex items-center overflow-hidden rounded-md border border-border bg-card",
+        "inline-flex items-center gap-0.5 rounded-pill border border-border bg-muted/70 p-0.5",
         className,
       )}
     >
@@ -53,7 +52,7 @@ export function ModeSwitcher({ className }: { className?: string }) {
             aria-label={`Switch to ${opt.label} mode`}
             onClick={() => setTheme(opt.value)}
             className={cn(
-              "relative flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors",
+              "relative flex size-8 cursor-pointer items-center justify-center rounded-pill transition-colors",
               active
                 ? "text-foreground"
                 : "text-muted-foreground hover:text-foreground",
@@ -62,8 +61,8 @@ export function ModeSwitcher({ className }: { className?: string }) {
             {active ? (
               <motion.span
                 layoutId="active-mode-pill"
-                transition={{ type: "spring", bounce: 0.25, duration: 0.5 }}
-                className="absolute inset-0 rounded-md border border-border bg-background"
+                transition={{ type: "tween", ease: [0.22, 1, 0.36, 1], duration: 0.25 }}
+                className="absolute inset-0 rounded-pill bg-thumb shadow-card ring-1 ring-border/70"
               />
             ) : null}
             <Icon size={15} className="relative" />

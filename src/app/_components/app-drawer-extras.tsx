@@ -2,95 +2,77 @@
 
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { ModeSwitcher } from "@/components/ui/mode-switcher";
 import { DISCORD_URL, GITHUB_URL } from "@/lib/version";
 import { SignOutLink } from "./sign-out-link";
 
 type Item = { href: string; label: string; external?: boolean };
 
 // Settings (/customise) works anonymously, so it shows in both auth
-// states. PROFILE and SIGN OUT are signed-in-only (gated below); a
-// signed-out user sees SIGN IN instead. On desktop these destinations
-// live behind the gear / avatar / sign-in controls in the topbar.
-const SETTINGS_ITEM: Item = { href: "/customise", label: "SETTINGS" };
-const PROFILE_ITEM: Item = { href: "/profile", label: "PROFILE" };
-const SIGN_IN_ITEM: Item = { href: "/sign-in", label: "SIGN IN" };
+// states. Profile and Sign out are signed-in-only (gated below); a
+// signed-out user gets the Sign in link instead.
+const SETTINGS_ITEM: Item = { href: "/customise", label: "Settings" };
+const PROFILE_ITEM: Item = { href: "/profile", label: "Profile" };
+const SIGN_IN_ITEM: Item = { href: "/sign-in", label: "Sign in" };
 
-// Mirrors the desktop footer's meta links (app-footer.tsx) — real
-// destinations, no placeholder anchors. SETTINGS is already in ACCOUNT
-// above, so it's omitted here.
+// Mirrors the footer's meta links (app-footer.tsx).
 const META: Item[] = [
-  { href: DISCORD_URL, label: "DISCORD", external: true },
-  { href: GITHUB_URL, label: "GITHUB", external: true },
-  { href: "/changelog", label: "CHANGELOG" },
-  { href: "/privacy", label: "PRIVACY" },
+  { href: DISCORD_URL, label: "Discord", external: true },
+  { href: GITHUB_URL, label: "GitHub", external: true },
+  { href: "/changelog", label: "Changelog" },
+  { href: "/privacy", label: "Privacy" },
 ];
 
-function FooterLink({
-  item,
-  className,
-}: {
-  item: Item;
-  className: string;
-}) {
+const LINK_CLASS =
+  "text-muted-foreground transition-colors hover:text-foreground";
+
+function DrawerLink({ item }: { item: Item }) {
   if (item.external) {
     return (
       <a
         href={item.href}
         target="_blank"
         rel="noopener noreferrer"
-        className={className}
+        className={LINK_CLASS}
       >
         {item.label}
       </a>
     );
   }
   return (
-    <Link href={item.href} className={className}>
+    <Link href={item.href} className={LINK_CLASS}>
       {item.label}
     </Link>
   );
 }
 
-/** Mobile drawer's bottom utility section — account links + meta links +
- *  sign out. Page nav lives in the drawer body above; no duplication. */
-export function AppDrawerExtras({ dark = false }: { dark?: boolean }) {
-  // Mirror topbar-actions.tsx: branch on the resolved Clerk session and
-  // guard on `isLoaded` so the drawer never flashes the wrong auth
-  // affordance. Signed out, the only auth control here used to be a
-  // bogus SIGN OUT (and a PROFILE that just bounced to sign-in) — the
-  // mobile topbar collapses to logo + hamburger with no Sign in pill, so
-  // a signed-out mobile user had no honest way in.
+/** Mobile drawer's bottom utility section — theme mode, account links
+ *  and meta links. Page nav lives in the drawer body above. Branches on
+ *  the resolved Clerk session and waits for `isLoaded` so the drawer
+ *  never flashes the wrong auth affordance. */
+export function AppDrawerExtras() {
   const { isLoaded, isSignedIn } = useUser();
-  const linkClass = cn(
-    "uppercase tracking-[0.16em] transition-colors",
-    dark ? "text-ft-warm-2 hover:text-ft-paper" : "text-ft-dim hover:text-ft-ink",
-  );
 
   return (
-    <div className="flex flex-col gap-3 text-[11px]">
-      <div className="flex flex-wrap gap-x-4 gap-y-2">
-        {isLoaded && isSignedIn ? (
-          <FooterLink item={PROFILE_ITEM} className={linkClass} />
-        ) : null}
-        <FooterLink item={SETTINGS_ITEM} className={linkClass} />
+    <div className="flex flex-col gap-5 text-sm">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-muted-foreground">Theme</span>
+        <ModeSwitcher />
+      </div>
+      <div className="flex flex-wrap gap-x-5 gap-y-3">
+        {isLoaded && isSignedIn ? <DrawerLink item={PROFILE_ITEM} /> : null}
+        <DrawerLink item={SETTINGS_ITEM} />
         {!isLoaded ? null : isSignedIn ? (
-          <SignOutLink dark={dark} />
+          <SignOutLink className={LINK_CLASS} />
         ) : (
-          <FooterLink item={SIGN_IN_ITEM} className={linkClass} />
+          <DrawerLink item={SIGN_IN_ITEM} />
         )}
+      </div>
+      <div className="flex flex-wrap gap-x-5 gap-y-3 text-[13px]">
         {META.map((item) => (
-          <FooterLink key={item.label} item={item} className={linkClass} />
+          <DrawerLink key={item.label} item={item} />
         ))}
       </div>
-      <span
-        className={cn(
-          "mt-1 text-[10px] uppercase tracking-[0.16em]",
-          dark ? "text-ft-warm-3" : "text-ft-dim-2",
-        )}
-      >
-        STRIKE · SPARK · SHARPEN
-      </span>
     </div>
   );
 }

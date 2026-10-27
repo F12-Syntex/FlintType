@@ -58,11 +58,9 @@ function MorphIcon({ open }: { open: boolean }) {
 export function MobileNav({
   nav,
   drawerExtras,
-  dark = false,
 }: {
   nav?: NavItem[];
   drawerExtras?: React.ReactNode;
-  dark?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -99,36 +97,31 @@ export function MobileNav({
     href === pathname ||
     (href !== "/" && pathname?.startsWith(href));
 
-  // Drawer sits below the 56 px topbar so the existing header stays visible.
-  // No enter/exit animation per request — instant show/hide.
+  // Drawer sits below the 64px topbar (plus the notch inset) so the
+  // header stays visible. No enter/exit animation — instant show/hide.
   const drawer = open ? (
     <div
-      className={cn(
-        "fixed inset-x-0 top-14 bottom-0 z-50 flex flex-col overflow-y-auto lg:hidden",
-        dark
-          ? "bg-foreground text-background"
-          : "bg-background text-foreground",
-      )}
+      id="mobile-nav-drawer"
+      className="safe-pb fixed inset-x-0 top-[calc(4rem+env(safe-area-inset-top))] bottom-0 z-50 flex flex-col overflow-y-auto bg-background text-foreground lg:hidden"
       role="dialog"
       aria-modal="true"
       aria-label="Mobile navigation"
     >
       {nav && nav.length > 0 ? (
-        <nav className="flex flex-col px-5 py-6 sm:px-7">
-          <ul className="flex flex-col">
+        <nav className="flex flex-col px-4 py-4 sm:px-6">
+          <ul className="flex flex-col gap-1">
             {nav.map((item) => {
               const active = isActive(item.href);
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
+                    aria-current={active ? "page" : undefined}
                     className={cn(
-                      "block py-3 text-2xl font-bold tracking-tight transition-colors sm:text-3xl",
+                      "flex min-h-12 items-center rounded-2xl px-4 text-xl font-semibold tracking-tight transition-colors",
                       active
-                        ? "text-primary"
-                        : dark
-                          ? "text-ft-paper hover:text-ft-ember"
-                          : "text-foreground hover:text-primary",
+                        ? "bg-foreground text-background"
+                        : "text-foreground hover:bg-accent",
                     )}
                   >
                     {item.label}
@@ -141,12 +134,7 @@ export function MobileNav({
       ) : null}
 
       {drawerExtras ? (
-        <div
-          className={cn(
-            "mt-auto shrink-0 border-t px-5 py-5 sm:px-7",
-            dark ? "border-ft-ink-line" : "border-border",
-          )}
-        >
+        <div className="mt-auto shrink-0 border-t border-border px-6 py-6">
           {drawerExtras}
         </div>
       ) : null}
@@ -161,12 +149,7 @@ export function MobileNav({
         aria-label={open ? "Close menu" : "Open menu"}
         aria-expanded={open}
         aria-controls="mobile-nav-drawer"
-        className={cn(
-          "-mr-2 flex size-11 items-center justify-center rounded-md transition-colors lg:hidden",
-          dark
-            ? "text-ft-paper hover:bg-white/5"
-            : "text-foreground hover:bg-foreground/5",
-        )}
+        className="-mr-1.5 flex size-11 items-center justify-center rounded-pill text-foreground transition-colors hover:bg-accent lg:hidden"
       >
         <MorphIcon open={open} />
       </button>

@@ -14,16 +14,24 @@ const NAV: NavItem[] = [
   { href: "/insights", label: "Insights" },
 ];
 
+/** The app frame: top bar, a scrolling main, and the footer.
+ *
+ *  - Scrolling pages: the Discord nudge and the footer ride inside the
+ *    scroll container, so they scroll away with the content instead of
+ *    eating ~150px of a phone screen permanently.
+ *  - `compact` pages (practice, races, leaderboard and settings shells
+ *    that own their own scrolling): main never scrolls, there is no
+ *    promo strip, and the footer is pinned at md+ and hidden on phones
+ *    so the OS keyboard can't push the typing area off-screen.
+ *
+ *  Every horizontal edge shares one gutter (`px-4 sm:px-6`) with the top
+ *  bar, so the logo, page content and footer line up on every route. */
 export function AppChrome({
   children,
-  dark = false,
-  ident,
   className,
   compact = false,
 }: {
   children: React.ReactNode;
-  dark?: boolean;
-  ident?: React.ReactNode;
   className?: string;
   /** Practice-style chrome: footer is hidden at <md and main does not
    *  scroll. Use for surfaces that must fit in a single viewport on
@@ -36,25 +44,16 @@ export function AppChrome({
         // h-dvh tracks the dynamic viewport — on iOS Safari it shrinks
         // when the OS keyboard rises, so the inner flex layout collapses
         // gracefully instead of overflowing behind the keyboard.
-        "flex h-dvh flex-col overflow-hidden",
-        dark
-          ? "bg-ft-ink text-ft-paper"
-          : "text-foreground",
+        "flex h-dvh flex-col overflow-hidden text-foreground",
         className,
       )}
     >
       <ScrollToTop />
       <TopBar
         nav={NAV}
-        dark={dark}
-        right={ident ?? <TopbarActions dark={dark} />}
-        drawerExtras={<AppDrawerExtras dark={dark} />}
+        right={<TopbarActions />}
+        drawerExtras={<AppDrawerExtras />}
       />
-      {/* Discord nudge banner — single dismissable strip sitting
-       *  between the topbar and the page surface. The dark
-       *  race / always-dark screens get no banner (it would fight
-       *  the deliberate fixed presentation). */}
-      {dark ? null : <DiscordBanner />}
       {/* main owns the bg-scope but does NOT scroll — its ::before
           paints the bg image with position:absolute inset:0, which
           must stay pinned to the visible main area. The inner div
@@ -64,23 +63,30 @@ export function AppChrome({
         className="relative min-h-0 flex-1 overflow-hidden"
       >
         <div
-          // data-screenshot-root marks the "content area" — the
-          // result-page export buttons (test-summary, race-results)
-          // walk up the DOM to find this element and capture it.
-          // Excludes the topbar and footer chrome by design.
-          data-screenshot-root="true"
+          data-ft-scroller
           className={cn(
-            // Global horizontal page-pad so /app surfaces breathe off
-            // the chrome edge. Per-page sections may still add their
-            // own additional inset; this is the floor.
-            "absolute inset-0 flex flex-col px-2 sm:px-4 lg:px-6",
+            "absolute inset-0 flex flex-col",
             compact ? "overflow-hidden" : "overflow-y-auto",
           )}
         >
-          {children}
+          {compact ? null : <DiscordBanner />}
+          <div
+            // data-screenshot-root marks the "content area" — the
+            // result-page export buttons (test-summary, race-results)
+            // walk up the DOM to find this element and capture it.
+            // Excludes the top bar, promo strip and footer by design.
+            data-screenshot-root="true"
+            className={cn(
+              "flex flex-col px-4 sm:px-6",
+              compact ? "min-h-0 flex-1" : "flex-1 shrink-0",
+            )}
+          >
+            {children}
+          </div>
+          {compact ? null : <AppFooter />}
         </div>
       </main>
-      <AppFooter dark={dark} compact={compact} />
+      {compact ? <AppFooter pinned /> : null}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useClerk } from "@clerk/nextjs";
 import { clearUserScopedStorage } from "@/lib/sign-out-cleanup";
 import { cn } from "@/lib/utils";
 
-export function SignOutLink({ dark = false }: { dark?: boolean }) {
+export function SignOutLink({ className }: { className?: string }) {
   const { signOut } = useClerk();
   return (
     <button
@@ -13,12 +13,9 @@ export function SignOutLink({ dark = false }: { dark?: boolean }) {
         clearUserScopedStorage();
         void signOut({ redirectUrl: "/" });
       }}
-      className={cn(
-        "uppercase tracking-[0.16em] transition-colors",
-        dark ? "hover:text-ft-paper" : "hover:text-foreground",
-      )}
+      className={cn("transition-colors hover:text-foreground", className)}
     >
-      SIGN OUT
+      Sign out
     </button>
   );
 }

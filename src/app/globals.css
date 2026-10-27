@@ -3,34 +3,41 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* Warm paper + warm ink. Every neutral sits on the paper hue (85) so
+     borders, inputs, hovers and secondary surfaces read as one family.
+     Lightness ladder (light): background .945 → card .965 (lift) →
+     muted .915 (inset track) → accent .89 (hover dim) → border .87 →
+     input .84. Hover is always darker than the track it sits on. */
   --background: oklch(0.9450 0.0180 85);
-  --foreground: oklch(0 0 0);
+  --foreground: oklch(0.1900 0.0120 60);
   --card: oklch(0.9650 0.0150 85);
-  --card-foreground: oklch(0 0 0);
-  --popover: oklch(0.9650 0.0150 85);
-  --popover-foreground: oklch(0 0 0);
-  --primary: #f97316;
-  --primary-foreground: oklch(1.0000 0 0);
-  --secondary: oklch(0.9535 0.0080 253.8538);
-  --secondary-foreground: oklch(0.1344 0 0);
-  --muted: oklch(0.8800 0.0220 85);
-  --muted-foreground: oklch(0.4386 0 0);
-  /* Hover / highlight tint (ui-law §2). Deliberately a low-chroma warm
-     neutral in the paper family (hue 85), a hair darker than --background
-     /--card so a hover reads as a gentle surface dim — never as the brand
-     spark. --primary stays the only saturated colour on the page. The
-     prior value was a saturated coral (chroma 0.18–0.20), which made
-     every hover:bg-accent / text-accent-foreground surface compete with
-     the accent. See the data-ft-monochrome / data-ft-focus overrides
-     below, which already collapse accent to muted for the same reason. */
-  --accent: oklch(0.9050 0.0140 85);
-  --accent-foreground: oklch(0 0 0);
-  --destructive: oklch(0.6479 0.2379 26.1222);
-  --destructive-foreground: oklch(1.0000 0 0);
-  --border: oklch(0.9276 0.0121 286.1616);
-  --input: oklch(0.8200 0.0180 85);
-  --ring: #fb923c;
-  --chart-1: oklch(0.6551 0.2312 34.7438);
+  --card-foreground: oklch(0.1900 0.0120 60);
+  --popover: oklch(0.9700 0.0130 85);
+  --popover-foreground: oklch(0.1900 0.0120 60);
+  /* The single spark. A deeper orange than the old #f97316 so white
+     label text on a primary button and primary text on paper both clear
+     the large-text contrast floor. */
+  --primary: oklch(0.6200 0.2000 40);
+  --primary-foreground: oklch(0.9900 0.0050 85);
+  --secondary: oklch(0.9150 0.0140 85);
+  --secondary-foreground: oklch(0.1900 0.0120 60);
+  --muted: oklch(0.9150 0.0160 85);
+  --muted-foreground: oklch(0.4600 0.0120 70);
+  /* Hover / highlight tint (ui-law §2). A low-chroma warm neutral one
+     step darker than --muted so a hover always reads as a gentle dim on
+     any surface, never as the brand spark. */
+  --accent: oklch(0.8900 0.0160 85);
+  --accent-foreground: oklch(0.1900 0.0120 60);
+  --destructive: oklch(0.5800 0.2100 27);
+  --destructive-foreground: oklch(0.9900 0.0050 85);
+  --border: oklch(0.8700 0.0180 85);
+  --input: oklch(0.8400 0.0180 85);
+  --ring: oklch(0.6200 0.2000 40);
+  /* Raised thumb of a segmented switch (ui-law §21): a hair lighter
+     than any surface it sits on, derived from the palette so community
+     themes inherit a matching thumb. */
+  --thumb: color-mix(in oklch, var(--card), white 55%);
+  --chart-1: var(--primary);
   --chart-2: oklch(0.8231 0.0995 30.7543);
   --chart-3: oklch(0.7362 0.1782 50.4375);
   --chart-4: oklch(0.5849 0.2273 260.4248);
@@ -46,7 +53,14 @@
   --font-sans: Plus Jakarta Sans, ui-sans-serif, sans-serif, system-ui;
   --font-serif: Lora, serif;
   --font-mono: IBM Plex Mono, monospace;
-  --radius: 0.5rem;
+  --radius: 1rem;
+  /* Depth (ui-law §21). Warm-tinted, soft and low: a card lifts a hair
+     off the paper, a floating surface (popover, dock, dialog) clearly
+     hovers, and the primary CTA carries a faint glow of its own colour.
+     data-ft-depth / data-ft-glow on <html> collapse these to none. */
+  --ft-shadow-card: 0 1px 2px oklch(0.35 0.03 60 / 0.05), 0 6px 20px -10px oklch(0.35 0.03 60 / 0.16);
+  --ft-shadow-float: 0 2px 6px oklch(0.3 0.03 60 / 0.06), 0 18px 48px -16px oklch(0.3 0.03 60 / 0.30);
+  --ft-shadow-glow: 0 8px 24px -8px color-mix(in oklch, var(--primary) 55%, transparent);
   --shadow-x: 0;
   --shadow-y: 1px;
   --shadow-blur: 3px;
@@ -62,7 +76,6 @@
   --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 8px 10px -1px hsl(0 0% 0% / 0.10);
   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
   --tracking-normal: 0em;
-  --spacing: 0.27rem;
 
   /* App chrome rail — the left sidebar column shared by /customise and
      /leaderboard, mirrored in the topbar so the logo column aligns with
@@ -123,31 +136,36 @@
 }
 
 .dark {
-  --background: oklch(0.1448 0 0);
-  --foreground: oklch(0.9551 0 0);
-  --card: oklch(0.1822 0 0);
-  --card-foreground: oklch(0.9551 0 0);
-  --popover: oklch(0.2138 0.0019 286.2347);
-  --popover-foreground: oklch(0.9551 0 0);
-  --primary: #f97316;
-  --primary-foreground: oklch(1.0000 0 0);
-  --secondary: oklch(0.5772 0.2043 34.6434);
-  --secondary-foreground: oklch(0.9551 0 0);
-  --muted: oklch(0.2570 0.0037 286.1360);
-  --muted-foreground: oklch(0.6731 0 0);
-  /* Hover / highlight tint — quiet neutral lift above --card/--popover,
-     de-saturated to the muted hue family. Prior value was a saturated
-     coral-brown (chroma 0.13) that painted a strong fill on every
-     hover:bg-accent surface (dropdown, command palette, ghost buttons).
-     See the matching :root note. */
-  --accent: oklch(0.2820 0.0040 286.1360);
-  --accent-foreground: oklch(0.9551 0 0);
+  /* Warm ink. Same hue family as the paper palette (60) at very low
+     chroma so dark surfaces stay warm instead of drifting to the cool
+     286 greys the shadcn defaults ship. Ladder: background .155 → card
+     .19 → popover .215 → muted .245 → accent .27 (hover lifts) →
+     border .27 → input .33. */
+  --background: oklch(0.1550 0.0060 60);
+  --foreground: oklch(0.9400 0.0080 80);
+  --card: oklch(0.1900 0.0070 60);
+  --card-foreground: oklch(0.9400 0.0080 80);
+  --popover: oklch(0.2150 0.0080 60);
+  --popover-foreground: oklch(0.9400 0.0080 80);
+  /* Brighter orange on ink, with dark label text on filled primary
+     surfaces — white on this orange would fail contrast. */
+  --primary: oklch(0.7050 0.1870 48);
+  --primary-foreground: oklch(0.1700 0.0200 50);
+  --secondary: oklch(0.2450 0.0080 60);
+  --secondary-foreground: oklch(0.9400 0.0080 80);
+  --muted: oklch(0.2450 0.0080 60);
+  --muted-foreground: oklch(0.6900 0.0100 75);
+  /* Hover / highlight tint — a quiet neutral lift one step above
+     --muted. Never a saturated colour (see the :root note). */
+  --accent: oklch(0.2700 0.0090 60);
+  --accent-foreground: oklch(0.9400 0.0080 80);
   --destructive: oklch(0.7044 0.1872 23.1858);
-  --destructive-foreground: oklch(1.0000 0 0);
-  --border: oklch(0.2393 0 0);
-  --input: oklch(0.3523 0 0);
-  --ring: #fb923c;
-  --chart-1: oklch(0.6551 0.2312 34.7438);
+  --destructive-foreground: oklch(0.1700 0.0200 50);
+  --border: oklch(0.2700 0.0090 60);
+  --input: oklch(0.3300 0.0100 60);
+  --ring: oklch(0.7050 0.1870 48);
+  --thumb: color-mix(in oklch, var(--muted), var(--foreground) 14%);
+  --chart-1: var(--primary);
   --chart-2: oklch(0.8809 0.1806 94.0203);
   --chart-3: oklch(0.8053 0.1109 19.7816);
   --chart-4: oklch(0.6648 0.1782 260.1549);
@@ -163,7 +181,10 @@
   --font-sans: Plus Jakarta Sans, ui-sans-serif, sans-serif, system-ui;
   --font-serif: Lora, serif;
   --font-mono: IBM Plex Mono, monospace;
-  --radius: 0.5rem;
+  --radius: 1rem;
+  --ft-shadow-card: 0 1px 2px oklch(0 0 0 / 0.25), 0 8px 24px -12px oklch(0 0 0 / 0.55);
+  --ft-shadow-float: 0 2px 8px oklch(0 0 0 / 0.30), 0 24px 56px -16px oklch(0 0 0 / 0.65);
+  --ft-shadow-glow: 0 8px 28px -8px color-mix(in oklch, var(--primary) 45%, transparent);
   --shadow-x: 0;
   --shadow-y: 1px;
   --shadow-blur: 3px;
@@ -213,6 +234,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-thumb: var(--thumb);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -235,6 +257,16 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  /* Control shape (ui-law §21): buttons, chips, segmented switches,
+     inputs and nav links use `rounded-pill`. Pill by default; the
+     Customise → Style → Controls row swaps it for the card radius or
+     square via data-ft-controls on <html>. */
+  --radius-pill: var(--ft-radius-control);
+
+  --shadow-card: var(--ft-shadow-card);
+  --shadow-float: var(--ft-shadow-float);
+  --shadow-glow: var(--ft-shadow-glow);
 
   --shadow-2xs: var(--shadow-2xs);
   --shadow-xs: var(--shadow-xs);
@@ -267,8 +299,11 @@
   --color-ft-paper-2: hsl(38 28% 88%);
   --color-ft-dim: hsl(0 0% 55%);
   --color-ft-dim-2: hsl(0 0% 35%);
-  --color-ft-ember: hsl(9 78% 58%);
-  --color-ft-ember-soft: hsl(15 80% 75%);
+  /* The fixed-layer spark follows --primary so there is one brand
+     orange everywhere (ft-ember used to be a redder coral that drifted
+     from the theme accent on the 404 and update cards). */
+  --color-ft-ember: var(--primary);
+  --color-ft-ember-soft: color-mix(in oklch, var(--primary) 55%, var(--background));
   --color-ft-spark: hsl(20 75% 88%);
   --color-ft-ok: hsl(110 25% 39%);
 
@@ -619,6 +654,42 @@
   html[data-ft-dividers="hidden"] [data-ft-divider],
   html[data-ft-dividers="hidden"] .ft-divider {
     border-color: transparent !important;
+  }
+
+  /* ── Style (ui-law §21) ──────────────────────────────────────────
+     data-ft-controls: shape of every interactive control.
+     data-ft-depth:    flat drops every card/float shadow.
+     data-ft-glow:     off drops the primary-CTA glow.
+     data-ft-aura:     off drops the soft accent wash behind the page. */
+  html {
+    --ft-radius-control: 9999px;
+  }
+  html[data-ft-controls="rounded"] {
+    --ft-radius-control: calc(var(--radius) - 2px);
+  }
+  html[data-ft-controls="square"] {
+    --ft-radius-control: 0px;
+  }
+  html[data-ft-depth="flat"] {
+    --ft-shadow-card: 0 0 #0000;
+    --ft-shadow-float: 0 0 #0000;
+  }
+  html[data-ft-depth="lifted"] {
+    --ft-shadow-card: 0 1px 3px oklch(0.3 0.03 60 / 0.08), 0 14px 36px -14px oklch(0.3 0.03 60 / 0.30);
+  }
+  html.dark[data-ft-depth="lifted"] {
+    --ft-shadow-card: 0 1px 3px oklch(0 0 0 / 0.35), 0 16px 40px -14px oklch(0 0 0 / 0.75);
+  }
+  html[data-ft-glow="off"] {
+    --ft-shadow-glow: 0 0 #0000;
+  }
+  html:not([data-ft-aura="off"]) body {
+    background-image: radial-gradient(
+      ellipse 70% 45% at 50% -10%,
+      color-mix(in oklch, var(--primary) 9%, transparent),
+      transparent 70%
+    );
+    background-attachment: fixed;
   }
 
   /* data-ft-padding: scales the page-pad utilities by setting a

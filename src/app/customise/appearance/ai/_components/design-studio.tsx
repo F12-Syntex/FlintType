@@ -56,7 +56,7 @@ function useFooterHeight(): number {
   const [h, setH] = useState(0);
   useEffect(() => {
     const measure = () => {
-      const el = document.querySelector<HTMLElement>("[data-ft-footer]");
+      const el = document.querySelector<HTMLElement>("[data-ft-footer][data-pinned]");
       if (!el) return setH(0);
       const visible = getComputedStyle(el).display !== "none";
       setH(visible ? el.getBoundingClientRect().height : 0);

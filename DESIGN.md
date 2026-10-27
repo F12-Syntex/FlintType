@@ -4,7 +4,7 @@ Visual system for flinttype. This captures the real tokens shipped in `src/app/g
 
 ## Theme
 
-Editorial-mechanical: paper-and-ink. The default brand surface is **light** ("paper") with **warm-ink dark** available. For an intentionally-fixed brand asset (the landing/cover page), the surface is chosen for the scene, not the user's theme, and built from the fixed `ft-*` tokens so it screenshots identically regardless of mode.
+Warm, rounded and calm: paper-and-ink with pill controls, soft rounded cards and one orange spark (ui-law §21 owns shape and depth). The default brand surface is **light** ("paper") with **warm-ink dark** available. For an intentionally-fixed brand asset (the landing/cover page), the surface is chosen for the scene, not the user's theme, and built from the fixed `ft-*` tokens so it screenshots identically regardless of mode.
 
 Scene sentence for the landing/cover: *a typographer's pasteboard at midday, one printed coral mark on warm paper, calm and exact.* That forces **light paper** as the cover surface, with the option of a single dark inset (the keyboard widget / a code-ink band) for contrast.
 
@@ -16,13 +16,14 @@ OKLCH-based, tinted toward a warm paper hue (≈85°). Strategy: **Restrained** 
 | Role | Light value | Use |
 |---|---|---|
 | `--background` | `oklch(0.945 0.018 85)` | page (warm paper) |
-| `--foreground` | `oklch(0 0 0)` | primary text (ink) |
+| `--foreground` | `oklch(0.19 0.012 60)` | primary text (warm ink) |
 | `--card` | `oklch(0.965 0.015 85)` | lifted surface |
-| `--primary` | `oklch(0.6551 0.2312 34.7438)` | **the coral spark** — CTA, next key, one stat |
-| `--primary-foreground` | `oklch(1 0 0)` | text on coral |
+| `--primary` | `oklch(0.62 0.2 40)` (dark: `oklch(0.705 0.187 48)`) | **the orange spark** — CTA, caret, one stat |
+| `--primary-foreground` | near-white (dark: warm ink) | text on the primary fill |
 | `--muted-foreground` | `oklch(0.4386 0 0)` | captions, secondary metadata |
-| `--accent` | `oklch(0.905 0.014 85)` | quiet neutral hover tint (never a 2nd coral) |
-| `--border` | hairline | default outline |
+| `--accent` | `oklch(0.89 0.016 85)` | quiet neutral hover tint, one step darker than `--muted` |
+| `--border` | `oklch(0.87 0.018 85)` | warm hairline |
+| `--thumb` | derived | raised thumb of a segmented switch |
 
 ### Fixed `ft-*` tokens (do NOT swap with theme — for intentionally-fixed brand surfaces)
 | Token | Value | Use |
@@ -32,8 +33,8 @@ OKLCH-based, tinted toward a warm paper hue (≈85°). Strategy: **Restrained** 
 | `--color-ft-paper-soft` | `#faf7f0` | warmer paper (panels) |
 | `--color-ft-ink` | `hsl(0 0% 8%)` | ink text/marks |
 | `--color-ft-ink-deep` | `#0a0a09` | deepest dark inset (keyboard / passage band) |
-| `--color-ft-ember` | `hsl(9 78% 58%)` | **the coral spark** (fixed-layer) |
-| `--color-ft-ember-soft` | `hsl(15 80% 75%)` | softer ember |
+| `--color-ft-ember` | `var(--primary)` | the spark, fixed-layer alias of `--primary` |
+| `--color-ft-ember-soft` | `--primary` 55% into the background | softer ember |
 | `--color-ft-spark` | `hsl(20 75% 88%)` | ember highlight tint |
 | `--color-ft-dim` | `hsl(0 0% 55%)` | dim text on paper |
 | `--color-ft-dim-2` | `hsl(0 0% 35%)` | stronger dim |
@@ -46,28 +47,15 @@ OKLCH-based, tinted toward a warm paper hue (≈85°). Strategy: **Restrained** 
 
 ## Typography
 
-**JetBrains Mono everywhere** (loaded as `--font-mono-primary`). Weights 300–800. `tabular-nums` on every stat. No serif, no sans, no second face.
-
-| Role | Treatment |
-|---|---|
-| Display (hero) | `text-5xl font-extrabold leading-[0.92] tracking-[-0.04em]` → up to `lg:text-[124px]` |
-| H1 | `text-3xl font-extrabold tracking-tight` → `lg:text-6xl` |
-| H2 | `text-2xl font-bold tracking-tight` → `lg:text-[44px]` |
-| Eyebrow / tag | `text-[10px] font-medium uppercase tracking-[0.18em] text-ft-dim` (via `<Tag>`) |
-| Nav link | `text-[11px] uppercase tracking-[0.14em]` |
-| Stat value | `tabular-nums`, `text-[22px]`–`text-4xl`, `tracking-[-0.02em]`→`[-0.04em]` (via `<Stat>`) |
-| Passage word | `text-2xl leading-[1.7] sm:text-[26px]`, dim→ink as cursor advances |
-| Caption | `text-[11px] text-ft-dim` |
-
-Tracking is load-bearing: `0.18em` uppercase = label, `0.14em` = nav, `-0.02em…-0.04em` = display.
+**Plus Jakarta Sans** for the interface, **IBM Plex Mono** for code, keycaps and the optional mono passage (Lora only as the passage's "Serif" option). `tabular-nums` on every stat. Chrome text is 13–14px sentence case; uppercase tracked labels only for small in-page eyebrows.
 
 ## Layout & Spacing
 
-Tailwind numeric scale only (`0.5,1,2,3,4,5,6,8,10,12,16,20`), no arbitrary px. Mobile-first: unprefixed = 375px, `sm:`/`md:`/`lg:` scale up only. Page padding `px-4 sm:px-8`, vertical `py-10 sm:py-20`. Section gap `gap-8 sm:gap-10`. Hairline section breaks (1px), never box-shadows on product surfaces.
+Tailwind's default 4px spacing scale (the old `--spacing: 0.27rem` override is gone, so every utility lands on whole pixels). Mobile-first: unprefixed = 375px, `sm:`/`md:`/`lg:` scale up only. One horizontal gutter everywhere: `px-4 sm:px-6` (top bar, page content, footer). App pages use `<PageShell>` (`max-w-6xl`, `gap-10 sm:gap-12`); reading pages `max-w-2xl`.
 
-## Geometry
+## Shape & depth
 
-Small radius. Interactive surfaces use `rounded-md` (`--radius-md`). Never `rounded-xl`+ on a control. Severity/marker dots are 6×6 **squares**, not circles.
+Controls are pills (`rounded-pill`), cards are `rounded-2xl` (`--radius: 1rem`), floating layers use `shadow-float`, cards a soft `shadow-card`, the one primary button a faint `shadow-glow`. Every one of these is a token the user can retune in Settings → Style.
 
 ## Components (reuse, never re-roll)
 
@@ -77,6 +65,6 @@ Small radius. Interactive surfaces use `rounded-md` (`--radius-md`). Never `roun
 
 Animation is the exception (editorial-mechanical fights ambient motion). `framer-motion` only, sparingly. Ease-out exponential curves, no bounce. Every animation collapses to a static frame under `prefers-reduced-motion`. For a cover/screenshot asset: motion is essentially nil (it must look right frozen).
 
-## Absolute bans (from ui-law + impeccable)
+## Absolute bans
 
-No `#000`/`#fff` (tint toward paper hue). No gradient text. No glassmorphism by default. No hero-metric template. No identical card grids. No side-stripe borders. No em dashes in copy. No box-shadows on product surfaces.
+No `#000`/`#fff` (tint toward the paper hue). No gradient text. No hero-metric template. No side-stripe borders. No em dashes in copy. No hard-coded radius or shadow on a control or surface (use the §21 tokens). Never two filled primary buttons in one view.

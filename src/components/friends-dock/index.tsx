@@ -20,7 +20,17 @@ const DEV = process.env.NODE_ENV === "development";
  *  cover/landing asset (which is meant to be screenshotted clean, with
  *  no app chrome). Everywhere else (practice, customise, leaderboard,
  *  profile, …) it floats quietly in the corner. */
+/** Window event the top bar's mobile friends button dispatches to open
+ *  the dock's bottom sheet. */
+export const OPEN_FRIENDS_EVENT = "ft:open-friends";
+
 const HIDDEN_PREFIXES = ["/race", "/live", "/sign-in", "/sign-up", "/landing"];
+
+/** Whether the dock is available on this route at all — the top bar's
+ *  mobile friends button hides itself where the dock steps aside. */
+export function isFriendsDockRoute(pathname: string): boolean {
+  return !HIDDEN_PREFIXES.some((p) => pathname.startsWith(p));
+}
 
 /** Reads a `data-*` attribute off <html>, kept in sync with a observer so
  *  the dock can step aside while a run is active (`data-ft-running`) or
@@ -53,7 +63,7 @@ function useFooterHeight(routeKey: string): number {
   const [height, setHeight] = useState(0);
   useEffect(() => {
     const measure = () => {
-      const el = document.querySelector<HTMLElement>("[data-ft-footer]");
+      const el = document.querySelector<HTMLElement>("[data-ft-footer][data-pinned]");
       if (!el) {
         setHeight(0);
         return;
@@ -63,7 +73,7 @@ function useFooterHeight(routeKey: string): number {
     };
     measure();
     const raf = requestAnimationFrame(measure);
-    const el = document.querySelector<HTMLElement>("[data-ft-footer]");
+    const el = document.querySelector<HTMLElement>("[data-ft-footer][data-pinned]");
     const ro = new ResizeObserver(measure);
     if (el) ro.observe(el);
     window.addEventListener("resize", measure);
@@ -107,7 +117,11 @@ export function FriendsDock() {
   const hiddenRoute = HIDDEN_PREFIXES.some((p) => pathname.startsWith(p));
   // Real data needs auth; dev shows dummy so the dock is reviewable.
   const visible =
-    isLoaded && !hiddenRoute && !running && !focus && (isSignedIn || DEV);
+    isLoaded &&
+    !hiddenRoute &&
+    !running &&
+    !focus &&
+    (isSignedIn || DEV);
 
   const data = useDockData({ enabled: visible, signedIn: !!isSignedIn });
 
@@ -121,6 +135,15 @@ export function FriendsDock() {
       setQuery("");
     }
   }
+
+  // Phones never float the pill (it covered page text and the typing
+  // surface's restart row); the top bar's friends button opens the
+  // sheet through this event instead.
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener(OPEN_FRIENDS_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_FRIENDS_EVENT, onOpen);
+  }, []);
 
   // Clear search whenever the panel closes, so the next open always
   // starts on the full list.
@@ -207,7 +230,7 @@ export function FriendsDock() {
               // Fixed height so switching between Friends and the Member
               // directory never resizes the panel — the views move within
               // a stable frame.
-              className="h-[min(72dvh,540px)] w-[min(88vw,360px)] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
+              className="h-[min(72dvh,540px)] w-[min(88vw,360px)] overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-float"
             >
               {body}
             </motion.div>
@@ -219,13 +242,15 @@ export function FriendsDock() {
         </MobileSheet>
       )}
 
-      {/* Collapsed pill — always present; the dock's resting state. */}
+      {/* Collapsed pill — the dock's resting state (desktop only; phones
+          reach the sheet from the top bar's friends button). */}
+      {isMobile ? null : (
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-label="Friends"
         aria-expanded={open}
-        className="group flex h-11 items-center gap-2 rounded-md border border-border bg-card pl-2 pr-3 text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        className="group flex h-11 items-center gap-2 rounded-pill border border-border bg-card/90 pl-1.5 pr-4 text-foreground shadow-float backdrop-blur-xl transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 md:h-10"
       >
         {stack.length > 0 ? (
           <span className="flex -space-x-2">
@@ -245,16 +270,17 @@ export function FriendsDock() {
             <Users size={18} aria-hidden />
           </span>
         )}
-        <span className={cn("text-[11px] font-semibold uppercase tracking-[0.14em] tabular-nums", labelClass)}>
+        <span className={cn("text-[13px] font-medium tabular-nums", labelClass)}>
           {label}
         </span>
         {data.challenges.length > 0 ? (
-          <span className="flex items-center gap-1 border-l border-border pl-2 text-[11px] font-semibold tabular-nums text-muted-foreground">
+          <span className="flex items-center gap-1 border-l border-border pl-2 text-[13px] font-medium tabular-nums text-muted-foreground">
             <Swords size={13} aria-hidden />
             {data.challenges.length}
           </span>
         ) : null}
       </button>
+      )}
     </div>
   );
 }
