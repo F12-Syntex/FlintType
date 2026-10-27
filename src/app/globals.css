@@ -14,11 +14,12 @@
   --card-foreground: oklch(0.1900 0.0120 60);
   --popover: oklch(0.9700 0.0130 85);
   --popover-foreground: oklch(0.1900 0.0120 60);
-  /* The single spark. A deeper orange than the old #f97316 so white
-     label text on a primary button and primary text on paper both clear
-     the large-text contrast floor. */
-  --primary: oklch(0.6200 0.2000 40);
-  --primary-foreground: oklch(0.9900 0.0050 85);
+  /* The brand orange — the core stop of the flame logo
+     (public/flinttype-logo.svg: #fbbf24 → #f97316 → #dc2626). It is the
+     theme colour: primary actions, the active nav item, selected
+     segments, the caret, focus rings. */
+  --primary: #f97316;
+  --primary-foreground: oklch(1.0000 0 0);
   --secondary: oklch(0.9150 0.0140 85);
   --secondary-foreground: oklch(0.1900 0.0120 60);
   --muted: oklch(0.9150 0.0160 85);
@@ -32,7 +33,7 @@
   --destructive-foreground: oklch(0.9900 0.0050 85);
   --border: oklch(0.8700 0.0180 85);
   --input: oklch(0.8400 0.0180 85);
-  --ring: oklch(0.6200 0.2000 40);
+  --ring: #fb923c;
   /* Raised thumb of a segmented switch (ui-law §21): a hair lighter
      than any surface it sits on, derived from the palette so community
      themes inherit a matching thumb. */
@@ -147,10 +148,9 @@
   --card-foreground: oklch(0.9400 0.0080 80);
   --popover: oklch(0.2150 0.0080 60);
   --popover-foreground: oklch(0.9400 0.0080 80);
-  /* Brighter orange on ink, with dark label text on filled primary
-     surfaces — white on this orange would fail contrast. */
-  --primary: oklch(0.7050 0.1870 48);
-  --primary-foreground: oklch(0.1700 0.0200 50);
+  /* Same logo orange on ink. */
+  --primary: #f97316;
+  --primary-foreground: oklch(1.0000 0 0);
   --secondary: oklch(0.2450 0.0080 60);
   --secondary-foreground: oklch(0.9400 0.0080 80);
   --muted: oklch(0.2450 0.0080 60);
@@ -163,7 +163,7 @@
   --destructive-foreground: oklch(0.1700 0.0200 50);
   --border: oklch(0.2700 0.0090 60);
   --input: oklch(0.3300 0.0100 60);
-  --ring: oklch(0.7050 0.1870 48);
+  --ring: #fb923c;
   --thumb: color-mix(in oklch, var(--muted), var(--foreground) 14%);
   --chart-1: var(--primary);
   --chart-2: oklch(0.8809 0.1806 94.0203);
@@ -877,6 +877,20 @@
   ::-webkit-scrollbar-corner {
     background: transparent;
   }
+}
+
+/* The flame: a soft top-to-bottom sweep of the primary, echoing the
+   logo's gradient (lighter crown, deeper base). Derived from --primary
+   so community palettes get a matching sweep. Used by the filled
+   primary button, the active nav pill and selected segments. */
+@utility brand-surface {
+  background-color: var(--primary);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--primary), white 16%) 0%,
+    var(--primary) 52%,
+    color-mix(in oklch, var(--primary), oklch(0.45 0.2 28) 18%) 100%
+  );
 }
 
 @utility safe-pt {

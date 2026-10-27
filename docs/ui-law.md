@@ -2,9 +2,11 @@
 
 The authoritative design document for this project. Every UI change must conform to the rules below.
 
-flinttype is **warm, rounded and calm**: a single orange accent used sparingly against a warm paper-and-ink palette, set in Plus Jakarta Sans with IBM Plex Mono for code and keycaps. **Controls are pills** (`rounded-pill` — buttons, chips, segmented switches, inputs, nav links); **surfaces are soft rounded cards** (`rounded-2xl`) with a hairline and a gentle warm lift (`shadow-card`); floating layers (popovers, menus, dialogs, the friends dock) hover with `shadow-float`. Tabular numerics on every stat. Charts are line-art. The shape and depth rules live in **§21**; every one of them is user-tunable (Settings → Style), so components must route through the tokens, never hard-code a radius or shadow.
+flinttype is **warm, rounded and calm**: the **brand orange from the flame logo** (`#f97316`, the core stop of `public/flinttype-logo.svg`) is the theme colour against a warm paper-and-ink palette, set in Plus Jakarta Sans with IBM Plex Mono for code and keycaps. **Controls are pills** (`rounded-pill` — buttons, chips, segmented switches, inputs, nav links); **surfaces are soft rounded cards** (`rounded-2xl`) with a hairline and a gentle warm lift (`shadow-card`); floating layers (popovers, menus, dialogs, the friends dock) hover with `shadow-float`. Tabular numerics on every stat. Charts are line-art. The shape and depth rules live in **§21**; every one of them is user-tunable (Settings → Style), so components must route through the tokens, never hard-code a radius or shadow.
 
-**Minimal first.** Every screen answers one question; the primary action is obvious and there is at most one orange element competing for the eye. Copy is plain sentence case; uppercase tracked labels are reserved for small eyebrows inside pages, never for chrome.
+**The orange is the theme — never swap it for black.** Selection and action states wear it: the primary button, the active top-bar route, the selected option of every segmented switch, the caret, focus rings, the user's own row. Restraint applies to *data*: stats, bars and badges stay ink so the orange keeps meaning "this is selected / this is the action".
+
+**Minimal first.** Every screen answers one question and the primary action is obvious. Copy is plain sentence case; uppercase tracked labels are reserved for small eyebrows inside pages, never for chrome.
 
 **Mobile-first is not optional.** Section 10 mandates every UI be authored for 375 px first and scaled up. The flinttype design source is desktop-first (1440 px artboards) — translate by stacking columns and reducing density on mobile, never by leaving small viewports broken.
 
@@ -237,7 +239,7 @@ All recipes are **mobile-first**: base classes target ≤ 375px viewports, `sm:`
 | Topbar inner row          | `mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-3 sm:px-8 sm:py-4`          |
 | List row (long text + action) | `flex flex-col gap-2 rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900 sm:flex-row sm:items-center sm:justify-between` |
 | App shell with sidebar    | `grid h-full grid-cols-1 lg:grid-cols-[var(--app-rail-width)_1fr] lg:gap-6` — used by `/customise` only (the settings inspector). `--app-rail-width` lives in `globals.css`. |
-| Top bar                   | `<TopBar>`: a `[1fr auto 1fr]` grid — logo left, the nav as a floating pill capsule centred (lg+; active route is an inverted ink pill), actions pinned to column 3 so they always hug the right edge. 64px tall, translucent over the page aura. |
+| Top bar                   | `<TopBar>`: a `[1fr auto 1fr]` grid — logo left, the nav as a floating pill capsule centred (lg+; active route is a filled brand-orange pill), actions pinned to column 3 so they always hug the right edge. 64px tall, translucent over the page aura. |
 | Footer                    | `<AppFooter>`: in-flow at the end of scrolling pages (scrolls away with content); pinned only under `compact` surfaces at md+. 12px sentence case; the version links to `/changelog`. |
 | Auth centered card        | `flex min-h-screen items-center justify-center bg-background p-4` outer + `w-full max-w-md` inner column with a `rounded-md border bg-card` card holding header (logo, eyebrow Tag, h1, description) + body (form children), and an alt-link sentence below. Used by `<AuthShell>` (`/sign-in`, `/sign-up`). Card animates in with `animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 duration-500`; the trailing alt-link uses the same animation with `[animation-delay:200ms] [animation-fill-mode:both]`. Apply `safe-pt safe-pb` to the page main so iOS notches/home-indicators don't clip. |
 
@@ -807,7 +809,7 @@ Rules: **at most one filled `bg-primary` follow control per view** (the Follow /
 
 ### 17.2 People navigation — one switch idiom
 
-Every segmented switch in the app is the **§21 segmented switch**: a pill track (`rounded-pill border border-border bg-muted/70 p-1`) with a raised neutral thumb on the active option (`rounded-pill bg-thumb text-foreground shadow-card ring-1 ring-border/70`) and `text-muted-foreground hover:text-foreground` at rest — never a coral fill. Use `<OptionSwitch>` / `<SegmentedControl>` from `@/components/ui` rather than re-rolling it. Counts ride inline per segment in `tabular-nums text-muted-foreground`. Full-width (segments `flex-1`) on mobile so it never overflows 375px; hugging from `sm+`. The top-bar nav is the one variant: its active route is an inverted ink pill (`bg-foreground text-background`). (The friends dock (§17.5) deliberately uses a single search over friends + following rather than a Friends / Following switch — it's a glanceable directory, not a tabbed list.)
+Every segmented switch in the app is the **§21 segmented switch**: a pill track (`rounded-pill border border-border bg-muted/70 p-1`) with the selected option as a filled brand pill (`rounded-pill brand-surface text-primary-foreground shadow-card`) and `text-muted-foreground hover:text-foreground` at rest. Use `<OptionSwitch>` / `<SegmentedControl>` from `@/components/ui` rather than re-rolling it. Counts ride inline per segment in `tabular-nums text-muted-foreground`. Full-width (segments `flex-1`) on mobile so it never overflows 375px; hugging from `sm+`. The top-bar nav uses the same language: its active route is a filled brand pill with the glow (`brand-surface text-primary-foreground shadow-glow`). (The friends dock (§17.5) deliberately uses a single search over friends + following rather than a Friends / Following switch — it's a glanceable directory, not a tabbed list.)
 
 ### 17.3 Empty-state copy
 
@@ -928,14 +930,16 @@ The rehaul's visual system. Every value routes through a token so the Settings �
 | `shadow-card` (`--ft-shadow-card`) | soft warm lift | Cards (`<Surface>`, `<Card>`), the nav capsule, segmented thumbs. `data-ft-depth="flat"` removes it, `"lifted"` deepens it. |
 | `shadow-float` (`--ft-shadow-float`) | clear hover | Popovers, dropdowns, dialogs, tooltips, the friends dock, the Discord pill. |
 | `shadow-glow` (`--ft-shadow-glow`) | faint primary halo | Only the filled primary button (the page's one spark). `data-ft-glow="off"` removes it. |
-| `bg-thumb` (`--thumb`) | derived from the palette | The raised thumb of a segmented switch. |
+| `brand-surface` (utility) | flame sweep of `--primary` | The filled primary button, the active top-bar route, the selected segment of a switch. A soft top-to-bottom gradient of the primary (lighter crown, deeper base) echoing the logo; derived from `--primary` so palettes get a matching sweep. |
+| `bg-thumb` (`--thumb`) | derived from the palette | A raised neutral thumb, for the rare toggle that must not read as a selection. |
 | Page aura | `radial-gradient` of `--primary` at 9% behind the top of the page | A quiet warm wash under the top bar. `data-ft-aura="off"` removes it. |
 
 Rules:
 - Never hard-code `rounded-md`/`rounded-full` on a control, or an arbitrary `shadow-[…]` on a surface — use the tokens above so the Style settings reach it. (Avatars, dots and progress tracks stay `rounded-full`: they are shapes, not controls.)
 - One filled primary button per view. Secondary actions are `outline` or `ghost`.
+- Selected/active states are orange (`brand-surface` or `text-primary`), never black or neutral grey.
 - Motion on controls is limited to colour/shadow transitions (~200ms ease-out) and the button press (`active:scale-[0.98]`); no bounce.
-- Primary is `oklch(0.62 0.2 40)` in light mode with near-white text, and a brighter orange with dark ink text in dark mode, so both clear contrast.
+- Primary is the logo orange `#f97316` in both modes with white, `font-semibold` label text on `brand-surface` (its deeper base improves label contrast).
 
 ## 20. Amending this document
 

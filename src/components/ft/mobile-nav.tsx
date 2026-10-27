@@ -120,7 +120,7 @@ export function MobileNav({
                     className={cn(
                       "flex min-h-12 items-center rounded-2xl px-4 text-xl font-semibold tracking-tight transition-colors",
                       active
-                        ? "bg-foreground text-background"
+                        ? "brand-surface text-primary-foreground"
                         : "text-foreground hover:bg-accent",
                     )}
                   >

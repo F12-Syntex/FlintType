@@ -54,7 +54,7 @@ export function ModeSwitcher({ className }: { className?: string }) {
             className={cn(
               "relative flex size-8 cursor-pointer items-center justify-center rounded-pill transition-colors",
               active
-                ? "text-foreground"
+                ? "text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -62,7 +62,7 @@ export function ModeSwitcher({ className }: { className?: string }) {
               <motion.span
                 layoutId="active-mode-pill"
                 transition={{ type: "tween", ease: [0.22, 1, 0.36, 1], duration: 0.25 }}
-                className="absolute inset-0 rounded-pill bg-thumb shadow-card ring-1 ring-border/70"
+                className="absolute inset-0 rounded-pill brand-surface shadow-card"
               />
             ) : null}
             <Icon size={15} className="relative" />
