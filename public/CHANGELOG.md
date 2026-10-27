@@ -8,6 +8,13 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.137.0 — 27 October 2026
+- A fresh, rounder look across the whole app: pill-shaped buttons and switches, softly rounded cards, a gentle warm glow behind the top of every page, and calmer warm colours in both light and dark mode.
+- The top bar is simpler: the page links now sit in a floating pill in the middle, with one-tap light/dark switching, your profile picture, and a "Sign in" button that now also shows on phones.
+- The footer and the Discord invite now scroll away with the page instead of taking up space on screen, and the app's version number moved to the footer (it links to the changelog).
+- On phones, the friends list now opens from a button in the top bar instead of a floating pill that covered the page.
+- Better colour contrast on orange buttons and text, so labels are easier to read.
+
 ## 6.136.48 — 17 June 2026
 - The footer now has a "Terms" link, so you can reach the Terms of Service page from anywhere in the app.
 

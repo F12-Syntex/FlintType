@@ -10,7 +10,7 @@ export function Kbd({
   return (
     <span
       className={cn(
-        "mx-0.5 inline-block rounded-sm border border-ft-line-soft border-b-2 bg-white px-1.5 py-px text-[10px] font-semibold text-ft-ink",
+        "mx-0.5 inline-flex min-w-5 items-center justify-center rounded-md border border-border border-b-2 bg-card px-1.5 py-px font-mono text-[10px] font-semibold text-foreground",
         className,
       )}
     >

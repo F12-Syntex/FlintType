@@ -2,7 +2,9 @@
 
 The authoritative design document for this project. Every UI change must conform to the rules below.
 
-flinttype is **editorial-mechanical**: a single coral/ember accent used sparingly against a paper-and-ink palette in JetBrains Mono. Hairline borders, **interactive surfaces use `rounded-md`** (the project's `--radius-md`) for a consistent visual rhythm — buttons, nav links, hover backgrounds, popovers, the mode-bar segment, the keyboard keycaps. Tabular numerics on every stat. Charts are line-art SVG. The keyboard panel itself sits on the page background (`bg-background`) so the keys read as the figure, not the panel. The brand bias is still mechanical, not pillowy: keep the radius small. If you find yourself reaching for `rounded-xl` or larger on a control surface, stop — bump the project-wide `--radius` in `globals.css` instead, so the change applies to every component at once.
+flinttype is **warm, rounded and calm**: a single orange accent used sparingly against a warm paper-and-ink palette, set in Plus Jakarta Sans with IBM Plex Mono for code and keycaps. **Controls are pills** (`rounded-pill` — buttons, chips, segmented switches, inputs, nav links); **surfaces are soft rounded cards** (`rounded-2xl`) with a hairline and a gentle warm lift (`shadow-card`); floating layers (popovers, menus, dialogs, the friends dock) hover with `shadow-float`. Tabular numerics on every stat. Charts are line-art. The shape and depth rules live in **§21**; every one of them is user-tunable (Settings → Style), so components must route through the tokens, never hard-code a radius or shadow.
+
+**Minimal first.** Every screen answers one question; the primary action is obvious and there is at most one orange element competing for the eye. Copy is plain sentence case; uppercase tracked labels are reserved for small eyebrows inside pages, never for chrome.
 
 **Mobile-first is not optional.** Section 10 mandates every UI be authored for 375 px first and scaled up. The flinttype design source is desktop-first (1440 px artboards) — translate by stacking columns and reducing density on mobile, never by leaving small viewports broken.
 
@@ -188,9 +190,9 @@ Values are **mobile-first** — unprefixed classes target ≤ 375px viewports; `
 
 ## 4. Typography
 
-**JetBrains Mono everywhere.** Loaded via `next/font/google` in `src/app/layout.tsx` as `--font-mono-primary`, applied to `body` and `html`. Weights in use: 300, 400, 500, 600, 700, 800. Tabular numerics on every stat (`tabular-nums`).
+**Plus Jakarta Sans for the interface, IBM Plex Mono for code, keycaps and the optional mono passage.** Both load via `next/font/google` in `src/app/layout.tsx` (`--font-sans`, `--font-mono`); Lora is shipped only as the passage's optional "Serif" family. Tabular numerics on every stat (`tabular-nums`). The passage font is the user's choice (Settings → Typography) and never leaks into chrome.
 
-No proportional sans, no serif, no second face. The mono is the design.
+Chrome text (nav, buttons, menus, footer) is **13–14px sentence case, `font-medium`**. Meta text is 12px muted. The rows below that still name `ft-*` colours predate the theme-aware layer — use the §2.2 semantic equivalents for new work.
 
 | Role                  | Class                                                                                  |
 |-----------------------|----------------------------------------------------------------------------------------|
@@ -225,16 +227,18 @@ All recipes are **mobile-first**: base classes target ≤ 375px viewports, `sm:`
 
 | Recipe                    | Class                                                                                          |
 |---------------------------|------------------------------------------------------------------------------------------------|
-| Page shell                | `min-h-screen bg-zinc-50 font-sans dark:bg-black`                                              |
-| Centered column           | `mx-auto flex max-w-3xl flex-col gap-8 px-4 py-10 sm:gap-10 sm:px-8 sm:py-20`                  |
-| Card                      | `flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 sm:p-5` |
+| App page                  | `<PageShell>` + `<PageHeader>` + `<PageSection>` from `@/components/page-shell` — one centred column (`max-w-6xl` app pages, `max-w-2xl` reading pages), `gap-10 sm:gap-12` between sections, `pb-24` so the friends dock never covers the last row. No hero cards: the header is an h1, one muted line and an `aside` slot. The horizontal gutter comes from `<AppChrome>` (`px-4 sm:px-6`, the same as the top bar and footer) so every edge lines up. |
+| Card                      | `<Surface>` (`rounded-2xl border border-border bg-card shadow-card`) — only for things the user acts on (a list of rows, a tile, a form). Sections themselves are never boxed. |
+| Two-up row                | `grid gap-10 lg:grid-cols-2 lg:gap-x-12` — no vertical rules, so column edges line up down the page. |
 | Inline row (desktop-only) | `flex items-center gap-3`                                                                      |
 | Stacked row → inline      | `flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3`                                     |
 | Button group (wrappable)  | `flex flex-wrap gap-2`                                                                         |
 | Topbar (sticky header)    | `sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80` |
 | Topbar inner row          | `mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-3 sm:px-8 sm:py-4`          |
 | List row (long text + action) | `flex flex-col gap-2 rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900 sm:flex-row sm:items-center sm:justify-between` |
-| App shell with sidebar    | `grid h-full grid-cols-1 lg:grid-cols-[var(--app-rail-width)_1fr] lg:gap-3` — used by `/customise` and `/leaderboard`. `--app-rail-width` lives in `globals.css`; the `<TopBar>` reuses the same grid template (`[var(--app-rail-width)_1fr_auto]` with matching `lg:px-6`) so the logo column aligns with the sidebar and the nav aligns with the content card. |
+| App shell with sidebar    | `grid h-full grid-cols-1 lg:grid-cols-[var(--app-rail-width)_1fr] lg:gap-6` — used by `/customise` only (the settings inspector). `--app-rail-width` lives in `globals.css`. |
+| Top bar                   | `<TopBar>`: a `[1fr auto 1fr]` grid — logo left, the nav as a floating pill capsule centred (lg+; active route is an inverted ink pill), actions pinned to column 3 so they always hug the right edge. 64px tall, translucent over the page aura. |
+| Footer                    | `<AppFooter>`: in-flow at the end of scrolling pages (scrolls away with content); pinned only under `compact` surfaces at md+. 12px sentence case; the version links to `/changelog`. |
 | Auth centered card        | `flex min-h-screen items-center justify-center bg-background p-4` outer + `w-full max-w-md` inner column with a `rounded-md border bg-card` card holding header (logo, eyebrow Tag, h1, description) + body (form children), and an alt-link sentence below. Used by `<AuthShell>` (`/sign-in`, `/sign-up`). Card animates in with `animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 duration-500`; the trailing alt-link uses the same animation with `[animation-delay:200ms] [animation-fill-mode:both]`. Apply `safe-pt safe-pb` to the page main so iOS notches/home-indicators don't clip. |
 
 ---
@@ -491,14 +495,13 @@ Reusable building blocks live in `src/components/ft/`. Use these — don't repro
 
 | Primitive    | Import                          | Use                                                                                                                                                                                                                                                                |
 |--------------|---------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `<Logo>`     | `from "@/components/ft"`        | The flinttype brand mark. Renders the flame SVG (`/flinttype-logo.svg`) + `FLINTTYPE` wordmark + optional `version`. `dark` flips the version-text colour. `size` (`sm \| md`) shrinks for footer use. Anchored as a `<Link>` to `/` (or `/app` when `dark`). |
-| `<TopBar>`   | `from "@/components/ft"`        | Sticky app header — backdrop-blurred, 56 px tall. Renders `<Logo>` + optional desktop nav (md+) + `right` slot + mobile hamburger that opens `<MobileNav>` drawer. `dark` flips to ink-on-paper. `sticky={false}` for non-sticky uses.                              |
+| `<Logo>`     | `from "@/components/ft"`        | The flinttype brand mark: flame SVG (`/flinttype-logo.svg`) + lowercase `flinttype` wordmark + optional `version`. `size` (`sm \| md`). Anchored as a `<Link>` to `/`. |
+| `<TopBar>`   | `from "@/components/ft"`        | App header (§5 Top bar): logo, floating pill nav (lg+), `right` slot pinned to the right edge, mobile hamburger that opens `<MobileNav>`. 64px tall. |
 | `<MobileNav>`| `from "@/components/ft"`        | Hamburger button (md:hidden) that opens a full-width drawer below the header. Drawer shows nav links (large touch targets) + `drawerExtras` slot. Closes on route change, on `Escape`, or on hamburger toggle. Body scroll locked while open. Used by `<TopBar>`.   |
-| `<IdentDot>` | `from "@/components/ft"`        | Right-side status indicator: text label hidden < `sm:`, dot always visible. `emberDot` variant for the race screen (live indicator). Pass as the `right` slot of `<TopBar>` on `/app/*`.                                                                           |
 | `<Tag>`      | `from "@/components/ft"`        | Eyebrow / hairline label. Tone: `dim` (default), `ink`, `ember`, `ok`.                                                                                                                                                                                             |
 | `<Stat>`     | `from "@/components/ft"`        | Labelled tabular value with optional delta + suffix. Sizes `sm \| md \| lg \| xl`. `accent` paints the value primary (coral); `bordered` adds a right divider for stat strips.                                                                                     |
 | `<Panel>`    | `from "@/components/ft"`        | Bordered surface with `title` + `subtitle` header (both via `<Tag>`), background `bg-[#FAF7F0]`. Used for every dashboard widget.                                                                                                                                  |
-| `<Kbd>`      | `from "@/components/ft"`        | Inline keycap chip: white bg, double-bottom border, mono small caps.                                                                                                                                                                                               |
+| `<Kbd>`      | `from "@/components/ft"`        | Inline keycap chip: theme-aware `bg-card` with a double-bottom border, mono small caps. |
 | `<FtButton>` | `from "@/components/ft"`        | Square-cornered, uppercase, mono, tracked button. Variants: `ink`, `ember`, `ghost`, `ghostDark`. Sizes `sm \| md \| lg`.                                                                                                                                          |
 | `<Avatar>`   | `from "@/components/ft"`        | A user's Clerk avatar — circular, hairline `ring-foreground/10`, sizes `sm \| md \| lg \| xl`. **Desaturated at rest, full colour on hover** of an ancestor `.group` (`liven={false}` opts out). Optional presence dot: `status="live"` (the lone coral spark, `motion-safe:animate-pulse`) / `"online"` (`bg-ft-ok`). Plain `<img>` (Clerk's CDN isn't in `next.config` remotePatterns and that file is off-limits). **Avatars are a sanctioned departure from the no-avatars bias — only the friends/live surfaces (§17.5) use them; do not sprinkle avatars onto other product chrome.** |
 | `<UserTag>`  | `from "@/components/ft"`        | Identity tag chip — lucide icon + uppercase label with per-tag colour/border/fill/glow tokens. Variants: `tag ∈ { owner, whitehat, og }`. Sizes `sm` (leaderboard row, h-5/text-[10px]) / `md` (profile hero, h-[26px]/text-[11px]). Hover (and focus) shows a Monkeytype-style two-line tooltip with the tag's name + one-line description; opt out with `tooltip={false}` only when the chip is itself inside an outer button whose own affordance already describes it. Icons use lucide-react with `strokeWidth={2.25}` so the glyph reads at 12–14px against the saturated fill. Static glow, no animation. Tokens are fixed across palettes (§2.3 User-tag tokens). Requires the root `<TooltipProvider>` in `src/app/providers.tsx`. |
@@ -507,7 +510,7 @@ The shadcn `<Button>` is still preferred when the form/dialog already uses shadc
 
 **Brand mark.** Always render via `<Logo>`. The flame SVG at `/public/flinttype-logo.svg` is the single source of truth — never hand-roll a square/diamond mark inline. An older rotated-square glyph appeared in early commits; it has been replaced everywhere.
 
-**Top-bar control height** — every interactive control in the `<TopBar>` right slot (sign-in pill, profile trigger, notifications bell, settings gear) is **`h-9` / `size-9` (36px)** so the cluster reads as one row of equal-height controls beside the nav segmented card (which lands at ~36px via `p-0.5` + `py-1.5 text-[13px]`). Pin the height with `h-9`/`size-9` — never let it be driven by `py-*` + intrinsic text/avatar size, which silently produces a short control (the sign-in pill once rendered ~24px this way). Bordered segmented chrome that can't hit exactly 36px on the Tailwind scale without an arbitrary value (the `<ModeSwitcher>` icon toggle at `size-8` + border ≈ 34px) stays on the clean scale value — the 1–2px difference is invisible once `items-center` centres it in the 56px bar, and §3 forbids arbitrary heights to force the match.
+**Top-bar control height** — every interactive control in the `<TopBar>` right slot (theme toggle, notifications bell, settings gear, avatar trigger, Sign in button) is **`h-9` / `size-9` (36px)** on desktop and `size-11` on phones where it is an icon button so the cluster reads as one row of equal-height controls beside the nav segmented card (which lands at ~36px via `p-0.5` + `py-1.5 text-[13px]`). Pin the height with `h-9`/`size-9` — never let it be driven by `py-*` + intrinsic text/avatar size, which silently produces a short control (the sign-in pill once rendered ~24px this way). Bordered segmented chrome that can't hit exactly 36px on the Tailwind scale without an arbitrary value (the `<ModeSwitcher>` icon toggle at `size-8` + border ≈ 34px) stays on the clean scale value — the 1–2px difference is invisible once `items-center` centres it in the 64px bar, and §3 forbids arbitrary heights to force the match.
 
 **Hairline rule** — any "section break" is a single 1px border in `border-ft-line-soft` (paper) or `border-[#221F1A]` (ink). No box-shadows on product surfaces, no double borders.
 
@@ -802,9 +805,9 @@ The single relationship control, reused on profile heroes and friends-list rows.
 
 Rules: **at most one filled `bg-primary` follow control per view** (the Follow / Follow back CTA). Once connected, the control is always `outline` and **stable** (no hover swap). Management lives in a `⋯` `DropdownMenu`: Invite to a race (friends only → opens a private lobby via `createLobbyAndInvite`, notifies the friend, and navigates the host to `/race/c/<slug>`), Unfollow, Block. **Unfollow and Block always confirm** via the shared `<ConfirmDialog>` (`src/components/ui/confirm-dialog.tsx`) — a destructive relationship change is the sanctioned exception to the §-13 "modal as last resort" bias. `compact` (dense rows) hides the connected status button and shows only the ⋯; the default (profile hero) shows the labelled status that opens the same menu. Loading disables + relabels ("Following…"); errors render as a `text-destructive` line below (§6.3). `size="default"` on profile, `size="sm"` in dense rows.
 
-### 17.2 People navigation — one switch idiom, shared with the TopBar nav
+### 17.2 People navigation — one switch idiom
 
-Segmented switches across the app (the TopBar main nav) are built from **one idiom**, anchored on the TopBar main nav (`top-bar.tsx`), so every switch reads as one family: a `rounded-md border border-border bg-card p-0.5` container, each segment `rounded-sm px-3 py-1.5 text-[13px] tracking-tight` with a subtle `bg-foreground/[0.06] font-semibold text-foreground` active tint (the segment radius is `rounded-sm`, the *concentric* inner radius for a `rounded-md` container with `p-0.5` (2px) inset — never an arbitrary `rounded-[Npx]`, §3) and a `text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground` rest state. Counts ride inline per segment in `tabular-nums text-muted-foreground`. Full-width (segments `flex-1`) on mobile so it never overflows 375px; hugging (`sm:w-fit`, `sm:flex-initial`) from `sm+` like the nav. This is the **one** segmented-switch style — do **not** use the old chunky `bg-muted/40` track (retired across the app). (The friends dock (§17.5) deliberately uses a single search over friends + following rather than a Friends / Following switch — it's a glanceable directory, not a tabbed list.)
+Every segmented switch in the app is the **§21 segmented switch**: a pill track (`rounded-pill border border-border bg-muted/70 p-1`) with a raised neutral thumb on the active option (`rounded-pill bg-thumb text-foreground shadow-card ring-1 ring-border/70`) and `text-muted-foreground hover:text-foreground` at rest — never a coral fill. Use `<OptionSwitch>` / `<SegmentedControl>` from `@/components/ui` rather than re-rolling it. Counts ride inline per segment in `tabular-nums text-muted-foreground`. Full-width (segments `flex-1`) on mobile so it never overflows 375px; hugging from `sm+`. The top-bar nav is the one variant: its active route is an inverted ink pill (`bg-foreground text-background`). (The friends dock (§17.5) deliberately uses a single search over friends + following rather than a Friends / Following switch — it's a glanceable directory, not a tabbed list.)
 
 ### 17.3 Empty-state copy
 
@@ -823,14 +826,14 @@ Don't invent a second "live"/"recording" badge for the broadcaster. A *spectatab
 
 There is **no `/friends` page** (it was removed). The friend graph lives in a small, always-available **dock** pinned to the bottom-right corner, mounted once globally from `providers.tsx` (alongside the command palette). It is the one place flinttype runs avatars at full fidelity (an explicit product call, so the rest of the app stays avatar-free). Don't rebuild the old wide hub page; the dock is the friends surface now.
 
-**Collapsed** — a slim `h-11 rounded-md border bg-card` pill: a stack of up to three live/online friend avatars (or a `Users` glyph when idle), a count, and a `Swords` + N badge when race-lobby invites are pending. The label reads `N live` in coral when anyone's broadcasting (the dock's lone spark), else `N online` / `Friends` in muted ink. This is the resting state, quiet and glanceable, never blocking content.
+**Collapsed** — a slim floating `h-10 rounded-pill border bg-card/90 shadow-float` pill (md+ only): a stack of up to three live/online friend avatars (or a `Users` glyph when idle), a count, and a `Swords` + N badge when race-lobby invites are pending. The label reads `N live` in coral when anyone's broadcasting (the dock's lone spark), else `N online` / `Friends` in muted ink. This is the resting state, quiet and glanceable, never blocking content.
 
 **Expanded** — clicking the pill springs a `w-[min(88vw,360px)]` panel up from the corner (`bg-popover`, hairline border, `max-h-[70dvh]` scroll). Top to bottom: **Live now** (broadcasters — `sm` avatar with the coral pulse dot, handle + tags, live WPM, a quiet "Watch" → `/live/<userId>`); **Challenges** (pending race-lobby invites — a friend opened a lobby and invited you; quiet "Join" → `/race/c/<slug>`); a **search** input; then the **directory** (friends first, then everyone you follow — `<Avatar>` with presence dot, handle + `<UserTag>`s, a presence caption; the whole row links to the profile). Footer: quiet "Find people" link.
 
 - **Challenges are pending invites only.** The dock surfaces only *unread* `race_invite` notifications — a friend opened a private lobby for you. Joining or marking the notification read clears it from the dock. There is no separate duels/results page; a race that's been joined just runs.
 - **The directory is glanceable.** Rows link to the profile; the `<FollowButton>` (§17.1) lives there, not in the dock, so the dock stays a read-only "who's around" surface.
 - **It steps aside.** Hidden on intentionally immersive surfaces (`/race` — incl. private lobbies at `/race/c/<slug>` — `/live`, `/sign-in`, `/sign-up`) and while a run is active (`data-ft-running`) or focus mode is on (`data-ft-focus`, §15) — the states where the user asked chrome to disappear.
-- **Mobile** uses the §10.5 bottom sheet (`<MobileSheet>`), not the floating panel; the collapsed pill stays corner-pinned above the home-indicator inset.
+- **Mobile** never floats the pill (it covered page text and the typing surface's restart row). A `Users` icon button in the top bar (signed-in, dock routes only) dispatches `OPEN_FRIENDS_EVENT` and the dock opens its §10.5 bottom sheet (`<MobileSheet>`).
 - **Data** comes from `useDockData` (`friends.listFriends` / `listFollowing`, `live.friendsLive`, `presence.list`, and `notifications.list` for pending `race_invite`s), polled only while the dock is mounted and the tab is foregrounded (zero requests on a hidden tab, matching the broadcaster / watch loops, multiplayer.md).
 
 **Activity stays out of the dock.** Friends' personal bests, new follows, and mutual-friendship events live **only** in the notifications bell (`notifications-popover.tsx`, fed by `notifications.list()`). The dock is *who's around and who you can play*, not a timeline.
@@ -913,6 +916,26 @@ A major release worth showing off gets an **update card** — a **light, wide, v
 - **Private (`noIndex: true`)** via `buildPageMetadata`, so it's omitted from sitemap + `llms.txt` (SEO S8). Unknown slug → `notFound()`.
 - **Changelog linkage:** the `/changelog` page calls `updateForVersion(entry.version)` and renders a "Read the update" link on covered entries. List the headline versions in the update's `versions[]`.
 - **Don't** make the card technical, theme-aware, or chrome-wrapped — it's a fixed-light advert. Don't hand-roll a second update page outside the registry, and don't index these pages.
+
+## 21. Shape, depth and style
+
+The rehaul's visual system. Every value routes through a token so the Settings → Style rows can retune the whole app at once.
+
+| Token / utility | Default | Use |
+|---|---|---|
+| `rounded-pill` (`--radius-pill` → `--ft-radius-control`) | `9999px` | **Every interactive control**: buttons, chips, segmented switches and their thumbs, inputs, nav links, icon buttons, menu triggers. `data-ft-controls="rounded"` swaps it to the card radius, `"square"` to 0. |
+| `--radius` | `1rem` | Card radius scale: `rounded-lg` = 16px, `rounded-xl` = 20px, `rounded-2xl` = 24px. Cards and panels use `rounded-2xl`; nested rows/menu items `rounded-xl`. The Geometry → Radius row and themes override it. |
+| `shadow-card` (`--ft-shadow-card`) | soft warm lift | Cards (`<Surface>`, `<Card>`), the nav capsule, segmented thumbs. `data-ft-depth="flat"` removes it, `"lifted"` deepens it. |
+| `shadow-float` (`--ft-shadow-float`) | clear hover | Popovers, dropdowns, dialogs, tooltips, the friends dock, the Discord pill. |
+| `shadow-glow` (`--ft-shadow-glow`) | faint primary halo | Only the filled primary button (the page's one spark). `data-ft-glow="off"` removes it. |
+| `bg-thumb` (`--thumb`) | derived from the palette | The raised thumb of a segmented switch. |
+| Page aura | `radial-gradient` of `--primary` at 9% behind the top of the page | A quiet warm wash under the top bar. `data-ft-aura="off"` removes it. |
+
+Rules:
+- Never hard-code `rounded-md`/`rounded-full` on a control, or an arbitrary `shadow-[…]` on a surface — use the tokens above so the Style settings reach it. (Avatars, dots and progress tracks stay `rounded-full`: they are shapes, not controls.)
+- One filled primary button per view. Secondary actions are `outline` or `ghost`.
+- Motion on controls is limited to colour/shadow transitions (~200ms ease-out) and the button press (`active:scale-[0.98]`); no bounce.
+- Primary is `oklch(0.62 0.2 40)` in light mode with near-white text, and a brighter orange with dark ink text in dark mode, so both clear contrast.
 
 ## 20. Amending this document
 

@@ -47,8 +47,10 @@ export const OptionSwitch = ({
     <OptionSwitchContext.Provider value={{ value, setValue }}>
       <div
         className={clsx(
-          "inline-flex bg-muted p-1 border border-border rounded-md",
-          size === "small" && "h-8",
+          // Shared segmented switch (ui-law §21): a pill track with a
+          // raised neutral thumb on the active option — never coral.
+          "inline-flex gap-0.5 rounded-pill border border-border bg-muted/70 p-1",
+          size === "small" && "h-9",
           size === "medium" && "h-10",
           size === "large" && "h-12",
         )}
@@ -113,12 +115,12 @@ const OptionSwitchControl = ({
       <span
         className={twMerge(
           clsx(
-            "flex items-center justify-center flex-1 cursor-pointer font-medium font-sans duration-150",
+            "flex items-center justify-center flex-1 cursor-pointer rounded-pill font-medium font-sans transition-[color,background-color,box-shadow] duration-200",
             checked
-              ? "bg-primary text-primary-foreground fill-primary-foreground rounded-sm"
-              : "text-muted-foreground hover:text-foreground fill-muted-foreground hover:fill-foreground rounded-sm",
+              ? "bg-thumb text-foreground fill-foreground shadow-card ring-1 ring-border/70"
+              : "text-muted-foreground hover:text-foreground fill-muted-foreground hover:fill-foreground",
             disabled && "text-muted-foreground/60 fill-muted-foreground/60",
-            !icon && size === "small" && "text-xs px-2.5",
+            !icon && size === "small" && "text-[13px] px-3",
             !icon && size === "medium" && "text-sm px-3",
             !icon && size === "large" && "text-base px-4",
             icon && size === "small" && "py-1 px-2",

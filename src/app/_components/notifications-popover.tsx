@@ -24,12 +24,8 @@ import type {
  *  nothing to show until the user has an account.
  *
  *  Theme: theme-aware semantic classes per ui-law §2.1 — the chrome
- *  swaps cleanly under <ModeToggle> + <ThemeSwitcher>. The legacy
- *  `dark` prop is preserved so the dark race surface can still
- *  request a darker on-ink variant; that branch reaches for the
- *  fixed warm-ink ramp from §2.3 because those surfaces are
- *  intentionally dark regardless of the user's palette. */
-export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
+ *  swaps cleanly under the mode toggle and the palette switcher. */
+export function NotificationsPopover() {
   const { isSignedIn, isLoaded } = useUser();
   const backend = useBackend();
   const [open, setOpen] = useState(false);
@@ -143,10 +139,7 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
         aria-expanded={open}
         aria-haspopup="dialog"
         className={cn(
-          "relative flex size-11 items-center justify-center rounded-md transition-colors md:size-9",
-          dark
-            ? "text-ft-paper hover:bg-white/5"
-            : "text-foreground hover:bg-foreground/5",
+          "relative flex size-11 items-center justify-center rounded-pill text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:size-9",
         )}
       >
         <BellIcon />
@@ -164,25 +157,22 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
           aria-label="Notifications"
           className={cn(
             // Mobile: full-width sheet pinned below the topbar.
-            "fixed inset-x-2 top-[60px] z-40 max-h-[70vh] overflow-y-auto",
+            "fixed inset-x-2 top-[calc(4.25rem+env(safe-area-inset-top))] z-40 max-h-[70vh] overflow-y-auto",
             // Desktop: anchored to the bell, fixed width.
             "md:absolute md:inset-x-auto md:top-full md:right-0 md:mt-2 md:w-[360px]",
-            "rounded-md border shadow-lg",
-            dark
-              ? "border-ft-ink-line bg-ft-ink-popover text-ft-paper"
-              : "border-border bg-popover text-popover-foreground",
+            "rounded-2xl border border-border bg-popover text-popover-foreground shadow-float",
           )}
         >
           <div
             className={cn(
               "flex items-center justify-between gap-3 border-b px-4 py-3",
-              dark ? "border-ft-ink-line" : "border-border",
+              "border-border",
             )}
           >
             <span
               className={cn(
-                "text-[11px] font-semibold uppercase tracking-[0.18em]",
-                dark ? "text-ft-paper" : "text-foreground",
+                "text-sm font-semibold",
+                "text-foreground",
               )}
             >
               Notifications
@@ -202,10 +192,8 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
                 type="button"
                 onClick={() => void markAllRead()}
                 className={cn(
-                  "text-[10px] uppercase tracking-[0.14em] transition-colors",
-                  dark
-                    ? "text-ft-warm-2 hover:text-ft-paper"
-                    : "text-muted-foreground hover:text-foreground",
+                  "text-xs transition-colors",
+                  "text-muted-foreground hover:text-foreground",
                 )}
               >
                 Mark all read
@@ -217,7 +205,7 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
             <div
               className={cn(
                 "px-4 py-6 text-center text-[12px]",
-                dark ? "text-ft-warm-2" : "text-muted-foreground",
+                "text-muted-foreground",
               )}
             >
               Loading…
@@ -226,7 +214,7 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
             <div
               className={cn(
                 "px-4 py-6 text-center text-[12px]",
-                dark ? "text-ft-warm-2" : "text-muted-foreground",
+                "text-muted-foreground",
               )}
             >
               All caught up.
@@ -238,10 +226,10 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
                   key={n.id}
                   className={cn(
                     i > 0 && "border-t",
-                    dark ? "border-ft-ink-line" : "border-border",
+                    "border-border",
                   )}
                 >
-                  <Row item={n} dark={dark} onMarkRead={markOneRead} />
+                  <Row item={n} onMarkRead={markOneRead} />
                 </li>
               ))}
             </ul>
@@ -254,11 +242,9 @@ export function NotificationsPopover({ dark = false }: { dark?: boolean }) {
 
 function Row({
   item,
-  dark,
   onMarkRead,
 }: {
   item: Notification;
-  dark: boolean;
   onMarkRead: (id: string) => void;
 }) {
   const accent = item.kind === "personal_best" || item.kind === "mutual";
@@ -283,12 +269,8 @@ function Row({
           unread
             ? accent
               ? "bg-primary"
-              : dark
-                ? "bg-ft-paper"
-                : "bg-foreground"
-            : dark
-              ? "bg-ft-warm-3"
-              : "bg-muted-foreground/40",
+              : "bg-foreground"
+            : "bg-muted-foreground/40",
         )}
       />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -296,7 +278,7 @@ function Row({
           <span
             className={cn(
               "truncate text-[12px] font-semibold",
-              accent ? "text-primary" : dark ? "text-ft-paper" : "text-foreground",
+              accent ? "text-primary" : "text-foreground",
             )}
           >
             {item.title}
@@ -304,7 +286,7 @@ function Row({
           <span
             className={cn(
               "shrink-0 text-[10px] uppercase tracking-[0.12em]",
-              dark ? "text-ft-warm-3" : "text-muted-foreground",
+              "text-muted-foreground",
             )}
           >
             {relativeTime(item.createdAtMs)}
@@ -313,12 +295,12 @@ function Row({
         <p
           className={cn(
             "text-[11px] leading-snug",
-            dark ? "text-ft-warm-2" : "text-muted-foreground",
+            "text-muted-foreground",
           )}
         >
           {item.body}
         </p>
-        {isPersonalBest(item) ? <PbDelta data={item.data} dark={dark} /> : null}
+        {isPersonalBest(item) ? <PbDelta data={item.data} /> : null}
         {item.kind === "og_granted" ? (
           <span className="mt-1.5 inline-flex">
             <UserTag tag="og" size="sm" />
@@ -344,7 +326,7 @@ function Row({
         }
         className={cn(
           "block transition-colors",
-          dark ? "hover:bg-white/[0.04]" : "hover:bg-foreground/[0.03]",
+          "hover:bg-foreground/[0.03]",
         )}
       >
         {body}
@@ -354,18 +336,12 @@ function Row({
   return body;
 }
 
-function PbDelta({
-  data,
-  dark,
-}: {
-  data: PersonalBestData;
-  dark: boolean;
-}) {
+function PbDelta({ data }: { data: PersonalBestData }) {
   if (data.previousWpm == null) {
     return (
       <span
         className={cn(
-          "mt-1 inline-flex w-fit items-center rounded-md border px-1.5 py-0.5 text-[10px] font-medium tabular-nums",
+          "mt-1 inline-flex w-fit items-center rounded-pill border px-2 py-0.5 text-[10px] font-medium tabular-nums",
           "border-primary/40 bg-primary/[0.06] text-primary",
         )}
       >
@@ -379,12 +355,10 @@ function PbDelta({
   return (
     <span
       className={cn(
-        "mt-1 inline-flex w-fit items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium tabular-nums",
+        "mt-1 inline-flex w-fit items-center gap-1 rounded-pill border px-2 py-0.5 text-[10px] font-medium tabular-nums",
         delta > 0
           ? "border-primary/40 bg-primary/[0.06] text-primary"
-          : dark
-            ? "border-white/10 bg-white/[0.03] text-ft-warm-2"
-            : "border-border bg-muted/40 text-muted-foreground",
+          : "border-border bg-muted/40 text-muted-foreground",
       )}
     >
       {delta > 0 ? `+${delta}` : delta} wpm vs {Math.round(data.previousWpm)}

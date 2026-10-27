@@ -1,9 +1,9 @@
 "use client";
 
 import { useClerk, useUser } from "@clerk/nextjs";
-import { Check, LogOut, Plus, Settings, User as UserIcon } from "lucide-react";
+import { Check, LogOut, Plus, Settings, User as UserIcon, Users } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
@@ -14,42 +14,53 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ModeSwitcher } from "@/components/ui/mode-switcher";
+import { isFriendsDockRoute, OPEN_FRIENDS_EVENT } from "@/components/friends-dock";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { buttonVariants } from "@/components/ui/button";
 import { clearUserScopedStorage } from "@/lib/sign-out-cleanup";
 import { cn } from "@/lib/utils";
 import { NotificationsPopover } from "./notifications-popover";
 
 /** Right-side cluster shown in the AppChrome topbar:
- *  notifications · settings · profile (avatar + name).
+ *  theme · notifications · settings · avatar (or Sign in).
  *
- *  Mobile (<md): only the notifications bell stays in the topbar. The
- *  hamburger drawer carries the profile + settings entries via
- *  <AppDrawerExtras> so the topbar doesn't get crowded against the logo +
- *  hamburger on a 375px viewport.
- *
- *  Desktop (md+): full row — bell, gear, profile pill (avatar + name).
- */
-export function TopbarActions({ dark = false }: { dark?: boolean }) {
+ *  Mobile (<md): the bell and the avatar / Sign in stay; theme and
+ *  settings move into the hamburger drawer (<AppDrawerExtras>) so the
+ *  bar never crowds the logo on a 375px viewport. */
+export function TopbarActions() {
   return (
-    <div className="flex items-center gap-2">
-      {/* Hide mode switch on the always-dark race surface so it can't
-          fight the screen's intentional fixed presentation. */}
-      {dark ? null : <ModeSwitcher className="hidden md:inline-flex" />}
-      <NotificationsPopover dark={dark} />
+    <div className="flex items-center gap-1">
+      <ThemeToggle className="hidden md:inline-flex" />
+      <FriendsButton />
+      <NotificationsPopover />
       <Link
         href="/customise"
         aria-label="Settings"
-        className={cn(
-          "hidden size-9 items-center justify-center rounded-md transition-colors md:flex",
-          dark
-            ? "text-ft-paper hover:bg-white/5"
-            : "text-foreground hover:bg-foreground/5",
-        )}
+        title="Settings"
+        className="hidden size-9 items-center justify-center rounded-pill text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:flex"
       >
         <GearIcon />
       </Link>
-      <ProfileLink dark={dark} />
+      <ProfileLink />
     </div>
+  );
+}
+
+/** Phones only: opens the friends sheet (the floating dock pill is
+ *  desktop-only so it never covers page content on a small screen). */
+function FriendsButton() {
+  const { isLoaded, isSignedIn } = useUser();
+  const pathname = usePathname();
+  if (!isLoaded || !isSignedIn || !isFriendsDockRoute(pathname)) return null;
+  return (
+    <button
+      type="button"
+      aria-label="Friends"
+      onClick={() => window.dispatchEvent(new Event(OPEN_FRIENDS_EVENT))}
+      className="flex size-11 items-center justify-center rounded-pill text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden"
+    >
+      <Users className="size-[18px]" aria-hidden />
+    </button>
   );
 }
 
@@ -65,7 +76,7 @@ export function TopbarActions({ dark = false }: { dark?: boolean }) {
  *  routes to /sign-in. /app + /customise work without a session
  *  now (settings save to localStorage), so the topbar should never
  *  pretend the user is signed in when they aren't. */
-function ProfileLink({ dark }: { dark: boolean }) {
+function ProfileLink() {
   const { user, isLoaded, isSignedIn } = useUser();
   const clerk = useClerk();
   const router = useRouter();
@@ -96,19 +107,12 @@ function ProfileLink({ dark }: { dark: boolean }) {
   }, [clerk]);
 
   if (isLoaded && !isSignedIn) {
+    // Visible at every width — the drawer used to be the only way in
+    // for a signed-out phone user.
     return (
       <Link
         href="/sign-in"
-        aria-label="Sign in"
-        className={cn(
-          // h-9 (36px) pins the control height to match the nav segmented
-          // card, the notifications bell, and the profile trigger beside
-          // it — height was previously py-driven (~24px) and read short.
-          "hidden h-9 items-center gap-2 rounded-md px-3 text-[11px] font-medium tracking-[0.14em] uppercase transition-colors md:flex",
-          dark
-            ? "text-ft-paper hover:bg-white/5"
-            : "text-foreground hover:bg-foreground/5",
-        )}
+        className={cn(buttonVariants({ variant: "outline", size: "sm" }), "ml-1")}
       >
         Sign in
       </Link>
@@ -122,6 +126,7 @@ function ProfileLink({ dark }: { dark: boolean }) {
         user?.emailAddresses[0]?.emailAddress.split("@")[0] ??
         "Profile");
   const initial = (displayName.charAt(0) || "·").toUpperCase();
+  const imageUrl = user?.hasImage ? user.imageUrl : null;
   const activeSessionId = clerk.session?.id ?? null;
 
   const handleSwitch = (sessionId: string) => {
@@ -153,29 +158,29 @@ function ProfileLink({ dark }: { dark: boolean }) {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={`Profile · ${displayName}`}
-        className={cn(
-          // h-9 (36px) matches the sign-in pill, the notifications bell,
-          // and the nav segmented card — one chrome control height.
-          "hidden h-9 items-center gap-2 rounded-md px-2 outline-none transition-colors md:flex",
-          "focus-visible:ring-1 focus-visible:ring-ring",
-          dark
-            ? "text-ft-paper hover:bg-white/5"
-            : "text-foreground hover:bg-foreground/5",
-        )}
+        className="ml-1 flex size-9 items-center justify-center rounded-pill outline-none transition-[box-shadow] focus-visible:ring-2 focus-visible:ring-ring/40"
       >
-        <Avatar initial={initial} dark={dark} />
-        <span className="max-w-[120px] truncate text-[11px] font-medium tracking-[0.14em] uppercase">
-          {displayName}
-        </span>
+        <AccountAvatar initial={initial} src={imageUrl} />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" sideOffset={6} className="min-w-[14rem]">
+      <DropdownMenuContent align="end" sideOffset={8} className="min-w-[15rem]">
+        <DropdownMenuLabel className="flex flex-col gap-0.5 px-2.5 py-2">
+          <span className="truncate text-sm font-semibold text-foreground">
+            {displayName}
+          </span>
+          {user?.username ? (
+            <span className="truncate text-xs font-normal text-muted-foreground">
+              @{user.username}
+            </span>
+          ) : null}
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => router.push("/profile")}>
           <UserIcon className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
           <span>View profile</span>
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => router.push("/customise")}>
           <Settings className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-          <span>Customise</span>
+          <span>Settings</span>
         </DropdownMenuItem>
 
         {sessions.length > 0 ? (
@@ -210,7 +215,7 @@ function ProfileLink({ dark }: { dark: boolean }) {
         <DropdownMenuItem onSelect={handleAddAccount}>
           <Plus className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
           <span className="flex-1">Add another account</span>
-          <span className="ml-auto rounded-md border border-border bg-muted/50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <span className="ml-auto rounded-pill border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
             Soon
           </span>
         </DropdownMenuItem>
@@ -261,18 +266,28 @@ function GearIcon() {
   );
 }
 
-function Avatar({ initial, dark }: { initial: string; dark: boolean }) {
-  // Initial-on-circle avatar — placeholder until a real image source is
-  // wired through. Uses the ember accent so it reads as the user's mark.
+function AccountAvatar({
+  initial,
+  src,
+}: {
+  initial: string;
+  src: string | null;
+}) {
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt=""
+        aria-hidden
+        className="size-8 rounded-full object-cover ring-1 ring-border"
+      />
+    );
+  }
   return (
     <span
       aria-hidden
-      className={cn(
-        "flex size-7 items-center justify-center rounded-full text-[10px] font-bold tracking-wide",
-        dark
-          ? "bg-ft-paper/10 text-ft-paper"
-          : "bg-primary/10 text-primary",
-      )}
+      className="flex size-8 items-center justify-center rounded-full bg-primary/12 text-xs font-semibold text-primary ring-1 ring-primary/20"
     >
       {initial}
     </span>

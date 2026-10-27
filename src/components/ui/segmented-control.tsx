@@ -48,7 +48,7 @@ export function SegmentedControl<T extends string | number>({
       className={cn(
         "inline-flex flex-wrap items-center gap-0.5",
         framed &&
-          "rounded-md border border-border bg-card p-0.5 shadow-sm",
+          "rounded-pill border border-border bg-muted/70 p-1",
         className,
       )}
     >
@@ -69,14 +69,14 @@ export function SegmentedControl<T extends string | number>({
               e.currentTarget.blur();
             }}
             className={cn(
-              "cursor-pointer rounded font-medium uppercase tracking-[0.12em] transition-colors outline-none",
-              "focus-visible:ring-1 focus-visible:ring-ft-ember focus-visible:ring-offset-1 focus-visible:ring-offset-ft-paper",
+              "cursor-pointer rounded-pill font-medium transition-[color,background-color,box-shadow] duration-200 outline-none",
+              "focus-visible:ring-2 focus-visible:ring-ring/40",
               size === "sm"
-                ? "px-2 py-1 text-[10px]"
-                : "px-2.5 py-1.5 text-[11px]",
+                ? "px-2.5 py-1 text-xs"
+                : "px-3 py-1.5 text-[13px]",
               active
-                ? "bg-ft-ember text-white shadow-sm"
-                : "text-ft-dim-2 hover:bg-ft-line-soft hover:text-ft-ink",
+                ? "bg-thumb text-foreground shadow-card ring-1 ring-border/70"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             {item.label ?? String(item.value)}

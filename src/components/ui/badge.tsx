@@ -21,10 +21,10 @@ const badgeVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-5 rounded-4xl px-2 py-0.5 text-xs",
+        default: "h-5 rounded-pill px-2 py-0.5 text-xs",
         // Matches Button size="sm" — for a Badge sitting next to a sm
         // button so the two read as the same family.
-        md: "h-7 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem]",
+        md: "h-7 rounded-pill px-2.5 text-[0.8rem]",
       },
     },
     defaultVariants: {
