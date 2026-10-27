@@ -20,8 +20,7 @@ export type NavItem = {
  *      └──────────────┴──────────────────────────────┴──────────────┘
  *
  *  - The nav is a floating pill capsule centred on the page (lg+). The
- *    active route is an inverted ink pill — the brand orange stays free
- *    for the page's own primary action.
+ *    active route is a filled brand-orange pill (the logo's colour).
  *  - The right cluster always lives in column 3 and hugs the right edge.
  *    Below lg the nav column is empty, so the cluster can't slide into
  *    the middle of the bar (it used to, when the hidden nav dropped out
@@ -74,7 +73,7 @@ export function TopBar({
                   "rounded-pill px-4 py-1.5 text-[13px] font-medium outline-none transition-[color,background-color] duration-200",
                   "focus-visible:ring-2 focus-visible:ring-ring/40",
                   active
-                    ? "bg-foreground text-background"
+                    ? "brand-surface text-primary-foreground shadow-glow"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
               >

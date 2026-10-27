@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.137.1 — 27 October 2026
+- Brought back flinttype's signature orange from the flame logo as the theme colour: the current page in the top bar, selected options and main buttons are orange again, now with a soft flame-style gradient, instead of black.
+
 ## 6.137.0 — 27 October 2026
 - A fresh, rounder look across the whole app: pill-shaped buttons and switches, softly rounded cards, a gentle warm glow behind the top of every page, and calmer warm colours in both light and dark mode.
 - The top bar is simpler: the page links now sit in a floating pill in the middle, with one-tap light/dark switching, your profile picture, and a "Sign in" button that now also shows on phones.

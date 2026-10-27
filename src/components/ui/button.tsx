@@ -16,7 +16,7 @@ const buttonVariants = cva(
         // colour (ui-law §21). Hover deepens the fill on every element
         // type, not only links.
         default:
-          "bg-primary text-primary-foreground shadow-glow hover:bg-primary/90",
+          "brand-surface font-semibold text-primary-foreground shadow-glow hover:brightness-110",
         outline:
           "border-border bg-card hover:bg-accent hover:text-foreground aria-expanded:bg-accent aria-expanded:text-foreground",
         secondary:

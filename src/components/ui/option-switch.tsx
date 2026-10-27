@@ -47,8 +47,8 @@ export const OptionSwitch = ({
     <OptionSwitchContext.Provider value={{ value, setValue }}>
       <div
         className={clsx(
-          // Shared segmented switch (ui-law §21): a pill track with a
-          // raised neutral thumb on the active option — never coral.
+          // Shared segmented switch (ui-law §21): a pill track with the
+          // selected option as a filled brand-orange pill.
           "inline-flex gap-0.5 rounded-pill border border-border bg-muted/70 p-1",
           size === "small" && "h-9",
           size === "medium" && "h-10",
@@ -117,7 +117,7 @@ const OptionSwitchControl = ({
           clsx(
             "flex items-center justify-center flex-1 cursor-pointer rounded-pill font-medium font-sans transition-[color,background-color,box-shadow] duration-200",
             checked
-              ? "bg-thumb text-foreground fill-foreground shadow-card ring-1 ring-border/70"
+              ? "brand-surface text-primary-foreground fill-primary-foreground shadow-card"
               : "text-muted-foreground hover:text-foreground fill-muted-foreground hover:fill-foreground",
             disabled && "text-muted-foreground/60 fill-muted-foreground/60",
             !icon && size === "small" && "text-[13px] px-3",

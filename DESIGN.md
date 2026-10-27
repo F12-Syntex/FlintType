@@ -4,7 +4,7 @@ Visual system for flinttype. This captures the real tokens shipped in `src/app/g
 
 ## Theme
 
-Warm, rounded and calm: paper-and-ink with pill controls, soft rounded cards and one orange spark (ui-law §21 owns shape and depth). The default brand surface is **light** ("paper") with **warm-ink dark** available. For an intentionally-fixed brand asset (the landing/cover page), the surface is chosen for the scene, not the user's theme, and built from the fixed `ft-*` tokens so it screenshots identically regardless of mode.
+Warm, rounded and calm: paper-and-ink with pill controls, soft rounded cards and the logo's orange as the theme colour on every action and selection (ui-law §21 owns shape and depth). The default brand surface is **light** ("paper") with **warm-ink dark** available. For an intentionally-fixed brand asset (the landing/cover page), the surface is chosen for the scene, not the user's theme, and built from the fixed `ft-*` tokens so it screenshots identically regardless of mode.
 
 Scene sentence for the landing/cover: *a typographer's pasteboard at midday, one printed coral mark on warm paper, calm and exact.* That forces **light paper** as the cover surface, with the option of a single dark inset (the keyboard widget / a code-ink band) for contrast.
 
@@ -18,8 +18,8 @@ OKLCH-based, tinted toward a warm paper hue (≈85°). Strategy: **Restrained** 
 | `--background` | `oklch(0.945 0.018 85)` | page (warm paper) |
 | `--foreground` | `oklch(0.19 0.012 60)` | primary text (warm ink) |
 | `--card` | `oklch(0.965 0.015 85)` | lifted surface |
-| `--primary` | `oklch(0.62 0.2 40)` (dark: `oklch(0.705 0.187 48)`) | **the orange spark** — CTA, caret, one stat |
-| `--primary-foreground` | near-white (dark: warm ink) | text on the primary fill |
+| `--primary` | `#f97316` (both modes) | **the brand orange from the flame logo** — CTAs, active nav, selected segments, caret, focus |
+| `--primary-foreground` | white | text on the primary / `brand-surface` fill |
 | `--muted-foreground` | `oklch(0.4386 0 0)` | captions, secondary metadata |
 | `--accent` | `oklch(0.89 0.016 85)` | quiet neutral hover tint, one step darker than `--muted` |
 | `--border` | `oklch(0.87 0.018 85)` | warm hairline |

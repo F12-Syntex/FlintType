@@ -75,7 +75,7 @@ export function SegmentedControl<T extends string | number>({
                 ? "px-2.5 py-1 text-xs"
                 : "px-3 py-1.5 text-[13px]",
               active
-                ? "bg-thumb text-foreground shadow-card ring-1 ring-border/70"
+                ? "brand-surface text-primary-foreground shadow-card"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
