@@ -1,6 +1,11 @@
-import Link from "next/link";
+import { GITHUB_URL } from "@/lib/version";
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../_components/app-chrome";
+import {
+  EditorialLink,
+  EditorialPage,
+  EditorialSection,
+} from "../_components/editorial-page";
 
 export const metadata = buildPageMetadata({
   title: "About flinttype — free typing test built around your weaknesses",
@@ -15,148 +20,106 @@ export const metadata = buildPageMetadata({
 export default function AboutPage() {
   return (
     <AppChrome>
-      <article className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-10 sm:px-8 sm:py-16">
-        <header className="flex flex-col gap-4">
-          <span className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
-            About flinttype
-          </span>
-          <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl">
-            A typing test that learns where you're slow.
-          </h1>
-          <p className="max-w-prose text-[15px] leading-relaxed text-foreground/85">
-            Flinttype is a free, open-source WPM typing test. It measures
-            your typing speed and accuracy the same way MonkeyType and
-            10fastfingers do, then takes one extra step: it watches the
-            specific letter pairs, words, and bursts that slow you down
-            and builds adaptive drills aimed at exactly those weaknesses.
+      <EditorialPage
+        eyebrow="About"
+        title="A typing test that learns where you're slow"
+        subtitle="Free and open source. It measures your speed, finds the letters holding you back and builds practice around them."
+        footer={
+          <>
+            Flinttype is open source under the MIT license. Issues and
+            contributions are welcome on{" "}
+            <EditorialLink href={GITHUB_URL}>GitHub</EditorialLink>.
+          </>
+        }
+      >
+        <EditorialSection>
+          <p>
+            Flinttype measures your typing speed and accuracy the same way
+            MonkeyType and 10fastfingers do, then takes one extra step: it
+            watches the specific letter pairs, words and bursts that slow
+            you down and builds practice aimed at exactly those weaknesses.
           </p>
-        </header>
+        </EditorialSection>
 
-        <Section title="The adaptive engine">
+        <EditorialSection title="The adaptive engine">
           <p>
             Every keystroke you type is timestamped against the character
-            you were aiming for. From that stream we extract three
-            per-symbol stats: how fast you hit each bigram (letter pair),
-            each trigram (three-letter sequence), and each individual
-            word. Mean and variance update online with Welford's algorithm
-            so the model converges quickly and doesn't blow up memory.
+            you were aiming for. From that stream we keep three running
+            stats: how fast you hit each letter pair (bigram), each
+            three-letter sequence (trigram) and each whole word. Averages
+            update as you type, so the model settles quickly without
+            storing your raw keystrokes.
           </p>
           <p>
-            On every fresh practice run, the algorithm picks words that
-            stress your slowest pairs — not random ones, not the most
-            common ones, but the ones holding your overall speed back.
-            Over time the same bigrams you missed early start firing as
-            fast as your fastest. You can see the per-bigram heatmap and
-            the current weakness ranking on{" "}
-            <Link
-              href="/insights"
-              className="text-foreground underline decoration-foreground/30 underline-offset-2"
-            >
-              your insights page
-            </Link>{" "}
-            once you're signed in.
+            Every new practice run leans toward words that stress your
+            slowest pairs: not random ones, not the most common ones, but
+            the ones holding your overall speed back. Over time the pairs
+            you missed early start landing as fast as your fastest. Once
+            you&apos;re signed in, the per-pair heatmap and your current
+            weak spots live on{" "}
+            <EditorialLink href="/insights">your insights page</EditorialLink>.
           </p>
-        </Section>
+        </EditorialSection>
 
-        <Section title="Races and challenges">
+        <EditorialSection title="Races and private lobbies">
           <p>
-            <Link
-              href="/race"
-              className="text-foreground underline decoration-foreground/30 underline-offset-2"
-            >
-              The race surface
-            </Link>{" "}
-            puts you against deterministic bots out of the box — three
-            difficulty tiers across four passage modes — but a real
-            multiplayer race is one click away. Press{" "}
-            <em>Find race</em> and we drop you into a public lobby, looking
-            for real players for up to five seconds; if none show, bots
-            fill the empty seats so your run isn't blocked on someone else
-            being online.
+            <EditorialLink href="/race">Races</EditorialLink> work out of
+            the box. Press <strong className="font-semibold text-foreground">Find race</strong> and we drop you into a public
+            lobby, looking for real players for up to five seconds; if
+            nobody shows, bots fill the empty seats so you&apos;re never
+            waiting on someone else being online.
           </p>
           <p>
-            <em>Create lobby</em> spins up a private race lobby and
-            gives you a short friendly URL (e.g.{" "}
-            <code className="text-foreground/85">quick-otter-42</code>) to
-            share with a friend. Anyone who clicks the link drops into
-            your lobby; you press start when you're ready.
+            <strong className="font-semibold text-foreground">Create lobby</strong> opens a private race with a short,
+            friendly link (like{" "}
+            <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-foreground">
+              quick-otter-42
+            </code>
+            ) to share with a friend. Anyone with the link joins your
+            lobby, and you start when you&apos;re ready.
           </p>
-        </Section>
+        </EditorialSection>
 
-        <Section title="What's free and what isn't">
+        <EditorialSection title="What's free">
           <p>
-            Everything is free. The site is open source, the practice
-            surface and races run without an account, and there are no
-            ads on any page. Signing in with Clerk unlocks per-user
-            history, the personal-best tracker, and adaptive-drill
-            persistence — the model needs a home between sessions for
-            those to mean anything.
+            Everything. The site is open source, practice and races work
+            without an account, and there are no ads anywhere. Signing in
+            adds your test history, personal bests and a weakness model
+            that remembers you between sessions.
           </p>
-        </Section>
+        </EditorialSection>
 
-        <Section title="Keyboard layouts and accessibility">
+        <EditorialSection title="Layouts, fonts and accessibility">
           <p>
-            QWERTY, Dvorak, and Colemak are all supported — pick yours
-            from the customise page so the adaptive engine categorises
-            your bigrams under your real same-finger / hand-alternation
-            map. The whole UI ships in JetBrains Mono with tabular
-            numerics on every stat, mobile-first responsive layouts down
-            to 375 px, and `prefers-reduced-motion` honoured everywhere.
+            QWERTY, Dvorak and Colemak are all supported. Pick yours in{" "}
+            <EditorialLink href="/customise/keyboard#keymap">
+              keyboard settings
+            </EditorialLink>{" "}
+            so the adaptive engine reads your same-finger and hand-switch
+            pairs against your real layout.
           </p>
-        </Section>
-
-        <Section title="How to start">
           <p>
-            Open <Link
-              href="/"
-              className="text-foreground underline decoration-foreground/30 underline-offset-2"
-            >the home page</Link>{" "}
-            and start typing — that's it. The test ends on the last word.
-            From there you can pick a different mode, head into{" "}
-            <Link
-              href="/drills"
-              className="text-foreground underline decoration-foreground/30 underline-offset-2"
-            >
-              drills
-            </Link>
-            , or jump into a race. Sign in to persist your history; the
-            rest works without one.
+            The text you type can be set in a mono, sans or serif font in{" "}
+            <EditorialLink href="/customise/typing#typography">
+              typing settings
+            </EditorialLink>
+            . Every stat uses fixed-width figures so numbers don&apos;t
+            jump, every page works down to a small phone screen, and
+            reduced-motion preferences are honoured everywhere.
           </p>
-        </Section>
+        </EditorialSection>
 
-        <footer className="border-t border-border pt-6 text-[12px] text-muted-foreground">
-          Flinttype is open source under the MIT license. Issues and
-          contributions are welcome on{" "}
-          <a
-            href="https://github.com/anthropics/claude-code/issues"
-            className="text-foreground/80 underline decoration-foreground/30 underline-offset-2"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            GitHub
-          </a>
-          .
-        </footer>
-      </article>
+        <EditorialSection title="How to start">
+          <p>
+            Open <EditorialLink href="/">the practice page</EditorialLink>{" "}
+            and start typing. That&apos;s it: the test ends on the last
+            word. From there you can try another mode, head into{" "}
+            <EditorialLink href="/drills">drills</EditorialLink> or jump
+            into a race. Sign in to keep your history; everything else
+            works without an account.
+          </p>
+        </EditorialSection>
+      </EditorialPage>
     </AppChrome>
-  );
-}
-
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="flex flex-col gap-3">
-      <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-        {title}
-      </h2>
-      <div className="flex flex-col gap-3 text-[14px] leading-relaxed text-foreground/85">
-        {children}
-      </div>
-    </section>
   );
 }

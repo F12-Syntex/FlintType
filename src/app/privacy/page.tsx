@@ -1,7 +1,13 @@
-import Link from "next/link";
+import { GITHUB_URL } from "@/lib/version";
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../_components/app-chrome";
-import { EditorialPage, EditorialSection } from "../_components/editorial-page";
+import {
+  EditorialLink,
+  EditorialList,
+  EditorialPage,
+  EditorialSection,
+  sectionId,
+} from "../_components/editorial-page";
 
 export const metadata = buildPageMetadata({
   title: "Privacy — what flinttype collects and why",
@@ -12,25 +18,30 @@ export const metadata = buildPageMetadata({
 
 const LAST_UPDATED = "12 May 2026";
 
+const SECTIONS = [
+  "Short version",
+  "Account data",
+  "Typing data",
+  "Preferences and theme",
+  "Cookies",
+  "Third parties",
+  "Your rights",
+  "Children",
+  "Changes",
+] as const;
+
 export default function PrivacyPage() {
   return (
     <AppChrome>
       <EditorialPage
         eyebrow="Legal"
-        title="Privacy."
-        subtitle="Plain-language summary of what flinttype collects, why, and what's done with it. Last updated 12 May 2026."
+        title="Privacy policy"
+        subtitle={`What flinttype collects, why, and what happens to it, in plain language. Last updated ${LAST_UPDATED}.`}
+        toc={SECTIONS.map((title) => ({ id: sectionId(title), label: title }))}
         footer={
           <>
             Questions? Open an issue on{" "}
-            <a
-              href="https://github.com/anthropics/claude-code/issues"
-              rel="noopener noreferrer"
-              target="_blank"
-              className="text-foreground/80 underline decoration-foreground/30 underline-offset-2"
-            >
-              GitHub
-            </a>
-            .
+            <EditorialLink href={`${GITHUB_URL}/issues`}>GitHub</EditorialLink>.
           </>
         }
       >
@@ -45,18 +56,19 @@ export default function PrivacyPage() {
             Signing in (via Clerk) lets us store your typing history,
             personal-best tracker, adaptive-drill model, and preferences
             on our database so they survive between sessions. That
-            information is yours — request an export or deletion any
+            information is yours: request an export or deletion any
             time.
           </p>
         </EditorialSection>
 
-        <EditorialSection title="Account data (signed-in users)">
+        <EditorialSection title="Account data">
+          <p className="text-sm text-muted-foreground">For signed-in users.</p>
           <p>
             Account creation goes through Clerk. We receive only what
             you give Clerk: an email address, optional username and
             display name, and the OAuth identifier from your social
             provider if you used one. Passwords never reach our
-            servers — Clerk handles authentication entirely.
+            servers; Clerk handles authentication entirely.
           </p>
           <p>
             We mirror the minimum identity fields (Clerk user id,
@@ -72,7 +84,7 @@ export default function PrivacyPage() {
             timestamps, mode (casual / training / race), word count,
             WPM, accuracy, error count, reset count, and a boolean for
             whether the run was completed. Per-keystroke timings are
-            processed transiently — they update your weakness model
+            processed transiently: they update your weakness model
             (bigram / trigram / word means and variances) and are then
             discarded. We don't keep the raw keystream.
           </p>
@@ -101,29 +113,29 @@ export default function PrivacyPage() {
           </p>
         </EditorialSection>
 
-        <EditorialSection title="Third parties we rely on">
-          <p>Service infrastructure, listed honestly:</p>
-          <ul className="ml-4 flex list-disc flex-col gap-2 marker:text-muted-foreground/60">
+        <EditorialSection title="Third parties">
+          <p>The services flinttype runs on:</p>
+          <EditorialList>
             <li>
-              <span className="text-foreground">Clerk</span> — auth,
+              <span className="font-medium text-foreground">Clerk</span>: auth,
               session management, optional MonkeyType import handshake.
             </li>
             <li>
-              <span className="text-foreground">Vercel</span> — hosting
+              <span className="font-medium text-foreground">Vercel</span>: hosting
               and CDN. Server logs include request paths and IP
               addresses; we don't aggregate or export them.
             </li>
             <li>
-              <span className="text-foreground">Neon</span> — managed
+              <span className="font-medium text-foreground">Neon</span>: managed
               Postgres for the typing-history database.
             </li>
-          </ul>
+          </EditorialList>
         </EditorialSection>
 
         <EditorialSection title="Your rights">
           <p>
             Export your data, delete your account, or correct what we
-            have on you — open an issue on GitHub or email the address
+            have on you: open an issue on GitHub or email the address
             in the repo. We'll act within a reasonable window.
             Account deletion removes your test rows, preferences,
             adaptive model, and the Clerk-mirror identity row.
@@ -141,12 +153,7 @@ export default function PrivacyPage() {
         <EditorialSection title="Changes">
           <p>
             Material changes to this policy will appear on{" "}
-            <Link
-              href="/changelog"
-              className="text-foreground/85 underline decoration-foreground/30 underline-offset-2"
-            >
-              the changelog
-            </Link>{" "}
+            <EditorialLink href="/changelog">the changelog</EditorialLink>{" "}
             with a one-line summary. The "last updated" date above
             tracks the most recent revision: {LAST_UPDATED}.
           </p>

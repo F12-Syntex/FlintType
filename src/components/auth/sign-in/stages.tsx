@@ -1,20 +1,15 @@
 "use client";
 
-import { REGEXP_ONLY_DIGITS } from "input-otp";
-import { ChevronRight, KeyRound, Link2, Lock } from "lucide-react";
+import { ChevronRight, KeyRound, Link2 } from "lucide-react";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
-import { ErrorLine, Field, UtilityButton } from "./shared";
+import { Field, PasswordField } from "../fields";
+import { ErrorLine, UtilityButton, UtilityRow } from "../form-controls";
+import type { FactorKind } from "./factors";
 
-/** Each stage is a pure presentational component — the orchestrator in
- *  `./index` owns the state and async work. Stages receive what they
- *  need to render and call back into the orchestrator on submit. */
-
-export type FactorKind = "password" | "code" | "link";
+/** The first sign-in stages: email, password, and the method picker for
+ *  accounts without a password. Pure presentation; the orchestrator in
+ *  `./index` owns the state and the Clerk calls. */
 
 export function EmailStage({
   email,
@@ -42,119 +37,46 @@ export function EmailStage({
         type="email"
         autoComplete="email"
         inputMode="email"
+        placeholder="you@example.com"
         value={email}
         onChange={onEmailChange}
         required
         autoFocus
       />
       {error ? <ErrorLine message={error} /> : null}
-      <Button
-        type="submit"
-        variant="default"
-        size="default"
-        disabled={busy}
-        className="w-full"
-      >
+      <Button type="submit" size="lg" disabled={busy} className="w-full">
         {busy ? "Checking…" : "Continue"}
       </Button>
     </form>
   );
 }
 
-export function MethodStage({
+/** "Signing in as you@example.com · Change" — the one line that keeps
+ *  the entered email visible on every later stage, with a way back. */
+export function SigningInAs({
   email,
-  available,
-  onPick,
-  onBack,
-  busy,
-  busyKind,
+  onChange,
+  disabled,
 }: {
   email: string;
-  available: FactorKind[];
-  onPick: (kind: FactorKind) => void;
-  onBack: () => void;
-  busy: boolean;
-  busyKind: FactorKind | null;
+  onChange: () => void;
+  disabled?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-sm leading-relaxed text-muted-foreground">
+    <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+      <span>
         Signing in as{" "}
-        <span className="text-foreground">{email}</span>. Pick how you want
-        to verify.
-      </p>
-      <div className="flex flex-col gap-2">
-        {available.includes("password") ? (
-          <MethodButton
-            icon={<Lock size={16} aria-hidden />}
-            label="Use your password"
-            onClick={() => onPick("password")}
-            disabled={busy}
-            busy={busyKind === "password"}
-          />
-        ) : null}
-        {available.includes("code") ? (
-          <MethodButton
-            icon={<KeyRound size={16} aria-hidden />}
-            label="Email me a code"
-            onClick={() => onPick("code")}
-            disabled={busy}
-            busy={busyKind === "code"}
-          />
-        ) : null}
-        {available.includes("link") ? (
-          <MethodButton
-            icon={<Link2 size={16} aria-hidden />}
-            label="Email me a sign-in link"
-            onClick={() => onPick("link")}
-            disabled={busy}
-            busy={busyKind === "link"}
-          />
-        ) : null}
-      </div>
-      {!available.includes("password") ? (
-        <p className="text-[11px] leading-relaxed text-muted-foreground">
-          This account has no password set, so password sign-in isn&apos;t
-          offered — use one of the options above.
-        </p>
-      ) : null}
-      <UtilityButton onClick={onBack}>Use a different email</UtilityButton>
-    </div>
-  );
-}
-
-/** One row in the method picker. Outline button, icon on the left, label
- *  in the middle, chevron on the right. Reads as a "choose one" affordance
- *  rather than three lookalike cards. */
-function MethodButton({
-  icon,
-  label,
-  onClick,
-  disabled,
-  busy,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  disabled: boolean;
-  busy: boolean;
-}) {
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      onClick={onClick}
-      disabled={disabled}
-      className="h-12 w-full justify-between gap-3 px-4 text-left"
-    >
-      <span className="flex items-center gap-3">
-        <span className="text-foreground">{icon}</span>
-        <span className="text-sm font-medium text-foreground">
-          {busy ? "Sending…" : label}
-        </span>
+        <span className="font-medium break-all text-foreground">{email}</span>
       </span>
-      <ChevronRight size={14} className="text-muted-foreground" aria-hidden />
-    </Button>
+      <button
+        type="button"
+        onClick={onChange}
+        disabled={disabled}
+        className="rounded-pill font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40 disabled:opacity-50"
+      >
+        Change
+      </button>
+    </p>
   );
 }
 
@@ -163,22 +85,24 @@ export function PasswordStage({
   password,
   onPasswordChange,
   onSubmit,
-  onBack,
+  onChangeEmail,
   onForgot,
+  alternative,
   busy,
-  forgotBusy,
   error,
 }: {
   email: string;
   password: string;
   onPasswordChange: (next: string) => void;
   onSubmit: () => void;
-  onBack: () => void;
+  onChangeEmail: () => void;
   onForgot: () => void;
-  busy: boolean;
-  forgotBusy: boolean;
+  /** The passwordless way in this account also supports, if any. */
+  alternative: { label: string; onClick: () => void } | null;
+  busy: "password" | "forgot" | "send" | null;
   error: string | null;
 }) {
+  const anyBusy = busy != null;
   return (
     <form
       className="flex flex-col gap-4"
@@ -187,13 +111,9 @@ export function PasswordStage({
         onSubmit();
       }}
     >
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        Enter the password for{" "}
-        <span className="text-foreground">{email}</span>.
-      </p>
-      <Field
+      <SigningInAs email={email} onChange={onChangeEmail} disabled={anyBusy} />
+      <PasswordField
         label="Password"
-        type="password"
         autoComplete="current-password"
         value={password}
         onChange={onPasswordChange}
@@ -201,291 +121,96 @@ export function PasswordStage({
         autoFocus
       />
       {error ? <ErrorLine message={error} /> : null}
-      <Button
-        type="submit"
-        variant="default"
-        size="default"
-        disabled={busy || forgotBusy}
-        className="w-full"
-      >
-        {busy ? "Signing in…" : "Sign in"}
+      <Button type="submit" size="lg" disabled={anyBusy} className="w-full">
+        {busy === "password" ? "Signing in…" : "Sign in"}
       </Button>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <UtilityButton onClick={onBack} disabled={forgotBusy || busy}>
-          Different method
+      <UtilityRow>
+        {alternative ? (
+          <UtilityButton onClick={alternative.onClick} disabled={anyBusy}>
+            {busy === "send" ? "Sending…" : alternative.label}
+          </UtilityButton>
+        ) : (
+          <span />
+        )}
+        <UtilityButton onClick={onForgot} disabled={anyBusy}>
+          {busy === "forgot" ? "Sending…" : "Forgot password?"}
         </UtilityButton>
-        <UtilityButton onClick={onForgot} disabled={forgotBusy || busy}>
-          {forgotBusy ? "Sending…" : "Forgot password?"}
-        </UtilityButton>
-      </div>
+      </UtilityRow>
     </form>
   );
 }
 
-export function CodeStage({
+export function MethodStage({
   email,
-  code,
-  onCodeChange,
-  onSubmit,
-  onResend,
-  onBack,
-  busy,
-  resending,
-  resentAt,
+  available,
+  onPick,
+  onChangeEmail,
+  busyKind,
   error,
 }: {
   email: string;
-  code: string;
-  onCodeChange: (next: string) => void;
-  onSubmit: () => void;
-  onResend: () => void;
-  onBack: () => void;
-  busy: boolean;
-  resending: boolean;
-  resentAt: number | null;
+  available: FactorKind[];
+  onPick: (kind: FactorKind) => void;
+  onChangeEmail: () => void;
+  busyKind: FactorKind | null;
   error: string | null;
 }) {
-  return (
-    <form
-      className="flex flex-col gap-4"
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit();
-      }}
-    >
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        We sent a 6-digit code to{" "}
-        <span className="text-foreground">{email}</span>.
-      </p>
-      <div className="flex flex-col items-center gap-3">
-        <label
-          htmlFor="sign-in-code"
-          className="sr-only"
-        >
-          Verification code
-        </label>
-        <InputOTP
-          id="sign-in-code"
-          maxLength={6}
-          value={code}
-          onChange={onCodeChange}
-          onComplete={onSubmit}
-          autoFocus
-          pattern={REGEXP_ONLY_DIGITS}
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          aria-label="Verification code"
-        >
-          <InputOTPGroup className="gap-2 sm:gap-3">
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <InputOTPSlot
-                key={i}
-                index={i}
-                className="size-10 rounded-md border font-mono text-base sm:size-12 sm:text-lg"
-              />
-            ))}
-          </InputOTPGroup>
-        </InputOTP>
-      </div>
-      {error ? <ErrorLine message={error} /> : null}
-      <Button
-        type="submit"
-        variant="default"
-        size="default"
-        disabled={busy}
-        className="w-full"
-      >
-        {busy ? "Verifying…" : "Sign in"}
-      </Button>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <UtilityButton onClick={onBack} disabled={busy || resending}>
-          Different method
-        </UtilityButton>
-        <UtilityButton onClick={onResend} disabled={resending || busy}>
-          {resending ? "Resending…" : resentAt ? "Sent" : "Resend code"}
-        </UtilityButton>
-      </div>
-    </form>
-  );
-}
-
-export function LinkStage({
-  email,
-  onBack,
-  error,
-  cancelled,
-}: {
-  email: string;
-  onBack: () => void;
-  error: string | null;
-  cancelled: boolean;
-}) {
+  const busy = busyKind != null;
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        We sent a sign-in link to{" "}
-        <span className="text-foreground">{email}</span>. Open it on this
-        device and you'll be signed in automatically.
+      <SigningInAs email={email} onChange={onChangeEmail} disabled={busy} />
+      <p className="text-sm text-muted-foreground">
+        This account has no password. Choose how we should send you in.
       </p>
-      <div className="flex items-center gap-3 rounded-md border border-border bg-background px-4 py-3 text-[12px] text-muted-foreground">
-        <span
-          aria-hidden
-          className="size-2 animate-pulse rounded-full bg-primary"
-        />
-        {cancelled
-          ? "Cancelled — pick another method below."
-          : "Waiting for you to tap the link…"}
+      <div className="flex flex-col gap-2">
+        {available.includes("code") ? (
+          <MethodButton
+            icon={<KeyRound aria-hidden />}
+            label={busyKind === "code" ? "Sending…" : "Email me a code"}
+            onClick={() => onPick("code")}
+            disabled={busy}
+          />
+        ) : null}
+        {available.includes("link") ? (
+          <MethodButton
+            icon={<Link2 aria-hidden />}
+            label="Email me a sign-in link"
+            onClick={() => onPick("link")}
+            disabled={busy}
+          />
+        ) : null}
       </div>
       {error ? <ErrorLine message={error} /> : null}
-      <UtilityButton onClick={onBack}>Different method</UtilityButton>
     </div>
   );
 }
 
-export function ResetCodeStage({
-  email,
-  code,
-  onCodeChange,
-  onSubmit,
-  onResend,
-  onBack,
-  busy,
-  resending,
-  resentAt,
-  error,
+/** One "choose one" row: icon, label, chevron. */
+function MethodButton({
+  icon,
+  label,
+  onClick,
+  disabled,
 }: {
-  email: string;
-  code: string;
-  onCodeChange: (next: string) => void;
-  onSubmit: () => void;
-  onResend: () => void;
-  onBack: () => void;
-  busy: boolean;
-  resending: boolean;
-  resentAt: number | null;
-  error: string | null;
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled: boolean;
 }) {
   return (
-    <form
-      className="flex flex-col gap-4"
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit();
-      }}
+    <Button
+      type="button"
+      variant="outline"
+      size="lg"
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full justify-between px-5"
     >
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        We sent a password-reset code to{" "}
-        <span className="text-foreground">{email}</span>. Enter it to choose
-        a new password.
-      </p>
-      <div className="flex flex-col items-center gap-3">
-        <label htmlFor="sign-in-reset-code" className="sr-only">
-          Reset code
-        </label>
-        <InputOTP
-          id="sign-in-reset-code"
-          maxLength={6}
-          value={code}
-          onChange={onCodeChange}
-          onComplete={onSubmit}
-          autoFocus
-          pattern={REGEXP_ONLY_DIGITS}
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          aria-label="Password-reset code"
-        >
-          <InputOTPGroup className="gap-2 sm:gap-3">
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <InputOTPSlot
-                key={i}
-                index={i}
-                className="size-10 rounded-md border font-mono text-base sm:size-12 sm:text-lg"
-              />
-            ))}
-          </InputOTPGroup>
-        </InputOTP>
-      </div>
-      {error ? <ErrorLine message={error} /> : null}
-      <Button
-        type="submit"
-        variant="default"
-        size="default"
-        disabled={busy}
-        className="w-full"
-      >
-        {busy ? "Verifying…" : "Continue"}
-      </Button>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <UtilityButton onClick={onBack} disabled={busy || resending}>
-          Back to sign in
-        </UtilityButton>
-        <UtilityButton onClick={onResend} disabled={resending || busy}>
-          {resending ? "Resending…" : resentAt ? "Sent" : "Resend code"}
-        </UtilityButton>
-      </div>
-    </form>
-  );
-}
-
-export function ResetPasswordStage({
-  password,
-  confirm,
-  onPasswordChange,
-  onConfirmChange,
-  onSubmit,
-  onCancel,
-  busy,
-  error,
-}: {
-  password: string;
-  confirm: string;
-  onPasswordChange: (next: string) => void;
-  onConfirmChange: (next: string) => void;
-  onSubmit: () => void;
-  onCancel: () => void;
-  busy: boolean;
-  error: string | null;
-}) {
-  return (
-    <form
-      className="flex flex-col gap-4"
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit();
-      }}
-    >
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        Pick a new password. We'll sign you in once it's saved.
-      </p>
-      <Field
-        label="New password"
-        type="password"
-        autoComplete="new-password"
-        value={password}
-        onChange={onPasswordChange}
-        required
-        autoFocus
-        hint="At least 8 characters."
-      />
-      <Field
-        label="Confirm new password"
-        type="password"
-        autoComplete="new-password"
-        value={confirm}
-        onChange={onConfirmChange}
-        required
-      />
-      {error ? <ErrorLine message={error} /> : null}
-      <Button
-        type="submit"
-        variant="default"
-        size="default"
-        disabled={busy}
-        className="w-full"
-      >
-        {busy ? "Saving…" : "Set new password"}
-      </Button>
-      <UtilityButton onClick={onCancel}>Cancel and start over</UtilityButton>
-    </form>
+      <span className="flex items-center gap-3 text-foreground">
+        {icon}
+        {label}
+      </span>
+      <ChevronRight aria-hidden className="text-muted-foreground" />
+    </Button>
   );
 }

@@ -4,6 +4,7 @@ import { useClerk } from "@clerk/nextjs";
 import { EmailLinkErrorCode } from "@clerk/nextjs/errors";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { buttonVariants } from "@/components/ui/button";
 
 type Status =
   | { kind: "verifying" }
@@ -45,15 +46,18 @@ export function VerifyEmailLink() {
   }, [clerk]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-6 text-foreground">
-      <div className="flex w-full max-w-md flex-col items-center gap-5 text-center">
+    <main className="safe-pt safe-pb flex min-h-dvh items-center justify-center px-4 text-foreground">
+      <div
+        role="status"
+        className="flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border border-border bg-card px-6 py-10 text-center shadow-card sm:px-8"
+      >
         {status.kind === "verifying" ? (
           <>
             <span
               aria-hidden
-              className="size-3 animate-pulse rounded-full bg-primary"
+              className="size-3 rounded-full bg-primary motion-safe:animate-pulse"
             />
-            <h1 className="text-2xl font-bold tracking-[-0.02em]">
+            <h1 className="text-2xl font-bold tracking-tight">
               Verifying your link…
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -64,33 +68,30 @@ export function VerifyEmailLink() {
 
         {status.kind === "ok" ? (
           <>
-            <h1 className="text-2xl font-bold tracking-[-0.02em]">
-              You're verified.
+            <h1 className="text-2xl font-bold tracking-tight">
+              You&apos;re verified
             </h1>
             <p className="text-sm text-muted-foreground">
               If you started sign-in on another device, head back to that
               tab — it's already signed in. You can close this one.
             </p>
-            <Link
-              href="/"
-              className="text-sm font-semibold text-primary underline-offset-4 hover:underline"
-            >
-              Go to flinttype →
+            <Link href="/" className={buttonVariants({ size: "lg", className: "mt-2" })}>
+              Go to practice
             </Link>
           </>
         ) : null}
 
         {status.kind === "error" ? (
           <>
-            <h1 className="text-2xl font-bold tracking-[-0.02em]">
-              That link didn't work.
+            <h1 className="text-2xl font-bold tracking-tight">
+              That link didn&apos;t work
             </h1>
             <p className="text-sm text-muted-foreground">{status.message}</p>
             <Link
               href="/sign-in"
-              className="text-sm font-semibold text-primary underline-offset-4 hover:underline"
+              className={buttonVariants({ size: "lg", className: "mt-2" })}
             >
-              Try signing in again →
+              Sign in again
             </Link>
           </>
         ) : null}
@@ -109,7 +110,7 @@ function explainError(err: unknown): string {
   if (code === EmailLinkErrorCode.Failed)
     return "Verification failed. Request a fresh sign-in link.";
   if (code === EmailLinkErrorCode.ClientMismatch)
-    return "This link was opened on a different device or browser than the one that started sign-in. Open it on the original device, or start over from /sign-in.";
+    return "This link was opened on a different device or browser than the one that started sign-in. Open it on the original device, or start signing in again.";
   if (err && typeof err === "object" && "errors" in err) {
     const first = (err as { errors?: { longMessage?: string; message?: string }[] })
       .errors?.[0];

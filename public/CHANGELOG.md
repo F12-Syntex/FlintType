@@ -8,6 +8,13 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.145.0 — 27 October 2026
+- About, FAQ, Privacy, Terms and Blog now share one comfortable reading column with clear headings, and the FAQ and Privacy pages have quick links to jump to each section.
+- The changelog is now grouped by day and leaves out behind-the-scenes updates, with older months folded away so it is much quicker to scan.
+- Signing in is quicker: after your email you go straight to your password (or can ask for an emailed code instead), you can show or hide your password, and there is a link to keep practising without an account.
+- The page-not-found and error screens now match your theme, including dark mode, and offer a Search pages button that opens the command palette.
+- The Discord sign-in button is back in Discord's own colour, so the orange Continue button stands out as the main action.
+
 ## 6.144.0 — 27 October 2026
 - Settings are now split into seven short pages (Theme, Typing, Interface, Keyboard, Stats & results, Behaviour, Multiplayer & social), with a sidebar that highlights the page and section you're on.
 - Search any setting from the new Search settings button, or press Ctrl K (⌘ K on Mac); pressing Escape now closes the command palette instead of reopening it.

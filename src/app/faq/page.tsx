@@ -1,7 +1,12 @@
-import Link from "next/link";
+import { GITHUB_URL } from "@/lib/version";
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../_components/app-chrome";
-import { EditorialPage, EditorialSection } from "../_components/editorial-page";
+import {
+  EditorialLink,
+  EditorialPage,
+  EditorialSection,
+  sectionId,
+} from "../_components/editorial-page";
 
 export const metadata = buildPageMetadata({
   title: "FAQ — common questions about flinttype",
@@ -10,179 +15,174 @@ export const metadata = buildPageMetadata({
   path: "/faq",
 });
 
-const QUESTIONS: readonly { q: string; a: React.ReactNode }[] = [
+/** Each question carries a short `label` for the jump list; the
+ *  question itself is the section's h2 and its anchor. */
+const QUESTIONS: readonly { q: string; label: string; a: React.ReactNode }[] = [
   {
     q: "Is flinttype free?",
+    label: "Is it free?",
     a: (
       <>
-        Yes — completely. The site is open source under the MIT
-        license, there are no ads on any surface, and every feature
-        works without a paid tier. Signing in unlocks history and
-        adaptive drills, but the practice and race surfaces work
-        anonymously.
+        Yes, completely. The site is open source under the MIT license,
+        there are no ads anywhere, and there is no paid tier. Signing in
+        adds history and adaptive drills, but practice and races work
+        without an account.
       </>
     ),
   },
   {
     q: "Do I need an account?",
+    label: "Account",
     a: (
       <>
-        No. Anyone can hit{" "}
-        <InlineLink href="/">the practice page</InlineLink>,{" "}
-        <InlineLink href="/race">race against bots</InlineLink>, or
-        share a challenge link without signing in. Sign-in (via Clerk)
-        persists your typing history, personal-best tracker, adaptive
-        model, and preferences across devices.
+        No. Anyone can use{" "}
+        <EditorialLink href="/">the practice page</EditorialLink>,{" "}
+        <EditorialLink href="/race">race</EditorialLink> or share a lobby
+        link without signing in. Signing in keeps your typing history,
+        personal bests, adaptive model and settings across devices.
       </>
     ),
   },
   {
     q: "How is WPM calculated?",
+    label: "WPM",
     a: (
       <>
-        Raw WPM uses the standard formula: characters typed divided
-        by 5 (one "word"), divided by minutes elapsed. Net WPM —
-        what the leaderboard ranks on — multiplies raw WPM by your
-        accuracy as a percentage. A 100 WPM run at 90% accuracy
-        comes out to 90 net WPM. Penalising on errors rewards clean,
-        confident typing over reckless speed.
+        Raw WPM uses the standard formula: characters typed divided by 5
+        (one &ldquo;word&rdquo;), divided by minutes elapsed. Net WPM,
+        which the leaderboard ranks on, multiplies raw WPM by your
+        accuracy. A 100 WPM run at 90% accuracy comes out at 90 net WPM,
+        which rewards clean, confident typing over reckless speed.
       </>
     ),
   },
   {
     q: "What does the adaptive engine actually do?",
+    label: "Adaptive engine",
     a: (
       <>
-        Every keystroke is timestamped against the character you
-        were aiming for. From that stream the engine maintains per-
-        bigram, per-trigram, and per-word means and variances using
-        Welford's algorithm. On every fresh practice run, the
-        word-picker biases toward words containing your slowest
-        pairs — not random ones, not the most common ones, but the
-        ones holding your overall speed back. The current weakness
-        ranking is visible on{" "}
-        <InlineLink href="/insights">your insights page</InlineLink>{" "}
-        once you're signed in.
+        Every keystroke is timed against the character you were aiming
+        for. From that, the engine keeps a running average for every
+        letter pair, three-letter sequence and word you type. Each new
+        practice run leans toward words containing your slowest pairs,
+        the ones holding your overall speed back. Your current weak spots
+        are on <EditorialLink href="/insights">your insights page</EditorialLink>{" "}
+        once you&apos;re signed in.
       </>
     ),
   },
   {
     q: "Which keyboard layouts are supported?",
+    label: "Layouts",
     a: (
       <>
-        QWERTY, Dvorak, and Colemak. Pick yours in{" "}
-        <InlineLink href="/customise/appearance#keyboard">
-          customise → keyboard
-        </InlineLink>{" "}
-        so the adaptive engine categorises your bigrams under the
-        real same-finger / hand-alternation map for your layout. The
-        on-screen keyboard widget also re-renders to match.
+        QWERTY, Dvorak and Colemak. Pick yours in{" "}
+        <EditorialLink href="/customise/keyboard#keymap">
+          keyboard settings
+        </EditorialLink>{" "}
+        so the adaptive engine reads your same-finger and hand-switch
+        pairs against your real layout. The on-screen keyboard changes to
+        match.
       </>
     ),
   },
   {
     q: "What do you store about me?",
+    label: "Your data",
     a: (
       <>
-        For signed-in users: a mirror of your Clerk identity (id,
-        display name, email-localpart), per-test rows (start / end
-        timestamps, WPM, accuracy, error count, mode, word count),
-        and the aggregated weakness model. Per-keystroke timings are
-        used to update the model and then discarded — we don't keep
-        the raw keystream. Full details are on{" "}
-        <InlineLink href="/privacy">the privacy page</InlineLink>.
+        For signed-in users: a copy of your account basics (id, display
+        name, the part of your email before the @), one row per test
+        (start and end time, WPM, accuracy, errors, mode, word count) and
+        your weakness model. Per-keystroke timings update the model and
+        are then thrown away; we don&apos;t keep your raw keystrokes. Full
+        details are on <EditorialLink href="/privacy">the privacy page</EditorialLink>.
       </>
     ),
   },
   {
     q: "Can I import my MonkeyType history?",
+    label: "MonkeyType import",
     a: (
       <>
-        Yes — MonkeyType import lives in the customise → manage
-        menu. It pulls your completed-test history through their
-        export and converts it into our row schema. We don't ingest
-        per-keystroke timings (MonkeyType doesn't export them);
-        adaptive drills will start fresh and rebuild your weakness
-        model from new runs.
+        Yes. Open <EditorialLink href="/customise">Settings</EditorialLink>{" "}
+        and choose Import / export. Your completed tests come across from
+        MonkeyType&apos;s export. MonkeyType doesn&apos;t export
+        per-keystroke timings, so adaptive practice starts fresh and
+        rebuilds your weakness model from new runs.
       </>
     ),
   },
   {
-    q: "Why does my leaderboard slot say 'Guest'?",
+    q: "Why does my leaderboard row say “Guest”?",
+    label: "Guest names",
     a: (
       <>
-        The leaderboard surfaces a public handle (
-        <code className="text-foreground/85">@username</code>) when
-        we can resolve one. If your account doesn't have a username
-        or display name set, or if the account behind a row has been
-        deleted, the slot shows "Guest". Set a username in your
-        Clerk profile to fix this — it'll appear on the next
-        completed run.
+        The leaderboard shows a public{" "}
+        <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-foreground">
+          @username
+        </code>{" "}
+        when it can find one. If your account has no username or display
+        name, or the account was deleted, the row shows
+        &ldquo;Guest&rdquo;. Set a username on your profile and it appears
+        from your next finished test.
       </>
     ),
   },
   {
     q: "How do races work?",
+    label: "Races",
     a: (
       <>
-        Press <em>Find race</em> on{" "}
-        <InlineLink href="/race">the race page</InlineLink>. We look
-        for live opponents for up to five seconds; if no real
-        players join, deterministic bots fill the empty seats so
-        you're never blocked on someone else being online. Press{" "}
-        <em>Create lobby</em> for a private challenge room — you'll
-        get a short friendly URL (e.g.{" "}
-        <code className="text-foreground/85">quick-otter-42</code>)
-        to share.
+        Press <strong className="font-semibold text-foreground">Find race</strong> on{" "}
+        <EditorialLink href="/race">the race page</EditorialLink>. We look
+        for live opponents for up to five seconds; if nobody joins, bots
+        fill the empty seats so you&apos;re never stuck waiting. Press{" "}
+        <strong className="font-semibold text-foreground">Create lobby</strong> for a private race with a short link (like{" "}
+        <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-foreground">
+          quick-otter-42
+        </code>
+        ) to share.
       </>
     ),
   },
   {
     q: "How do I report a bug or suggest a feature?",
+    label: "Bugs and ideas",
     a: (
       <>
-        Open an issue on the GitHub repo. Bugs with a screenshot
-        and a reproduction (mode, browser, what you typed, what you
-        expected) get triaged fastest. Feature ideas are read and
-        considered even when they don't immediately ship.
+        Open an issue on{" "}
+        <EditorialLink href={`${GITHUB_URL}/issues`}>GitHub</EditorialLink>.
+        Bugs with a screenshot and the steps to reproduce them (mode,
+        browser, what you typed, what you expected) get fixed fastest.
+        Feature ideas are all read, even when they don&apos;t ship right
+        away.
       </>
     ),
   },
 ];
-
-function InlineLink({
-  href,
-  children,
-}: {
-  href: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className="text-foreground/85 underline decoration-foreground/30 underline-offset-2 transition-colors hover:text-primary"
-    >
-      {children}
-    </Link>
-  );
-}
 
 export default function FaqPage() {
   return (
     <AppChrome>
       <EditorialPage
         eyebrow="Help"
-        title="FAQ."
-        subtitle="Short answers to the questions that come up most. Anything missing? Open an issue on GitHub."
+        title="FAQ"
+        subtitle={
+          <>
+            Short answers to the questions that come up most. Anything
+            missing? Open an issue on{" "}
+            <EditorialLink href={`${GITHUB_URL}/issues`}>GitHub</EditorialLink>.
+          </>
+        }
+        toc={QUESTIONS.map((item) => ({
+          id: sectionId(item.q),
+          label: item.label,
+        }))}
       >
-        {QUESTIONS.map((item, i) => (
-          <EditorialSection key={i}>
-            <h2 className="text-[16px] font-semibold tracking-tight text-foreground sm:text-[17px]">
-              {item.q}
-            </h2>
-            <p className="text-[14px] leading-relaxed text-foreground/85">
-              {item.a}
-            </p>
+        {QUESTIONS.map((item) => (
+          <EditorialSection key={item.q} title={item.q}>
+            <p>{item.a}</p>
           </EditorialSection>
         ))}
       </EditorialPage>
