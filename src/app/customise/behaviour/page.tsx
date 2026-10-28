@@ -1,91 +1,46 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useAudioPrefs } from "@/lib/audio-prefs";
 import {
   type BehaviourPrefs,
   type Confidence,
   useBehaviourPrefs,
 } from "@/lib/behaviour-prefs";
-import { SelectChips, SliderRow, ToggleChips } from "../_components/controls";
-import { SettingsPageHeader } from "../_components/page-header";
-import { SettingsRow } from "../_components/row";
-import { SettingsSection } from "../_components/settings-section";
 import {
-  BlindSample,
-  ConfidenceSample,
-  ExtrasSample,
-  KeypressClickSample,
-  MinWordSample,
-  SecondarySample,
-  StopOnErrorSample,
-  StrictSpaceSample,
-} from "./_components/chip-previews";
+  LabelWithDesc,
+  SelectChips,
+  SliderRow,
+} from "../_components/controls";
+import { getGroup, sectionTitle } from "../_components/groups";
+import { SettingsPageHeader } from "../_components/page-header";
+import { SettingsRow, SwitchRow } from "../_components/row";
+import { ConfidenceSample } from "../_components/rows/behaviour-chip-previews";
 import {
   InputHandlingPreview,
   WordListPreview,
-} from "./_components/section-previews";
-import { SpectateSection } from "./_components/spectate-section";
+} from "../_components/rows/behaviour-previews";
+import { SettingsSection } from "../_components/settings-section";
 
 const CONFIDENCE_OPTIONS: readonly {
   id: Confidence;
   label: string;
-  preview: React.ReactNode;
+  preview: ReactNode;
 }[] = [
   { id: "off", label: "Off", preview: <ConfidenceSample mode="off" /> },
   { id: "word", label: "Word", preview: <ConfidenceSample mode="word" /> },
   { id: "all", label: "All", preview: <ConfidenceSample mode="all" /> },
 ];
 
-const MIN_WORD_OPTIONS: readonly {
-  id: number;
-  label: string;
-  preview: React.ReactNode;
-}[] = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
-  id: n,
-  label: String(n),
-  preview: <MinWordSample len={n} />,
-}));
+const MIN_WORD_OPTIONS: readonly { id: number; label: string }[] = [
+  1, 2, 3, 4, 5, 6, 7, 8,
+].map((n) => ({ id: n, label: String(n) }));
 
-function ToggleRow({
-  label,
-  desc,
-  value,
-  onChange,
-  offPreview,
-  onPreview,
-}: {
-  label: string;
-  desc?: string;
-  value: boolean;
-  onChange: (next: boolean) => void;
-  offPreview?: React.ReactNode;
-  onPreview?: React.ReactNode;
-}) {
-  return (
-    <SettingsRow
-      label={
-        <span className="flex flex-col gap-0.5">
-          <span>{label}</span>
-          {desc ? (
-            <span className="text-xs font-normal text-muted-foreground">
-              {desc}
-            </span>
-          ) : null}
-        </span>
-      }
-      control={
-        <ToggleChips
-          value={value}
-          onChange={onChange}
-          offPreview={offPreview}
-          onPreview={onPreview}
-        />
-      }
-    />
-  );
-}
+/** Burst target starts here when the user first switches to Custom. */
+const DEFAULT_CUSTOM_BURST = 60;
 
 export default function BehaviourPage() {
+  const group = getGroup("behaviour");
   const { prefs, update, reset, customizedCount } = useBehaviourPrefs();
   const {
     prefs: audio,
@@ -99,44 +54,37 @@ export default function BehaviourPage() {
     value: BehaviourPrefs[K],
   ) => update(key, value);
 
-  function handleResetAll() {
-    reset();
-    resetAudio();
-  }
+  const burstCustom = prefs.burstThreshold > 0;
 
   return (
-    <section className="text-foreground">
+    <div className="flex flex-col gap-10 sm:gap-12">
       <SettingsPageHeader
-        eyebrow="Customise · Behaviour"
-        title="Make it act the way you think"
+        group={group}
         customizedCount={customizedCount + audioCustomized}
-        onResetAll={handleResetAll}
-        description="Tune how the test reacts while you type — restart shortcuts, error handling, and word-list shape. Live-signal styling moved to Appearance > Live stats; this page is purely about input behaviour."
+        onReset={() => {
+          reset();
+          resetAudio();
+        }}
       />
 
       <SettingsSection
         id="input-handling"
-        eyebrow="Discipline"
-        title="Input handling"
-        description="How the test reacts to every keystroke — what counts as an error, when the cursor advances, and whether you can see what you typed. Live-stat styling lives in Appearance > Live stats now."
+        title={sectionTitle(group, "input-handling")}
+        description="What counts as a mistake, and when the caret moves on."
         preview={<InputHandlingPreview />}
       >
-        <ToggleRow
-          label="Stop on error"
-          desc="Won't advance until the typo is corrected"
-          value={prefs.stopOnError}
+        <SwitchRow
+          title="Stop on error"
+          desc="Don't move on until a wrong letter is fixed."
+          checked={prefs.stopOnError}
           onChange={(v) => set("stopOnError", v)}
-          offPreview={<StopOnErrorSample on={false} />}
-          onPreview={<StopOnErrorSample on={true} />}
         />
         <SettingsRow
           label={
-            <span className="flex flex-col gap-0.5">
-              <span>Confidence mode</span>
-              <span className="text-xs font-normal text-muted-foreground">
-                Disable backspace — go faster, accept what you get
-              </span>
-            </span>
+            <LabelWithDesc
+              title="Confidence mode"
+              desc="Limit backspace. Word blocks going back to earlier words; All turns it off."
+            />
           }
           control={
             <SelectChips
@@ -146,145 +94,145 @@ export default function BehaviourPage() {
             />
           }
         />
-        <ToggleRow
-          label="Allow extras"
-          desc="Record characters typed past the word's length as extras (off silently ignores them)"
-          value={prefs.allowExtras}
+        <SwitchRow
+          title="Allow extra letters"
+          desc="Count letters typed past the end of a word as mistakes. Off ignores them."
+          checked={prefs.allowExtras}
           onChange={(v) => set("allowExtras", v)}
-          offPreview={<ExtrasSample on={false} />}
-          onPreview={<ExtrasSample on={true} />}
         />
-        <ToggleRow
-          label="Strict space"
-          desc="Refuse to advance to the next word until the current word is fully typed correctly"
-          value={prefs.strictSpace}
+        <SwitchRow
+          title="Strict space"
+          desc="Space only moves on once the word is typed correctly."
+          checked={prefs.strictSpace}
           onChange={(v) => set("strictSpace", v)}
-          offPreview={<StrictSpaceSample on={false} />}
-          onPreview={<StrictSpaceSample on={true} />}
         />
-        <ToggleRow
-          label="Blind mode"
-          desc="Hide all live signal — type without seeing what you typed or how fast you're going"
-          value={prefs.blindMode}
+        <SwitchRow
+          title="Blind mode"
+          desc="Hide what you typed and your speed until the end."
+          checked={prefs.blindMode}
           onChange={(v) => set("blindMode", v)}
-          offPreview={<BlindSample on={false} />}
-          onPreview={<BlindSample on={true} />}
         />
       </SettingsSection>
 
       <SettingsSection
         id="word-list"
-        eyebrow="Source"
-        title="Word list"
-        description="Which words land in the passage. Filter short noise out, or sprinkle numbers and punctuation in to practice the symbols you actually use."
+        title={sectionTitle(group, "word-list")}
+        description="Which words end up in the text."
         preview={<WordListPreview prefs={prefs} />}
       >
         <SettingsRow
           label={
-            <span className="flex flex-col gap-0.5">
-              <span>Minimum word length</span>
-              <span className="text-xs font-normal text-muted-foreground">
-                Filter short words out of the word lists
-              </span>
-            </span>
+            <LabelWithDesc
+              title="Shortest word"
+              desc="Leave out words with fewer letters than this."
+            />
           }
           control={
             <SelectChips
+              ariaLabel="Shortest word length"
               value={prefs.minWordLength}
               options={MIN_WORD_OPTIONS}
               onChange={(v) => set("minWordLength", v)}
             />
           }
         />
-        <ToggleRow
-          label="Show secondary"
-          desc="Sprinkle numbers and punctuation into word mode"
-          value={prefs.showSecondary}
+        <SwitchRow
+          title="Numbers and punctuation"
+          desc="Mix numbers and punctuation into word tests."
+          checked={prefs.showSecondary}
           onChange={(v) => set("showSecondary", v)}
-          offPreview={<SecondarySample on={false} />}
-          onPreview={<SecondarySample on={true} />}
         />
       </SettingsSection>
 
       <SettingsSection
         id="burst"
-        eyebrow="Burst"
-        title="Burst mode threshold"
-        description="The WPM floor each word has to clear in BURST mode. Auto uses your rolling average so the bar moves with you; a custom number freezes it at that pace until you change it."
+        title={sectionTitle(group, "burst")}
+        description="The speed each word has to beat in burst practice."
       >
         <SettingsRow
           label={
-            <span className="flex flex-col gap-0.5">
-              <span>Threshold WPM</span>
-              <span className="text-xs font-normal text-muted-foreground">
-                0 (auto) = your rolling average across recent runs
-              </span>
-            </span>
+            <LabelWithDesc
+              title="Target speed"
+              desc={
+                burstCustom
+                  ? "A fixed target that stays put until you change it."
+                  : "Follows your recent average, so it moves with you."
+              }
+            />
           }
           control={
-            <SliderRow
-              value={prefs.burstThreshold}
-              min={0}
-              max={200}
-              step={5}
-              format={(v) => (v === 0 ? "auto" : `${v} wpm`)}
-              onChange={(v) => set("burstThreshold", v)}
+            <SelectChips
+              ariaLabel="Burst target"
+              value={burstCustom ? "custom" : "auto"}
+              options={[
+                { id: "auto", label: "Auto" },
+                { id: "custom", label: "Custom" },
+              ]}
+              onChange={(v) =>
+                set("burstThreshold", v === "auto" ? 0 : DEFAULT_CUSTOM_BURST)
+              }
             />
           }
         />
+        {burstCustom ? (
+          <SettingsRow
+            label="Words per minute"
+            control={
+              <SliderRow
+                value={prefs.burstThreshold}
+                min={10}
+                max={200}
+                step={5}
+                ariaLabel="Burst target speed"
+                format={(v) => `${v} wpm`}
+                onChange={(v) => set("burstThreshold", v)}
+              />
+            }
+          />
+        ) : null}
       </SettingsSection>
 
       <SettingsSection
         id="audio"
-        eyebrow="Sound"
-        title="Audio"
-        description="Per-keystroke click feedback. Synthesized live (no asset payload); plays through the page's audio context on every printable key + space + backspace."
+        title={sectionTitle(group, "audio")}
+        description="A soft click on every key."
       >
-        <ToggleRow
-          label="Keypress click"
-          desc="Fires a short click on each keystroke"
-          value={audio.keypressClickEnabled}
+        <SwitchRow
+          title="Key clicks"
+          desc="Play a short click on every keystroke."
+          checked={audio.keypressClickEnabled}
           onChange={(v) => updateAudio("keypressClickEnabled", v)}
-          offPreview={<KeypressClickSample on={false} />}
-          onPreview={<KeypressClickSample on={true} />}
         />
-        <SettingsRow
-          label={
-            <span className="flex flex-col gap-0.5">
-              <span>Click volume</span>
-              <span className="text-xs font-normal text-muted-foreground">
-                0 mutes; 100 is the loudest the synthesis will run
-              </span>
-            </span>
-          }
-          control={
-            <SliderRow
-              value={audio.keypressClickVolume}
-              min={0}
-              max={100}
-              step={5}
-              format={(v) => `${v}%`}
-              onChange={(v) => updateAudio("keypressClickVolume", v)}
-            />
-          }
-        />
+        {audio.keypressClickEnabled ? (
+          <SettingsRow
+            label="Volume"
+            control={
+              <SliderRow
+                value={audio.keypressClickVolume}
+                min={0}
+                max={100}
+                step={5}
+                ariaLabel="Click volume"
+                format={(v) => `${v}%`}
+                onChange={(v) => updateAudio("keypressClickVolume", v)}
+              />
+            }
+          />
+        ) : null}
       </SettingsSection>
 
       <SettingsSection
         id="adaptive"
-        eyebrow="Algorithm"
-        title="Adaptive"
-        description="How casual runs feed the adaptive engine. Training and race runs always contribute — they're the algorithm's primary signal."
+        title={sectionTitle(group, "adaptive")}
+        description="Training and race runs always teach practice what to focus on."
       >
-        <ToggleRow
-          label="Exclude casual runs from adapt"
-          desc="When on, casual-mode keystrokes don't update the bigram / trigram / word weakness models. Test results + PBs still record either way."
-          value={prefs.excludeCasualFromAdapt}
+        <SwitchRow
+          title="Ignore casual runs"
+          desc="Casual tests still save results and personal bests, but don't change which weak spots practice targets."
+          checked={prefs.excludeCasualFromAdapt}
           onChange={(v) => set("excludeCasualFromAdapt", v)}
         />
       </SettingsSection>
-
-      <SpectateSection />
-    </section>
+    </div>
   );
 }

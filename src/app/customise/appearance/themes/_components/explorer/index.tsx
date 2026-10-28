@@ -1,10 +1,15 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { useTheme } from "next-themes";
+import { PageHeader } from "@/components/page-shell";
+import { buttonVariants } from "@/components/ui/button";
 import { useThemeOverrides } from "@/lib/theme-customization";
 import { BACKGROUND_REACTIVE_ID } from "@/lib/themes/background-reactive";
 import { CUSTOM_THEME_ID } from "@/lib/themes/registry";
 import { type Theme, usePalette } from "@/lib/themes/use-palette";
+import { cn } from "@/lib/utils";
 import {
   customVarsFromOverrides,
   DEFAULT_VARS,
@@ -67,25 +72,26 @@ export function ThemeExplorer() {
   }
 
   return (
-    <section className="text-foreground">
-      <header className="mb-6 border-b border-border pb-5 sm:mb-8 sm:pb-6">
-        <div className="mb-2 flex items-center gap-3">
-          <span aria-hidden className="inline-block h-px w-5 bg-primary" />
-          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Appearance
-          </span>
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Themes
-        </h1>
-        <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted-foreground">
-          Each tile is a slice of the app under that theme: palette,
-          radius, typography, buttons, chips, stats, and the keyboard
-          widget&apos;s design and shape. Tap to apply live.
-        </p>
-      </header>
+    <section className="flex flex-col gap-8 text-foreground">
+      <PageHeader
+        title="All palettes"
+        description="Each tile shows the app in that palette. Tap one to use it."
+        className="sm:items-center"
+        aside={
+          <Link
+            href="/customise/theme"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "h-9 sm:h-8 lg:hidden",
+            )}
+          >
+            <ArrowLeft aria-hidden />
+            Back to Theme
+          </Link>
+        }
+      />
 
-      <ol className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
+      <ol className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 md:grid-cols-3">
         {entries.map((e) => {
           if (e.kind === "custom") {
             return (

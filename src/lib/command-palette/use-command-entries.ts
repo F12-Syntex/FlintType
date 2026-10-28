@@ -71,6 +71,26 @@ function link(
   return { id, label, hint, group, kind: "link", href, destination, keywords };
 }
 
+/* ─── Settings pages ──────────────────────────────────────────────── */
+
+/** One "Go to … settings" entry per settings page. Kept in step with
+ *  the page catalog in src/app/customise/_components/groups.ts. */
+const SETTINGS_PAGES: readonly {
+  id: string;
+  name: string;
+  href: string;
+  hint: string;
+  keywords: readonly string[];
+}[] = [
+  { id: "theme", name: "Theme", href: "/customise/theme", hint: "Palette, mode, colours, background image", keywords: ["palette", "colour", "color", "dark", "light"] },
+  { id: "typing", name: "Typing", href: "/customise/typing", hint: "Font, caret, tape mode, mistakes", keywords: ["font", "caret", "tape", "passage"] },
+  { id: "interface", name: "Interface", href: "/customise/interface", hint: "Surfaces, corners, top bar and footer", keywords: ["minimal", "chrome", "radius", "borders"] },
+  { id: "keyboard", name: "Keyboard", href: "/customise/keyboard", hint: "Practice keyboard and keymap layout", keywords: ["keymap", "layout", "qwerty", "dvorak", "colemak"] },
+  { id: "stats", name: "Stats & results", href: "/customise/stats", hint: "Live numbers and the result screen", keywords: ["wpm", "accuracy", "result", "live"] },
+  { id: "behaviour", name: "Behaviour", href: "/customise/behaviour", hint: "Mistakes, backspace, word lists, sound", keywords: ["behavior", "input", "sound", "burst"] },
+  { id: "social", name: "Multiplayer & social", href: "/customise/social", hint: "Race visuals and live spectating", keywords: ["race", "multiplayer", "spectate", "friends"] },
+];
+
 /* ─── The hook ────────────────────────────────────────────────────── */
 
 /** Build every command-palette entry from the project's live pref
@@ -79,7 +99,7 @@ function link(
  *  Discipline:
  *    - One entry per user-facing setting. Toggles + enums render
  *      inline (Enter flips / expands). Sliders and colour pickers
- *      deep-link to /customise#<section> via a `link` entry — those
+ *      deep-link to /customise/<page>#<section> via a `link` entry — those
  *      controls don't fit a one-line keyboard-only flow.
  *    - The set of inline value options for an enum must come from the
  *      pref module's own option list where one exists, so any new
@@ -147,7 +167,7 @@ export function useCommandEntries(): readonly CommandEntry[] {
       toggle(
         "b.blindMode",
         "Blind mode",
-        "Hide right/wrong colouring while you type",
+        "Hide what you typed and your speed until the end",
         "Behaviour",
         bp.blindMode,
         (v) => setBp("blindMode", v),
@@ -156,7 +176,7 @@ export function useCommandEntries(): readonly CommandEntry[] {
       toggle(
         "b.stopOnError",
         "Stop on error",
-        "Refuse to advance past a wrong letter",
+        "Don't move on until a wrong letter is fixed",
         "Behaviour",
         bp.stopOnError,
         (v) => setBp("stopOnError", v),
@@ -164,8 +184,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       toggle(
         "b.allowExtras",
-        "Allow extras",
-        "Record letters typed past the end of a word",
+        "Allow extra letters",
+        "Count letters typed past the end of a word",
         "Behaviour",
         bp.allowExtras,
         (v) => setBp("allowExtras", v),
@@ -174,7 +194,7 @@ export function useCommandEntries(): readonly CommandEntry[] {
       toggle(
         "b.strictSpace",
         "Strict space",
-        "Refuse space until the word is complete",
+        "Space only moves on once the word is correct",
         "Behaviour",
         bp.strictSpace,
         (v) => setBp("strictSpace", v),
@@ -182,8 +202,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       toggle(
         "b.showSecondary",
-        "Show secondary HUD",
-        "Extra readouts beside the main strip",
+        "Numbers and punctuation",
+        "Mix numbers and punctuation into word tests",
         "Behaviour",
         bp.showSecondary,
         (v) => setBp("showSecondary", v),
@@ -191,8 +211,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       toggle(
         "b.excludeCasualFromAdapt",
-        "Exclude casual runs from adaptive model",
-        "Casual tests stop feeding the bigram / motor models",
+        "Ignore casual runs in adaptive practice",
+        "Casual tests don't change which weak spots practice targets",
         "Behaviour",
         bp.excludeCasualFromAdapt,
         (v) => setBp("excludeCasualFromAdapt", v),
@@ -200,8 +220,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       enumEntry(
         "b.confidence",
-        "Confidence",
-        "Lock backspace at word boundaries",
+        "Confidence mode",
+        "Limit backspace to earlier words, or turn it off",
         "Behaviour",
         bp.confidence,
         [
@@ -216,8 +236,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       /* ─── Audio ────────────────────────────────────────────────── */
       toggle(
         "a.keypressClickEnabled",
-        "Keypress click sound",
-        "Short synthesized click on every keystroke",
+        "Key click sound",
+        "A short click on every keystroke",
         "Behaviour",
         audio.keypressClickEnabled,
         (v) => setAudio("keypressClickEnabled", v),
@@ -225,11 +245,11 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       link(
         "a.keypressClickVolume",
-        "Click volume",
-        "Adjust the click volume slider",
+        "Key click volume",
+        "Open the volume slider",
         "Behaviour",
         "/customise/behaviour#audio",
-        "Slider on Customise → Audio",
+        "Settings → Behaviour → Sound",
         ["audio", "sound", "click", "volume"],
       ),
 
@@ -270,33 +290,43 @@ export function useCommandEntries(): readonly CommandEntry[] {
         ] as const,
         (v) =>
           setCs({
+            // Same values as the Settings → Typing → Caret presets so
+            // the matching option lights up there.
             blinkSpeed:
-              v === "off" ? 0 : v === "fast" ? 500 : v === "normal" ? 900 : 1300,
+              v === "off" ? 0 : v === "fast" ? 500 : v === "normal" ? 1000 : 1500,
           }),
         ["cursor", "blink"],
       ),
       enumEntry(
         "c.smooth",
         "Caret motion",
-        "How quickly the caret slides between letters",
+        "How the caret glides between letters",
         "Caret",
-        cs.smoothSpeed === 0
-          ? "instant"
-          : cs.smoothSpeed <= 140
-            ? "snap"
-            : cs.smoothSpeed <= 260
-              ? "smooth"
-              : "flow",
+        (
+          [
+            [0, "off"],
+            [60, "snappy"],
+            [120, "smooth"],
+            [200, "flow"],
+            [300, "glide"],
+            [450, "drift"],
+          ] as const
+        ).reduce<"off" | "snappy" | "smooth" | "flow" | "glide" | "drift">(
+          (best, [ms, id]) => (cs.smoothSpeed >= ms ? id : best),
+          "off",
+        ),
         [
-          { id: "instant", label: "Instant" },
-          { id: "snap", label: "Snap" },
+          { id: "off", label: "Off" },
+          { id: "snappy", label: "Snappy" },
           { id: "smooth", label: "Smooth" },
           { id: "flow", label: "Flow" },
+          { id: "glide", label: "Glide" },
+          { id: "drift", label: "Drift" },
         ] as const,
         (v) =>
           setCs({
-            smoothSpeed:
-              v === "instant" ? 0 : v === "snap" ? 120 : v === "smooth" ? 220 : 360,
+            // Same values as the Settings → Typing → Caret presets.
+            smoothSpeed: { off: 0, snappy: 60, smooth: 120, flow: 200, glide: 300, drift: 450 }[v],
           }),
         ["cursor", "motion"],
       ),
@@ -334,8 +364,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       toggle(
         "k.compact",
-        "Compact keyboard",
-        "Drop modifier rows; letters only",
+        "Practice keyboard: letters only",
+        "Hide the number row, modifier keys and space bar",
         "Keyboard",
         ks.compact,
         (v) => setKs({ compact: v }),
@@ -343,8 +373,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       toggle(
         "k.highlightHomeRow",
-        "Highlight home row",
-        "F + J pegs stay lit so hands stay located",
+        "Mark F and J",
+        "Highlight the home-row keys",
         "Keyboard",
         ks.highlightHomeRow,
         (v) => setKs({ highlightHomeRow: v }),
@@ -352,8 +382,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       toggle(
         "k.showShiftLabels",
-        "Show shift labels",
-        "Render the small upper-case glyph on each key",
+        "Shift symbols",
+        "Show the small symbol above each number key",
         "Keyboard",
         ks.showShiftLabels,
         (v) => setKs({ showShiftLabels: v }),
@@ -363,8 +393,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       /* ─── Appearance — passage / mistakes / typing area ────────── */
       enumEntry(
         "a.mistakeStyle",
-        "Active mistake",
-        "How a mistyped letter in the current word is marked",
+        "Mistakes",
+        "How a wrong letter in the current word is marked",
         "Appearance",
         ap.mistakeStyle,
         [
@@ -378,8 +408,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       enumEntry(
         "a.highlightMode",
-        "Highlight mode",
-        "What gets emphasised as you type",
+        "Highlight",
+        "What gets marked as you move through the text",
         "Appearance",
         ap.highlightMode,
         [
@@ -394,8 +424,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       enumEntry(
         "a.typedEffect",
-        "Typed effect",
-        "How past words look after you finish them",
+        "Typed words",
+        "How words look once you have typed them",
         "Appearance",
         ap.typedEffect,
         [
@@ -408,8 +438,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       toggle(
         "a.markIncompleteWord",
-        "Mark incomplete words",
-        "Underline a word in red when you skip it",
+        "Mark skipped words",
+        "Underline a word you leave before finishing it",
         "Appearance",
         ap.markIncompleteWord,
         (v) => setAp("markIncompleteWord", v),
@@ -418,7 +448,7 @@ export function useCommandEntries(): readonly CommandEntry[] {
       enumEntry(
         "a.tapeMode",
         "Tape mode",
-        "One scrolling line vs. wrapped multi-line",
+        "One scrolling line instead of a block of text",
         "Appearance",
         ap.tapeMode,
         [
@@ -431,8 +461,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       toggle(
         "a.smoothLineScroll",
-        "Smooth line scroll",
-        "Animate line jumps instead of teleporting",
+        "Smooth scrolling",
+        "Glide to the next line instead of jumping",
         "Appearance",
         ap.smoothLineScroll,
         (v) => setAp("smoothLineScroll", v),
@@ -440,8 +470,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       enumEntry(
         "a.caretIdle",
-        "Idle caret pulse",
-        "Soft pulse before the test starts",
+        "Pulse caret before you start",
+        "Gently pulse the caret until your first keystroke",
         "Appearance",
         ap.caretIdle,
         [
@@ -455,8 +485,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       /* ─── Appearance — surface / chrome ────────────────────────── */
       enumEntry(
         "a.cardSurfaces",
-        "Card surfaces",
-        "Solid, subtle, or transparent panel fills",
+        "Cards",
+        "Solid, subtle or transparent cards",
         "Appearance",
         ap.cardSurfaces,
         [
@@ -470,7 +500,7 @@ export function useCommandEntries(): readonly CommandEntry[] {
       enumEntry(
         "a.dividers",
         "Dividers",
-        "Inter-section divider style",
+        "Lines between sections",
         "Appearance",
         ap.dividers,
         [
@@ -484,7 +514,7 @@ export function useCommandEntries(): readonly CommandEntry[] {
       enumEntry(
         "a.pagePadding",
         "Page padding",
-        "Global page padding density",
+        "How much space surrounds each page",
         "Appearance",
         ap.pagePadding,
         [
@@ -497,8 +527,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       enumEntry(
         "a.backgroundFill",
-        "Background fill",
-        "Themed paper or bare neutral",
+        "Page colour",
+        "Themed or a bare neutral",
         "Appearance",
         ap.backgroundFill,
         [
@@ -510,8 +540,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       toggle(
         "a.monochromeChrome",
-        "Monochrome chrome",
-        "Collapse accent into muted; primary stays the only spark",
+        "Single accent",
+        "Keep hover tints neutral so only the accent stands out",
         "Appearance",
         ap.monochromeChrome,
         (v) => setAp("monochromeChrome", v),
@@ -519,12 +549,12 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       enumEntry(
         "a.topbarStyle",
-        "Topbar style",
-        "Elevated, flat, or text-only header",
+        "Top bar",
+        "Raised, flat or text only",
         "Appearance",
         ap.topbarStyle,
         [
-          { id: "elevated", label: "Elevated" },
+          { id: "elevated", label: "Raised" },
           { id: "flat", label: "Flat" },
           { id: "text-only", label: "Text only" },
         ] as const,
@@ -533,8 +563,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       enumEntry(
         "a.footerStyle",
-        "Footer style",
-        "Visible, compact, or hidden footer",
+        "Footer",
+        "Visible, compact or hidden",
         "Appearance",
         ap.footerStyle,
         [
@@ -547,8 +577,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       enumEntry(
         "a.autoHide",
-        "Auto-hide chrome during a run",
-        "Dim or fade chrome while you're typing",
+        "Hide the top bar while typing",
+        "Dim or fade the top bar and footer during a test",
         "Appearance",
         ap.autoHide,
         [
@@ -561,24 +591,24 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       enumEntry(
         "a.borders",
-        "Borders",
-        "Default, soft (hairline), or hidden",
+        "Outlines",
+        "Strong, soft or hidden",
         "Appearance",
         ap.borders,
         [
-          { id: "default", label: "Default" },
+          { id: "default", label: "Strong" },
           { id: "soft", label: "Soft" },
           { id: "hidden", label: "Hidden" },
         ] as const,
         (v) => setAp("borders", v),
-        ["geometry"],
+        ["geometry", "borders"],
       ),
 
       /* ─── Appearance — live stats / result ─────────────────────── */
       enumEntry(
         "a.typingSpeedUnit",
-        "Typing speed unit",
-        "WPM, CPM, WPS, CPS, or WPH",
+        "Speed unit",
+        "WPM, CPM, WPS, CPS or WPH",
         "Appearance",
         ap.typingSpeedUnit,
         [
@@ -593,8 +623,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       toggle(
         "a.alwaysShowDecimal",
-        "Always show decimal",
-        "Display fractional WPM in live stats",
+        "Always show decimals",
+        "Show decimals without hovering",
         "Appearance",
         ap.alwaysShowDecimal,
         (v) => setAp("alwaysShowDecimal", v),
@@ -603,7 +633,7 @@ export function useCommandEntries(): readonly CommandEntry[] {
       toggle(
         "a.startGraphsAtZero",
         "Start graphs at zero",
-        "Anchor the y-axis on the result chart",
+        "Keep the result chart honest",
         "Appearance",
         ap.startGraphsAtZero,
         (v) => setAp("startGraphsAtZero", v),
@@ -611,8 +641,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       toggle(
         "a.resultShowHeatmap",
-        "Result: show heatmap",
-        "Per-key error / speed heatmap on the result screen",
+        "Result: text heatmap",
+        "The text you typed, tinted by speed",
         "Appearance",
         ap.resultShowHeatmap,
         (v) => setAp("resultShowHeatmap", v),
@@ -620,8 +650,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       toggle(
         "a.resultShowExtras",
-        "Result: show extras",
-        "Extras / corrections panel on the result screen",
+        "Result: run details",
+        "Longest streak, words finished and pauses",
         "Appearance",
         ap.resultShowExtras,
         (v) => setAp("resultShowExtras", v),
@@ -629,8 +659,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       toggle(
         "a.resultShowPerLetter",
-        "Result: show per-letter",
-        "Per-letter accuracy breakdown",
+        "Result: slowest letters",
+        "The eight letters that took longest",
         "Appearance",
         ap.resultShowPerLetter,
         (v) => setAp("resultShowPerLetter", v),
@@ -638,8 +668,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       toggle(
         "a.resultShowHandBalance",
-        "Result: show hand balance",
-        "Left / right keystroke distribution",
+        "Result: hand balance",
+        "How the work split between your hands",
         "Appearance",
         ap.resultShowHandBalance,
         (v) => setAp("resultShowHandBalance", v),
@@ -650,7 +680,7 @@ export function useCommandEntries(): readonly CommandEntry[] {
       enumEntry(
         "a.keymap",
         "Keymap",
-        "How the live keyboard reacts during a test",
+        "React lights the key you pressed; Next lights the key to press",
         "Appearance",
         ap.keymap,
         [
@@ -664,8 +694,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       enumEntry(
         "a.keymapLegend",
-        "Keymap legend",
-        "Letter case shown on each key",
+        "Keymap labels",
+        "Lower, upper, blank or dynamic",
         "Appearance",
         ap.keymapLegend,
         [
@@ -679,13 +709,13 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       enumEntry(
         "a.keymapTopRow",
-        "Keymap top row",
-        "Render the number row above the alpha grid",
+        "Keymap number row",
+        "Always, auto or never",
         "Appearance",
         ap.keymapTopRow,
         [
           { id: "always", label: "Always" },
-          { id: "layout", label: "Layout" },
+          { id: "layout", label: "Auto" },
           { id: "never", label: "Never" },
         ] as const,
         (v) => setAp("keymapTopRow", v),
@@ -693,8 +723,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       toggle(
         "a.keymapCompact",
-        "Compact keymap",
-        "Drop modifiers from the keymap row under the passage",
+        "Keymap: letters only",
+        "Hide modifier keys and the space bar",
         "Appearance",
         ap.keymapCompact,
         (v) => setAp("keymapCompact", v),
@@ -702,24 +732,53 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       enumEntry(
         "a.quoteAttribution",
-        "Quote attribution",
-        "Where the quote source line sits",
+        "Quote credit",
+        "Where the author shows in quote mode",
         "Appearance",
         ap.quoteAttribution,
         [
           { id: "below", label: "Below" },
-          { id: "chip", label: "Chip" },
+          { id: "chip", label: "Badge" },
           { id: "hidden", label: "Hidden" },
         ] as const,
         (v) => setAp("quoteAttribution", v),
         ["quote"],
+      ),
+      enumEntry(
+        "a.keymapLayout",
+        "Keyboard layout",
+        "QWERTY, Dvorak or Colemak",
+        "Keyboard",
+        (ap.keymapLayout === "dvorak" || ap.keymapLayout === "colemak"
+          ? ap.keymapLayout
+          : "qwerty") as "qwerty" | "dvorak" | "colemak",
+        [
+          { id: "qwerty", label: "QWERTY" },
+          { id: "dvorak", label: "Dvorak" },
+          { id: "colemak", label: "Colemak" },
+        ] as const,
+        (v) => setAp("keymapLayout", v),
+        ["keymap", "layout", "qwerty", "dvorak", "colemak"],
+      ),
+      enumEntry(
+        "a.resultChrome",
+        "Result layout",
+        "Group the results into cards, or keep them plain",
+        "Appearance",
+        ap.resultChrome,
+        [
+          { id: "framed", label: "Cards" },
+          { id: "spare", label: "Plain" },
+        ] as const,
+        (v) => setAp("resultChrome", v),
+        ["result", "cards", "minimal"],
       ),
 
       /* ─── Appearance — multiplayer ─────────────────────────────── */
       toggle(
         "a.multiplayerPlayerColors",
         "Race: player colours",
-        "Paint each racer in their own chart-palette colour",
+        "Give each racer their own colour",
         "Appearance",
         ap.multiplayerPlayerColors,
         (v) => setAp("multiplayerPlayerColors", v),
@@ -727,8 +786,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       enumEntry(
         "a.multiplayerOpponentMarker",
-        "Race: opponent marker",
-        "How opponents are marked inside the passage",
+        "Race: opponents in the text",
+        "Show where other racers are inside the text",
         "Appearance",
         ap.multiplayerOpponentMarker,
         [
@@ -742,7 +801,7 @@ export function useCommandEntries(): readonly CommandEntry[] {
       toggle(
         "a.multiplayerRaceFeed",
         "Race: feed",
-        "Chronological feed of joins / leader changes / finishes",
+        "A running log of joins, lead changes and finishes",
         "Appearance",
         ap.multiplayerRaceFeed,
         (v) => setAp("multiplayerRaceFeed", v),
@@ -750,8 +809,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       toggle(
         "a.multiplayerShowOpponentWpm",
-        "Race: opponent WPM",
-        "Show each racer's live WPM in their lane",
+        "Race: opponent speed",
+        "Show each racer's live speed",
         "Appearance",
         ap.multiplayerShowOpponentWpm,
         (v) => setAp("multiplayerShowOpponentWpm", v),
@@ -761,56 +820,56 @@ export function useCommandEntries(): readonly CommandEntry[] {
       /* ─── Link-only entries (slider / colour controls) ─────────── */
       link(
         "l.typography",
-        "Typography",
-        "Font family, size, word spacing — open the full picker",
+        "Font",
+        "Typeface, size and word spacing",
         "Appearance",
-        "/customise/appearance#typography",
-        "Customise → Typography",
+        "/customise/typing#typography",
+        "Settings → Typing → Font",
         ["font", "type", "size"],
       ),
       link(
         "l.colors",
         "Colours",
-        "Override every palette token by hex — open Colours",
+        "Change single colours on top of your palette",
         "Appearance",
-        "/customise/appearance#colors",
-        "Customise → Colours",
+        "/customise/theme#colors",
+        "Settings → Theme → Colours",
         ["color", "colour", "palette"],
       ),
       link(
         "l.background",
         "Background image",
-        "Drop an image, fit, opacity — open Background",
+        "Add an image behind the app",
         "Appearance",
-        "/customise/appearance#background",
-        "Customise → Background",
+        "/customise/theme#background",
+        "Settings → Theme → Background",
         ["image", "wallpaper"],
       ),
       link(
         "l.liveStats",
-        "Live stats colour & opacity",
-        "Colour + opacity sliders — open Live stats",
+        "Live stats colour and opacity",
+        "Open Live stats",
         "Appearance",
-        "/customise/appearance#live-stats",
-        "Customise → Live stats",
+        "/customise/stats#live-stats",
+        "Settings → Stats & results",
         ["stats"],
       ),
       link(
         "l.typingArea",
-        "Typing area dimensions",
-        "Max line width, lines rendered, tape margin",
+        "Typing area",
+        "Lines shown, line width and tape position",
         "Appearance",
-        "/customise/appearance#typing-area",
-        "Customise → Typing area",
+        "/customise/typing#typing-area",
+        "Settings → Typing → Typing area",
         ["lines", "width"],
       ),
       link(
         "l.caretWidth",
-        "Caret thickness & radius",
-        "Width / radius sliders — open Caret",
+        "Caret thickness and corners",
+        "Open Caret",
         "Caret",
-        "/customise/appearance#caret",
-        "Customise → Caret",
+        "/customise/typing#caret",
+        "Settings → Typing → Caret",
         ["cursor", "thickness"],
       ),
 
@@ -828,22 +887,24 @@ export function useCommandEntries(): readonly CommandEntry[] {
       },
       {
         id: "nav.customise",
-        label: "Customise",
-        hint: "Open the full customisation page",
+        label: "Settings",
+        hint: "Open settings",
         group: "Navigate",
         kind: "action",
-        run: navigate("/customise/appearance"),
-        keywords: ["settings"],
+        run: navigate("/customise"),
+        keywords: ["settings", "customise", "preferences", "options"],
       },
-      {
-        id: "nav.behaviour",
-        label: "Behaviour settings",
-        hint: "Open Customise → Behaviour",
-        group: "Navigate",
-        kind: "action",
-        run: navigate("/customise/behaviour"),
-        keywords: ["behaviour", "settings"],
-      },
+      ...SETTINGS_PAGES.map(
+        (p): CommandEntry => ({
+          id: `nav.settings.${p.id}`,
+          label: `${p.name} settings`,
+          hint: p.hint,
+          group: "Navigate",
+          kind: "action",
+          run: navigate(p.href),
+          keywords: ["settings", "customise", ...p.keywords],
+        }),
+      ),
       {
         id: "nav.leaderboard",
         label: "Leaderboard",

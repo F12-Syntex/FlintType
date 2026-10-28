@@ -2,9 +2,9 @@ import type { ReactNode } from "react";
 import { buildPageMetadata } from "@/server/seo";
 
 export const metadata = buildPageMetadata({
-  title: "Appearance",
+  title: "Settings",
   description:
-    "Customise flinttype's look — themes, colors, geometry, caret style, typography, keyboard, and background. Live previews on every option.",
+    "flinttype settings: theme, typing, interface, keyboard, stats, behaviour and multiplayer. Every change applies straight away.",
   path: "/customise/appearance",
   noIndex: true,
 });

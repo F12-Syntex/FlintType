@@ -1,100 +1,77 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { RotateCcw, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { PageHeader } from "@/components/page-shell";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import type { SettingsGroup } from "./groups";
 import { ImportExportMenu } from "./import-export";
 
-/** Editorial page header for the customise pages. Replaces the prior
- *  "Section: Title" eyebrow stack with a real two-axis layout: the
- *  eyebrow + headline + sub-deck on the left, the customised count and
- *  reset action on the right.
+/** Header for a settings group page (ui-law §12.7): the group name as
+ *  the page's h1, one plain sentence, and three page-level actions —
+ *  "Reset (N)" (only while something on this page is customised), the
+ *  Import / export menu, and a link to the Design with AI studio.
  *
- *  Mobile-first: stacks; the count/reset row sits below the title.
- *  At sm+, the right rail aligns to the title baseline. */
+ *  On phones the actions collapse to icon buttons (§10.6) so the row
+ *  never wraps. */
 export function SettingsPageHeader({
-  eyebrow = "Customise",
-  title,
-  description,
+  group,
   customizedCount = 0,
-  onResetAll,
+  onReset,
 }: {
-  eyebrow?: string;
-  title: string;
-  /** Kept on the type for backwards compat with existing callers; the
-   *  visible "N options" badge was retired — the customised counter
-   *  is the only chrome the user reads. */
-  optionsCount?: number;
+  group: SettingsGroup;
   customizedCount?: number;
-  onResetAll?: () => void;
-  description?: string;
+  onReset?: () => void;
 }) {
+  const plural = customizedCount === 1 ? "setting" : "settings";
   return (
-    <header className="mb-10 border-b border-border pb-8 sm:mb-12 sm:pb-10">
-      <div className="mb-4 flex items-center gap-3">
-        <span aria-hidden className="inline-block h-px w-7 bg-primary" />
-        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-          {eyebrow}
-        </span>
-      </div>
-
-      <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-10">
-        <div className="flex flex-col gap-3">
-          <h2 className="font-bold tracking-[-0.02em] text-foreground text-[26px] leading-[1.05] sm:text-[36px] lg:text-[44px]">
-            {title}
-          </h2>
-          {description ? (
-            <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-              {description}
-            </p>
+    <PageHeader
+      title={group.name}
+      description={group.description}
+      className="sm:items-center"
+      aside={
+        <>
+          {onReset && customizedCount > 0 ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onReset}
+              aria-label={`Reset ${customizedCount} customised ${plural}`}
+              className="h-9 sm:h-8"
+              confirm={{
+                title: `Reset ${customizedCount} ${plural}?`,
+                description: (
+                  <p className="text-sm text-muted-foreground">
+                    Everything you changed on the {group.name} page goes
+                    back to its default. Other pages keep their settings.
+                  </p>
+                ),
+                confirmLabel: "Reset",
+                confirmVariant: "destructive",
+              }}
+            >
+              <RotateCcw aria-hidden />
+              Reset
+              <span className="tabular-nums text-primary">
+                ({customizedCount})
+              </span>
+            </Button>
           ) : null}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap sm:gap-4">
-          <CustomisedStat count={customizedCount} />
-          <div className="flex items-center gap-2">
-            {onResetAll ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onResetAll}
-                disabled={customizedCount === 0}
-                confirm={{
-                  title: `Reset ${title.toLowerCase()}?`,
-                  description: (
-                    <p className="text-sm text-muted-foreground">
-                      This clears every customisation on this page and
-                      restores the default values. This cannot be undone.
-                    </p>
-                  ),
-                  confirmLabel: "Reset all",
-                  confirmVariant: "destructive",
-                }}
-              >
-                Reset all
-              </Button>
-            ) : null}
-            <ImportExportMenu />
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-function CustomisedStat({ count }: { count: number }) {
-  const customised = count > 0;
-  return (
-    <div className="flex items-center gap-2">
-      <span
-        className={
-          "font-mono text-2xl font-bold tabular-nums leading-none " +
-          (customised ? "text-primary" : "text-foreground/40")
-        }
-      >
-        {count}
-      </span>
-      <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-        {customised ? "customised" : "untouched"}
-      </span>
-    </div>
+          <ImportExportMenu />
+          <Link
+            href="/customise/appearance/ai"
+            aria-label="Design with AI"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "size-9 px-0 sm:h-8 sm:w-auto sm:px-3",
+            )}
+          >
+            <Sparkles aria-hidden className="text-primary" />
+            <span className="hidden sm:inline">Design with AI</span>
+          </Link>
+        </>
+      }
+    />
   );
 }

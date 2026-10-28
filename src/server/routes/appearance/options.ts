@@ -129,16 +129,19 @@ export const KNOBS: Record<string, Knob> = {
     label: "Corners",
     options: [
       { id: "sharp", label: "Sharp", patch: tvar("--radius", "0rem") },
-      { id: "soft", label: "Soft", patch: tvar("--radius", "0.5rem") },
+      // Values match the Settings → Interface → Corners presets so the
+      // chosen preset lights up there after Apply.
+      { id: "soft", label: "Soft", patch: tvar("--radius", "0.625rem") },
       { id: "round", label: "Round", patch: tvar("--radius", "1rem") },
     ],
   },
   wordSpacing: {
     label: "Word spacing",
     options: [
-      { id: "tight", label: "Tight", patch: tvar("--ft-word-spacing", "0em") },
+      // Values match the Settings → Typing → Word spacing presets.
+      { id: "tight", label: "Tight", patch: tvar("--ft-word-spacing", "0.05em") },
       { id: "normal", label: "Normal", patch: tvar("--ft-word-spacing", "0.25em") },
-      { id: "wide", label: "Wide", patch: tvar("--ft-word-spacing", "0.5em") },
+      { id: "wide", label: "Wide", patch: tvar("--ft-word-spacing", "0.45em") },
     ],
   },
   tape: { label: "Tape mode", options: enumOpts("tapeMode", "appearance", [["off", "Off"], ["word", "Word"], ["letter", "Letter"]]) },

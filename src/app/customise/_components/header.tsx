@@ -1,50 +1,29 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { MobileSectionPicker } from "./sidebar";
+import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { openCommandPalette } from "@/lib/command-palette/open";
+import { MobileSettingsPicker } from "./sidebar";
 
-/** Sticky header for the customise pages.
- *
- *  Mobile (<lg):
- *    - non-explorer pages: the section picker text trigger sits on
- *      the left ("Appearance ⌄"); right side is empty so the strip
- *      stays light
- *    - explorer page:      a single "Back to appearance" link
- *  Desktop (lg+): hidden on non-explorer pages — the sidebar carries
- *  the navigation and import/export panel; the explorer keeps the
- *  back link because there's no sidebar on that surface. */
+/** Sticky header for the settings pages below `lg` (the sidebar takes
+ *  over from `lg` up): the page picker on the left, search on the
+ *  right. */
 export function CustomiseHeader() {
-  const pathname = usePathname();
-  const isExplorer = pathname === "/customise/appearance/themes";
-
-  // No header content needed at lg+ on regular settings pages — the
-  // sidebar covers everything. Skip rendering entirely so we don't
-  // leave an empty backdrop strip eating vertical space.
-  if (!isExplorer) {
-    return (
-      <header
-        data-ft-chrome
-        className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-background/85 px-4 py-2 backdrop-blur-md sm:px-8 sm:py-3 lg:hidden"
-      >
-        <MobileSectionPicker />
-      </header>
-    );
-  }
-
   return (
     <header
       data-ft-chrome
-      className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-background/85 px-4 py-2 backdrop-blur-md sm:px-8 sm:py-4 lg:px-10"
+      className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border/60 bg-background/85 py-1.5 backdrop-blur-md lg:hidden"
     >
-      <Link
-        href="/customise/appearance"
-        className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground"
+      <MobileSettingsPicker />
+      <Button
+        variant="ghost"
+        size="icon-lg"
+        onClick={openCommandPalette}
+        aria-label="Search settings"
+        className="-mr-2 text-muted-foreground"
       >
-        <ArrowLeft size={14} />
-        Back to appearance
-      </Link>
+        <Search aria-hidden />
+      </Button>
     </header>
   );
 }

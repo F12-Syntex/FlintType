@@ -2,6 +2,8 @@
 
 import { ArrowUp, Check, RotateCcw } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { PageHeader } from "@/components/page-shell";
+import { Button } from "@/components/ui/button";
 import { BackendError, useBackend } from "@/lib/backend";
 import { cn } from "@/lib/utils";
 import { type AiChange } from "@/types/appearance-ai";
@@ -14,7 +16,7 @@ import {
   MultiplayerPreview,
   ResultLivePreview,
   ThemePreview,
-} from "../../_components/section-previews";
+} from "../../../_components/rows/section-previews";
 import { EMPTY_PATCH, isEmptyPatch, mergePatch, overlayCurrent } from "./patch-merge";
 import { PreviewScope } from "./preview-scope";
 import type { AppearancePatch } from "@/types/appearance-ai";
@@ -28,11 +30,11 @@ type Message = {
 };
 
 /** The six surfaces the studio previews a look across. */
-const PREVIEWS: { label: string; Comp: () => ReactNode }[] = [
+const PREVIEWS: { label: string; Comp: () => ReactNode; wide?: boolean }[] = [
   { label: "Typing", Comp: ThemePreview },
   { label: "Live stats", Comp: LiveStatsPreview },
-  { label: "Keyboard", Comp: KeyboardLivePreview },
-  { label: "Result", Comp: ResultLivePreview },
+  { label: "Result", Comp: ResultLivePreview, wide: true },
+  { label: "Keyboard", Comp: KeyboardLivePreview, wide: true },
   { label: "Race", Comp: MultiplayerPreview },
   { label: "Buttons & chips", Comp: GeometryPreview },
 ];
@@ -140,54 +142,55 @@ export function DesignStudio() {
   const pending = !isEmptyPatch(patch);
 
   return (
-    <section className="text-foreground">
-      <header className="flex items-start justify-between gap-3 pb-4">
-        <div className="flex flex-col gap-1">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Design with AI
-          </span>
-          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
-            Preview a look across the app
-          </h1>
-        </div>
-        {pending ? (
-          <span className="flex shrink-0 items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => {
-                apply(patch);
-                commit();
-                setPatch(EMPTY_PATCH);
-                push({ role: "assistant", text: "Applied to your settings." });
-              }}
-              className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
-            >
-              <Check size={14} aria-hidden />
-              Apply to settings
-            </button>
-            <button
-              type="button"
-              onClick={() => setPatch(EMPTY_PATCH)}
-              className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
-              <RotateCcw size={14} aria-hidden />
-              Reset
-            </button>
-          </span>
-        ) : null}
-      </header>
+    <section className="flex flex-col gap-8 text-foreground">
+      <PageHeader
+        title="Design with AI"
+        description="Describe a look below. It only changes these previews until you apply it."
+        className="sm:items-center"
+        aside={
+          pending ? (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPatch(EMPTY_PATCH)}
+                className="h-9 sm:h-8"
+              >
+                <RotateCcw aria-hidden />
+                Reset
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  apply(patch);
+                  commit();
+                  setPatch(EMPTY_PATCH);
+                  push({ role: "assistant", text: "Applied to your settings." });
+                }}
+                className="h-9 sm:h-8"
+              >
+                <Check aria-hidden />
+                Apply to settings
+              </Button>
+            </>
+          ) : null
+        }
+      />
 
       {/* Previews — preview-only theming. Extra bottom padding so the
           floating dock never covers the last row. */}
       <div className="pb-36">
         <PreviewScope patch={patch}>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {PREVIEWS.map(({ label, Comp }) => (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {PREVIEWS.map(({ label, Comp, wide }) => (
               <div
                 key={label}
-                className="pointer-events-none flex flex-col overflow-hidden rounded-md border border-border bg-background"
+                className={cn(
+                  "pointer-events-none flex flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-card",
+                  wide && "sm:col-span-2",
+                )}
               >
-                <div className="border-b border-border px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="border-b border-border px-4 py-2.5 text-xs font-medium text-muted-foreground">
                   {label}
                 </div>
                 <div className="min-h-0 flex-1 overflow-hidden">
@@ -206,7 +209,7 @@ export function DesignStudio() {
           bottom: `calc(${footerH}px + 0.75rem + env(safe-area-inset-bottom))`,
         }}
       >
-        <div className="pointer-events-auto flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-card/95 text-card-foreground shadow-xl backdrop-blur-md">
+        <div className="pointer-events-auto flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-card/95 text-card-foreground shadow-float backdrop-blur-md">
           {messages.length > 0 || loading ? (
             <div
               ref={logRef}
@@ -258,7 +261,7 @@ export function DesignStudio() {
           ) : null}
 
           <div className="p-2">
-            <div className="flex items-end gap-2 rounded-xl bg-muted px-2 py-1.5">
+            <div className="flex items-end gap-2 rounded-xl bg-muted py-1.5 pr-1.5 pl-3">
               <textarea
                 ref={taRef}
                 value={value}
@@ -270,7 +273,7 @@ export function DesignStudio() {
                   }
                 }}
                 rows={1}
-                placeholder="Describe a look — it only changes the previews…"
+                placeholder="Try “warm and minimal” or “bigger serif text”"
                 aria-label="Describe a change"
                 disabled={loading}
                 className="max-h-32 min-h-8 flex-1 resize-none bg-transparent px-1 py-1 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-50"
@@ -280,7 +283,7 @@ export function DesignStudio() {
                 onClick={() => void onSend()}
                 disabled={loading || value.trim().length === 0}
                 aria-label="Send"
-                className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+                className="brand-surface flex size-8 shrink-0 items-center justify-center rounded-pill text-primary-foreground shadow-glow transition-opacity hover:brightness-110 disabled:opacity-40 disabled:shadow-none"
               >
                 <ArrowUp size={15} aria-hidden />
               </button>

@@ -246,7 +246,7 @@ All recipes are **mobile-first**: base classes target ≤ 375px viewports, `sm:`
 | Topbar (sticky header)    | `sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80` |
 | Topbar inner row          | `mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-3 sm:px-8 sm:py-4`          |
 | List row (long text + action) | `flex flex-col gap-2 rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900 sm:flex-row sm:items-center sm:justify-between` |
-| App shell with sidebar    | `grid h-full grid-cols-1 lg:grid-cols-[var(--app-rail-width)_1fr] lg:gap-6` — used by `/customise` only (the settings inspector). `--app-rail-width` lives in `globals.css`. |
+| App shell with sidebar    | Settings only (`src/customise/layout.tsx`): one scroller (`data-customise-scroller`, inside AppChrome's gutter) holding a centred grid `mx-auto max-w-5xl lg:grid-cols-[var(--app-rail-width)_minmax(0,1fr)] lg:gap-12`. The sidebar column is `sticky top-0` (lg+); the page column is `pt-6 pb-28 sm:pt-8`. Below lg a sticky header (`bg-background/85 backdrop-blur-md`) carries the page picker and a search icon. One scroller means the wheel works anywhere and the sidebar never scrolls away. |
 | Top bar                   | `<TopBar>`: a `[1fr auto 1fr]` grid — logo left, the nav as a floating pill capsule centred (lg+; active route is a filled brand-orange pill), actions pinned to column 3 so they always hug the right edge. 64px tall, translucent over the page aura. |
 | Footer                    | `<AppFooter>`: in-flow at the end of scrolling pages (scrolls away with content); pinned only under `compact` surfaces at md+. 12px sentence case; the version links to `/changelog`. |
 | Auth centered card        | `flex min-h-screen items-center justify-center bg-background p-4` outer + `w-full max-w-md` inner column with a `rounded-md border bg-card` card holding header (logo, eyebrow Tag, h1, description) + body (form children), and an alt-link sentence below. Used by `<AuthShell>` (`/sign-in`, `/sign-up`). Card animates in with `animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 duration-500`; the trailing alt-link uses the same animation with `[animation-delay:200ms] [animation-fill-mode:both]`. Apply `safe-pt safe-pb` to the page main so iOS notches/home-indicators don't clip. |
@@ -530,38 +530,39 @@ The shadcn `<Button>` is still preferred when the form/dialog already uses shadc
 
 ## 12. Settings layout convention
 
-Every settings surface (`/app/customise/<section>` and friends) follows the same shape so a user can move between sections without re-learning the layout each time.
+Settings are a quiet inspector, not a magazine: short task-based pages, one grouped list per section, plain one-sentence copy, and rows that only appear when they do something.
 
 ### 12.1 Anatomy of a section
 
-A *section* is a labelled group of related settings, rendered through the single `<SettingsSection>` primitive (`src/app/app/customise/_components/settings-section.tsx`). The primitive owns the editorial header so every section reads identically — never hand-roll the eyebrow + heading stack inline. Top-down order:
+Settings are split into **task-based pages** (one route each), catalogued in `src/customise/_components/groups.ts` (`SETTINGS_GROUPS`): Theme (`themes`, `colors`, `background`), Typing (`typography`, `caret`, `typing-area` with the row anchors `#mistakes` and `#tape`), Interface (`surface`, `geometry`, `chrome`, and the §21 `style` section), Keyboard (`keyboard` "Practice keyboard", `keymap` "Keymap overlay"), Stats & results (`live-stats`, `result`), Behaviour (`input-handling`, `word-list`, `burst`, `audio`, `adaptive`) and Multiplayer & social (`multiplayer`, `spectate`). The catalog drives the sidebar, the mobile picker, section headings (`sectionTitle`), each page's Reset count (`GROUP_APPEARANCE_KEYS`, `GROUP_THEME_VARS`) and the legacy redirect. Add a section to the catalog first, then render it.
 
-1. **Eyebrow line** — `<SettingsSection eyebrow="…">` paints a 1px primary tick + a section-specific eyebrow (e.g. "Surface", "Cursor", "Type") above the heading. Eyebrows are short categorical labels, not the section's own name.
-2. **Two-line lockup** — bigger title + optional one-line description on the left; the right slot (`actions`) is reserved for per-section utilities (rare).
-3. **Setting rows** — one per option, rendered via `<SettingsRow label="…" control={…} />` from `customise/_components/row.tsx`. Each row has the label on the left and a right-aligned control. **Rows have no fill and no border** — just a label + a control, separated from their neighbours by the section's row gap, sitting flush on the `bg-background` page. The surface lives on the *control*: chips are **`bg-muted`** with **no border**; their hover routes through `bg-accent` (§2.2). The **only outline anywhere in the list is the coral primary-accent border on the *active* chip** (`border border-primary bg-primary/10 text-primary`) — that single coral mark is how a selected option reads (one spark, §2). The Card-based rich rows (`<ColorRow>` desktop, `<FontRow>` desktop) are `bg-transparent ring-0` so they carry no box either. *Rationale: once the customise content panel and the row bands were removed (the page is flush `bg-background`), borders on every row read as cage lines; dropping them and letting only the active coral chip carry an outline makes the list quiet and the selection obvious.*
-4. **Reset** — when the section can be customised away from defaults, a single ghost-button row at the bottom: `Reset to default`. Per-row reset on color/font pickers stays where it lives (inline ⌫ chevron); per-section reset stays at the bottom of the section body.
+Every section renders through `<SettingsSection id title description preview?>`:
+1. **Header**: an `h2` (`text-lg font-semibold tracking-tight`) plus **one plain sentence**. No eyebrows. A ghost `Preview` button sits on the right when a preview exists.
+2. **One grouped list**: a `<Surface>` (`rounded-2xl border bg-card shadow-card`) holding the optional preview (top, `border-b bg-background`) and the rows, separated by `divide-y divide-border/70`. Row components return fragments, never wrapper divs, so the hairlines land between rows.
+3. **Rows**:
+   - `<SettingsRow label control inline? id? preview?>`: `px-4 py-3.5 sm:px-5`. The label is `<LabelWithDesc title desc>` (14px medium title plus one 13px muted line). Wide controls stack under the label on phones and sit right from `sm` (`sm:grid-cols-[minmax(9rem,1fr)_auto] sm:gap-8`). `inline` keeps short controls (swatch, typeface, mode, number input) beside the label at every width.
+   - `<SwitchRow title desc checked onChange>`: the whole row is the switch's `<label>`, so the tap target is at least 56px.
+4. There is **no per-section reset**. Reset lives in the page header (§12.7). Per-row Reset stays on colour and typeface rows.
 
-Each section carries a **togglable** bespoke preview card (§12.5) above its rows — a live, real-component render of *that* section's setting, so the user sees exactly how the choice looks. A `Preview` toggle in the section header collapses it (persisted per section, open by default), so a user who wants a denser list can fold the ones they don't need.
+**Progressive disclosure:** render a row only when it does something — background fit/opacity/blur/darken only once an image is set; tape position and fade only while tape is on; click volume only while clicks are on; the opponent marker only while player colours are on; caret details hide when the caret style is Off; the burst slider only for Custom; Colours shows four main rows with the rest behind a "More colours (N)" disclosure that stays open while any of them is changed.
 
 ### 12.2 What lives in `control={…}`
 
-Pick the smallest control that fits the choice space:
-
-| Choice space                                                  | Control                                  |
-|---------------------------------------------------------------|------------------------------------------|
-| 2–6 short discrete values (Style, Thickness, Mode)           | `<ChipGroup>` of chips, right-aligned, wraps to a second row on narrow viewports. Use the `preview` slot whenever the value is *visual* (radius shape, caret style, swatch) — text labels are guesswork for those |
-| 7+ values, or values whose names are long                    | `<DropdownMenu>` with the active swatch + label on the trigger button (Theme) |
-| Single binary toggle                                         | a chip-group with `[Off] [On]` so the row shape stays uniform |
-| Free input (URL, hex, name)                                  | `<Input>` (right-aligned within the row) |
-| Continuous numeric                                           | a chip-group of named presets (e.g. Sharp / Soft / Round). Sliders are reserved for sections that genuinely need fine-tuning, never inside a `SettingsRow` |
-| Continuous numeric, fine-grained (font size, opacity, margin) | `<SliderRow>` with a percent/value badge — used when presets can't honestly approximate the choice space (the practice-passage Size, Tape margin, Live stats opacity, Max line width). |
-| Bounded integer with an "unbounded" escape (lines rendered)  | `<Input type="number">` + an `<Chip label="All">` toggle. `0` is the wire value for unbounded; the input remembers the last numeric pick so toggling All on and off restores it. |
-
-`SettingsCard` (a Card with title + description + body) is **only** for controls that genuinely need their own description and a body too tall for a row — color picker rows (label + desc + swatch picker) and the background image upload zone. New rich-content settings should ask "can this be a SettingsRow?" first.
-
-**Color rows must use `<ColorRow>` (`src/app/app/customise/appearance/_components/color-row.tsx`).** Every colour-picker affordance on the appearance page — theme palette, live stats colour, future surfaces — routes through this single primitive so the swatch + hex + chevron button reads identically. Mobile renders a tight key/value row (label left, swatch right); desktop renders the Card layout above. Don't hand-roll an inline `<ColorPresetPicker>` trigger; reach for `<ColorRow>` instead.
+| Choice space | Control |
+|---|---|
+| Single on/off (any boolean) | `<SwitchRow>`, never Off/On chips. |
+| 2–8 short **text** values | `<SelectChips>` without previews, which renders the shared segmented switch (pill track, brand-orange selected pill). Full width with equal segments on phones, hugging from `sm`. |
+| 2–6 **visual** values | `<SelectChips>` or `<ChipGroup>` of `<Chip preview>` tiles (§12.2a). |
+| 7+ values, or long names | `<DropdownMenu>` with the active swatch + label on the trigger button (Theme). |
+| Colour | `<ColorRow>`: an inline `SettingsRow` with a swatch button (hex shown from `sm`) and a ghost Reset while overridden. |
+| Free input (URL, hex, name) | `<Input>` (right-aligned within the row). |
+| Continuous numeric, fine-grained | `<SliderRow>` with a value badge. |
+| Bounded integer with an "unbounded" escape | `<Input type="number">` + an "All" chip; `0` is the wire value for unbounded. |
 
 ### 12.2a Per-option chip previews
+
+- Chips are `rounded-xl` **tiles** with the sample above a 12px label. Selected = `border-primary bg-primary/10 text-primary`; at rest = `border-transparent bg-muted text-muted-foreground`. On phones `<ChipGroup>` is an even grid (up to four options per row, five or more in rows of three); from `sm` the tiles sit right-aligned. Minimum height `min-h-11 sm:min-h-9`. Text-only options never use chips (they use the segmented switch).
+
 
 Whenever a setting's value is **visual**, each option in the chip group carries its own preview — a small sample of what that option does — stacked above the chip label. The user picks by comparison, not by guessing what "Bold" vs "Underline" means in context.
 
@@ -583,7 +584,7 @@ const OPTIONS = [
 />
 ```
 
-The `<Chip>` primitive (`src/app/customise/_components/chip.tsx`) stacks the `preview` above the `label` and inverts to primary when active.
+The `<Chip>` primitive (`src/customise/_components/chip.tsx`) stacks the `preview` above the `label` and inverts to primary when active.
 
 Reach for chip-level previews whenever:
 - The choice space is visual (highlight effect, caret style, fade strength, tape mode, mistake style, card surface).
@@ -609,69 +610,40 @@ Every option that belongs to the same parent topic lives **inside the same secti
 
 Don't sprinkle related settings across sections; if you find yourself doing that, rename the section or split it cleanly.
 
-### 12.4 Spacing inside a section
+### 12.4 Spacing
 
-The `<SettingsSection>` primitive owns the section spacing — these values are *baked in* and should not be overridden inline. Documented here so future tweaks land in one place.
+| What | Class |
+|---|---|
+| Page header → first section, between sections | `gap-10 sm:gap-12` on the page column |
+| Section header → list | `gap-4` |
+| Row padding | `px-4 py-3.5 sm:px-5`, rows divided by `divide-border/70` |
+| Anchor offset | `scroll-mt-20 lg:scroll-mt-8` on sections and anchored rows |
 
-| What                                         | Class                                                     |
-|----------------------------------------------|-----------------------------------------------------------|
-| Eyebrow → heading lockup                     | `gap-4` on the header column                              |
-| Heading → preview / first row                | `mb-6 sm:mb-7` on the header                               |
-| Preview card → first row                     | `mb-6` on the preview card (only when the card is open)   |
-| Between rows                                 | `gap-3` on the wrapping body                              |
-| Between adjacent sections                    | `border-t border-border/60 pt-10 pb-12 sm:pt-14 sm:pb-16` (bigger pad sm+; first-of-type opts out of the top border) |
-
-### 12.5 Sections are anchors on one page — each with a togglable live preview card
-
-`/app/customise/appearance` is one page. Every topic (Themes & mode, Colors, Geometry, Caret, Typography, Keyboard, Background, Live stats, Typing area, Result, Keymap) renders inline as `<section id="…">` with the catalogued id from `src/app/app/customise/appearance/_sections.ts`. The sidebar links to `/app/customise/appearance#<id>`; the customise scroller jumps to that anchor. There are no sub-page routes — every control lives on the single page so the user is never wondering "is the thing I want behind another click?"
-
-Every section is rendered through `<SettingsSection>` (§12.1), which owns the eyebrow + heading frame and an optional `preview`.
-
-**Bespoke, togglable per-section preview.** Each section's `preview` foregrounds *that section's own* setting — a small, live render built from the **real on-page components** (`<Passage>`, `<Readouts>`/`<MobileReadouts>`, `<Keyboard>`, result-page `<TestSummary>`, …) mounted read-only inside a frozen `<PreviewPracticeProvider>` (`customise/_components/preview-practice.tsx`). Because they're the same components `/app` runs, every override repaints 1:1 with no parallel rendering to drift — including the Colors section, where the readouts + passage paint in the live token values. The previews live in `appearance/_components/section-previews.tsx` (one export per section) and `behaviour/_components/section-previews.tsx`.
-
-A `Preview` toggle in the section header collapses/expands the card; the open/closed state is persisted per section id in localStorage (`ft:customise:preview-open:<id>`), defaulting to **open**. This is what keeps the page from becoming a wall of always-on cards — the user folds the sections they've settled and keeps the ones they're tuning. Do **not** make the previews always-on (no toggle) or mock their contents — reuse the real components, and if a preview needs a setting the real component doesn't honour yet, fix the component, never fork the preview. Static + live, no animation.
-
-Sections whose setting the practice surface can't depict still get a faithful inline composition (the Result preview embeds the real result components; Keymap embeds the real `<Keyboard>`).
-
-**Themes explorer exemption.** `/app/customise/appearance/themes` is a separate full-page browser of every palette — it lives at its own route because it *is* a preview at full size. The Themes section on `/appearance` includes a "Browse all palettes" link to it.
-
-**Sidebar** — the desktop sidebar renders Appearance with its sub-section anchors indented under it on a left rail. The active rail bar tracks whichever section is currently scrolled into view (IntersectionObserver, threshold band 0–1). The mobile picker shows the same shape inside the bottom sheet — picking a row is a hash navigation, not a route change.
-
-### 12.7 Page header
-
-Every customise page opens with `<SettingsPageHeader>` (`_components/page-header.tsx`). The header is **editorial** — drop the placeholder "Section" eyebrow string, name what's actually being customised:
-
-- **Eyebrow** — `Customise · Appearance` / `Customise · Behaviour` (categorical, not the literal word "Section")
-- **Title** — descriptive ("Make it look the way you think"), not just the page name. The page name is in the eyebrow and the breadcrumb; the title sells the page.
-- **Description** — one sentence under the title naming the scope of what changes here.
-- **Right rail** — a customised stat (count + "customised"/"untouched" label), the Reset all button, and a single Manage menu (`<ImportExportMenu>`) that opens a dropdown with Export / Import flinttype / Import MonkeyType. The stat reads as foreground/40 dim when count is 0 and turns primary when there are real overrides; the user knows at a glance how dirty the page is. The Manage menu replaces the previous 3-stacked sidebar-footer panel — settings management lives where the rest of the page-level chrome does, not as a separate rail.
+### 12.5 Pages, anchors and previews
+- Each page is its own route; its sections are anchors (`/customise/<page>#<section>`). `/customise` redirects to the first page.
+- `/customise/appearance` is a client redirect: `legacyAppearanceHref(location.hash)` sends `#id` to its new page, so old links keep working.
+- **Previews stay real** (the same components the practice screen runs, inside `<PreviewPracticeProvider>`) but **default collapsed**. The Preview toggle is persisted per section in localStorage (`ft:customise:preview:<id>`). Never mock a preview — if it needs a setting the real component doesn't honour yet, fix the component.
+- **Sidebar** (`_components/sidebar.tsx`), top to bottom: a "Search settings" pill (`rounded-pill border bg-card shadow-card`, ⌘/Ctrl K hint from `sm`) that calls `openCommandPalette()`; the pages with icons, the active page `brand-surface text-primary-foreground shadow-glow`; the active page's sections on a left rail, the section in view `text-primary` with a 2px orange rail mark. Scroll-spy uses IntersectionObserver with `rootMargin: "-10% 0px -80% 0px"`; at the bottom of the scroller the last section wins unless the URL hash names one on screen.
+- The palette explorer (`/customise/appearance/themes`) counts as part of Theme; its back link is `lg:hidden`.
+- Phones get the same structure in a `<MobileSheet>`: search at the top, the pages as pills, and the current page's sections.
 
 ### 12.6 Don't
+- **Don't** re-implement the row shell ad-hoc; always use `<SettingsRow>` / `<SwitchRow>`.
+- **Don't** use Off/On chips for a boolean; use `<SwitchRow>`.
+- **Don't** show a row that has no effect in the current state.
+- **Don't** add eyebrows, uppercase tracked labels or developer terms (CSS var names, component names) to settings copy. One plain sentence per description, UK spelling, sentence case. Call it "Settings" in user-facing copy.
+- **Don't** make previews open by default.
+- **Don't** mix preview-chips and text-chips in the same row; don't add per-chip previews on temporal values (blink/smooth speed).
 
-- **Don't** re-implement the row shell ad-hoc with `<div className="border bg-card …">`. Always use `<SettingsRow>` so future tweaks (radius bump, padding shift) ripple uniformly.
-- **Don't** put a description on a row whose label already explains itself; descriptions belong on `SettingsCard`s. The label-on-the-left convention assumes the label is enough.
-- **Don't** mix preview-chips and text-chips in the same row. Either every chip in the row carries a `preview`, or none does — visual rhythm matters more than per-chip cleverness.
-- **Don't** add per-chip previews on rows whose value is *temporal* (Blink speed, Smooth speed, animation timings). The chip's text label conveys the speed; a static preview can't, and an animated one would be noise.
-- **Don't** mix slider + chip presets for the same setting unless the slider is in a separate fine-tune block; the rule of thumb is one control per row.
+### 12.7 Page header
+`<SettingsPageHeader group customizedCount onReset>` is built on `<PageHeader>`: the page name is the h1 with the group's one-line description; **"Reset (N)"** (outline, primary-coloured count) shows only while N > 0, counts only that page's keys and confirms with "Reset N settings?"; **"Import / export"** is an outline menu (Export, Import flinttype settings, Import MonkeyType settings); **"Design with AI"** is an outline link button with an orange Sparkles icon. On phones Import / export and Design with AI collapse to `size-9` icon buttons with aria-labels (§10.6).
 
-### 12.8 AI settings assistant — a studio page, launched from a pill
-
-The AI describer is a **dedicated studio page** at `/customise/appearance/ai` (`appearance/ai/page.tsx` → `<DesignStudio>`). A text-only **launcher pill** ("Design with AI", no icon) floats bottom-centre on the other customise pages (`customise/_components/ai-dock.tsx` → `<CustomiseAiDock>`, mounted in the customise layout, hidden on the studio itself + the themes explorer); pressing it navigates to the studio. The studio shows **six previews** of the app (Typing, Live stats, Keyboard, Result, Race, Buttons & chips — composed from the real `section-previews.tsx` components) in a grid, plus a **minimal bottom-centre chat dock**. It posts to `backend.appearance.aiSuggest({ prompt, current })` (server route `src/server/routes/appearance/`, OpenRouter via `src/server/openrouter.ts`, gated `requireAuth` + a tight rate limit). The model's JSON is **never trusted directly** — it picks ids from a fixed catalog (see below) which resolve to an `AppearancePatch`, re-validated by `sanitize.ts`.
-
-The flow is **preview-only until Apply** — changing anything only repaints the six previews, *never* the user's real config until they choose to keep it:
-- Each send merges the resolved patch into a **preview patch** (`patch-merge.ts`), and `<PreviewScope>` (`preview-scope.tsx`) themes the six previews with it in isolation: theme vars set inline on the wrapper (unset vars inherit the current cascade), appearance + behaviour overrides through `<PrefsOverrideProvider>` (§17.6). Nothing touches the global stores.
-- **Apply to settings** commits the preview patch to the real stores via `useApplyPatch` (`customise/_components/use-apply-patch.ts`), which writes theme / appearance / background / **behaviour** through the same typed setters the manual controls use; **Reset** drops the preview. Refinements stack because each request reads `overlayCurrent(current, previewPatch)`.
-- The dock is a minimal chat: the prompt becomes a bubble, a `motion-safe` coral-dots indicator shows it's working, and the assistant reply lists what changed. No `<PromptInput>` component (inlined); the floating launcher is purely a link.
-
-**Fixed-option catalog (server).** The model **never invents values** — it picks an option **id** for each "knob" from a fixed catalog (`options.ts` → `KNOBS`), e.g. `accent: teal`, `surface: midnight`, `font: serif`, `fontSize: large`, `stopOnError: on`. The server's `resolveAi` maps each chosen id to a concrete patch contribution (theme vars / appearance / behaviour; the colour knobs' OKLCH values are *generated* from named hues via `color.ts`, not hand-written), and the prompt's knob list is injected from `describeCatalog()` so it can never drift from what's resolvable. This is what makes "change lots of things at once" reliable — the model fills one `options` object with enum ids, and an invalid id is simply dropped. A `randomize: [knob, …]` directive picks a random valid option per knob (explicit `options` win over it). **Current-state context:** the client still sends a snapshot of the user's current settings (`use-current-settings.ts`: resolved theme vars via `getComputedStyle`, primitive appearance + behaviour prefs), which `buildUserMessage` prepends so the model can resolve relative asks ("warmer", "stricter") by picking the nearest fitting option. The resolved patch is re-validated by `sanitizePatch` as a final boundary.
-
-Rules:
-- The AI only ever writes through the **same typed store setters** the manual controls use (`setVar`, appearance/background/behaviour `update`) — never a parallel write path. Writes are live (the page is the preview); the undo snapshot is what makes Undo possible.
-- The catalog (`options.ts` → `KNOBS`) is the surface the AI can touch: add a knob/option there (it auto-appears in the prompt via `describeCatalog()`) to widen it, never by letting the model emit raw values. The resolved patch still passes through `sanitizePatch` (`AI_THEME_VARS` / `APPEARANCE_FIELDS` / `BEHAVIOUR_FIELDS`) as the final boundary.
-- No API key configured → the route returns a clear error the dock surfaces under the input; unauthenticated → the dock prompts sign-in. Both are handled states, not crashes.
-- The dock is `fixed` bottom-centre, floats above the footer (measured like the friends dock §17.5), and is `pointer-events-none` except for its pill/panel so it never blocks the page.
-
----
+### 12.8 AI settings assistant
+- The studio stays at `/customise/appearance/ai`, rendered inside the settings shell, reached from the "Design with AI" button in every settings page header. The floating launcher pill is **retired** (it covered the first control and doubled up with the friends dock).
+- The studio header is a `<PageHeader>` showing Apply to settings (primary) and Reset (ghost) only while a preview patch is pending. Previews are `rounded-2xl` cards in a two-column grid; Result and Keyboard span both columns. The chat dock is `rounded-2xl border bg-card/95 shadow-float` with a `brand-surface` send pill.
+- The model **never invents values**: it picks option ids from the fixed catalog (`src/server/routes/appearance/options.ts` → `KNOBS`), resolved server-side to an `AppearancePatch` and re-validated by `sanitizePatch`. The catalog's radius and word-spacing values match the settings presets, so the matching preset lights up after Apply.
+- The flow is preview-only until Apply: the preview patch themes the previews through `<PreviewScope>` / `<PrefsOverrideProvider>`; Apply writes through the same typed setters as the manual controls (`useApplyPatch`).
+- No API key → a clear error under the input; unauthenticated → a sign-in prompt.
 
 ## 13. Animation primitives
 
@@ -780,6 +752,10 @@ A globally-mounted Cmd/Ctrl+K palette is the keyboard-first surface for every cu
 - **Two openers:** `Cmd/Ctrl+K` (the canonical shortcut — don't rebind it) and **`Esc`**. Escape opens the palette **only when it would otherwise do nothing** — Escape stays primarily a *close/back* key, so the opener bails when any of these is true: the palette is already open (its own capture handler owns Escape — back out of a sub-view, else close); an overlay is open (a Radix dialog/alertdialog/popover/dropdown, the notifications bell, or the friends dock — each detectable in the DOM only while open); focus mode is on (`html[data-ft-focus="on"]` — Escape clears it first, §15); or a text input/textarea/contenteditable is focused (don't steal a blur/clear, and never interrupt typing the passage). When none apply, Escape opens the palette. `F` (focus mode, §15) stays orthogonal. The single global keydown listener for both openers lives in `<CommandPalette>`.
 - Focus is pinned to the search input on every open AND on every view switch (root ↔ enum sub-list) via a `requestAnimationFrame` re-focus pass. cmdk's Command primitive doesn't always present a focusable as the first DOM-order child, so Radix's default `onOpenAutoFocus` can land on the dialog shell instead of the input — the explicit ref + rAF focus is more reliable.
 - `Tab` and `Shift+Tab` are swallowed (`preventDefault`, no other action) so Radix's focus trap doesn't visibly shift the highlight off the input. The Back button in the enum sub-view is `tabIndex={-1}` for the same reason. The user reaches Back via Esc, not Tab.
+
+- **Third opener:** `openCommandPalette()` from `@/lib/command-palette/open` dispatches `ft:command-palette:open`, which `<CommandPalette>` listens for. Use it for "Search" affordances; never import the palette component. `commandKeyLabel(navigator.platform)` returns "⌘" or "Ctrl" for shortcut hints.
+- The Escape opener ignores events that are already `defaultPrevented` (e.g. Radix closing a dialog), so the palette's own closing Escape can't reopen it.
+- Palette copy is sentence case (group headings, value chips, footer); entry labels mirror the settings row titles; there is one "<Page> settings" entry per settings page.
 
 ### 16.2 Adding an entry
 
@@ -954,6 +930,7 @@ Rules:
 - Never hard-code `rounded-md`/`rounded-full` on a control, or an arbitrary `shadow-[…]` on a surface — use the tokens above so the Style settings reach it. (Avatars, dots and progress tracks stay `rounded-full`: they are shapes, not controls.)
 - One filled primary button per view. Secondary actions are `outline` or `ghost`.
 - Selected/active states are orange (`brand-surface` or `text-primary`), never black or neutral grey.
+- The Outlines knob (`data-ft-borders`, Settings → Interface → Outlines) recolours borders globally; `.border-transparent` stays transparent (ghost buttons, chips at rest) and `.border-primary` stays orange (selected chips) under every mode. Rely on those two utilities rather than inline styles.
 - Motion on controls is limited to colour/shadow transitions (~200ms ease-out) and the button press (`active:scale-[0.98]`); no bounce.
 - Primary is the logo orange `#f97316` in both modes with white, `font-semibold` label text on `brand-surface` (its deeper base improves label contrast).
 

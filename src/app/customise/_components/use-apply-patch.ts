@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
   type AppearancePrefs,
   useAppearancePrefs,
@@ -41,14 +41,18 @@ export function useApplyPatch() {
   const { prefs: background, update: updateBackground } = useBackgroundPrefs();
   const { prefs: behaviour, update: updateBehaviour } = useBehaviourPrefs();
 
+  // Latest values for the stable callbacks below — synced after each
+  // render rather than written during it.
   const overridesRef = useRef(overrides);
-  overridesRef.current = overrides;
   const appearanceRef = useRef(appearance);
-  appearanceRef.current = appearance;
   const backgroundRef = useRef(background);
-  backgroundRef.current = background;
   const behaviourRef = useRef(behaviour);
-  behaviourRef.current = behaviour;
+  useEffect(() => {
+    overridesRef.current = overrides;
+    appearanceRef.current = appearance;
+    backgroundRef.current = background;
+    behaviourRef.current = behaviour;
+  }, [overrides, appearance, background, behaviour]);
 
   const snapshotRef = useRef<Snapshot | null>(null);
 

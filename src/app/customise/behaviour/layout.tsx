@@ -2,9 +2,9 @@ import type { ReactNode } from "react";
 import { buildPageMetadata } from "@/server/seo";
 
 export const metadata = buildPageMetadata({
-  title: "Behaviour",
+  title: "Behaviour settings",
   description:
-    "Tune how flinttype reacts while you type — restart shortcuts, live signal, error handling, and word-list shape. Every change applies on the next keystroke.",
+    "Tune how the typing test reacts to your keystrokes: mistakes, backspace, word lists, burst mode, key sounds and adaptive practice.",
   path: "/customise/behaviour",
   noIndex: true,
 });

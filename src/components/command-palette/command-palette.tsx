@@ -5,7 +5,6 @@ import {
   ArrowRight,
   Check,
   ChevronRight,
-  ExternalLink,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -25,6 +24,10 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  commandKeyLabel,
+  OPEN_COMMAND_PALETTE_EVENT,
+} from "@/lib/command-palette/open";
 import { useCommandEntries } from "@/lib/command-palette/use-command-entries";
 import type {
   CommandEntry,
@@ -32,6 +35,7 @@ import type {
   EnumEntry,
 } from "@/lib/command-palette/types";
 import { isTypingSurfaceActive } from "@/lib/typing-surface";
+import { useMounted } from "@/lib/use-mounted";
 
 /** Group order in the rendered list — Practice actions at the top
  *  (Restart test is the highest-frequency command), then high-impact
@@ -70,7 +74,9 @@ export function CommandPalette() {
 
   // `open` read inside the global key handler without re-subscribing.
   const openRef = useRef(open);
-  openRef.current = open;
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
 
   // Two global openers:
   //   - Cmd / Ctrl + K toggles the palette (the canonical shortcut).
@@ -91,6 +97,10 @@ export function CommandPalette() {
       }
       if (e.key === "Escape") {
         if (openRef.current) return;
+        // Someone already handled this Escape — e.g. Radix closing the
+        // palette (or another dialog) on the same keystroke. Without
+        // this the palette's own closing Escape reopened it.
+        if (e.defaultPrevented) return;
         if (isEditableTarget(document.activeElement)) return;
         // A mounted typing-capture surface (practice / burst / race)
         // owns Escape as a restart gesture via its own window handler,
@@ -117,18 +127,29 @@ export function CommandPalette() {
         setOpen(true);
       }
     }
+    // Programmatic opener — "Search settings" buttons and similar
+    // affordances dispatch this instead of importing the palette.
+    const onOpenRequest = () => setOpen(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpenRequest);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpenRequest);
+    };
   }, []);
 
   // Reset view + query when the dialog closes so the next open is
   // always a clean root view, not whatever sub-list the user was in.
-  useEffect(() => {
+  // Adjusted during render (React's "store previous value" pattern)
+  // rather than in an effect, so there's no extra cascading render.
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (!open) {
       setView({ kind: "root" });
       setQuery("");
     }
-  }, [open]);
+  }
 
   // Re-pin focus to the search input on every open and on every
   // view switch. Radix Dialog runs `onOpenAutoFocus` once, after
@@ -301,7 +322,11 @@ function RootView({
       <CommandList>
         <CommandEmpty>No matches.</CommandEmpty>
         {groups.map(({ group, items }) => (
-          <CommandGroup key={group} heading={group}>
+          <CommandGroup
+            key={group}
+            heading={group}
+            className="[&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:normal-case [&_[cmdk-group-heading]]:tracking-normal"
+          >
             {items.map((entry) => (
               <CommandItem
                 key={entry.id}
@@ -346,11 +371,11 @@ function EnumView({
           // and we want focus to stay on the search input.
           tabIndex={-1}
           onClick={onBack}
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-pill text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
         >
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
         </button>
-        <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-foreground">
+        <span className="text-sm font-medium text-foreground">
           {entry.label}
         </span>
       </div>
@@ -363,7 +388,10 @@ function EnumView({
       />
       <CommandList>
         <CommandEmpty>No matches.</CommandEmpty>
-        <CommandGroup heading="Options">
+        <CommandGroup
+          heading="Options"
+          className="[&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:normal-case [&_[cmdk-group-heading]]:tracking-normal"
+        >
           {entry.options.map((opt) => {
             const active = opt.id === entry.value;
             return (
@@ -413,8 +441,8 @@ function ValueChip({ entry }: { entry: CommandEntry }) {
         <span
           className={
             entry.value
-              ? "rounded-md border border-primary/30 bg-primary/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em] text-primary"
-              : "rounded-md border border-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
+              ? "rounded-pill border border-primary/30 bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary"
+              : "rounded-pill border border-border px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
           }
         >
           {entry.value ? "On" : "Off"}
@@ -424,7 +452,7 @@ function ValueChip({ entry }: { entry: CommandEntry }) {
       const current =
         entry.options.find((o) => o.id === entry.value)?.label ?? entry.value;
       return (
-        <span className="flex items-center gap-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
           <span>{current}</span>
           <ChevronRight className="h-3 w-3" />
         </span>
@@ -432,9 +460,9 @@ function ValueChip({ entry }: { entry: CommandEntry }) {
     }
     case "link":
       return (
-        <span className="flex items-center gap-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
           <span>{entry.destination}</span>
-          <ExternalLink className="h-3 w-3" />
+          <ArrowRight className="h-3 w-3" aria-hidden />
         </span>
       );
     case "action":
@@ -448,8 +476,9 @@ function ValueChip({ entry }: { entry: CommandEntry }) {
 }
 
 function Footer({ view }: { view: View }) {
+  const mounted = useMounted();
   return (
-    <div className="flex items-center justify-between border-t border-border bg-muted/30 px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+    <div className="flex items-center justify-between border-t border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
       <div className="flex items-center gap-3">
         <span>
           <Kbd>↑↓</Kbd> Move
@@ -462,7 +491,7 @@ function Footer({ view }: { view: View }) {
         </span>
       </div>
       <div className="flex items-center gap-1">
-        <Kbd>⌘</Kbd>
+        <Kbd>{mounted ? commandKeyLabel(navigator.platform) : "Ctrl"}</Kbd>
         <Kbd>K</Kbd>
       </div>
     </div>
@@ -485,7 +514,7 @@ function isEditableTarget(el: Element | null): boolean {
 
 function Kbd({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="inline-flex h-4 min-w-4 items-center justify-center rounded-sm border border-border bg-background px-1 text-[9px] font-medium uppercase tracking-[0.14em] text-foreground">
+    <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-border bg-background px-1 font-sans text-[11px] font-medium text-foreground">
       {children}
     </kbd>
   );

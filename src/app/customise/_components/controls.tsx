@@ -1,61 +1,44 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Slider } from "@/components/ui/slider";
 import { Chip, ChipGroup } from "./chip";
 
-/** Off / On binary toggle rendered as two chips, so it lines up with
- *  the SelectChips control in the same column.
+/** N-way enum picker for a settings row.
  *
- *  Optional `offPreview` / `onPreview` slots — when present, each chip
- *  shows a small visual of what that state looks like (per UI Law
- *  §12.2). Skip them when the value isn't visual. */
-export function ToggleChips({
-  value,
-  onChange,
-  offPreview,
-  onPreview,
-}: {
-  value: boolean;
-  onChange: (next: boolean) => void;
-  offPreview?: ReactNode;
-  onPreview?: ReactNode;
-}) {
-  return (
-    <ChipGroup>
-      <Chip
-        label="Off"
-        active={!value}
-        onClick={() => onChange(false)}
-        preview={offPreview}
-      />
-      <Chip
-        label="On"
-        active={value}
-        onClick={() => onChange(true)}
-        preview={onPreview}
-      />
-    </ChipGroup>
-  );
-}
-
-/** N-way enum picker as chips. The chip labels are the only affordance
- *  so keep `label` short; if it's noisy text, use a Dropdown instead.
- *
- *  Each option may carry its own `preview` — a small visual sample
- *  shown above the chip label so the user can compare what each
- *  option does before picking. Reach for it whenever the value is
- *  visual (a highlight effect, a fade strength, a tape mode); skip
- *  it for purely-textual choices (a wpm/cpm unit). */
+ *  - Text-only options render as the shared segmented switch (§17.2 /
+ *    §21): a pill track with the selected option as a filled brand
+ *    pill. Keep labels short.
+ *  - Options that carry a `preview` render as visual chips — a small
+ *    sample above each label — so the user compares what each option
+ *    does before picking (§12.2a). Every option in a row has a preview
+ *    or none does. */
 export function SelectChips<T extends string | number>({
   value,
   options,
   onChange,
+  ariaLabel,
 }: {
   value: T;
   options: readonly { id: T; label: string; preview?: ReactNode }[];
   onChange: (next: T) => void;
+  ariaLabel?: string;
 }) {
+  const visual = options.some((o) => o.preview != null);
+  if (!visual) {
+    return (
+      <SegmentedControl
+        value={value}
+        onValueChange={onChange}
+        ariaLabel={ariaLabel}
+        options={options.map((o) => ({ value: o.id, label: o.label }))}
+        // Phones: a full-width track with equal segments; from `sm` up
+        // it hugs its options beside the label.
+        className="w-full max-w-full sm:w-auto [&>button]:flex-1 [&>button]:px-1.5 sm:[&>button]:flex-none sm:[&>button]:px-3"
+      />
+    );
+  }
   return (
     <ChipGroup>
       {options.map((o) => (
@@ -71,10 +54,9 @@ export function SelectChips<T extends string | number>({
   );
 }
 
-/** Numeric slider with a value badge, for continuous prefs (opacity,
- *  tape margin, keymap size, max line width). Stretches to its parent
- *  on mobile (SettingsRow is column-stacked) and caps at 11rem on
- *  sm:+ so it doesn't elbow the label off the row. */
+/** Numeric slider with a value readout, for continuous prefs (opacity,
+ *  tape margin, keymap size, max line width). Full width on phones
+ *  (the row stacks there), a fixed 12rem from `sm` up. */
 export function SliderRow({
   value,
   min,
@@ -82,6 +64,7 @@ export function SliderRow({
   step = 1,
   format = (v) => String(v),
   onChange,
+  ariaLabel,
 }: {
   value: number;
   min: number;
@@ -89,41 +72,42 @@ export function SliderRow({
   step?: number;
   format?: (v: number) => ReactNode;
   onChange: (v: number) => void;
+  ariaLabel?: string;
 }) {
   return (
-    <div className="flex w-full items-center gap-3 sm:w-44">
+    <div className="flex w-full items-center gap-3 sm:w-52">
       <Slider
         value={[value]}
         min={min}
         max={max}
         step={step}
+        aria-label={ariaLabel}
         onValueChange={(v) => {
           if (Array.isArray(v) && typeof v[0] === "number") onChange(v[0]);
         }}
         className="flex-1"
       />
-      <span className="min-w-10 text-right text-xs tabular-nums text-muted-foreground">
+      <span className="min-w-12 text-right text-xs font-medium tabular-nums text-muted-foreground">
         {format(value)}
       </span>
     </div>
   );
 }
 
-/** Build a row label that pairs a short title with an optional
- *  description underneath. Matches the style used by the behaviour
- *  page so labels read uniformly across settings. */
+/** A row label: a short title with an optional one-line description
+ *  underneath. */
 export function LabelWithDesc({
   title,
   desc,
 }: {
-  title: string;
-  desc?: string;
+  title: ReactNode;
+  desc?: ReactNode;
 }) {
   return (
-    <span className="flex flex-col gap-0.5">
-      <span>{title}</span>
+    <span className="flex min-w-0 flex-col gap-0.5">
+      <span className="text-sm font-medium text-foreground">{title}</span>
       {desc ? (
-        <span className="text-xs font-normal text-muted-foreground">
+        <span className="text-[13px] leading-snug font-normal text-muted-foreground">
           {desc}
         </span>
       ) : null}
