@@ -8,6 +8,16 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.25 — 27 October 2026
+- Words you get wrong are underlined in full again, instead of showing a stray underscore after the word.
+- Quote lengths now say "Extra long" instead of "Thicc", and the speed chart for timed tests runs right to the last second.
+- On phones, the test settings, replay controls and result buttons are bigger and easier to tap, and typing a custom length or searching wordlists no longer zooms the page on iPhone.
+- The wordlist picker is tidier on phones: names stay on one line and the rows line up.
+- The private lobby settings panel no longer jumps when you switch race type.
+- When you watch a race, the highlighted cursor matches the racer's marker in the lineup, and quote races credit their source as "A quote from …".
+- The race speed chart has a baseline, and the passage under the results lines up with the card.
+- Burst runs no longer show a personal-best crown, since they aren't saved.
+
 ## 6.148.24 — 27 October 2026
 - Personal-best notifications now name the mode the way the app does (Adapt instead of Training) and give the length a unit, such as "Casual · 30s" or "Adapt · 25 words".
 

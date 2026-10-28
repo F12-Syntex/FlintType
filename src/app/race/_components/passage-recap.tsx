@@ -30,7 +30,7 @@ export function PassageRecap() {
   const source = onlineSnapshot?.quoteSource;
 
   return (
-    <section aria-labelledby="race-passage-title" className="flex flex-col gap-3 px-1">
+    <section aria-labelledby="race-passage-title" className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 id="race-passage-title" className="text-sm font-semibold text-foreground">
           Passage

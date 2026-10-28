@@ -94,22 +94,25 @@ export function ReplayView({
             {(elapsed / 1000).toFixed(1)}s
           </p>
           <div className="flex flex-wrap items-center gap-2">
+            {/* Finger-sized on phones (§7 / §17.2), compact from sm. */}
             <SegmentedControl
               size="sm"
               ariaLabel="Replay speed"
               value={speed}
               onValueChange={setSpeed}
               options={SPEEDS}
+              className="[&>button]:h-10 [&>button]:px-3 sm:[&>button]:h-auto sm:[&>button]:px-2.5"
             />
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setPaused((p) => !p)}
+              className="h-11 sm:h-8"
             >
               {paused ? <Play aria-hidden /> : <Pause aria-hidden />}
               {paused ? "Play" : "Pause"}
             </Button>
-            <Button variant="ghost" size="sm" onClick={onExit}>
+            <Button variant="ghost" size="sm" onClick={onExit} className="h-11 sm:h-8">
               <Square aria-hidden />
               Stop
             </Button>

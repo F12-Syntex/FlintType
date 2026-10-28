@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { cn } from "@/lib/utils";
 import { QuoteAttribution } from "./quote-attribution";
 import { playerColorFor } from "./race-data";
@@ -43,6 +44,12 @@ export function SpectatorPassage({
     [racers],
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Same colour rule as the lineup lanes: an opponent wears their
+  // palette colour only with the player-colours setting on, otherwise
+  // ink, so the cursor here always matches their marker up top.
+  const { prefs } = useAppearancePrefs();
+  const accentFor = (id: string) =>
+    prefs.multiplayerPlayerColors ? playerColorFor(id) : "var(--foreground)";
 
   // The watched racer: the user's pick while they're still racing,
   // otherwise the leader among still-racing opponents. Derived (not
@@ -64,7 +71,7 @@ export function SpectatorPassage({
   }
 
   const cursor = Math.max(0, Math.min(selected.correctChars, totalChars(words)));
-  const color = playerColorFor(selected.id);
+  const color = accentFor(selected.id);
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col gap-4">
@@ -73,6 +80,7 @@ export function SpectatorPassage({
         unfinished={unfinished}
         onPick={setSelectedId}
         totalChars={totalChars(words)}
+        accentFor={accentFor}
       />
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto">
         <p
@@ -92,11 +100,13 @@ function SpectatorHeader({
   unfinished,
   onPick,
   totalChars,
+  accentFor,
 }: {
   watched: Racer;
   unfinished: readonly Racer[];
   onPick: (id: string) => void;
   totalChars: number;
+  accentFor: (id: string) => string;
 }) {
   const pct = totalChars > 0 ? Math.round((watched.correctChars / totalChars) * 100) : 0;
   return (
@@ -132,7 +142,7 @@ function SpectatorHeader({
                 onClick={() => onPick(r.id)}
                 aria-pressed={active}
                 className={cn(
-                  "h-9 gap-1.5 sm:h-7",
+                  "h-11 gap-1.5 sm:h-7",
                   active &&
                     "border-primary/50 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
                 )}
@@ -140,7 +150,7 @@ function SpectatorHeader({
                 <span
                   aria-hidden
                   className="size-1.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: playerColorFor(r.id) }}
+                  style={{ backgroundColor: accentFor(r.id) }}
                 />
                 {r.name}
               </Button>

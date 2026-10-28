@@ -56,7 +56,9 @@ export function LengthPicker({
     setDraft("");
   };
 
-  const item = fill ? "flex-1 px-2" : undefined;
+  // Filled (the touch-first stacked bar below lg): 40px pills, so the
+  // framed track clears the 44px finger target.
+  const item = fill ? "h-10 flex-1 px-2" : undefined;
 
   return (
     <div
@@ -115,7 +117,9 @@ export function LengthPicker({
               "h-8 w-16 rounded-pill border border-primary/50 bg-background px-3 text-center text-[13px] font-medium tabular-nums text-foreground outline-none",
               "[appearance:textfield] focus-visible:ring-2 focus-visible:ring-ring/40",
               "[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
-              fill && "flex-1",
+              // 16px text in the touch stack so iOS doesn't zoom the page
+              // when the field takes focus.
+              fill && "h-10 flex-1 text-base",
             )}
           />
         ) : (

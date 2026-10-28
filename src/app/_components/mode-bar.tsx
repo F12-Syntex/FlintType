@@ -32,7 +32,7 @@ function Divider() {
 function WordlistPlaceholder() {
   const { wordlist } = usePractice();
   return (
-    <span aria-hidden className="invisible flex shrink-0 items-center">
+    <span aria-hidden className="invisible flex shrink-0 items-center gap-0.5">
       <Divider />
       <span className={segmentClass(false)}>
         <span className="max-w-[12rem] truncate">{wordlistLabel(wordlist)}</span>
@@ -207,7 +207,7 @@ function CompactBar() {
               value={state.mode}
               onValueChange={pickMode}
               options={MODES}
-              className="flex w-full flex-nowrap [&>button]:flex-1 [&>button]:px-2"
+              className="flex w-full flex-nowrap [&>button]:h-10 [&>button]:flex-1 [&>button]:px-2"
             />
           </StackGroup>
           <StackGroup caption={LENGTH_LABEL[state.mode]}>

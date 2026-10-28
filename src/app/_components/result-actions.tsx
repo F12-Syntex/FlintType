@@ -5,6 +5,7 @@ import { type RefObject, useCallback, useEffect, useRef, useState } from "react"
 import { Kbd } from "@/components/ft";
 import { ShareRunButton } from "@/components/share-run-button";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 /** The result screen's action row: one filled "Next test" (the page's
  *  primary action, with the Tab shortcut shown beside it), then quiet
@@ -88,9 +89,10 @@ export function ResultActions({
           tab
         </Kbd>
       </Button>
+      {/* Ghost actions are 44px on phones (§7), the default 36px from sm. */}
       <div className="flex flex-wrap items-center justify-center gap-1">
         {canReplay ? (
-          <Button variant="ghost" onClick={onReplay}>
+          <Button variant="ghost" onClick={onReplay} className="h-11 sm:h-9">
             <Play aria-hidden />
             Replay
           </Button>
@@ -100,7 +102,10 @@ export function ResultActions({
           onClick={onDownload}
           disabled={exporting}
           aria-label="Save results as an image"
-          className={exportFailed ? "text-destructive hover:text-destructive" : undefined}
+          className={cn(
+            "h-11 sm:h-9",
+            exportFailed && "text-destructive hover:text-destructive",
+          )}
         >
           <Download aria-hidden />
           {exporting ? "Saving…" : exportFailed ? "Couldn't save" : "Save image"}
@@ -111,6 +116,7 @@ export function ResultActions({
             handle={share.handle}
             wpm={share.wpm}
             variant="labelled"
+            className="h-11 sm:h-9"
           />
         ) : null}
       </div>
