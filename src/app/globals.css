@@ -584,9 +584,12 @@
      The rules use `!important` because the `*` selector at the top of
      this layer (`@apply border-border`) and many shadcn primitives
      write border-color inline; we need to win unconditionally. */
-  html[data-ft-borders="soft"] *,
-  html[data-ft-borders="soft"] *::before,
-  html[data-ft-borders="soft"] *::after {
+  /* Elements that explicitly ask for a transparent border (ghost
+     buttons, pill segments) keep it — otherwise every ghost control
+     grew a faint ring under the default "soft" mode. */
+  html[data-ft-borders="soft"] *:not(.border-transparent),
+  html[data-ft-borders="soft"] *:not(.border-transparent)::before,
+  html[data-ft-borders="soft"] *:not(.border-transparent)::after {
     border-color: color-mix(in oklch, var(--foreground) 10%, transparent) !important;
   }
   html[data-ft-borders="hidden"] *,
@@ -690,6 +693,17 @@
       transparent 70%
     );
     background-attachment: fixed;
+  }
+  /* Outlines knob exceptions (Settings → Interface → Outlines). The
+     data-ft-borders soft/hidden rules recolour *every* border with
+     !important, which painted a hairline on controls meant to be
+     borderless (ghost buttons, chips at rest) and greyed out the
+     selected chip's orange outline. Keep both as authored. */
+  html[data-ft-borders] .border-transparent {
+    border-color: transparent !important;
+  }
+  html[data-ft-borders] .border-primary {
+    border-color: var(--primary) !important;
   }
 
   /* data-ft-padding: scales the page-pad utilities by setting a

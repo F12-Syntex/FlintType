@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.137.2 — 27 October 2026
+- Ghost buttons no longer show a faint outline ring, and selected options keep their orange outline under the default border style.
+
 ## 6.137.1 — 27 October 2026
 - Brought back flinttype's signature orange from the flame logo as the theme colour: the current page in the top bar, selected options and main buttons are orange again, now with a soft flame-style gradient, instead of black.
 
