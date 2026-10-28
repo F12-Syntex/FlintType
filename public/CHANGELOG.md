@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.12 — 27 October 2026
+- Typing now works with Android keyboards such as Gboard on the practice screen, in races and in sudden-death drills.
+- Tapping the text on a phone keeps the keyboard open instead of closing it straight away.
+- Tab now moves between buttons in a race lobby and on race results.
+
 ## 6.148.11 — 27 October 2026
 - Switching between settings pages now always starts at the top, and settings pages no longer slide sideways on phones.
 - The keyboard settings are now one section: its options only appear while the keyboard is shown.

@@ -1,13 +1,24 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useRef } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from "react";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { isRaceInputCurrentlyLocked } from "@/lib/race-input";
 import { useKeyClickSound } from "@/lib/use-key-click-sound";
 import { usePractice } from "./practice-state";
+import { useNativeTextInput } from "./use-native-text-input";
 
 const INTERACTIVE_SELECTOR =
-  "button, a, input, select, textarea, [role='radio'], [role='switch']";
+  "button, a, input, select, textarea, label, summary, [contenteditable='true'], [tabindex]:not([tabindex='-1']), [role='radio'], [role='switch'], [role='slider'], [role='tab'], [role='option'], [role='menuitem']";
+
+function modalOpen(): boolean {
+  return document.querySelector('[role="dialog"][aria-modal="true"]') !== null;
+}
 
 /** Captures all typing for the practice surface via a hidden input.
  *
@@ -30,11 +41,8 @@ export function InputCapture({ children }: { children: ReactNode }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const phaseRef = useRef(state.phase);
-  phaseRef.current = state.phase;
   const cursorCharRef = useRef(state.cursorChar);
-  cursorCharRef.current = state.cursorChar;
   const prefsRef = useRef(prefs);
-  prefsRef.current = prefs;
   // BURST mode lets TYPE_CHAR / BACKSPACE flow through the normal
   // practice reducer so Passage renders the same typing UX as WORDS.
   // SPACE is intercepted: <BurstPractice /> owns a window-level
@@ -43,7 +51,13 @@ export function InputCapture({ children }: { children: ReactNode }) {
   // current word (dispatch BURST_RESET). Suppressing SPACE here
   // stops it from bypassing that check.
   const modeRef = useRef(state.mode);
-  modeRef.current = state.mode;
+  // Event handlers read the latest render through these refs.
+  useLayoutEffect(() => {
+    phaseRef.current = state.phase;
+    cursorCharRef.current = state.cursorChar;
+    prefsRef.current = prefs;
+    modeRef.current = state.mode;
+  });
   // When a Backspace fired through onKeyDown, a paired beforeinput event
   // (deleteContentBackward / deleteWordBackward / deleteSoftLineBackward)
   // is also dispatched by the OS for the same physical key on most
@@ -51,6 +65,67 @@ export function InputCapture({ children }: { children: ReactNode }) {
   // press. Stamp the time at the keydown dispatch site; the beforeinput
   // path skips if a sibling fired in the last ~80ms.
   const lastBackspaceAtRef = useRef(0);
+  // The last printable key the keydown path handled, so a keyboard that
+  // reports it again as an input event doesn't type it twice.
+  const lastKeyRef = useRef({ key: "", at: 0 });
+
+  // Shared by the keydown path and the soft-keyboard input events.
+  const typeText = (text: string) => {
+    const now = Date.now();
+    const p = prefsRef.current;
+    const isBurst = modeRef.current === "BURST";
+    for (const ch of text) {
+      if (ch === " " || ch === "\n") {
+        // SPACE: in WORDS / TIME / QUOTE this advances the cursor.
+        // BURST has a controller that runs the threshold + reps check
+        // before deciding what to do, so it's suppressed here.
+        // No rest-phase guard: space as the first key starts the run
+        // and skips word 0 (issue #17a); the reducer owns it.
+        if (!isBurst) {
+          dispatch({
+            type: "SPACE",
+            now,
+            strictSpace: p.strictSpace,
+            backspaceLocked: p.confidence === "all",
+          });
+        }
+      } else {
+        dispatch({
+          type: "TYPE_CHAR",
+          char: ch,
+          now,
+          stopOnError: p.stopOnError,
+          allowExtras: p.allowExtras,
+        });
+      }
+      playClick();
+    }
+  };
+  const deleteBackward = (wordWise: boolean) => {
+    const p = prefsRef.current;
+    if (p.confidence === "all") return;
+    if (p.confidence === "word" && cursorCharRef.current === 0) return;
+    // deleteWordBackward (Ctrl / Option + Backspace) and
+    // deleteSoftLineBackward (Cmd + Backspace) wipe a whole word.
+    dispatch({ type: wordWise ? "BACKSPACE_WORD" : "BACKSPACE" });
+    playClick();
+  };
+
+  // Soft keyboards (and IME composition) type through input events.
+  // Typing is swallowed on the result screen, while a modal owns the
+  // screen (the adapt editor, confirm dialogs, sheets) and before a race
+  // has started.
+  useNativeTextInput(inputRef, lastKeyRef, {
+    accepts: () =>
+      phaseRef.current !== "done" && !modalOpen() && !isRaceInputCurrentlyLocked(),
+    onText: typeText,
+    onDelete: (wordWise) => {
+      // If keydown already handled this physical press, the paired
+      // input event is a duplicate.
+      if (Date.now() - lastBackspaceAtRef.current < 80) return;
+      deleteBackward(wordWise);
+    },
+  });
 
   const focus = useCallback(() => {
     inputRef.current?.focus({ preventScroll: true });
@@ -82,86 +157,6 @@ export function InputCapture({ children }: { children: ReactNode }) {
         // in-flow and has non-zero size. `pointer-events-none` lets taps pass
         // through to the wrapper below.
         className="pointer-events-none fixed bottom-0 left-0 size-px opacity-0"
-        // Keep the value empty so deleteContentBackward keeps firing.
-        value=""
-        onChange={() => {
-          /* handled in onBeforeInput */
-        }}
-        onBeforeInput={(e) => {
-          e.preventDefault();
-          // Suppress typing while a modal (the adapt editor, confirm
-          // dialogs, mobile sheets) is open — they own the screen.
-          if (
-            document.querySelector('[role="dialog"][aria-modal="true"]')
-          )
-            return;
-          // Race countdown / lobby / matching — the run hasn't started,
-          // so swallow typing (incl. mobile / IME beforeinput). preventDefault
-          // above already stopped the character; just bail before dispatch.
-          if (isRaceInputCurrentlyLocked()) return;
-          const ne = e.nativeEvent as InputEvent;
-          const t = ne.inputType;
-          if (
-            t === "deleteContentBackward" ||
-            t === "deleteWordBackward" ||
-            t === "deleteSoftLineBackward"
-          ) {
-            // If keydown already dispatched for this physical press, the
-            // OS-paired beforeinput event is a duplicate — drop it.
-            if (Date.now() - lastBackspaceAtRef.current < 80) return;
-            const p = prefsRef.current;
-            if (p.confidence === "all") return;
-            if (p.confidence === "word" && cursorCharRef.current === 0) return;
-            // deleteWordBackward (Ctrl+Backspace on most platforms,
-            // Option+Backspace on macOS) and deleteSoftLineBackward
-            // (Cmd+Backspace on macOS) wipe a whole word; only the
-            // plain "deleteContentBackward" should fall through to a
-            // single-char BACKSPACE.
-            dispatch({
-              type: t === "deleteContentBackward" ? "BACKSPACE" : "BACKSPACE_WORD",
-            });
-            playClick();
-            return;
-          }
-          if (t === "insertText" || t === "insertCompositionText") {
-            const data = ne.data ?? "";
-            const now = Date.now();
-            const p = prefsRef.current;
-            const stopOnError = p.stopOnError;
-            const allowExtras = p.allowExtras;
-            const strictSpace = p.strictSpace;
-            const isBurst = modeRef.current === "BURST";
-            for (const ch of data) {
-              if (ch === " " || ch === "\n") {
-                // SPACE: in WORDS / TIME / QUOTE this advances the cursor.
-                // BURST has a controller that runs the threshold + reps
-                // check before deciding what to do — suppress here so it
-                // owns the call.
-                if (isBurst) {
-                  playClick();
-                  continue;
-                }
-                // No rest-phase guard — space as the first key starts
-                // the run and skips word 0 (issue #17a); reducer owns it.
-                dispatch({
-                  type: "SPACE",
-                  now,
-                  strictSpace,
-                  backspaceLocked: p.confidence === "all",
-                });
-              } else {
-                dispatch({
-                  type: "TYPE_CHAR",
-                  char: ch,
-                  now,
-                  stopOnError,
-                  allowExtras,
-                });
-              }
-              playClick();
-            }
-          }
-        }}
         onKeyDown={(e) => {
           // Only Backspace is allowed to carry a modifier — Ctrl /
           // Alt(Win) / ⌥(Mac) / ⌘(Mac) + Backspace = "delete word".
@@ -170,21 +165,20 @@ export function InputCapture({ children }: { children: ReactNode }) {
           const wordWise =
             e.key === "Backspace" && (e.ctrlKey || e.altKey || e.metaKey);
           if (!wordWise && (e.ctrlKey || e.metaKey || e.altKey)) return;
-          // Tab never reaches here as a restart: the provider's
-          // capture-phase listener (practice-state.tsx) restarts on Tab
-          // while focus is on this input or the page, and leaves
-          // Shift+Tab / Tab-from-a-control to native focus traversal.
+          // Tab is never handled here: the provider's capture-phase
+          // listener (practice-state.tsx) restarts on Tab while focus is
+          // on this input or the page, and leaves Shift+Tab to native
+          // focus traversal. Returning before the race lock keeps Tab
+          // usable in the lobby and on results.
+          if (e.key === "Tab") return;
           // Suppress typing while a modal is open. preventDefault stops
           // Backspace / letters from doing anything page-level; the
           // modal's own window listener still receives the bubbled
           // event for Escape close.
-          if (
-            document.querySelector('[role="dialog"][aria-modal="true"]')
-          ) {
+          if (modalOpen()) {
             e.preventDefault();
             return;
           }
-          const p = prefsRef.current;
           if (e.key === "Escape") {
             e.preventDefault();
             // In race phases where input is locked (lobby, countdown,
@@ -203,42 +197,14 @@ export function InputCapture({ children }: { children: ReactNode }) {
 
           if (e.key === "Backspace") {
             e.preventDefault();
-            if (p.confidence === "all") return;
-            if (p.confidence === "word" && cursorCharRef.current === 0) return;
             lastBackspaceAtRef.current = Date.now();
-            dispatch({ type: wordWise ? "BACKSPACE_WORD" : "BACKSPACE" });
-            playClick();
-            return;
-          }
-          if (e.key === " ") {
-            e.preventDefault();
-            // No rest-phase guard — space as the first key starts the
-            // run and skips word 0 (issue #17a); the reducer owns it.
-            // BURST owns SPACE via its own controller — playClick still
-            // fires so the audio toggle works the same on every key.
-            if (modeRef.current === "BURST") {
-              playClick();
-              return;
-            }
-            dispatch({
-              type: "SPACE",
-              now: Date.now(),
-              strictSpace: p.strictSpace,
-              backspaceLocked: p.confidence === "all",
-            });
-            playClick();
+            deleteBackward(wordWise);
             return;
           }
           if (e.key.length === 1) {
             e.preventDefault();
-            dispatch({
-              type: "TYPE_CHAR",
-              char: e.key,
-              now: Date.now(),
-              stopOnError: p.stopOnError,
-              allowExtras: p.allowExtras,
-            });
-            playClick();
+            lastKeyRef.current = { key: e.key, at: Date.now() };
+            typeText(e.key);
           }
         }}
       />
@@ -247,12 +213,17 @@ export function InputCapture({ children }: { children: ReactNode }) {
           (mobile) so the focus call lands *during* the user gesture — iOS
           only opens the OS keyboard when .focus() runs inside a touch
           handler. Skip refocus when the gesture targets an interactive
-          control so the pill / restart button click isn't disrupted. */}
+          control so the pill / restart button click isn't disrupted.
+          While typing, mousedown's default is cancelled too: otherwise
+          the browser moves focus off the input right after the tap
+          focused it, and the phone keyboard closes again. The result
+          screen keeps the default so its text stays selectable. */}
       <div
         className="flex min-h-0 flex-1 flex-col"
         onMouseDown={(e) => {
           const target = e.target as HTMLElement;
           if (target.closest(INTERACTIVE_SELECTOR)) return;
+          if (phaseRef.current !== "done") e.preventDefault();
           focus();
         }}
         onTouchStart={(e) => {
