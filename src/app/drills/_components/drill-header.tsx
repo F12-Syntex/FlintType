@@ -1,20 +1,14 @@
-"use client";
-
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { Tag } from "@/components/ft";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-/** Shared chrome for every drill page. A breadcrumb back-link sits at
- *  the very top, mirroring the customise sub-page back-link
- *  (`docs/ui-law.md` §12.5) so the user trains a single mental model
- *  for "leave this surface". The drill subtitle and title sit below.
- *
- *  The whole strip uses semantic tokens (border-border, bg-background,
- *  text-muted-foreground) so it inherits whatever theme the user has
- *  picked. It deliberately mirrors the customise breadcrumb spacing
- *  and tracking — the two surfaces are the only places in the app
- *  that ship a back-to-parent affordance, and they should look the
- *  same. */
+/** Top of every drill runner. Sits in the same centred column as the
+ *  practice surface (the runner page provides it), on the shared page
+ *  gutter: no extra inset and no edge-to-edge rule. A ghost back button
+ *  (icon-only 44px on phones, labelled from sm), a hairline divider,
+ *  then the drill's kind and title. One row, so the typing area keeps
+ *  its height on short screens. */
 export function DrillHeader({
   title,
   subtitle,
@@ -23,17 +17,24 @@ export function DrillHeader({
   subtitle: string;
 }) {
   return (
-    <header className="border-b border-border bg-background px-5 pt-6 pb-5 sm:px-12 sm:pt-7 lg:px-20">
+    <header className="flex items-center gap-2 pt-3 sm:gap-3 sm:pt-5">
       <Link
         href="/drills"
-        className="mb-3 inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground"
+        aria-label="Back to drills"
+        className={cn(
+          buttonVariants({ variant: "ghost" }),
+          "-ml-3 size-11 shrink-0 px-0 text-muted-foreground sm:h-9 sm:w-auto sm:px-3",
+        )}
       >
-        <ArrowLeft size={14} aria-hidden />
-        Drills
+        <ArrowLeft aria-hidden />
+        <span className="hidden sm:inline">Drills</span>
       </Link>
-      <div className="flex flex-col gap-1">
-        <Tag>{subtitle}</Tag>
-        <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+      <span aria-hidden className="h-6 w-px shrink-0 bg-border" />
+      <div className="flex min-w-0 flex-col">
+        <span className="truncate text-xs font-medium text-muted-foreground">
+          {subtitle}
+        </span>
+        <h1 className="truncate text-lg font-bold tracking-tight text-foreground sm:text-xl">
           {title}
         </h1>
       </div>

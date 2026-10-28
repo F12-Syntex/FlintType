@@ -52,7 +52,23 @@ const DRILL_TITLES: Record<
     description:
       "Burst sprint through the 100 most common English words. Pure cadence training.",
   },
+  "english-burst": {
+    title: "English burst drill",
+    description:
+      "Burst-typing drill on forty random words from the same English pool tests and races draw from.",
+  },
 };
+
+/** Isolation drills are generated per weak pattern (`isolation-<pattern>`),
+ *  so they can't be listed above; give them a title from the id. */
+function isolationEntry(id: string): { title: string; description: string } | null {
+  if (!id.startsWith("isolation-")) return null;
+  const pattern = id.slice("isolation-".length);
+  return {
+    title: `Isolate "${pattern}" drill`,
+    description: `Burst-typing drill on the pattern "${pattern}" across many everyday words, so the speed transfers instead of sticking to one word.`,
+  };
+}
 
 export async function generateMetadata({
   params,
@@ -60,7 +76,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const entry = DRILL_TITLES[id] ?? {
+  const entry = DRILL_TITLES[id] ?? isolationEntry(id) ?? {
     title: "Drill",
     description: "A focused typing drill on flinttype.",
   };

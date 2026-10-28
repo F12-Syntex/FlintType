@@ -22,6 +22,8 @@ export type DrillSpec =
       category: DrillCategory;
       title: string;
       contextLabel: string;
+      /** One plain sentence for the drills index tiles. */
+      summary: string;
       description: string;
       payoff: string;
       ready: boolean;
@@ -33,6 +35,8 @@ export type DrillSpec =
       category: DrillCategory;
       title: string;
       contextLabel: string;
+      /** One plain sentence for the drills index tiles. */
+      summary: string;
       description: string;
       payoff: string;
       ready: boolean;
@@ -298,7 +302,8 @@ function buildIsolationDrills(
       kind: "burst",
       category: "tailored",
       title: `Isolate "${pattern}"`,
-      contextLabel: "Isolation drill",
+      contextLabel: "Isolation",
+      summary: `Drill the ${type} "${pattern}" across ${items.length} everyday words.`,
       description: `Hammer the ${type} "${pattern}" across ${items.length} everyday words — ${items
         .slice(0, 4)
         .map((w) => `"${w}"`)
@@ -321,7 +326,9 @@ function buildIsolationDrills(
       kind: "burst",
       category: "tailored",
       title: "Isolation drill",
-      contextLabel: "Isolation drill",
+      contextLabel: "Isolation",
+      summary:
+        "Unlocks once we know which letter pairs your hands are slowest on.",
       description:
         "Once we've spotted the letter pairs your hands are slowest on, this drill hammers one of them across dozens of varied everyday words — so the speed transfers instead of sticking to a single word.",
       payoff:
@@ -371,6 +378,10 @@ export function buildDrills({
           category: "tailored",
           title: "Weakness gauntlet",
           contextLabel: "Sudden death",
+          summary: `A passage built from your slowest pairs (${weakestPairs
+            .slice(0, 3)
+            .map((w) => w.key)
+            .join(", ")}). One mistake restarts it.`,
           description: `A passage built from your slowest bigrams: ${weakestPairs.slice(0, 4).map((w) => `"${w.key}"`).join(", ")}. Clear it without a single mistake — one wrong key sends you back to word one.`,
           payoff: "Sudden-death enforces accuracy where you're already slow. Your brain locks in the cleaner motion when error is non-negotiable.",
           ready: true,
@@ -382,6 +393,8 @@ export function buildDrills({
           category: "tailored",
           title: "Weakness gauntlet",
           contextLabel: "Sudden death",
+          summary:
+            "Unlocks once we've seen enough of your typing to find your slowest pairs.",
           description:
             "Once we've seen enough of your typing to identify weak bigrams, this drill will build a passage around them and demand a clean run.",
           payoff: "Drilling your weakest pairs under sudden-death pressure is the highest-leverage path to a higher overall WPM.",
@@ -397,7 +410,8 @@ export function buildDrills({
           kind: "burst",
           category: "tailored",
           title: "Worst-words burst",
-          contextLabel: "Burst minigame",
+          contextLabel: "Burst",
+          summary: `Your ${worstWords.length} slowest words, one at a time, until each clears ${DEFAULT_BURST_THRESHOLD_WPM} wpm.`,
           description: `Burst your slowest ${worstWords.length} words: ${worstWords
             .slice(0, 4)
             .map((w) => `"${w}"`)
@@ -415,7 +429,9 @@ export function buildDrills({
           kind: "burst",
           category: "tailored",
           title: "Worst-words burst",
-          contextLabel: "Burst minigame",
+          contextLabel: "Burst",
+          summary:
+            "Unlocks once we've timed enough words to find the ones you stall on.",
           description:
             "Once we've timed enough whole-word completions to spot the words your hands keep stalling on, this drill bursts the slowest 20 of them.",
           payoff: "Word-level slowness is a different signal than bigram weakness — it catches words whose individual pairs are fine but whose sequence still trips you.",
@@ -432,7 +448,10 @@ export function buildDrills({
     kind: "burst",
     category: "tailored",
     title: "Trigram burst",
-    contextLabel: "Burst minigame",
+    contextLabel: "Burst",
+    summary: trigramTailored
+      ? `Your weakest three-letter clusters: ${trigrams.join(", ")}.`
+      : `The most useful three-letter clusters in English: ${trigrams.join(", ")}.`,
     description: trigramTailored
       ? `Drill 3-letter clusters from your weakest trigrams: ${trigrams.map((t) => `"${t}"`).join(", ")}. ${DEFAULT_BURST_REPS} clean bursts above ${DEFAULT_BURST_THRESHOLD_WPM} WPM advance to the next.`
       : `Drill the highest-value English trigrams: ${trigrams.map((t) => `"${t}"`).join(", ")}. Once we've seen more of your typing this list will swap for your weakest trigrams.`,
@@ -456,7 +475,9 @@ export function buildDrills({
     kind: "burst",
     category: "generic",
     title: "Burst 1000",
-    contextLabel: "Burst minigame",
+    contextLabel: "Burst",
+    summary:
+      "Clear the 1,000 most common English words one by one. Progress saves to your account.",
     description: `Drill the thousand most common English words. Each word you clear at ${DEFAULT_BURST_THRESHOLD_WPM} WPM is logged against your account — over time, fill the whole 1000-cell grid. ${DEFAULT_BURST_REPS} clean bursts to discover a word.`,
     payoff: "The longest-running burst drill — slowly turns the entire core English vocabulary into reflex. Progress saves to your account.",
     ready: true,
@@ -477,6 +498,8 @@ export function buildDrills({
     category: "generic",
     title: "Tongue-twister gauntlet",
     contextLabel: "Sudden death",
+    summary:
+      "Awkward words with silent letters and cross-hand jumps. One mistake restarts it.",
     description:
       "A curated set of awkward words — silent letters, cross-hand jumps, doubled clusters. Clean run or back to the start.",
     payoff: "Universal — no model required. Useful for warm-up or whenever the personal drill is unavailable.",
@@ -489,7 +512,8 @@ export function buildDrills({
     kind: "burst",
     category: "generic",
     title: "Pangram sprint",
-    contextLabel: "Burst minigame",
+    contextLabel: "Burst",
+    summary: `Eight classic pangrams that use every letter, each at ${SPRINT_BURST_THRESHOLD_WPM} wpm.`,
     description: `Hit ${SPRINT_BURST_THRESHOLD_WPM} WPM on a full pangram, ${PANGRAM_REPS} clean run per sentence. Eight sentences total — every letter of the alphabet across the set.`,
     payoff: "Whole-sentence threshold practice is the closest drill to a real test — flow, punctuation, and every letter row in one pass.",
     ready: true,
@@ -508,6 +532,8 @@ export function buildDrills({
     category: "generic",
     title: "Numbers & symbols",
     contextLabel: "Sudden death",
+    summary:
+      "Short sentences full of numbers and punctuation. One mistake restarts it.",
     description:
       "A passage of short sentences threaded with numbers, dashes, colons, and dollar signs. The keys you skim past in normal practice — drilled clean.",
     payoff: "Almost every typist's accuracy collapses on the number row and the punctuation cluster. Honest reps under sudden-death plug the gap fast.",
@@ -520,7 +546,8 @@ export function buildDrills({
     kind: "burst",
     category: "generic",
     title: "Top 100 sprint",
-    contextLabel: "Burst minigame",
+    contextLabel: "Burst",
+    summary: `Forty everyday words at a friendly ${SPRINT_BURST_THRESHOLD_WPM} wpm. A good warm-up.`,
     description: `Forty of the hundred most common English words at a friendlier ${SPRINT_BURST_THRESHOLD_WPM} WPM threshold, ${DEFAULT_BURST_REPS} reps each. The warm-up before harder bursts.`,
     payoff: "Re-anchors the muscle memory on words you type every day. Hit threshold here and the harder drills feel achievable.",
     ready: true,
@@ -535,7 +562,9 @@ export function buildDrills({
     kind: "burst",
     category: "generic",
     title: "English burst",
-    contextLabel: "Burst minigame",
+    contextLabel: "Burst",
+    summary:
+      "Forty random words from the same pool as tests and races.",
     description: `Forty random words from the English pool single-player and multiplayer both draw from. ${DEFAULT_BURST_REPS} clean bursts above ${DEFAULT_BURST_THRESHOLD_WPM} WPM advance to the next.`,
     payoff:
       "Practices the same vocabulary you'll see in everyday tests and races — at burst pace rather than long-form, so the cadence stays sharp.",

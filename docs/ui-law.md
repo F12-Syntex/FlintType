@@ -1005,12 +1005,34 @@ The page answers "what should I practise next?" first. Components live in `src/a
 - **Playground:** each word chip shows its predicted WPM (`12000 · (len − 1) / predictedMs`, since `adapt.scoreWord`'s `predictedMs` is the whole word's time across its transitions); the summary is `12000 · Σtransitions / ΣpredictedMs`, so it always agrees with the chips (`playground-math.ts`, unit-tested). Only challenge-band words are tinted (`bg-primary/15 text-primary`); the band is off on a cold model and never applies to one-letter words.
 - **Loading / error:** a skeleton shaped like the sections (`motion-safe:animate-pulse`), and a dashed card with "Try again" (or "Sign in" when unauthorised) on error.
 
+## 25. Drills (`/drills`, `/drills/[id]`)
+
+Drills answer one question: what should I practise next. Components live in `src/app/drills/_components/`. The view logic (recommendation, isolation folding, locked-last order, filters, spec line) is the pure, unit-tested `drill-tiles.ts`. `drills-data.ts` stays the single source of drill data.
+
+### 25.1 Index layout
+`<PageShell>` → `<PageHeader title="Drills">` with a neutral "N ready · N locked" pill in `aside` (same recipe as the insights status pill: `h-8 rounded-pill border bg-card text-xs`) → the **Recommended tile** → a filter + sections group.
+
+- **Recommended tile** (`recommended-drill.tsx`): full width, the page's orange accent: `rounded-2xl border-primary/30 bg-linear-to-br from-primary/10 via-card to-card shadow-card`, a `text-primary` flame eyebrow "Recommended for you", h2 title, one-line summary, a neutral kind badge + spec line, and the page's one filled `buttonVariants({ size: "lg" })` "Start drill" (full width on phones). It is left out of the grid below; it is the first ready tailored drill and never an isolation drill.
+- **Filter**: the shared `<SegmentedControl>` (§17.2), `h-11 md:h-10`. On phones it sits in an `overflow-x-auto -mx-4 px-4` wrapper so it scrolls sideways. Options with no matches hide.
+- **Sections**: `<PageSection>` "Tailored to you" and "For everyone", each a `<ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">`. An empty filter result shows a dashed card with a "Show all drills" outline button.
+
+### 25.2 Drill tiles (`drill-tile.tsx`)
+- **Ready tile**: the whole card is the `<Link>` (no trailing arrow, §17.5): the `<Surface>` recipe + `hover:border-foreground/20 hover:shadow-float motion-safe:hover:-translate-y-0.5` + `focus-visible:ring-3 ring-ring/40`. Content: neutral kind badge, title (`text-base sm:text-lg font-semibold`), summary (`line-clamp-2 max-sm:hidden`), spec line pinned to the bottom (`mt-auto text-xs tabular-nums text-muted-foreground`).
+- **Kind badge**: `h-6 rounded-pill bg-muted px-2.5 text-xs text-muted-foreground` with a lucide icon: Skull = sudden death, Zap = burst, Target = isolation. Never coloured, so the recommended tile keeps the orange.
+- **Locked tile**: same geometry, `border-dashed bg-card/40`, no shadow, inert (`aria-disabled`, not focusable), a "Locked" badge, and a summary stating what unlocks it. Locked tiles sort last.
+- **Isolation tile**: every `isolation-<pattern>` drill folds into one "Isolate weak pairs" card whose body is a wrap of 44px outline pill chips, one per pattern, each linking to its drill. A cold model gets one locked tile instead.
+
+### 25.3 Runner (`/drills/[id]`)
+`page.tsx` is a server component wrapping the client `<DrillRunner>`. Every state renders in the practice column (`mx-auto max-w-5xl`), so header, passage, stats and keyboard share the practice page's edges.
+- **`<DrillHeader>`**: one row, no border. A ghost back button (`size-11` icon-only on phones, `sm:h-9` labelled "Drills", `-ml-3` so the icon meets the column edge), a `h-6 w-px bg-border` divider, then the kind (`text-xs text-muted-foreground`) over the h1 (`text-lg sm:text-xl font-bold`).
+- **Loading** is a header + passage-shaped skeleton. **Error, signed-out, 404 and locked** are centred notices (eyebrow, h2, one line, buttons): primary flame `size="lg"`, secondary `outline` `size="lg"`.
+
 ## 20. Amending this document
 
 When you introduce a new pattern:
 
 1. Open this file.
-2. Add a row to the matching table (§2 color, §3 spacing, §4 typography, §5 layout, §12 settings, §13 animation, §14 identity marks, §15 minimisation knobs, §16 command palette, §17 social controls, §18 profile, §19 update cards) **or** a new section with the next sequential number.
+2. Add a row to the matching table (§2 color, §3 spacing, §4 typography, §5 layout, §12 settings, §13 animation, §14 identity marks, §15 minimisation knobs, §16 command palette, §17 social controls, §18 profile, §19 update cards, §21 shape/depth, §22 practice, §23 races, §24 insights, §25 drills) **or** a new section with the next sequential number.
 3. Include a one-line rationale — why this pattern, what problem it solves.
 4. Commit the doc change **in the same commit** as the code using it.
 5. From that commit forward, all UI must follow the new rule.

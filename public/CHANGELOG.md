@@ -8,6 +8,13 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.143.0 — 27 October 2026
+- The drills page now leads with one recommended drill and a big orange Start button, so you always know what to practise next.
+- Drills are grouped into Tailored to you and For everyone, as compact rounded cards you tap anywhere to start. The page is about half as long on phones.
+- The isolation drills are merged into one card with a tappable button for each weak letter pair.
+- Opening a single drill works again, and its header now lines up with the typing area. It has a clear back button and friendlier screens for loading, locked and signed-out states.
+- The filters use the same orange switch as the rest of the app, and each drill card says plainly what it does and how many words, reps and how much speed it asks for.
+
 ## 6.142.0 — 27 October 2026
 - The profile page has a cleaner layout: a rounded identity card with a flame-ringed avatar, then personal bests, activity and skill, your WPM trend and recent runs.
 - Best WPM and your level bar glow in the flinttype orange, while the rest of the stats stay calm and easy to scan.
