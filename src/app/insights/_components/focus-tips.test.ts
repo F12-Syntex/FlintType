@@ -54,14 +54,52 @@ describe("buildFocusTips", () => {
     expect(tips[0]!.action?.href).toBe("/");
   });
 
-  it("links the slowest pair to the weakness drill with a % vs baseline", () => {
+  it("links the weakest pair to the weakness drill with ms and % vs baseline", () => {
     const tips = buildFocusTips(
       snap({ weakestPairs: [weak("be", 121)], bigramBaselineMs: 100 }),
     );
     const pair = tips.find((t) => t.id === "pair")!;
-    expect(pair.title).toContain("be");
-    expect(pair.detail).toContain("21% slower");
-    expect(pair.action?.href).toBe("/drills/weakness");
+    expect(pair.title).toBe("Weakest pair: “be”");
+    expect(pair.detail).toContain("121 ms, 21% over your average pair");
+    expect(pair.action).toEqual({
+      href: "/drills/weakness",
+      label: "Start Weakness gauntlet",
+    });
+  });
+
+  it("never calls a weakness-ranked item the slowest", () => {
+    // The lists are ranked by the confidence-weighted weakness score,
+    // so the top item is not necessarily the one with the highest ms.
+    const tips = buildFocusTips(
+      snap({
+        weakestPairs: [weak("im", 85, 5), weak("hr", 89, 3)],
+        weakestWords: [weak("person", 400, 9), weak("because", 420, 4)],
+        bigramBaselineMs: 56,
+        wordBaselineMs: 206,
+      }),
+    );
+    for (const t of tips) {
+      expect(t.title.toLowerCase()).not.toContain("slowest");
+      expect(t.detail.toLowerCase()).not.toContain("slowest");
+    }
+    expect(tips.find((t) => t.id === "word")!.title).toBe("Weakest word: “person”");
+  });
+
+  it("names the drill on every action button", () => {
+    const tips = buildFocusTips(
+      snap({
+        weakestPairs: [weak("be", 120)],
+        weakestWords: Array.from({ length: WORST_WORDS_MIN }, (_, i) =>
+          weak(`w${i}`, 300),
+        ),
+        recentTests: [run(80), run(80), run(80)],
+      }),
+    );
+    expect(tips.map((t) => t.action?.label)).toEqual([
+      "Start Weakness gauntlet",
+      "Start Worst-words burst",
+      "Start Tongue-twister",
+    ]);
   });
 
   it("locks the worst-words drill until enough slow words exist", () => {
@@ -85,6 +123,7 @@ describe("buildFocusTips", () => {
   it("omits the percentage when there is no baseline", () => {
     const pair = buildFocusTips(snap({ weakestPairs: [weak("be", 90)] }))[0]!;
     expect(pair.detail).not.toContain("%");
+    expect(pair.detail).toContain("90 ms on average");
   });
 
   it("adds an accuracy tip when recent accuracy is low", () => {

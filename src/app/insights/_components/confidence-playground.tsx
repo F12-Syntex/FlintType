@@ -1,15 +1,25 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Surface } from "@/components/page-shell";
 import { Input } from "@/components/ui/input";
 import { BackendError, useBackend } from "@/lib/backend";
-import type { ScoreWordOutput } from "@/types/adapt";
-import { summarisePlayground, tokenisePlayground } from "./playground-math";
+import {
+  type Scored,
+  summarisePlayground,
+  tokenisePlayground,
+} from "./playground-math";
+import { createScoreCache, sessionScoreStorage } from "./score-cache";
+import { SummaryRow } from "./summary-row";
 import { WordChip } from "./word-chip";
 
 const SAMPLE = "the quick brown fox jumps over the lazy dog";
+
+/** Shared across mounts (and, via sessionStorage, reloads) so a revisit
+ *  doesn't re-spend the per-user scoring budget on known words. */
+const scoreCache = createScoreCache<Scored>({
+  storage: sessionScoreStorage("ft:insights:scores:"),
+});
 
 function errorMessage(err: unknown): string {
   if (err instanceof BackendError) {
@@ -20,52 +30,78 @@ function errorMessage(err: unknown): string {
 }
 
 /** Type any text and see how the model predicts you'll type it: each
- *  word shows its predicted WPM, and only challenge-band words (slow
- *  enough to be worth practising) are tinted orange. Scores come from
- *  `adapt.scoreWord`, one request per new word, debounced. */
-export function ConfidencePlayground({ cold }: { cold: boolean }) {
+ *  word shows its predicted WPM, and only words worth practising are
+ *  tinted orange. Scores come from `adapt.scoreWord`, one request per
+ *  new word, debounced, cached and de-duplicated while in flight. */
+export function ConfidencePlayground({
+  cold,
+  userId,
+}: {
+  cold: boolean;
+  userId: string;
+}) {
   const backend = useBackend();
   const [input, setInput] = useState(SAMPLE);
-  const [scores, setScores] = useState<Record<string, ScoreWordOutput>>({});
-  const [loading, setLoading] = useState(false);
+  const [fetched, setFetched] = useState<Record<string, Scored>>({});
+  const [inFlight, setInFlight] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  // Words that just failed (e.g. rate-limited) wait for the next edit
+  // instead of retrying on every re-render.
+  const failed = useRef(new Set<string>());
 
   const words = useMemo(() => tokenisePlayground(input), [input]);
   // The server marks every word "in band" when the model is cold, so
   // the band only means something once the model is warm.
   const bandActive = !cold;
 
-  const scoreWords = useCallback(
-    async (toScore: readonly string[]) => {
-      const missing = [...new Set(toScore)].filter((w) => scores[w] == null);
-      if (missing.length === 0) return;
-      setLoading(true);
-      setError(null);
-      const settled = await Promise.allSettled(
-        missing.map((w) => backend.adapt.scoreWord({ word: w })),
-      );
-      const next: Record<string, ScoreWordOutput> = {};
-      let firstError: unknown = null;
-      settled.forEach((r, i) => {
-        if (r.status === "fulfilled") next[missing[i]!] = r.value;
-        else firstError ??= r.reason;
-      });
-      if (Object.keys(next).length > 0) {
-        setScores((prev) => ({ ...prev, ...next }));
-      }
-      if (firstError) setError(errorMessage(firstError));
-      setLoading(false);
-    },
-    [backend, scores],
-  );
+  // This session's results plus anything already cached, so known words
+  // paint immediately with no request.
+  const scores = useMemo(() => {
+    const out: Record<string, Scored> = { ...fetched };
+    for (const w of words) {
+      if (out[w]) continue;
+      const hit = scoreCache.peek(userId, w);
+      if (hit) out[w] = hit;
+    }
+    return out;
+  }, [words, fetched, userId]);
 
   // Debounce typing → scoring so a burst of keystrokes is one request
   // per new word, not one per keystroke.
   useEffect(() => {
-    if (words.length === 0) return;
-    const id = setTimeout(() => void scoreWords(words), 350);
+    const missing = [...new Set(words)].filter(
+      (w) => scores[w] == null && !failed.current.has(w),
+    );
+    if (missing.length === 0) return;
+    const id = setTimeout(async () => {
+      setInFlight((n) => n + 1);
+      setError(null);
+      const settled = await Promise.allSettled(
+        missing.map((w) =>
+          scoreCache.load(userId, w, async () => {
+            const r = await backend.adapt.scoreWord({ word: w });
+            return { predictedMs: r.predictedMs, inChallengeBand: r.inChallengeBand };
+          }),
+        ),
+      );
+      const next: Record<string, Scored> = {};
+      let firstError: unknown = null;
+      settled.forEach((r, i) => {
+        const w = missing[i]!;
+        if (r.status === "fulfilled") next[w] = r.value;
+        else {
+          failed.current.add(w);
+          firstError ??= r.reason;
+        }
+      });
+      if (Object.keys(next).length > 0) {
+        setFetched((prev) => ({ ...prev, ...next }));
+      }
+      if (firstError) setError(errorMessage(firstError));
+      setInFlight((n) => n - 1);
+    }, 350);
     return () => clearTimeout(id);
-  }, [words, scoreWords]);
+  }, [words, scores, userId, backend]);
 
   const summary = useMemo(
     () => summarisePlayground(words, scores, bandActive),
@@ -76,40 +112,25 @@ export function ConfidencePlayground({ cold }: { cold: boolean }) {
     <Surface className="flex flex-col gap-4 p-4 sm:p-5">
       <Input
         value={input}
-        onChange={(e) => setInput(e.target.value)}
+        onChange={(e) => {
+          failed.current.clear();
+          setInput(e.target.value);
+        }}
         placeholder="Type or paste any text"
         aria-label="Text to score against your model"
-        className="font-mono text-sm"
+        className="font-mono"
         autoComplete="off"
         spellCheck={false}
       />
 
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
-        <span>
-          Predicted{" "}
-          <span className="font-semibold tabular-nums text-foreground">
-            {summary.predictedWpm != null ? Math.round(summary.predictedWpm) : "–"}
-          </span>{" "}
-          wpm
-        </span>
-        {bandActive ? (
-          <span className="inline-flex items-center gap-2">
-            <span aria-hidden className="size-2.5 rounded-full bg-primary/70" />
-            <span>
-              <span className="font-semibold tabular-nums text-foreground">
-                {summary.challenge}
-              </span>{" "}
-              {summary.challenge === 1 ? "challenge word" : "challenge words"}
-            </span>
-          </span>
-        ) : null}
-        <span className="inline-flex items-center gap-1.5 tabular-nums">
-          {loading ? (
-            <Loader2 aria-hidden className="size-3.5 motion-safe:animate-spin" />
-          ) : null}
-          {summary.scored} of {words.length} scored
-        </span>
-      </div>
+      {words.length > 0 ? (
+        <SummaryRow
+          summary={summary}
+          total={words.length}
+          bandActive={bandActive}
+          busy={inFlight > 0}
+        />
+      ) : null}
 
       {error ? (
         <p className="text-sm text-destructive" role="alert">
@@ -136,8 +157,8 @@ export function ConfidencePlayground({ cold }: { cold: boolean }) {
 
       <p className="text-xs leading-relaxed text-muted-foreground">
         {bandActive
-          ? "Numbers are predicted WPM per word. Orange words sit in your challenge band: slow enough to be worth practising, not so slow you stall."
-          : "Numbers are predicted WPM per word. Challenge words light up once your model is warm."}
+          ? "Numbers are each word's predicted WPM. Orange words are worth practising: a bit slower than your average, not so slow you stall."
+          : "Numbers are each word's predicted WPM. Words worth practising light up once your model knows you better."}
       </p>
     </Surface>
   );

@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.5 — 27 October 2026
+- Each Insights tip now names your weakest letter pair or word with its real timing, and its button names the drill it opens.
+- Insights uses plain labels ("Personalised" or "Still learning"), labels WPM and accuracy on every run, and shows new players one clear prompt instead of empty charts.
+- The playground remembers its scores, so coming back to the page no longer uses up your scoring limit, and the words worth practising stay readable in light mode.
+
 ## 6.148.4 — 27 October 2026
 - Any leaderboard filter you've changed is now highlighted in orange, and the table shows each run's length (or when it happened, on a single-length board).
 - Only your best run carries the orange You badge, so the table stays readable if you have many runs on it.

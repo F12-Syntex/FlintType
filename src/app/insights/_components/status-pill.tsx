@@ -1,9 +1,10 @@
 import { cn } from "@/lib/utils";
 import type { HistorySummaryOutput } from "@/types/history";
 
-/** Header status: is the model warm, and how many runs feed it. A
- *  status, not a selection, so it stays neutral; the green dot is the
- *  sanctioned "ok" mark (ui-law §17.7). */
+/** Header status in plain words: has the model learned enough to
+ *  tailor drills ("Personalised") or is it "Still learning", and how
+ *  many completed tests feed it. A status, not a selection, so it stays
+ *  neutral; the green dot is the sanctioned "ok" mark (ui-law §17.7). */
 export function StatusPill({
   snap,
   loading,
@@ -32,7 +33,7 @@ export function StatusPill({
         )}
       />
       <span className="text-foreground">
-        {snap.cold ? "Cold start" : "Model warm"}
+        {snap.cold ? "Still learning" : "Personalised"}
       </span>
       <span aria-hidden>·</span>
       <span className="tabular-nums">

@@ -7,13 +7,15 @@ type List = {
   title: string;
   rows: readonly HistoryWeakness[];
   baselineMs: number;
-  narrowKeys: boolean;
+  unit: string;
   empty: string;
 };
 
-/** Slowest letter pairs | slowest words, two-up. When one list has no
- *  data yet the other spans both columns (no half-empty hole) and the
- *  missing one is named in a single muted line underneath. */
+/** Weakest letter pairs | weakest words, two-up, each in the model's
+ *  rank order (how reliably slow, not raw ms; see `WeaknessChart`).
+ *  When one list has no data yet the other spans both columns (no
+ *  half-empty hole) and the missing one is named in a single muted
+ *  line underneath. */
 export function WeakSpots({ snap }: { snap: HistorySummaryOutput }) {
   const lists: List[] = [
     {
@@ -21,7 +23,7 @@ export function WeakSpots({ snap }: { snap: HistorySummaryOutput }) {
       title: "Letter pairs",
       rows: snap.weakestPairs,
       baselineMs: snap.bigramBaselineMs,
-      narrowKeys: true,
+      unit: "pair",
       empty: "No slow letter pairs yet. Type a bit more.",
     },
     {
@@ -29,7 +31,7 @@ export function WeakSpots({ snap }: { snap: HistorySummaryOutput }) {
       title: "Words",
       rows: snap.weakestWords,
       baselineMs: snap.wordBaselineMs,
-      narrowKeys: false,
+      unit: "word",
       empty: "No slow words yet. Finish a few more tests.",
     },
   ];
@@ -39,7 +41,7 @@ export function WeakSpots({ snap }: { snap: HistorySummaryOutput }) {
   if (filled.length === 0) {
     return (
       <p className="rounded-2xl border border-dashed border-border bg-card/40 px-5 py-6 text-sm text-muted-foreground">
-        Nothing stands out yet. Finish a few more tests and your slowest
+        Nothing stands out yet. Finish a few more tests and your weakest
         pairs and words will show up here.
       </p>
     );
@@ -55,7 +57,7 @@ export function WeakSpots({ snap }: { snap: HistorySummaryOutput }) {
             aside={
               l.baselineMs > 0 ? (
                 <span className="tabular-nums">
-                  Avg {Math.round(l.baselineMs)} ms
+                  Your avg {Math.round(l.baselineMs)} ms
                 </span>
               ) : null
             }
@@ -64,7 +66,7 @@ export function WeakSpots({ snap }: { snap: HistorySummaryOutput }) {
             <WeaknessChart
               rows={l.rows}
               baselineMs={l.baselineMs}
-              narrowKeys={l.narrowKeys}
+              unit={l.unit}
             />
           </Panel>
         ))}

@@ -9,7 +9,8 @@ import type { ScoreWordOutput } from "@/types/adapt";
  *  per-keystroke figure, so the WPM conversion has to divide by the
  *  transition count, not multiply by the word length. */
 
-type Scored = Pick<ScoreWordOutput, "predictedMs" | "inChallengeBand">;
+/** The two fields the playground reads from a score; all it caches. */
+export type Scored = Pick<ScoreWordOutput, "predictedMs" | "inChallengeBand">;
 
 /** 1 WPM = 5 keystrokes per minute, so a keystroke every `m` ms is
  *  60_000 / (5 · m) = 12_000 / m WPM. */

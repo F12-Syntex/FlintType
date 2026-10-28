@@ -1,26 +1,27 @@
 import { cn } from "@/lib/utils";
-import type { ScoreWordOutput } from "@/types/adapt";
-import { isChallengeWord, predictedWordWpm } from "./playground-math";
+import { isChallengeWord, predictedWordWpm, type Scored } from "./playground-math";
 
 /** One scored word in the playground: the word plus its predicted WPM.
- *  Only challenge-band words take the theme orange; everything else is
- *  a neutral chip, and unscored words stay muted until their score
- *  lands. */
+ *  Words worth practising (the challenge band) carry the theme orange
+ *  as a tint + ring, with the text in ink so it stays readable on the
+ *  tint in light mode; everything else is a neutral chip, and unscored
+ *  words stay muted until their score lands. Long words truncate (the
+ *  full word stays in the tooltip) so a chip never outgrows the card. */
 export function WordChip({
   word,
   score,
   bandActive,
 }: {
   word: string;
-  score: ScoreWordOutput | undefined;
+  score: Scored | undefined;
   bandActive: boolean;
 }) {
   const chip =
-    "inline-flex items-baseline gap-1.5 rounded-pill px-3 py-1 font-mono text-sm transition-colors";
+    "inline-flex min-w-0 max-w-full items-baseline gap-1.5 rounded-pill px-3 py-1 font-mono text-sm transition-colors";
   if (!score) {
     return (
-      <span className={cn(chip, "bg-muted/60 text-muted-foreground")}>
-        {word}
+      <span title={word} className={cn(chip, "bg-muted/60 text-muted-foreground")}>
+        <span className="truncate">{word}</span>
       </span>
     );
   }
@@ -28,15 +29,22 @@ export function WordChip({
   const challenge = isChallengeWord(word, score, bandActive);
   return (
     <span
-      title={`${word}: ${wpm != null ? `about ${Math.round(wpm)} wpm` : "too short to predict"}${challenge ? ", challenge band" : ""}`}
+      title={`${word}: ${wpm != null ? `about ${Math.round(wpm)} wpm` : "too short to predict"}${challenge ? ", worth practising" : ""}`}
       className={cn(
         chip,
-        challenge ? "bg-primary/15 text-primary" : "bg-muted text-foreground",
+        challenge
+          ? "bg-primary/15 text-foreground ring-1 ring-inset ring-primary/60"
+          : "bg-muted text-foreground",
       )}
     >
-      {word}
+      <span className="truncate">{word}</span>
       {wpm != null ? (
-        <span className="text-[11px] tabular-nums opacity-70">
+        <span
+          className={cn(
+            "shrink-0 text-[11px] tabular-nums",
+            challenge ? "text-foreground/75" : "text-muted-foreground",
+          )}
+        >
           {Math.round(wpm)}
         </span>
       ) : null}
