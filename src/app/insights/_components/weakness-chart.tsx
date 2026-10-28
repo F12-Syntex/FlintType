@@ -1,74 +1,71 @@
 import { cn } from "@/lib/utils";
 import type { HistoryWeakness } from "@/types/history";
 
-/** Horizontal-bar chart of the user's slowest patterns. Used by both
- *  the weakest-words and weakest-bigrams panels, same shape, just
- *  different data. The bar fills primary, sized against the topmost
- *  weakness in the list so contrast is preserved at low-data states.
- *
- *  Empty / cold-start states render a single muted line instead of
- *  an empty bar grid. */
+/** Horizontal bars of the slowest patterns, sized against the worst
+ *  one. Only the top row (the weakness to fix first) is painted in the
+ *  theme orange; the rest are ink so the eye lands on one thing.
+ *  Columns: key · bar · mean ms · % vs baseline, fixed widths so the
+ *  numbers line up row to row. */
 export function WeaknessChart({
   rows,
-  emptyHint,
   baselineMs,
+  limit = 8,
+  narrowKeys = false,
 }: {
   rows: readonly HistoryWeakness[];
-  emptyHint: string;
   baselineMs: number;
+  limit?: number;
+  /** Two-letter keys (bigrams) need far less room than whole words. */
+  narrowKeys?: boolean;
 }) {
-  if (rows.length === 0) {
-    return (
-      <p className="text-[12px] leading-relaxed text-muted-foreground">
-        {emptyHint}
-      </p>
-    );
-  }
-  const max = rows.reduce((m, r) => (r.weakness > m ? r.weakness : m), 0);
+  const shown = rows.slice(0, limit);
+  const max = shown.reduce((m, r) => (r.weakness > m ? r.weakness : m), 0);
   return (
-    <ul className="flex flex-col gap-1.5">
-      {rows.slice(0, 8).map((r) => {
+    <ul className="flex flex-col gap-2.5">
+      {shown.map((r, i) => {
         const ratio = max > 0 ? r.weakness / max : 0;
         const delta =
           baselineMs > 0
             ? Math.round(((r.meanMs - baselineMs) / baselineMs) * 100)
             : null;
+        const top = i === 0;
         return (
           <li
             key={r.key}
-            className="grid grid-cols-[7rem_1fr_auto] items-center gap-3 font-mono text-xs tabular-nums"
+            className={cn(
+              "grid items-center gap-3 text-sm tabular-nums",
+              narrowKeys
+                ? "grid-cols-[2rem_minmax(0,1fr)_3.5rem_3rem]"
+                : "grid-cols-[minmax(0,6rem)_minmax(0,1fr)_3.5rem_3rem]",
+            )}
           >
-            <span className="truncate text-foreground">{r.key}</span>
+            <span
+              className={cn(
+                "truncate font-mono",
+                top ? "font-semibold text-foreground" : "text-foreground/80",
+              )}
+              title={r.key}
+            >
+              {r.key}
+            </span>
             <span
               aria-hidden
-              className="relative h-1.5 overflow-hidden rounded-full bg-foreground/[0.06]"
+              className="relative h-2 overflow-hidden rounded-full bg-foreground/[0.06]"
             >
               <span
-                className="absolute inset-y-0 left-0 origin-left rounded-full bg-primary"
-                style={{
-                  transform: `scaleX(${Math.max(0.04, ratio)})`,
-                  width: "100%",
-                }}
+                className={cn(
+                  "absolute inset-y-0 left-0 rounded-full",
+                  top ? "bg-primary" : "bg-foreground/45",
+                )}
+                style={{ width: `${Math.max(4, ratio * 100)}%` }}
               />
             </span>
-            <span className="flex items-baseline gap-2">
-              <span className="text-muted-foreground">
-                {Math.round(r.meanMs)}
-                <span className="ml-0.5 text-[9.5px] uppercase tracking-[0.14em] opacity-70">
-                  ms
-                </span>
-              </span>
-              {delta != null ? (
-                <span
-                  className={cn(
-                    "text-[10px]",
-                    delta > 0 ? "text-primary" : "text-muted-foreground/70",
-                  )}
-                >
-                  {delta > 0 ? "+" : ""}
-                  {delta}%
-                </span>
-              ) : null}
+            <span className="text-right text-xs text-muted-foreground">
+              {Math.round(r.meanMs)}
+              <span className="ml-0.5 opacity-70">ms</span>
+            </span>
+            <span className="text-right text-xs text-muted-foreground">
+              {delta != null ? `${delta > 0 ? "+" : ""}${delta}%` : ""}
             </span>
           </li>
         );

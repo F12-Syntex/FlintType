@@ -1,21 +1,27 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
+import Link from "next/link";
 import { ShareRunButton } from "@/components/share-run-button";
+import { buttonVariants } from "@/components/ui/button";
 import { relativeTime } from "@/lib/relative-time";
+import { shareLengthLabel } from "@/lib/share-length-label";
 import { cn } from "@/lib/utils";
 import type { HistoryTest } from "@/types/history";
+import { Panel } from "./panel";
 
-/** Compact recent-runs list, last 6 completed tests, hairline-
- *  divided rows. Same shape as the profile list, kept inline so
- *  insights doesn't need to bounce out to the profile to peek at
- *  recent activity. */
+const MODE_LABEL: Record<string, string> = {
+  race: "Race",
+  training: "Adapt",
+  reverse_adaptive: "Reverse",
+  casual: "Casual",
+};
+
+/** The latest six completed runs. WPM stays ink (the trend line is the
+ *  page's data spark); "View all" hands off to the profile's full list. */
 export function RecentTests({ tests }: { tests: readonly HistoryTest[] }) {
-  // Insights only ever renders the signed-in user's own data
-  // (history.summary is auth-gated upstream), so the share slug
-  // handle is the viewer's own Clerk handle. Falls back to `racer`
-  // while Clerk loads or for the deeply-pathological signed-out
-  // path that should never reach this component.
+  // Insights only ever renders the signed-in user's own data, so the
+  // share slug handle is the viewer's own Clerk handle.
   const { user } = useUser();
   const handle =
     user?.firstName ??
@@ -23,54 +29,67 @@ export function RecentTests({ tests }: { tests: readonly HistoryTest[] }) {
     user?.primaryEmailAddress?.emailAddress?.split("@")[0] ??
     "racer";
   const completed = tests.filter((t) => t.wasCompleted).slice(0, 6);
-  if (completed.length === 0) {
-    return (
-      <p className="text-[12px] leading-relaxed text-muted-foreground">
-        Run a few tests at <span className="text-foreground">/app</span> and
-        your latest results will land here.
-      </p>
-    );
-  }
+
   return (
-    <ul className="flex flex-col divide-y divide-border rounded-md border border-border">
-      {completed.map((t) => (
-        <li
-          key={t.id}
-          className={cn(
-            "group/row grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-accent",
-          )}
-        >
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              {relativeTime(t.startedAtMs)}
-            </span>
-            <span className="text-[12px] text-foreground">
-              {prettyMode(t.mode)} ·{" "}
-              <span className="tabular-nums">{t.durationOrWordCount}</span>
-            </span>
-          </div>
-          <div className="flex items-baseline gap-2 font-mono tabular-nums sm:gap-3">
-            <span className="text-xl font-bold text-primary">
-              {Math.round(t.wpm)}
-            </span>
-            <span className="text-[11px] text-muted-foreground">
-              {t.accuracy.toFixed(1)}%
-            </span>
-            <ShareRunButton
-              testId={t.id}
-              handle={handle}
-              wpm={t.wpm}
-              className="self-center sm:opacity-0 sm:transition-opacity sm:group-hover/row:opacity-100 sm:group-focus-within/row:opacity-100"
-            />
-          </div>
-        </li>
-      ))}
-    </ul>
+    <Panel
+      title="Recent runs"
+      aside={
+        completed.length > 0 ? (
+          <Link
+            href="/profile"
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "-mr-2 h-9 sm:h-8",
+            )}
+          >
+            View all
+          </Link>
+        ) : null
+      }
+      bodyClassName="px-0 pt-1 pb-1 sm:px-0 sm:pb-1"
+    >
+      {completed.length === 0 ? (
+        <p className="px-4 pb-4 text-sm text-muted-foreground sm:px-5">
+          No runs yet.{" "}
+          <Link href="/" className="font-medium text-foreground underline-offset-4 hover:underline">
+            Take a test
+          </Link>{" "}
+          and your results land here.
+        </p>
+      ) : (
+        <ul className="divide-y divide-border/60">
+          {completed.map((t) => (
+            <li
+              key={t.id}
+              className="group/row flex items-center justify-between gap-3 px-4 py-2.5 sm:px-5"
+            >
+              <div className="flex min-w-0 flex-col">
+                <span className="truncate text-sm text-foreground">
+                  {MODE_LABEL[t.mode] ?? "Casual"} ·{" "}
+                  {shareLengthLabel(t.lengthMode, t.durationOrWordCount)}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {relativeTime(t.startedAtMs)}
+                </span>
+              </div>
+              <div className="flex shrink-0 items-center gap-3 tabular-nums">
+                <span className="text-xs text-muted-foreground">
+                  {t.accuracy.toFixed(1)}%
+                </span>
+                <span className="w-10 text-right text-base font-semibold text-foreground">
+                  {Math.round(t.wpm)}
+                </span>
+                <ShareRunButton
+                  testId={t.id}
+                  handle={handle}
+                  wpm={t.wpm}
+                  className="size-9 sm:size-7 sm:opacity-0 sm:transition-opacity sm:group-hover/row:opacity-100 sm:group-focus-within/row:opacity-100"
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
   );
 }
-
-function prettyMode(m: string): string {
-  if (m === "training" || m === "reverse_adaptive") return "training";
-  return m;
-}
-
