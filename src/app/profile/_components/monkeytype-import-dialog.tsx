@@ -99,7 +99,7 @@ export function MonkeyTypeImportDialog({
           read-only token you generate on your MonkeyType account.
         </p>
 
-        <ol className="flex flex-col gap-3 rounded-md border border-border bg-card/40 p-4 text-sm leading-relaxed">
+        <ol className="flex flex-col gap-3 rounded-xl bg-muted/50 p-4 text-sm leading-relaxed">
           <Step n={1}>
             Open{" "}
             <a
@@ -129,9 +129,7 @@ export function MonkeyTypeImportDialog({
         </ol>
 
         <label className="flex flex-col gap-2">
-          <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Ape Key
-          </span>
+          <span className="text-sm font-medium text-foreground">Ape Key</span>
           <Input
             type="password"
             value={apiKey}
@@ -152,8 +150,8 @@ export function MonkeyTypeImportDialog({
 function Step({ n, children }: { n: number; children: React.ReactNode }) {
   return (
     <li className="grid grid-cols-[1.5rem_1fr] items-baseline gap-2">
-      <span className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-        {String(n).padStart(2, "0")}
+      <span className="text-xs font-semibold tabular-nums text-muted-foreground">
+        {n}.
       </span>
       <span className="text-muted-foreground">{children}</span>
     </li>
@@ -178,7 +176,7 @@ function StatusLine({
   if (status.kind === "idle") return null;
   if (status.kind === "loading") {
     return (
-      <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+      <p className="text-sm text-muted-foreground" role="status">
         Fetching your results, personal bests, and stats…
       </p>
     );
@@ -187,7 +185,7 @@ function StatusLine({
     return (
       <div className="flex flex-col gap-2 text-sm text-foreground" role="status">
         <p>
-          <span className="font-mono tabular-nums text-primary">
+          <span className="font-semibold tabular-nums">
             {status.imported}
           </span>{" "}
           recent test{status.imported === 1 ? "" : "s"} imported
@@ -203,7 +201,7 @@ function StatusLine({
           .
         </p>
         <p>
-          <span className="font-mono tabular-nums text-primary">
+          <span className="font-semibold tabular-nums">
             {status.pbsImported}
           </span>{" "}
           personal-best cell{status.pbsImported === 1 ? "" : "s"} stored
@@ -218,14 +216,14 @@ function StatusLine({
           ) : null}
           .
         </p>
-        <p className="text-[12px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Refresh the profile to see the merged view.
         </p>
       </div>
     );
   }
   return (
-    <p className="text-sm text-primary" role="alert">
+    <p className="text-sm text-destructive" role="alert">
       {status.message}
     </p>
   );

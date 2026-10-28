@@ -2,112 +2,99 @@
 
 import { useMemo, useState } from "react";
 import {
-  Area,
   CartesianGrid,
-  ComposedChart,
   Line,
+  LineChart,
   ReferenceLine,
   XAxis,
   YAxis,
 } from "recharts";
+import { PageSection, Surface } from "@/components/page-shell";
 import {
   type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/line-chart";
-import { cn } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import type { TrendPoint } from "./derive-stats";
+import { SECTION_SWITCH } from "./personal-bests";
 
 const chartConfig = {
   wpm: { label: "wpm", color: "var(--primary)" },
 } satisfies ChartConfig;
 
 type Range = "day" | "week" | "month" | "3months" | "all";
-const RANGES: { id: Range; label: string; ms: number | null }[] = [
-  { id: "day", label: "Last day", ms: 86_400_000 },
-  { id: "week", label: "Last week", ms: 7 * 86_400_000 },
-  { id: "month", label: "Last month", ms: 30 * 86_400_000 },
-  { id: "3months", label: "Last 3 months", ms: 90 * 86_400_000 },
-  { id: "all", label: "All time", ms: null },
+const RANGES: { id: Range; short: string; label: string; ms: number | null }[] = [
+  { id: "day", short: "1D", label: "Last day", ms: 86_400_000 },
+  { id: "week", short: "1W", label: "Last week", ms: 7 * 86_400_000 },
+  { id: "month", short: "1M", label: "Last month", ms: 30 * 86_400_000 },
+  { id: "3months", short: "3M", label: "Last 3 months", ms: 90 * 86_400_000 },
+  { id: "all", short: "All", label: "All time", ms: null },
 ];
 
-/** WPM trend panel — the page's headline chart. Wide bordered card,
- *  taller than the other panels (h-56 sm:h-72) so the curve has room
- *  to read. Range toggles render as button chips beside the section
- *  label; tooltip on hover shows test index + date. The dashed
- *  reference line marks the running mean WPM across the slice. */
+const RANGE_OPTIONS = RANGES.map((r) => ({
+  value: r.id,
+  label: (
+    <>
+      <span aria-hidden>{r.short}</span>
+      <span className="sr-only">{r.label}</span>
+    </>
+  ),
+}));
+
+/** WPM over time — a line-art chart (no area fill) with a dashed mean.
+ *  The range switch uses short labels so it fits one row at 375px. */
 export function WpmTrend({ points }: { points: TrendPoint[] }) {
   const [range, setRange] = useState<Range>("all");
+  // "Now" for the range cutoffs, fixed when the panel mounts so a
+  // re-render never shifts the window under the chart.
+  const [now] = useState(() => Date.now());
 
   const filtered = useMemo(() => {
     const cfg = RANGES.find((r) => r.id === range)!;
     if (cfg.ms == null) return points;
-    const cutoff = Date.now() - cfg.ms;
+    const cutoff = now - cfg.ms;
     return points.filter((p) => p.ts >= cutoff);
-  }, [points, range]);
+  }, [points, range, now]);
 
   const avg = useMemo(() => {
     if (filtered.length === 0) return 0;
     return filtered.reduce((s, p) => s + p.wpm, 0) / filtered.length;
   }, [filtered]);
 
-  return (
-    <section className="rounded-md border border-border bg-card px-4 py-4 sm:px-6 sm:py-5">
-      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span aria-hidden className="inline-block h-px w-4 bg-primary" />
-          <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-            WPM trend
-          </span>
-        </div>
-        <RangeToggles value={range} onChange={setRange} />
-      </header>
+  const enough = filtered.length >= 2;
 
-      {filtered.length < 2 ? (
-        <p className="text-sm text-muted-foreground">
-          Not enough data in this range. Try a wider window.
-        </p>
-      ) : (
-        <>
-          <div className="mb-3 flex items-baseline justify-between gap-3 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            <span>
-              <span className="text-foreground tabular-nums">
-                {filtered.length}
-              </span>{" "}
-              tests
-            </span>
-            <span>
-              Avg{" "}
-              <span className="text-foreground tabular-nums">
-                {Math.round(avg)}
-              </span>{" "}
-              wpm
-            </span>
-          </div>
+  return (
+    <PageSection
+      id="trend"
+      title="WPM trend"
+      description={
+        enough
+          ? `${filtered.length} tests · ${Math.round(avg)} wpm average`
+          : "Your speed over recent tests."
+      }
+      actions={
+        <SegmentedControl
+          ariaLabel="Trend range"
+          value={range}
+          onValueChange={setRange}
+          options={RANGE_OPTIONS}
+          className={SECTION_SWITCH}
+        />
+      }
+    >
+      <Surface className="px-2 pt-5 pb-3 sm:px-4 sm:pt-6">
+        {enough ? (
           <ChartContainer
             config={chartConfig}
             className="aspect-auto h-56 w-full sm:h-64 lg:h-72"
           >
-            <ComposedChart
+            <LineChart
               accessibilityLayer
               data={filtered}
-              margin={{ left: 4, right: 12, top: 16, bottom: 0 }}
+              margin={{ left: 4, right: 12, top: 8, bottom: 0 }}
             >
-              <defs>
-                <linearGradient id="wpmTrendArea" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="0%"
-                    stopColor="var(--color-wpm)"
-                    stopOpacity={0.16}
-                  />
-                  <stop
-                    offset="100%"
-                    stopColor="var(--color-wpm)"
-                    stopOpacity={0}
-                  />
-                </linearGradient>
-              </defs>
               <CartesianGrid
                 vertical={false}
                 stroke="currentColor"
@@ -117,7 +104,7 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
                 dataKey="idx"
                 tickLine={false}
                 axisLine={false}
-                tickMargin={6}
+                tickMargin={8}
                 tickFormatter={(v: number) => `#${v}`}
                 interval="preserveStartEnd"
               />
@@ -125,7 +112,7 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={6}
-                width={32}
+                width={36}
                 domain={["auto", "auto"]}
               />
               <ChartTooltip
@@ -153,62 +140,28 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
                   strokeDasharray="3 4"
                 />
               ) : null}
-              <Area
-                dataKey="wpm"
-                type="monotone"
-                stroke="none"
-                fill="url(#wpmTrendArea)"
-                isAnimationActive={false}
-              />
               <Line
                 dataKey="wpm"
                 type="monotone"
                 stroke="var(--color-wpm)"
-                strokeWidth={2}
+                strokeWidth={2.25}
                 dot={false}
                 activeDot={{
-                  r: 3,
+                  r: 4,
                   stroke: "var(--color-wpm)",
-                  fill: "var(--background)",
+                  strokeWidth: 2,
+                  fill: "var(--card)",
                 }}
                 isAnimationActive={false}
               />
-            </ComposedChart>
+            </LineChart>
           </ChartContainer>
-        </>
-      )}
-    </section>
-  );
-}
-
-function RangeToggles({
-  value,
-  onChange,
-}: {
-  value: Range;
-  onChange: (next: Range) => void;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {RANGES.map((r) => {
-        const active = value === r.id;
-        return (
-          <button
-            key={r.id}
-            type="button"
-            onClick={() => onChange(r.id)}
-            aria-pressed={active}
-            className={cn(
-              "inline-flex h-7 items-center rounded-md border px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors",
-              active
-                ? "border-primary/40 bg-primary/[0.08] text-primary"
-                : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
-            )}
-          >
-            {r.label}
-          </button>
-        );
-      })}
-    </div>
+        ) : (
+          <p className="px-3 pb-3 text-sm text-muted-foreground">
+            Not enough tests in this range yet. Try a wider window.
+          </p>
+        )}
+      </Surface>
+    </PageSection>
   );
 }

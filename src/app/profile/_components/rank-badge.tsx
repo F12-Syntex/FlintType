@@ -28,7 +28,7 @@ export function RankBadge({
     <span
       title={`${def.label} · ${def.range} wpm`}
       className={cn(
-        "inline-flex items-center rounded-md border border-primary/25 bg-primary/[0.06] font-semibold uppercase tracking-[0.12em] text-foreground",
+        "inline-flex items-center rounded-pill border border-primary/25 bg-primary/[0.06] font-semibold uppercase tracking-[0.12em] text-foreground",
         SIZE[size],
         className,
       )}

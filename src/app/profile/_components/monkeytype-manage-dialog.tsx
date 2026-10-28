@@ -122,23 +122,23 @@ export function MonkeyTypeManageDialog({
       <div className="flex flex-col gap-5">
         {/* Status block */}
         <dl className="grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
-          <dt className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground self-center">
+          <dt className="self-center text-muted-foreground">
             Status
           </dt>
           <dd className="flex items-center gap-2">
             <span
               aria-hidden
-              className="size-1.5 rounded-full bg-primary"
+              className="size-1.5 rounded-full bg-ft-ok"
             />
             <span className="text-foreground">Connected</span>
           </dd>
 
-          <dt className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground self-center">
+          <dt className="self-center text-muted-foreground">
             Last synced
           </dt>
           <dd className="text-foreground tabular-nums">{lastSynced}</dd>
 
-          <dt className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground self-center">
+          <dt className="self-center text-muted-foreground">
             Imported
           </dt>
           <dd className="text-foreground tabular-nums">
@@ -173,7 +173,7 @@ export function MonkeyTypeManageDialog({
           </p>
         ) : null}
         {status.kind === "err" ? (
-          <p className="text-sm text-primary" role="alert">
+          <p className="text-sm text-destructive" role="alert">
             {status.message}
           </p>
         ) : null}

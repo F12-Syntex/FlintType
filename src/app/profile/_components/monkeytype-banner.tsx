@@ -1,22 +1,22 @@
 "use client";
 
 import { Download, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
-import { cn } from "@/lib/utils";
 
 const EMPTY_BANNER_STATE = { monkeytypeDismissed: false };
 
-/** Top-of-profile prompt nudging the owner to import their existing
+/** A calm prompt under the hero nudging the owner to import their
  *  MonkeyType history. Renders only when:
  *    - viewer owns this profile (`isOwner`)
  *    - the owner hasn't already connected (`isConnected` is false)
  *    - the owner hasn't dismissed it before (stored in user-prefs
  *      under `banners.monkeytypeDismissed`)
  *
- *  Dismiss persists across sessions via `useRemotePrefs` — the moment
- *  the user clicks ×, the next render returns null and stays null
- *  on every future visit. The dialog itself opens via the supplied
- *  `onConnect` callback so the parent owns the import dialog's mount. */
+ *  Neutral card + an outline button: it's an optional extra, so it
+ *  never competes with the page's orange. Dismiss persists across
+ *  sessions via `useRemotePrefs`. The dialog opens via `onConnect` so
+ *  the parent owns the import dialog's mount. */
 export function MonkeytypeBanner({
   isOwner,
   isConnected,
@@ -39,52 +39,43 @@ export function MonkeytypeBanner({
 
   return (
     <section
-      role="region"
       aria-label="MonkeyType import prompt"
       data-ft-banner="monkeytype"
-      className={cn(
-        "flex items-center gap-3 rounded-md border border-primary/40 bg-primary/[0.06] px-4 py-3 sm:px-5",
-      )}
+      className="flex items-start gap-3 rounded-2xl border border-border bg-card py-3 pr-2 pl-4 sm:items-center sm:gap-4 sm:pl-5"
     >
       <span
         aria-hidden
-        className="hidden size-9 shrink-0 items-center justify-center rounded-md border border-primary/30 bg-primary/[0.08] text-primary sm:flex"
+        className="hidden size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground sm:flex"
       >
         <Download size={16} />
       </span>
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
-          Already a typist?
-        </span>
-        <p className="text-[12px] leading-snug text-foreground sm:text-[13px]">
-          Bring your MonkeyType history over — PBs, lifetime stats, the lot.
-        </p>
+      <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-xs font-medium text-muted-foreground">
+            Coming from MonkeyType?
+          </span>
+          <p className="text-sm leading-snug text-foreground">
+            Bring your history over: personal bests, lifetime stats, the lot.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onConnect}
+          className="h-9 self-start sm:h-8 sm:self-center"
+        >
+          Import
+        </Button>
       </div>
-      <button
-        type="button"
-        onClick={onConnect}
-        className={cn(
-          "inline-flex h-8 items-center gap-2 rounded-md bg-primary px-3",
-          "text-[10px] font-semibold uppercase tracking-[0.18em] text-primary-foreground",
-          "transition-colors hover:bg-primary/90 active:translate-y-[1px]",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-        )}
-      >
-        <span className="hidden sm:inline">Connect</span>
-        <span className="sm:hidden">Link</span>
-      </button>
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={dismiss}
         aria-label="Dismiss this prompt"
-        className={cn(
-          "inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground",
-          "transition-colors hover:bg-foreground/[0.05] hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-        )}
+        className="size-9 shrink-0 text-muted-foreground"
       >
-        <X size={14} aria-hidden />
-      </button>
+        <X aria-hidden />
+      </Button>
     </section>
   );
 }

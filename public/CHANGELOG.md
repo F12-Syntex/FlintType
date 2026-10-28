@@ -8,6 +8,13 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.142.0 — 27 October 2026
+- The profile page has a cleaner layout: a rounded identity card with a flame-ringed avatar, then personal bests, activity and skill, your WPM trend and recent runs.
+- Best WPM and your level bar glow in the flinttype orange, while the rest of the stats stay calm and easy to scan.
+- Personal bests and the WPM trend now use simple switches (All, Casual, Adapt, Races and 1D, 1W, 1M, 3M, All) that fit on a phone.
+- A 60-word run no longer shows up as your 60-second best, and the activity heatmap's month labels no longer get cut off on phones.
+- If a profile fails to load you now see a clear message with a Try again button, and unknown usernames get a friendly not-found page.
+
 ## 6.141.0 — 27 October 2026
 - The Insights page now opens with what to practise next, and each tip has a button that starts the right drill.
 - Your slowest letter pairs and words, your WPM trend and your recent runs now sit in rounded cards that line up on phones and desktops, with only your top weakness and your trend line in orange.

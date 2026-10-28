@@ -1,14 +1,17 @@
 "use client";
 
+import { Swords } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { useBackend } from "@/lib/backend";
 import { createLobbyAndInvite } from "@/lib/invite-to-lobby";
 import { cn } from "@/lib/utils";
 
 /** "Race a friend" action: opens a private lobby, notifies the friend
  *  in-app, and drops the host into the lobby to wait. Mutual-friends
- *  only — the caller decides whether to render it. */
+ *  only — the caller decides whether to render it. An outline pill so
+ *  the orange Follow / primary action stays the one filled button. */
 export function InviteToRaceButton({
   opponentId,
   className,
@@ -20,8 +23,9 @@ export function InviteToRaceButton({
   const router = useRouter();
   const [pending, setPending] = useState(false);
   return (
-    <button
+    <Button
       type="button"
+      variant="outline"
       disabled={pending}
       onClick={async () => {
         if (pending) return;
@@ -30,12 +34,10 @@ export function InviteToRaceButton({
         if (slug) router.push(`/race/c/${slug}`);
         else setPending(false);
       }}
-      className={cn(
-        "inline-flex h-9 items-center rounded-md border border-border bg-background px-3 text-[12px] font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-wait disabled:opacity-60",
-        className,
-      )}
+      className={cn("h-11 sm:h-9", className)}
     >
+      <Swords aria-hidden data-icon="inline-start" />
       {pending ? "Opening…" : "Race"}
-    </button>
+    </Button>
   );
 }
