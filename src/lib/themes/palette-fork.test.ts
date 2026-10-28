@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { BACKGROUND_REACTIVE_ID } from "./background-reactive";
 import {
   forkPaletteToCustom,
   type PaletteBase,
   paletteAfterReset,
   type PaletteSlice,
+  resolvePaletteBase,
 } from "./palette-fork";
-import { CUSTOM_THEME_ID } from "./registry";
+import { CUSTOM_THEME_ID, findTheme } from "./registry";
 
 const CUSTOM = "custom";
 
@@ -54,9 +56,9 @@ describe("forkPaletteToCustom", () => {
     expect(forkPaletteToCustom(baseless, resolve, CUSTOM)).toBe(baseless);
   });
 
-  it("an unresolvable id (reactive / uninstalled theme) forks without a base", () => {
+  it("an id the resolver can't place (an uninstalled theme) forks without a base", () => {
     expect(
-      forkPaletteToCustom({ activeId: "background-reactive" }, resolve, CUSTOM),
+      forkPaletteToCustom({ activeId: "uninstalled" }, resolve, CUSTOM),
     ).toEqual({ activeId: CUSTOM });
   });
 
@@ -85,6 +87,16 @@ describe("paletteAfterReset", () => {
     });
   });
 
+  it("a fork off Background reactive goes back to Reactive, not Default", () => {
+    const fork: PaletteSlice = {
+      activeId: CUSTOM,
+      base: { id: BACKGROUND_REACTIVE_ID, light: {}, dark: {} },
+    };
+    expect(paletteAfterReset(fork, CUSTOM)).toEqual({
+      activeId: BACKGROUND_REACTIVE_ID,
+    });
+  });
+
   it("non-custom palettes demote to Default (pre-fork behaviour)", () => {
     expect(paletteAfterReset({ activeId: "catppuccin" }, CUSTOM)).toEqual({
       activeId: null,
@@ -92,5 +104,29 @@ describe("paletteAfterReset", () => {
     expect(paletteAfterReset({ activeId: null }, CUSTOM)).toEqual({
       activeId: null,
     });
+  });
+});
+
+describe("resolvePaletteBase", () => {
+  it("snapshots a named palette's cssVars for both modes", () => {
+    const cyberpunk = findTheme("cyberpunk");
+    expect(resolvePaletteBase("cyberpunk")).toEqual({
+      id: "cyberpunk",
+      light: cyberpunk?.cssVars.light,
+      dark: cyberpunk?.cssVars.dark,
+    });
+  });
+
+  it("records Background reactive as an origin with nothing to snapshot", () => {
+    expect(resolvePaletteBase(BACKGROUND_REACTIVE_ID)).toEqual({
+      id: BACKGROUND_REACTIVE_ID,
+      light: {},
+      dark: {},
+    });
+  });
+
+  it("has no base for custom or uninstalled ids", () => {
+    expect(resolvePaletteBase(CUSTOM)).toBeUndefined();
+    expect(resolvePaletteBase("uninstalled")).toBeUndefined();
   });
 });
