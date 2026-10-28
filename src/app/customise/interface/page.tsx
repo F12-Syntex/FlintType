@@ -26,7 +26,7 @@ import {
   ChromePreview,
   GeometryPreview,
   SurfacePreview,
-} from "../_components/rows/section-previews";
+} from "../_components/rows/interface-previews";
 import {
   BackgroundFillRow,
   CardSurfacesRow,

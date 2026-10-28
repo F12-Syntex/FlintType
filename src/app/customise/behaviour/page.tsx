@@ -224,7 +224,7 @@ export default function BehaviourPage() {
       <SettingsSection
         id="adaptive"
         title={sectionTitle(group, "adaptive")}
-        description="Training and race runs always teach practice what to focus on."
+        description="Adaptive practice learns your weak spots from the runs you finish."
       >
         <SwitchRow
           title="Ignore casual runs"

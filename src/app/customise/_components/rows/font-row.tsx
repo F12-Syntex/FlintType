@@ -229,7 +229,7 @@ function FontPicker({
         <MobileSheet
           open={sheetOpen}
           onOpenChange={setSheetOpen}
-          title="Font"
+          title="Typeface"
         >
           <div>{groups}</div>
         </MobileSheet>
@@ -280,7 +280,7 @@ export function FontRow({
               variant="ghost"
               size="xs"
               onClick={onClear}
-              className="h-9 text-muted-foreground sm:h-7"
+              className="h-11 text-muted-foreground sm:h-7"
               aria-label="Reset typeface"
             >
               Reset
@@ -290,7 +290,7 @@ export function FontRow({
             <Button
               variant="outline"
               size="sm"
-              className="h-9 max-w-[11rem] gap-2 sm:h-8"
+              className="h-11 max-w-[11rem] gap-2 sm:h-8"
               aria-label={`Typeface: ${active.family}. Change`}
             >
               <span

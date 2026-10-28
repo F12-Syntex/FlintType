@@ -1,41 +1,22 @@
 "use client";
 
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  ChevronRight,
-} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandShortcut,
-} from "@/components/ui/command";
+import { Command } from "@/components/ui/command";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  commandKeyLabel,
-  OPEN_COMMAND_PALETTE_EVENT,
-} from "@/lib/command-palette/open";
 import { useCommandEntries } from "@/lib/command-palette/use-command-entries";
 import type {
   CommandEntry,
   CommandGroup as CommandGroupId,
-  EnumEntry,
 } from "@/lib/command-palette/types";
-import { isTypingSurfaceActive } from "@/lib/typing-surface";
-import { useMounted } from "@/lib/use-mounted";
+import { EnumView, Footer, RootView, type View } from "./palette-views";
+import { usePaletteOpeners } from "./use-palette-openers";
 
 /** Group order in the rendered list — Practice actions at the top
  *  (Restart test is the highest-frequency command), then high-impact
@@ -50,10 +31,6 @@ const GROUP_ORDER: readonly CommandGroupId[] = [
   "Appearance",
   "Navigate",
 ];
-
-type View =
-  | { kind: "root" }
-  | { kind: "enum"; entry: EnumEntry };
 
 /** The dialog-mounted command palette. Cmd+K opens it; arrow keys +
  *  Enter drive selection; Escape backs out of a sub-view (or closes
@@ -72,71 +49,7 @@ export function CommandPalette() {
   // instead of the input. Pinning focus here is more reliable.
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // `open` read inside the global key handler without re-subscribing.
-  const openRef = useRef(open);
-  useEffect(() => {
-    openRef.current = open;
-  }, [open]);
-
-  // Two global openers:
-  //   - Cmd / Ctrl + K toggles the palette (the canonical shortcut).
-  //   - Escape ALSO opens it — but only when Escape would otherwise do
-  //     nothing. Escape is heavily overloaded (close a dialog/popover/
-  //     dropdown, the friends dock, the bell, clear focus mode, blur an
-  //     input, back out of the palette's own sub-view), so we open only
-  //     when none of those apply: the palette is closed, no overlay is
-  //     open, focus mode is off, and the user isn't mid-edit. When the
-  //     palette is open, its capture handler (onKeyDownInside) owns
-  //     Escape, so we bail here.
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setOpen((v) => !v);
-        return;
-      }
-      if (e.key === "Escape") {
-        if (openRef.current) return;
-        // Someone already handled this Escape — e.g. Radix closing the
-        // palette (or another dialog) on the same keystroke. Without
-        // this the palette's own closing Escape reopened it.
-        if (e.defaultPrevented) return;
-        if (isEditableTarget(document.activeElement)) return;
-        // A mounted typing-capture surface (practice / burst / race)
-        // owns Escape as a restart gesture via its own window handler,
-        // even when focus sits on <body> (clicking dead chrome mid-run).
-        // Escape there "does something", so per ui-law §16 the palette
-        // must NOT also open (#55 / FT-020).
-        if (isTypingSurfaceActive()) return;
-        if (document.documentElement.getAttribute("data-ft-focus") === "on") {
-          return; // let the focus-mode shortcut clear it
-        }
-        // An open overlay/disclosure should get Escape to close itself
-        // first. Each of these is present in the DOM only while open:
-        // Radix dialogs/alertdialogs + the notifications popover
-        // (role=dialog), Radix poppers (popover/dropdown/select/tooltip),
-        // and the friends dock / bell triggers (aria-expanded).
-        if (
-          document.querySelector(
-            '[role="dialog"],[role="alertdialog"],[data-radix-popper-content-wrapper],button[aria-label="Friends"][aria-expanded="true"],button[aria-label*="Notifications"][aria-expanded="true"]',
-          )
-        ) {
-          return;
-        }
-        e.preventDefault();
-        setOpen(true);
-      }
-    }
-    // Programmatic opener — "Search settings" buttons and similar
-    // affordances dispatch this instead of importing the palette.
-    const onOpenRequest = () => setOpen(true);
-    window.addEventListener("keydown", onKey);
-    window.addEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpenRequest);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpenRequest);
-    };
-  }, []);
+  usePaletteOpeners(open, setOpen);
 
   // Reset view + query when the dialog closes so the next open is
   // always a clean root view, not whatever sub-list the user was in.
@@ -237,8 +150,18 @@ export function CommandPalette() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
-        className="overflow-hidden p-0 sm:max-w-xl"
+        // A 16px gutter each side on phones instead of edge to edge.
+        className="w-[calc(100%-2rem)] overflow-hidden p-0 sm:max-w-xl"
         hideClose
+        // Radix listens for Escape on the document in the capture
+        // phase, so it fires before onKeyDownInside. In a sub-view,
+        // stop it from closing the dialog and step back instead.
+        onEscapeKeyDown={(e) => {
+          if (view.kind === "root") return;
+          e.preventDefault();
+          setView({ kind: "root" });
+          setQuery("");
+        }}
         onKeyDownCapture={onKeyDownInside}
       >
         <DialogTitle className="sr-only">
@@ -292,223 +215,5 @@ export function CommandPalette() {
         </Command>
       </DialogContent>
     </Dialog>
-  );
-}
-
-/* ─── Sub-components ──────────────────────────────────────────────── */
-
-function RootView({
-  groups,
-  query,
-  setQuery,
-  runEntry,
-  inputRef,
-}: {
-  groups: { group: CommandGroupId; items: CommandEntry[] }[];
-  query: string;
-  setQuery: (q: string) => void;
-  runEntry: (e: CommandEntry) => void;
-  inputRef: React.RefObject<HTMLInputElement | null>;
-}) {
-  return (
-    <>
-      <CommandInput
-        ref={inputRef}
-        value={query}
-        onValueChange={setQuery}
-        placeholder="Search settings, themes, actions…"
-        autoFocus
-      />
-      <CommandList>
-        <CommandEmpty>No matches.</CommandEmpty>
-        {groups.map(({ group, items }) => (
-          <CommandGroup key={group} heading={group}>
-            {items.map((entry) => (
-              <CommandItem
-                key={entry.id}
-                // cmdk uses `value` for filter matching — pack the
-                // hint + keywords in so search hits beyond the label.
-                value={`${entry.label} ${entry.hint ?? ""} ${(entry.keywords ?? []).join(" ")} ${entry.group}`}
-                onSelect={() => runEntry(entry)}
-              >
-                <EntryRow entry={entry} />
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        ))}
-      </CommandList>
-    </>
-  );
-}
-
-function EnumView({
-  entry,
-  query,
-  setQuery,
-  onPick,
-  onBack,
-  inputRef,
-}: {
-  entry: EnumEntry;
-  query: string;
-  setQuery: (q: string) => void;
-  onPick: (id: string) => void;
-  onBack: () => void;
-  inputRef: React.RefObject<HTMLInputElement | null>;
-}) {
-  return (
-    <>
-      <div className="flex items-center gap-2 border-b border-border px-2 py-1.5">
-        <button
-          type="button"
-          aria-label="Back to all commands"
-          // tabIndex -1 so Radix's focus trap doesn't land here on
-          // Tab — the user reaches Back via mouse / Esc, not Tab,
-          // and we want focus to stay on the search input.
-          tabIndex={-1}
-          onClick={onBack}
-          className="inline-flex h-7 w-7 items-center justify-center rounded-pill text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-        </button>
-        <span className="text-sm font-medium text-foreground">
-          {entry.label}
-        </span>
-      </div>
-      <CommandInput
-        ref={inputRef}
-        value={query}
-        onValueChange={setQuery}
-        placeholder={`Pick a value for ${entry.label.toLowerCase()}`}
-        autoFocus
-      />
-      <CommandList>
-        <CommandEmpty>No matches.</CommandEmpty>
-        <CommandGroup heading="Options">
-          {entry.options.map((opt) => {
-            const active = opt.id === entry.value;
-            return (
-              <CommandItem
-                key={opt.id}
-                value={`${opt.label} ${opt.id}`}
-                onSelect={() => onPick(opt.id)}
-              >
-                <span className="flex h-4 w-4 items-center justify-center">
-                  {active ? (
-                    <Check className="h-3.5 w-3.5 text-primary" />
-                  ) : null}
-                </span>
-                <span className="text-sm">{opt.label}</span>
-                {active ? (
-                  <CommandShortcut className="text-xs tracking-normal normal-case text-primary">Current</CommandShortcut>
-                ) : null}
-              </CommandItem>
-            );
-          })}
-        </CommandGroup>
-      </CommandList>
-    </>
-  );
-}
-
-function EntryRow({ entry }: { entry: CommandEntry }) {
-  return (
-    <>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-sm">{entry.label}</span>
-        {entry.hint ? (
-          <span className="truncate text-[11px] text-muted-foreground">
-            {entry.hint}
-          </span>
-        ) : null}
-      </div>
-      <ValueChip entry={entry} />
-    </>
-  );
-}
-
-function ValueChip({ entry }: { entry: CommandEntry }) {
-  switch (entry.kind) {
-    case "toggle":
-      return (
-        <span
-          className={
-            entry.value
-              ? "rounded-pill border border-primary/30 bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary"
-              : "rounded-pill border border-border px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
-          }
-        >
-          {entry.value ? "On" : "Off"}
-        </span>
-      );
-    case "enum": {
-      const current =
-        entry.options.find((o) => o.id === entry.value)?.label ?? entry.value;
-      return (
-        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-          <span>{current}</span>
-          <ChevronRight className="h-3 w-3" />
-        </span>
-      );
-    }
-    case "link":
-      return (
-        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-          <span>{entry.destination}</span>
-          <ArrowRight className="h-3 w-3" aria-hidden />
-        </span>
-      );
-    case "action":
-      return (
-        <ArrowRight
-          className="h-3.5 w-3.5 text-muted-foreground"
-          aria-hidden
-        />
-      );
-  }
-}
-
-function Footer({ view }: { view: View }) {
-  const mounted = useMounted();
-  return (
-    <div className="flex items-center justify-between border-t border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-      <div className="flex items-center gap-3">
-        <span>
-          <Kbd>↑↓</Kbd> Move
-        </span>
-        <span>
-          <Kbd>↵</Kbd> {view.kind === "root" ? "Act" : "Pick"}
-        </span>
-        <span>
-          <Kbd>Esc</Kbd> {view.kind === "root" ? "Close" : "Back"}
-        </span>
-      </div>
-      <div className="flex items-center gap-1">
-        <Kbd>{mounted ? commandKeyLabel(navigator.platform) : "Ctrl"}</Kbd>
-        <Kbd>K</Kbd>
-      </div>
-    </div>
-  );
-}
-
-/** True when the focused element is text-editable, so a global Escape
- *  binding shouldn't steal it (the user may be blurring / clearing an
- *  input, or typing the practice passage into the hidden input). */
-function isEditableTarget(el: Element | null): boolean {
-  if (!el) return false;
-  const tag = el.tagName;
-  return (
-    tag === "INPUT" ||
-    tag === "TEXTAREA" ||
-    tag === "SELECT" ||
-    (el as HTMLElement).isContentEditable
-  );
-}
-
-function Kbd({ children }: { children: React.ReactNode }) {
-  return (
-    <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-border bg-background px-1 font-sans text-[11px] font-medium text-foreground">
-      {children}
-    </kbd>
   );
 }

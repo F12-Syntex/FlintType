@@ -20,7 +20,6 @@ export function InputHandlingPreview() {
   // names that explicitly.
   return (
     <PreviewPracticeProvider
-      words={["the", "quick", "brown", "fox", "jumps"]}
       finishedWords={2}
       cursorChar={3}
       errorWord={1}

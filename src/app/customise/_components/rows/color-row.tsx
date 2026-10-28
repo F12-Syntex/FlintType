@@ -40,7 +40,7 @@ export function ColorRow({
               variant="ghost"
               size="xs"
               onClick={onClear}
-              className="h-9 text-muted-foreground sm:h-7"
+              className="h-11 text-muted-foreground sm:h-7"
               aria-label={`Reset ${label}`}
             >
               Reset
@@ -50,7 +50,7 @@ export function ColorRow({
             <Button
               variant="outline"
               size="sm"
-              className="h-9 gap-2 px-2 sm:h-8 sm:pr-2.5"
+              className="h-11 gap-2 px-2 sm:h-8 sm:pr-2.5"
               aria-label={`${label}: ${value ?? "default"}. Change`}
             >
               <span

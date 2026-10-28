@@ -90,6 +90,20 @@ function buildState({
 
 const NO_HISTORY: readonly WpmSample[] = [];
 
+/** The sample text every preview types through. Long enough to fill
+ *  several lines like a real test, so Lines shown, Line width and the
+ *  font size visibly change it. The first nine words are the pangram
+ *  the previews' cursor and error positions are tuned to. */
+export const PREVIEW_WORDS: readonly string[] = [
+  "the", "quick", "brown", "fox", "jumps", "over", "the", "lazy", "dog",
+  "and", "then", "runs", "back", "across", "the", "open", "field", "to",
+  "find", "a", "quiet", "place", "where", "the", "light", "falls", "soft",
+  "on", "the", "grass", "as", "the", "long", "day", "slows", "down",
+];
+
+/** Just the pangram: a short sample run for the result preview. */
+export const PREVIEW_PANGRAM: readonly string[] = PREVIEW_WORDS.slice(0, 9);
+
 /** Tiny LCG for deterministic preview noise — same passage produces the
  *  same wpm/event jitter every render so the preview doesn't flicker. */
 function lcg(seed: number) {
@@ -173,7 +187,7 @@ function buildSampleRun(words: readonly string[]): {
  *  and PassageHeatmap render rich, not "Run too short for a chart". */
 export function PreviewPracticeProvider({
   children,
-  words = ["the", "quick", "brown", "fox", "jumps", "over", "the", "lazy", "dog"],
+  words = PREVIEW_WORDS,
   finishedWords = 4,
   cursorChar = 2,
   errorWord = 1,

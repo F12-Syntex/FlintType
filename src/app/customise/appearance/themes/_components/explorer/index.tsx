@@ -89,7 +89,7 @@ export function ThemeExplorer() {
             href="/customise/theme"
             className={cn(
               buttonVariants({ variant: "outline", size: "sm" }),
-              "h-9 sm:h-8 lg:hidden",
+              "h-11 sm:h-8 lg:hidden",
             )}
           >
             <ArrowLeft aria-hidden />

@@ -22,7 +22,7 @@ import {
   KeymapLayoutRows,
   KeymapShowRow,
 } from "../_components/rows/keymap-rows";
-import { KeyboardLivePreview } from "../_components/rows/section-previews";
+import { KeyboardLivePreview } from "../_components/rows/keyboard-preview";
 import { SettingsSection } from "../_components/settings-section";
 
 /** The keyboard-settings fields that have a control here. `compact` is

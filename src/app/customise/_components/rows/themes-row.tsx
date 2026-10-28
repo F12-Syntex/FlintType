@@ -179,7 +179,7 @@ export function ThemesRow() {
     <Button
       variant="outline"
       size="sm"
-      className="h-9 gap-2 sm:h-8"
+      className="h-11 gap-2 sm:h-8"
       aria-label={`Palette: ${triggerName}. Change`}
       onClick={isMobile ? () => setSheetOpen(true) : undefined}
     >
@@ -206,7 +206,7 @@ export function ThemesRow() {
             <MobileSheet
               open={sheetOpen}
               onOpenChange={setSheetOpen}
-              title="Theme"
+              title="Palette"
             >
               <ul className="flex flex-col">
                 <ThemeSheetItem
@@ -230,14 +230,9 @@ export function ThemesRow() {
                   <button
                     type="button"
                     onClick={exploreThemes}
-                    className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left text-base font-semibold text-primary transition-colors hover:bg-accent active:bg-foreground/10"
+                    className="flex w-full items-center gap-3 px-4 py-4 text-left text-base font-semibold text-primary transition-colors hover:bg-accent active:bg-foreground/10"
                   >
                     Browse all palettes
-                    <ChevronDown
-                      size={16}
-                      aria-hidden
-                      className="shrink-0 -rotate-90 text-primary"
-                    />
                   </button>
                 </li>
               </ul>

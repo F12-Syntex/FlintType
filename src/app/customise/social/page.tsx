@@ -12,7 +12,7 @@ import {
 } from "../_components/groups";
 import { SettingsPageHeader } from "../_components/page-header";
 import { MultiplayerRows } from "../_components/rows/multiplayer-rows";
-import { MultiplayerPreview } from "../_components/rows/section-previews";
+import { MultiplayerPreview } from "../_components/rows/multiplayer-preview";
 import {
   SPECTATE_DEFAULT,
   SpectateSection,

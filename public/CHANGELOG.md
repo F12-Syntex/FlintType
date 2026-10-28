@@ -8,6 +8,15 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.22 — 27 October 2026
+- In the command palette (Ctrl/Cmd+K), Esc now steps back out of a list of choices instead of closing the palette, and you can switch back to the Default palette from it.
+- Command palette entries now use the same names and options as the Settings pages, and Key arrangement, Palette gallery and Design with AI were added.
+- On phones the command palette keeps a margin from the screen edges, its rows are easier to tap, and long names are no longer cut off.
+- Settings controls on phones (dropdowns, colour swatches, number fields, the light/dark switch) are now big enough to tap comfortably, and text fields no longer make iOS zoom in.
+- The caret Movement choices now fit neatly on small phones, and keyboard samples draw Rounded and Pill keys differently.
+- Setting previews now show a full paragraph, so Lines shown, Line width and text size visibly change them.
+- The Design with AI chat box now sits centred under the previews, and the Import / export message no longer runs off the screen on phones.
+
 ## 6.148.21 — 27 October 2026
 - On phones, the leaderboard's view switch and filter switches are easier to tap.
 - The errors and accuracy columns in your profile's Recent runs now line up.

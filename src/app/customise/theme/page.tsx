@@ -29,7 +29,7 @@ import {
   BackgroundPreview,
   ColorPreview,
   ThemePreview,
-} from "../_components/rows/section-previews";
+} from "../_components/rows/passage-previews";
 import { ThemesRow } from "../_components/rows/themes-row";
 import { SettingsSection } from "../_components/settings-section";
 
@@ -158,7 +158,11 @@ export default function ThemeSettingsPage() {
               desc="System follows your device setting."
             />
           }
-          control={<ModeSwitcher />}
+          control={
+            // 40px segments on phones (the settings segmented-switch
+            // size, §7); the compact 32px ones from sm.
+            <ModeSwitcher className="max-sm:[&>button]:size-10" />
+          }
         />
         <SettingsRow
           inline
@@ -173,7 +177,7 @@ export default function ThemeSettingsPage() {
               href="/customise/appearance/themes"
               className={cn(
                 buttonVariants({ variant: "outline", size: "sm" }),
-                "h-9 sm:h-8",
+                "h-11 sm:h-8",
               )}
             >
               Browse
