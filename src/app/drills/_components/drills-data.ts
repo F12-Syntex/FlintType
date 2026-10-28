@@ -1,590 +1,66 @@
-import { EN_COMMON_1000 } from "@/data/en-common-1000";
-import englishWords from "@/data/english.json";
-import { findCarrierWords } from "@/lib/adapt-carriers";
 import type { HistoryWeakness } from "@/types/history";
+import { buildGenericDrills } from "./drills-generic";
+import { buildTailoredDrills } from "./drills-tailored";
 
 /** Drills split into two groups by where their data comes from:
- *    tailored — built from the user's typing model (weakest pairs,
- *               weakest trigrams). Locked until enough data exists.
- *    generic  — curated word/item lists that work for everyone, with
- *               or without a model. Always ready.
- *  The view groups cards by category so the user can see at a glance
- *  which drills are personal and which are universal. */
+ *    tailored: built from the user's typing model (weakest pairs,
+ *              trigrams, words). Locked until enough data exists.
+ *    generic:  curated lists that work for everyone. Always ready.
+ *  The index groups tiles by category so the user can see at a glance
+ *  which drills are personal and which are universal.
+ *
+ *  Layout of this folder's data layer: `drill-catalog.ts` holds the
+ *  shared numbers and copy, `drill-lists.ts` the curated lists,
+ *  `drill-generators.ts` the seeded pickers, and `drills-tailored.ts` /
+ *  `drills-generic.ts` build the specs. */
 export type DrillCategory = "tailored" | "generic";
 
-/** A drill is one of two engine kinds. The picker reads `kind` and
- *  feeds the right runner. Each kind carries the data its engine
- *  needs — a passage of words, an item list with a threshold, etc. */
+interface DrillBase {
+  id: string;
+  category: DrillCategory;
+  title: string;
+  /** The drill's kind as shown on badges and the runner header. */
+  contextLabel: string;
+  /** One plain sentence for the drills index tiles. */
+  summary: string;
+  description: string;
+  payoff: string;
+  ready: boolean;
+}
+
+/** A drill is one of two engine kinds. The runner reads `kind` and
+ *  mounts the matching surface. */
 export type DrillSpec =
-  | {
-      id: string;
+  | (DrillBase & {
       kind: "sudden-death";
-      category: DrillCategory;
-      title: string;
-      contextLabel: string;
-      /** One plain sentence for the drills index tiles. */
-      summary: string;
-      description: string;
-      payoff: string;
-      ready: boolean;
       words: readonly string[];
-    }
-  | {
-      id: string;
+    })
+  | (DrillBase & {
       kind: "burst";
-      category: DrillCategory;
-      title: string;
-      contextLabel: string;
-      /** One plain sentence for the drills index tiles. */
-      summary: string;
-      description: string;
-      payoff: string;
-      ready: boolean;
       items: readonly string[];
       thresholdWpm: number;
       repsPerItem: number;
-      /** Drill is a whole-discovery tracker rather than a fixed list:
-       *  the runner pulls items from `EN_COMMON_1000`, persists each
-       *  cleared word against the user's drill-progress slice, and
-       *  shows a 1000-cell discovery grid. Burst-1000 is the only
-       *  drill flagged today. The runtime ignores `items` for
-       *  trackers — the real list is computed at mount time from the
-       *  user's persisted state. */
+      /** A whole-discovery tracker rather than a fixed list: the runner
+       *  pulls items from `EN_COMMON_1000`, persists each cleared word
+       *  and shows a 1000-cell discovery grid. Burst 1000 is the only
+       *  drill flagged today; the runtime ignores `items` for it. */
       tracker?: "common-1000";
       /** When true, the user's `appearance.burstReps` pref overrides
-       *  `repsPerItem` at runtime. Pangrams set this false (1 rep is
-       *  the spec); every other burst sets it true. */
+       *  `repsPerItem` at runtime. */
       repsConfigurable: boolean;
-    };
-
-/** Curated tongue-twister set — words with awkward bigram density and
- *  cross-hand letter pairs. Hand-picked rather than generated so the
- *  list stays sharp and predictable. */
-export const TRICKY_WORDS: readonly string[] = [
-  "rhythm", "myth", "syzygy", "queue", "bivouac", "phlegm",
-  "schism", "subtle", "gnaw", "knack", "wreath", "psalm",
-  "yacht", "draught", "scythe", "twelfth", "strengths",
-  "sphinx", "thwart", "sequoia", "axiom", "exquisite",
-  "zephyr", "knapsack", "wrought", "khaki", "gauche",
-  "kowtow", "marquee", "obsequious", "paradigm",
-  "rendezvous", "subterfuge", "ubiquitous", "vortex",
-  "xylophone", "zymurgy", "cataclysm", "diaphragm",
-  "ephemera", "fjord", "ghastly", "haphazard", "iambic",
-  "jaunt", "lethargy", "musket", "nymph", "pneumatic",
-  "quagmire", "raucous", "tundra", "vexillology",
-] as const;
-
-/** Common trigrams worth drilling — heavy in English usage and
- *  benefit from finger-memory rep more than they do from contextual
- *  practice. Sorted roughly by frequency. */
-export const HIGH_VALUE_TRIGRAMS: readonly string[] = [
-  "the", "ing", "and", "ion", "tio",
-  "ent", "for", "ere", "ate", "all",
-  "her", "ter", "est", "ers",
-  "his", "ith", "ver", "ith",
-] as const;
-
-/** Classic pangrams — every letter of the alphabet, no exotic
- *  vocabulary. Burst-target list because hitting threshold WPM on a
- *  pangram is a clean signal that every key is wired in. */
-export const PANGRAM_LIST: readonly string[] = [
-  "the quick brown fox jumps over the lazy dog",
-  "pack my box with five dozen liquor jugs",
-  "how vexingly quick daft zebras jump",
-  "sphinx of black quartz judge my vow",
-  "the five boxing wizards jump quickly",
-  "jackdaws love my big sphinx of quartz",
-  "amazingly few discotheques provide jukeboxes",
-  "crazy fredrick bought many very exquisite opal jewels",
-] as const;
-
-/** Sentences mixing letters with numbers and basic punctuation —
- *  drills the under-practised number row and the comma/period reach
- *  without being so contrived that the hands can't flow. */
-export const NUMBERS_AND_SYMBOLS: readonly string[] = [
-  "Order 12 boxes by 5pm; ship the rest on Monday.",
-  "She typed 90 wpm, paused, then hit 102 on the next run.",
-  "Add 3.14 to your column, divide by 7, and round it off.",
-  "We met at 8:45 — 30 minutes late for the 9:15 train.",
-  "Pay the $42 invoice, then forward the receipt to me.",
-  "Run 25 reps, rest for 60s, then go again — 4 sets total.",
-  "Versions 1.2.4 and 2.0.0 ship on the same day, no delays.",
-  "Email me at user@host.com after the 4th of November.",
-] as const;
-
-const POOL: readonly string[] = englishWords.words;
-
-/** Bigrams that show up in almost every word. Skipping them keeps
- *  the weakness drill *targeted* — drilling "th" specifically is
- *  pointless when every regular passage drills it for free. */
-const COMMON_BIGRAMS = new Set([
-  "th", "he", "in", "er", "an", "re", "on", "at", "en", "nd",
-  "ti", "es", "or", "te", "of", "ed", "is", "it", "al", "ar",
-  "st", "to", "nt", "ng", "se", "ha", "as", "ou", "io", "le",
-  "ve", "co", "me", "de",
-]);
-
-function seededRng(seed: number): () => number {
-  let state = seed;
-  return () => {
-    state = (state * 1103515245 + 12345) & 0x7fffffff;
-    return state / 0x7fffffff;
-  };
-}
-
-function shuffleInPlace<T>(arr: T[], rng: () => number): T[] {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [arr[i], arr[j]] = [arr[j]!, arr[i]!];
-  }
-  return arr;
-}
-
-const DEFAULT_BURST_THRESHOLD_WPM = 60;
-const SPRINT_BURST_THRESHOLD_WPM = 50;
-const SUDDEN_DEATH_LENGTH = 30;
-const TRICKY_DRILL_LENGTH = 35;
-// Five-in-a-row default for word and trigram bursts. The Appearance
-// "Burst reps" pref overrides this per-user; the drill spec just
-// surfaces the default in its description so the picker reads
-// honestly. Pangrams use their own constant — a whole sentence is a
-// big enough unit of work without insisting on multiple reps.
-const DEFAULT_BURST_REPS = 5;
-const SPRINT_BURST_LENGTH = 40;
-const PANGRAM_REPS = 1;
-
-/** Build a passage of `count` words containing the user's top weak
- *  bigrams, evenly distributed. */
-function generateWeaknessPassage(
-  weakest: readonly HistoryWeakness[],
-  count: number,
-  seed: number,
-): string[] {
-  if (weakest.length === 0) return [];
-  const targets = weakest
-    .filter((w) => !COMMON_BIGRAMS.has(w.key))
-    .slice(0, 6);
-  if (targets.length === 0) return [];
-  const buckets: string[][] = targets.map((t) =>
-    POOL.filter((w) => w.toLowerCase().includes(t.key)),
-  );
-  const out: string[] = [];
-  const rng = seededRng(seed);
-  let bi = 0;
-  let attempts = 0;
-  while (out.length < count && attempts < count * 10) {
-    const bucket = buckets[bi % buckets.length];
-    bi++;
-    attempts++;
-    if (!bucket || bucket.length === 0) continue;
-    const w = bucket[Math.floor(rng() * bucket.length)]!;
-    if (out[out.length - 1] === w) continue;
-    out.push(w);
-  }
-  return out;
-}
-
-/** Sample tricky words without replacement until count is filled. */
-function generateTrickyPassage(count: number, seed: number): string[] {
-  const pool = [...TRICKY_WORDS];
-  shuffleInPlace(pool, seededRng(seed));
-  if (count <= pool.length) return pool.slice(0, count);
-  const out: string[] = [];
-  let i = 0;
-  while (out.length < count) {
-    out.push(pool[i % pool.length]!);
-    i++;
-  }
-  return out;
-}
-
-/** Pull common 3-5 char words from the top-1000 set as the burst
- *  drill's items. Short words keep each attempt under a second so
- *  the cadence stays tight. */
-function pickBurstWords(count: number, seed: number): string[] {
-  const candidates = EN_COMMON_1000.filter(
-    (w) => w.length >= 3 && w.length <= 5,
-  );
-  const pool = [...candidates];
-  shuffleInPlace(pool, seededRng(seed));
-  return pool.slice(0, count);
-}
-
-/** Pull words from MonkeyType's `english.json` pool — the same pool
- *  the single-player English mode and multiplayer races draw from.
- *  No length filter (it's already a tight frequency-ranked list);
- *  shuffled by seed so the drill yields a fresh selection per
- *  visit while staying reproducible per (seed, count). */
-function pickEnglishBurstWords(count: number, seed: number): string[] {
-  const pool = [...POOL];
-  shuffleInPlace(pool, seededRng(seed));
-  if (count <= pool.length) return pool.slice(0, count);
-  const out: string[] = [];
-  let i = 0;
-  while (out.length < count) {
-    out.push(pool[i % pool.length]!);
-    i++;
-  }
-  return out;
-}
-
-/** Top-N user weakness trigrams worth drilling, falling back to the
- *  HIGH_VALUE_TRIGRAMS curated list when we don't have enough user
- *  signal. */
-function pickWeaknessTrigrams(
-  weakestTrigrams: readonly { key: string }[] | undefined,
-  count: number,
-): string[] {
-  const userPicks = (weakestTrigrams ?? [])
-    .map((t) => t.key)
-    .filter((k) => k.length === 3)
-    .slice(0, count);
-  if (userPicks.length >= count) return userPicks;
-  // Pad with curated trigrams the user hasn't already had.
-  const seen = new Set(userPicks);
-  for (const t of HIGH_VALUE_TRIGRAMS) {
-    if (userPicks.length >= count) break;
-    if (seen.has(t)) continue;
-    userPicks.push(t);
-    seen.add(t);
-  }
-  return userPicks;
-}
-
-const ISOLATION_MAX_BIGRAMS = 3;
-const ISOLATION_MAX_TRIGRAMS = 2;
-const ISOLATION_CARRIER_COUNT = 24;
-
-/** keybr-style isolation drills: one weak pattern, drilled across many
- *  varied real carrier words from EN_COMMON_1000. This is the
- *  high-transfer counterpart to the in-pool adaptive selection — it
- *  trains the *motion* across unlimited vocabulary rather than the
- *  handful of carrier words a small pool contains. An isolation drill
- *  is just a burst over those carriers, so it reuses the burst engine
- *  (no new DrillSpec kind). Emits one card per top weak bigram (minus
- *  the ultra-common pairs every passage already drills) and trigram;
- *  degrades to a single locked card when the model is cold. */
-function buildIsolationDrills(
-  weakestPairs: readonly HistoryWeakness[],
-  weakestTrigrams: readonly { key: string }[] | undefined,
-  personalReady: boolean,
-  seed: number,
-): DrillSpec[] {
-  const patterns: { pattern: string; type: "bigram" | "trigram" }[] = [];
-  if (personalReady) {
-    for (const w of weakestPairs) {
-      if (patterns.length >= ISOLATION_MAX_BIGRAMS) break;
-      if (/^[a-z]{2}$/.test(w.key) && !COMMON_BIGRAMS.has(w.key)) {
-        patterns.push({ pattern: w.key, type: "bigram" });
-      }
-    }
-    let trigramCount = 0;
-    for (const t of weakestTrigrams ?? []) {
-      if (trigramCount >= ISOLATION_MAX_TRIGRAMS) break;
-      if (/^[a-z]{3}$/.test(t.key)) {
-        patterns.push({ pattern: t.key, type: "trigram" });
-        trigramCount++;
-      }
-    }
-  }
-
-  const cards: DrillSpec[] = [];
-  patterns.forEach(({ pattern, type }, i) => {
-    const items = findCarrierWords(
-      pattern,
-      EN_COMMON_1000,
-      ISOLATION_CARRIER_COUNT,
-      seed + 11 + i,
-    );
-    if (items.length === 0) return; // never hand BurstSurface an empty list
-    cards.push({
-      id: `isolation-${pattern}`,
-      kind: "burst",
-      category: "tailored",
-      title: `Isolate "${pattern}"`,
-      contextLabel: "Isolation",
-      summary: `Drill the ${type} "${pattern}" across ${items.length} everyday words.`,
-      description: `Hammer the ${type} "${pattern}" across ${items.length} everyday words — ${items
-        .slice(0, 4)
-        .map((w) => `"${w}"`)
-        .join(", ")}${items.length > 4 ? ", …" : ""}. Same motion, many words, so the speed transfers instead of sticking to one word.`,
-      payoff:
-        "Drilling one weak motion across varied real words is the keybr-style path to transfer — you train the hand movement, not a single word's shape.",
-      ready: true,
-      items,
-      thresholdWpm: DEFAULT_BURST_THRESHOLD_WPM,
-      repsPerItem: DEFAULT_BURST_REPS,
-      repsConfigurable: true,
     });
-  });
 
-  if (cards.length > 0) return cards;
-
-  return [
-    {
-      id: "isolation",
-      kind: "burst",
-      category: "tailored",
-      title: "Isolation drill",
-      contextLabel: "Isolation",
-      summary:
-        "Unlocks once we know which letter pairs your hands are slowest on.",
-      description:
-        "Once we've spotted the letter pairs your hands are slowest on, this drill hammers one of them across dozens of varied everyday words — so the speed transfers instead of sticking to a single word.",
-      payoff:
-        "Isolating one weak motion across many real words is the highest-transfer drill — you train the movement, not the word.",
-      ready: false,
-      items: [],
-      thresholdWpm: DEFAULT_BURST_THRESHOLD_WPM,
-      repsPerItem: DEFAULT_BURST_REPS,
-      repsConfigurable: true,
-    },
-  ];
-}
-
-/** All drills the picker offers, in display order. Snapshot-aware
- *  drills (weakness, trigram-burst) gracefully degrade when the
- *  user is cold — they surface a "not enough data yet" card and
- *  the start button stays disabled. */
-export function buildDrills({
-  weakestPairs,
-  weakestTrigrams,
-  weakestWords,
-  cold,
-  seed,
-}: {
+export interface DrillInput {
   weakestPairs: readonly HistoryWeakness[];
   weakestTrigrams?: readonly { key: string }[];
   weakestWords?: readonly { key: string; meanMs: number }[];
   cold: boolean;
   seed: number;
-}): DrillSpec[] {
-  const personalReady = !cold && weakestPairs.length > 0;
-  const trigrams = pickWeaknessTrigrams(weakestTrigrams, 6);
-  const trigramTailored = (weakestTrigrams ?? []).length > 0;
-  const worstWords = (weakestWords ?? []).slice(0, 20).map((w) => w.key);
-  const worstWordsReady = worstWords.length >= 5;
-  const drills: DrillSpec[] = [];
-
-  // ─── Tailored ─────────────────────────────────────────────────────
-  // Built from the user's typing model. Locked when the model is too
-  // cold; the locked card explains what unlocks it.
-
-  drills.push(
-    personalReady
-      ? {
-          id: "weakness",
-          kind: "sudden-death",
-          category: "tailored",
-          title: "Weakness gauntlet",
-          contextLabel: "Sudden death",
-          summary: `A passage built from your slowest pairs (${weakestPairs
-            .slice(0, 3)
-            .map((w) => w.key)
-            .join(", ")}). One mistake restarts it.`,
-          description: `A passage built from your slowest bigrams: ${weakestPairs.slice(0, 4).map((w) => `"${w.key}"`).join(", ")}. Clear it without a single mistake — one wrong key sends you back to word one.`,
-          payoff: "Sudden-death enforces accuracy where you're already slow. Your brain locks in the cleaner motion when error is non-negotiable.",
-          ready: true,
-          words: generateWeaknessPassage(weakestPairs, SUDDEN_DEATH_LENGTH, seed),
-        }
-      : {
-          id: "weakness",
-          kind: "sudden-death",
-          category: "tailored",
-          title: "Weakness gauntlet",
-          contextLabel: "Sudden death",
-          summary:
-            "Unlocks once we've seen enough of your typing to find your slowest pairs.",
-          description:
-            "Once we've seen enough of your typing to identify weak bigrams, this drill will build a passage around them and demand a clean run.",
-          payoff: "Drilling your weakest pairs under sudden-death pressure is the highest-leverage path to a higher overall WPM.",
-          ready: false,
-          words: [],
-        },
-  );
-
-  drills.push(
-    worstWordsReady
-      ? {
-          id: "worst-words",
-          kind: "burst",
-          category: "tailored",
-          title: "Worst-words burst",
-          contextLabel: "Burst",
-          summary: `Your ${worstWords.length} slowest words, one at a time, until each clears ${DEFAULT_BURST_THRESHOLD_WPM} wpm.`,
-          description: `Burst your slowest ${worstWords.length} words: ${worstWords
-            .slice(0, 4)
-            .map((w) => `"${w}"`)
-            .join(", ")}${worstWords.length > 4 ? ", …" : ""}. Each one drilled at ${DEFAULT_BURST_THRESHOLD_WPM} WPM until it stops dragging your average.`,
-          payoff:
-            "These are the exact words your hands keep hesitating on — usually a different shape than the bigram-weakness drill picks up. Clear the list and your overall WPM moves with it.",
-          ready: true,
-          items: worstWords,
-          thresholdWpm: DEFAULT_BURST_THRESHOLD_WPM,
-          repsPerItem: DEFAULT_BURST_REPS,
-          repsConfigurable: true,
-        }
-      : {
-          id: "worst-words",
-          kind: "burst",
-          category: "tailored",
-          title: "Worst-words burst",
-          contextLabel: "Burst",
-          summary:
-            "Unlocks once we've timed enough words to find the ones you stall on.",
-          description:
-            "Once we've timed enough whole-word completions to spot the words your hands keep stalling on, this drill bursts the slowest 20 of them.",
-          payoff: "Word-level slowness is a different signal than bigram weakness — it catches words whose individual pairs are fine but whose sequence still trips you.",
-          ready: false,
-          items: [],
-          thresholdWpm: DEFAULT_BURST_THRESHOLD_WPM,
-          repsPerItem: DEFAULT_BURST_REPS,
-          repsConfigurable: true,
-        },
-  );
-
-  drills.push({
-    id: "trigram-burst",
-    kind: "burst",
-    category: "tailored",
-    title: "Trigram burst",
-    contextLabel: "Burst",
-    summary: trigramTailored
-      ? `Your weakest three-letter clusters: ${trigrams.join(", ")}.`
-      : `The most useful three-letter clusters in English: ${trigrams.join(", ")}.`,
-    description: trigramTailored
-      ? `Drill 3-letter clusters from your weakest trigrams: ${trigrams.map((t) => `"${t}"`).join(", ")}. ${DEFAULT_BURST_REPS} clean bursts above ${DEFAULT_BURST_THRESHOLD_WPM} WPM advance to the next.`
-      : `Drill the highest-value English trigrams: ${trigrams.map((t) => `"${t}"`).join(", ")}. Once we've seen more of your typing this list will swap for your weakest trigrams.`,
-    payoff: "Trigram cadence scales straight into word-level speed — three letters at threshold becomes a whole word at threshold once joined up.",
-    ready: trigrams.length > 0,
-    items: trigrams,
-    thresholdWpm: DEFAULT_BURST_THRESHOLD_WPM,
-    repsPerItem: DEFAULT_BURST_REPS,
-    repsConfigurable: true,
-  });
-
-  drills.push(
-    ...buildIsolationDrills(weakestPairs, weakestTrigrams, personalReady, seed),
-  );
-
-  // ─── Generic ──────────────────────────────────────────────────────
-  // Curated lists that always work, regardless of model state.
-
-  drills.push({
-    id: "burst-1000",
-    kind: "burst",
-    category: "generic",
-    title: "Burst 1000",
-    contextLabel: "Burst",
-    summary:
-      "Clear the 1,000 most common English words one by one. Progress saves to your account.",
-    description: `Drill the thousand most common English words. Each word you clear at ${DEFAULT_BURST_THRESHOLD_WPM} WPM is logged against your account — over time, fill the whole 1000-cell grid. ${DEFAULT_BURST_REPS} clean bursts to discover a word.`,
-    payoff: "The longest-running burst drill — slowly turns the entire core English vocabulary into reflex. Progress saves to your account.",
-    ready: true,
-    // Items are computed at runtime by the burst-1000 surface from the
-    // user's persisted discovery state, so the value here is just a
-    // placeholder. The `tracker` flag tells the dynamic page to mount
-    // the wrapper component instead of the plain BurstSurface.
-    items: [],
-    thresholdWpm: DEFAULT_BURST_THRESHOLD_WPM,
-    repsPerItem: DEFAULT_BURST_REPS,
-    repsConfigurable: true,
-    tracker: "common-1000",
-  });
-
-  drills.push({
-    id: "tricky",
-    kind: "sudden-death",
-    category: "generic",
-    title: "Tongue-twister gauntlet",
-    contextLabel: "Sudden death",
-    summary:
-      "Awkward words with silent letters and cross-hand jumps. One mistake restarts it.",
-    description:
-      "A curated set of awkward words — silent letters, cross-hand jumps, doubled clusters. Clean run or back to the start.",
-    payoff: "Universal — no model required. Useful for warm-up or whenever the personal drill is unavailable.",
-    ready: true,
-    words: generateTrickyPassage(TRICKY_DRILL_LENGTH, seed + 1),
-  });
-
-  drills.push({
-    id: "pangrams",
-    kind: "burst",
-    category: "generic",
-    title: "Pangram sprint",
-    contextLabel: "Burst",
-    summary: `Eight classic pangrams that use every letter, each at ${SPRINT_BURST_THRESHOLD_WPM} wpm.`,
-    description: `Hit ${SPRINT_BURST_THRESHOLD_WPM} WPM on a full pangram, ${PANGRAM_REPS} clean run per sentence. Eight sentences total — every letter of the alphabet across the set.`,
-    payoff: "Whole-sentence threshold practice is the closest drill to a real test — flow, punctuation, and every letter row in one pass.",
-    ready: true,
-    items: PANGRAM_LIST,
-    thresholdWpm: SPRINT_BURST_THRESHOLD_WPM,
-    repsPerItem: PANGRAM_REPS,
-    // Pangram reps stay locked at 1 — a whole sentence is a big
-    // enough commit; bumping reps would turn the drill into a
-    // marathon. The user-configurable burstReps pref is ignored here.
-    repsConfigurable: false,
-  });
-
-  drills.push({
-    id: "numbers-symbols",
-    kind: "sudden-death",
-    category: "generic",
-    title: "Numbers & symbols",
-    contextLabel: "Sudden death",
-    summary:
-      "Short sentences full of numbers and punctuation. One mistake restarts it.",
-    description:
-      "A passage of short sentences threaded with numbers, dashes, colons, and dollar signs. The keys you skim past in normal practice — drilled clean.",
-    payoff: "Almost every typist's accuracy collapses on the number row and the punctuation cluster. Honest reps under sudden-death plug the gap fast.",
-    ready: true,
-    words: numbersAndSymbolsAsWords(seed + 2),
-  });
-
-  drills.push({
-    id: "top-100-sprint",
-    kind: "burst",
-    category: "generic",
-    title: "Top 100 sprint",
-    contextLabel: "Burst",
-    summary: `Forty everyday words at a friendly ${SPRINT_BURST_THRESHOLD_WPM} wpm. A good warm-up.`,
-    description: `Forty of the hundred most common English words at a friendlier ${SPRINT_BURST_THRESHOLD_WPM} WPM threshold, ${DEFAULT_BURST_REPS} reps each. The warm-up before harder bursts.`,
-    payoff: "Re-anchors the muscle memory on words you type every day. Hit threshold here and the harder drills feel achievable.",
-    ready: true,
-    items: pickBurstWords(SPRINT_BURST_LENGTH, seed + 3),
-    thresholdWpm: SPRINT_BURST_THRESHOLD_WPM,
-    repsPerItem: DEFAULT_BURST_REPS,
-    repsConfigurable: true,
-  });
-
-  drills.push({
-    id: "english-burst",
-    kind: "burst",
-    category: "generic",
-    title: "English burst",
-    contextLabel: "Burst",
-    summary:
-      "Forty random words from the same pool as tests and races.",
-    description: `Forty random words from the English pool single-player and multiplayer both draw from. ${DEFAULT_BURST_REPS} clean bursts above ${DEFAULT_BURST_THRESHOLD_WPM} WPM advance to the next.`,
-    payoff:
-      "Practices the same vocabulary you'll see in everyday tests and races — at burst pace rather than long-form, so the cadence stays sharp.",
-    ready: true,
-    items: pickEnglishBurstWords(SPRINT_BURST_LENGTH, seed + 4),
-    thresholdWpm: DEFAULT_BURST_THRESHOLD_WPM,
-    repsPerItem: DEFAULT_BURST_REPS,
-    repsConfigurable: true,
-  });
-
-  return drills;
 }
 
-/** Flatten the NUMBERS_AND_SYMBOLS sentences into a single
- *  shuffled-order word list for the sudden-death engine. The engine
- *  takes a `readonly string[]` of words; sentences are split on
- *  whitespace and concatenated, with order randomised by `seed` so
- *  the drill changes between mounts. */
-function numbersAndSymbolsAsWords(seed: number): string[] {
-  const sentences = [...NUMBERS_AND_SYMBOLS];
-  shuffleInPlace(sentences, seededRng(seed));
-  return sentences.flatMap((s) => s.split(/\s+/).filter(Boolean));
+/** Every drill the index offers, in display order: tailored first,
+ *  then generic. Tailored drills degrade to locked cards while the
+ *  model is cold. */
+export function buildDrills(input: DrillInput): DrillSpec[] {
+  return [...buildTailoredDrills(input), ...buildGenericDrills(input.seed)];
 }

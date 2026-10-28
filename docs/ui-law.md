@@ -1069,27 +1069,79 @@ The page answers "what should I practise next?" first. Components live in `src/a
   - Scores go through `score-cache.ts` (unit-tested): per user, in memory plus sessionStorage, 10-minute TTL. Requests already in flight are shared and failures are not cached. A failed word waits for the next edit before retrying, so a revisit or reload never re-spends the per-user `adapt.scoreWord` rate limit.
 - **Loading / error:** a skeleton shaped like the sections (`motion-safe:animate-pulse`). On error, a dashed card with the message in `text-destructive` (`role="alert"`) and one filled `size="lg"` primary button: "Try again", or "Sign in" when unauthorised.
 
+## 25. Drills" up to, but not including, "## 26. Changelog page") with:
+
 ## 25. Drills (`/drills`, `/drills/[id]`)
 
-Drills answer one question: what should I practise next. Components live in `src/app/drills/_components/`. The view logic (recommendation, isolation folding, locked-last order, filters, spec line) is the pure, unit-tested `drill-tiles.ts`. `drills-data.ts` stays the single source of drill data.
+Drills answer one question: what should I practise next. Components live in `src/app/drills/_components/`.
+
+**Data layer** (pure, unit-tested where it has logic):
+- `drill-catalog.ts`: the shared tuning numbers, and the title, kind label and one-line `about` for every fixed drill id. The builders and the runner's page metadata both read it, so names can't drift.
+- `drill-lists.ts`: the curated lists.
+- `drill-generators.ts`: the seeded pickers.
+- `drills-tailored.ts`, `drills-isolation.ts` and `drills-generic.ts`: build the specs.
+- `drills-data.ts`: the `DrillSpec` types and `buildDrills`.
+- `drill-tiles.ts`: view logic (recommendation, isolation folding, locked-last order, filters, visible filters).
+- `drill-spec-line.ts`: unit names and the spec line.
+- `burst-reducer.ts`: the burst engine.
+- `use-drills.ts`: the one loader both pages share. It retries a first UNAUTHORIZED once, quietly, because a fresh tab can fire before Clerk refreshes its session cookie.
 
 ### 25.1 Index layout
-`<PageShell>` → `<PageHeader title="Drills">` with a neutral "N ready · N locked" pill in `aside` (same recipe as the insights status pill: `h-8 rounded-pill border bg-card text-xs`) → the **Recommended tile** → a filter + sections group.
+`<PageShell>` → `<PageHeader title="Drills">` with a neutral "N ready · N locked" pill in `aside` (`h-8 rounded-pill border bg-card text-xs`) → the **Recommended tile** → a filter + sections group (`flex flex-col gap-6`; sections `gap-10 sm:gap-12`).
 
-- **Recommended tile** (`recommended-drill.tsx`): full width, the page's orange accent: `rounded-2xl border-primary/30 bg-linear-to-br from-primary/10 via-card to-card shadow-card`, a `text-primary` flame eyebrow "Recommended for you", h2 title, one-line summary, a neutral kind badge + spec line, and the page's one filled `buttonVariants({ size: "lg" })` "Start drill" (full width on phones). It is left out of the grid below; it is the first ready tailored drill and never an isolation drill.
-- **Filter**: the shared `<SegmentedControl>` (§17.2), `h-11 md:h-10`. On phones it sits in an `overflow-x-auto -mx-4 px-4` wrapper so it scrolls sideways. Options with no matches hide.
-- **Sections**: `<PageSection>` "Tailored to you" and "For everyone", each a `<ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">`. An empty filter result shows a dashed card with a "Show all drills" outline button.
+- **Recommended tile** (`recommended-drill.tsx`)
+  - Full width, and the page's orange accent: `rounded-2xl border-primary/30 bg-linear-to-br from-primary/10 via-card to-card shadow-card`.
+  - A `text-primary` flame eyebrow "Recommended for you", an h2 title, a one-line summary, a neutral kind badge + spec line, and the page's one filled `buttonVariants({ size: "lg" })` "Start drill" (full width on phones).
+  - It is the first ready tailored drill, never an isolation drill, and it is left out of the grid.
+  - It **follows the active filter**: hidden when the filter excludes it (`showRecommended`).
+- **Filter**
+  - The shared `<SegmentedControl>` (§17.2); the selected option is the orange `brand-surface` pill.
+  - Touch targets come from the segments, not the shell: `max-md:p-0.5 max-md:[&>button]:h-11` (44px segments, 50px control) on phones, `md:h-10` from md.
+  - On phones it sits in an `overflow-x-auto -mx-4 px-4` wrapper so it scrolls sideways to the screen edge.
+  - It offers All, the active option, and only options that narrow the page: some drills but not all, counting the recommended tile (`visibleFilters`). With fewer than two options it hides.
+- **Sections**
+  - `<PageSection>` "Tailored to you" and "For everyone", each a `<ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">`.
+  - The tailored description adds "Locked drills open up as you practise." only when something in the group is locked.
+  - An empty filter result shows a dashed card with a "Show all drills" outline button.
+- **New account (every tailored drill locked)**
+  - "For everyone" renders first.
+  - Tailored collapses to one `<LockedSummary>` row instead of a column of locked cards, so drills the user can start today lead.
+  - The row is a dashed `rounded-2xl` card with a Lock badge, "N drills unlock as you practise", the drill names, and an outline "Go practise" (`h-11 sm:h-9`).
 
 ### 25.2 Drill tiles (`drill-tile.tsx`)
-- **Ready tile**: the whole card is the `<Link>` (no trailing arrow, §17.5): the `<Surface>` recipe + `hover:border-foreground/20 hover:shadow-float motion-safe:hover:-translate-y-0.5` + `focus-visible:ring-3 ring-ring/40`. Content: neutral kind badge, title (`text-base sm:text-lg font-semibold`), summary (`line-clamp-2 max-sm:hidden`), spec line pinned to the bottom (`mt-auto text-xs tabular-nums text-muted-foreground`).
-- **Kind badge**: `h-6 rounded-pill bg-muted px-2.5 text-xs text-muted-foreground` with a lucide icon: Skull = sudden death, Zap = burst, Target = isolation. Never coloured, so the recommended tile keeps the orange.
-- **Locked tile**: same geometry, `border-dashed bg-card/40`, no shadow, inert (`aria-disabled`, not focusable), a "Locked" badge, and a summary stating what unlocks it. Locked tiles sort last.
-- **Isolation tile**: every `isolation-<pattern>` drill folds into one "Isolate weak pairs" card whose body is a wrap of 44px outline pill chips, one per pattern, each linking to its drill. A cold model gets one locked tile instead.
+- **Ready tile**
+  - The whole card is the `<Link>`, with no trailing arrow (§17.5).
+  - Styling: the `<Surface>` recipe + `hover:border-foreground/20 hover:shadow-float motion-safe:hover:-translate-y-0.5` + `focus-visible:ring-3 ring-ring/40`.
+  - Content: neutral kind badge, title (`text-base sm:text-lg font-semibold`), summary (`line-clamp-2 max-sm:hidden`), and a spec line pinned to the bottom (`mt-auto text-xs tabular-nums text-muted-foreground`).
+- **Kind badge**: `h-6 rounded-pill bg-muted px-2.5 text-xs text-muted-foreground` with a lucide icon (Skull = sudden death, Zap = burst, Target = isolation). Never coloured, so the recommended tile keeps the orange.
+- **Locked tile**: same geometry, `border-dashed bg-card/40`, no shadow, and inert (`aria-disabled`, not focusable). It has a "Locked" badge and a summary saying what unlocks it. Locked tiles sort last.
+- **Isolation tile**: every `isolation-<pattern>` drill folds into one "Isolate weak pairs" card (`ISOLATION_TILE_TITLE`). Its body is a wrap of 44px outline pill chips, one per pattern, each linking to its drill. A cold model gets one locked tile instead.
 
 ### 25.3 Runner (`/drills/[id]`)
-`page.tsx` is a server component wrapping the client `<DrillRunner>`. Every state renders in the practice column (`mx-auto max-w-5xl`), so header, passage, stats and keyboard share the practice page's edges.
-- **`<DrillHeader>`**: one row, no border. A ghost back button (`size-11` icon-only on phones, `sm:h-9` labelled "Drills", `-ml-3` so the icon meets the column edge), a `h-6 w-px bg-border` divider, then the kind (`text-xs text-muted-foreground`) over the h1 (`text-lg sm:text-xl font-bold`).
-- **Loading** is a header + passage-shaped skeleton. **Error, signed-out, 404 and locked** are centred notices (eyebrow, h2, one line, buttons): primary flame `size="lg"`, secondary `outline` `size="lg"`.
+`page.tsx` is a server component wrapping the client `<DrillRunner>`. Every state renders in the practice column (`mx-auto max-w-5xl`), so header, passage, stats and keyboard share the practice page's edges. Metadata comes from `drill-catalog.ts`, and every runner page is `noIndex` (drills need an account; SEO S8).
+
+- **`<DrillHeader>`**
+  - One row, no border: a ghost back button (`size-11` icon-only on phones, `sm:h-9` labelled "Drills", `-ml-3` so the icon meets the column edge), a `h-6 w-px bg-border` divider, then the kind (`text-xs text-muted-foreground`) over the h1 (`text-lg sm:text-xl font-bold`).
+  - Without a `title`, only the back button renders.
+- **States**
+  - **Loading** is a header + passage-shaped skeleton.
+  - **Error, signed-out and 404** render the bare header plus a centred notice whose heading is the page's h1. There's no eyebrow and nothing repeats the heading, and a raw error message shows only when it adds information. The 404 truncates ids past 40 characters and uses `wrap-anywhere`.
+  - **Locked** keeps the drill's header and puts an h2 in the notice.
+  - Primary actions are the flame `size="lg"`; secondary actions are `outline` `size="lg"`.
+- **Typing on phones**
+  - Every runner focuses a visually hidden in-flow input (`pointer-events-none fixed bottom-0 left-0 size-px opacity-0`, `aria-label="Typing input"`) when the typing area is tapped.
+  - Sudden death uses `<InputCapture>`. Its body prevents the default of `mousedown` on non-interactive targets, otherwise the browser takes focus straight back off the input.
+  - Burst drills use `use-burst-typing.ts`: window `keydown` for physical keys, a native `beforeinput` listener for soft-keyboard text and deletes, and an input-value diff for IME composition. Never use React's `onBeforeInput` for this: it is backed by `textInput` and has no `inputType`.
+  - Before focus on a phone, the status line reads "Tap to type"; sudden death's footer reads "Tap the words to type".
+- **Burst readouts** (`burst-stats.tsx`)
+  - A centred row of `rounded-xl` stat cards: "60 wpm / Target", "2/5 / Streak", "3/40 / Word|Cluster|Sentence" (Burst 1000: "x/1000 / Discovered") and Accuracy.
+  - No bracket hairline or uppercase caption.
+  - Pips are `rounded-full`.
+  - The status line reads "Type the word", "Space to commit" (orange), "Hit", "Too slow" or "Miss".
+  - Feedback is colour only: no looping pulse anywhere on the runner (§13.1). Burst 1000's grid lights this session's words `bg-primary` and earlier ones `bg-primary/60`, statically.
+- **Clear screen** (`drill-cleared.tsx`): shared by both kinds. An orange "Drill clear" eyebrow, an h2, two stats in a `<dl>`, an orange "Run again" and an outline "Back to drills" (both `size="lg"`). XP is granted once per visit. On Burst 1000, Run again picks the next 30 undiscovered words.
+
+Rationale: one obvious next step, filters that never dead-end, usable drills before locked ones, and runners that a phone can actually type into without moving any edge from the practice page.
 
 ## 26. Changelog page (`/changelog`)
 

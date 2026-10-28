@@ -5,8 +5,10 @@ import type { ReactNode } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DrillHeader } from "./drill-header";
 import type { DrillSpec } from "./drills-data";
+import type { LoadError } from "./use-drills";
 
-export type LoadError = { message: string; signIn: boolean };
+/** The runner's fallback message when a load fails without a message. */
+const GENERIC_ERROR = "Couldn't load this drill.";
 
 /** Header + passage-shaped bones, so the real runner lands without the
  *  title or the typing area jumping. */
@@ -38,30 +40,33 @@ export function RunnerSkeleton() {
   );
 }
 
-/** Centred message block under the header, used by the error, 404 and
- *  locked states. */
+/** Centred message under the header: a title, one plain line, actions.
+ *  `level="h1"` when the header has no title of its own (error, 404),
+ *  so every runner screen still has exactly one h1. */
 function Notice({
-  eyebrow,
   title,
+  level = "h2",
   children,
   action,
 }: {
-  eyebrow: string;
   title: string;
+  level?: "h1" | "h2";
   children?: ReactNode;
   action: ReactNode;
 }) {
+  const Heading = level;
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 py-12 text-center">
-      <span className="text-xs font-medium text-muted-foreground">{eyebrow}</span>
-      <h2 className="max-w-xl text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+      <Heading className="max-w-xl text-2xl font-bold tracking-tight text-balance wrap-anywhere text-foreground sm:text-3xl">
         {title}
-      </h2>
+      </Heading>
       {children}
       <div className="flex flex-wrap justify-center gap-2 pt-2">{action}</div>
     </div>
   );
 }
+
+const lead = "max-w-md text-sm text-balance text-muted-foreground";
 
 export function ErrorState({
   error,
@@ -72,55 +77,62 @@ export function ErrorState({
 }) {
   return (
     <>
-      <DrillHeader
-        title="Drill"
-        subtitle={error.signIn ? "Signed out" : "Couldn't load"}
-      />
-      <Notice
-        eyebrow={error.signIn ? "Account needed" : "Error"}
-        title={
-          error.signIn
-            ? "Sign in to start this drill."
-            : "Couldn't load this drill."
-        }
-        action={
-          error.signIn ? (
+      <DrillHeader />
+      {error.signIn ? (
+        <Notice
+          level="h1"
+          title="Sign in to start this drill."
+          action={
             <Link href="/sign-in" className={buttonVariants({ size: "lg" })}>
               Sign in
             </Link>
-          ) : (
+          }
+        >
+          <p className={lead}>
+            Drills are built from your typing history, so they need an account.
+          </p>
+        </Notice>
+      ) : (
+        <Notice
+          level="h1"
+          title={GENERIC_ERROR}
+          action={
             <Button size="lg" onClick={onRetry}>
               Try again
             </Button>
-          )
-        }
-      >
-        <p className="max-w-md text-sm text-muted-foreground" role="alert">
-          {error.signIn
-            ? "Drills are built from your typing history, so they need an account."
-            : error.message}
-        </p>
-      </Notice>
+          }
+        >
+          {error.message && error.message !== GENERIC_ERROR ? (
+            <p className={lead} role="alert">
+              {error.message}
+            </p>
+          ) : null}
+        </Notice>
+      )}
     </>
   );
+}
+
+/** Long or junk ids are echoed short so the title never runs off a
+ *  phone screen. */
+function shortId(id: string): string {
+  return id.length > 40 ? `${id.slice(0, 39)}…` : id;
 }
 
 export function NotFound({ id }: { id: string }) {
   return (
     <>
-      <DrillHeader title="Drill not found" subtitle="Unknown drill" />
+      <DrillHeader />
       <Notice
-        eyebrow="404"
-        title={`No drill called “${id}”.`}
+        level="h1"
+        title={`No drill called “${shortId(id)}”.`}
         action={
           <Link href="/drills" className={buttonVariants({ size: "lg" })}>
             See all drills
           </Link>
         }
       >
-        <p className="max-w-md text-sm text-muted-foreground">
-          The link may be out of date. Pick a drill from the drills page.
-        </p>
+        <p className={lead}>The link may be out of date.</p>
       </Notice>
     </>
   );
@@ -131,7 +143,6 @@ export function Locked({ drill }: { drill: DrillSpec }) {
     <>
       <DrillHeader title={drill.title} subtitle={drill.contextLabel} />
       <Notice
-        eyebrow="Locked"
         title="Needs more of your typing first."
         action={
           <>
@@ -147,9 +158,7 @@ export function Locked({ drill }: { drill: DrillSpec }) {
           </>
         }
       >
-        <p className="max-w-md text-sm text-balance text-muted-foreground">
-          {drill.summary} A few practice tests usually do it.
-        </p>
+        <p className={lead}>{drill.summary} A few practice tests usually do it.</p>
       </Notice>
     </>
   );

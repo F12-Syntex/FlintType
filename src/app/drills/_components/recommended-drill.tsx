@@ -5,7 +5,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { KindBadge } from "./drill-tile";
-import { drillSpecLine } from "./drill-tiles";
+import { drillSpecLine } from "./drill-spec-line";
 import type { DrillSpec } from "./drills-data";
 
 /** The page's one answer: the drill to do next. Full width, the only
