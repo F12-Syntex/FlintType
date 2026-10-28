@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.24 — 27 October 2026
+- Personal-best notifications now name the mode the way the app does (Adapt instead of Training) and give the length a unit, such as "Casual · 30s" or "Adapt · 25 words".
+
 ## 6.148.23 — 27 October 2026
 - Buttons and links are easier to tap on phones: the top bar, the Discord strip, the footer, the menu drawer, dropdown menus, pop-up close buttons, the friends list and the page jump links all have finger-sized tap areas now.
 - The "What's new" popup only lists changes you can see, not behind-the-scenes releases.
