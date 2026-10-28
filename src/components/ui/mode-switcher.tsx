@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import type { ComponentType } from "react";
@@ -20,6 +20,7 @@ const OPTIONS: {
 export function ModeSwitcher({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
   const mounted = useMounted();
+  const reduce = useReducedMotion();
 
   if (!mounted) {
     // Reserve the same footprint so the topbar layout doesn't shift
@@ -63,7 +64,13 @@ export function ModeSwitcher({ className }: { className?: string }) {
             {active ? (
               <motion.span
                 layoutId="active-mode-pill"
-                transition={{ type: "tween", ease: [0.22, 1, 0.36, 1], duration: 0.25 }}
+                // The pill slides between segments; reduced motion
+                // swaps it in place (§13.1).
+                transition={
+                  reduce
+                    ? { duration: 0 }
+                    : { type: "tween", ease: [0.22, 1, 0.36, 1], duration: 0.25 }
+                }
                 className="absolute inset-0 rounded-pill brand-surface shadow-card"
               />
             ) : null}

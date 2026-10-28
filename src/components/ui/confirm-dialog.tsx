@@ -4,12 +4,14 @@ import { X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { useMounted } from "@/lib/use-mounted";
 import { cn } from "@/lib/utils";
 
 /** Responsive confirmation dialog. On mobile it slides up from the
- *  bottom (mirrors <MobileSheet>'s 220 ms ease-out animation, fixed
- *  height); on desktop it lands as a centered floating panel with the
- *  same body content. Use whenever a destructive or irreversible action
+ *  bottom (mirrors <MobileSheet>'s 220 ms ease-out animation) at the
+ *  height of its content, so a one-line "Reset 3 settings?" isn't a
+ *  mostly empty sheet; on desktop it lands as a centered floating panel
+ *  with the same body content. Use whenever a destructive or irreversible action
  *  needs an "are you sure" gate — settings imports, "Reset all", etc.
  *
  *  Anatomy:
@@ -61,18 +63,19 @@ export function ConfirmDialog({
   confirmDisabled?: boolean;
   hideFooter?: boolean;
 }) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const [render, setRender] = useState(false);
   const [entered, setEntered] = useState(false);
 
-  useEffect(() => setMounted(true), []);
+  // Mount on open; start the exit slide on close. Adjusted during render
+  // (React's "adjust state when a prop changes" pattern, as in
+  // <MobileSheet>) rather than in an effect; the unmount waits for the
+  // slide to finish.
+  if (open && !render) setRender(true);
+  if (!open && entered) setEntered(false);
 
   useEffect(() => {
-    if (open) {
-      setRender(true);
-      return;
-    }
-    setEntered(false);
+    if (open) return;
     const t = setTimeout(() => setRender(false), ANIM_MS);
     return () => clearTimeout(t);
   }, [open]);
@@ -122,7 +125,7 @@ export function ConfirmDialog({
         aria-label="Close"
         onClick={() => onOpenChange(false)}
         className={cn(
-          "absolute inset-0 bg-foreground/45 backdrop-blur-sm transition-opacity ease-out",
+          "absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity ease-out dark:bg-black/60",
           entered ? "opacity-100" : "opacity-0",
         )}
         style={{ transitionDuration: `${ANIM_MS}ms` }}
@@ -130,8 +133,8 @@ export function ConfirmDialog({
       <div
         className={cn(
           "relative flex w-full flex-col overflow-hidden",
-          // Mobile: bottom sheet, fixed height.
-          "h-[75dvh] rounded-t-2xl border-t safe-pb",
+          // Mobile: bottom sheet sized to its content.
+          "max-h-[85dvh] rounded-t-2xl border-t safe-pb",
           // Desktop: centered, capped width + height, full rounded.
           "md:h-auto md:max-h-[80dvh] md:w-[min(36rem,calc(100vw-2rem))] md:rounded-2xl md:border",
           "border-border bg-background text-foreground shadow-2xl",
@@ -160,7 +163,7 @@ export function ConfirmDialog({
             type="button"
             onClick={() => onOpenChange(false)}
             aria-label="Close"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-pill text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="relative inline-flex size-9 items-center justify-center rounded-pill text-muted-foreground transition-colors touch-hit hover:bg-accent hover:text-foreground"
           >
             <X size={18} />
           </button>
@@ -174,7 +177,7 @@ export function ConfirmDialog({
               variant="ghost"
               size="sm"
               onClick={() => onOpenChange(false)}
-              className="h-9"
+              className="h-11 md:h-9"
             >
               {cancelLabel}
             </Button>
@@ -183,7 +186,7 @@ export function ConfirmDialog({
               size="sm"
               onClick={handleConfirm}
               disabled={confirmDisabled}
-              className="h-9"
+              className="h-11 md:h-9"
             >
               {confirmLabel}
             </Button>

@@ -487,6 +487,8 @@ return <Popover>{/* desktop UI */}</Popover>;
 
 The desktop side keeps its existing `<Popover>` / `<DropdownMenu>` surface — they remain the right primitive for ≥ md viewports. The fixed-height rule on mobile is load-bearing: a sheet that sometimes covers half the screen and sometimes 80% of it makes the whole app feel jittery between settings.
 
+Two exceptions to the fixed height: `<ConfirmDialog>` (Reset, Unfollow, imports) is a yes/no question, so on phones its sheet is sized to its content (`max-h-[85dvh]`), never a mostly empty 75dvh panel, with `h-11` Cancel / Confirm buttons. Every sheet and confirm backdrop is a dim scrim (`bg-black/40 dark:bg-black/60`), never `bg-foreground/*`, which turns into a pale wash in dark mode. Centred dialogs (`<DialogContent>`) keep a 16px gutter on phones (`w-[calc(100%-2rem)] max-w-lg`); `<CommandInput>` is 16px on phones (`text-base sm:text-sm`) so iOS doesn't zoom, and `<CommandItem>` rows are `min-h-11 sm:min-h-0`.
+
 ### 10.6 Mobile header chrome — icon-only buttons
 
 Sticky chrome rows (the customise page header, the top bar, etc.) must collapse text-bearing toolbar buttons to **icon-only** at < `sm:` so a 375 px viewport doesn't wrap into two rows. Pair every icon-only button with an `aria-label` that carries the dropped text (`aria-label="Export settings"`).

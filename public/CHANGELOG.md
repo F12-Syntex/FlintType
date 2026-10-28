@@ -8,6 +8,12 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.26 — 27 October 2026
+- On phones, "Are you sure?" questions (such as resetting a settings page) now appear in a short sheet that fits the question, with bigger buttons.
+- Bottom sheets now dim the page behind them in dark mode too, instead of washing it out in grey.
+- Pop-up dialogs keep a small margin from the screen edges on phones, and search boxes in pickers no longer make iOS zoom in.
+- The light/dark switch respects your reduced-motion setting.
+
 ## 6.148.25 — 27 October 2026
 - Words you get wrong are underlined in full again, instead of showing a stray underscore after the word.
 - Quote lengths now say "Extra long" instead of "Thicc", and the speed chart for timed tests runs right to the last second.

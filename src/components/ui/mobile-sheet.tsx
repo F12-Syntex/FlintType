@@ -117,7 +117,7 @@ export function MobileSheet({
         aria-label="Close"
         onClick={() => onOpenChange(false)}
         className={cn(
-          "absolute inset-0 bg-foreground/45 backdrop-blur-sm transition-opacity ease-out",
+          "absolute inset-0 bg-black/40 backdrop-blur-sm dark:bg-black/60 transition-opacity ease-out",
           entered ? "opacity-100" : "opacity-0",
         )}
         style={{ transitionDuration: `${ANIM_MS}ms` }}
