@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -31,6 +32,11 @@ function readSeen(): string | null {
   }
 }
 
+/** Chrome-less screenshot assets (the brand card, the update cards). The
+ *  dialog waits while one is open, without marking the version seen,
+ *  and appears once the viewer moves on to a normal page. */
+const QUIET_PREFIXES = ["/card", "/updates"];
+
 function writeSeen(version: string) {
   try {
     localStorage.setItem(SEEN_KEY, version);
@@ -52,6 +58,10 @@ function writeSeen(version: string) {
  *  never bloats the bundle, and every storage / network failure fails
  *  quiet — a release-note popup must never be able to break the app. */
 export function WhatsNewDialog() {
+  const pathname = usePathname();
+  const quiet = QUIET_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
   const [open, setOpen] = useState(false);
   const [entries, setEntries] = useState<ChangelogEntry[]>([]);
   const [since, setSince] = useState("");
@@ -100,7 +110,7 @@ export function WhatsNewDialog() {
   if (entries.length === 0) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && dismiss()}>
+    <Dialog open={open && !quiet} onOpenChange={(next) => !next && dismiss()}>
       <DialogContent className="flex max-h-[78vh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0">
         <div className="flex shrink-0 items-start gap-3.5 px-5 pb-4 pt-5 sm:px-6 sm:pt-6">
           <span

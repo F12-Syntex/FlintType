@@ -22,44 +22,55 @@ function profileHref(data: Pick<SharedTest, "username" | "handle">): string {
   return `/profile/${data.username ?? data.handle.replace(/^@/, "")}`;
 }
 
-/** Linked handle pill. The avatar is a plain `<img>` to dodge
- *  `next/image`'s remote-host allowlist; the only source is Clerk's CDN,
- *  which is sized + cached at the edge anyway. */
+/** Linked handle pill + identity tags. The avatar is a plain `<img>` to
+ *  dodge `next/image`'s remote-host allowlist; the only source is Clerk's
+ *  CDN, which is sized + cached at the edge anyway.
+ *
+ *  The handle has priority: the tags sit beside the pill (not inside
+ *  it) and wrap onto their own line when space runs out, so a long
+ *  handle or a full set of tags never squeezes the name down to "@". */
 function HandlePill({ data }: { data: SharedTest }) {
   const { handle, avatarUrl, tags } = data;
   return (
-    <Link
-      href={profileHref(data)}
-      className="inline-flex h-9 min-w-0 items-center gap-2 rounded-pill bg-ft-ink-track py-1 pl-1 pr-3 ring-1 ring-inset ring-ft-ink-line text-ft-paper transition-colors hover:bg-ft-ink-popover"
-    >
-      {avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={avatarUrl}
-          alt=""
-          aria-hidden
-          width={28}
-          height={28}
-          className="size-7 shrink-0 rounded-full object-cover"
-        />
-      ) : (
-        <span
-          aria-hidden
-          className="grid size-7 shrink-0 place-items-center rounded-full bg-ft-ink-popover text-xs font-bold uppercase text-ft-warm-1"
-        >
-          {handle.replace(/^@/, "").slice(0, 1)}
-        </span>
-      )}
-      <span className="truncate text-sm font-semibold">{handle}</span>
+    <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
+      <Link
+        href={profileHref(data)}
+        className="inline-flex h-9 min-w-0 max-w-full items-center gap-2 rounded-pill bg-ft-ink-track py-1 pl-1 pr-3 ring-1 ring-inset ring-ft-ink-line text-ft-paper transition-colors hover:bg-ft-ink-popover"
+      >
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt=""
+            aria-hidden
+            width={28}
+            height={28}
+            className="size-7 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <span
+            aria-hidden
+            className="grid size-7 shrink-0 place-items-center rounded-full bg-ft-ink-popover text-xs font-bold uppercase text-ft-warm-1"
+          >
+            {handle.replace(/^@/, "").slice(0, 1)}
+          </span>
+        )}
+        <span className="min-w-0 truncate text-sm font-semibold">{handle}</span>
+      </Link>
       {tags.length > 0 ? (
-        <span className="flex shrink-0 items-center gap-1">
+        <span className="flex flex-wrap items-center gap-1">
           {tags.map((t) => (
             <UserTag key={t} tag={t} size="sm" tooltip={false} />
           ))}
         </span>
       ) : null}
-    </Link>
+    </div>
   );
+}
+
+/** A handle inside running text: allowed to break mid-word. */
+function Handle({ children }: { children: string }) {
+  return <span className="[overflow-wrap:anywhere]">{children}</span>;
 }
 
 function Figure({ label, value }: { label: string; value: string }) {
@@ -92,8 +103,19 @@ export function ShareCard({ data }: { data: SharedTest }) {
     <PageShell width="text">
       <PageHeader
         eyebrow="Shared result"
-        title={`Can you beat ${data.handle}?`}
-        description={`${data.handle} typed ${wpm} wpm at ${acc}% accuracy on flinttype. Take a test and see where you land.`}
+        // Handles can be long and have no spaces; let them break
+        // anywhere so the headline never runs off a phone screen.
+        title={
+          <>
+            Can you beat <Handle>{data.handle}</Handle>?
+          </>
+        }
+        description={
+          <>
+            <Handle>{data.handle}</Handle> typed {wpm} wpm at {acc}% accuracy
+            on flinttype. Take a test and see where you land.
+          </>
+        }
       />
 
       <div className="flex flex-col gap-6">
@@ -107,7 +129,7 @@ export function ShareCard({ data }: { data: SharedTest }) {
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <HandlePill data={data} />
-            <span className="text-xs tabular-nums text-ft-warm-2">{date}</span>
+            <span className="shrink-0 text-xs tabular-nums text-ft-warm-2">{date}</span>
           </div>
 
           <div className="flex items-baseline gap-3">

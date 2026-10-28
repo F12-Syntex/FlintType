@@ -80,6 +80,8 @@ export function ModelTable({
             size="sm"
             value={sortBy}
             ariaLabel="Sort by"
+            // Finger-sized segments on phones (§7), compact from sm.
+            className="[&>button]:h-10 [&>button]:px-3 sm:[&>button]:h-auto sm:[&>button]:px-2.5"
             onValueChange={(next) => {
               // Picking the active column again flips the direction.
               if (next === sortBy) setAsc(!asc);
@@ -164,7 +166,7 @@ export function ModelTable({
         <Button
           variant="outline"
           size="sm"
-          className="self-start"
+          className="h-11 self-start sm:h-8"
           onClick={() => setShowAll((v) => !v)}
         >
           {showAll ? "Show fewer" : `Show all ${sorted.length}`}

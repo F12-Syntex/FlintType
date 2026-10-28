@@ -3,6 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 import {
   ArrowLeft,
+  Eye,
   Loader2,
   Maximize2,
   Minimize2,
@@ -35,14 +36,7 @@ export function LiveWatchView({ userId }: { userId: string }) {
       <div className="flex min-h-0 w-full flex-1 flex-col">
         {isLoaded && !isSignedIn ? (
           <Centered>
-            <Notice>
-              <span>
-                <Link href="/sign-in" className="font-semibold text-primary hover:underline">
-                  Sign in
-                </Link>{" "}
-                to watch friends practise.
-              </span>
-            </Notice>
+            <SignedOut userId={userId} />
           </Centered>
         ) : state == null ? (
           <Centered>
@@ -82,9 +76,12 @@ const ICON_BUTTON = cn(
   "shrink-0 text-muted-foreground sm:size-9",
 );
 
-/** Slim header. Identity sits on the left under a single orange "Live"
- *  marker (the one spark + the live signal, no competing pills); back +
- *  fullscreen are quiet pill icon buttons. */
+/** Slim header. While someone is being watched, their identity sits on
+ *  the left over a single orange "Watching live" line (the one spark +
+ *  the live signal, no competing pills). Every other state (connecting,
+ *  signed out, not live) shows a neutral "Live" title with no live
+ *  marker, so the header never contradicts the body. Back + fullscreen
+ *  are quiet pill icon buttons. `subject` is only set while live. */
 function WatchHeader({ subject }: { subject: LiveSubject | null }) {
   return (
     <header className="safe-pt sticky top-0 z-10 border-b border-border/70 bg-background/80 backdrop-blur-xl">
@@ -124,7 +121,7 @@ function WatchHeader({ subject }: { subject: LiveSubject | null }) {
           </div>
         ) : (
           <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
-            Watching live
+            Live
           </span>
         )}
 
@@ -181,6 +178,34 @@ function NotLive() {
       </div>
       <Link href="/" className={buttonVariants({ variant: "outline", size: "lg" })}>
         Back to practice
+      </Link>
+    </div>
+  );
+}
+
+/** Signed-out viewers get the same empty-state anatomy as NotLive, with
+ *  sign-in as the screen's one orange action. It returns here after. */
+function SignedOut({ userId }: { userId: string }) {
+  const back = `/live/${userId}`;
+  return (
+    <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border border-dashed border-border bg-card/40 px-6 py-10 text-center">
+      <span className="inline-flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <Eye size={20} aria-hidden />
+      </span>
+      <div className="flex flex-col gap-1.5">
+        <p className="text-base font-semibold text-foreground">
+          Sign in to watch
+        </p>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Live sessions are shared with friends only. Sign in to see if
+          they&apos;re practising now.
+        </p>
+      </div>
+      <Link
+        href={`/sign-in?redirect_url=${encodeURIComponent(back)}`}
+        className={buttonVariants({ size: "lg" })}
+      >
+        Sign in
       </Link>
     </div>
   );

@@ -4,7 +4,7 @@ import { Download, Loader2 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 
-/** Sits in the toolbar above the card. Resolves `[data-screenshot-target=
+/** The page's one primary (orange) action, in the header above the card. Resolves `[data-screenshot-target=
  *  "og-card"]` and exports it via html-to-image at the card's natural
  *  1500×787 footprint × 2x device pixels — the result is a crisp
  *  PNG suitable for portfolio embeds, Twitter / Discord previews, or
@@ -55,7 +55,7 @@ export function ScreenshotButton() {
         type="button"
         onClick={onClick}
         disabled={saving}
-        variant="outline"
+        size="lg"
         aria-label="Download card as PNG"
         className="w-full sm:w-auto"
       >

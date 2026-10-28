@@ -8,7 +8,8 @@ import type { AdaptSnapshotOutput } from "@/types/adapt";
 import { BiogramHeader } from "./biogram-header";
 import { PatternModels } from "./pattern-models";
 import { OverviewBody } from "./overview";
-import { FingerMapView, RecencyMap, RecentTests } from "./sections";
+import { FingerMapView } from "./finger-map";
+import { RecencyMap, RecentTests } from "./sections";
 import { WordScorer } from "./word-scorer";
 
 /** /biogram — fetches the adapt snapshot and renders every section.
