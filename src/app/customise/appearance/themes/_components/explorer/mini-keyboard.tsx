@@ -15,44 +15,51 @@ const HOME_PEGS = new Set(["f", "j"]);
 /** Resolve the chunk of styling each `design` variant applies to a
  *  key cell. Mirrors the real Keyboard widget's design vocabulary
  *  (solid / outline / ghost / lifted / glass) — same five names, at
- *  preview scale. */
+ *  preview scale.
+ *
+ *  Borders are returned per side (`edge` for top/left/right, `bottom`
+ *  for the bottom) so the home-row peg can swap just the bottom edge
+ *  without mixing the `border` shorthand with a longhand, which React
+ *  warns about when the tile re-renders in another mode. */
 function keyStyle(
   design: KeyboardSettings["design"],
   vars: PreviewVars,
-): CSSProperties {
+): { surface: CSSProperties; edge: string; bottom: string } {
   const cardFg = vars["card-foreground"] ?? vars.foreground;
+  const line = `1px solid ${vars.border}`;
   switch (design) {
     case "solid":
       return {
-        backgroundColor: vars.card,
-        color: cardFg,
-        border: "none",
+        surface: { backgroundColor: vars.card, color: cardFg },
+        edge: "none",
+        bottom: "none",
       };
     case "outline":
       return {
-        backgroundColor: "transparent",
-        color: vars.foreground,
-        border: `1px solid ${vars.border}`,
+        surface: { backgroundColor: "transparent", color: vars.foreground },
+        edge: line,
+        bottom: line,
       };
     case "ghost":
       return {
-        backgroundColor: "transparent",
-        color: vars["muted-foreground"],
-        border: "none",
+        surface: {
+          backgroundColor: "transparent",
+          color: vars["muted-foreground"],
+        },
+        edge: "none",
+        bottom: "none",
       };
     case "lifted":
       return {
-        backgroundColor: vars.card,
-        color: cardFg,
-        border: `1px solid ${vars.border}`,
-        borderBottomWidth: "2px",
+        surface: { backgroundColor: vars.card, color: cardFg },
+        edge: line,
+        bottom: `2px solid ${vars.border}`,
       };
     case "glass":
       return {
-        backgroundColor: vars.card,
-        color: cardFg,
-        border: `1px solid ${vars.border}`,
-        opacity: 0.85,
+        surface: { backgroundColor: vars.card, color: cardFg, opacity: 0.85 },
+        edge: line,
+        bottom: line,
       };
   }
 }
@@ -108,15 +115,18 @@ export function MiniKeyboard({
                 key={ch}
                 className="inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center text-[8px] font-semibold leading-none"
                 style={{
-                  ...baseKey,
-                  borderRadius: radius,
-                  fontFamily,
+                  ...baseKey.surface,
+                  borderTop: baseKey.edge,
+                  borderLeft: baseKey.edge,
+                  borderRight: baseKey.edge,
                   // Home-row pegs: a thin primary underline rather
                   // than a fill swap. Reads as a peg cue without
                   // dominating the row visually.
                   borderBottom: lit
                     ? `2px solid ${vars.primary}`
-                    : baseKey.borderBottom,
+                    : baseKey.bottom,
+                  borderRadius: radius,
+                  fontFamily,
                 }}
               >
                 {ch}

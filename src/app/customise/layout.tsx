@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { AppChrome } from "../_components/app-chrome";
 import { CustomiseHeader } from "./_components/header";
+import { ScrollReset } from "./_components/scroll-reset";
 import { SettingsSidebar } from "./_components/sidebar";
 
 /** The settings shell (ui-law §5 "App shell with sidebar", §12): one
@@ -11,15 +12,17 @@ import { SettingsSidebar } from "./_components/sidebar";
  *
  *  The scroller is ours (AppChrome's `compact` main doesn't scroll), and
  *  it's marked `data-customise-scroller` so the sidebar's scroll-spy can
- *  find it. */
+ *  find it. `<ScrollReset>` starts each page at the top; `overflow-x-clip`
+ *  keeps a stray wide child from panning the page sideways. */
 export default function CustomiseLayout({ children }: { children: ReactNode }) {
   return (
     <AppChrome compact>
       <div className="relative min-h-0 flex-1">
         <div
           data-customise-scroller
-          className="absolute inset-0 overflow-y-auto overscroll-contain"
+          className="absolute inset-0 overflow-x-clip overflow-y-auto overscroll-contain"
         >
+          <ScrollReset />
           <CustomiseHeader />
           <div className="mx-auto grid w-full max-w-5xl grid-cols-1 text-foreground lg:grid-cols-[var(--app-rail-width)_minmax(0,1fr)] lg:gap-12">
             <div className="hidden lg:block">

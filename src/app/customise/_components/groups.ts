@@ -79,11 +79,11 @@ export const SETTINGS_GROUPS: readonly SettingsGroup[] = [
     id: "keyboard",
     name: "Keyboard",
     href: "/customise/keyboard",
-    description: "The on-screen keyboards shown under the text.",
-    sections: [
-      { id: "keyboard", name: "Practice keyboard" },
-      { id: "keymap", name: "Keymap overlay" },
-    ],
+    description: "The on-screen keyboard shown under the text.",
+    sections: [{ id: "keyboard", name: "On-screen keyboard" }],
+    // The keymap used to be a section of its own; its anchor now sits
+    // on the "Show keyboard" row.
+    rowAnchors: ["keymap"],
   },
   {
     id: "stats",

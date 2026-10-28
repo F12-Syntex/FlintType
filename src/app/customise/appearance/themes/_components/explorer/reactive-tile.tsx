@@ -22,7 +22,6 @@ export function ReactiveTile({
       onPick={onPick}
       ariaLabel="Apply background-reactive theme"
       name="Reactive"
-      accentName
     >
       <div
         className="flex flex-col gap-2.5 px-4 pt-3.5 pb-4 sm:aspect-[5/4] text-white"

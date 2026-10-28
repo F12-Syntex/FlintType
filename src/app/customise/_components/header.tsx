@@ -20,7 +20,7 @@ export function CustomiseHeader() {
         size="icon-lg"
         onClick={openCommandPalette}
         aria-label="Search settings"
-        className="-mr-2 text-muted-foreground"
+        className="text-muted-foreground"
       >
         <Search aria-hidden />
       </Button>

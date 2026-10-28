@@ -25,7 +25,7 @@ export function InputHandlingPreview() {
       cursorChar={3}
       errorWord={1}
     >
-      <div className="px-5 py-5 sm:px-6 sm:py-6">
+      <div className="px-4 py-5 sm:px-5 sm:py-6">
         <div className="relative h-[140px] w-full">
           <Passage />
         </div>

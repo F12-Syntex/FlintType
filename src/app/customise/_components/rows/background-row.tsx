@@ -116,7 +116,7 @@ export function BackgroundRow() {
         label={
           <LabelWithDesc
             title="Image link"
-            desc="Paste a link to an image. It follows you to other devices."
+            desc="Paste an image link; it follows you to other devices."
           />
         }
         control={

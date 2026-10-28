@@ -85,7 +85,7 @@ const SETTINGS_PAGES: readonly {
   { id: "theme", name: "Theme", href: "/customise/theme", hint: "Palette, mode, colours, background image", keywords: ["palette", "colour", "color", "dark", "light"] },
   { id: "typing", name: "Typing", href: "/customise/typing", hint: "Font, caret, tape mode, mistakes", keywords: ["font", "caret", "tape", "passage"] },
   { id: "interface", name: "Interface", href: "/customise/interface", hint: "Style, surfaces, corners, top bar and footer", keywords: ["minimal", "chrome", "radius", "borders", "style", "font", "shadow"] },
-  { id: "keyboard", name: "Keyboard", href: "/customise/keyboard", hint: "Practice keyboard and keymap layout", keywords: ["keymap", "layout", "qwerty", "dvorak", "colemak"] },
+  { id: "keyboard", name: "Keyboard", href: "/customise/keyboard", hint: "On-screen keyboard: layout, key style and size", keywords: ["keymap", "layout", "qwerty", "dvorak", "colemak"] },
   { id: "stats", name: "Stats & results", href: "/customise/stats", hint: "Live numbers and the result screen", keywords: ["wpm", "accuracy", "result", "live"] },
   { id: "behaviour", name: "Behaviour", href: "/customise/behaviour", hint: "Mistakes, backspace, word lists, sound", keywords: ["behavior", "input", "sound", "burst"] },
   { id: "social", name: "Multiplayer & social", href: "/customise/social", hint: "Race visuals and live spectating", keywords: ["race", "multiplayer", "spectate", "friends"] },
@@ -334,7 +334,7 @@ export function useCommandEntries(): readonly CommandEntry[] {
       /* ─── Keyboard widget ──────────────────────────────────────── */
       enumEntry(
         "k.design",
-        "Keyboard design",
+        "Key style",
         "Solid, outline, ghost, lifted, or glass",
         "Keyboard",
         ks.design,
@@ -350,8 +350,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       enumEntry(
         "k.shape",
-        "Keyboard shape",
-        "Corner radius preset for the keys",
+        "Key shape",
+        "Square, rounded or pill keys",
         "Keyboard",
         ks.shape,
         [
@@ -361,15 +361,6 @@ export function useCommandEntries(): readonly CommandEntry[] {
         ] as const,
         (v) => setKs({ shape: v }),
         ["keyboard", "shape"],
-      ),
-      toggle(
-        "k.compact",
-        "Practice keyboard: letters only",
-        "Hide the number row, modifier keys and space bar",
-        "Keyboard",
-        ks.compact,
-        (v) => setKs({ compact: v }),
-        ["keyboard", "compact"],
       ),
       toggle(
         "k.highlightHomeRow",
@@ -755,9 +746,9 @@ export function useCommandEntries(): readonly CommandEntry[] {
       /* ─── Appearance — keymap widget ───────────────────────────── */
       enumEntry(
         "a.keymap",
-        "Keymap",
+        "Show keyboard",
         "React lights the key you pressed; Next lights the key to press",
-        "Appearance",
+        "Keyboard",
         ap.keymap,
         [
           { id: "off", label: "Off" },
@@ -770,9 +761,9 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       enumEntry(
         "a.keymapLegend",
-        "Keymap labels",
+        "Key labels",
         "Lower, upper, blank or dynamic",
-        "Appearance",
+        "Keyboard",
         ap.keymapLegend,
         [
           { id: "lowercase", label: "Lowercase" },
@@ -785,9 +776,9 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       enumEntry(
         "a.keymapTopRow",
-        "Keymap number row",
+        "Keyboard number row",
         "Always, auto or never",
-        "Appearance",
+        "Keyboard",
         ap.keymapTopRow,
         [
           { id: "always", label: "Always" },
@@ -799,12 +790,12 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       toggle(
         "a.keymapCompact",
-        "Keymap: letters only",
-        "Hide modifier keys and the space bar",
-        "Appearance",
+        "Keyboard: letters only",
+        "Hide the modifier keys and the space bar",
+        "Keyboard",
         ap.keymapCompact,
         (v) => setAp("keymapCompact", v),
-        ["keymap"],
+        ["keymap", "keyboard", "compact"],
       ),
       enumEntry(
         "a.quoteAttribution",
@@ -920,6 +911,15 @@ export function useCommandEntries(): readonly CommandEntry[] {
         "/customise/theme#background",
         "Settings → Theme → Background",
         ["image", "wallpaper"],
+      ),
+      toggle(
+        "a.showLiveStats",
+        "Show live stats",
+        "The timer, speed and accuracy shown while you type",
+        "Appearance",
+        ap.statStripSurface !== "none",
+        (v) => setAp("statStripSurface", v ? "plain" : "none"),
+        ["stats", "wpm", "hud", "readouts"],
       ),
       link(
         "l.liveStats",

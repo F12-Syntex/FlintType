@@ -72,6 +72,13 @@ describe("findGroup / groupForSection / groupForPath", () => {
     // Rows that used to be sections of their own.
     expect(groupForSection("tape")?.id).toBe("typing");
     expect(groupForSection("mistakes")?.id).toBe("typing");
+    // The keymap merged into the one Keyboard section; its anchor
+    // stays as a row anchor so old links still land.
+    expect(groupForSection("keyboard")?.id).toBe("keyboard");
+    expect(getGroup("keyboard").sections.map((x) => x.id)).toEqual([
+      "keyboard",
+    ]);
+    expect(legacyAppearanceHref("#keymap")).toBe("/customise/keyboard#keymap");
     expect(groupForSection("missing")).toBeNull();
   });
 

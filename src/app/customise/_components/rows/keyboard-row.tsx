@@ -55,7 +55,8 @@ function ShapeChipPreview({
   );
 }
 
-export function KeyboardRow() {
+/** How each key looks: its surface and its corners. */
+export function KeyStyleRows() {
   const { settings, update } = useKeyboardSettings();
 
   return (
@@ -97,13 +98,16 @@ export function KeyboardRow() {
           </ChipGroup>
         }
       />
+    </>
+  );
+}
 
-      <SwitchRow
-        title="Letters only"
-        desc="Hide the number row, modifier keys and space bar."
-        checked={settings.compact}
-        onChange={(v) => update({ compact: v })}
-      />
+/** Small marks on the keys: the F/J homing bumps and shift symbols. */
+export function KeyMarkRows() {
+  const { settings, update } = useKeyboardSettings();
+
+  return (
+    <>
       <SwitchRow
         title="Mark F and J"
         desc="Highlight the home-row keys so you can find your hands."

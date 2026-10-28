@@ -21,7 +21,7 @@ export function StylePreview() {
   return (
     // A container query, not a viewport one: the same preview sits in a
     // full-width settings section and in a half-width AI studio tile.
-    <div className="@container px-4 py-5 sm:px-6 sm:py-6">
+    <div className="@container px-4 py-5 sm:px-5 sm:py-6">
       <div className="grid gap-4 @lg:grid-cols-[minmax(0,1fr)_13rem]">
         <Surface className="flex min-w-0 flex-col gap-4 p-4 sm:p-5">
           <div className="flex flex-col gap-1">

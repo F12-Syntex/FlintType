@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
 import {
   type HighlightMode,
   type QuoteAttribution,
@@ -9,9 +7,9 @@ import {
   useAppearancePrefs,
 } from "@/lib/appearance-prefs";
 import { cn } from "@/lib/utils";
-import { Chip } from "../chip";
-import { LabelWithDesc, SelectChips, SliderRow } from "../controls";
+import { LabelWithDesc, SelectChips } from "../controls";
 import { SettingsRow } from "../row";
+import { LinesRenderedControl, LineWidthControl } from "./layout-controls";
 
 /* ─── Per-chip preview primitives ───────────────────────────────── */
 
@@ -101,60 +99,6 @@ const TYPED_EFFECT_OPTIONS: readonly {
   },
 ];
 
-/** Numeric input for `linesRendered` paired with an All chip. `0` is
- *  the wire value for unbounded. Range 1–20 — past that you almost
- *  always want All. The most-recent numeric value is remembered so
- *  toggling All on and off again restores it instead of forcing a
- *  retype. */
-function LinesRenderedControl({
-  value,
-  onChange,
-}: {
-  value: number;
-  onChange: (next: number) => void;
-}) {
-  const isAll = value === 0;
-  // Remember the last number so the All chip can act as a toggle.
-  // Seeded from the current value (or 4, the default); updated whenever
-  // the user types a number.
-  const [lastN, setLastN] = useState<number>(value > 0 ? value : 4);
-  const restoreN = value > 0 ? value : lastN;
-
-  return (
-    <div className="flex items-center gap-2">
-      <Input
-        type="number"
-        inputMode="numeric"
-        min={1}
-        max={20}
-        step={1}
-        value={isAll ? "" : String(value)}
-        placeholder={String(restoreN)}
-        aria-label="Lines shown"
-        onChange={(e) => {
-          const raw = e.currentTarget.value;
-          if (raw === "") return;
-          const n = Number.parseInt(raw, 10);
-          if (!Number.isFinite(n)) return;
-          // Clamp into the supported range; All has its own affordance.
-          const clamped = Math.min(20, Math.max(1, n));
-          setLastN(clamped);
-          onChange(clamped);
-        }}
-        className="h-9 w-[4.5rem] text-right tabular-nums"
-      />
-      <Chip
-        label="All"
-        active={isAll}
-        onClick={() => {
-          if (!isAll) setLastN(value);
-          onChange(isAll ? restoreN : 0);
-        }}
-      />
-    </div>
-  );
-}
-
 /** Highlight + typed-word treatment — the first rows of Typing area. */
 export function HighlightRows() {
   const { prefs, update } = useAppearancePrefs();
@@ -229,17 +173,12 @@ export function LayoutRows() {
         label={
           <LabelWithDesc
             title="Line width"
-            desc="The longest a line can get, in characters (0 uses the full width)."
+            desc="The longest a line can get, in characters, or Full to fill the space."
           />
         }
         control={
-          <SliderRow
+          <LineWidthControl
             value={prefs.maxLineWidth}
-            min={0}
-            max={200}
-            step={5}
-            ariaLabel="Line width"
-            format={(v) => (v === 0 ? "Full" : `${v} ch`)}
             onChange={(v) => update("maxLineWidth", v)}
           />
         }

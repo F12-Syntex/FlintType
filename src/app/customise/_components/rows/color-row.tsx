@@ -40,7 +40,7 @@ export function ColorRow({
               variant="ghost"
               size="xs"
               onClick={onClear}
-              className="text-muted-foreground"
+              className="h-9 text-muted-foreground sm:h-7"
               aria-label={`Reset ${label}`}
             >
               Reset

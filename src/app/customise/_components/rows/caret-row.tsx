@@ -267,7 +267,7 @@ export function CaretRow() {
           />
 
           <SettingsRow
-            label={<LabelWithDesc title="Blink" desc="Off keeps the caret still while you type." />}
+            label={<LabelWithDesc title="Blink" desc="How fast the caret blinks, or Off to keep it still." />}
             control={
               <SelectChips
                 ariaLabel="Caret blink"

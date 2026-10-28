@@ -10,6 +10,7 @@ import {
   PanelsTopLeft,
   Search,
   SlidersHorizontal,
+  Sparkles,
   Type,
   Users,
 } from "lucide-react";
@@ -46,7 +47,10 @@ const SCROLLER_SELECTOR = "[data-customise-scroller]";
  *  one does — so tall and short sections are treated alike. At the very
  *  bottom of the scroller the last section wins (it may be too short to
  *  ever reach the band) unless the URL hash names a section that is on
- *  screen. Falls back to the first section. */
+ *  screen. Falls back to the first section.
+ *
+ *  `group` is null off the group pages themselves (the palette
+ *  explorer, the AI studio) — no section is highlighted there. */
 function useActiveSection(group: SettingsGroup | null): string | null {
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -126,15 +130,30 @@ function useActiveSection(group: SettingsGroup | null): string | null {
   return activeId && ids.includes(activeId) ? activeId : (ids[0] ?? null);
 }
 
+/** The group whose page is the current route, for scroll-spy. Routes
+ *  that merely *belong* to a group (the palette explorer under Theme)
+ *  have none of its sections on screen, so they get no section mark. */
+function spyGroup(pathname: string, current: SettingsGroup | null) {
+  return current && pathname === current.href ? current : null;
+}
+
+/** The Design with AI studio — a settings destination outside the
+ *  seven groups, listed after them. */
+const AI_STUDIO_HREF = "/customise/appearance/ai";
+
 /** "Search settings" — opens the Cmd/Ctrl+K palette, which reaches every
  *  setting by name. */
 export function SettingsSearchButton({
   className,
   onOpen,
+  narrow = false,
 }: {
   className?: string;
   /** Runs before the palette opens (e.g. close the sheet it sits in). */
   onOpen?: () => void;
+  /** In the narrow desktop rail the ⌘/Ctrl K hint steps aside under the
+   *  wider Mono app font (Style → App font), so the label never wraps. */
+  narrow?: boolean;
 }) {
   const mounted = useMounted();
   const key = mounted ? commandKeyLabel(navigator.platform) : "Ctrl";
@@ -146,13 +165,18 @@ export function SettingsSearchButton({
         openCommandPalette();
       }}
       className={cn(
-        "flex h-10 w-full items-center gap-2 rounded-pill border border-border bg-card px-3.5 text-sm text-muted-foreground shadow-card transition-colors duration-200 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
+        "flex h-10 w-full min-w-0 items-center gap-2 rounded-pill border border-border bg-card px-3.5 text-sm text-muted-foreground shadow-card transition-colors duration-200 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
         className,
       )}
     >
       <Search size={15} aria-hidden className="shrink-0" />
-      <span className="flex-1 text-left">Search settings</span>
-      <kbd className="hidden rounded-md border border-border bg-muted px-1.5 py-0.5 font-sans text-[11px] font-medium text-muted-foreground sm:inline">
+      <span className="min-w-0 flex-1 truncate text-left">Search settings</span>
+      <kbd
+        className={cn(
+          "hidden shrink-0 rounded-md border border-border bg-muted px-1.5 py-0.5 font-sans text-[11px] font-medium text-muted-foreground sm:inline",
+          narrow && "[[data-ft-ui-font=mono]_&]:hidden",
+        )}
+      >
         {key} K
       </kbd>
     </button>
@@ -166,7 +190,8 @@ export function SettingsSearchButton({
 export function SettingsSidebar() {
   const pathname = usePathname();
   const current = groupForPath(pathname);
-  const activeSection = useActiveSection(current);
+  const activeSection = useActiveSection(spyGroup(pathname, current));
+  const onAiStudio = pathname.startsWith(AI_STUDIO_HREF);
 
   return (
     <nav
@@ -174,7 +199,7 @@ export function SettingsSidebar() {
       aria-label="Settings"
       className="flex flex-col gap-5 pt-8 pb-6"
     >
-      <SettingsSearchButton />
+      <SettingsSearchButton narrow />
       <ul className="flex flex-col gap-1">
         {SETTINGS_GROUPS.map((g) => {
           const Icon = GROUP_ICONS[g.id];
@@ -185,14 +210,14 @@ export function SettingsSidebar() {
                 href={g.href}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex h-10 items-center gap-2.5 rounded-pill px-3.5 text-sm font-medium transition-[color,background-color,box-shadow] duration-200",
+                  "flex min-h-10 items-center gap-2.5 rounded-pill px-3.5 py-2 text-sm leading-snug font-medium transition-[color,background-color,box-shadow] duration-200",
                   isActive
                     ? "brand-surface text-primary-foreground shadow-glow"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
               >
                 <Icon size={16} aria-hidden className="shrink-0" />
-                {g.name}
+                <span className="min-w-0">{g.name}</span>
               </Link>
               {isActive ? (
                 <ul className="mt-1 mb-2 ml-[1.375rem] flex flex-col border-l border-border pl-1">
@@ -210,13 +235,13 @@ export function SettingsSidebar() {
                           href={`${g.href}#${s.id}`}
                           aria-current={on ? "location" : undefined}
                           className={cn(
-                            "flex h-8 items-center rounded-pill px-3 text-[13px] transition-colors duration-200",
+                            "flex min-h-8 min-w-0 items-center rounded-pill px-3 py-1 text-[13px] leading-snug transition-colors duration-200",
                             on
                               ? "font-medium text-primary"
                               : "text-muted-foreground hover:text-foreground",
                           )}
                         >
-                          {s.name}
+                          <span className="min-w-0">{s.name}</span>
                         </Link>
                       </li>
                     );
@@ -226,6 +251,21 @@ export function SettingsSidebar() {
             </li>
           );
         })}
+        <li className="mt-2 border-t border-border/70 pt-2">
+          <Link
+            href={AI_STUDIO_HREF}
+            aria-current={onAiStudio ? "page" : undefined}
+            className={cn(
+              "flex min-h-10 items-center gap-2.5 rounded-pill px-3.5 py-2 text-sm leading-snug font-medium transition-[color,background-color,box-shadow] duration-200",
+              onAiStudio
+                ? "brand-surface text-primary-foreground shadow-glow"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground",
+            )}
+          >
+            <Sparkles size={16} aria-hidden className="shrink-0" />
+            <span className="min-w-0">Design with AI</span>
+          </Link>
+        </li>
       </ul>
     </nav>
   );
@@ -239,8 +279,11 @@ export function MobileSettingsPicker() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const current = groupForPath(pathname);
-  const activeSection = useActiveSection(current);
-  const triggerText = current?.name ?? "Settings";
+  const activeSection = useActiveSection(spyGroup(pathname, current));
+  const onAiStudio = pathname.startsWith(AI_STUDIO_HREF);
+  const triggerText = onAiStudio
+    ? "Design with AI"
+    : (current?.name ?? "Settings");
 
   function go(href: string) {
     setOpen(false);
@@ -255,7 +298,7 @@ export function MobileSettingsPicker() {
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label={`Settings page: ${triggerText}. Tap to switch`}
-        className="-ml-2 inline-flex h-11 min-w-0 items-center gap-1.5 rounded-pill px-3 text-base font-semibold tracking-tight text-foreground transition-colors hover:bg-accent"
+        className="inline-flex h-11 min-w-0 items-center gap-1.5 rounded-pill px-3 text-base font-semibold tracking-tight text-foreground transition-colors hover:bg-accent"
       >
         <span className="truncate">{triggerText}</span>
         <ChevronDown
@@ -293,7 +336,7 @@ export function MobileSettingsPicker() {
                     )}
                   >
                     <Icon size={18} aria-hidden className="shrink-0" />
-                    {g.name}
+                    <span className="min-w-0 truncate">{g.name}</span>
                   </button>
                   {isActive ? (
                     <ul className="mt-1 mb-2 ml-7 flex flex-col border-l border-border pl-2">
@@ -330,6 +373,22 @@ export function MobileSettingsPicker() {
                 </li>
               );
             })}
+            <li className="mt-1 border-t border-border/70 pt-2">
+              <button
+                type="button"
+                onClick={() => go(AI_STUDIO_HREF)}
+                aria-current={onAiStudio ? "page" : undefined}
+                className={cn(
+                  "flex h-12 w-full items-center gap-3 rounded-pill px-4 text-left text-[15px] font-medium transition-colors",
+                  onAiStudio
+                    ? "brand-surface text-primary-foreground"
+                    : "text-foreground hover:bg-accent",
+                )}
+              >
+                <Sparkles size={18} aria-hidden className="shrink-0" />
+                <span className="min-w-0 truncate">Design with AI</span>
+              </button>
+            </li>
           </ul>
         </div>
       </MobileSheet>

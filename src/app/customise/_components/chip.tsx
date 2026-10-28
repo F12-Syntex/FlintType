@@ -50,25 +50,36 @@ export function Chip({
   );
 }
 
-/** Mobile column count by option count: up to four options share one
- *  row; five or more fall into rows of three. */
-const MOBILE_COLS: Record<number, string> = {
-  1: "grid-cols-1",
-  2: "grid-cols-2",
-  3: "grid-cols-3",
-  4: "grid-cols-4",
-};
+/** Phone grid by option count, so every row of tiles fills the width:
+ *  up to four options share one row; five or more sit in rows of three
+ *  on a six-column grid, and a short last row stretches its tiles
+ *  (5 → 3 + 2, 7 → 3 + 3 + 1) instead of leaving an empty cell. */
+function mobileGrid(count: number): string {
+  if (count <= 4) {
+    return (
+      ["grid-cols-1", "grid-cols-1", "grid-cols-2", "grid-cols-3", "grid-cols-4"][
+        count
+      ] ?? "grid-cols-4"
+    );
+  }
+  const rest = count % 3;
+  return cn(
+    "grid-cols-6 [&>*]:col-span-2",
+    rest === 2 && "[&>*:nth-last-child(-n+2)]:col-span-3",
+    rest === 1 && "[&>*:last-child]:col-span-6",
+  );
+}
 
 /** Wrapper for a row of `<Chip>`s. On phones it's an even grid (equal
- *  tiles, so a wrapped row never leaves one ragged chip); from `sm` up
- *  the chips sit right-aligned beside the label. */
+ *  tiles, so a wrapped row never leaves a ragged gap); from `sm` up the
+ *  chips sit right-aligned beside the label. */
 export function ChipGroup({ children }: { children: ReactNode }) {
   const count = Children.count(children);
   return (
     <div
       className={cn(
         "grid w-full gap-1.5 sm:flex sm:w-auto sm:flex-wrap sm:justify-end",
-        MOBILE_COLS[count] ?? "grid-cols-3",
+        mobileGrid(count),
       )}
     >
       {children}

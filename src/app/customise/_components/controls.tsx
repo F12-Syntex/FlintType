@@ -33,9 +33,10 @@ export function SelectChips<T extends string | number>({
         onValueChange={onChange}
         ariaLabel={ariaLabel}
         options={options.map((o) => ({ value: o.id, label: o.label }))}
-        // Phones: a full-width track with equal segments; from `sm` up
-        // it hugs its options beside the label.
-        className="w-full max-w-full sm:w-auto [&>button]:flex-1 [&>button]:px-1.5 sm:[&>button]:flex-none sm:[&>button]:px-3"
+        // Phones: a full-width track with equal, 40px-tall segments (a
+        // 48px target with the track's padding); from `sm` up it hugs
+        // its options beside the label at the compact height.
+        className="w-full max-w-full sm:w-auto [&>button]:min-h-10 [&>button]:flex-1 [&>button]:px-1.5 sm:[&>button]:min-h-0 sm:[&>button]:flex-none sm:[&>button]:px-3"
       />
     );
   }
