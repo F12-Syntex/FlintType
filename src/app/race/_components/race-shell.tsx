@@ -4,7 +4,6 @@ import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
-  useEffect,
   useRef,
   useState,
   type ReactNode,
@@ -18,6 +17,14 @@ import { clearHostStorage } from "../c/[slug]/_components/challenge-shell";
 import type { RaceModeId } from "./race-data";
 import { RaceProvider } from "./race-state";
 import { LeaveGuard } from "./leave-guard";
+import {
+  IDLE_QUEUE_STATUS,
+  QueueStatusContext,
+  type QueueStatus,
+} from "./queue-status";
+import { raceErrorMessage } from "./race-errors";
+import { SpectatorBanner } from "./spectator-banner";
+import { useLeaveOnUnmount } from "./use-leave-on-unmount";
 import { TabFocusGuard } from "./tab-focus-guard";
 
 /** Pull a short, race-feed-friendly handle from the Clerk session.
@@ -86,9 +93,17 @@ export function RaceShell({
   const [online, setOnline] = useState<RaceShellOnline | null>(
     initialOnline ?? null,
   );
+  // "Find race" request status, published to the launcher via
+  // QueueStatusContext (pending button label + visible error line).
+  const [queueStatus, setQueueStatus] = useState<QueueStatus>(IDLE_QUEUE_STATUS);
+  const queuePendingRef = useRef(false);
   // Words come from the server when the user enters a room (matchmaking
   // or challenge). Until then, PracticeProvider mounts empty.
   const enterQueue = useCallback(async () => {
+    // One request at a time — a double-click must not open two seats.
+    if (queuePendingRef.current) return;
+    queuePendingRef.current = true;
+    setQueueStatus({ pending: true, error: null });
     try {
       const res = await backend.race.queue({ modeId });
       setOnline({
@@ -99,9 +114,18 @@ export function RaceShell({
         modeId: res.modeId as RaceModeId,
         roundNumber: 1,
       });
-    } catch {
-      // Keep the user on the queue surface; race-controls will let
-      // them retry. No throw — backend hiccup shouldn't crash the UI.
+      setQueueStatus(IDLE_QUEUE_STATUS);
+    } catch (err) {
+      // Keep the user on the launcher and say why; they can retry.
+      setQueueStatus({
+        pending: false,
+        error: raceErrorMessage(
+          err,
+          "Couldn't find a race right now. Check your connection and try again.",
+        ),
+      });
+    } finally {
+      queuePendingRef.current = false;
     }
   }, [backend, modeId]);
 
@@ -139,6 +163,7 @@ export function RaceShell({
         setOnline(null);
       }
       setModeId(next);
+      setQueueStatus(IDLE_QUEUE_STATUS);
     },
     [backend, online],
   );
@@ -191,50 +216,8 @@ export function RaceShell({
   const isSpectating = online?.spectate === true;
   const leaveGuardActive = online != null && !isSpectating;
 
-  // Leave the room when the race surface is torn down by a soft
-  // client-side navigation (browser back, a router push to another
-  // route). Without this, a player who leaves a lobby this way lingers
-  // in the roster for everyone else until the room's idle GC fires —
-  // they "still appear in the room." Hard navigations and tab-close are
-  // already covered by the pagehide beacon in `useRaceRoom`; this closes
-  // the soft-nav gap.
-  //
-  // Deferred + cancel-on-remount: React strict-mode's dev double-mount
-  // (unmount→remount in the same tick) would otherwise fire a spurious
-  // leave that drops the user from the room they're still in. The
-  // remount's setup clears the pending timer; a genuine navigation away
-  // has no remount, so the leave fires a tick later. The shell itself is
-  // NOT re-keyed on rematch (only its children are), so this never fires
-  // mid-session. `online` is read through a ref so the cleanup sees the
-  // live room handle, and spectators (empty token) are skipped.
-  const onlineRef = useRef(online);
-  onlineRef.current = online;
-  const backendRef = useRef(backend);
-  backendRef.current = backend;
-  const pendingLeaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (pendingLeaveRef.current) {
-      clearTimeout(pendingLeaveRef.current);
-      pendingLeaveRef.current = null;
-    }
-    return () => {
-      const cur = onlineRef.current;
-      if (!cur || !cur.sessionToken) return;
-      pendingLeaveRef.current = setTimeout(() => {
-        pendingLeaveRef.current = null;
-        void backendRef.current.race.leave({
-          roomId: cur.roomId,
-          sessionToken: cur.sessionToken,
-        });
-      }, 200);
-    };
-  }, []);
-
-  // Tab handling is phase-aware now (see <TabFocusGuard> inside the
-  // race tree): it's swallowed only during the countdown / active
-  // racing windows so focus stays on the hidden typing input, and left
-  // alone in the lobby / results so keyboard-only users can Tab to the
-  // Ready / Start / Rematch / Leave controls.
+  // Leave the room on a soft client-side navigation away (see hook).
+  useLeaveOnUnmount(online);
 
   const youName = useYouHandle();
   const words = online?.words ?? [];
@@ -288,31 +271,14 @@ export function RaceShell({
   // keystroke pipeline. A persistent banner at the top makes the
   // read-only context unmistakable.
   return (
-    <PracticeProvider key={subtreeKey} lockedWords={words} raceMode={raceMode}>
-      <AutoHideApplier />
-      {isSpectating ? null : <ReportActivity status="racing" />}
-      {isSpectating ? <SpectatorBanner /> : null}
-      {isSpectating ? raceTree : <InputCapture>{raceTree}</InputCapture>}
-    </PracticeProvider>
-  );
-}
-
-/** Persistent banner at the top of the race surface declaring the
- *  user is in spectate mode. Sits above the race tree so it never
- *  competes with the race surface that's mounted
- *  underneath. Hairline border + muted-foreground type keep it calm
- *  — spectator mode is *information*, not an alert. */
-function SpectatorBanner() {
-  return (
-    <div
-      role="status"
-      className="flex shrink-0 items-center justify-center gap-2 border-b border-border bg-card/40 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
-    >
-      <span aria-hidden className="size-1.5 rounded-full bg-primary motion-safe:animate-pulse" />
-      <span>
-        Spectating · this lobby is full or already started
-      </span>
-    </div>
+    <QueueStatusContext.Provider value={queueStatus}>
+      <PracticeProvider key={subtreeKey} lockedWords={words} raceMode={raceMode}>
+        <AutoHideApplier />
+        {isSpectating ? null : <ReportActivity status="racing" />}
+        {isSpectating ? <SpectatorBanner /> : null}
+        {isSpectating ? raceTree : <InputCapture>{raceTree}</InputCapture>}
+      </PracticeProvider>
+    </QueueStatusContext.Provider>
   );
 }
 

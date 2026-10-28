@@ -76,7 +76,7 @@ export async function racePassageWords(page: Page): Promise<string[]> {
 }
 
 /** Type the whole race passage correctly to completion, then wait for
- *  the finished state (the "Race again" CTA, which only appears at
+ *  the finished state (the "Rematch" CTA, which only appears at
  *  phase === "finished"). Extracts the words first, then types them
  *  with single spaces + a trailing space so the final word commits. */
 export async function finishRace(page: Page): Promise<void> {

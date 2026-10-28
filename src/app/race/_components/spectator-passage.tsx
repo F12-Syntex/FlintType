@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { playerColorFor } from "./race-data";
 import type { Racer } from "./race-types";
@@ -57,9 +58,7 @@ export function SpectatorPassage({
     // panel + caption.
     return (
       <div className="flex h-full w-full items-center justify-center">
-        <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          Everyone finished.
-        </span>
+        <span className="text-sm text-muted-foreground">Everyone finished.</span>
       </div>
     );
   }
@@ -101,32 +100,37 @@ function SpectatorHeader({
   const pct = totalChars > 0 ? Math.round((watched.correctChars / totalChars) * 100) : 0;
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-border/60 pb-3">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">
-        Spectating
+      <span className="inline-flex items-center gap-1.5 rounded-pill bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+        <span aria-hidden className="size-1.5 rounded-full bg-primary" />
+        Watching
       </span>
-      <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[11px] uppercase tracking-[0.14em] tabular-nums text-muted-foreground">
-        <span className="text-foreground">{watched.name}</span>
+      <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs tabular-nums text-muted-foreground">
+        <span className="text-sm font-semibold text-foreground">{watched.name}</span>
         <span>
-          <span className="text-foreground">{pct}%</span> progress
+          <span className="font-semibold text-foreground">{pct}%</span> done
         </span>
         <span>
-          <span className="text-foreground">{watched.wpm}</span> wpm
+          <span className="font-semibold text-foreground">{watched.wpm}</span> wpm
         </span>
       </span>
-      <div className="ml-auto flex flex-wrap items-center gap-1.5">
+      <div
+        role="group"
+        aria-label="Racer to watch"
+        className="ml-auto flex flex-wrap items-center gap-1.5"
+      >
         {unfinished.map((r) => {
           const active = r.id === watched.id;
           return (
-            <button
+            <Button
               key={r.id}
-              type="button"
+              variant="outline"
+              size="xs"
               onClick={() => onPick(r.id)}
               aria-pressed={active}
               className={cn(
-                "inline-flex h-7 items-center gap-2 rounded-md border px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors",
-                active
-                  ? "border-primary/40 bg-primary/[0.08] text-primary"
-                  : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
+                "gap-1.5",
+                active &&
+                  "border-primary/50 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
               )}
             >
               <span
@@ -135,7 +139,7 @@ function SpectatorHeader({
                 style={{ backgroundColor: playerColorFor(r.id) }}
               />
               {r.name}
-            </button>
+            </Button>
           );
         })}
       </div>
