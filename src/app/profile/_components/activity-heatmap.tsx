@@ -1,4 +1,4 @@
-import type { DayCell, StreakStats } from "./derive-stats";
+import type { DayCell, StreakStats } from "./derive-activity";
 
 /** The activity heatmap: one column per week, Monday at the top, an
  *  orange intensity ramp for busier days. Fills its parent's height
@@ -34,7 +34,11 @@ export function ActivityHeatmap({
 
       <div className="flex w-full flex-col gap-1.5">
         <MonthAxis columns={columns} />
+        {/* One image to assistive tech: the per-day cells keep a hover
+         *  `title` for mouse users but are hidden from screen readers. */}
         <div
+          role="img"
+          aria-label={`Activity over the last 6 months: ${captionParts.join(", ")}`}
           className="grid w-full gap-0.5 sm:gap-1"
           style={{
             gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
@@ -123,8 +127,8 @@ function Cell({ day, max }: { day: DayCell | null; max: number }) {
       : `${day.date.toDateString()} · ${day.tests} run${day.tests === 1 ? "" : "s"}`;
   return (
     <span
+      aria-hidden
       title={label}
-      aria-label={label}
       className="block aspect-square w-full rounded-[30%]"
       style={{ background: cellBg(ratio) }}
     />

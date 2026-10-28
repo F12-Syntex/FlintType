@@ -41,7 +41,7 @@ export function MonkeytypeBanner({
     <section
       aria-label="MonkeyType import prompt"
       data-ft-banner="monkeytype"
-      className="flex items-start gap-3 rounded-2xl border border-border bg-card py-3 pr-2 pl-4 sm:items-center sm:gap-4 sm:pl-5"
+      className="flex items-start gap-3 rounded-2xl border border-border bg-card py-3 pr-2 pl-5 sm:items-center sm:gap-4 sm:pl-6"
     >
       <span
         aria-hidden
@@ -62,7 +62,7 @@ export function MonkeytypeBanner({
           variant="outline"
           size="sm"
           onClick={onConnect}
-          className="h-9 self-start sm:h-8 sm:self-center"
+          className="h-11 self-start sm:h-8 sm:self-center"
         >
           Import
         </Button>
@@ -72,7 +72,7 @@ export function MonkeytypeBanner({
         size="icon"
         onClick={dismiss}
         aria-label="Dismiss this prompt"
-        className="size-9 shrink-0 text-muted-foreground"
+        className="size-11 shrink-0 text-muted-foreground sm:size-9"
       >
         <X aria-hidden />
       </Button>

@@ -1,16 +1,21 @@
 "use client";
 
 import { useClerk, useUser } from "@clerk/nextjs";
+import { UserPlus } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { UserTag } from "@/components/ft";
 import { FollowButton } from "@/components/follow-button";
 import { InviteToRaceButton } from "@/components/invite-to-race-button";
 import { Surface } from "@/components/page-shell";
+import { buttonVariants } from "@/components/ui/button";
 import { clearUserScopedStorage } from "@/lib/sign-out-cleanup";
+import { cn } from "@/lib/utils";
 import type { FriendRelationship, FriendStats } from "@/types/friends";
 import type { RankId } from "@/types/rank";
 import type { UserTagId } from "@/types/user-tag";
-import type { ProfileTotals, StreakStats } from "./derive-stats";
+import type { StreakStats } from "./derive-activity";
+import type { ProfileTotals } from "./derive-stats";
 import { EditProfileDialog } from "./edit-profile-dialog";
 import { HeroStats, LevelLockup } from "./hero-stats";
 import { OwnerMenu } from "./owner-menu";
@@ -21,12 +26,14 @@ const NUM_FMT = new Intl.NumberFormat("en-US");
 
 /** The profile hero — the page's one card-as-header (ui-law §18.1).
  *
- *  - Identity: a flame-ringed avatar, the name as the page's h1, the
- *    handle + join date, the rank / identity chips and friend counts.
+ *  - Identity: a flame-ringed avatar, the handle as the page's h1 (the
+ *    same name for the owner and every visitor), the join date, the
+ *    rank / identity chips and friend counts.
  *  - Actions sit in the top-right corner, out of the content flow: the
- *    owner's ⋯ menu, or a visitor's Follow (+ Race for friends). On
- *    phones the avatar shares the top row with the actions and the
- *    identity drops beneath at full width.
+ *    owner's ⋯ menu, a signed-in visitor's Follow (+ Race for friends),
+ *    or a Follow that leads a signed-out visitor to sign in. On phones
+ *    the avatar shares the top row with the actions and the identity
+ *    drops beneath at full width.
  *  - Stats tiles, then the XP bar closing the card.
  *
  *  MonkeyType import / manage state lives in the parent so the ⋯ menu
@@ -34,6 +41,7 @@ const NUM_FMT = new Intl.NumberFormat("en-US");
 export function ProfileHero({
   username,
   isOwner,
+  identityPending = false,
   pending = false,
   tags = [],
   eligibleTags = [],
@@ -48,9 +56,13 @@ export function ProfileHero({
   subjectUserId = null,
   friendStats = null,
   relationship = null,
+  onRelationshipChange,
 }: {
   username?: string;
   isOwner: boolean;
+  /** Who's viewing isn't known yet (Clerk loading), or a visitor's
+   *  snapshot hasn't landed: the name renders as a skeleton. */
+  identityPending?: boolean;
   /** No snapshot yet (loading or failed): stats render as dashes. */
   pending?: boolean;
   tags?: UserTagId[];
@@ -71,6 +83,9 @@ export function ProfileHero({
   /** Viewer↔subject relationship — present only when a signed-in
    *  visitor views someone else's profile. */
   relationship?: FriendRelationship | null;
+  /** Fires after Follow / Unfollow / Block lands, so the counts and
+   *  the "Follows you" chip update. */
+  onRelationshipChange?: (next: FriendRelationship) => void;
   /** True once the owner has imported MonkeyType data. */
   isMtConnected?: boolean;
   /** Opens the right MonkeyType dialog (manage vs import). */
@@ -79,22 +94,16 @@ export function ProfileHero({
    *  through `hasImage`), so visitors see the subject's photo. */
   subjectAvatarUrl?: string | null;
 }) {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded, isSignedIn } = useUser();
   const { signOut } = useClerk();
   const [editOpen, setEditOpen] = useState(false);
 
-  const displayName = isOwner
-    ? !isLoaded
-      ? "—"
-      : (user?.firstName ??
-          user?.username ??
-          username ??
-          user?.emailAddresses[0]?.emailAddress.split("@")[0] ??
-          "Anonymous")
-    : (username ?? "Anonymous");
+  // The handle is the name everywhere, so the owner sees exactly what a
+  // visitor sees (visitors have no first name to show).
   const handle = isOwner
     ? (user?.username ?? username ?? null)
     : (username ?? null);
+  const displayName = handle ?? "Anonymous";
   const joined =
     isOwner && user?.createdAt != null
       ? new Date(user.createdAt).toLocaleDateString(undefined, {
@@ -110,8 +119,11 @@ export function ProfileHero({
       ? user.imageUrl
       : null;
   const avatarImageUrl = ownerImageUrl ?? subjectAvatarUrl ?? null;
-  const avatarIsLoaded = isOwner ? isLoaded : true;
-  const hasChips = rank != null || tags.length > 0 || relationship?.followedBy;
+  const avatarIsLoaded = identityPending ? false : isOwner ? isLoaded : true;
+  // Once you're friends the "Friends" status already says it.
+  const followsYou = relationship?.followedBy === true && !relationship.mutual;
+  const hasChips = rank != null || tags.length > 0 || followsYou;
+  const signedOutVisitor = !isOwner && !identityPending && isLoaded && !isSignedIn;
 
   return (
     <Surface as="section" className="relative overflow-hidden">
@@ -120,7 +132,7 @@ export function ProfileHero({
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-linear-to-b from-primary/10 to-transparent"
       />
-      <div className="relative flex flex-col gap-6 p-5 sm:gap-7 sm:p-8">
+      <div className="relative flex flex-col gap-6 p-5 sm:gap-7 sm:p-6">
         <div className="grid grid-cols-[auto_1fr] items-center gap-x-5 gap-y-4 sm:grid-cols-[auto_1fr_auto] sm:items-start">
           <ProfileAvatar imageUrl={avatarImageUrl} isLoaded={avatarIsLoaded} />
 
@@ -136,7 +148,7 @@ export function ProfileHero({
                 }}
               />
             ) : relationship && subjectUserId ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-start gap-2">
                 {relationship.mutual ? (
                   <InviteToRaceButton
                     opponentId={subjectUserId}
@@ -147,21 +159,36 @@ export function ProfileHero({
                   userId={subjectUserId}
                   initial={relationship}
                   handle={handle}
+                  onChange={onRelationshipChange}
                 />
               </div>
+            ) : signedOutVisitor ? (
+              <Link
+                href={`/sign-in?redirect_url=${encodeURIComponent(`/profile/${username ?? ""}`)}`}
+                className={cn(buttonVariants(), "h-11 sm:h-9")}
+              >
+                <UserPlus aria-hidden data-icon="inline-start" />
+                Follow
+              </Link>
             ) : null}
           </div>
 
           <div className="col-span-2 flex min-w-0 flex-col gap-2 sm:col-span-1 sm:self-center">
-            <h1 className="truncate text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              {displayName}
-            </h1>
-            {handle || joined ? (
-              <p className="truncate text-sm text-muted-foreground">
-                {[handle ? `@${handle}` : null, joined ? `Joined ${joined}` : null]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
+            {identityPending ? (
+              <h1 className="flex flex-col gap-2">
+                <span className="sr-only">Loading profile</span>
+                <span
+                  aria-hidden
+                  className="block h-8 w-48 max-w-full animate-pulse rounded-full bg-muted sm:h-9"
+                />
+              </h1>
+            ) : (
+              <h1 className="text-2xl font-bold tracking-tight text-foreground wrap-anywhere sm:text-3xl">
+                {displayName}
+              </h1>
+            )}
+            {joined ? (
+              <p className="text-sm text-muted-foreground">Joined {joined}</p>
             ) : null}
             {hasChips ? (
               <div className="flex flex-wrap items-center gap-1.5">
@@ -169,7 +196,7 @@ export function ProfileHero({
                 {tags.map((t) => (
                   <UserTag key={t} tag={t} size="sm" />
                 ))}
-                {relationship?.followedBy ? (
+                {followsYou ? (
                   <span className="inline-flex h-5 items-center rounded-pill bg-muted px-2 text-[11px] font-medium text-muted-foreground">
                     Follows you
                   </span>

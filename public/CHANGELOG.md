@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.6 — 27 October 2026
+- The WPM trend on profiles now covers your whole history: 1D, 1W, 1M, 3M and All each show their own runs, labelled by date.
+- Record crowns in Recent runs only mark runs that match your personal bests, and new players see a dash instead of an orange zero.
+- Following someone updates their counts straight away, signed-out visitors get a Follow button, and failed loads, race invites and profile edits now say what went wrong.
+
 ## 6.148.5 — 27 October 2026
 - Each Insights tip now names your weakest letter pair or word with its real timing, and its button names the drill it opens.
 - Insights uses plain labels ("Personalised" or "Still learning"), labels WPM and accuracy on every run, and shows new players one clear prompt instead of empty charts.

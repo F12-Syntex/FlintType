@@ -4,7 +4,8 @@ import { PageSection, Surface } from "@/components/page-shell";
 import { SkillRadar } from "@/components/skill-radar";
 import { SKILL_BASELINE } from "@/lib/skill-baseline";
 import { ActivityHeatmap } from "./activity-heatmap";
-import type { DayCell, SkillAxis, StreakStats } from "./derive-stats";
+import type { DayCell, StreakStats } from "./derive-activity";
+import type { SkillAxis } from "./derive-stats";
 
 /** One card split between **Activity** (the heatmap, ~60%) and **Skill**
  *  (the compact radar against the average baseline, ~40%). Both halves
@@ -47,7 +48,7 @@ export function ActivitySkillCard({
               className="flex-1 justify-between"
             />
           ) : (
-            <p className="flex-1 text-sm text-muted-foreground">
+            <p className="flex flex-1 items-center justify-center py-8 text-center text-sm text-muted-foreground">
               Finish a few tests and your skill shape fills in here.
             </p>
           )}
