@@ -4,27 +4,11 @@ import {
   type ChangelogRelease,
   groupChangelogByDay,
   groupDaysByMonth,
-  isInternalLine,
   parseChangelogDate,
   previewReleases,
   splitRecentDays,
   versionRangeLabel,
 } from "./changelog-days";
-
-describe("isInternalLine", () => {
-  it("matches every internal-only wording the file uses", () => {
-    expect(isInternalLine("Internal changes only.")).toBe(true);
-    expect(isInternalLine("Internal changes only (added tests).")).toBe(true);
-    expect(isInternalLine("Internal: refreshed a baseline.")).toBe(true);
-    expect(isInternalLine("internal groundwork for friends")).toBe(true);
-  });
-
-  it("keeps user-facing lines, including ones mentioning 'internal' later", () => {
-    expect(isInternalLine("Fixed the footer link.")).toBe(false);
-    expect(isInternalLine("Removed an unfinished internal page.")).toBe(false);
-    expect(isInternalLine("Internally-themed tags look sharper.")).toBe(false);
-  });
-});
 
 describe("parseChangelogDate", () => {
   it("parses '<day> <Month> <year>' to a UTC date", () => {

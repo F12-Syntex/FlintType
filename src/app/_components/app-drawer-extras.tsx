@@ -23,8 +23,9 @@ const META: Item[] = [
   { href: "/privacy", label: "Privacy" },
 ];
 
+// 44px-tall rows: the drawer is a phone surface (ui-law §7).
 const LINK_CLASS =
-  "text-muted-foreground transition-colors hover:text-foreground";
+  "inline-flex min-h-11 items-center text-muted-foreground transition-colors hover:text-foreground";
 
 function DrawerLink({ item }: { item: Item }) {
   if (item.external) {
@@ -54,12 +55,12 @@ export function AppDrawerExtras() {
   const { isLoaded, isSignedIn } = useUser();
 
   return (
-    <div className="flex flex-col gap-5 text-sm">
-      <div className="flex items-center justify-between gap-3">
+    <div className="flex flex-col gap-2 text-sm">
+      <div className="flex min-h-11 items-center justify-between gap-3">
         <span className="text-muted-foreground">Theme</span>
         <ModeSwitcher />
       </div>
-      <div className="flex flex-wrap gap-x-5 gap-y-3">
+      <div className="flex flex-wrap gap-x-5">
         {isLoaded && isSignedIn ? <DrawerLink item={PROFILE_ITEM} /> : null}
         <DrawerLink item={SETTINGS_ITEM} />
         {!isLoaded ? null : isSignedIn ? (
@@ -68,7 +69,7 @@ export function AppDrawerExtras() {
           <DrawerLink item={SIGN_IN_ITEM} />
         )}
       </div>
-      <div className="flex flex-wrap gap-x-5 gap-y-3 text-[13px]">
+      <div className="flex flex-wrap gap-x-5 text-[13px]">
         {META.map((item) => (
           <DrawerLink key={item.label} item={item} />
         ))}

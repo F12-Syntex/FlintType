@@ -24,7 +24,7 @@ export function ModeSwitcher({ className }: { className?: string }) {
   if (!mounted) {
     // Reserve the same footprint so the topbar layout doesn't shift
     // on hydration.
-    return <div className={cn("inline-flex h-9 w-[6.5rem]", className)} />;
+    return <div className={cn("inline-flex h-[2.875rem] w-[8.125rem] sm:h-9 sm:w-[6.5rem]", className)} />;
   }
 
   return (
@@ -52,7 +52,9 @@ export function ModeSwitcher({ className }: { className?: string }) {
             aria-label={`Switch to ${opt.label} mode`}
             onClick={() => setTheme(opt.value)}
             className={cn(
-              "relative flex size-8 cursor-pointer items-center justify-center rounded-pill transition-colors",
+              // 40px segments on phones (track ≈ 46px, ui-law §7, §17.2),
+              // compact from sm.
+              "relative flex size-10 cursor-pointer items-center justify-center rounded-pill transition-colors sm:size-8",
               active
                 ? "text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground",

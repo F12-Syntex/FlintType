@@ -14,6 +14,7 @@ import {
 import {
   type ChangelogEntry,
   changesSince,
+  isInternalLine,
   parseChangelog,
 } from "@/lib/changelog";
 import { cn } from "@/lib/utils";
@@ -81,7 +82,11 @@ export function WhatsNewDialog() {
         // sensitive on Linux (Vercel), so the path must match exactly.
         const res = await fetch("/CHANGELOG.md", { cache: "no-cache" });
         if (!res.ok) throw new Error(`changelog ${res.status}`);
-        const fresh = changesSince(parseChangelog(await res.text()), seen, APP_VERSION);
+        // Same filter as /changelog: "Internal changes only." releases
+        // mean nothing to a reader, so they're dropped before display.
+        const fresh = changesSince(parseChangelog(await res.text()), seen, APP_VERSION)
+          .map((e) => ({ ...e, lines: e.lines.filter((l) => !isInternalLine(l)) }))
+          .filter((e) => e.lines.length > 0);
         if (cancelled) return;
         if (fresh.length === 0) {
           writeSeen(APP_VERSION);
@@ -119,7 +124,7 @@ export function WhatsNewDialog() {
           >
             <Sparkles size={18} />
           </span>
-          <div className="flex min-w-0 flex-col gap-1 pr-6">
+          <div className="flex min-w-0 flex-col gap-1 pr-8">
             <DialogTitle className="text-xl font-bold tracking-tight text-foreground">
               What&apos;s new
             </DialogTitle>

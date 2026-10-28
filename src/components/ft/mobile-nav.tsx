@@ -134,7 +134,9 @@ export function MobileNav({
       ) : null}
 
       {drawerExtras ? (
-        <div className="mt-auto shrink-0 border-t border-border px-6 py-6">
+        // Same inset as the nav rows' text (px-4 + px-4), so every
+        // left edge in the drawer lines up.
+        <div className="mt-auto shrink-0 border-t border-border px-8 py-4 sm:px-10">
           {drawerExtras}
         </div>
       ) : null}

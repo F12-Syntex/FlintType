@@ -1,4 +1,4 @@
-import { type ChangelogEntry, compareVersions } from "@/lib/changelog";
+import { type ChangelogEntry, compareVersions, isInternalLine } from "@/lib/changelog";
 
 /** Pure grouping for the /changelog page. `public/CHANGELOG.md` keeps
  *  one section per version; the page shows one block per calendar day,
@@ -28,13 +28,6 @@ export type ChangelogDay = {
   /** Total user-facing lines across `releases`. */
   lineCount: number;
 };
-
-/** True for a line that only concerns developers — "Internal changes
- *  only.", "Internal: …", "Internal groundwork …". The file's own header
- *  mandates that wording for non-user-facing versions. */
-export function isInternalLine(line: string): boolean {
-  return /^internal\b/i.test(line.trim());
-}
 
 const MONTHS = [
   "january", "february", "march", "april", "may", "june",

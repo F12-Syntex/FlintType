@@ -970,6 +970,26 @@
   );
 }
 
+/* Finger-sized hit area for a control that has to stay visually small
+   (a 32-36px pill in a dense strip, an icon inside a field). On touch
+   screens an invisible ::after grows the tap area to at least 44x44px
+   around the control's centre (ui-law §7); mouse pointers keep the
+   visual box. The element must be positioned: pair with `relative`
+   unless it is already `absolute`. */
+@utility touch-hit {
+  @media (pointer: coarse) {
+    &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: max(100%, 2.75rem);
+      height: max(100%, 2.75rem);
+      transform: translate(-50%, -50%);
+    }
+  }
+}
+
 @utility safe-pt {
   padding-top: env(safe-area-inset-top);
 }

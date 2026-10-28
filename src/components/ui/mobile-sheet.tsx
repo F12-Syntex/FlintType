@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useMounted } from "@/lib/use-mounted";
 import { cn } from "@/lib/utils";
 
 /** Bottom-anchored mobile modal — slides up from the bottom edge with a
@@ -42,23 +43,24 @@ export function MobileSheet({
   children: ReactNode;
   leading?: ReactNode;
 }) {
-  const [mounted, setMounted] = useState(false);
+  // Portal needs document — only available after mount.
+  const mounted = useMounted();
   // Two-phase visibility so the exit animation can run before unmount:
   //   `render` controls portal mount; `entered` controls the transform/opacity.
   const [render, setRender] = useState(false);
   const [entered, setEntered] = useState(false);
 
-  useEffect(() => setMounted(true), []);
-
   // Phase 1 — `open` ↔ `render`. Mount the portal as soon as `open`
-  // flips on; on the way out, hold the portal mounted for ANIM_MS so
-  // the exit transition has time to play before unmount.
+  // flips on, and start the exit transition as soon as it flips off.
+  // Adjusted during render (React's "adjust state when a prop
+  // changes" pattern) rather than in an effect.
+  if (open && !render) setRender(true);
+  if (!open && entered) setEntered(false);
+
+  // On the way out, hold the portal mounted for ANIM_MS so the exit
+  // transition has time to play before unmount.
   useEffect(() => {
-    if (open) {
-      setRender(true);
-      return;
-    }
-    setEntered(false);
+    if (open) return;
     const t = setTimeout(() => setRender(false), ANIM_MS);
     return () => clearTimeout(t);
   }, [open]);
@@ -156,7 +158,9 @@ export function MobileSheet({
             type="button"
             onClick={() => onOpenChange(false)}
             aria-label="Close"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-pill text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            // 44px tap target; the negative margins keep the header
+            // height it had at 36px (ui-law §7).
+            className="-my-1 -mr-2 inline-flex size-11 shrink-0 items-center justify-center rounded-pill text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             <X size={18} />
           </button>
