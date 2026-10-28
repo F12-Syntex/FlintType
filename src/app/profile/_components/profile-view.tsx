@@ -1,44 +1,37 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageShell } from "@/components/page-shell";
-import { BackendError, useBackend } from "@/lib/backend";
-import { useRemotePrefs } from "@/lib/use-remote-prefs";
-import type { FriendRelationship, FriendStats } from "@/types/friends";
+import { useBackend } from "@/lib/backend";
 import type { HistorySummaryOutput } from "@/types/history";
 import type { RankId } from "@/types/rank";
-import type { MonkeytypeStatsSlice } from "@/types/monkeytype";
+import type { UserTagId } from "@/types/user-tag";
 import { ActivitySkillCard } from "./activity-skill-card";
+import { deriveActivity, deriveStreak } from "./derive-activity";
 import {
-  deriveActivity,
   derivePersonalBests,
   deriveSkills,
-  deriveStreak,
   deriveTotals,
   deriveTrend,
-  mergePersonalBestsWithMt,
-  mergeTotalsWithMt,
 } from "./derive-stats";
 import { matchesViewer } from "./matches-viewer";
 import { MonkeytypeBanner } from "./monkeytype-banner";
 import { MonkeyTypeImportDialog } from "./monkeytype-import-dialog";
 import { MonkeyTypeManageDialog } from "./monkeytype-manage-dialog";
+import { mergePersonalBestsWithMt, mergeTotalsWithMt } from "./mt-merge";
 import { PersonalBests } from "./personal-bests";
 import { ProfileHero } from "./profile-hero";
+import { type ProfileLoadError, toProfileLoadError } from "./profile-load-error";
 import {
-  type ProfileLoadError,
   ProfileErrorState,
   ProfileNotFound,
   ProfileSkeleton,
 } from "./profile-states";
 import { RecentRuns } from "./recent-runs";
+import { useMonkeytypeSync } from "./use-monkeytype-sync";
+import { useProfileFriends } from "./use-profile-friends";
 import { WpmTrend } from "./wpm-trend";
-
-const EMPTY_MT_SLICE: MonkeytypeStatsSlice = {
-  importedAt: 0,
-  pbs: { time: {}, words: {} },
-};
 
 /** /profile/<username> orchestrator. One PageShell column: the hero
  *  card (the page's header), then Personal bests → Activity and skill →
@@ -58,10 +51,6 @@ export function ProfileView({ username }: { username?: string }) {
   const [attempt, setAttempt] = useState(0);
   const [importOpen, setImportOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
-  const [friendStats, setFriendStats] = useState<FriendStats | null>(null);
-  const [relationship, setRelationship] = useState<FriendRelationship | null>(
-    null,
-  );
 
   useEffect(() => {
     if (isOwner == null) return;
@@ -76,32 +65,7 @@ export function ProfileView({ username }: { username?: string }) {
         setSnapshot(r);
       })
       .catch((err) => {
-        if (cancelled) return;
-        if (err instanceof BackendError && err.code === "UNAUTHORIZED") {
-          setError({ kind: "signIn", message: "Sign in to view your profile." });
-        } else if (err instanceof BackendError && err.code === "NOT_FOUND") {
-          setError({
-            kind: "notFound",
-            message: `There's no flinttype profile for @${username}.`,
-          });
-        } else if (err instanceof BackendError && err.code === "RATE_LIMITED") {
-          setError({
-            kind: "other",
-            message: "Too many requests. Wait a moment, then try again.",
-            detail: err.code,
-          });
-        } else {
-          setError({
-            kind: "other",
-            message: "Couldn't load this profile.",
-            detail:
-              err instanceof BackendError
-                ? `${err.code}: ${err.message}`
-                : err instanceof Error
-                  ? err.message
-                  : undefined,
-          });
-        }
+        if (!cancelled) setError(toProfileLoadError(err));
       });
     return () => {
       cancelled = true;
@@ -113,72 +77,18 @@ export function ProfileView({ username }: { username?: string }) {
     setAttempt((n) => n + 1);
   }, []);
 
-  // Friend data — counts for everyone, relationship only for visitors.
-  // The friends routes require auth, so anonymous viewers get neither
-  // (they see the profile without follow chrome).
   const subjectUserId = snapshot?.subjectUserId ?? null;
-  useEffect(() => {
-    if (!subjectUserId || !user) {
-      setFriendStats(null);
-      setRelationship(null);
-      return;
-    }
-    let cancelled = false;
-    backend.friends
-      .stats({ userId: subjectUserId })
-      .then((s) => {
-        if (!cancelled) setFriendStats(s);
-      })
-      .catch(() => {});
-    if (isOwner === false) {
-      backend.friends
-        .relationship({ userId: subjectUserId })
-        .then((r) => {
-          if (!cancelled) setRelationship(r);
-        })
-        .catch(() => {});
-    } else {
-      setRelationship(null);
-    }
-    return () => {
-      cancelled = true;
-    };
-  }, [backend, subjectUserId, isOwner, user]);
+  const { friendStats, relationship, onRelationshipChange } =
+    useProfileFriends({
+      backend,
+      subjectUserId,
+      isOwner,
+      signedIn: user != null,
+    });
+  const mt = useMonkeytypeSync(backend, isOwner);
 
   const tests = useMemo(() => snapshot?.recentTests ?? [], [snapshot]);
   const subjectMtSlice = snapshot?.monkeytype ?? null;
-  const { value: mtSliceRaw, update: updateMtSlice } =
-    useRemotePrefs<MonkeytypeStatsSlice>("monkeytypeStats", EMPTY_MT_SLICE);
-  const ownMtSlice = mtSliceRaw.importedAt > 0 ? mtSliceRaw : null;
-  const hasStoredKey = isOwner === true && ownMtSlice?.encryptedApiKey != null;
-  // The MonkeyType banner hides once the owner has imported their
-  // data — by either path: storing an Ape Key for repeated re-sync
-  // OR doing a one-shot data import (which writes importedAt > 0
-  // but no encryptedApiKey). The previous "connected = key stored"
-  // rule let the banner stick around forever for users who imported
-  // their MT export without handing over a key. Auto-sync still
-  // gates on `hasStoredKey` below — only the banner relaxes.
-  const isMtConnected = ownMtSlice != null;
-
-  // Auto-sync once per page load when a stored Ape Key exists AND the
-  // viewer is the owner. Visitors never trigger MT sync.
-  const syncedRef = useRef(false);
-  useEffect(() => {
-    if (!hasStoredKey || syncedRef.current) return;
-    syncedRef.current = true;
-    let cancelled = false;
-    backend.monkeytype
-      .import({})
-      .then((out) => {
-        if (cancelled) return;
-        updateMtSlice(out.slice);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [hasStoredKey, backend, updateMtSlice]);
-
   const localTotals = useMemo(
     () => deriveTotals(tests, snapshot?.lifetimeStats),
     [tests, snapshot?.lifetimeStats],
@@ -193,17 +103,16 @@ export function ProfileView({ username }: { username?: string }) {
     () => mergePersonalBestsWithMt(localBests, subjectMtSlice),
     [localBests, subjectMtSlice],
   );
-  // 6 months (26 weeks), not 12 — the heatmap shares the split card's
-  // narrower column now, so fewer columns keep the cells their old size.
+  // 6 months (26 weeks): the heatmap shares the split card's narrower
+  // column, so fewer columns keep the cells a readable size.
   const activity = useMemo(() => deriveActivity(tests, 26), [tests]);
-  const trend = useMemo(() => deriveTrend(tests, 60), [tests]);
+  // Every completed run: the chart filters by range, then downsamples.
+  const trend = useMemo(() => deriveTrend(tests), [tests]);
   const skills = useMemo(() => deriveSkills(tests, totals), [tests, totals]);
 
   const heroIsOwner = isOwner === true;
-  const subjectTags = snapshot?.tags ?? [];
-  const subjectEligibleTags = snapshot?.eligibleTags ?? [];
 
-  const onTagsChanged = useCallback((next: typeof subjectTags) => {
+  const onTagsChanged = useCallback((next: UserTagId[]) => {
     setSnapshot((prev) => (prev ? { ...prev, tags: next } : prev));
   }, []);
 
@@ -211,17 +120,27 @@ export function ProfileView({ username }: { username?: string }) {
     setSnapshot((prev) => (prev ? { ...prev, rank: next } : prev));
   }, []);
 
-  // MT dialog open/manage routing — the kebab menu and the banner
-  // share these. Open Manage when connected, Import otherwise.
+  // The kebab menu and the banner share this: Manage when connected,
+  // Import otherwise.
   const onOpenMt = useCallback(() => {
-    if (isMtConnected) setManageOpen(true);
+    if (mt.isMtConnected) setManageOpen(true);
     else setImportOpen(true);
-  }, [isMtConnected]);
+  }, [mt.isMtConnected]);
 
   if (error?.kind === "notFound") {
     return (
       <PageShell>
-        <ProfileNotFound message={error.message} />
+        <ProfileNotFound username={username} />
+      </PageShell>
+    );
+  }
+
+  // A visitor whose load failed has no real identity to show: render
+  // the error alone (carrying the h1), not a hero invented from the URL.
+  if (error && isOwner === false) {
+    return (
+      <PageShell>
+        <ProfileErrorState error={error} onRetry={retry} asPage />
       </PageShell>
     );
   }
@@ -232,24 +151,28 @@ export function ProfileView({ username }: { username?: string }) {
         <ProfileHero
           username={username}
           isOwner={heroIsOwner}
+          identityPending={
+            isOwner == null || (isOwner === false && snapshot == null)
+          }
           pending={snapshot == null}
-          tags={subjectTags}
-          eligibleTags={subjectEligibleTags}
+          tags={snapshot?.tags ?? []}
+          eligibleTags={snapshot?.eligibleTags ?? []}
           onTagsChanged={heroIsOwner ? onTagsChanged : undefined}
           rank={snapshot?.rank ?? null}
           onRankChanged={heroIsOwner ? onRankChanged : undefined}
           totals={totals}
           streak={streak}
-          isMtConnected={isMtConnected}
+          isMtConnected={mt.isMtConnected}
           onOpenMt={heroIsOwner ? onOpenMt : undefined}
           subjectAvatarUrl={snapshot?.subjectAvatarUrl ?? null}
           subjectUserId={subjectUserId}
           friendStats={friendStats}
           relationship={relationship}
+          onRelationshipChange={onRelationshipChange}
         />
         <MonkeytypeBanner
           isOwner={heroIsOwner}
-          isConnected={isMtConnected}
+          isConnected={mt.isMtConnected}
           onConnect={() => setImportOpen(true)}
         />
       </div>
@@ -270,6 +193,7 @@ export function ProfileView({ username }: { username?: string }) {
           <WpmTrend points={trend} />
           <RecentRuns
             tests={tests}
+            bests={bests}
             handle={username ?? "racer"}
             isOwner={heroIsOwner}
           />
@@ -282,13 +206,13 @@ export function ProfileView({ username }: { username?: string }) {
             open={importOpen}
             onOpenChange={setImportOpen}
           />
-          {isMtConnected ? (
+          {mt.isMtConnected ? (
             <MonkeyTypeManageDialog
               open={manageOpen}
               onOpenChange={setManageOpen}
-              slice={mtSliceRaw}
-              onSliceUpdate={(next) => updateMtSlice(next)}
-              onSliceCleared={() => updateMtSlice(EMPTY_MT_SLICE)}
+              slice={mt.slice}
+              onSliceUpdate={mt.update}
+              onSliceCleared={mt.clear}
               onRepaste={() => {
                 setManageOpen(false);
                 setImportOpen(true);

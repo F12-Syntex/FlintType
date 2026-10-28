@@ -8,13 +8,8 @@ import {
   type LifetimeStats,
 } from "@/lib/lifetime-stats";
 import { computeTotalXp } from "@/lib/xp-rewards";
-import type { HistoryTest, PublicMonkeytypeStats } from "@/types/history";
+import type { HistoryTest } from "@/types/history";
 
-/** Either flavour of MT slice the merge layer accepts — the private
- *  owner slice carrying the encrypted Ape Key, or the public subset
- *  the history route returns to visitors. The merges never touch
- *  the credential field, so structurally they're interchangeable. */
-type MtMergeInput = PublicMonkeytypeStats;
 
 /** Pure derivations from the user's HistoryTest stream. The /profile
  *  page is read-only — every panel is a function over `recentTests`. */
@@ -98,80 +93,6 @@ export function deriveTotals(
   };
 }
 
-export type StreakStats = {
-  current: number;
-  longest: number;
-  lastTestMs: number | null;
-};
-
-/** A DST-immune day ordinal: the integer count of UTC days for a
- *  *local* calendar date. `Date.UTC` has no DST, so consecutive local
- *  calendar dates always map to ordinals differing by exactly 1 —
- *  regardless of the local timezone or whether a DST transition fell
- *  between them. Day math (streaks, heatmap) walks ordinals, never raw
- *  millisecond deltas, which drift by ±1h across DST. */
-export function dayOrdinal(y: number, m: number, d: number): number {
-  return Math.floor(Date.UTC(y, m, d) / 86_400_000);
-}
-
-/** Ordinal of the *local* calendar date a timestamp falls on. */
-export function ordinalOfMs(ms: number): number {
-  const d = new Date(ms);
-  return dayOrdinal(d.getFullYear(), d.getMonth(), d.getDate());
-}
-
-/** Streak counts consecutive *days* with at least one completed test.
- *  "Current" includes today if there's a test today, otherwise it
- *  counts back from the most recent activity day. */
-export function deriveStreak(tests: readonly HistoryTest[]): StreakStats {
-  if (tests.length === 0) return { current: 0, longest: 0, lastTestMs: null };
-  const days = new Set<number>();
-  let lastTestMs = 0;
-  for (const t of tests) {
-    if (!t.wasCompleted) continue;
-    days.add(ordinalOfMs(t.startedAtMs));
-    if (t.startedAtMs > lastTestMs) lastTestMs = t.startedAtMs;
-  }
-  const sortedDays = [...days].sort((a, b) => a - b);
-
-  // Run-length over consecutive day ordinals (exact integer math — no
-  // DST drift).
-  let longest = 0;
-  let run = 0;
-  let prev: number | null = null;
-  for (const ord of sortedDays) {
-    if (prev != null && ord - prev === 1) {
-      run += 1;
-    } else {
-      run = 1;
-    }
-    if (run > longest) longest = run;
-    prev = ord;
-  }
-
-  // Current streak counts back from today (or the most recent day if
-  // we haven't typed today). Decrementing an integer ordinal is exact.
-  let cursor = ordinalOfMs(Date.now());
-  let current = 0;
-  // Allow a one-day grace if the most recent activity was yesterday.
-  if (!days.has(cursor)) {
-    cursor -= 1;
-    if (!days.has(cursor)) {
-      return { current: 0, longest, lastTestMs: lastTestMs || null };
-    }
-  }
-  while (days.has(cursor)) {
-    current += 1;
-    cursor -= 1;
-  }
-  return { current, longest, lastTestMs: lastTestMs || null };
-}
-
-function dateKey(ms: number): string {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-}
-
 /** Bucket key like "TIME · 30" / "WORDS · 50" — we group personal
  *  bests by (mode, durationOrWordCount). Mode strings come straight
  *  from HistoryTest.mode without normalisation, so any future modes
@@ -221,152 +142,20 @@ export function derivePersonalBests(
 }
 
 /** Split practice modes into a coarser display label. Adapt /
- *  reverse_adaptive both fold into the user-facing "training" group. */
-function normalizeMode(mode: string): string {
+ *  reverse_adaptive both fold into the user-facing "training" group.
+ *  Exported so the Recent-runs record crown buckets exactly like the
+ *  Personal bests section does. */
+export function normalizeMode(mode: string): string {
   if (mode === "training" || mode === "reverse_adaptive") return "training";
   if (mode === "casual") return "casual";
   return mode;
 }
 
-export type DayCell = { date: Date; tests: number };
-
-/** Build the last `weeks` weeks of activity, week-aligned to Monday.
- *  Returns chronological days; the heatmap component groups them into
- *  columns by week. */
-export function deriveActivity(
-  tests: readonly HistoryTest[],
-  weeks = 26,
-): DayCell[] {
-  const counts = new Map<string, number>();
-  for (const t of tests) {
-    if (!t.wasCompleted) continue;
-    counts.set(dateKey(t.startedAtMs), (counts.get(dateKey(t.startedAtMs)) ?? 0) + 1);
-  }
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const dayOfWeek = (today.getDay() + 6) % 7; // Monday = 0
-  // Walk by calendar date with setDate (DST-aware: it advances exactly
-  // one local day each step, unlike a fixed 86.4M ms increment which
-  // can land on the wrong calendar date across a DST transition).
-  const cursor = new Date(today);
-  cursor.setDate(cursor.getDate() - dayOfWeek - (weeks - 1) * 7);
-  const todayMs = today.getTime();
-
-  const out: DayCell[] = [];
-  for (let i = 0; i < weeks * 7; i++) {
-    if (cursor.getTime() > todayMs) break;
-    out.push({ date: new Date(cursor), tests: counts.get(dateKey(cursor.getTime())) ?? 0 });
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  return out;
-}
-
-/** Per-test (sec, wpm) samples for the trend line. Sorted oldest →
- *  newest, capped at the last `limit` tests so the chart breathes
- *  rather than compressing 500 dots into noise. */
+/** Per-test samples for the trend line, oldest → newest. `idx` is the
+ *  run's 1-based chronological position in the loaded history. The
+ *  chart filters by date range first and then downsamples
+ *  (`trend-series.ts`), so this keeps every completed run by default. */
 export type TrendPoint = { idx: number; wpm: number; ts: number };
-
-/* ─── MonkeyType overlay merges ───────────────────────────────── */
-
-/** Combine local lifetime totals with the latest MT import snapshot.
- *  Counters add (local + mt); best-WPM takes the max; level reflects
- *  the combined completed-test count. Treats `mt` as a snapshot —
- *  re-importing replaces the snapshot, so counts don't compound. */
-export function mergeTotalsWithMt(
-  local: ProfileTotals,
-  mt: MtMergeInput | null,
-): ProfileTotals {
-  if (!mt) return local;
-  const mtCompleted = Number(mt.completedTests ?? 0);
-  const mtStarted = Number(mt.startedTests ?? 0);
-  const mtTime = Number(mt.timeTyping ?? 0);
-  const mtBestWpm = Math.max(
-    0,
-    ...Object.values(mt.pbs.time).map((p) => p.wpm),
-    ...Object.values(mt.pbs.words).map((p) => p.wpm),
-  );
-  // Recompute the combined level from the merged completed-test
-  // count so a fresh MT import nudges the level bar forward. Drills
-  // / races XP already lives inside `local.totalXp` (test XP component
-  // is recomputed from the combined count below); we add MT's
-  // contribution as additional test XP. Same `levelFromXp` helper as
-  // the local-only path so the two never drift.
-  const combinedCompleted = local.testsCompleted + mtCompleted;
-  const nonTestXp = local.totalXp - local.testsCompleted * XP_PER_TEST;
-  const { level, totalXp, xpIntoLevel, progress } = levelFromXp(
-    combinedCompleted * XP_PER_TEST + nonTestXp,
-  );
-  return {
-    ...local,
-    testsStarted: local.testsStarted + mtStarted,
-    testsCompleted: combinedCompleted,
-    completionRate:
-      local.testsStarted + mtStarted > 0
-        ? combinedCompleted / (local.testsStarted + mtStarted)
-        : 0,
-    totalSeconds: local.totalSeconds + mtTime,
-    bestWpm: Math.max(local.bestWpm, mtBestWpm),
-    level,
-    totalXp,
-    xpIntoLevel,
-    levelProgress: progress,
-  };
-}
-
-/** Overlay MT personal bests onto the local-derived list. The
- *  contract: flinttype data is *additive* — a stronger local PB
- *  is never overridden. For each (mode, length) cell, the higher
- *  WPM wins. Local mode names are algorithmic (training/casual);
- *  MT only knows the player-mode time/words distinction, so MT PBs
- *  surface under the casual row (flinttype's default-shown mode).
- *
- *    local.wpm ≥ mt.wpm  → keep local (no change)
- *    local.wpm <  mt.wpm  → bump local cell to mt.wpm + mt.acc
- *    no local cell at this length → push the MT cell
- *
- *  Re-imports replace the MT snapshot but never the local rows, so
- *  flinttype-side bests accumulate independently of MT. */
-export function mergePersonalBestsWithMt(
-  local: PersonalBest[],
-  mt: MtMergeInput | null,
-): PersonalBest[] {
-  if (!mt) return local;
-  const out = [...local];
-  const seen = new Set(out.map((b) => `${b.mode}|${b.amount}`));
-  function maybeAdd(entries: Record<string, { wpm: number; acc: number }>) {
-    for (const [key, pb] of Object.entries(entries)) {
-      const amount = Number(key);
-      if (!Number.isFinite(amount)) continue;
-      const composite = `casual|${amount}`;
-      if (seen.has(composite)) {
-        // Take the MAX — local stays winner when local.wpm >= mt.wpm.
-        const existing = out.find(
-          (b) => b.mode === "casual" && b.amount === amount,
-        );
-        if (existing && pb.wpm > existing.bestWpm) {
-          existing.bestWpm = pb.wpm;
-          existing.bestAccuracy = pb.acc;
-        }
-      } else {
-        out.push({
-          mode: "casual",
-          amount,
-          // MT only knows the time/words distinction implicitly via the
-          // pbs.time / pbs.words split; the merge keys on (mode, amount)
-          // alone, so leave the discriminator null on overlay rows.
-          lengthMode: null,
-          bestWpm: pb.wpm,
-          bestAccuracy: pb.acc,
-          testsCount: 0, // MT PBs aren't backed by individual local rows
-        });
-        seen.add(composite);
-      }
-    }
-  }
-  maybeAdd(mt.pbs.time);
-  maybeAdd(mt.pbs.words);
-  return out;
-}
 
 /** One spoke of the skill radar: a 0..100 value for the chart. */
 export type SkillAxis = {
@@ -444,14 +233,16 @@ export function deriveSkills(
 
 export function deriveTrend(
   tests: readonly HistoryTest[],
-  limit = 60,
+  limit = Number.POSITIVE_INFINITY,
 ): TrendPoint[] {
   const completed = tests.filter((t) => t.wasCompleted);
   // recentTests is newest-first; reverse for chronological order.
   const ordered = [...completed].reverse();
-  const slice = ordered.slice(-limit);
-  return slice.map((t, i) => ({
-    idx: i + 1,
+  const offset = Number.isFinite(limit)
+    ? Math.max(0, ordered.length - limit)
+    : 0;
+  return ordered.slice(offset).map((t, i) => ({
+    idx: offset + i + 1,
     wpm: t.wpm,
     ts: t.startedAtMs,
   }));

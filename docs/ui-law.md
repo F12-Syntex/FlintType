@@ -921,11 +921,37 @@ A **four-spoke** radar (**Speed, Accuracy, Consistency, Endurance**) — the sha
 
 A **self-selected** WPM-tier flair (Ember…Solar Flare, `src/types/rank.ts`) shown beside the name. Distinct from §14 identity marks: those are *eligibility-gated* (server-resolved grants); a rank is *free choice*, a cosmetic the user picks in Edit profile regardless of actual speed (the picker only *suggests* a tier from their best WPM). One fixed ember tint across all 11 tiers — a `Flame` glyph in coral + the label in ink, in a hairline chip; no tier is louder than another. Stored as a `{ id }` object slice under the `profileRank` pref (object-slice so the object-only `useRemotePrefs` hook binds it); read into the profile snapshot server-side via `readProfileRank` so visitors see it too.
 
-### 18.6 Section order, switches and data colour
+### 18.5 Section order, switches and data colour
 
-Order: hero → Personal bests → Activity and skill → WPM trend → Recent runs, each after the hero a `<PageSection>` with its content in a `<Surface>`. Both section switches (Personal bests mode: All / Casual / Adapt / Races; trend range: 1D 1W 1M 3M All with `sr-only` full names) are the shared `<SegmentedControl>` sized by `SECTION_SWITCH` (`h-11 w-full` with equal segments on phones, `sm:h-10 sm:w-auto`). Orange on the profile: Best WPM, the XP fill, the avatar ring, the radar "you" series, the heatmap ramp, the trend line, the record crown in Recent runs, and the selected switch segment. Personal-best values and run WPMs stay ink. Personal-best tiles are equal-height `rounded-xl bg-muted/50`; an empty length is a single muted "—". Load states: section-shaped skeletons while loading; a dashed error card with the message, the `BackendError` code and a "Try again" (or "Sign in") button; an unknown username renders a "Profile not found" card that carries the page's h1. Compact radar sizing is `h-[220px] max-w-[300px]` with 44px side margins and `outerRadius` 72% so "Endurance" never clips.
+**Order:** hero → Personal bests → Activity and skill → WPM trend → Recent runs. Each section after the hero is a `<PageSection>` with its content in a `<Surface>`.
 
-### 18.5 Don't
+**Switches.** Both section switches are the shared `<SegmentedControl>` sized by `SECTION_SWITCH`: Personal bests mode (All / Casual / Adapt / Races) and trend range (1D 1W 1M 3M All, with `sr-only` full names). On phones the track is full width at `p-0.5`, with equal segments of at least 44px (`[&>button]:min-h-11`). From `sm` it is a hugging `h-10 p-1` track.
+
+**Orange on the profile:** Best WPM, the XP fill, the avatar ring, the radar "you" series, the heatmap ramp, the trend line, the record crown and the selected switch segment. Personal-best values and run WPMs stay ink.
+
+**Personal bests.** Tiles are equal-height `rounded-xl bg-muted/50`. An empty length is one muted "—" (aria-hidden, with sr-only "No run yet"). When a category has no run at any standard length, one line replaces the grid ("No Casual runs at these lengths yet.", plus which lengths count).
+
+**WPM trend.** It receives every completed run. The range filters by date, the average is taken on the filtered runs, and the series is then downsampled to at most 80 points, each the mean WPM of equal consecutive buckets (`trend-series.ts`). The axis and tooltip speak in dates, or times for spans of about a day or less, and never a test number. Date ticks label each day once, at most 6. An averaged point's tooltip says "Aug 26 to Aug 27 · average of 4 tests". With fewer than two runs the switch hides and the card says "Finish two tests to see your trend".
+
+**Recent runs.**
+- **Crown:** an orange `Crown` marks a run only when it *is* one of the Personal bests numbers (`pickRecordRunIds`). That means standard lengths only, keyed by unit and length across all modes like the All view, and never a length with a single run. A run beaten by an imported best never crowns.
+- **Mode labels:** Race / Adapt / Reverse / Casual.
+- **Units:** "WPM" is upper case everywhere.
+- **Share button:** `size-11 sm:size-8`.
+
+**Load states.**
+- **Loading:** section-shaped skeletons.
+- **Owner's failed load:** a dashed card under the hero with plain copy, a quiet "Error code: X" (never the server's raw message) and "Try again" (or "Sign in").
+- **Visitor's failed load:** the error card alone, carrying the h1 (no hero built from the URL).
+- **Unknown username:** a "Profile not found" card carrying the h1.
+
+**Radar.** Compact sizing is `h-[220px] max-w-[300px]` with 44px side margins and `outerRadius` 72% so "Endurance" never clips.
+
+**Edit profile.**
+- Rank chips are `h-11 sm:h-8` pills, the selected one `brand-surface`. Tag toggles are at least 44px tall on phones.
+- The dialog stays open while saving (`keepOpen`) so server errors show, and closes on success. A username change follows the new `/profile/<name>` URL.
+
+### 18.6 Don't
 
 - **Don't** reinstate a "head-to-head" comparison panel. Comparison was removed in favour of each profile's own skill radar; a sparse two-column stat table read as empty. If cross-user comparison returns, overlay a second series on the radar, don't build a stat grid.
 - **Don't** make the actions a flex column beside identity/stats (the original bug). Top-right corner only.

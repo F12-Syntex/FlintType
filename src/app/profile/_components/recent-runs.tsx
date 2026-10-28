@@ -2,35 +2,43 @@
 
 import { Crown } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { PageSection, Surface } from "@/components/page-shell";
 import { ShareRunButton } from "@/components/share-run-button";
 import { Button } from "@/components/ui/button";
 import { relativeTime } from "@/lib/relative-time";
 import { shareLengthLabel } from "@/lib/share-length-label";
 import type { HistoryTest } from "@/types/history";
+import type { PersonalBest } from "./derive-stats";
+import { pickRecordRunIds } from "./record-runs";
 
 const PAGE_SIZE = 10;
 
 const MODE_LABEL: Record<string, string> = {
   race: "Race",
   training: "Adapt",
-  reverse_adaptive: "Adapt",
+  reverse_adaptive: "Reverse",
   casual: "Casual",
 };
 
 /** Every completed run, newest first, ten at a time. WPM stays ink; an
- *  orange crown marks the fastest run at each mode + length. The share
- *  button reveals on row hover on desktop and is always there on phones.
+ *  orange crown marks a run that *is* one of the numbers in Personal
+ *  bests (`pickRecordRunIds`), so crowns stay rare and always agree with
+ *  that section. The share button reveals on row hover on desktop and
+ *  is always there on phones.
  *
  *  `handle` is the profile owner's identifier, used to build the share
  *  image link (`/r/<handle>-<wpm>wpm-<id>`). */
 export function RecentRuns({
   tests,
+  bests,
   handle,
   isOwner,
 }: {
   tests: readonly HistoryTest[];
+  /** The merged personal bests shown above (incl. any MonkeyType
+   *  import), so a crown never contradicts them. */
+  bests: readonly PersonalBest[];
   handle: string;
   isOwner: boolean;
 }) {
@@ -38,7 +46,7 @@ export function RecentRuns({
   const [shown, setShown] = useState(PAGE_SIZE);
   const visible = completed.slice(0, shown);
   const remaining = Math.max(0, completed.length - shown);
-  const pbIds = pickPbIds(tests);
+  const pbIds = useMemo(() => pickRecordRunIds(tests, bests), [tests, bests]);
 
   return (
     <PageSection
@@ -51,7 +59,7 @@ export function RecentRuns({
       }
     >
       {visible.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-card/40 px-5 py-6 text-sm text-muted-foreground">
+        <div className="rounded-2xl border border-dashed border-border bg-card/40 px-5 py-6 text-sm text-muted-foreground sm:px-6">
           {isOwner ? (
             <>
               No completed runs yet.{" "}
@@ -97,17 +105,6 @@ export function RecentRuns({
   );
 }
 
-function pickPbIds(tests: readonly HistoryTest[]): Set<string> {
-  const best = new Map<string, HistoryTest>();
-  for (const t of tests) {
-    if (!t.wasCompleted) continue;
-    const key = `${t.mode}|${t.lengthMode ?? "legacy"}|${t.durationOrWordCount}`;
-    const cur = best.get(key);
-    if (!cur || t.wpm > cur.wpm) best.set(key, t);
-  }
-  return new Set(Array.from(best.values()).map((t) => t.id));
-}
-
 function RunRow({
   test,
   pb,
@@ -119,7 +116,7 @@ function RunRow({
 }) {
   const length = shareLengthLabel(test.lengthMode, test.durationOrWordCount);
   return (
-    <li className="group/row flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
+    <li className="group/row flex items-center justify-between gap-3 py-2 pr-2 pl-5 sm:py-3 sm:pr-6 sm:pl-6">
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="truncate text-sm font-medium text-foreground">
           {MODE_LABEL[test.mode] ?? "Casual"} · {length}
@@ -141,6 +138,7 @@ function RunRow({
             <Crown
               size={14}
               aria-label="Personal best"
+              role="img"
               className="shrink-0 self-center text-primary"
             />
           ) : null}
@@ -148,14 +146,14 @@ function RunRow({
             {Math.round(test.wpm)}
           </span>
           <span className="hidden text-xs text-muted-foreground sm:inline">
-            wpm
+            WPM
           </span>
         </span>
         <ShareRunButton
           testId={test.id}
           handle={handle}
           wpm={test.wpm}
-          className="size-9 sm:size-8 sm:opacity-0 sm:transition-opacity sm:group-hover/row:opacity-100 sm:group-focus-within/row:opacity-100"
+          className="size-11 sm:size-8 sm:opacity-0 sm:transition-opacity sm:group-hover/row:opacity-100 sm:group-focus-within/row:opacity-100"
         />
       </div>
     </li>

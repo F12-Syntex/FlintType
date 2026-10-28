@@ -1,9 +1,6 @@
 import { cn } from "@/lib/utils";
-import {
-  XP_PER_LEVEL,
-  type ProfileTotals,
-  type StreakStats,
-} from "./derive-stats";
+import type { StreakStats } from "./derive-activity";
+import { XP_PER_LEVEL, type ProfileTotals } from "./derive-stats";
 
 const NUM_FMT = new Intl.NumberFormat("en-US");
 const DASH = "—";
@@ -11,7 +8,8 @@ const DASH = "—";
 /** The hero's headline stats: four soft tiles (2×2 on phones, a row
  *  from `sm`). Best WPM is the page's one orange number; the rest stay
  *  ink. `pending` (no snapshot yet, or it failed to load) shows dashes
- *  instead of misleading zeros. */
+ *  instead of misleading zeros, and so does Best WPM before the first
+ *  finished run. */
 export function HeroStats({
   totals,
   streak,
@@ -21,6 +19,8 @@ export function HeroStats({
   streak: StreakStats;
   pending: boolean;
 }) {
+  // No finished run yet: a muted dash, never an orange zero.
+  const noBest = pending || totals.bestWpm <= 0;
   return (
     <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
       <StatTile
@@ -40,14 +40,12 @@ export function HeroStats({
       />
       <StatTile
         label="Best WPM"
-        value={pending ? DASH : Math.round(totals.bestWpm).toString()}
+        value={noBest ? DASH : Math.round(totals.bestWpm).toString()}
         sub={
-          !pending && totals.bestWpm > 0
-            ? `${totals.bestWpmAccuracy.toFixed(1)}% accuracy`
-            : undefined
+          noBest ? undefined : `${totals.bestWpmAccuracy.toFixed(1)}% accuracy`
         }
         accent
-        pending={pending}
+        pending={noBest}
       />
       <StatTile
         label="Streak"

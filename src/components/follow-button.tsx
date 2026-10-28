@@ -83,6 +83,17 @@ export function FollowButton({
     return next;
   });
 
+  // "Invite to a race" (friends only): open a private lobby, notify the
+  // friend, then go there. Same three states as the follow ops.
+  const invite = useAsyncAction<string>(async () => {
+    const slug = await createLobbyAndInvite(backend, userId);
+    if (!slug) throw new Error("Couldn't open a lobby");
+    router.push(`/race/c/${slug}`);
+    return slug;
+  });
+  // Stay pending after success: the route change is still landing.
+  const inviting = invite.loading || invite.result?.ok === true;
+
   function trigger(op: Op) {
     opRef.current = op;
     void action.run();
@@ -92,7 +103,12 @@ export function FollowButton({
   if (rel.blockedBy) return null;
 
   const loading = action.loading;
-  const err = action.result && !action.result.ok ? action.result.message : null;
+  const err =
+    action.result && !action.result.ok
+      ? "Couldn't update. Try again."
+      : invite.result && !invite.result.ok
+        ? "Couldn't open a lobby. Try again."
+        : null;
   const btnSize = size === "sm" ? "sm" : "default";
   // The Button `default` size is h-9 (36px) — under the §7 44px touch
   // floor for a primary action. The profile CTA bumps to 44 on mobile,
@@ -105,9 +121,9 @@ export function FollowButton({
     <DropdownMenuContent align="end" sideOffset={6} className="min-w-48 p-1">
       {rel.mutual ? (
         <DropdownMenuItem
-          onSelect={async () => {
-            const slug = await createLobbyAndInvite(backend, userId);
-            if (slug) router.push(`/race/c/${slug}`);
+          disabled={inviting}
+          onSelect={() => {
+            if (!inviting) void invite.run();
           }}
         >
           <Swords size={14} aria-hidden className="text-muted-foreground" />
@@ -177,12 +193,13 @@ export function FollowButton({
           type="button"
           variant="outline"
           size={btnSize}
+          disabled={inviting}
           className={cn("gap-1.5", heightClass)}
         >
           {rel.mutual ? (
             <Check size={14} className="text-primary" aria-hidden />
           ) : null}
-          {rel.mutual ? "Friends" : "Following"}
+          {inviting ? "Opening lobby…" : rel.mutual ? "Friends" : "Following"}
           <ChevronDown size={13} className="text-muted-foreground" aria-hidden />
         </Button>
       </DropdownMenuTrigger>
@@ -223,8 +240,8 @@ export function FollowButton({
     <div className={cn("flex flex-col items-end gap-1", className)}>
       <div className="flex items-center gap-2">{control}</div>
       {err ? (
-        <span className="text-[11px] text-destructive">
-          Couldn&apos;t update. Try again.
+        <span role="alert" className="text-right text-xs text-destructive">
+          {err}
         </span>
       ) : null}
 

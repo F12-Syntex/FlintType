@@ -1,11 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { HistoryTest } from "@/types/history";
+import { dayOrdinal, deriveActivity, deriveStreak } from "./derive-activity";
 import {
-  dayOrdinal,
-  deriveActivity,
   derivePersonalBests,
   deriveSkills,
-  deriveStreak,
   deriveTotals,
 } from "./derive-stats";
 
