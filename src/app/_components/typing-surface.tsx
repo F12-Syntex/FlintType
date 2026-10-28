@@ -113,7 +113,7 @@ function TypingSurfaceBody({
   const isBurst = state.mode === "BURST" && !done;
   const body = (
     <>
-      {!done ? <SpectateIndicator className="-mt-1 mb-1" /> : null}
+      {!done ? <SpectateIndicator /> : null}
       {/* BURST keeps its readouts pinned above the single centred word.
        *  The WORDS/TIME/QUOTE passage instead renders the readouts in
        *  its own `above` slot (below), so the strip rides directly above
@@ -154,7 +154,7 @@ function TypingSurfaceBody({
       {showRestHint && !done ? (
         <div className="md:hidden">
           {isBurst ? (
-            <div className="px-4 py-2">
+            <div className="py-2">
               <BurstMobileReadouts />
             </div>
           ) : (
@@ -166,15 +166,18 @@ function TypingSurfaceBody({
     </>
   );
   return (
-    <>
+    // One centred column (max-w-5xl) shared by the mode bar, readouts,
+    // passage, keyboard and results, so no edge moves between phases.
+    // No horizontal padding: <AppChrome> owns the page gutter.
+    <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col">
       {showModeBar ? <ModeBar /> : null}
       {/* Vertical padding is keyed to viewport height — on short
        *  viewports (1080p with 150% Windows display scaling is the
        *  common case) the chrome ate every pixel the passage wanted.
-       *  py-3 sm:py-4 holds the floor; [@media(min-height:900px)]
-       *  restores the editorial sm:py-8 only when there's actually
+       *  pt-3 sm:pt-4 holds the floor; [@media(min-height:900px)]
+       *  restores the roomier spacing only when there's actually
        *  room. Same trick for the gap. */}
-      <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pt-3 pb-2 sm:gap-4 sm:px-12 sm:pt-4 [@media(min-height:900px)]:sm:gap-6 [@media(min-height:900px)]:sm:pt-8 [@media(min-height:900px)]:sm:pb-3 lg:px-20">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 pt-3 pb-2 sm:gap-4 sm:pt-4 [@media(min-height:900px)]:sm:gap-6 [@media(min-height:900px)]:sm:pt-8 [@media(min-height:900px)]:sm:pb-4">
         {isBurst ? <BurstProvider>{body}</BurstProvider> : body}
         {renderKeyboard ? (
           // Auto-hide the keyboard widget at short viewports — its
@@ -201,6 +204,6 @@ function TypingSurfaceBody({
           </div>
         ) : null}
       </div>
-    </>
+    </div>
   );
 }

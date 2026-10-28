@@ -214,6 +214,10 @@ Chrome text (nav, buttons, menus, footer) is **13–14px sentence case, `font-me
 | Error text (form)     | `text-sm text-ft-ember`                                                                |
 | Error word (passage)  | `text-ft-ember underline decoration-ft-ember underline-offset-[6px] decoration-1`      |
 | Error letter (active word, passage) | `text-[var(--ft-passage-error,var(--destructive))]` plus one of four stacked cues, controlled by `appearance.mistakeStyle` (Customise → Appearance → Mistakes): `color` (hue only — quietest), `bold` (`font-bold` — default; mono is width-stable so caret unaffected), `underline` (`underline decoration-2 underline-offset-[6px]`), `highlight` (`rounded-sm font-bold` + inline `bg-[color-mix(in oklch, var(--ft-passage-error,var(--destructive)) 20%, transparent)]` — loudest, prior shipping default but read as too strong). Past errored words use the underline row above; this is the equivalent (configurable) cue for in-progress mistakes. |
+| Result hero (speed)   | `text-6xl font-bold tracking-[-0.04em] text-primary sm:text-7xl` — the one orange number on the result screen. |
+| Result lead (accuracy) | `text-4xl font-semibold tracking-[-0.03em] text-foreground sm:text-5xl` |
+| Result detail         | `text-xl font-semibold tracking-tight text-foreground sm:text-2xl` with the label above in `text-xs font-medium text-muted-foreground` (sentence case) — raw, consistency, errors, time, run shape. |
+| Live readout          | `<Readout>` (`src/app/_components/readout.tsx`): value `text-xl font-semibold tabular-nums` (speed: `text-3xl font-bold text-primary`) followed by a lowercase unit caption in `text-xs text-muted-foreground` ("84 wpm", "97% acc"). Mobile uses `compact` (`text-base` + `text-[11px]`). |
 
 **Tracking conventions** (load-bearing — these signal mode):
 - `tracking-[0.18em]` uppercase = label / tag (smallest, most spaced).
@@ -232,6 +236,7 @@ All recipes are **mobile-first**: base classes target ≤ 375px viewports, `sm:`
 | App page                  | `<PageShell>` + `<PageHeader>` + `<PageSection>` from `@/components/page-shell` — one centred column (`max-w-6xl` app pages, `max-w-2xl` reading pages), `gap-10 sm:gap-12` between sections, `pb-24` so the friends dock never covers the last row. No hero cards: the header is an h1, one muted line and an `aside` slot. The horizontal gutter comes from `<AppChrome>` (`px-4 sm:px-6`, the same as the top bar and footer) so every edge lines up. |
 | Card                      | `<Surface>` (`rounded-2xl border border-border bg-card shadow-card`) — only for things the user acts on (a list of rows, a tile, a form). Sections themselves are never boxed. |
 | Two-up row                | `grid gap-10 lg:grid-cols-2 lg:gap-x-12` — no vertical rules, so column edges line up down the page. |
+| Practice column           | `mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col` with no horizontal padding (`<AppChrome>` owns the gutter). Mode bar, readouts, passage, keyboard and the result screen all sit in it, so no edge moves between rest, typing and results. |
 | Inline row (desktop-only) | `flex items-center gap-3`                                                                      |
 | Stacked row → inline      | `flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3`                                     |
 | Button group (wrappable)  | `flex flex-wrap gap-2`                                                                         |
@@ -435,7 +440,7 @@ No automated test enforces this (per §1.3 we don't unit-test components). It's 
 
 **Also test at a short viewport.** A laptop at 1080p with Windows display scaling at 150% (the common config) is ~720 CSS px tall, not 1080. Surfaces that pack chrome + a large typography ramp + a tall widget (the practice surface is the canonical case: TopBar + ModeBar + Readouts + Passage + Keyboard + Footer) can collapse the flex-1 region to one line at that height. Open DevTools, resize to a 1280 × 720 window, and confirm the layout doesn't collapse. Any surface whose `lg:` typography bump is too aggressive for short viewports must gate that bump on a `[@media(min-height:NNNpx)]:` arbitrary variant — see the practice passage in `src/app/_components/passage.tsx` for the canonical pattern. Same goes for fixed-height widgets that compete with `flex-1` content: the practice keyboard auto-hides under `[@media(max-height:750px)]:md:hidden` when there isn't honest room for both.
 
-**Live readouts ride with the centred text, not pinned to the top.** The desktop practice readouts (WPM / ACC / ERR / WORD / ELAPSED) render through `<Passage above={…}>` — an optional slot inside the passage's own `justify-center` column, directly above the clipped text — so the {readouts + text} group centres together rather than the strip floating at the top of the surface while the text sits in the middle. The slot's height is reserved from the passage's line-fit calc (`outer.clientHeight − aboveRef.offsetHeight`) so the group never overflows or clips a line. The slot is `hidden md:block` (desktop only; mobile readouts live in the `<RestHint>` footer, where `display:none` collapses the slot to 0 reserved height). Don't reintroduce a top-pinned readouts row above the centred passage.
+**Live readouts ride with the centred text, not pinned to the top.** The desktop readouts render through `<Passage above={…}>`, an optional slot inside the passage's own `justify-center` column directly above the clipped text, so readouts and text centre together. The slot's height is reserved from the passage's line-fit calc, and `<ReadoutRow>` holds `min-h-11` in every state. At rest the slot shows one hint ("Start typing · <Kbd>tab</Kbd> for a new passage"); while typing it shows one left-aligned row. Because the slot never changes height, the first keystroke doesn't reflow the passage. The slot is `hidden md:block`; on mobile the `<RestHint>` footer row carries "Tap the text to start" or the live readouts (one non-wrapping line), plus a `size-11` restart icon button with an aria-label. Below 640px wide the passage's font ceiling drops from 40px to 26px so a phone line holds a readable phrase. Don't reintroduce a top-pinned readouts row.
 
 ### 10.4 Amending §§3 and 5 for mobile-first
 When you add a new row to the spacing or layout tables:
@@ -940,6 +945,28 @@ Rules:
 - Selected/active states are orange (`brand-surface` or `text-primary`), never black or neutral grey.
 - Motion on controls is limited to colour/shadow transitions (~200ms ease-out) and the button press (`active:scale-[0.98]`); no bounce.
 - Primary is the logo orange `#f97316` in both modes with white, `font-semibold` label text on `brand-surface` (its deeper base improves label contrast).
+
+## 22. Practice surface and result screen
+
+The practice screen answers one question ("type this") and the result screen answers one more ("how fast was I?"). Orange marks your current selections, the caret and the headline number; every other number stays ink.
+
+### 22.1 Mode bar (`mode-bar.tsx`, `mode-bar-controls.tsx`)
+- **lg+:** one centred capsule (`rounded-pill border border-border bg-card/80 p-1 shadow-card`, the same capsule as the top-bar nav). It holds Mode (`<SegmentedControl framed={false}>`), Length (`<LengthPicker>`), Wordlist (a plain pill with a chevron that opens the catalog dialog) and Adaptive (one toggle pill, `aria-pressed`, a Lock icon when signed out, orange when on), followed by a ghost info icon button. Groups are separated by `mx-1 h-4 w-px bg-border` hairlines. No eyebrow labels: each group has an `aria-label`.
+- Hand-built pills (the length presets, the Custom input, wordlist, adaptive) use `segmentClass()` from `mode-segment.ts`, which mirrors `<SegmentedControl size="md">` exactly. The Custom input, while you edit it, is an `h-8 rounded-pill border-primary/50` field.
+- **Below lg:** one `h-11` summary pill ("Words · 25 · English", plus "Adaptive" in primary from md). It expands in place into a `rounded-2xl bg-card shadow-card` card with the groups stacked as full-width framed switches. This stack is the only place on the surface with small sentence-case captions (`text-xs text-muted-foreground`). Adaptive appears in the stack from md, where it is available.
+
+### 22.2 Keyboard widget
+- Pressed keys (react), the next key (next) and preview-forced keys are the only "hot" (orange) keys. With `highlightHomeRow` on, F and J carry a homing bump (`absolute bottom-1 h-0.5 w-2 rounded-full bg-current opacity-50`) instead of a permanent fill, so a real F/J press stays visible.
+- `keymapSize` applies as CSS `zoom`, never `transform: scale`, so a smaller keyboard leaves no dead band.
+- The "rounded" key shape uses `rounded-sm` (the theme radius scale); rows use `gap-1 sm:gap-1.5`.
+
+### 22.3 Result screen (`test-summary.tsx`)
+- Headline: speed (hero) over accuracy (lead) and the test type, beside the chart in a `rounded-2xl border bg-card shadow-card` card. The secondary row (Raw, Consistency, Errors, Time) is a second card, `grid-cols-2 sm:grid-cols-4`. Optional insights (run shape, slowest letters, hand balance, heatmap) are `<InsightCard>`s with the same surface. Only the slowest letter's bar is primary; hand-balance bars are ink tints.
+- Chart: a numeric x-axis (`type="number"`, `domain={["dataMin","dataMax"]}`). A series that adds no data of its own (the ✕ Scatter) must not get a `data` prop: a copy of the chart data duplicates every x tick. The raw trace is dashed muted and the average line is solid at `strokeOpacity 0.15`. The mistakes ribbon is inset to the plot area (`pl-10 pr-4`, the y-axis column plus margins) with thin `bg-destructive/70` bars at each second's x position.
+- Actions (`result-actions.tsx`, excluded from the exported image): one `<Button size="lg">` "Next test" with RotateCcw and a translucent `<Kbd>tab</Kbd>` (sm+), full width on mobile, then ghost Replay / Save image / Share buttons. Save image shows a failure label if the export throws.
+
+### 22.4 Tab on the practice surface
+Tab restarts (or retries the word in BURST) only while focus is on the page or the hidden typing input. Shift+Tab, and Tab from any focused control, do native focus traversal. Dialogs opened from the mode bar hand focus back to the typing input when they close, so the next Tab restarts.
 
 ## 20. Amending this document
 

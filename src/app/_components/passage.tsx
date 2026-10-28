@@ -383,6 +383,11 @@ function PassageBody({
   const LINE_RATIO = 2.1;
   const MIN_FONT_PX = 15; // absolute readable floor
   const MAX_FONT_PX = 40; // comfortable ceiling at scale 1 (≈ 2.5rem)
+  // Phones: a 40px ceiling at a 2.1 line ratio fits 2–3 words per line
+  // on a 375px screen. Below 640px wide the ceiling drops so a line
+  // holds a readable phrase; the fit guarantee below is unchanged.
+  const MAX_FONT_PX_NARROW = 26;
+  const NARROW_VIEWPORT_PX = 640;
   useLayoutEffect(() => {
     const outer = outerRef.current;
     const inner = innerRef.current;
@@ -415,8 +420,10 @@ function PassageBody({
           ? appearance.linesRendered
           : 3;
 
+      const ceiling =
+        window.innerWidth < NARROW_VIEWPORT_PX ? MAX_FONT_PX_NARROW : MAX_FONT_PX;
       let font = h / (target * LINE_RATIO);
-      font = Math.min(font, MAX_FONT_PX * scale);
+      font = Math.min(font, ceiling * scale);
       font = Math.max(font, MIN_FONT_PX);
       // Always keep at least one whole line within H (beats the floor in
       // pathologically short space) so a line is never sliced.
@@ -796,18 +803,18 @@ function PassageBody({
       state.quoteSource &&
       appearance.quoteAttribution !== "hidden" ? (
         appearance.quoteAttribution === "chip" ? (
-          <span className="mt-6 inline-flex w-fit items-center rounded-full border border-border bg-card px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          <span className="mt-6 inline-flex w-fit items-center rounded-pill border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
             {state.quoteSource}
           </span>
         ) : (
-          <p className="mt-6 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="mt-6 text-sm text-muted-foreground">
             — {state.quoteSource}
           </p>
         )
       ) : null}
       {state.mode === "QUOTE" && words.length === 0 ? (
         <p className="mt-6 text-sm text-muted-foreground">
-          loading quote…
+          Loading quote…
         </p>
       ) : null}
     </div>

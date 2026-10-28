@@ -10,7 +10,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Stat } from "@/components/ft";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { resolveBurstThreshold } from "@/lib/avg-wpm-cache";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
@@ -18,6 +17,7 @@ import { useCaretSettings } from "@/lib/caret-settings";
 import { useLifetimeStats } from "@/lib/use-lifetime-stats";
 import { cn } from "@/lib/utils";
 import { usePractice } from "./practice-state";
+import { Readout, ReadoutRow } from "./readout";
 
 /** Per-letter colour tokens, mirrored from Passage. Both surfaces
  *  read the same CSS variables so the user's colour customisation
@@ -213,9 +213,10 @@ export function BurstProvider({ children }: { children: ReactNode }) {
 
 /* ─── Readouts (replaces <Readouts /> in BURST) ─────────────── */
 
-/** Desktop readouts row for BURST. Same `<Stat>` primitive + two-
- *  column layout as the WORDS readouts so the visual rhythm above
- *  the typing area stays consistent. */
+/** Desktop readouts row for BURST: the same left-aligned <Readout>
+ *  row as the WORDS readouts, so the rhythm above the typing area stays
+ *  identical. The last speed is the headline; it turns primary on a
+ *  clean, fast-enough commit. */
 export function BurstReadouts() {
   const { state } = usePractice();
   const { reps, repsRequired, threshold, thresholdAuto, lastWpm, outcome } =
@@ -224,90 +225,43 @@ export function BurstReadouts() {
   const itemIdx = Math.min(state.cursorWord + 1, itemsLength);
 
   return (
-    <div className="hidden flex-wrap items-end justify-between gap-4 select-none md:flex">
-      <div className="flex flex-wrap gap-x-12 gap-y-3">
-        <Stat label="ITEM" value={`${itemIdx}/${itemsLength}`} size="lg" />
-        <Stat
-          label="REPS"
-          value={`${reps}/${repsRequired}`}
-          size="lg"
-          accent={reps > 0}
-        />
-      </div>
-      <div className="flex flex-wrap gap-x-12 gap-y-3">
-        <Stat
-          label={thresholdAuto ? "THRESHOLD · AUTO" : "THRESHOLD"}
-          value={`${threshold}`}
-          size="lg"
-          align="right"
-        />
-        {/* LAST WPM is always rendered (placeholder em-dash until the
-         *  first commit) so its column doesn't appear mid-run and
-         *  reflow the row — which would change the available height
-         *  for the centred word below and visibly shift it. */}
-        <Stat
-          label="LAST WPM"
-          value={lastWpm != null ? String(lastWpm) : "—"}
-          size="lg"
-          align="right"
-          accent={outcome === "win"}
-        />
-      </div>
-    </div>
+    <ReadoutRow className="hidden md:flex">
+      {/* LAST is always rendered (an em dash until the first commit) so
+       *  the row never reflows mid-run and shifts the centred word. */}
+      <Readout
+        hero
+        accent={outcome === "win"}
+        label="last wpm"
+        value={lastWpm != null ? String(lastWpm) : "—"}
+      />
+      <Readout label="reps" value={`${reps}/${repsRequired}`} />
+      <Readout
+        label={thresholdAuto ? "target · auto" : "target"}
+        value={`${threshold}`}
+      />
+      <Readout label="items" value={`${itemIdx}/${itemsLength}`} />
+    </ReadoutRow>
   );
 }
 
-/** Mobile readouts pip row for BURST — drops in where <MobileReadouts />
- *  would otherwise render. */
+/** Mobile readouts for BURST — drops in where <MobileReadouts /> would
+ *  otherwise render, one line. */
 export function BurstMobileReadouts() {
   const { state } = usePractice();
-  const { reps, repsRequired, threshold, thresholdAuto, lastWpm, outcome } =
-    useBurstView();
+  const { reps, repsRequired, threshold, lastWpm, outcome } = useBurstView();
   const itemsLength = state.words.length;
   const itemIdx = Math.min(state.cursorWord + 1, itemsLength);
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 tabular-nums">
-      <Pip label="item" value={`${itemIdx}/${itemsLength}`} />
-      <Pip
-        label="reps"
-        value={`${reps}/${repsRequired}`}
-        tone={reps > 0 ? "primary" : "ink"}
-      />
-      <Pip
-        label={thresholdAuto ? "thr·auto" : "thr"}
-        value={String(threshold)}
-      />
-      <Pip
+    <div className="flex min-w-0 flex-nowrap items-baseline gap-x-3 overflow-hidden">
+      <Readout
+        compact
+        accent={outcome === "win"}
         label="last"
         value={lastWpm != null ? String(lastWpm) : "—"}
-        tone={outcome === "win" ? "primary" : "ink"}
       />
-    </div>
-  );
-}
-
-function Pip({
-  label,
-  value,
-  tone = "ink",
-}: {
-  label: string;
-  value: string;
-  tone?: "ink" | "primary";
-}) {
-  return (
-    <div className="flex items-baseline gap-1">
-      <span
-        className={cn(
-          "text-sm font-semibold tracking-tight",
-          tone === "primary" ? "text-primary" : "text-foreground",
-        )}
-      >
-        {value}
-      </span>
-      <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-        {label}
-      </span>
+      <Readout compact label="reps" value={`${reps}/${repsRequired}`} />
+      <Readout compact label="target" value={String(threshold)} />
+      <Readout compact label="items" value={`${itemIdx}/${itemsLength}`} />
     </div>
   );
 }
@@ -344,16 +298,16 @@ export function BurstWordView() {
        *  paragraph reserves real line height. Without this the
        *  column re-centers mid-attempt when the hint goes empty
        *  and the word visibly jumps. */}
-      <p className="min-h-[1.25em] text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+      <p className="min-h-[1.5em] text-sm text-muted-foreground">
         {outcome === "wrong"
-          ? "wrong — try again"
+          ? "Not quite, try again"
           : outcome === "slow"
-            ? "too slow — reset"
+            ? "Too slow, go again"
             : typedHere === target && target.length > 0
-              ? "press space to commit"
+              ? "Press space to commit"
               : typedHere.length === 0
-                ? "type the word, then space"
-                : " "}
+                ? "Type the word, then space"
+                : "\u00a0"}
       </p>
     </div>
   );

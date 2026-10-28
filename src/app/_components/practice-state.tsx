@@ -1118,6 +1118,18 @@ export function PracticeProvider({
       // keyboard-only nav). Return without preventDefault so native
       // focus traversal works in every non-typing phase.
       if (raceMode) return;
+      // Only hijack Tab while the user is "in the test": focus on the
+      // page itself or the hidden typing input. With focus on a control
+      // (mode bar, result buttons) Tab does its native traversal, and
+      // Shift+Tab always does, so keyboard users can reach every control.
+      if (e.shiftKey) return;
+      const focused = document.activeElement;
+      const inTest =
+        !focused ||
+        focused === document.body ||
+        focused === document.documentElement ||
+        focused.getAttribute("aria-label") === "Typing input";
+      if (!inTest) return;
       e.preventDefault();
       e.stopImmediatePropagation();
       // In BURST, Tab retries the CURRENT word (clears the typed buffer),

@@ -7,6 +7,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import { buildShareSlug } from "@/lib/share-slug";
 import { cn } from "@/lib/utils";
 
@@ -158,10 +159,10 @@ export function ShareRunButton({
   }, [busy, handle, testId, wpm]);
 
   const labelMap: Record<ShareResult, string> = {
-    shared: "shared",
-    copied: "copied",
-    saved: "saved",
-    failed: "failed",
+    shared: "Shared",
+    copied: "Copied",
+    saved: "Saved",
+    failed: "Couldn't share",
   };
   const tooltipMap: Record<ShareResult, string> = {
     shared: "Shared",
@@ -180,22 +181,22 @@ export function ShareRunButton({
   };
 
   if (variant === "labelled") {
+    // Quiet ghost pill for the result screen's secondary action row.
     return (
-      <button
-        type="button"
+      <Button
+        variant="ghost"
         onClick={onShare}
         disabled={busy}
         aria-label="Share this run as an image"
         aria-live="polite"
         className={cn(
-          "inline-flex h-9 items-center gap-1.5 rounded-md px-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-60",
           result === "failed" && "text-destructive hover:text-destructive",
           className,
         )}
       >
-        <StatusIcon size={13} />
-        {busy ? "preparing" : result ? labelMap[result] : "share image"}
-      </button>
+        <StatusIcon size={16} />
+        {busy ? "Preparing…" : result ? labelMap[result] : "Share"}
+      </Button>
     );
   }
 
@@ -213,7 +214,7 @@ export function ShareRunButton({
           aria-label="Share this run as an image"
           aria-live="polite"
           className={cn(
-            "inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:bg-accent focus-visible:text-foreground focus-visible:outline-none disabled:opacity-60",
+            "inline-flex size-7 items-center justify-center rounded-pill text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:bg-accent focus-visible:text-foreground focus-visible:outline-none disabled:opacity-60",
             result === "failed" && "text-destructive hover:text-destructive",
             result && result !== "failed" && "text-primary hover:text-primary",
             className,

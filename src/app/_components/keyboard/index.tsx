@@ -42,7 +42,9 @@ export type KeyboardProps = {
   legend?: KeymapLegend;
   /** Whether to render the top numeric row. */
   topRow?: KeymapTopRow;
-  /** CSS scale applied to the entire widget (1.0 = no change). */
+  /** Size multiplier for the entire widget (1.0 = no change). Applied
+   *  with CSS `zoom`, so the layout box shrinks with it (a transform
+   *  scale would leave a dead band under a smaller keyboard). */
   scale?: number;
   /** When `mode === "next"`, the key code to highlight next. */
   nextKey?: string;
@@ -89,16 +91,17 @@ export function Keyboard({
     1,
   );
 
+  // A key is "hot" (orange) only when it's genuinely pressed (react),
+  // the next expected key (next) or forced by a preview. The F/J home
+  // row pegs no longer light up at rest: they carry a small homing bump
+  // instead, so a real F/J press is visible like any other key.
   const isHot = (code: string) => {
-    if (mode === "static") return effective.highlightHomeRow && HOME_ROW_PEGS.has(code);
-    if (mode === "next")
-      return code === nextKey || (effective.highlightHomeRow && HOME_ROW_PEGS.has(code));
-    return (
-      pressed.has(code) ||
-      (forcedPressed?.has(code) ?? false) ||
-      (effective.highlightHomeRow && HOME_ROW_PEGS.has(code))
-    );
+    if (mode === "static") return false;
+    if (mode === "next") return code === nextKey;
+    return pressed.has(code) || (forcedPressed?.has(code) ?? false);
   };
+  const isHoming = (code: string) =>
+    effective.highlightHomeRow && HOME_ROW_PEGS.has(code);
 
   return (
     <div
@@ -107,17 +110,13 @@ export function Keyboard({
         className,
       )}
       role="img"
-      aria-label={`virtual keyboard, ${LAYOUTS[active].name} layout`}
-      style={
-        scale !== 1
-          ? { transform: `scale(${scale})`, transformOrigin: "top center" }
-          : undefined
-      }
+      aria-label={`Virtual keyboard, ${LAYOUTS[active].name} layout`}
+      style={scale !== 1 ? { zoom: scale } : undefined}
     >
       {showLayoutPicker && (
         <LayoutPicker active={active} onChange={setActive} />
       )}
-      <div className="flex flex-col gap-0.5 sm:gap-1">
+      <div className="flex flex-col gap-1 sm:gap-1.5">
         {rows.map((row, i) => {
           const visible = effective.compact
             ? row.filter((k) => !isCompactHidden(k))
@@ -134,7 +133,7 @@ export function Keyboard({
             <div
               key={i}
               className={cn(
-                "flex gap-0.5 sm:gap-1",
+                "flex gap-1 sm:gap-1.5",
                 !effective.compact && "w-full",
               )}
               style={rowStyle}
@@ -144,6 +143,7 @@ export function Keyboard({
                   key={k.code}
                   def={k}
                   pressed={isHot(k.code)}
+                  homing={isHoming(k.code)}
                   lit={
                     (k.code === "CapsLock" && caps) ||
                     (k.code.startsWith("Shift") && shift)
