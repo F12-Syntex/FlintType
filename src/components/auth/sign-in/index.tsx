@@ -161,17 +161,19 @@ export function SignInForm() {
   switch (stage.kind) {
     case "email":
       return (
-        <div className="flex flex-col gap-5">
-          <DiscordButton onStart={signInWithDiscord} disabled={busy != null} />
-          <OrDivider label="or use your email" />
-          <EmailStage
-            email={email}
-            onEmailChange={setEmail}
-            onSubmit={submitEmail}
-            busy={busy === "email"}
-            error={error}
-          />
-        </div>
+        <EmailStage
+          email={email}
+          onEmailChange={setEmail}
+          onSubmit={submitEmail}
+          busy={busy === "email"}
+          error={error}
+          before={
+            <>
+              <DiscordButton onStart={signInWithDiscord} disabled={busy != null} />
+              <OrDivider label="or use your email" />
+            </>
+          }
+        />
       );
     case "password": {
       const alt = stage.available.includes("code")

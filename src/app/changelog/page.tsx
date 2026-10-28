@@ -1,22 +1,22 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { ChevronDown } from "lucide-react";
-import {
-  type ChangelogDay,
-  groupChangelogByDay,
-  groupDaysByMonth,
-  parseChangelog,
-  splitRecentDays,
-} from "@/lib/changelog";
+import { parseChangelog } from "@/lib/changelog";
 import { updateForVersion } from "@/lib/updates";
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../_components/app-chrome";
 import {
   EditorialLink,
-  EditorialList,
   EditorialPage,
   EditorialSection,
 } from "../_components/editorial-page";
+import {
+  type ChangelogDay,
+  groupChangelogByDay,
+  groupDaysByMonth,
+  splitRecentDays,
+  versionRangeLabel,
+} from "./_components/changelog-days";
+import { ChangeLines, DayReleases, Fold } from "./_components/release-list";
 
 export const metadata = buildPageMetadata({
   title: "Changelog — what's new on flinttype",
@@ -45,7 +45,7 @@ export default function ChangelogPage() {
       <EditorialPage
         eyebrow="Releases"
         title="Changelog"
-        subtitle="What changed and when, in plain language, one day at a time. Behind-the-scenes work is left out."
+        subtitle="What changed and when, in plain language. The newest changes come first; behind-the-scenes work is left out."
         footer={
           <>
             Want every version, including internal ones? The full log is
@@ -65,11 +65,12 @@ export default function ChangelogPage() {
                     Latest
                   </span>
                 ) : null}
-                {versionLabel(day)}
+                {versionRangeLabel(day.from, day.to)}
               </span>
             }
           >
-            <DayBody day={day} />
+            <DayReleases releases={day.releases} />
+            <UpdateLink day={day} />
           </EditorialSection>
         ))}
 
@@ -79,46 +80,23 @@ export default function ChangelogPage() {
           >
             <div className="flex flex-col gap-3">
               {months.map((m) => (
-                <details
+                <Fold
                   key={m.month}
-                  className="group rounded-2xl border border-border bg-card text-card-foreground shadow-card"
-                >
-                  <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-5 py-3 transition-colors duration-200 hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40 [&::-webkit-details-marker]:hidden">
+                  summary={
                     <span className="flex items-baseline gap-3">
                       <span className="text-base font-semibold tracking-tight text-foreground">
                         {m.month}
                       </span>
-                      <span className="text-xs tabular-nums text-muted-foreground">
+                      <span className="text-xs font-normal tabular-nums text-muted-foreground">
                         {m.days.length} {m.days.length === 1 ? "day" : "days"}
                       </span>
                     </span>
-                    <ChevronDown
-                      aria-hidden
-                      className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180"
-                    />
-                  </summary>
-                  <div className="flex flex-col gap-8 border-t border-border px-5 pt-5 pb-6">
-                    {m.days.map((day) => (
-                      <div
-                        key={day.date}
-                        id={dayAnchor(day)}
-                        className="flex scroll-mt-24 flex-col gap-3"
-                      >
-                        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                          <h3 className="text-base font-semibold tracking-tight text-foreground">
-                            <time dateTime={day.iso ?? undefined}>{day.date}</time>
-                          </h3>
-                          <span className="text-xs tabular-nums text-muted-foreground">
-                            {versionLabel(day)}
-                          </span>
-                        </div>
-                        <div className="flex flex-col gap-3 text-[15px] leading-7 text-foreground/85">
-                          <DayBody day={day} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </details>
+                  }
+                >
+                  {m.days.map((day) => (
+                    <ArchiveDay key={day.date} day={day} />
+                  ))}
+                </Fold>
               ))}
             </div>
           </EditorialSection>
@@ -128,32 +106,40 @@ export default function ChangelogPage() {
   );
 }
 
-/** The merged bullet list for one day, plus a link to the update card
- *  when one of that day's versions has one. */
-function DayBody({ day }: { day: ChangelogDay }) {
-  const update = day.versions
-    .map((v) => updateForVersion(v))
-    .find((u) => u != null);
+/** One older day inside a month fold: the date, its version range and
+ *  every user-facing line in one list (no per-release sub-heads, since
+ *  the archive is for looking things up, not skimming). */
+function ArchiveDay({ day }: { day: ChangelogDay }) {
   return (
-    <>
-      <EditorialList>
-        {day.lines.map((line) => (
-          <li key={line}>{line}</li>
-        ))}
-      </EditorialList>
-      {update ? (
-        <p className="text-sm">
-          <EditorialLink href={`/updates/${update.slug}`}>
-            Read the update: {update.title}
-          </EditorialLink>
-        </p>
-      ) : null}
-    </>
+    <div id={dayAnchor(day)} className="flex scroll-mt-24 flex-col gap-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h3 className="text-base font-semibold tracking-tight text-foreground">
+          <time dateTime={day.iso ?? undefined}>{day.date}</time>
+        </h3>
+        <span className="text-xs tabular-nums text-muted-foreground">
+          {versionRangeLabel(day.from, day.to)}
+        </span>
+      </div>
+      <ChangeLines lines={day.releases.flatMap((r) => r.lines)} />
+      <UpdateLink day={day} />
+    </div>
   );
 }
 
-function versionLabel(day: ChangelogDay): string {
-  return day.from === day.to ? `v${day.to}` : `v${day.from} to ${day.to}`;
+/** "Read the update: …" when one of the day's versions has an update
+ *  card. */
+function UpdateLink({ day }: { day: ChangelogDay }) {
+  const update = day.versions
+    .map((v) => updateForVersion(v))
+    .find((u) => u != null);
+  if (!update) return null;
+  return (
+    <p className="text-sm">
+      <EditorialLink href={`/updates/${update.slug}`}>
+        Read the update: {update.title}
+      </EditorialLink>
+    </p>
+  );
 }
 
 function dayAnchor(day: ChangelogDay): string {

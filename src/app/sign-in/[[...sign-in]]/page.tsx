@@ -13,8 +13,6 @@ export const metadata = buildPageMetadata({
 export default function SignInPage() {
   return (
     <AuthShell
-      title="Welcome back"
-      description="Sign in to pick up your history, drills and personal bests."
       altLabel="No account yet?"
       altHref="/sign-up"
       altLinkText="Create one"

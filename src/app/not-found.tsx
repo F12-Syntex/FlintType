@@ -23,8 +23,8 @@ export default function NotFound() {
         passage={{
           typed: "the page you",
           wrong: "requested",
-          before: "doesn't ex",
-          after: "ist",
+          before: "doesn't",
+          after: " exist",
         }}
       />
     </AppChrome>

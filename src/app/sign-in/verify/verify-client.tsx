@@ -29,6 +29,17 @@ export function VerifyEmailLink() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Clerk's link lands here with `__clerk_status` (or a ticket). A
+      // bookmark, a refresh or a mangled link has neither, and must not
+      // read as a success.
+      const params = new URLSearchParams(window.location.search);
+      if (!params.has("__clerk_status") && !params.has("__clerk_ticket")) {
+        setStatus({
+          kind: "error",
+          message: "This link is incomplete. Start signing in again to get a new one.",
+        });
+        return;
+      }
       try {
         await clerk.handleEmailLinkVerification({
           redirectUrl: "/sign-in/verify",
@@ -73,7 +84,7 @@ export function VerifyEmailLink() {
             </h1>
             <p className="text-sm text-muted-foreground">
               If you started sign-in on another device, head back to that
-              tab — it's already signed in. You can close this one.
+              tab, it&apos;s already signed in. You can close this one.
             </p>
             <Link href="/" className={buttonVariants({ size: "lg", className: "mt-2" })}>
               Go to practice

@@ -35,8 +35,8 @@ export default function ErrorPage({
           passage={{
             typed: "something",
             wrong: "broke",
-            before: "midru",
-            after: "n",
+            before: "on",
+            after: " our end",
           }}
           footnote={
             error.digest ? (

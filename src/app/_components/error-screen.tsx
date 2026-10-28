@@ -104,7 +104,9 @@ function PassageCard({
           {passage.wrong}
         </span>{" "}
         <span className="text-foreground">{passage.before}</span>
-        <span className="mx-px inline-block h-[1.05em] w-0.5 translate-y-[0.15em] rounded-full bg-primary motion-safe:animate-[ft-blink_1s_steps(2)_infinite]" />
+        {/* A still caret at a word boundary: an error page loops no
+            animation (ui-law §13.1), and a caret mid-word read as a typo. */}
+        <span className="inline-block h-[1.05em] w-0.5 translate-y-[0.15em] rounded-full bg-primary" />
         <span>{passage.after}</span>
       </p>
       <div className="flex items-center justify-between gap-3 border-t border-border pt-4 text-xs text-muted-foreground">

@@ -149,7 +149,7 @@ export function OtpField({
   onComplete: (value: string) => void;
 }) {
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex w-full flex-col items-center gap-3">
       <label htmlFor={id} className="sr-only">
         {label}
       </label>
@@ -164,13 +164,16 @@ export function OtpField({
         inputMode="numeric"
         autoComplete="one-time-code"
         aria-label={label}
+        containerClassName="w-full justify-center"
       >
-        <InputOTPGroup className="gap-2 sm:gap-3">
+        {/* Slots flex between 44px and 48px wide so six of them always
+            fit the card's column on a 375px phone. */}
+        <InputOTPGroup className="w-full justify-center gap-1.5 sm:gap-3">
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <InputOTPSlot
               key={i}
               index={i}
-              className="size-11 rounded-xl border bg-card font-mono text-lg first:rounded-xl last:rounded-xl sm:size-12"
+              className="size-11 max-w-12 min-w-0 flex-1 rounded-xl border bg-card font-mono text-lg first:rounded-xl last:rounded-xl sm:size-12"
             />
           ))}
         </InputOTPGroup>

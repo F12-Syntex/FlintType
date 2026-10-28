@@ -1,8 +1,9 @@
 "use client";
 
-import { ChevronRight, KeyRound, Link2 } from "lucide-react";
+import { KeyRound, Link2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { AuthStep } from "../auth-step";
 import { Field, PasswordField } from "../fields";
 import { ErrorLine, UtilityButton, UtilityRow } from "../form-controls";
 import type { FactorKind } from "./factors";
@@ -11,48 +12,60 @@ import type { FactorKind } from "./factors";
  *  accounts without a password. Pure presentation; the orchestrator in
  *  `./index` owns the state and the Clerk calls. */
 
+const WELCOME = "Welcome back";
+const WELCOME_LINE = "Sign in to pick up your history, drills and personal bests.";
+
 export function EmailStage({
   email,
   onEmailChange,
   onSubmit,
   busy,
   error,
+  before,
 }: {
   email: string;
   onEmailChange: (next: string) => void;
   onSubmit: () => void;
   busy: boolean;
   error: string | null;
+  /** The Discord shortcut and the "or" divider, above the form. */
+  before?: ReactNode;
 }) {
   return (
-    <form
-      className="flex flex-col gap-4"
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit();
-      }}
-    >
-      <Field
-        label="Email"
-        type="email"
-        autoComplete="email"
-        inputMode="email"
-        placeholder="you@example.com"
-        value={email}
-        onChange={onEmailChange}
-        required
-        autoFocus
-      />
-      {error ? <ErrorLine message={error} /> : null}
-      <Button type="submit" size="lg" disabled={busy} className="w-full">
-        {busy ? "Checking…" : "Continue"}
-      </Button>
-    </form>
+    <AuthStep title={WELCOME} description={WELCOME_LINE}>
+      <div className="flex flex-col gap-5">
+        {before}
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit();
+          }}
+        >
+          <Field
+            label="Email"
+            type="email"
+            autoComplete="email"
+            inputMode="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={onEmailChange}
+            required
+            autoFocus
+          />
+          {error ? <ErrorLine message={error} /> : null}
+          <Button type="submit" size="lg" disabled={busy} className="w-full">
+            {busy ? "Checking…" : "Continue"}
+          </Button>
+        </form>
+      </div>
+    </AuthStep>
   );
 }
 
-/** "Signing in as you@example.com · Change" — the one line that keeps
- *  the entered email visible on every later stage, with a way back. */
+/** The entered email on every later stage, with a way back: a quiet
+ *  inset block, "Signing in as" and a Change button on top, the email
+ *  on its own full-width line so a long address rarely has to wrap. */
 export function SigningInAs({
   email,
   onChange,
@@ -63,20 +76,17 @@ export function SigningInAs({
   disabled?: boolean;
 }) {
   return (
-    <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
-      <span>
-        Signing in as{" "}
-        <span className="font-medium break-all text-foreground">{email}</span>
-      </span>
-      <button
-        type="button"
-        onClick={onChange}
-        disabled={disabled}
-        className="rounded-pill font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40 disabled:opacity-50"
-      >
-        Change
-      </button>
-    </p>
+    <div className="rounded-xl bg-muted/60 pt-1.5 pr-1.5 pb-3 pl-4">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-muted-foreground">Signing in as</span>
+        <UtilityButton onClick={onChange} disabled={disabled}>
+          Change
+        </UtilityButton>
+      </div>
+      <p className="-mt-1 pr-2.5 text-sm font-medium text-foreground wrap-anywhere">
+        {email}
+      </p>
+    </div>
   );
 }
 
@@ -104,39 +114,41 @@ export function PasswordStage({
 }) {
   const anyBusy = busy != null;
   return (
-    <form
-      className="flex flex-col gap-4"
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit();
-      }}
-    >
-      <SigningInAs email={email} onChange={onChangeEmail} disabled={anyBusy} />
-      <PasswordField
-        label="Password"
-        autoComplete="current-password"
-        value={password}
-        onChange={onPasswordChange}
-        required
-        autoFocus
-      />
-      {error ? <ErrorLine message={error} /> : null}
-      <Button type="submit" size="lg" disabled={anyBusy} className="w-full">
-        {busy === "password" ? "Signing in…" : "Sign in"}
-      </Button>
-      <UtilityRow>
-        {alternative ? (
-          <UtilityButton onClick={alternative.onClick} disabled={anyBusy}>
-            {busy === "send" ? "Sending…" : alternative.label}
+    <AuthStep title={WELCOME} description={WELCOME_LINE}>
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit();
+        }}
+      >
+        <SigningInAs email={email} onChange={onChangeEmail} disabled={anyBusy} />
+        <PasswordField
+          label="Password"
+          autoComplete="current-password"
+          value={password}
+          onChange={onPasswordChange}
+          required
+          autoFocus
+        />
+        {error ? <ErrorLine message={error} /> : null}
+        <Button type="submit" size="lg" disabled={anyBusy} className="w-full">
+          {busy === "password" ? "Signing in…" : "Sign in"}
+        </Button>
+        <UtilityRow>
+          {alternative ? (
+            <UtilityButton onClick={alternative.onClick} disabled={anyBusy}>
+              {busy === "send" ? "Sending…" : alternative.label}
+            </UtilityButton>
+          ) : (
+            <span />
+          )}
+          <UtilityButton onClick={onForgot} disabled={anyBusy}>
+            {busy === "forgot" ? "Sending…" : "Forgot password?"}
           </UtilityButton>
-        ) : (
-          <span />
-        )}
-        <UtilityButton onClick={onForgot} disabled={anyBusy}>
-          {busy === "forgot" ? "Sending…" : "Forgot password?"}
-        </UtilityButton>
-      </UtilityRow>
-    </form>
+        </UtilityRow>
+      </form>
+    </AuthStep>
   );
 }
 
@@ -157,35 +169,37 @@ export function MethodStage({
 }) {
   const busy = busyKind != null;
   return (
-    <div className="flex flex-col gap-4">
-      <SigningInAs email={email} onChange={onChangeEmail} disabled={busy} />
-      <p className="text-sm text-muted-foreground">
-        This account has no password. Choose how we should send you in.
-      </p>
-      <div className="flex flex-col gap-2">
-        {available.includes("code") ? (
-          <MethodButton
-            icon={<KeyRound aria-hidden />}
-            label={busyKind === "code" ? "Sending…" : "Email me a code"}
-            onClick={() => onPick("code")}
-            disabled={busy}
-          />
-        ) : null}
-        {available.includes("link") ? (
-          <MethodButton
-            icon={<Link2 aria-hidden />}
-            label="Email me a sign-in link"
-            onClick={() => onPick("link")}
-            disabled={busy}
-          />
-        ) : null}
+    <AuthStep
+      title={WELCOME}
+      description="This account has no password. We'll email you a way in."
+    >
+      <div className="flex flex-col gap-4">
+        <SigningInAs email={email} onChange={onChangeEmail} disabled={busy} />
+        <div className="flex flex-col gap-2">
+          {available.includes("code") ? (
+            <MethodButton
+              icon={<KeyRound aria-hidden />}
+              label={busyKind === "code" ? "Sending…" : "Email me a code"}
+              onClick={() => onPick("code")}
+              disabled={busy}
+            />
+          ) : null}
+          {available.includes("link") ? (
+            <MethodButton
+              icon={<Link2 aria-hidden />}
+              label="Email me a sign-in link"
+              onClick={() => onPick("link")}
+              disabled={busy}
+            />
+          ) : null}
+        </div>
+        {error ? <ErrorLine message={error} /> : null}
       </div>
-      {error ? <ErrorLine message={error} /> : null}
-    </div>
+    </AuthStep>
   );
 }
 
-/** One "choose one" row: icon, label, chevron. */
+/** One "choose one" row: icon and label. The whole row is the button. */
 function MethodButton({
   icon,
   label,
@@ -204,13 +218,10 @@ function MethodButton({
       size="lg"
       onClick={onClick}
       disabled={disabled}
-      className="w-full justify-between px-5"
+      className="w-full justify-start gap-3 px-5 text-foreground"
     >
-      <span className="flex items-center gap-3 text-foreground">
-        {icon}
-        {label}
-      </span>
-      <ChevronRight aria-hidden className="text-muted-foreground" />
+      {icon}
+      {label}
     </Button>
   );
 }

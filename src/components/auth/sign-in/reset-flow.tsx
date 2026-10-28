@@ -3,9 +3,11 @@
 import { useSignIn } from "@clerk/nextjs/legacy";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { AuthStep, EmailText } from "../auth-step";
 import { extractClerkError } from "../clerk-error";
 import { OtpField, PasswordField } from "../fields";
 import { ErrorLine, UtilityButton, UtilityRow } from "../form-controls";
+import { usePasswordHint } from "../use-password-hint";
 import { useFinishSignIn } from "./use-finish-sign-in";
 
 /** Forgot-password flow, after the orchestrator has sent the reset
@@ -24,6 +26,7 @@ export function ResetFlow({
 }) {
   const { signIn, isLoaded } = useSignIn();
   const finish = useFinishSignIn();
+  const passwordHint = usePasswordHint();
   const [step, setStep] = useState<"code" | "password">("code");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
@@ -93,78 +96,84 @@ export function ResetFlow({
 
   if (step === "password") {
     return (
-      <form
-        className="flex flex-col gap-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void save();
-        }}
+      <AuthStep
+        title="Choose a new password"
+        description="We'll sign you in as soon as it's saved."
       >
-        <p className="text-sm text-muted-foreground">
-          Choose a new password. We&apos;ll sign you in once it&apos;s saved.
-        </p>
-        <PasswordField
-          label="New password"
-          autoComplete="new-password"
-          value={password}
-          onChange={setPassword}
-          required
-          autoFocus
-          hint="At least 8 characters."
-        />
-        <PasswordField
-          label="Confirm new password"
-          autoComplete="new-password"
-          value={confirm}
-          onChange={setConfirm}
-          required
-        />
-        {error ? <ErrorLine message={error} /> : null}
-        <Button type="submit" size="lg" disabled={busy != null} className="w-full">
-          {busy === "save" ? "Saving…" : "Save and sign in"}
-        </Button>
-        <UtilityRow>
-          <UtilityButton onClick={onCancel} disabled={busy != null}>
-            Cancel
-          </UtilityButton>
-          <span />
-        </UtilityRow>
-      </form>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void save();
+          }}
+        >
+          <PasswordField
+            label="New password"
+            autoComplete="new-password"
+            value={password}
+            onChange={setPassword}
+            required
+            autoFocus
+            hint={passwordHint}
+          />
+          <PasswordField
+            label="Confirm new password"
+            autoComplete="new-password"
+            value={confirm}
+            onChange={setConfirm}
+            required
+          />
+          {error ? <ErrorLine message={error} /> : null}
+          <Button type="submit" size="lg" disabled={busy != null} className="w-full">
+            {busy === "save" ? "Saving…" : "Save and sign in"}
+          </Button>
+          <UtilityRow>
+            <UtilityButton onClick={onCancel} disabled={busy != null}>
+              Cancel
+            </UtilityButton>
+            <span />
+          </UtilityRow>
+        </form>
+      </AuthStep>
     );
   }
 
   return (
-    <form
-      className="flex flex-col gap-4"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void verify();
-      }}
+    <AuthStep
+      title="Reset your password"
+      description={
+        <>
+          Enter the 6-digit code we sent to <EmailText>{email}</EmailText>.
+        </>
+      }
     >
-      <p className="text-sm text-muted-foreground">
-        We emailed a reset code to{" "}
-        <span className="font-medium break-all text-foreground">{email}</span>.
-        Enter it to choose a new password.
-      </p>
-      <OtpField
-        id="sign-in-reset-code"
-        label="Password reset code"
-        value={code}
-        onChange={setCode}
-        onComplete={(value) => void verify(value)}
-      />
-      {error ? <ErrorLine message={error} /> : null}
-      <Button type="submit" size="lg" disabled={busy != null} className="w-full">
-        {busy === "verify" ? "Verifying…" : "Continue"}
-      </Button>
-      <UtilityRow>
-        <UtilityButton onClick={onCancel} disabled={busy != null}>
-          Back to sign in
-        </UtilityButton>
-        <UtilityButton onClick={() => void resend()} disabled={busy != null}>
-          {busy === "resend" ? "Resending…" : resent ? "Sent again" : "Resend code"}
-        </UtilityButton>
-      </UtilityRow>
-    </form>
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void verify();
+        }}
+      >
+        <OtpField
+          id="sign-in-reset-code"
+          label="Password reset code"
+          value={code}
+          onChange={setCode}
+          onComplete={(value) => void verify(value)}
+        />
+        {error ? <ErrorLine message={error} /> : null}
+        <Button type="submit" size="lg" disabled={busy != null} className="w-full">
+          {busy === "verify" ? "Verifying…" : "Continue"}
+        </Button>
+        <UtilityRow>
+          <UtilityButton onClick={onCancel} disabled={busy != null}>
+            Back to sign in
+          </UtilityButton>
+          <UtilityButton onClick={() => void resend()} disabled={busy != null}>
+            {busy === "resend" ? "Resending…" : resent ? "Sent again" : "Resend code"}
+          </UtilityButton>
+        </UtilityRow>
+      </form>
+    </AuthStep>
   );
 }

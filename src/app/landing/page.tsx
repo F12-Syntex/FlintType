@@ -23,19 +23,24 @@ export const metadata = buildPageMetadata({
 export default function LandingCover() {
   return (
     <main className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-ft-paper text-ft-ink">
-      {/* Printed-page margin rule — purely decorative containment. */}
+      {/* Printed-page margin rule — purely decorative containment. Every
+          hairline on this fixed-light cover is a ring or a 1px fill, never
+          a border, so the Outlines setting can't wash it out (§21). */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-3 rounded-2xl border border-ft-line-soft sm:inset-5"
+        className="pointer-events-none absolute inset-3 rounded-2xl ring-1 ring-inset ring-ft-line-soft sm:inset-5"
       />
 
       <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-6xl flex-col px-6 py-7 sm:px-12 sm:py-10">
         {/* Running header */}
-        <header className="flex items-center justify-between gap-3 border-b border-ft-line-soft pb-5">
-          <Logo />
-          <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-ft-dim">
-            open source · MIT
-          </span>
+        <header className="flex flex-col gap-5">
+          <div className="flex items-center justify-between gap-3">
+            <Logo />
+            <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-ft-dim">
+              open source · MIT
+            </span>
+          </div>
+          <Rule />
         </header>
 
       {/* Masthead + product strip, grouped and centred as one block so the
@@ -49,10 +54,10 @@ export default function LandingCover() {
               Typing speed test
             </p>
 
-            <h1 className="font-extrabold leading-[0.86] tracking-[-0.045em] text-ft-ink">
-              <span className="text-6xl sm:text-8xl lg:text-[118px]">
-                flinttype
-              </span>
+            {/* The size lives on the h1 (not an inner span) so the caret's
+                em-based height matches the wordmark. */}
+            <h1 className="text-6xl font-extrabold leading-[0.86] tracking-[-0.045em] text-ft-ink sm:text-8xl lg:text-[118px]">
+              flinttype
               {/* The single dominant spark: a solid coral caret, on the line
                   as if the name is being typed. */}
               <span
@@ -71,7 +76,7 @@ export default function LandingCover() {
           </div>
 
           {/* Spec ledger — datasheet detail, hairline-divided, right-weighted */}
-          <dl className="divide-y divide-ft-line-soft border-y border-ft-line-soft lg:justify-self-end">
+          <dl className="lg:justify-self-end">
             {[
               { k: "Modes", v: "words · time · quote · burst" },
               { k: "Adaptive", v: "drills your weak keys" },
@@ -80,7 +85,7 @@ export default function LandingCover() {
             ].map((row) => (
               <div
                 key={row.k}
-                className="flex items-baseline justify-between gap-4 py-3"
+                className="relative flex items-baseline justify-between gap-4 py-3 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-ft-line-soft last:after:absolute last:after:inset-x-0 last:after:bottom-0 last:after:h-px last:after:bg-ft-line-soft"
               >
                 <dt className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ft-dim">
                   {row.k}
@@ -95,7 +100,7 @@ export default function LandingCover() {
 
         {/* Product strip — a faithful frozen practice surface so the cover
             shows the real thing, not an abstraction. */}
-        <section className="rounded-2xl border border-ft-line-soft bg-ft-paper-soft px-5 py-5 sm:px-7 sm:py-6">
+        <section className="rounded-2xl bg-ft-paper-soft px-5 py-5 ring-1 ring-inset ring-ft-line-soft sm:px-7 sm:py-6">
           <div className="mb-4 flex items-center justify-between gap-3">
             <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ft-dim">
               words · 50
@@ -104,7 +109,11 @@ export default function LandingCover() {
                 "press any key" hint that does nothing, link to practice. */}
             <Link
               href="/"
-              className={ftButtonVariants({ variant: "ember", size: "sm" })}
+              className={ftButtonVariants({
+                variant: "ember",
+                size: "lg",
+                className: "sm:h-9 sm:px-4 sm:text-sm",
+              })}
             >
               Start typing
             </Link>
@@ -127,7 +136,8 @@ export default function LandingCover() {
           </p>
 
           {/* Readouts — tabular, organic numbers, ink (the caret is the spark) */}
-          <div className="mt-5 grid grid-cols-2 gap-x-8 gap-y-4 border-t border-ft-line-soft pt-4 sm:flex sm:flex-wrap sm:items-end sm:gap-y-3">
+          <Rule className="mt-5" />
+          <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-4 sm:flex sm:flex-wrap sm:items-end sm:gap-y-3">
             <Readout label="wpm" value="124" />
             <Readout label="acc" value="98.7" suffix="%" />
             <Readout label="peak" value="161" />
@@ -142,7 +152,8 @@ export default function LandingCover() {
       </div>
 
         {/* Footer rule */}
-        <footer className="flex items-center justify-between gap-3 border-t border-ft-line-soft pt-5 text-[10px] font-medium uppercase tracking-[0.18em] text-ft-dim">
+        <Rule />
+        <footer className="flex items-center justify-between gap-3 pt-5 text-[10px] font-medium uppercase tracking-[0.18em] text-ft-dim">
           <span className="text-ft-ink">flinttype.com</span>
           <span className="hidden sm:inline">Next.js · React · TypeScript</span>
           <span>Type faster, together</span>
@@ -150,6 +161,11 @@ export default function LandingCover() {
       </div>
     </main>
   );
+}
+
+/** A 1px hairline drawn as a fill, so it ignores the Outlines setting. */
+function Rule({ className = "" }: { className?: string }) {
+  return <div aria-hidden className={`h-px bg-ft-line-soft ${className}`} />;
 }
 
 function Readout({

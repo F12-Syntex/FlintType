@@ -105,11 +105,15 @@ const QUESTIONS: readonly { q: string; label: string; a: React.ReactNode }[] = [
     label: "MonkeyType import",
     a: (
       <>
-        Yes. Open <EditorialLink href="/customise">Settings</EditorialLink>{" "}
-        and choose Import / export. Your completed tests come across from
-        MonkeyType&apos;s export. MonkeyType doesn&apos;t export
+        Yes. Open <EditorialLink href="/profile">your profile</EditorialLink>,
+        press the ⋯ menu, choose Import from MonkeyType and paste a
+        read-only Ape Key from your MonkeyType account settings. Your
+        completed tests come across. MonkeyType doesn&apos;t share
         per-keystroke timings, so adaptive practice starts fresh and
-        rebuilds your weakness model from new runs.
+        rebuilds your weakness model from new runs. Your MonkeyType{" "}
+        <em>settings</em> (theme, caret and so on) are separate: bring
+        those over from <EditorialLink href="/customise">Settings</EditorialLink>{" "}
+        with Import / export.
       </>
     ),
   },

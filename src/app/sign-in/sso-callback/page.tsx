@@ -10,7 +10,14 @@ import { AuthenticateWithRedirectCallback } from "@clerk/nextjs";
 export default function SsoCallbackPage() {
   return (
     <main className="flex min-h-dvh items-center justify-center gap-3 text-foreground">
-      <AuthenticateWithRedirectCallback />
+      {/* Explicit URLs so a stale or cancelled round-trip lands on our
+          own pages, never Clerk's hosted portal. */}
+      <AuthenticateWithRedirectCallback
+        signInUrl="/sign-in"
+        signUpUrl="/sign-up"
+        signInFallbackRedirectUrl="/"
+        signUpFallbackRedirectUrl="/"
+      />
       <span
         aria-hidden
         className="size-2 rounded-full bg-primary motion-safe:animate-pulse"
