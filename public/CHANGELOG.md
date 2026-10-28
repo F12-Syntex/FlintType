@@ -8,6 +8,13 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.140.0 — 27 October 2026
+- The leaderboard has a simpler layout: one row of filters above the table replaces the long side menu, so you can always see which board you're looking at.
+- Your own row is highlighted in orange, and the top three players get a small medal.
+- Choosing "All lengths" now really shows every test length instead of jumping back to 60 seconds.
+- When a board is empty, it says which filters are hiding results and offers one tap to show more.
+- "Recent runs" is now called "Best runs". The Players and Level boards share the same clean table and can be refreshed or saved as an image.
+
 ## 6.139.0 — 27 October 2026
 - The race page now opens on a simple launcher: pick 1v1 or Free-for-all, then press Find race or Create private lobby.
 - Private lobbies have bigger Start race and Ready up buttons, a one-click invite link, and a clear message whenever starting, readying up or creating a lobby fails.

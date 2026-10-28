@@ -1,9 +1,11 @@
 import { Suspense } from "react";
+import { PageHeader, PageShell } from "@/components/page-shell";
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../_components/app-chrome";
-import { LeaderboardHeader } from "./_components/header";
+import { VIEW_DESCRIPTIONS } from "./_components/filters";
 import { LeaderboardView } from "./_components/leaderboard-view";
-import { LeaderboardSidebar } from "./_components/sidebar";
+import { BoardSkeleton } from "./_components/shared-list";
+import { ViewDescription } from "./_components/view-description";
 
 export const metadata = buildPageMetadata({
   title: "Leaderboard — top WPM scores on flinttype",
@@ -12,49 +14,27 @@ export const metadata = buildPageMetadata({
   path: "/leaderboard",
 });
 
-/** /leaderboard. Two-column shell like /customise — a filter rail on
- *  the left (Mode + Window), full-width ranked table on the right.
- *  Mobile collapses to a single column with a sticky bottom-sheet
- *  picker in the header strip.
+/** /leaderboard. A normal scrolling page: header, one filter toolbar and
+ *  the ranked board. Filters live in the URL.
  *
- *  Suspense wrapping is non-optional: every client child below reads
- *  `useSearchParams()`, which Next requires to sit inside a Suspense
- *  boundary or the prerender bails. We wrap each sub-tree separately
- *  so a slow sidebar can't block the table's initial paint. */
+ *  Suspense is required: the client children read `useSearchParams()`,
+ *  which Next wants inside a boundary or the prerender bails. */
 export default function LeaderboardPage() {
   return (
-    <AppChrome compact>
-      <div className="grid h-full min-h-0 grid-cols-1 text-foreground lg:grid-cols-[var(--app-rail-width)_1fr] lg:gap-3 lg:py-3">
-        <Suspense fallback={<SidebarFallback />}>
-          <LeaderboardSidebar />
+    <AppChrome>
+      <PageShell>
+        <PageHeader
+          title="Leaderboard"
+          description={
+            <Suspense fallback={VIEW_DESCRIPTIONS.table}>
+              <ViewDescription />
+            </Suspense>
+          }
+        />
+        <Suspense fallback={<BoardSkeleton />}>
+          <LeaderboardView />
         </Suspense>
-
-        <div
-          data-bg-scope="content"
-          className="relative min-h-0 overflow-hidden"
-        >
-          <div className="absolute inset-0 overflow-y-auto">
-            <Suspense fallback={null}>
-              <LeaderboardHeader />
-            </Suspense>
-            <Suspense fallback={null}>
-              <LeaderboardView />
-            </Suspense>
-          </div>
-        </div>
-      </div>
+      </PageShell>
     </AppChrome>
-  );
-}
-
-/** Static skeleton matching the LeaderboardSidebar frame. Renders on
- *  the server so the prerendered HTML still carries the rail
- *  structure; the live nav hydrates over it. */
-function SidebarFallback() {
-  return (
-    <div
-      aria-hidden
-      className="hidden lg:flex lg:h-full lg:flex-col lg:overflow-hidden lg:rounded-md lg:border lg:border-border lg:bg-background/85"
-    />
   );
 }

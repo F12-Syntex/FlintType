@@ -237,6 +237,8 @@ All recipes are **mobile-first**: base classes target ≤ 375px viewports, `sm:`
 | Card                      | `<Surface>` (`rounded-2xl border border-border bg-card shadow-card`) — only for things the user acts on (a list of rows, a tile, a form). Sections themselves are never boxed. |
 | Two-up row                | `grid gap-10 lg:grid-cols-2 lg:gap-x-12` — no vertical rules, so column edges line up down the page. |
 | Practice column           | `mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col` with no horizontal padding (`<AppChrome>` owns the gutter). Mode bar, readouts, passage, keyboard and the result screen all sit in it, so no edge moves between rest, typing and results. |
+| Filter toolbar            | One row under the `<PageHeader>`. The view `<SegmentedControl>` first, then the filter switches. Selects are outline buttons that open a `<DropdownMenu>` of `DropdownMenuCheckboxItem`s; the selected item gets an orange check and orange text. Icon-only actions (`variant="outline" size="icon"`, `size-11 md:size-10`, tooltip + `aria-label`) sit at the right via `md:ml-auto` and are `data-no-export`. Every control is 44px on phones and 40px from md. Below md the filters fold into one full-width outline button showing the current filters ("Casual · 60s · All time") that opens a `<MobileSheet>` of full-width switches with a sticky Done button. Filter state lives in the URL, defaults left out. Used by `/leaderboard` — one visible row shows which board you're on (the old 18-item rail hid the active filter below the fold). |
+| Ranked table              | `<Surface className="overflow-hidden">` with a header row and `divide-y divide-border/60` rows sharing one grid template: `grid-cols-[2rem_minmax(0,1fr)_auto]` on phones, `md:grid-cols-[2.5rem_minmax(0,1fr)_8rem_4.5rem_4.5rem_4.5rem]` from md. Ranks 1–3 get a small `rounded-full size-7` medallion (1st `brand-surface text-primary-foreground`, 2nd/3rd `bg-primary/12 text-primary`); other ranks muted ink. Your own row: `bg-primary/[0.07]`, a `w-1` orange left bar, orange handle and number, a `rounded-pill bg-primary/15 text-primary` "You" pill. Categorical cells are neutral `bg-muted` pills; numbers stay ink. Skeleton rows share the grid; errors show the message + outline "Try again"; empty uses the §17.3 dashed card naming the active filters with one widening button. |
 | Inline row (desktop-only) | `flex items-center gap-3`                                                                      |
 | Stacked row → inline      | `flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3`                                     |
 | Button group (wrappable)  | `flex flex-wrap gap-2`                                                                         |
@@ -754,7 +756,7 @@ Component self-markers that the CSS rules attach to:
 | `[data-ft-topbar-pill]` | The boxed nav inside TopBar | text-only mode flattens it. |
 | `[data-ft-footer]` | AppFooter root | Auto-hide target + footer-style override target. |
 | `[data-ft-footer-expand]` | Footer nav link block | Hidden under compact footer style. |
-| `[data-ft-chrome]` | Interior chrome (settings sidebar/header, leaderboard sidebar/header) | Auto-hide target. |
+| `[data-ft-chrome]` | Interior chrome (settings sidebar/header) | Auto-hide target. |
 | `[data-ft-divider]` / `.ft-divider` | Anything you want the divider rule to honour | Targeted by `data-ft-dividers="hidden|dotted"`. |
 | `[data-ft-caret-idle]` | CaretGlyph when `phase==="rest"` and `caretIdle==="pulse"` | Drives the `ft-caret-idle-pulse` keyframe. |
 
