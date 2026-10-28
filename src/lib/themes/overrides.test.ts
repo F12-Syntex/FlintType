@@ -3,6 +3,7 @@ import type { ThemeOverrides, ThemeVar } from "../theme-customization";
 import {
   clearOverride,
   diffAppliedVars,
+  effectiveOverride,
   EMPTY_OVERRIDES,
   isOverridden,
   LEGACY_BAKED_OVERRIDES,
@@ -41,6 +42,40 @@ describe("isOverridden / overriddenVars / overrideCount", () => {
     };
     expect(overriddenVars(o).sort()).toEqual(["--background", "--primary"]);
     expect(overrideCount(o)).toBe(2);
+  });
+});
+
+describe("effectiveOverride", () => {
+  it("treats unset and empty as not set", () => {
+    expect(effectiveOverride("--primary", undefined)).toBeUndefined();
+    expect(effectiveOverride("--primary", "")).toBeUndefined();
+  });
+
+  it("drops the typography vars at their :root fallback, however spelled", () => {
+    for (const v of ["1", "1.0", "1.000", " 1.0 "]) {
+      expect(effectiveOverride("--ft-font-scale", v)).toBeUndefined();
+    }
+    expect(effectiveOverride("--ft-word-spacing", "0.25em")).toBeUndefined();
+    expect(effectiveOverride("--ft-word-spacing", ".250em")).toBeUndefined();
+  });
+
+  it("canonicalises other numeric values so equal sizes compare equal", () => {
+    expect(effectiveOverride("--ft-font-scale", "1.10")).toBe("1.1");
+    expect(effectiveOverride("--ft-font-scale", "1.1")).toBe("1.1");
+    expect(effectiveOverride("--ft-font-scale", "1.0250001")).toBe("1.025");
+    expect(effectiveOverride("--ft-word-spacing", "0.450em")).toBe("0.45em");
+  });
+
+  it("keeps values it can't read as stored", () => {
+    expect(effectiveOverride("--ft-word-spacing", "4px")).toBe("4px");
+    expect(effectiveOverride("--ft-font-scale", "calc(1.2)")).toBe("calc(1.2)");
+  });
+
+  it("never rewrites non-numeric vars, even at a :root-looking value", () => {
+    // A palette's own radius sits underneath, so an explicit 1rem is a
+    // real override, not a default.
+    expect(effectiveOverride("--radius", "1rem")).toBe("1rem");
+    expect(effectiveOverride("--primary", "#f97316")).toBe("#f97316");
   });
 });
 

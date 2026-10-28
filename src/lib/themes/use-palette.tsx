@@ -13,6 +13,11 @@ import { clearSlice, readSlice, writeSlice } from "../prefs-store";
 import type { ThemeOverrides } from "../theme-customization";
 import { useRemotePrefs } from "../use-remote-prefs";
 import { EMPTY_OVERRIDES } from "./overrides";
+import {
+  baselinePaletteId,
+  palettePresetSlices,
+  paletteSliceFor,
+} from "./palette-baseline";
 import type { PaletteSlice } from "./palette-fork";
 import {
   applyReactivePalette,
@@ -26,7 +31,6 @@ import {
   CUSTOM_THEME_ID,
   findTheme,
   getThemeRoot,
-  prefixCssVars,
   THEMES,
   type Theme,
 } from "./registry";
@@ -43,13 +47,29 @@ const REACTIVE_THEME: Theme = {
 type Ctx = {
   themes: readonly Theme[];
   activeId: string | null;
+  /** The named palette whose presets the settings pages measure
+   *  changes against: the active palette, or the one a custom fork came
+   *  off. Null for Default and baseless forks (palette-baseline.ts). */
+  baselineId: string | null;
   apply: (id: string) => void;
   reset: () => void;
 };
 
+/** Re-paint the stored per-var overrides on top of whatever the palette
+ *  just painted. Palette vars and overrides share names (`--radius`,
+ *  colours), and this effect runs after the overrides hook's own effect
+ *  (it's the parent), so without this a pick painted the palette's
+ *  `radius` over the preset's `--radius` until the next reload. */
+function reassertOverrides(root: HTMLElement) {
+  const overrides = readSlice<ThemeOverrides>("theme", EMPTY_OVERRIDES);
+  for (const [k, v] of Object.entries(overrides)) {
+    if (typeof v === "string" && v) root.style.setProperty(k, v);
+  }
+}
+
 // Fresh accounts land on the real Default theme — `activeId: null`, no
 // overrides. The brand baseline (the orange --primary / --ring, the
-// 0.5rem radius) now lives in `globals.css :root` / `.dark` as the
+// card radius) now lives in `globals.css :root` / `.dark` as the
 // Default theme itself, so there's no override layer to flash in and no
 // reason to pretend a fresh account is "custom". Picking a community
 // palette is one click in the picker.
@@ -103,12 +123,7 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
         for (const [k, v] of Object.entries(vars)) {
           if (typeof v === "string" && v) root.style.setProperty(`--${k}`, v);
         }
-        const overrides = readSlice<ThemeOverrides>("theme", EMPTY_OVERRIDES);
-        for (const [k, v] of Object.entries(overrides)) {
-          if (typeof v === "string" && v) {
-            root.style.setProperty(k, v);
-          }
-        }
+        reassertOverrides(root);
       }
       return;
     }
@@ -123,6 +138,7 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
       if (!effectiveImage) {
         clearThemeVars(root);
         clearReactivePalette(root);
+        reassertOverrides(root);
         return;
       }
       let cancelled = false;
@@ -132,6 +148,7 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
         if (cancelled || !palette) return;
         clearThemeVars(root);
         applyReactivePalette(root, palette);
+        reassertOverrides(root);
       });
       return () => {
         cancelled = true;
@@ -154,63 +171,37 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
       // guard stops it re-writing once the vars are present.
       const persisted = readSlice<PaletteSlice>("palette", DEFAULT_PALETTE);
       if (persisted.activeId === activeId && persisted.varsLight == null) {
-        writeSlice("palette", {
-          activeId,
-          varsLight: prefixCssVars(theme.cssVars.light),
-          varsDark: prefixCssVars(theme.cssVars.dark),
-        });
+        writeSlice("palette", paletteSliceFor(theme.id));
       }
     }
+    reassertOverrides(root);
   }, [activeId, base, resolvedTheme, effectiveImage]);
 
   const apply = useCallback(
     (id: string) => {
       // Custom is the synthetic "user has per-var overrides" id —
       // picking it from the menu is a no-op (the overrides are already
-      // active on :root). For every other pick, themes own ONLY the
-      // sections explicitly tied to visual identity: colours,
-      // geometry, typography (all CSS-var driven, applied via
-      // cssVars + themeOverrides slice) and the keyboard widget
-      // settings. Caret, live stats, tape, lines, result, multiplayer
-      // and other appearance-slice prefs are user-owned and survive
-      // a theme switch — themes used to wipe them, which surprised
-      // users who'd carefully tuned those settings and didn't expect
-      // a colour pick to clear them.
-      if (id !== CUSTOM_THEME_ID) {
-        clearSlice("keyboard");
-        const theme = findTheme(id);
-        // Theme overrides slice is the per-CSS-var customisations
-        // layer (e.g. --ft-font-scale, --radius). Default to empty
-        // so the named theme paints unhindered; let the preset write
-        // any values it cares about on top.
-        writeSlice("theme", theme?.presets?.themeOverrides ?? {});
-        if (theme?.presets?.keyboard) {
-          writeSlice("keyboard", theme.presets.keyboard);
-        }
-      }
+      // active on :root) and keeps the fork's `base` snapshot intact.
       if (id === CUSTOM_THEME_ID) {
-        // Re-picking Custom keeps the fork's `base` snapshot intact.
         update({ activeId: id });
-      } else {
-        // Persist the named static palette's resolved cssVars so the
-        // pre-hydration bootstrap can paint them before first paint (no
-        // default-palette FOUC). Function-form so a stale `base` snapshot
-        // (and any prior vars) from a previous custom fork is dropped
-        // rather than merged along (update() merges object patches).
-        // `findTheme` only resolves registry themes, so synthetic ids
-        // (reactive) fall through to a bare { activeId }.
-        const named =
-          id !== BACKGROUND_REACTIVE_ID ? findTheme(id) : undefined;
-        update(() =>
-          named
-            ? {
-                activeId: id,
-                varsLight: prefixCssVars(named.cssVars.light),
-                varsDark: prefixCssVars(named.cssVars.dark),
-              }
-            : { activeId: id },
-        );
+        return;
       }
+      // Every other pick owns ONLY the visual-identity slices: colours,
+      // geometry, typography (cssVars + the theme-overrides slice) and
+      // the keyboard widget. Caret, live stats, tape, lines, result,
+      // multiplayer and the rest of the appearance slice are user-owned
+      // and survive a switch. What a pick writes comes from
+      // palettePresetSlices, the same source the settings pages'
+      // baseline reads (palette-baseline.ts).
+      const slices = palettePresetSlices(findTheme(id));
+      clearSlice("keyboard");
+      writeSlice("theme", slices.themeOverrides);
+      if (slices.keyboard) writeSlice("keyboard", slices.keyboard);
+      // Function form so a stale `base` snapshot (and any prior vars)
+      // from a previous custom fork is dropped rather than merged along
+      // (update() merges object patches). The named palette's resolved
+      // cssVars ride along for the pre-hydration bootstrap (no FOUC).
+      update(() => paletteSliceFor(id));
     },
     [update],
   );
@@ -231,7 +222,13 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
 
   return (
     <PaletteContext.Provider
-      value={{ themes, activeId, apply, reset: resetPalette }}
+      value={{
+        themes,
+        activeId,
+        baselineId: baselinePaletteId(value, CUSTOM_THEME_ID),
+        apply,
+        reset: resetPalette,
+      }}
     >
       {children}
     </PaletteContext.Provider>

@@ -5,9 +5,10 @@ import {
   useAppearancePrefs,
 } from "@/lib/appearance-prefs";
 import { useThemeOverrides } from "@/lib/theme-customization";
+import { countVarsOffBaseline } from "@/lib/themes/palette-baseline";
+import { usePaletteBaseline } from "@/lib/themes/use-palette-baseline";
 import {
   countCustomised,
-  countOverriddenVars,
   getGroup,
   GROUP_APPEARANCE_KEYS,
   GROUP_THEME_VARS,
@@ -50,16 +51,19 @@ export default function InterfaceSettingsPage() {
   const group = getGroup("interface");
   const { prefs, resetKeys } = useAppearancePrefs();
   const { overrides, setVar, clearVar } = useThemeOverrides();
+  // A palette's own corner radius isn't the user's change: count and
+  // reset against the active palette's baseline.
+  const { baseline, restoreVars } = usePaletteBaseline();
   const appearanceKeys = GROUP_APPEARANCE_KEYS.interface ?? [];
   const shapeVars = GROUP_THEME_VARS.interface ?? [];
 
   const customizedCount =
     countCustomised(prefs, DEFAULT_APPEARANCE, appearanceKeys) +
-    countOverriddenVars(overrides, shapeVars);
+    countVarsOffBaseline(overrides, baseline.themeOverrides, shapeVars);
 
   function handleReset() {
     resetKeys(appearanceKeys);
-    for (const v of shapeVars) clearVar(v);
+    restoreVars(shapeVars);
   }
 
   return (

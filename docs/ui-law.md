@@ -704,7 +704,7 @@ Don't sprinkle related settings across sections; if you find yourself doing that
 ### 12.7 Page header
 `<SettingsPageHeader group customizedCount onReset>` is built on `<PageHeader>`:
 - **Title and description:** the page name is the h1, followed by the group's one-line description.
-- **"Reset (N)":** an outline button with a primary-coloured count. It shows only while N > 0, and the count covers only that page's keys, those with a visible control. It confirms with "Reset N settings?" and never touches other pages.
+- **"Reset (N)":** an outline button with a primary-coloured count. It shows only while N > 0, and the count covers only that page's keys, those with a visible control. It confirms with "Reset N settings?" and never touches other pages. The count and Reset measure against the active palette's baseline: the defaults with that palette's presets on top (`paletteBaseline` in `src/lib/themes/palette-baseline.ts`; a Custom fork uses the palette it came from). A palette's own font size, word spacing, corners or key style never count. Size and word spacing compare by value, so "1.0" and no override are the same (`effectiveOverride`). Reset restores that baseline, not the bare defaults, and a Custom fork that is back at its baseline returns to its palette.
 - **"Import / export":** an outline menu with three items: "Export settings", "Import flinttype settings" and "Import MonkeyType settings". There is no group label.
 - **"Design with AI":** an outline link button with an orange Sparkles icon.
 - **Phones:** Import / export and Design with AI collapse to `size-9` icon buttons with aria-labels (§10.6).
@@ -722,6 +722,15 @@ Don't sprinkle related settings across sections; if you find yourself doing that
 - The model **never invents values**: it picks option ids from the fixed catalog (`src/server/routes/appearance/options.ts` → `KNOBS`), resolved server-side to an `AppearancePatch` and re-validated by `sanitizePatch`.
 - The flow is preview-only until Apply: the preview patch themes the previews through `<PreviewScope>` / `<PrefsOverrideProvider>`; Apply writes through the same typed setters as the manual controls (`useApplyPatch`).
 - No API key → a clear error under the input.
+
+### 12.9 Palette switching
+- Every palette switch goes through `usePaletteSwitch` (`src/lib/themes/use-palette-switch.ts`): Settings → Theme (dropdown and phone sheet), the palette gallery (`/customise/appearance/themes`) and the command palette. Render `<PaletteSwitchDialog {...dialog} />` (`src/components/palette-switch-dialog.tsx`) beside the control that calls it. Never call `usePalette().apply` / `reset` directly from UI.
+- It asks first only when the theme overrides or keyboard settings differ from the active palette's baseline (§12.7), because a switch rewrites exactly those.
+- One `<ConfirmDialog>` everywhere: "Switch to <name>?"; one line naming what resets (colours, corners, font and keyboard look); an "Export my settings to a JSON file first" checkbox, on by default; and "Don't show this dialog again", saved per browser in localStorage `ft-theme-skip-confirm`. The confirm button reads "Export & switch" or "Switch anyway". Focus lands on the first checkbox.
+- A pick made from inside another overlay (dropdown menu, command palette) closes that overlay and hands focus to the dialog, instead of letting the overlay return focus to its trigger.
+- Picking the active palette again does nothing.
+
+Rationale: one guard and one dialog, so no entry point silently resets a user's colour, corner, font or keyboard changes.
 
 ## 13. Animation primitives
 
@@ -868,7 +877,7 @@ Add the entry to the builder for its settings area: `src/lib/command-palette/ent
 
 ### 16.3 Don't
 
-- **Don't** add an entry whose `set` callback opens another modal or navigates somewhere unrelated. The palette is "I know what I want, do it now" — every entry should resolve in zero or one Enter press.
+- **Don't** add an entry whose `set` callback opens another modal or navigates somewhere unrelated. The palette is "I know what I want, do it now" — every entry should resolve in zero or one Enter press. One sanctioned exception: the Palette entry goes through the shared palette-switch guard (§12.9). When the switch would reset colour, corner, font or keyboard changes, the command palette closes and hands keyboard focus to the guard's confirm dialog (`usePaletteHandoff`, `src/components/command-palette/use-palette-handoff.ts`). The dialog renders beside the command palette, so it works on every route. With nothing to lose, the switch applies at once and the command palette stays open.
 - **Don't** add ambient open/close animation beyond the standard Radix Dialog fade + zoom shadcn ships with (data-state classes from `tw-animate-css`). The palette is high-frequency keyboard chrome; a custom Framer transition would just add latency.
 - **Don't** mount a second palette anywhere. If a page needs its own searchable command surface (e.g. a per-page "pick a passage"), build it as a local `Command` instance — not a second Cmd+K palette.
 

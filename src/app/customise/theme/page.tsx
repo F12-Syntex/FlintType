@@ -11,7 +11,8 @@ import {
   useBackgroundPrefs,
 } from "@/lib/background-prefs";
 import { type ThemeVar, useThemeOverrides } from "@/lib/theme-customization";
-import { overriddenVars } from "@/lib/themes/overrides";
+import { countVarsOffBaseline } from "@/lib/themes/palette-baseline";
+import { usePaletteBaseline } from "@/lib/themes/use-palette-baseline";
 import { cn } from "@/lib/utils";
 import { LabelWithDesc } from "../_components/controls";
 import {
@@ -89,8 +90,8 @@ const BACKGROUND_KEYS = Object.keys(DEFAULT_BACKGROUND) as (keyof BackgroundPref
 
 export default function ThemeSettingsPage() {
   const group = getGroup("theme");
-  const { overrides, setVar, clearVar, reset: resetOverrides } =
-    useThemeOverrides();
+  const { overrides, setVar, clearVar } = useThemeOverrides();
+  const { baseline, restoreVars } = usePaletteBaseline();
   const {
     prefs: background,
     hasLocalImage,
@@ -106,19 +107,15 @@ export default function ThemeSettingsPage() {
   const showMore = moreOpen || hiddenChanged > 0;
 
   const customizedCount =
-    countOverriddenVars(overrides, themeVars) +
+    countVarsOffBaseline(overrides, baseline.themeOverrides, themeVars) +
     countCustomised(background, DEFAULT_BACKGROUND, BACKGROUND_KEYS) +
     (hasLocalImage ? 1 : 0);
 
   function handleReset() {
-    // Only colours belong to this page. If nothing else is overridden,
-    // the full reset also returns a forked "Custom" palette to the one
-    // it came from.
-    const others = overriddenVars(overrides).filter(
-      (v) => !themeVars.includes(v),
-    );
-    if (others.length === 0) resetOverrides();
-    else for (const v of themeVars) clearVar(v);
+    // Only colours belong to this page; they go back to the palette's
+    // own. When that leaves a "Custom" fork matching the palette it came
+    // from, the picker reads that palette again (restoreVars).
+    restoreVars(themeVars);
     resetBackground();
     clearLocalImage();
   }

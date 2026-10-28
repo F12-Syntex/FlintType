@@ -4,11 +4,13 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { PageHeader } from "@/components/page-shell";
+import { PaletteSwitchDialog } from "@/components/palette-switch-dialog";
 import { buttonVariants } from "@/components/ui/button";
 import { useThemeOverrides } from "@/lib/theme-customization";
 import { BACKGROUND_REACTIVE_ID } from "@/lib/themes/background-reactive";
 import { CUSTOM_THEME_ID } from "@/lib/themes/registry";
 import { type Theme, usePalette } from "@/lib/themes/use-palette";
+import { usePaletteSwitch } from "@/lib/themes/use-palette-switch";
 import { useMounted } from "@/lib/use-mounted";
 import { cn } from "@/lib/utils";
 import {
@@ -22,12 +24,15 @@ import { ThemeTile } from "./theme-tile";
 
 type Entry =
   | { kind: "default"; vars: PreviewVars; active: boolean }
-  | { kind: "reactive"; active: boolean }
+  | { kind: "reactive"; name: string; active: boolean }
   | { kind: "custom"; vars: PreviewVars; active: boolean }
   | { kind: "theme"; theme: Theme; vars: PreviewVars; active: boolean };
 
 export function ThemeExplorer() {
-  const { themes, activeId, apply, reset } = usePalette();
+  const { themes, activeId } = usePalette();
+  // Same guard as Settings → Theme: a switch that would drop colour,
+  // corner, font or keyboard changes asks first.
+  const { requestPick, dialog } = usePaletteSwitch();
   const { overrides } = useThemeOverrides();
   const { resolvedTheme } = useTheme();
   // The server can't know the resolved mode, so the hydrating render
@@ -39,9 +44,8 @@ export function ThemeExplorer() {
     mounted && resolvedTheme === "dark" ? "dark" : "light";
   const isCustom = activeId === CUSTOM_THEME_ID;
 
-  function handlePick(id: string | null) {
-    if (id === null) reset();
-    else apply(id);
+  function handlePick(id: string | null, name: string) {
+    requestPick(id, name);
   }
 
   const entries: Entry[] = [];
@@ -64,6 +68,7 @@ export function ThemeExplorer() {
     if (t.id === BACKGROUND_REACTIVE_ID) {
       entries.push({
         kind: "reactive",
+        name: t.name,
         active: !isCustom && activeId === t.id,
       });
       continue;
@@ -125,7 +130,7 @@ export function ThemeExplorer() {
                   themeId={null}
                   vars={e.vars}
                   active={e.active}
-                  onPick={() => handlePick(null)}
+                  onPick={() => handlePick(null, "Default")}
                 />
               </li>
             );
@@ -135,7 +140,9 @@ export function ThemeExplorer() {
               <li key="reactive">
                 <ReactiveTile
                   active={e.active}
-                  onPick={() => handlePick(BACKGROUND_REACTIVE_ID)}
+                  onPick={() =>
+                    handlePick(BACKGROUND_REACTIVE_ID, e.name)
+                  }
                 />
               </li>
             );
@@ -147,12 +154,13 @@ export function ThemeExplorer() {
                 themeId={e.theme.id}
                 vars={e.vars}
                 active={e.active}
-                onPick={() => handlePick(e.theme.id)}
+                onPick={() => handlePick(e.theme.id, e.theme.name)}
               />
             </li>
           );
         })}
       </ol>
+      <PaletteSwitchDialog {...dialog} />
     </section>
   );
 }

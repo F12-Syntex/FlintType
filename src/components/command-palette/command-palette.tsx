@@ -10,12 +10,14 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PaletteSwitchDialog } from "@/components/palette-switch-dialog";
 import { useCommandEntries } from "@/lib/command-palette/use-command-entries";
 import type {
   CommandEntry,
   CommandGroup as CommandGroupId,
 } from "@/lib/command-palette/types";
 import { EnumView, Footer, RootView, type View } from "./palette-views";
+import { usePaletteHandoff } from "./use-palette-handoff";
 import { usePaletteOpeners } from "./use-palette-openers";
 
 /** Group order in the rendered list — Practice actions at the top
@@ -41,7 +43,9 @@ export function CommandPalette() {
   const [view, setView] = useState<View>({ kind: "root" });
   const [query, setQuery] = useState("");
   const router = useRouter();
-  const entries = useCommandEntries();
+  // Palette switches share the Settings guard (use-palette-handoff.ts).
+  const { pickPalette, onCloseAutoFocus, dialog } = usePaletteHandoff(setOpen);
+  const entries = useCommandEntries(pickPalette);
   // Direct ref to the search input so we can re-focus it on every
   // open + on view switch — cmdk's Command primitive doesn't always
   // surface a focusable as the first DOM-order element, so Radix's
@@ -148,72 +152,76 @@ export function CommandPalette() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent
-        // A 16px gutter each side on phones instead of edge to edge.
-        className="w-[calc(100%-2rem)] overflow-hidden p-0 sm:max-w-xl"
-        hideClose
-        // Radix listens for Escape on the document in the capture
-        // phase, so it fires before onKeyDownInside. In a sub-view,
-        // stop it from closing the dialog and step back instead.
-        onEscapeKeyDown={(e) => {
-          if (view.kind === "root") return;
-          e.preventDefault();
-          setView({ kind: "root" });
-          setQuery("");
-        }}
-        onKeyDownCapture={onKeyDownInside}
-      >
-        <DialogTitle className="sr-only">
-          {view.kind === "root"
-            ? "Command palette"
-            : `Pick a value for ${view.entry.label}`}
-        </DialogTitle>
-        <DialogDescription className="sr-only">
-          Search every setting, switch theme, navigate. Arrow keys to move,
-          Enter to act, Escape to back out.
-        </DialogDescription>
-
-        <Command
-          shouldFilter
-          // cmdk filters case-insensitively across visible item text
-          // by default; the explicit value below is so the matcher
-          // also indexes our extra search tokens.
-          filter={(value, search) => {
-            const v = value.toLowerCase();
-            const s = search.toLowerCase();
-            return v.includes(s) ? 1 : 0;
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent
+          onCloseAutoFocus={onCloseAutoFocus}
+          // A 16px gutter each side on phones instead of edge to edge.
+          className="w-[calc(100%-2rem)] overflow-hidden p-0 sm:max-w-xl"
+          hideClose
+          // Radix listens for Escape on the document in the capture
+          // phase, so it fires before onKeyDownInside. In a sub-view,
+          // stop it from closing the dialog and step back instead.
+          onEscapeKeyDown={(e) => {
+            if (view.kind === "root") return;
+            e.preventDefault();
+            setView({ kind: "root" });
+            setQuery("");
           }}
+          onKeyDownCapture={onKeyDownInside}
         >
-          {view.kind === "root" ? (
-            <RootView
-              groups={grouped}
-              query={query}
-              setQuery={setQuery}
-              runEntry={runEntry}
-              inputRef={inputRef}
-            />
-          ) : (
-            <EnumView
-              entry={view.entry}
-              query={query}
-              setQuery={setQuery}
-              onPick={(id) => {
-                view.entry.set(id);
-                setView({ kind: "root" });
-                setQuery("");
-              }}
-              onBack={() => {
-                setView({ kind: "root" });
-                setQuery("");
-              }}
-              inputRef={inputRef}
-            />
-          )}
+          <DialogTitle className="sr-only">
+            {view.kind === "root"
+              ? "Command palette"
+              : `Pick a value for ${view.entry.label}`}
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            Search every setting, switch theme, navigate. Arrow keys to move,
+            Enter to act, Escape to back out.
+          </DialogDescription>
 
-          <Footer view={view} />
-        </Command>
-      </DialogContent>
-    </Dialog>
+          <Command
+            shouldFilter
+            // cmdk filters case-insensitively across visible item text
+            // by default; the explicit value below is so the matcher
+            // also indexes our extra search tokens.
+            filter={(value, search) => {
+              const v = value.toLowerCase();
+              const s = search.toLowerCase();
+              return v.includes(s) ? 1 : 0;
+            }}
+          >
+            {view.kind === "root" ? (
+              <RootView
+                groups={grouped}
+                query={query}
+                setQuery={setQuery}
+                runEntry={runEntry}
+                inputRef={inputRef}
+              />
+            ) : (
+              <EnumView
+                entry={view.entry}
+                query={query}
+                setQuery={setQuery}
+                onPick={(id) => {
+                  view.entry.set(id);
+                  setView({ kind: "root" });
+                  setQuery("");
+                }}
+                onBack={() => {
+                  setView({ kind: "root" });
+                  setQuery("");
+                }}
+                inputRef={inputRef}
+              />
+            )}
+
+            <Footer view={view} />
+          </Command>
+        </DialogContent>
+      </Dialog>
+      <PaletteSwitchDialog {...dialog} />
+    </>
   );
 }

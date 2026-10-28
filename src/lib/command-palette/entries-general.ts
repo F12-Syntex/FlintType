@@ -15,16 +15,17 @@ export function generalEntries({
   setMode,
   paletteId,
   themes,
-  applyPalette,
-  resetPalette,
+  pickPalette,
 }: {
   mode: string | undefined;
   setMode: (next: Mode) => void;
   /** The active palette id; null is the Default palette. */
   paletteId: string | null;
   themes: readonly { id: string; name: string }[];
-  applyPalette: (id: string) => void;
-  resetPalette: () => void;
+  /** Switch palette (null = Default) by name. Goes through the shared
+   *  switch guard, which asks first when the switch would drop the
+   *  user's colour, corner, font or keyboard changes. */
+  pickPalette: (id: string | null, name: string) => void;
 }): CommandEntry[] {
   // Mirror the Settings → Theme picker: Default first (a reset, not a
   // registry theme), then every palette, plus "Custom" while the user
@@ -76,8 +77,9 @@ export function generalEntries({
         // Re-picking the current palette would still clear the
         // theme-owned overrides, so it's a no-op (as in Settings).
         if (next === (paletteId ?? DEFAULT_PALETTE_OPTION)) return;
-        if (next === DEFAULT_PALETTE_OPTION) resetPalette();
-        else applyPalette(next);
+        const name =
+          paletteOptions.find((o) => o.id === next)?.label ?? next;
+        pickPalette(next === DEFAULT_PALETTE_OPTION ? null : next, name);
       },
       ["theme", "palette", "colours", "colors"],
     ),

@@ -21,18 +21,16 @@ const THEMES = [
 ];
 
 function general(paletteId: string | null = null) {
-  const applyPalette = vi.fn();
-  const resetPalette = vi.fn();
+  const pickPalette = vi.fn();
   const entries = generalEntries({
     mode: "light",
     setMode: vi.fn(),
     paletteId,
     themes: THEMES,
-    applyPalette,
-    resetPalette,
+    pickPalette,
   });
   const palette = entries.find((e) => e.id === "palette") as EnumEntry;
-  return { entries, palette, applyPalette, resetPalette };
+  return { entries, palette, pickPalette };
 }
 
 function all(): CommandEntry[] {
@@ -119,21 +117,22 @@ describe("palette entry", () => {
     expect(palette.options.map((o) => o.label)).toContain("Custom");
   });
 
-  it("resets to Default and applies other palettes", () => {
+  it("hands Default (as null) and other palettes to the switch guard by name", () => {
     const named = general("catppuccin");
     named.palette.set(DEFAULT_PALETTE_OPTION);
-    expect(named.resetPalette).toHaveBeenCalledOnce();
+    expect(named.pickPalette).toHaveBeenLastCalledWith(null, "Default");
     named.palette.set("cyberpunk");
-    expect(named.applyPalette).toHaveBeenCalledWith("cyberpunk");
+    expect(named.pickPalette).toHaveBeenLastCalledWith("cyberpunk", "Cyberpunk");
+    expect(named.pickPalette).toHaveBeenCalledTimes(2);
   });
 
   it("does nothing when the current palette is picked again", () => {
     const fresh = general(null);
     fresh.palette.set(DEFAULT_PALETTE_OPTION);
-    expect(fresh.resetPalette).not.toHaveBeenCalled();
     const named = general("catppuccin");
     named.palette.set("catppuccin");
-    expect(named.applyPalette).not.toHaveBeenCalled();
+    expect(fresh.pickPalette).not.toHaveBeenCalled();
+    expect(named.pickPalette).not.toHaveBeenCalled();
   });
 });
 
