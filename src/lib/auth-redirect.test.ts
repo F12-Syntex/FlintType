@@ -29,6 +29,20 @@ describe("safeRedirectPath", () => {
     expect(safeRedirectPath("javascript:alert(1)", ORIGIN)).toBe("/");
   });
 
+  it("rejects same-origin inputs that normalise to a protocol-relative path", () => {
+    // Each passes the origin check, but its pathname comes out as
+    // "//evil.com", which a router resolves to https://evil.com.
+    expect(safeRedirectPath("/.//evil.com", ORIGIN)).toBe("/");
+    expect(safeRedirectPath("/a/..//evil.com", ORIGIN)).toBe("/");
+    expect(safeRedirectPath("/%2e//evil.com", ORIGIN)).toBe("/");
+    expect(safeRedirectPath("https://flinttype.com//evil.com", ORIGIN)).toBe("/");
+    expect(safeRedirectPath("/./\\evil.com", ORIGIN)).toBe("/");
+  });
+
+  it("keeps a path that only has doubled slashes after the first segment", () => {
+    expect(safeRedirectPath("/profile//ada", ORIGIN)).toBe("/profile//ada");
+  });
+
   it("never sends someone back into the auth pages", () => {
     expect(safeRedirectPath("/sign-in", ORIGIN)).toBe("/");
     expect(safeRedirectPath("/sign-up/verify", ORIGIN)).toBe("/");
@@ -40,6 +54,10 @@ describe("redirectFromSearch", () => {
   it("reads redirect_url from a query string", () => {
     expect(redirectFromSearch("?redirect_url=%2Fprofile%2Fada", ORIGIN)).toBe("/profile/ada");
     expect(redirectFromSearch("", ORIGIN)).toBe("/");
+  });
+
+  it("rejects a dot-segment payload that would leave the site", () => {
+    expect(redirectFromSearch("?redirect_url=%2F.%2F%2Fevil.com", ORIGIN)).toBe("/");
   });
 });
 
@@ -53,6 +71,9 @@ describe("withRedirect", () => {
   it("leaves the link alone when there is no destination", () => {
     expect(withRedirect("/sign-up", "", ORIGIN)).toBe("/sign-up");
     expect(withRedirect("/sign-up", "?redirect_url=https%3A%2F%2Fevil.com", ORIGIN)).toBe(
+      "/sign-up",
+    );
+    expect(withRedirect("/sign-up", "?redirect_url=%2F.%2F%2Fevil.com", ORIGIN)).toBe(
       "/sign-up",
     );
   });

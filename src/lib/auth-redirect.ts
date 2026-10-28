@@ -23,6 +23,10 @@ export function safeRedirectPath(
     return "/";
   }
   if (url.origin !== origin) return "/";
+  // Dot segments and a same-origin "https://host//evil.com" can still
+  // normalise to a pathname starting "//", which a router reads as a
+  // protocol-relative URL on another host.
+  if (/^\/[/\\]/.test(url.pathname)) return "/";
   const isAuthPage = AUTH_PREFIXES.some(
     (p) => url.pathname === p || url.pathname.startsWith(`${p}/`),
   );

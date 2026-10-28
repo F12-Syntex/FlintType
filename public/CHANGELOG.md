@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.37 — 28 October 2026
+- Signing in or signing up from a crafted link can no longer send you to another website afterwards.
+
 ## 6.148.36 — 27 October 2026
 - Internal changes only.
 
