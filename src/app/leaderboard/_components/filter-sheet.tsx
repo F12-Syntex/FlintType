@@ -8,12 +8,12 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 import type { LeaderboardPreset } from "@/types/leaderboard";
 import { AUDIENCES, TOOLBAR_SWITCH } from "./filter-controls";
 import {
-  filterSummary,
   type LeaderboardFilters,
   PRESET_GROUPS,
   SCOPES,
   WINDOWS,
 } from "./filters";
+import { filterSummary } from "./slice-labels";
 import type { SetLeaderboardFilters } from "./use-leaderboard-params";
 
 /** Full-width segmented switch inside the sheet. */
@@ -61,7 +61,7 @@ export function FilterSheet({
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label={`Filters: ${summary}`}
-        className="h-11 w-full justify-start gap-2.5 px-4 md:hidden [&>svg]:text-muted-foreground"
+        className="h-11 w-full min-w-0 justify-start gap-2.5 px-4 md:hidden [&>svg]:text-muted-foreground"
       >
         <SlidersHorizontal aria-hidden />
         <span className="min-w-0 flex-1 truncate text-left text-foreground">

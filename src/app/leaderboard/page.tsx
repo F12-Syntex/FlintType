@@ -8,9 +8,9 @@ import { BoardSkeleton } from "./_components/shared-list";
 import { ViewDescription } from "./_components/view-description";
 
 export const metadata = buildPageMetadata({
-  title: "Leaderboard — top WPM scores on flinttype",
+  title: "Leaderboard",
   description:
-    "Live global leaderboard of the fastest WPM typing-test runs on flinttype. Ranked by net WPM (raw WPM × accuracy), filterable by mode and time window. Race in and climb the table.",
+    "The fastest typing tests on flinttype, ranked by net WPM. Filter by Casual or Adapt mode, test length and time window, or compare with friends.",
   path: "/leaderboard",
 });
 

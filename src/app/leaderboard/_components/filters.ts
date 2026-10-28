@@ -6,7 +6,8 @@ import type {
 
 /** Filter vocabulary for /leaderboard, plus the pure URL <-> filter
  *  mapping. Every filter lives in the query string so a board can be
- *  shared or bookmarked; defaults are omitted to keep URLs short. */
+ *  shared or bookmarked; defaults are omitted to keep URLs short.
+ *  Plain-language labels for a slice live in `slice-labels.ts`. */
 
 // Only the two solo practice modes rank: Casual and Adapt (the adaptive
 // "training" mode), so the board compares like-for-like runs.
@@ -79,7 +80,8 @@ export const MODE_LABEL: Record<string, string> = {
 /** Which ranking the board shows.
  *    `table`   - best runs (respects Mode / Window / Length / audience)
  *    `players` - one row per user, ranked by lifetime peak net WPM
- *    `levels`  - one row per user, ranked by level (completed tests)
+ *    `levels`  - one row per user, ranked by level (total XP from
+ *                tests, drills and races)
  *  The two user-centric views ignore the filters. */
 export type LeaderboardView = "table" | "players" | "levels";
 
@@ -94,7 +96,7 @@ export const VIEWS: readonly { id: LeaderboardView; label: string }[] = [
 export const VIEW_DESCRIPTIONS: Record<LeaderboardView, string> = {
   table: "Ranked by net WPM (raw × accuracy).",
   players: "Each player's best run, ranked by net WPM.",
-  levels: "Ranked by level. Ten finished tests earn a level.",
+  levels: "Ranked by level. Tests, drills and races all earn XP.",
 };
 
 /** Everyone, or the people you follow plus you (signed-in only). */
@@ -148,6 +150,20 @@ export function parseFilters(
   };
 }
 
+/** Friends needs a signed-in viewer. Once auth has loaded and nobody is
+ *  signed in, a shared `?audience=friends` link shows (and names) the
+ *  global board. While auth is still loading the URL value stands, so a
+ *  signed-in viewer never sees the global board flash in first. */
+export function withAuth(
+  f: LeaderboardFilters,
+  auth: { isLoaded: boolean; isSignedIn: boolean },
+): LeaderboardFilters {
+  if (f.audience === "friends" && auth.isLoaded && !auth.isSignedIn) {
+    return { ...f, audience: "global" };
+  }
+  return f;
+}
+
 /** Serialise filters into a query string, omitting defaults. Unrelated
  *  params already on `base` are kept. Returns "" when nothing is set. */
 export function filtersToQuery(
@@ -165,37 +181,4 @@ export function filtersToQuery(
   put("preset", f.preset, DEFAULT_PRESET);
   put("audience", f.audience, "global");
   return sp.toString();
-}
-
-const WINDOW_PHRASE: Record<LeaderboardWindow, string> = {
-  all_time: "",
-  month: " this month",
-  week: " this week",
-  day: " today",
-};
-
-/** Plain-language name of a slice for the empty state, e.g.
- *  "casual runs at 60 seconds this week from friends". */
-export function describeSlice(f: LeaderboardFilters): string {
-  const mode = (SCOPES.find((s) => s.id === f.scope)?.label ?? "Casual")
-    .toLowerCase();
-  const length = f.preset === "any" ? "" : ` at ${presetLabel(f.preset)}`;
-  const who = f.audience === "friends" ? " from friends" : "";
-  return `${mode} runs${length}${WINDOW_PHRASE[f.window]}${who}`;
-}
-
-/** One-line summary for the mobile filter button, e.g.
- *  "Casual · 60s · All time" (prefixed with "Friends" when set). */
-export function filterSummary(f: LeaderboardFilters): string {
-  const parts = [
-    SCOPES.find((s) => s.id === f.scope)?.label ?? "Casual",
-    f.preset === "any"
-      ? ALL_LENGTHS_LABEL
-      : f.preset.startsWith("t")
-        ? `${f.preset.slice(1)}s`
-        : presetLabel(f.preset),
-    WINDOWS.find((w) => w.id === f.window)?.label ?? "All time",
-  ];
-  if (f.audience === "friends") parts.unshift("Friends");
-  return parts.join(" · ");
 }
