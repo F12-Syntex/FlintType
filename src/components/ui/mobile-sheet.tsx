@@ -1,8 +1,11 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { lockBodyScroll } from "@/lib/scroll-lock";
+import { coarsePointer, tabbables } from "@/lib/tabbable";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 import { useMounted } from "@/lib/use-mounted";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +28,13 @@ import { cn } from "@/lib/utils";
  *
  *  Height is fixed at 75dvh (dynamic viewport — hugs Safari/Chrome
  *  toolbars correctly). Respect the iOS home-indicator inset via
- *  `safe-pb` on the sheet's bottom padding. */
+ *  `safe-pb` on the sheet's bottom padding.
+ *
+ *  Keyboard (useFocusTrap): opening focuses the sheet itself on touch
+ *  devices (no on-screen keyboard, no stray focus ring), else a control
+ *  marked `data-autofocus` or the body's first control. Tab and
+ *  Shift+Tab stay inside, Escape closes, and closing returns focus to
+ *  the trigger. */
 const ANIM_MS = 220;
 
 export function MobileSheet({
@@ -49,6 +58,18 @@ export function MobileSheet({
   //   `render` controls portal mount; `entered` controls the transform/opacity.
   const [render, setRender] = useState(false);
   const [entered, setEntered] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap({
+    active: open && mounted,
+    panelRef,
+    rootRef,
+    onEscape: () => onOpenChange(false),
+    initialFocus: () =>
+      coarsePointer() ? panelRef.current : tabbables(bodyRef.current)[0],
+  });
 
   // Phase 1 — `open` ↔ `render`. Mount the portal as soon as `open`
   // flips on, and start the exit transition as soon as it flips off.
@@ -87,34 +108,30 @@ export function MobileSheet({
     };
   }, [render, open]);
 
-  // Body scroll lock + Escape close while the sheet is rendered.
+  // Body scroll lock while rendered, counted so overlapping overlays
+  // (a sheet handing off to a dialog) restore it correctly. Escape
+  // lives in useFocusTrap.
   useEffect(() => {
     if (!render) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onOpenChange(false);
-    };
-    window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [render, onOpenChange]);
+    return lockBodyScroll();
+  }, [render]);
 
   if (!mounted || !render) return null;
 
   const sheet = (
     <div
+      ref={rootRef}
       className="fixed inset-0 z-[60] md:hidden"
       role="dialog"
       aria-modal="true"
       aria-label={title}
     >
-      {/* Backdrop — fades in/out, click closes. */}
+      {/* Backdrop — fades in/out, click closes. Pointer-only: keyboard
+          users have the X and Escape. */}
       <button
         type="button"
         aria-label="Close"
+        tabIndex={-1}
         onClick={() => onOpenChange(false)}
         className={cn(
           "absolute inset-0 bg-black/40 backdrop-blur-sm dark:bg-black/60 transition-opacity ease-out",
@@ -122,10 +139,15 @@ export function MobileSheet({
         )}
         style={{ transitionDuration: `${ANIM_MS}ms` }}
       />
-      {/* Sheet — fixed height, slides up from bottom. */}
+      {/* Sheet — fixed height, slides up from bottom. Focusable as the
+          trap's fallback; inert while closing so nothing in it can be
+          used or keep focus as it slides away. */}
       <div
+        ref={panelRef}
+        tabIndex={-1}
+        inert={!open}
         className={cn(
-          "absolute inset-x-0 bottom-0 flex h-[75dvh] flex-col",
+          "absolute inset-x-0 bottom-0 flex h-[75dvh] flex-col outline-none",
           "rounded-t-2xl border-t border-border bg-background text-foreground shadow-[0_-12px_48px_-12px_rgba(0,0,0,0.35)]",
           "safe-pb transition-transform ease-out will-change-transform",
           entered ? "translate-y-0" : "translate-y-full",
@@ -135,10 +157,12 @@ export function MobileSheet({
       >
         {/* Grab handle — purely cosmetic affordance that signals the
             sheet can be dismissed; click on the handle area also
-            closes for users who tap there expecting iOS behaviour. */}
+            closes for users who tap there expecting iOS behaviour.
+            Out of the Tab order: the header X is the keyboard close. */}
         <button
           type="button"
           aria-label="Close"
+          tabIndex={-1}
           onClick={() => onOpenChange(false)}
           className="flex h-5 items-center justify-center pt-2"
         >
@@ -165,7 +189,9 @@ export function MobileSheet({
             <X size={18} />
           </button>
         </header>
-        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto">
+          {children}
+        </div>
       </div>
     </div>
   );

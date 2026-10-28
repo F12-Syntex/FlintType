@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.31 — 27 October 2026
+- Dialogs and bottom sheets now keep keyboard focus inside while they're open: Tab and Shift+Tab cycle through their controls, Escape closes them, and focus goes back to the button that opened them.
+- On phones, the page no longer stays stuck and unscrollable after you close a warning opened from a sheet.
+
 ## 6.148.30 — 27 October 2026
 - On the Burst results screen, Tab now starts a new run, as the Next test button says.
 
