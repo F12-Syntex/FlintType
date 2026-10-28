@@ -52,7 +52,11 @@ test("private lobby: host opens, a second player joins by link, both race", asyn
     joiner.getByRole("heading", { name: /expired|already started|couldn't reach/i }),
   ).toHaveCount(0);
 
-  // ─── Host starts; both race ───
+  // ─── The guest readies up; the host's Start unlocks; both race ───
+  // Start race stays disabled until every guest is ready (the host's
+  // outline "Force start now" is the escape hatch, not used here).
+  await joiner.getByRole("button", { name: "Ready up" }).click();
+  await expect(hostStart).toBeEnabled({ timeout: 20_000 });
   await hostStart.click();
 
   // Both clients run the 3-2-1 countdown — the joiner getting a countdown
