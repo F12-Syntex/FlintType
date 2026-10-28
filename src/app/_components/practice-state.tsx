@@ -1161,8 +1161,11 @@ export function PracticeProvider({
       // it does NOT re-roll a whole new set — a burst is a repeat-until-
       // clean drill, so "again" means this word, not a fresh passage.
       // (Esc still restarts the set as the fast in-test path.) Every
-      // other mode keeps Tab → restart.
-      if (liveStateRef.current.mode === "BURST") {
+      // other mode keeps Tab → restart, and so does a finished burst
+      // run: the results screen's "Next test" promises Tab, and there's
+      // no current word left to retry.
+      const live = liveStateRef.current;
+      if (live.mode === "BURST" && live.phase !== "done") {
         dispatch({ type: "BURST_RESET" });
       } else {
         restartRef.current();

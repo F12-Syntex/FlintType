@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.30 — 27 October 2026
+- On the Burst results screen, Tab now starts a new run, as the Next test button says.
+
 ## 6.148.29 — 27 October 2026
 - The palette gallery and the command palette (Ctrl/Cmd+K → Palette) now ask before a switch that would reset your colour, corner, font or keyboard changes, just like Settings → Theme. When there's nothing to lose, the switch happens straight away.
 - A palette's own font size, word spacing, corners and key style no longer count as your changes, so picking Catppuccin or Cyberpunk doesn't show a Reset count on any settings page.
