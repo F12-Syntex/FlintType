@@ -10,9 +10,10 @@ import {
   useCaretSettings,
 } from "@/lib/caret-settings";
 import { useThemeOverrides } from "@/lib/theme-customization";
+import { countVarsOffBaseline } from "@/lib/themes/palette-baseline";
+import { usePaletteBaseline } from "@/lib/themes/use-palette-baseline";
 import {
   countCustomised,
-  countOverriddenVars,
   getGroup,
   GROUP_APPEARANCE_KEYS,
   GROUP_THEME_VARS,
@@ -37,19 +38,22 @@ export default function TypingSettingsPage() {
   const group = getGroup("typing");
   const { prefs, resetKeys } = useAppearancePrefs();
   const { settings: caret, reset: resetCaret } = useCaretSettings();
-  const { overrides, clearVar } = useThemeOverrides();
+  const { overrides } = useThemeOverrides();
+  // The palette's own font size and spacing aren't the user's changes:
+  // count and reset against the active palette's baseline.
+  const { baseline, restoreVars } = usePaletteBaseline();
   const appearanceKeys = GROUP_APPEARANCE_KEYS.typing ?? [];
   const fontVars = GROUP_THEME_VARS.typing ?? [];
 
   const customizedCount =
     countCustomised(prefs, DEFAULT_APPEARANCE, appearanceKeys) +
     countCustomised(caret, DEFAULT_CARET, CARET_KEYS) +
-    countOverriddenVars(overrides, fontVars);
+    countVarsOffBaseline(overrides, baseline.themeOverrides, fontVars);
 
   function handleReset() {
     resetKeys(appearanceKeys);
     resetCaret();
-    for (const v of fontVars) clearVar(v);
+    restoreVars(fontVars);
   }
 
   return (

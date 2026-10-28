@@ -5,10 +5,10 @@ import {
   useAppearancePrefs,
 } from "@/lib/appearance-prefs";
 import {
-  DEFAULT_KEYBOARD,
   type KeyboardSettings,
   useKeyboardSettings,
 } from "@/lib/keyboard-settings";
+import { usePaletteBaseline } from "@/lib/themes/use-palette-baseline";
 import {
   countCustomised,
   getGroup,
@@ -27,8 +27,8 @@ import { SettingsSection } from "../_components/settings-section";
 
 /** The keyboard-settings fields that have a control here. `compact` is
  *  left out: the practice keyboard takes "Letters only" from the
- *  appearance pref (`keymapCompact`), so it isn't counted — though the
- *  page's Reset still clears it with the rest. */
+ *  appearance pref (`keymapCompact`), so it isn't counted, though the
+ *  page's Reset still restores it with the rest. */
 const KEYBOARD_KEYS: readonly (keyof KeyboardSettings)[] = [
   "design",
   "shape",
@@ -39,17 +39,19 @@ const KEYBOARD_KEYS: readonly (keyof KeyboardSettings)[] = [
 export default function KeyboardSettingsPage() {
   const group = getGroup("keyboard");
   const { prefs, resetKeys } = useAppearancePrefs();
-  const { settings, reset: resetKeyboard } = useKeyboardSettings();
+  const { settings } = useKeyboardSettings();
+  // Palettes set their own key look; measure and reset against it.
+  const { baseline, restoreKeyboard } = usePaletteBaseline();
   const appearanceKeys = GROUP_APPEARANCE_KEYS.keyboard ?? [];
   const shown = prefs.keymap !== "off";
 
   const customizedCount =
     countCustomised(prefs, DEFAULT_APPEARANCE, appearanceKeys) +
-    countCustomised(settings, DEFAULT_KEYBOARD, KEYBOARD_KEYS);
+    countCustomised(settings, baseline.keyboard, KEYBOARD_KEYS);
 
   function handleReset() {
     resetKeys(appearanceKeys);
-    resetKeyboard();
+    restoreKeyboard();
   }
 
   return (

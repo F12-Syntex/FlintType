@@ -37,6 +37,32 @@ export function overrideCount(o: ThemeOverrides): number {
   return overriddenVars(o).length;
 }
 
+/** The typography vars are plain numbers with a :root fallback the
+ *  controls clear back to (Size at 100%, Normal word spacing). A preset
+ *  spells 100% as "1.0", the Size control as nothing at all, so they
+ *  compare by number. Palettes' cssVars never set these. */
+const NUMERIC_VARS: Partial<Record<ThemeVar, { unit: string; root: number }>> = {
+  "--ft-font-scale": { unit: "", root: 1 },
+  "--ft-word-spacing": { unit: "em", root: 0.25 },
+};
+
+/** One override in canonical form, for comparing two records: undefined
+ *  when unset, empty or a numeric var at its :root fallback ("1.0"), a
+ *  numeric var rounded to 3 decimals ("1.10" → "1.1"), anything else as
+ *  stored. */
+export function effectiveOverride(
+  name: ThemeVar,
+  value: string | undefined,
+): string | undefined {
+  if (typeof value !== "string" || value === "") return undefined;
+  const numeric = NUMERIC_VARS[name];
+  if (!numeric) return value;
+  const m = new RegExp(`^\\s*(-?\\d*\\.?\\d+)${numeric.unit}\\s*$`).exec(value);
+  if (!m) return value;
+  const n = Math.round(Number(m[1]) * 1000) / 1000;
+  return n === numeric.root ? undefined : `${n}${numeric.unit}`;
+}
+
 /** Set one var. Returns a new record (never mutates). */
 export function setOverride(
   o: ThemeOverrides,
@@ -81,10 +107,11 @@ export function diffAppliedVars(
 /* ─── Migration off the pre-2026-05 fake-default state ─────────────── */
 
 /** The exact override values the old default (`EMPTY_OVERRIDES` that
- *  wasn't empty) force-applied over `:root`. These now ARE the Default
- *  theme's `:root` / `.dark` values, so a stored override equal to one
- *  of these is redundant baggage that only makes the var read as
- *  "customised" (a phantom Reset). Stripping it is visually neutral. */
+ *  wasn't empty) force-applied over `:root`. They became the Default
+ *  theme's `:root` / `.dark` values (the card radius has since grown to
+ *  1rem), so a stored override equal to one of these is fake-default
+ *  baggage that only makes the var read as "customised" (a phantom
+ *  Reset). Stripping it returns the account to the real Default. */
 export const LEGACY_BAKED_OVERRIDES: ThemeOverrides = {
   "--primary": "#f97316",
   "--ring": "#fb923c",

@@ -2,9 +2,8 @@
 
 import { Check, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,14 +12,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
-import { buildFlinttypeExport, downloadJson } from "@/lib/import-export";
-import { useKeyboardSettings } from "@/lib/keyboard-settings";
+import { PaletteSwitchDialog } from "@/components/palette-switch-dialog";
 import { useThemeOverrides } from "@/lib/theme-customization";
-import { overrideCount } from "@/lib/themes/overrides";
 import { cn } from "@/lib/utils";
 import { BACKGROUND_REACTIVE_ID } from "@/lib/themes/background-reactive";
 import { CUSTOM_THEME_ID } from "@/lib/themes/registry";
 import { type Theme, usePalette } from "@/lib/themes/use-palette";
+import { usePaletteSwitch } from "@/lib/themes/use-palette-switch";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { LabelWithDesc } from "../controls";
 import { SettingsRow } from "../row";
@@ -71,40 +69,17 @@ function ThemeSwatches({ theme }: { theme: Theme }) {
   return <PaletteSwatches colors={colors} />;
 }
 
-/** A pending theme pick — captured when the user clicks an entry,
- *  released when they confirm or cancel the warning dialog. `id`
- *  is null for the synthetic Default reset; otherwise it's the id
- *  passed to `apply`. */
-type PendingPick = { id: string | null; name: string };
-
-/** localStorage key for the "skip the warning dialog" preference.
- *  Browser-persistent on purpose — the user opting out should follow
- *  them between sessions, but never sync to the server (it's a tiny
- *  per-device UX nudge, not part of their settings profile). */
-const SKIP_DIALOG_STORAGE_KEY = "ft-theme-skip-confirm";
-
-/** Read at click time (not in render) — it only changes behaviour. */
-function readSkipDialog(): boolean {
-  try {
-    return window.localStorage.getItem(SKIP_DIALOG_STORAGE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
 export function ThemesRow() {
-  const { themes, activeId, apply, reset } = usePalette();
+  const { themes, activeId } = usePalette();
   const { overrides } = useThemeOverrides();
-  const { isCustomised: keyboardCustomised } = useKeyboardSettings();
+  const { requestPick: requestSwitch, dialog, focusDialog } =
+    usePaletteSwitch();
   const router = useRouter();
   const isMobile = useIsMobile();
   const [sheetOpen, setSheetOpen] = useState(false);
-  // Two-phase pick: setting `pending` opens the warning dialog; the
-  // dialog's confirm button reads it and runs the actual apply/reset.
-  const [pending, setPending] = useState<PendingPick | null>(null);
-  const [exportFirst, setExportFirst] = useState(true);
-  const [exporting, setExporting] = useState(false);
-  const [skipNextTime, setSkipNextTime] = useState(false);
+  // Set when a pick opened the warning, so the menu doesn't pull focus
+  // back to its trigger and out of the dialog as it closes.
+  const handingOff = useRef(false);
   const isCustom = activeId === CUSTOM_THEME_ID;
   const active = activeId && !isCustom
     ? themes.find((t) => t.id === activeId) ?? null
@@ -119,55 +94,9 @@ export function ThemesRow() {
     <PaletteSwatches colors={DEFAULT_SWATCHES} />
   );
 
-  function requestPick(p: PendingPick) {
+  function requestPick(id: string | null, name: string) {
     setSheetOpen(false);
-    // Re-picking the active theme is a no-op visually but applying
-    // would still wipe customisations — guard so accidental re-clicks
-    // don't trash the user's caret/font picks.
-    const sameAsActive =
-      (p.id === null && activeId === null) ||
-      (p.id !== null && activeId === p.id);
-    if (sameAsActive) return;
-    // A palette switch only clears the theme-owned slices (per-colour,
-    // corner, font overrides and the keyboard look). When none of
-    // those are customised there is nothing to lose — switch at once.
-    const nothingToLose =
-      overrideCount(overrides) === 0 && !keyboardCustomised;
-    if (readSkipDialog() || nothingToLose) {
-      // User opted out of the warning previously. Apply directly,
-      // skip the export prompt, no dialog flash.
-      if (p.id === null) reset();
-      else apply(p.id);
-      return;
-    }
-    setSkipNextTime(false);
-    setPending(p);
-  }
-
-  async function commitPending() {
-    if (!pending) return;
-    if (exportFirst) {
-      try {
-        setExporting(true);
-        const data = await buildFlinttypeExport();
-        const stamp = new Date().toISOString().slice(0, 10);
-        downloadJson(`flinttype-settings-${stamp}.json`, data);
-      } finally {
-        setExporting(false);
-      }
-    }
-    // Persist the "don't show again" choice before applying so a
-    // re-render after apply doesn't race the localStorage write.
-    if (skipNextTime) {
-      try {
-        window.localStorage.setItem(SKIP_DIALOG_STORAGE_KEY, "1");
-      } catch {
-        // storage blocked — the dialog just shows again next time.
-      }
-    }
-    if (pending.id === null) reset();
-    else apply(pending.id);
-    setPending(null);
+    handingOff.current = requestSwitch(id, name) === "confirm";
   }
 
   function exploreThemes() {
@@ -191,178 +120,122 @@ export function ThemesRow() {
 
   return (
     <>
-    <SettingsRow
-      inline
-      label={
-        <LabelWithDesc
-          title="Palette"
-          desc="The colours used across the whole app."
-        />
-      }
-      control={
-        isMobile ? (
-          <>
-            {trigger}
-            <MobileSheet
-              open={sheetOpen}
-              onOpenChange={setSheetOpen}
-              title="Palette"
-            >
-              <ul className="flex flex-col">
-                <ThemeSheetItem
-                  name="Default"
-                  swatches={
-                    <PaletteSwatches colors={DEFAULT_SWATCHES} />
-                  }
-                  active={activeId === null}
-                  onSelect={() => requestPick({ id: null, name: "Default" })}
-                />
-                {themes.map((t) => (
+      <SettingsRow
+        inline
+        label={
+          <LabelWithDesc
+            title="Palette"
+            desc="The colours used across the whole app."
+          />
+        }
+        control={
+          isMobile ? (
+            <>
+              {trigger}
+              <MobileSheet
+                open={sheetOpen}
+                onOpenChange={setSheetOpen}
+                title="Palette"
+              >
+                <ul className="flex flex-col">
                   <ThemeSheetItem
-                    key={t.id}
-                    name={t.name}
-                    swatches={<ThemeSwatches theme={t} />}
-                    active={activeId === t.id}
-                    onSelect={() => requestPick({ id: t.id, name: t.name })}
+                    name="Default"
+                    swatches={
+                      <PaletteSwatches colors={DEFAULT_SWATCHES} />
+                    }
+                    active={activeId === null}
+                    onSelect={() => requestPick(null, "Default")}
                   />
-                ))}
-                <li>
-                  <button
-                    type="button"
-                    onClick={exploreThemes}
-                    className="flex w-full items-center gap-3 px-4 py-4 text-left text-base font-semibold text-primary transition-colors hover:bg-accent active:bg-foreground/10"
-                  >
-                    Browse all palettes
-                  </button>
-                </li>
-              </ul>
-            </MobileSheet>
-          </>
-        ) : (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              collisionPadding={16}
-              className="flex max-h-[min(70vh,var(--radix-dropdown-menu-content-available-height))] w-[17rem] flex-col overflow-hidden p-0"
-            >
-              <div className="flex-none p-1">
-                <DropdownMenuItem
-                  onSelect={() => requestPick({ id: null, name: "Default" })}
-                  className="gap-3"
-                >
-                  <span
-                    className={cn(
-                      "inline-flex h-4 w-4 items-center justify-center",
-                      activeId === null ? "text-primary" : "text-transparent",
-                    )}
-                  >
-                    <Check size={14} />
-                  </span>
-                  <span className="flex-1 truncate">Default</span>
-                  <PaletteSwatches colors={DEFAULT_SWATCHES} />
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1">
-                {themes.map((t) => (
+                  {themes.map((t) => (
+                    <ThemeSheetItem
+                      key={t.id}
+                      name={t.name}
+                      swatches={<ThemeSwatches theme={t} />}
+                      active={activeId === t.id}
+                      onSelect={() => requestPick(t.id, t.name)}
+                    />
+                  ))}
+                  <li>
+                    <button
+                      type="button"
+                      onClick={exploreThemes}
+                      className="flex w-full items-center gap-3 px-4 py-4 text-left text-base font-semibold text-primary transition-colors hover:bg-accent active:bg-foreground/10"
+                    >
+                      Browse all palettes
+                    </button>
+                  </li>
+                </ul>
+              </MobileSheet>
+            </>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                collisionPadding={16}
+                onCloseAutoFocus={(e) => {
+                  if (!handingOff.current) return;
+                  handingOff.current = false;
+                  e.preventDefault();
+                  focusDialog();
+                }}
+                className="flex max-h-[min(70vh,var(--radix-dropdown-menu-content-available-height))] w-[17rem] flex-col overflow-hidden p-0"
+              >
+                <div className="flex-none p-1">
                   <DropdownMenuItem
-                    key={t.id}
-                    onSelect={() => requestPick({ id: t.id, name: t.name })}
+                    onSelect={() => requestPick(null, "Default")}
                     className="gap-3"
                   >
                     <span
                       className={cn(
                         "inline-flex h-4 w-4 items-center justify-center",
-                        activeId === t.id ? "text-primary" : "text-transparent",
+                        activeId === null ? "text-primary" : "text-transparent",
                       )}
                     >
                       <Check size={14} />
                     </span>
-                    <span className="flex-1 truncate">{t.name}</span>
-                    <ThemeSwatches theme={t} />
+                    <span className="flex-1 truncate">Default</span>
+                    <PaletteSwatches colors={DEFAULT_SWATCHES} />
                   </DropdownMenuItem>
-                ))}
-              </div>
-              <div className="flex-none border-t border-border p-1">
-                <DropdownMenuItem
-                  onSelect={() =>
-                    router.push("/customise/appearance/themes")
-                  }
-                  className="gap-3"
-                >
-                  <span className="inline-flex h-4 w-4 items-center justify-center" />
-                  <span className="flex-1 font-medium">Browse all palettes</span>
-                </DropdownMenuItem>
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )
-      }
-    />
-    <ConfirmDialog
-      open={pending !== null}
-      onOpenChange={(next) => {
-        if (!next) setPending(null);
-      }}
-      title={pending ? `Switch to ${pending.name}?` : "Switch theme?"}
-      confirmLabel={
-        exporting
-          ? "Exporting…"
-          : exportFirst
-            ? "Export & switch"
-            : "Switch anyway"
-      }
-      cancelLabel="Cancel"
-      confirmVariant="destructive"
-      onConfirm={() => {
-        // ConfirmDialog calls onOpenChange(false) right after — that
-        // sets pending to null. Run the apply on the same tick so the
-        // export-then-apply chain still has the pending value cached.
-        void commitPending();
-      }}
-    >
-      <div className="flex flex-col gap-4 text-sm leading-relaxed">
-        <p>
-          Switching palettes resets your <strong>colours, corners, font and
-          keyboard look</strong>. Everything else stays as it is.
-        </p>
-        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-muted/40 p-3 hover:bg-muted/60">
-          <input
-            type="checkbox"
-            checked={exportFirst}
-            onChange={(e) => setExportFirst(e.currentTarget.checked)}
-            className="mt-0.5 h-4 w-4 accent-primary"
-          />
-          <span className="flex flex-col gap-1">
-            <span className="font-medium text-foreground">
-              Export my settings to a JSON file first
-            </span>
-            <span className="text-xs text-muted-foreground">
-              Lands in your Downloads folder. You can re-import any time
-              from this same page.
-            </span>
-          </span>
-        </label>
-        <label className="flex cursor-pointer items-start gap-3 px-1">
-          <input
-            type="checkbox"
-            checked={skipNextTime}
-            onChange={(e) => setSkipNextTime(e.currentTarget.checked)}
-            className="mt-0.5 h-4 w-4 accent-primary"
-          />
-          <span className="flex flex-col gap-1">
-            <span className="font-medium text-foreground">
-              Don&apos;t show this dialog again
-            </span>
-            <span className="text-xs text-muted-foreground">
-              Saved in this browser only. Future theme picks apply
-              directly. Clear browser storage to reset.
-            </span>
-          </span>
-        </label>
-      </div>
-    </ConfirmDialog>
+                  <DropdownMenuSeparator />
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1">
+                  {themes.map((t) => (
+                    <DropdownMenuItem
+                      key={t.id}
+                      onSelect={() => requestPick(t.id, t.name)}
+                      className="gap-3"
+                    >
+                      <span
+                        className={cn(
+                          "inline-flex h-4 w-4 items-center justify-center",
+                          activeId === t.id ? "text-primary" : "text-transparent",
+                        )}
+                      >
+                        <Check size={14} />
+                      </span>
+                      <span className="flex-1 truncate">{t.name}</span>
+                      <ThemeSwatches theme={t} />
+                    </DropdownMenuItem>
+                  ))}
+                </div>
+                <div className="flex-none border-t border-border p-1">
+                  <DropdownMenuItem
+                    onSelect={() =>
+                      router.push("/customise/appearance/themes")
+                    }
+                    className="gap-3"
+                  >
+                    <span className="inline-flex h-4 w-4 items-center justify-center" />
+                    <span className="flex-1 font-medium">Browse all palettes</span>
+                  </DropdownMenuItem>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
+        }
+      />
+      <PaletteSwitchDialog {...dialog} />
     </>
   );
 }

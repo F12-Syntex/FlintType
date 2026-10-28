@@ -12,8 +12,9 @@ import type { ThemeVar } from "../theme-customization";
  *
  *  The `caret` and `appearance` fields on this type are kept for
  *  legacy preset shape and are ignored at apply time
- *  (see use-palette.tsx `apply`). New preset work should populate
- *  `keyboard` + `themeOverrides` only. */
+ *  (`palettePresetSlices` in palette-baseline.ts is what a pick writes,
+ *  and the settings pages measure changes against that same baseline).
+ *  New preset work should populate `keyboard` + `themeOverrides` only. */
 export type ThemePreset = {
   /** @deprecated — ignored at apply time. See file docstring. */
   appearance?: Partial<AppearancePrefs>;

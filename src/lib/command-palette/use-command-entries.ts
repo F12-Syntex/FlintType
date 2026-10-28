@@ -32,19 +32,18 @@ import type { CommandEntry } from "./types";
  *      (`entries-*.ts`, pure and unit-tested); this hook only wires the
  *      pref hooks in. The palette groups entries by `group` and keeps
  *      this order inside each group. */
-export function useCommandEntries(): readonly CommandEntry[] {
+export function useCommandEntries(
+  /** Palette switches go through the caller's `usePaletteSwitch`, so
+   *  its confirm dialog renders beside the command palette. */
+  pickPalette: (id: string | null, name: string) => void,
+): readonly CommandEntry[] {
   const router = useRouter();
   const { prefs: ap, update: setAp } = useAppearancePrefs();
   const { prefs: audio, update: setAudio } = useAudioPrefs();
   const { prefs: bp, update: setBp } = useBehaviourPrefs();
   const { settings: cs, update: setCs } = useCaretSettings();
   const { settings: ks, update: setKs } = useKeyboardSettings();
-  const {
-    themes,
-    activeId: paletteId,
-    apply: applyPalette,
-    reset: resetPalette,
-  } = usePalette();
+  const { themes, activeId: paletteId } = usePalette();
   const { theme: mode, setTheme: setMode } = useNextTheme();
 
   return useMemo<readonly CommandEntry[]>(
@@ -54,8 +53,7 @@ export function useCommandEntries(): readonly CommandEntry[] {
         setMode,
         paletteId,
         themes,
-        applyPalette,
-        resetPalette,
+        pickPalette,
       }),
       ...behaviourEntries({ bp, setBp, audio, setAudio }),
       ...typingEntries({ ap, setAp, cs, setCs }),
@@ -70,8 +68,7 @@ export function useCommandEntries(): readonly CommandEntry[] {
       setMode,
       paletteId,
       themes,
-      applyPalette,
-      resetPalette,
+      pickPalette,
       ap,
       setAp,
       audio,

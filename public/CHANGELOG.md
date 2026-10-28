@@ -8,6 +8,12 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.29 — 27 October 2026
+- The palette gallery and the command palette (Ctrl/Cmd+K → Palette) now ask before a switch that would reset your colour, corner, font or keyboard changes, just like Settings → Theme. When there's nothing to lose, the switch happens straight away.
+- A palette's own font size, word spacing, corners and key style no longer count as your changes, so picking Catppuccin or Cyberpunk doesn't show a Reset count on any settings page.
+- A settings page's Reset now returns to the look of your current palette, not the bare defaults.
+- Picking a palette now shows its corner radius straight away instead of after a reload.
+
 ## 6.148.28 — 27 October 2026
 - Burst results now lead with your speed across the bursts you cleared, labelled "Burst WPM", with a short line under it saying what it counts. Raw covers every try, and the result says how many tries didn't clear.
 - The Burst result chart now starts at the first second, so mistakes at the start of a run show on it.
