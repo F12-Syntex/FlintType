@@ -8,6 +8,13 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.144.0 — 27 October 2026
+- Settings are now split into seven short pages (Theme, Typing, Interface, Keyboard, Stats & results, Behaviour, Multiplayer & social), with a sidebar that highlights the page and section you're on.
+- Search any setting from the new Search settings button, or press Ctrl K (⌘ K on Mac); pressing Escape now closes the command palette instead of reopening it.
+- On/off settings are now simple switches, previews start folded away, and options that don't apply yet stay hidden until they do.
+- Each settings page has its own Reset button that appears only when you've changed something, and switching palettes no longer asks for confirmation when you have nothing to lose.
+- New options let you pulse the caret before a test, choose where quote credits appear, and show results as cards or plain.
+
 ## 6.143.0 — 27 October 2026
 - The drills page now leads with one recommended drill and a big orange Start button, so you always know what to practise next.
 - Drills are grouped into Tailored to you and For everyone, as compact rounded cards you tap anywhere to start. The page is about half as long on phones.

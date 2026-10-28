@@ -32,25 +32,25 @@ export function TileShell({
       aria-pressed={active}
       aria-label={ariaLabel}
       className={cn(
-        "group relative block w-full overflow-hidden rounded-md border text-left transition-all duration-200",
+        "group relative block w-full overflow-hidden rounded-2xl border text-left shadow-card transition-all duration-200",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         active
           ? "border-primary ring-2 ring-primary/30"
-          : "border-border hover:border-foreground/30 hover:shadow-md",
+          : "border-border hover:border-foreground/30 hover:shadow-float",
       )}
     >
       {children}
-      <div className="flex items-center justify-between gap-2 border-t border-border bg-card px-3 py-2.5">
+      <div className="flex items-center justify-between gap-2 border-t border-border bg-card px-4 py-3">
         <span
           className={cn(
-            "truncate text-[12px] font-semibold uppercase tracking-[0.16em]",
+            "truncate text-sm font-semibold",
             accentName ? "text-primary" : "text-foreground",
           )}
         >
           {name}
         </span>
         {active ? (
-          <span className="flex shrink-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
+          <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-primary">
             <span aria-hidden className="size-1.5 rounded-full bg-primary" />
             Active
           </span>

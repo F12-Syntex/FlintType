@@ -308,7 +308,7 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   // Monkeytype-leaning baseline: subtle card surfaces, no dividers
   // between sections, paper bg, comfortable padding. Editorial
   // preset (solid cards + hairline dividers) is one click away from
-  // /customise/appearance#surface.
+  // /customise/interface#surface.
   cardSurfaces: "subtle",
   dividers: "hidden",
   pagePadding: "comfortable",
@@ -349,6 +349,19 @@ export function useAppearancePrefs() {
   const reset = useCallback(() => {
     if (!overridden) resetRaw();
   }, [resetRaw, overridden]);
+  /** Put just `keys` back to their defaults in one write — used by a
+   *  settings page's "Reset" so it never touches another page's picks. */
+  const resetKeys = useCallback(
+    (keys: readonly (keyof AppearancePrefs)[]) => {
+      if (overridden || keys.length === 0) return;
+      const patch: Partial<AppearancePrefs> = {};
+      for (const k of keys) {
+        (patch as Record<string, unknown>)[k] = DEFAULT_APPEARANCE[k];
+      }
+      updateRaw(patch);
+    },
+    [updateRaw, overridden],
+  );
 
   const customizedCount = useMemo(
     () =>
@@ -359,5 +372,5 @@ export function useAppearancePrefs() {
     [prefs],
   );
 
-  return { prefs, update, reset, customizedCount } as const;
+  return { prefs, update, reset, resetKeys, customizedCount } as const;
 }

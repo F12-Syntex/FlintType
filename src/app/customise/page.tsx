@@ -1,18 +1,17 @@
 import { redirect } from "next/navigation";
 import { buildPageMetadata } from "@/server/seo";
+import { DEFAULT_GROUP } from "./_components/groups";
 
 export const metadata = buildPageMetadata({
   title: "Settings",
   description:
-    "flinttype settings — caret styles, themes, behaviour, keyboard visualisation, adaptive tuning. Each option ships with a live preview.",
+    "flinttype settings: theme, typing, interface, keyboard, stats, behaviour and multiplayer. Every change applies straight away.",
   path: "/customise",
   noIndex: true,
 });
 
-/** Settings root — bounce to the Appearance overview so the URL always
- *  names the visible content (and the sidebar's active highlight is
- *  correct). Appearance is the landing surface; sub-pages live under
- *  /customise/appearance/<id>. */
+/** Settings root — land on the first group so the URL always names
+ *  what's on screen and the sidebar highlight is right. */
 export default function CustomiseIndexPage() {
-  redirect("/customise/appearance");
+  redirect(DEFAULT_GROUP.href);
 }

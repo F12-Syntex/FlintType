@@ -1,15 +1,16 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { Children, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-/** A small uppercase preset chip — the canonical control for any
- *  settings row whose choice space is 2–6 short discrete values
- *  (Style, Thickness, Mode, …). See `docs/ui-law.md` §12.2.
+/** One option in a visual choice row (ui-law §12.2a): a small sample of
+ *  what the option does stacked over its label, so the user picks by
+ *  comparison. Text-only choices don't use this — they render as the
+ *  shared segmented switch (see `SelectChips`).
  *
- *  Pass `preview` whenever the value is visual (a radius shape, a
- *  caret variant, a colour swatch). The chip stacks the preview above
- *  the text label; without a preview it's a flat text chip. */
+ *  Selected = the brand orange (tinted fill + orange hairline + orange
+ *  label); at rest it's a quiet muted tile. The border is always
+ *  present (transparent at rest) so selecting never shifts layout. */
 export function Chip({
   label,
   preview,
@@ -27,32 +28,47 @@ export function Chip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "flex min-h-9 flex-col items-center justify-center gap-1 rounded-md font-semibold uppercase tracking-wider transition-colors",
+        "inline-flex min-h-11 cursor-pointer items-center justify-center border text-[13px] font-medium transition-[color,background-color,border-color] duration-200 outline-none sm:min-h-9",
+        "focus-visible:ring-2 focus-visible:ring-ring/50",
         preview
-          ? "px-3 py-2 text-[11px] sm:px-2 sm:py-1.5 sm:text-[10px]"
-          : "px-3 py-2 text-xs sm:px-2.5 sm:py-1 sm:text-[11px]",
+          ? "min-w-0 flex-col gap-1.5 rounded-xl px-1.5 py-2 text-xs sm:min-w-16 sm:px-3"
+          : "rounded-pill px-3.5 py-1.5",
         active
-          ? "border border-primary bg-primary/10 text-primary"
-          : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground",
+          ? "border-primary bg-primary/10 text-primary"
+          : "border-transparent bg-muted text-muted-foreground hover:bg-accent hover:text-foreground",
       )}
     >
       {preview ? (
-        <span className="flex items-center justify-center">{preview}</span>
+        <span className="flex min-h-5 items-center justify-center">
+          {preview}
+        </span>
       ) : null}
-      <span>{label}</span>
+      <span className="leading-none">{label}</span>
     </button>
   );
 }
 
-/** Right-aligned wrapper for a row of `<Chip>`s — wraps onto a second
- *  line on narrow viewports without pushing the surrounding row past
- *  its `max-h-48` (3× min) cap. */
+/** Mobile column count by option count: up to four options share one
+ *  row; five or more fall into rows of three. */
+const MOBILE_COLS: Record<number, string> = {
+  1: "grid-cols-1",
+  2: "grid-cols-2",
+  3: "grid-cols-3",
+  4: "grid-cols-4",
+};
+
+/** Wrapper for a row of `<Chip>`s. On phones it's an even grid (equal
+ *  tiles, so a wrapped row never leaves one ragged chip); from `sm` up
+ *  the chips sit right-aligned beside the label. */
 export function ChipGroup({ children }: { children: ReactNode }) {
-  // Mobile: chips align left under the stacked label and wrap freely
-  // across the full row. From `sm:` up the row goes inline with the
-  // label on the left, so chips line up to the right edge.
+  const count = Children.count(children);
   return (
-    <div className="flex flex-wrap justify-start gap-1.5 sm:justify-end">
+    <div
+      className={cn(
+        "grid w-full gap-1.5 sm:flex sm:w-auto sm:flex-wrap sm:justify-end",
+        MOBILE_COLS[count] ?? "grid-cols-3",
+      )}
+    >
       {children}
     </div>
   );

@@ -25,7 +25,7 @@ export function ReactiveTile({
       accentName
     >
       <div
-        className="flex aspect-[5/4] flex-col gap-2.5 px-4 pt-3.5 pb-4 text-white"
+        className="flex flex-col gap-2.5 px-4 pt-3.5 pb-4 sm:aspect-[5/4] text-white"
         style={{ background: grad }}
       >
         <div className="flex items-center justify-between gap-3">

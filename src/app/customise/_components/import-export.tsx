@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, MoreHorizontal, Upload } from "lucide-react";
+import { ArrowDownUp, Download, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -23,11 +23,9 @@ import { cn } from "@/lib/utils";
 
 type Source = "flinttype" | "monkeytype";
 
-/** Single Import / Export trigger — sits next to "Reset all" in the
- *  customise page header. Opens a small dropdown with the three
- *  actions; no more vertical 3-button panel cluttering the sidebar
- *  footer. Imports are still two-phase: file picker → ConfirmDialog
- *  showing every slice that will change → commit. */
+/** The "Import / export" menu in every settings page header. Export
+ *  downloads a JSON file; imports are two-phase: file picker →
+ *  ConfirmDialog listing every slice that will change → commit. */
 export function ImportExportMenu({
   className,
 }: {
@@ -118,16 +116,13 @@ export function ImportExportMenu({
             variant="outline"
             size="sm"
             aria-label="Import or export settings"
-            className="gap-1.5"
+            className="size-9 px-0 sm:h-8 sm:w-auto sm:px-3"
           >
-            <MoreHorizontal size={14} aria-hidden />
-            <span className="hidden sm:inline">Manage</span>
+            <ArrowDownUp aria-hidden />
+            <span className="hidden sm:inline">Import / export</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-[12rem]">
-          <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Settings file
-          </DropdownMenuLabel>
+        <DropdownMenuContent align="end" className="min-w-[13rem]">
           <DropdownMenuItem
             onSelect={() => void handleExport()}
             className="gap-2"
@@ -136,22 +131,22 @@ export function ImportExportMenu({
             Export settings
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Restore from
+          <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+            Import from a file
           </DropdownMenuLabel>
           <DropdownMenuItem
             onSelect={() => chooseFile("flinttype")}
             className="gap-2"
           >
             <Upload size={14} aria-hidden className="text-muted-foreground" />
-            flinttype JSON
+            flinttype settings
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={() => chooseFile("monkeytype")}
             className="gap-2"
           >
             <Upload size={14} aria-hidden className="text-muted-foreground" />
-            MonkeyType JSON
+            MonkeyType settings
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -209,13 +204,13 @@ function ImportSummary({ plan }: { plan: ImportPlan }) {
         {plan.changes.map((c) => (
           <li
             key={c.slice}
-            className="overflow-hidden rounded-md border border-border bg-card"
+            className="overflow-hidden rounded-xl border border-border bg-card"
           >
             <header className="flex items-baseline justify-between gap-2 border-b border-border bg-background/40 px-3 py-2">
               <span className="text-sm font-semibold text-foreground">
                 {c.label}
               </span>
-              <span className="shrink-0 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              <span className="shrink-0 text-xs text-muted-foreground">
                 {c.slice}
               </span>
             </header>

@@ -97,7 +97,7 @@ export function ThemeTile({
       accentName={accentName}
     >
       <div
-        className="flex aspect-[5/4] flex-col gap-2.5 px-4 pt-3.5 pb-4"
+        className="flex flex-col gap-2.5 px-4 pt-3.5 pb-4 sm:aspect-[5/4]"
         style={{ backgroundColor: vars.background, color: vars.foreground }}
       >
         {/* Band 1 — Aa display + font name + palette stripe */}
