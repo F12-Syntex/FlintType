@@ -99,8 +99,10 @@ export function SettingsSection({
                 size="sm"
                 onClick={togglePreview}
                 aria-expanded={previewOpen}
-                aria-controls={`${id}-preview`}
-                className="gap-1.5 text-muted-foreground hover:text-foreground"
+                // The preview only mounts while open, so only point at
+                // it then.
+                aria-controls={previewOpen ? `${id}-preview` : undefined}
+                className="h-11 gap-1.5 text-muted-foreground hover:text-foreground sm:h-8"
               >
                 Preview
                 <ChevronDown

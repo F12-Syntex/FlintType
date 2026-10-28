@@ -8,7 +8,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -122,7 +121,7 @@ export function ImportExportMenu({
             <span className="hidden sm:inline">Import / export</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-[13rem]">
+        <DropdownMenuContent align="end" className="min-w-[15rem]">
           <DropdownMenuItem
             onSelect={() => void handleExport()}
             className="gap-2"
@@ -131,22 +130,19 @@ export function ImportExportMenu({
             Export settings
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-            Import from a file
-          </DropdownMenuLabel>
           <DropdownMenuItem
             onSelect={() => chooseFile("flinttype")}
             className="gap-2"
           >
             <Upload size={14} aria-hidden className="text-muted-foreground" />
-            flinttype settings
+            Import flinttype settings
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={() => chooseFile("monkeytype")}
             className="gap-2"
           >
             <Upload size={14} aria-hidden className="text-muted-foreground" />
-            MonkeyType settings
+            Import MonkeyType settings
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

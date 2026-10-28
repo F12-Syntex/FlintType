@@ -8,7 +8,6 @@ import { MobileReadouts, Readouts } from "@/app/_components/readouts";
 import { TestSummary } from "@/app/_components/test-summary";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { useBackgroundPrefs } from "@/lib/background-prefs";
-import { useKeyboardSettings } from "@/lib/keyboard-settings";
 import { PreviewPracticeProvider } from "../preview-practice";
 
 /** Section previews that mount the *real* on-page components inside a
@@ -34,7 +33,7 @@ function PreviewSurface({
 }) {
   return (
     <PreviewPracticeProvider>
-      <div className="flex flex-col gap-4 px-5 py-5 sm:px-6 sm:py-6">
+      <div className="flex flex-col gap-4 px-4 py-5 sm:px-5 sm:py-6">
         {withReadouts ? (
           <>
             <div className="md:hidden">
@@ -77,7 +76,7 @@ export function GeometryPreview() {
   // Radius shows up everywhere — the passage card, buttons, chips,
   // popovers. A passage + a button row covers both surfaces.
   return (
-    <div className="flex flex-col gap-4 px-5 py-5 sm:px-6 sm:py-6">
+    <div className="flex flex-col gap-4 px-4 py-5 sm:px-5 sm:py-6">
       <PreviewPracticeProvider>
         <div className="relative h-[140px] w-full">
           <Passage />
@@ -131,7 +130,7 @@ export function BackgroundPreview() {
   // user sees the image (or fallback) actually behind their typing
   // surface — same composition as /app.
   return (
-    <div className="px-5 py-5 sm:px-6 sm:py-6">
+    <div className="px-4 py-5 sm:px-5 sm:py-6">
       <div
         className="relative overflow-hidden rounded-2xl border border-foreground/15"
         style={
@@ -169,9 +168,17 @@ export function LiveStatsPreview() {
   // The real Readouts strip — colour, opacity, style (off / text /
   // mini / flash), unit, decimal-toggle and progress mode all flow
   // through unchanged.
+  const { prefs } = useAppearancePrefs();
+  if (prefs.statStripSurface === "none") {
+    return (
+      <div className="flex min-h-[120px] items-center justify-center px-4 py-8 text-center text-sm text-muted-foreground">
+        Live stats are hidden. Turn on Show live stats to see them.
+      </div>
+    );
+  }
   return (
     <PreviewPracticeProvider>
-      <div className="px-5 py-7 sm:px-7 sm:py-9">
+      <div className="px-4 py-7 sm:px-5 sm:py-9">
         <div className="md:hidden">
           <MobileReadouts />
         </div>
@@ -199,7 +206,7 @@ export function TypingAreaPreview() {
       activeWordTyped="juypsx"
       errorWord={1}
     >
-      <div className="px-5 py-5 sm:px-6 sm:py-6">
+      <div className="px-4 py-5 sm:px-5 sm:py-6">
         <div className="relative h-[160px] w-full">
           <Passage />
         </div>
@@ -210,15 +217,37 @@ export function TypingAreaPreview() {
 
 /* ─── Keyboard ─────────────────────────────────────────────────── */
 
-export function KeyboardLivePreview() {
-  const { settings } = useKeyboardSettings();
+/** The practice keyboard exactly as the test draws it: the layout,
+ *  arrangement, labels, number row, size and "Letters only" from the
+ *  appearance prefs, the key style and marks from the keyboard settings
+ *  (read inside `<Keyboard>`). A few keys are held down so the pressed
+ *  colour shows. `alwaysShow` (the AI studio tile) draws it even while
+ *  the keyboard is switched off. */
+export function KeyboardLivePreview({
+  alwaysShow = false,
+}: {
+  alwaysShow?: boolean;
+}) {
+  const { prefs } = useAppearancePrefs();
+  if (prefs.keymap === "off" && !alwaysShow) {
+    return (
+      <div className="flex min-h-[180px] items-center justify-center px-4 py-8 text-center text-sm text-muted-foreground">
+        The keyboard is off. Pick another option below to see it.
+      </div>
+    );
+  }
+  const layoutId: LayoutId =
+    prefs.keymapLayout in LAYOUTS ? (prefs.keymapLayout as LayoutId) : "qwerty";
   return (
-    <div className="px-4 py-5 sm:px-6 sm:py-6">
+    <div className="px-4 py-5 sm:px-5 sm:py-6">
       <Keyboard
-        settingsOverride={settings}
-        forcedPressed={new Set(["KeyF", "KeyJ", "KeyK"])}
-        mode="static"
-        scale={0.85}
+        layout={layoutId}
+        mode={prefs.keymap === "static" ? "static" : "react"}
+        legend={prefs.keymapLegend}
+        topRow={prefs.keymapTopRow}
+        scale={Math.min(prefs.keymapSize, 1)}
+        forcedPressed={new Set(["KeyF", "KeyJ", "KeyD", "KeyK"])}
+        settingsOverride={{ compact: prefs.keymapCompact }}
       />
     </div>
   );
@@ -235,7 +264,7 @@ export function ResultLivePreview() {
   // through unchanged because the real component is doing the work.
   return (
     <PreviewPracticeProvider phase="done">
-      <div className="min-h-[420px] px-4 py-5 sm:px-6 sm:py-6">
+      <div className="min-h-[420px] px-4 py-5 sm:px-5 sm:py-6">
         <TestSummary preview />
       </div>
     </PreviewPracticeProvider>
@@ -314,7 +343,7 @@ export function MultiplayerPreview() {
       cursorChar={1}
       errorWord={undefined}
     >
-      <div className="flex flex-col gap-4 px-5 py-5 sm:px-6 sm:py-6">
+      <div className="flex flex-col gap-4 px-4 py-5 sm:px-5 sm:py-6">
         <div className="relative h-[160px] w-full">
           <Passage
             wordBackground={wordBackground}
@@ -360,7 +389,7 @@ function LegendDot({ label, color }: { label: string; color: string }) {
  *  here without bespoke logic. */
 export function SurfacePreview() {
   return (
-    <div className="flex flex-col gap-5 px-5 py-6 sm:px-6">
+    <div className="flex flex-col gap-5 px-4 py-6 sm:px-5">
       <div className="rounded-2xl border border-border bg-card px-4 py-3 shadow-card">
         <div className="mb-0.5 text-xs font-medium text-muted-foreground">
           A card
@@ -401,7 +430,7 @@ export function SurfacePreview() {
  *  real run); the row blurb explains. */
 export function ChromePreview() {
   return (
-    <div className="flex flex-col gap-3 px-5 py-5 sm:px-6 sm:py-6">
+    <div className="flex flex-col gap-3 px-4 py-5 sm:px-5 sm:py-6">
       <div className="flex items-center justify-between gap-3 rounded-pill border border-border bg-background/85 px-4 py-2 backdrop-blur-md">
         <span className="text-sm font-semibold text-foreground">flinttype</span>
         <nav className="hidden items-center gap-1 text-xs text-muted-foreground sm:flex">
@@ -424,34 +453,6 @@ export function ChromePreview() {
           <span>Settings</span>
         </span>
       </div>
-    </div>
-  );
-}
-
-/* ─── Keymap ───────────────────────────────────────────────────── */
-
-export function KeymapLivePreview() {
-  const { prefs } = useAppearancePrefs();
-  if (prefs.keymap === "off") {
-    return (
-      <div className="flex min-h-[180px] items-center justify-center px-4 py-8 text-sm text-muted-foreground">
-        The keymap is off. Pick another option below to see it.
-      </div>
-    );
-  }
-  const layoutId: LayoutId =
-    prefs.keymapLayout in LAYOUTS ? (prefs.keymapLayout as LayoutId) : "qwerty";
-  return (
-    <div className="px-4 py-5 sm:px-6 sm:py-6">
-      <Keyboard
-        layout={layoutId}
-        mode={prefs.keymap === "static" ? "static" : "react"}
-        legend={prefs.keymapLegend}
-        topRow={prefs.keymapTopRow}
-        scale={Math.min(prefs.keymapSize, 1)}
-        forcedPressed={new Set(["KeyF", "KeyJ", "KeyD", "KeyK"])}
-        settingsOverride={{ compact: prefs.keymapCompact }}
-      />
     </div>
   );
 }

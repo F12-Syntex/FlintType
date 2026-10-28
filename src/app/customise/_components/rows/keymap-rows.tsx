@@ -132,99 +132,110 @@ const TOP_ROW_OPTIONS: readonly {
   { id: "never", label: "Never", preview: <KeymapTopRowSample mode="never" /> },
 ];
 
-export function KeymapRows() {
+/** "Show keyboard" — the master row for the whole Keyboard section. It
+ *  carries the `#keymap` anchor so old keymap links still land here. */
+export function KeymapShowRow() {
   const { prefs, update } = useAppearancePrefs();
-  const on = prefs.keymap !== "off";
+  return (
+    <SettingsRow
+      id="keymap"
+      label={
+        <LabelWithDesc
+          title="Show keyboard"
+          desc="React lights the key you pressed; Next lights the key to press."
+        />
+      }
+      control={
+        <SelectChips
+          value={prefs.keymap}
+          options={KEYMAP_OPTIONS}
+          onChange={(v) => update("keymap", v)}
+        />
+      }
+    />
+  );
+}
 
+/** Which layout the keyboard draws and how its keys are arranged. */
+export function KeymapLayoutRows() {
+  const { prefs, update } = useAppearancePrefs();
   return (
     <>
       <SettingsRow
-        label={
-          <LabelWithDesc
-            title="Show keymap"
-            desc="React lights the key you pressed; Next lights the key to press."
-          />
-        }
+        label={<LabelWithDesc title="Layout" desc="The layout your keyboard uses." />}
         control={
           <SelectChips
-            value={prefs.keymap}
-            options={KEYMAP_OPTIONS}
-            onChange={(v) => update("keymap", v)}
+            ariaLabel="Keyboard layout"
+            value={prefs.keymapLayout}
+            options={LAYOUT_OPTIONS}
+            onChange={(v) => update("keymapLayout", v)}
           />
         }
       />
 
-      {on ? (
-        <>
-          <SettingsRow
-            label={<LabelWithDesc title="Layout" desc="The layout your keyboard uses." />}
-            control={
-              <SelectChips
-                ariaLabel="Keymap layout"
-                value={prefs.keymapLayout}
-                options={LAYOUT_OPTIONS}
-                onChange={(v) => update("keymapLayout", v)}
-              />
-            }
+      <SettingsRow
+        label="Key arrangement"
+        control={
+          <SelectChips
+            ariaLabel="Key arrangement"
+            value={prefs.keymapStyle}
+            options={STYLE_OPTIONS}
+            onChange={(v) => update("keymapStyle", v)}
           />
+        }
+      />
+    </>
+  );
+}
 
-          <SettingsRow
-            label="Key arrangement"
-            control={
-              <SelectChips
-                ariaLabel="Key arrangement"
-                value={prefs.keymapStyle}
-                options={STYLE_OPTIONS}
-                onChange={(v) => update("keymapStyle", v)}
-              />
-            }
+/** What's printed on the keys, which rows show, and how big it is. */
+export function KeymapContentRows() {
+  const { prefs, update } = useAppearancePrefs();
+  return (
+    <>
+      <SettingsRow
+        label="Key labels"
+        control={
+          <SelectChips
+            value={prefs.keymapLegend}
+            options={LEGEND_OPTIONS}
+            onChange={(v) => update("keymapLegend", v)}
           />
+        }
+      />
 
-          <SettingsRow
-            label="Key labels"
-            control={
-              <SelectChips
-                value={prefs.keymapLegend}
-                options={LEGEND_OPTIONS}
-                onChange={(v) => update("keymapLegend", v)}
-              />
-            }
+      <SettingsRow
+        label="Number row"
+        control={
+          <SelectChips
+            value={prefs.keymapTopRow}
+            options={TOP_ROW_OPTIONS}
+            onChange={(v) => update("keymapTopRow", v)}
           />
+        }
+      />
 
-          <SettingsRow
-            label="Number row"
-            control={
-              <SelectChips
-                value={prefs.keymapTopRow}
-                options={TOP_ROW_OPTIONS}
-                onChange={(v) => update("keymapTopRow", v)}
-              />
-            }
+      <SettingsRow
+        label="Size"
+        control={
+          <SliderRow
+            value={prefs.keymapSize}
+            min={0.5}
+            max={3.5}
+            step={0.1}
+            ariaLabel="Keyboard size"
+            format={(v) => `${v.toFixed(1)}×`}
+            onChange={(v) => update("keymapSize", v)}
           />
+        }
+      />
 
-          <SettingsRow
-            label="Size"
-            control={
-              <SliderRow
-                value={prefs.keymapSize}
-                min={0.5}
-                max={3.5}
-                step={0.1}
-                ariaLabel="Keymap size"
-                format={(v) => `${v.toFixed(1)}×`}
-                onChange={(v) => update("keymapSize", v)}
-              />
-            }
-          />
-
-          <SwitchRow
-            title="Letters only"
-            desc="Hide modifier keys and the space bar to save room."
-            checked={prefs.keymapCompact}
-            onChange={(v) => update("keymapCompact", v)}
-          />
-        </>
-      ) : null}
+      <SwitchRow
+        title="Letters only"
+        desc="Hide the modifier keys and the space bar to save room."
+        checked={prefs.keymapCompact}
+        onChange={(v) => update("keymapCompact", v)}
+      />
     </>
   );
 }

@@ -4,7 +4,7 @@ import { buildPageMetadata } from "@/server/seo";
 export const metadata = buildPageMetadata({
   title: "Keyboard settings",
   description:
-    "Style the on-screen practice keyboard, then choose the keymap layout, key labels and size shown under the text you type.",
+    "Choose whether the on-screen keyboard shows under the text you type, then set its layout, key style, labels and size.",
   path: "/customise/keyboard",
   noIndex: true,
 });

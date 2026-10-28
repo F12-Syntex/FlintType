@@ -249,7 +249,7 @@ export function ThemesRow() {
             <DropdownMenuContent
               align="end"
               collisionPadding={16}
-              className="flex max-h-[min(70vh,var(--radix-dropdown-menu-content-available-height))] w-[15rem] flex-col overflow-hidden p-0"
+              className="flex max-h-[min(70vh,var(--radix-dropdown-menu-content-available-height))] w-[17rem] flex-col overflow-hidden p-0"
             >
               <div className="flex-none p-1">
                 <DropdownMenuItem

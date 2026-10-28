@@ -8,6 +8,15 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.11 — 27 October 2026
+- Switching between settings pages now always starts at the top, and settings pages no longer slide sideways on phones.
+- The keyboard settings are now one section: its options only appear while the keyboard is shown.
+- Live stats have one Show live stats switch, which no longer hides the numbers by accident.
+- Choices in settings are larger and easier to tap on phones, and rows of five options fill the width evenly.
+- Line width is now a slider with a separate Full option that remembers your last width.
+- The palette gallery shows dark tiles in dark mode, and Design with AI asks you to sign in before you start typing a request.
+- The sidebar has a Design with AI entry, and command palette names now match the settings rows.
+
 ## 6.148.10 — 27 October 2026
 - Practice no longer eases off just because you switched from casual to adaptive tests or changed test length. It now compares each run with your usual pace and accuracy for that same kind of test.
 - If your accuracy stays at your own usual level, practice keeps serving your hardest words instead of holding back.

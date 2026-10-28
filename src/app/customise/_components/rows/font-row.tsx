@@ -270,7 +270,7 @@ export function FontRow({
       label={
         <LabelWithDesc
           title="Typeface"
-          desc="Every font ships with the app, so it works offline."
+          desc="The font of the text you type."
         />
       }
       control={
@@ -280,7 +280,8 @@ export function FontRow({
               variant="ghost"
               size="xs"
               onClick={onClear}
-              className="text-muted-foreground"
+              className="h-9 text-muted-foreground sm:h-7"
+              aria-label="Reset typeface"
             >
               Reset
             </Button>

@@ -9,6 +9,7 @@ import { useThemeOverrides } from "@/lib/theme-customization";
 import { BACKGROUND_REACTIVE_ID } from "@/lib/themes/background-reactive";
 import { CUSTOM_THEME_ID } from "@/lib/themes/registry";
 import { type Theme, usePalette } from "@/lib/themes/use-palette";
+import { useMounted } from "@/lib/use-mounted";
 import { cn } from "@/lib/utils";
 import {
   customVarsFromOverrides,
@@ -29,7 +30,13 @@ export function ThemeExplorer() {
   const { themes, activeId, apply, reset } = usePalette();
   const { overrides } = useThemeOverrides();
   const { resolvedTheme } = useTheme();
-  const mode: "light" | "dark" = resolvedTheme === "dark" ? "dark" : "light";
+  // The server can't know the resolved mode, so the hydrating render
+  // paints light like the server did; the next render switches to the
+  // real mode and React patches the tile styles (it doesn't patch
+  // mismatched attributes during hydration itself).
+  const mounted = useMounted();
+  const mode: "light" | "dark" =
+    mounted && resolvedTheme === "dark" ? "dark" : "light";
   const isCustom = activeId === CUSTOM_THEME_ID;
 
   function handlePick(id: string | null) {

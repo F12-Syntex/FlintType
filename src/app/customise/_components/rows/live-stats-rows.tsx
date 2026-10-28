@@ -11,18 +11,20 @@ import {
   SelectChips,
   SliderRow,
 } from "../controls";
-import { SettingsRow } from "../row";
+import { SettingsRow, SwitchRow } from "../row";
 import { LiveStyleSample, StatSurfaceSample } from "./chip-previews";
 import { ColorRow } from "./color-row";
 
+/** The background behind the numbers. "Hidden" (`none`) isn't offered
+ *  here: it removes the whole strip, so it lives on the "Show live
+ *  stats" switch instead. */
 const SURFACE_OPTIONS: readonly {
-  id: StatStripSurface;
+  id: Exclude<StatStripSurface, "none">;
   label: string;
   preview: React.ReactNode;
 }[] = [
   { id: "plain", label: "Plain", preview: <StatSurfaceSample mode="plain" /> },
   { id: "card", label: "Card", preview: <StatSurfaceSample mode="card" /> },
-  { id: "none", label: "Hidden", preview: <StatSurfaceSample mode="none" /> },
 ];
 
 const STYLE_OPTIONS: readonly {
@@ -59,12 +61,39 @@ function StyleRow({
 
 export function LiveStatsRows() {
   const { prefs, update } = useAppearancePrefs();
+  const shown = prefs.statStripSurface !== "none";
   const anyShown =
     prefs.liveProgressStyle !== "off" ||
     prefs.liveSpeedStyle !== "off" ||
     prefs.liveAccuracyStyle !== "off" ||
     prefs.liveBurstStyle !== "off";
 
+  return (
+    <>
+      <SwitchRow
+        title="Show live stats"
+        desc="The timer, speed and accuracy shown while you type."
+        checked={shown}
+        onChange={(on) =>
+          update(
+            "statStripSurface",
+            on
+              ? DEFAULT_APPEARANCE.statStripSurface === "none"
+                ? "plain"
+                : DEFAULT_APPEARANCE.statStripSurface
+              : "none",
+          )
+        }
+      />
+      {shown ? <LiveStatsDetailRows anyShown={anyShown} /> : null}
+    </>
+  );
+}
+
+/** Everything under "Show live stats": each number's style, then the
+ *  strip's background, colour and opacity once any number is on. */
+function LiveStatsDetailRows({ anyShown }: { anyShown: boolean }) {
+  const { prefs, update } = useAppearancePrefs();
   return (
     <>
       <StyleRow
@@ -101,7 +130,7 @@ export function LiveStatsRows() {
             }
             control={
               <SelectChips
-                value={prefs.statStripSurface}
+                value={prefs.statStripSurface === "card" ? "card" : "plain"}
                 options={SURFACE_OPTIONS}
                 onChange={(v) => update("statStripSurface", v)}
               />

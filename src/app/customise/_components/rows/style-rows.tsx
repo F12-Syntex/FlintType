@@ -212,7 +212,7 @@ export function UiFontRow() {
       label={
         <LabelWithDesc
           title="App font"
-          desc="Used for menus and pages. The text you type has its own font."
+          desc="The font for menus and pages, not the text you type."
         />
       }
       control={

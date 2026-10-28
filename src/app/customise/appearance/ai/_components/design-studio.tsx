@@ -1,6 +1,8 @@
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
 import { ArrowUp, Check, RotateCcw } from "lucide-react";
+import Link from "next/link";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
@@ -26,15 +28,40 @@ type Message = {
   role: "user" | "assistant";
   text: string;
   changes?: AiChange[];
-  tone?: "error";
+  /** `signin`: the session ran out mid-chat — show the sign-in link. */
+  tone?: "error" | "signin";
 };
+
+const SIGN_IN_HREF = `/sign-in?redirect_url=${encodeURIComponent("/customise/appearance/ai")}`;
+
+/** "Sign in to design with AI." — a missing session is a next step,
+ *  not an error, so it's muted ink with one orange link. */
+function SignInLine({ className }: { className?: string }) {
+  return (
+    <p className={cn("text-sm text-muted-foreground", className)}>
+      <Link
+        href={SIGN_IN_HREF}
+        className="font-medium text-primary underline-offset-4 hover:underline"
+      >
+        Sign in
+      </Link>{" "}
+      to design with AI.
+    </p>
+  );
+}
+
+/** The keyboard tile draws the keyboard even when the user has it
+ *  switched off, so a suggested key style is always visible. */
+function StudioKeyboard() {
+  return <KeyboardLivePreview alwaysShow />;
+}
 
 /** The six surfaces the studio previews a look across. */
 const PREVIEWS: { label: string; Comp: () => ReactNode; wide?: boolean }[] = [
   { label: "Typing", Comp: ThemePreview },
   { label: "Live stats", Comp: LiveStatsPreview },
   { label: "Result", Comp: ResultLivePreview, wide: true },
-  { label: "Keyboard", Comp: KeyboardLivePreview, wide: true },
+  { label: "Keyboard", Comp: StudioKeyboard, wide: true },
   { label: "Race", Comp: MultiplayerPreview },
   { label: "Buttons & cards", Comp: StylePreview },
 ];
@@ -83,6 +110,8 @@ export function DesignStudio() {
   const { apply, commit } = useApplyPatch();
   const readCurrent = useCurrentSettings();
   const footerH = useFooterHeight();
+  const { isLoaded, isSignedIn } = useAuth();
+  const signedOut = isLoaded && !isSignedIn;
 
   const [patch, setPatch] = useState<AppearancePatch>(EMPTY_PATCH);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -108,7 +137,7 @@ export function DesignStudio() {
 
   async function onSend() {
     const text = value.trim();
-    if (!text || loading) return;
+    if (!text || loading || signedOut) return;
     push({ role: "user", text });
     setValue("");
     setLoading(true);
@@ -127,12 +156,11 @@ export function DesignStudio() {
       setPatch((p) => mergePatch(p, res.patch)); // preview only
       push({ role: "assistant", text: res.summary, changes: res.changes });
     } catch (err) {
-      const text =
-        err instanceof BackendError && err.code === "UNAUTHORIZED"
-          ? "Sign in to use AI suggestions."
-          : err instanceof Error
-            ? err.message
-            : "Something went wrong.";
+      if (err instanceof BackendError && err.code === "UNAUTHORIZED") {
+        push({ role: "assistant", text: "", tone: "signin" });
+        return;
+      }
+      const text = err instanceof Error ? err.message : "Something went wrong.";
       push({ role: "assistant", text, tone: "error" });
     } finally {
       setLoading(false);
@@ -223,6 +251,8 @@ export function DesignStudio() {
                         {m.text}
                       </p>
                     </div>
+                  ) : m.tone === "signin" ? (
+                    <SignInLine key={m.id} />
                   ) : (
                     <div key={m.id} className="flex flex-col gap-1.5">
                       <p
@@ -260,6 +290,10 @@ export function DesignStudio() {
             </div>
           ) : null}
 
+          {signedOut && messages.length === 0 ? (
+            <SignInLine className="px-4 pt-3" />
+          ) : null}
+
           <div className="p-2">
             <div className="flex items-end gap-2 rounded-xl bg-muted py-1.5 pr-1.5 pl-3">
               <textarea
@@ -273,15 +307,19 @@ export function DesignStudio() {
                   }
                 }}
                 rows={1}
-                placeholder="Try “warm and minimal” or “bigger serif text”"
+                placeholder={
+                  signedOut
+                    ? "Sign in to describe a look"
+                    : "Try “warm and minimal” or “bigger serif text”"
+                }
                 aria-label="Describe a change"
-                disabled={loading}
+                disabled={loading || signedOut}
                 className="max-h-32 min-h-8 flex-1 resize-none bg-transparent px-1 py-1 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-50"
               />
               <button
                 type="button"
                 onClick={() => void onSend()}
-                disabled={loading || value.trim().length === 0}
+                disabled={loading || signedOut || value.trim().length === 0}
                 aria-label="Send"
                 className="brand-surface flex size-8 shrink-0 items-center justify-center rounded-pill text-primary-foreground shadow-glow transition-opacity hover:brightness-110 disabled:opacity-40 disabled:shadow-none"
               >

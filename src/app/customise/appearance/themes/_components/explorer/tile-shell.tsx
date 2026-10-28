@@ -20,9 +20,9 @@ export function TileShell({
   ariaLabel: string;
   children: React.ReactNode;
   name: string;
-  /** Paint the name in primary instead of foreground — used by the
-   *  Reactive tile so its name carries the brand spark while every
-   *  static theme keeps the neutral label. */
+  /** Paint the name in primary instead of foreground — only for the
+   *  Custom tile, which is shown only while it's the active palette.
+   *  Orange names are reserved for the active tile. */
   accentName?: boolean;
 }) {
   return (
