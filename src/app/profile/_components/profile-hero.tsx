@@ -5,6 +5,7 @@ import { UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { UserTag } from "@/components/ft";
+import { signInHref } from "@/components/auth/sign-in-href";
 import { FollowButton } from "@/components/follow-button";
 import { InviteToRaceButton } from "@/components/invite-to-race-button";
 import { Surface } from "@/components/page-shell";
@@ -164,7 +165,7 @@ export function ProfileHero({
               </div>
             ) : signedOutVisitor ? (
               <Link
-                href={`/sign-in?redirect_url=${encodeURIComponent(`/profile/${username ?? ""}`)}`}
+                href={signInHref(`/profile/${username ?? ""}`)}
                 className={cn(buttonVariants(), "h-11 sm:h-9")}
               >
                 <UserPlus aria-hidden data-icon="inline-start" />

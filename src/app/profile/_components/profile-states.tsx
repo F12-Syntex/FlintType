@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Surface } from "@/components/page-shell";
+import { useSignInHref } from "@/components/auth/use-sign-in-href";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ProfileLoadError } from "./profile-load-error";
@@ -67,6 +68,7 @@ export function ProfileErrorState({
   asPage?: boolean;
 }) {
   const copy = COPY[error.kind];
+  const signInHref = useSignInHref();
   const code =
     error.kind === "other"
       ? error.code
@@ -99,7 +101,7 @@ export function ProfileErrorState({
         ) : null}
       </div>
       {error.kind === "signIn" ? (
-        <Link href="/sign-in" className={buttonVariants({ size: "lg" })}>
+        <Link href={signInHref} className={buttonVariants({ size: "lg" })}>
           Sign in
         </Link>
       ) : (

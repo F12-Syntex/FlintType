@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useSignInHref } from "@/components/auth/use-sign-in-href";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DrillHeader } from "./drill-header";
 import type { DrillSpec } from "./drills-data";
@@ -77,6 +78,7 @@ export function ErrorState({
   error: LoadError;
   onRetry: () => void;
 }) {
+  const signInHref = useSignInHref();
   return (
     <>
       <DrillHeader />
@@ -85,7 +87,7 @@ export function ErrorState({
           level="h1"
           title="Sign in to start this drill"
           action={
-            <Link href="/sign-in" className={buttonVariants({ size: "lg" })}>
+            <Link href={signInHref} className={buttonVariants({ size: "lg" })}>
               Sign in
             </Link>
           }

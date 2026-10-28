@@ -199,6 +199,8 @@ Without those, `<UserButton />` sign-out and other Clerk components would fall b
 
 Links into the auth pages may carry `?redirect_url=<path>` (a profile's Follow link, the AI studio). The custom forms honour it through `src/lib/auth-redirect.ts` (tested): `redirectFromSearch()` accepts only a same-origin path, never the auth pages themselves, and falls back to `/`. It drives the post-sign-in / sign-up push and Discord's `redirectUrlComplete`, and `<AltAuthLink>` carries it across between `/sign-in` and `/sign-up`. Never push a raw `redirect_url` without that helper.
 
+Sign-in prompts and sign-in redirects on pages that need an account build their link with `signInHref(path)` (`src/components/auth/sign-in-href.ts`, tested), or with `useSignInHref()` (`src/components/auth/use-sign-in-href.ts`) for the current page in a client component. The user then comes back to the page that asked, e.g. `/sign-in?redirect_url=%2Fdrills%2Fweakness`. Home and the auth pages give a bare `/sign-in`. Never hard-code a bare `/sign-in` on a page that needs an account.
+
 ## Testing protected routes
 
 `auth()` and `clerkClient()` cannot run outside a Clerk-aware request context, so tests mock both at the module boundary:

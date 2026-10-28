@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.40 — 28 October 2026
+- Signing in from a drill's "Sign in to start this drill" prompt, or from the sign-in prompts on Drills, Insights and your profile, now brings you back to that page.
+
 ## 6.148.39 — 28 October 2026
 - Opening an expired, already used or wrong-device sign-in link now tells you what went wrong, instead of saying you're verified.
 - The sign-in link page now waits until it has checked your link before it says anything, and a link that needs one more step tells you to go back to the tab where you started.
