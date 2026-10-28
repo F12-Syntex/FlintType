@@ -1,21 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { PageHeader, PageSection, PageShell } from "@/components/page-shell";
-import { Button, buttonVariants } from "@/components/ui/button";
 import { BackendError, useBackend } from "@/lib/backend";
 import type { HistorySummaryOutput } from "@/types/history";
 import { ConfidencePlayground } from "./confidence-playground";
+import { ErrorState, type LoadError } from "./error-state";
 import { FocusNext } from "./guidance";
-import { TrendPanel } from "./insights-trend";
 import { InsightsSkeleton } from "./insights-skeleton";
-import { TwoUp } from "./panel";
-import { RecentTests } from "./recent-tests";
 import { StatusPill } from "./status-pill";
+import { TrendSection } from "./trend-section";
 import { WeakSpots } from "./weak-spots";
-
-type LoadError = { message: string; signIn: boolean };
 
 /** /insights: what the algorithm knows about your typing, answer first.
  *  One `history.summary()` call feeds every section, in priority order:
@@ -83,61 +78,27 @@ export function InsightsView() {
           <PageSection
             id="focus"
             title="Focus next"
-            description="Your highest-leverage practice right now."
+            description="The drill that will help most right now."
           >
             <FocusNext snap={snap} />
           </PageSection>
           <PageSection
             id="weak-spots"
             title="Weak spots"
-            description="Slowest compared with your own average."
+            description="Ranked by how reliably slow each one is."
           >
             <WeakSpots snap={snap} />
           </PageSection>
-          <PageSection
-            id="trend"
-            title="Trend"
-            description="Your last 30 completed tests."
-          >
-            <TwoUp>
-              <TrendPanel tests={snap.recentTests} />
-              <RecentTests tests={snap.recentTests} />
-            </TwoUp>
-          </PageSection>
+          <TrendSection tests={snap.recentTests} />
           <PageSection
             id="playground"
             title="Playground"
             description="Score any text against your model."
           >
-            <ConfidencePlayground cold={snap.cold} />
+            <ConfidencePlayground cold={snap.cold} userId={snap.subjectUserId} />
           </PageSection>
         </>
       )}
     </PageShell>
-  );
-}
-
-function ErrorState({
-  error,
-  onRetry,
-}: {
-  error: LoadError;
-  onRetry: () => void;
-}) {
-  return (
-    <div className="flex flex-col items-start gap-4 rounded-2xl border border-dashed border-border bg-card/40 px-5 py-8 sm:items-center sm:text-center">
-      <p className="text-sm text-muted-foreground" role="alert">
-        {error.message}
-      </p>
-      {error.signIn ? (
-        <Link href="/sign-in" className={buttonVariants({ size: "lg" })}>
-          Sign in
-        </Link>
-      ) : (
-        <Button variant="outline" size="lg" onClick={onRetry}>
-          Try again
-        </Button>
-      )}
-    </div>
   );
 }

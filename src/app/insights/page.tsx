@@ -6,7 +6,7 @@ import { InsightsView } from "./_components/insights-view";
 export const metadata = buildPageMetadata({
   title: "Insights",
   description:
-    "Your typing model: what to practise next, your slowest letter pairs and words, your WPM trend, and a playground that scores any text against you.",
+    "Your typing model: what to practise next, your weakest letter pairs and words, your WPM trend, and a playground that scores any text against you.",
   path: "/insights",
   noIndex: true,
 });

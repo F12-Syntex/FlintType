@@ -24,13 +24,17 @@ const chartConfig = {
 
 type Point = { idx: number; wpm: number; ts: number };
 
+/** How many completed tests the chart plots, newest last. */
+export const TREND_WINDOW = 30;
+
 /** WPM over the last 30 completed tests, oldest left. Line-art: one
  *  orange line (the page's data spark) over a hairline grid, with the
- *  average as a dashed ink rule. No area fill. */
+ *  average as a dashed ink rule. No area fill. Expects at least two
+ *  completed tests (`TrendSection` swaps in a muted line below that). */
 export function TrendPanel({ tests }: { tests: readonly HistoryTest[] }) {
   const points: Point[] = useMemo(() => {
     const completed = tests.filter((t) => t.wasCompleted);
-    const ordered = [...completed].reverse().slice(-30);
+    const ordered = [...completed].reverse().slice(-TREND_WINDOW);
     return ordered.map((t, i) => ({
       idx: i + 1,
       wpm: Math.round(t.wpm),
@@ -53,90 +57,85 @@ export function TrendPanel({ tests }: { tests: readonly HistoryTest[] }) {
             <span className="font-semibold tabular-nums text-foreground">
               {Math.round(avg)}
             </span>{" "}
-            over <span className="tabular-nums">{points.length}</span>
+            wpm · <span className="tabular-nums">{points.length}</span>{" "}
+            {points.length === 1 ? "test" : "tests"}
           </span>
         ) : null
       }
       bodyClassName="flex flex-col"
     >
-      {points.length < 2 ? (
-        <p className="flex min-h-32 flex-1 items-center justify-center text-center text-sm text-muted-foreground">
-          Take a few more tests and the trend will fill in.
-        </p>
-      ) : (
-        // Absolutely filled box: the card can stretch to its row-mate's
-        // height while recharts still gets a definite size to measure.
-        <div className="relative min-h-44 flex-1 sm:min-h-52">
-          <ChartContainer
-            config={chartConfig}
-            className="absolute inset-0 aspect-auto h-full w-full"
+      {/* Absolutely filled box: the card can stretch to its row-mate's
+          height while recharts still gets a definite size to measure. */}
+      <div className="relative min-h-44 flex-1 sm:min-h-52">
+        <ChartContainer
+          config={chartConfig}
+          className="absolute inset-0 aspect-auto h-full w-full"
+        >
+          <LineChart
+            accessibilityLayer
+            data={points}
+            margin={{ left: 0, right: 8, top: 8, bottom: 0 }}
           >
-            <LineChart
-              accessibilityLayer
-              data={points}
-              margin={{ left: 0, right: 8, top: 8, bottom: 0 }}
-            >
-              <CartesianGrid
-                vertical={false}
-                stroke="currentColor"
-                strokeOpacity={0.08}
-              />
-              <XAxis
-                dataKey="idx"
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                tickFormatter={(v: number) => `#${v}`}
-                interval="preserveStartEnd"
-                minTickGap={24}
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                tickMargin={6}
-                width={40}
-                domain={["auto", "auto"]}
-              />
-              <ChartTooltip
-                cursor={{ stroke: "currentColor", strokeOpacity: 0.2 }}
-                content={
-                  <ChartTooltipContent
-                    indicator="dot"
-                    labelFormatter={(_, items) => {
-                      const first = (items as Array<{ payload?: Point }>)[0];
-                      const p = first?.payload;
-                      if (!p) return "";
-                      const d = new Date(p.ts);
-                      return `Test ${p.idx} · ${d.toLocaleDateString()}`;
-                    }}
-                  />
-                }
-              />
-              {avg > 0 ? (
-                <ReferenceLine
-                  y={avg}
-                  stroke="currentColor"
-                  strokeOpacity={0.3}
-                  strokeDasharray="3 4"
+            <CartesianGrid
+              vertical={false}
+              stroke="currentColor"
+              strokeOpacity={0.08}
+            />
+            <XAxis
+              dataKey="idx"
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
+              tickFormatter={(v: number) => `#${v}`}
+              interval="preserveStartEnd"
+              minTickGap={24}
+            />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tickMargin={6}
+              width={40}
+              domain={["auto", "auto"]}
+            />
+            <ChartTooltip
+              cursor={{ stroke: "currentColor", strokeOpacity: 0.2 }}
+              content={
+                <ChartTooltipContent
+                  indicator="dot"
+                  labelFormatter={(_, items) => {
+                    const first = (items as Array<{ payload?: Point }>)[0];
+                    const p = first?.payload;
+                    if (!p) return "";
+                    const d = new Date(p.ts);
+                    return `Test ${p.idx} · ${d.toLocaleDateString()}`;
+                  }}
                 />
-              ) : null}
-              <Line
-                dataKey="wpm"
-                type="monotone"
-                stroke="var(--color-wpm)"
-                strokeWidth={2.25}
-                dot={false}
-                activeDot={{
-                  r: 3.5,
-                  stroke: "var(--color-wpm)",
-                  fill: "var(--background)",
-                }}
-                isAnimationActive={false}
+              }
+            />
+            {avg > 0 ? (
+              <ReferenceLine
+                y={avg}
+                stroke="currentColor"
+                strokeOpacity={0.3}
+                strokeDasharray="3 4"
               />
-            </LineChart>
-          </ChartContainer>
-        </div>
-      )}
+            ) : null}
+            <Line
+              dataKey="wpm"
+              type="monotone"
+              stroke="var(--color-wpm)"
+              strokeWidth={2.25}
+              dot={false}
+              activeDot={{
+                r: 3.5,
+                stroke: "var(--color-wpm)",
+                fill: "var(--background)",
+              }}
+              isAnimationActive={false}
+            />
+          </LineChart>
+        </ChartContainer>
+      </div>
     </Panel>
   );
 }

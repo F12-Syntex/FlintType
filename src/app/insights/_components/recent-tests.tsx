@@ -17,6 +17,11 @@ const MODE_LABEL: Record<string, string> = {
   casual: "Casual",
 };
 
+/** "98.4%", or "100%" rather than "100.0%". */
+function formatAccuracy(accuracy: number): string {
+  return `${Number(accuracy.toFixed(1))}%`;
+}
+
 /** The latest six completed runs. WPM stays ink (the trend line is the
  *  page's data spark); "View all" hands off to the profile's full list. */
 export function RecentTests({ tests }: { tests: readonly HistoryTest[] }) {
@@ -68,16 +73,16 @@ export function RecentTests({ tests }: { tests: readonly HistoryTest[] }) {
                   {MODE_LABEL[t.mode] ?? "Casual"} ·{" "}
                   {shareLengthLabel(t.lengthMode, t.durationOrWordCount)}
                 </span>
-                <span className="text-xs text-muted-foreground">
-                  {relativeTime(t.startedAtMs)}
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {relativeTime(t.startedAtMs)} · {formatAccuracy(t.accuracy)} acc
                 </span>
               </div>
               <div className="flex shrink-0 items-center gap-3 tabular-nums">
-                <span className="text-xs text-muted-foreground">
-                  {t.accuracy.toFixed(1)}%
-                </span>
-                <span className="w-10 text-right text-base font-semibold text-foreground">
-                  {Math.round(t.wpm)}
+                <span className="min-w-16 text-right">
+                  <span className="text-base font-semibold text-foreground">
+                    {Math.round(t.wpm)}
+                  </span>
+                  <span className="ml-1 text-xs text-muted-foreground">wpm</span>
                 </span>
                 <ShareRunButton
                   testId={t.id}

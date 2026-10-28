@@ -24,12 +24,31 @@ export const ACCURACY_WINDOW = 10;
 const ACCURACY_MIN_RUNS = 3;
 const MAX_TIPS = 3;
 
-const START_DRILL = "Start drill";
+/** Button labels name the drill they open, so a links list (or a
+ *  screen reader) can tell the rows apart without the sentence. */
+const LABEL = {
+  weakness: "Start Weakness gauntlet",
+  worstWords: "Start Worst-words burst",
+  tricky: "Start Tongue-twister",
+} as const;
 
 function slowerPct(meanMs: number, baselineMs: number): number | null {
   if (!(baselineMs > 0)) return null;
   const pct = Math.round(((meanMs - baselineMs) / baselineMs) * 100);
   return pct > 0 ? pct : null;
+}
+
+/** "85 ms, 52% over your average pair, and reliably slow." The raw
+ *  figures behind a weakness plus why it ranks first. The lists are
+ *  ranked by the model's confidence-weighted weakness score (how far
+ *  over the baseline we're *sure* it is, times how much evidence there
+ *  is), not by raw time, so a pattern a few ms quicker but seen far
+ *  more often can outrank it. Hence "weakest", never "slowest". */
+function figures(meanMs: number, baselineMs: number, unit: string): string {
+  const pct = slowerPct(meanMs, baselineMs);
+  const ms = `${Math.round(meanMs)} ms`;
+  const what = pct != null ? `${ms}, ${pct}% over your average ${unit}` : `${ms} on average`;
+  return `${what}, and reliably slow.`;
 }
 
 /** Mean accuracy over the newest completed runs, or null when there
@@ -60,24 +79,22 @@ export function buildFocusTips(snap: HistorySummaryOutput): FocusTip[] {
 
   const pair = snap.weakestPairs[0];
   if (pair && pair.weakness > 0) {
-    const pct = slowerPct(pair.meanMs, snap.bigramBaselineMs);
     tips.push({
       id: "pair",
-      title: `Slowest pair: “${pair.key}”`,
-      detail: `${pct != null ? `${pct}% slower than your average pair. ` : ""}The Weakness gauntlet builds a passage around it.`,
-      action: { href: "/drills/weakness", label: START_DRILL },
+      title: `Weakest pair: “${pair.key}”`,
+      detail: `${figures(pair.meanMs, snap.bigramBaselineMs, "pair")} The Weakness gauntlet builds a passage around it.`,
+      action: { href: "/drills/weakness", label: LABEL.weakness },
     });
   }
 
   const word = snap.weakestWords[0];
   if (word && word.weakness > 0) {
-    const pct = slowerPct(word.meanMs, snap.wordBaselineMs);
     const ready = snap.weakestWords.length >= WORST_WORDS_MIN;
     tips.push({
       id: "word",
-      title: `Slowest word: “${word.key}”`,
-      detail: `${pct != null ? `${pct}% slower than your average word. ` : ""}The Worst-words burst drills your slowest 20.`,
-      action: ready ? { href: "/drills/worst-words", label: START_DRILL } : null,
+      title: `Weakest word: “${word.key}”`,
+      detail: `${figures(word.meanMs, snap.wordBaselineMs, "word")} The Worst-words burst drills your weakest 20.`,
+      action: ready ? { href: "/drills/worst-words", label: LABEL.worstWords } : null,
       lockedNote: ready ? undefined : `Unlocks at ${WORST_WORDS_MIN} slow words`,
     });
   }
@@ -88,7 +105,7 @@ export function buildFocusTips(snap: HistorySummaryOutput): FocusTip[] {
       id: "accuracy",
       title: `Accuracy: ${acc.mean.toFixed(1)}%`,
       detail: `Average of your last ${acc.runs} runs. The Tongue-twister gauntlet only rewards clean runs.`,
-      action: { href: "/drills/tricky", label: START_DRILL },
+      action: { href: "/drills/tricky", label: LABEL.tricky },
     });
   }
 
@@ -98,7 +115,7 @@ export function buildFocusTips(snap: HistorySummaryOutput): FocusTip[] {
       title: "No single weak spot",
       detail:
         "Your model is balanced. The Tongue-twister gauntlet keeps pushing your ceiling.",
-      action: { href: "/drills/tricky", label: START_DRILL },
+      action: { href: "/drills/tricky", label: LABEL.tricky },
     });
   }
 
