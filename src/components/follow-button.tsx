@@ -1,6 +1,14 @@
 "use client";
 
-import { Ban, Check, ChevronDown, MoreHorizontal, Swords, UserMinus } from "lucide-react";
+import {
+  Ban,
+  Check,
+  ChevronDown,
+  MoreHorizontal,
+  Swords,
+  UserMinus,
+  UserPlus,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import {
@@ -28,8 +36,8 @@ const LOADING_LABEL: Record<Op, string> = {
 };
 
 /** The single relationship control, reused on profile heroes and
- *  friends-list rows. The brand coral marks exactly one thing here: the
- *  *Follow* / *Follow back* call to action. Once connected the control is
+ *  friends-list rows. The brand orange marks exactly one thing here: the
+ *  *Follow* / *Follow back* call to action (the filled flame pill). Once connected the control is
  *  a **stable** status (it never morphs on hover); management actions
  *  (Unfollow, Block, Challenge) live in a dropdown, and the destructive
  *  ones route through a confirm step (ui-law §17.1).
@@ -86,9 +94,9 @@ export function FollowButton({
   const loading = action.loading;
   const err = action.result && !action.result.ok ? action.result.message : null;
   const btnSize = size === "sm" ? "sm" : "default";
-  // The repo's Button `default` size is h-8 (32px) — under the §7 44px
-  // touch floor for a primary action. The profile CTA bumps to 44 on
-  // mobile, relaxes to the dense desktop height. Rows use size="sm".
+  // The Button `default` size is h-9 (36px) — under the §7 44px touch
+  // floor for a primary action. The profile CTA bumps to 44 on mobile,
+  // relaxes to the dense desktop height. Rows use size="sm".
   const heightClass = size === "default" ? "h-11 sm:h-9" : "h-8";
   const handleName = handle ? `@${handle}` : "this person";
 
@@ -101,27 +109,25 @@ export function FollowButton({
             const slug = await createLobbyAndInvite(backend, userId);
             if (slug) router.push(`/race/c/${slug}`);
           }}
-          className="flex items-center gap-2.5 rounded-sm py-2 pl-2 pr-3 text-[12px] font-medium uppercase tracking-[0.12em]"
         >
-          <Swords size={13} aria-hidden />
+          <Swords size={14} aria-hidden className="text-muted-foreground" />
           <span>Invite to a race</span>
         </DropdownMenuItem>
       ) : null}
       {rel.following || rel.mutual ? (
         <DropdownMenuItem
           onSelect={() => setConfirm("unfollow")}
-          className="flex items-center gap-2.5 rounded-sm py-2 pl-2 pr-3 text-[12px] font-medium uppercase tracking-[0.12em]"
         >
-          <UserMinus size={13} aria-hidden />
+          <UserMinus size={14} aria-hidden className="text-muted-foreground" />
           <span>Unfollow {handleName}</span>
         </DropdownMenuItem>
       ) : null}
       {rel.following || rel.mutual ? <DropdownMenuSeparator /> : null}
       <DropdownMenuItem
         onSelect={() => setConfirm("block")}
-        className="flex items-center gap-2.5 rounded-sm py-2 pl-2 pr-3 text-[12px] font-medium uppercase tracking-[0.12em] text-destructive focus:text-destructive"
+        className="text-destructive focus:text-destructive"
       >
-        <Ban size={13} aria-hidden />
+        <Ban size={14} aria-hidden />
         <span>Block {handleName}</span>
       </DropdownMenuItem>
     </DropdownMenuContent>
@@ -129,18 +135,18 @@ export function FollowButton({
 
   const kebabTrigger = (
     <DropdownMenuTrigger asChild>
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="icon"
         aria-label={`More options for ${handleName}`}
         className={cn(
-          "inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground",
-          "transition-colors hover:border-foreground/40 hover:bg-accent hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-          size === "sm" && "size-8",
+          "text-muted-foreground",
+          size === "sm" ? "size-8" : "size-11 sm:size-9",
         )}
       >
-        <MoreHorizontal size={16} aria-hidden />
-      </button>
+        <MoreHorizontal aria-hidden />
+      </Button>
     </DropdownMenuTrigger>
   );
 
@@ -188,7 +194,7 @@ export function FollowButton({
       </DropdownMenu>
     );
   } else {
-    // Not following — the one coral CTA, plus a ⋯ for Block.
+    // Not following — the one orange CTA, plus a ⋯ for Block.
     control = (
       <>
         <Button
@@ -198,6 +204,7 @@ export function FollowButton({
           onClick={() => trigger("follow")}
           className={heightClass}
         >
+          <UserPlus aria-hidden data-icon="inline-start" />
           {loading
             ? LOADING_LABEL.follow
             : rel.followedBy

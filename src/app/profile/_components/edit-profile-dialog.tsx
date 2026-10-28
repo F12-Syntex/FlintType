@@ -224,14 +224,14 @@ export function EditProfileDialog({
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="text-sm font-medium text-foreground">
               Your rank
             </span>
-            <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
-              {selectedRank ? RANKS[selectedRank].label : "none"}
+            <span className="text-xs text-muted-foreground">
+              {selectedRank ? RANKS[selectedRank].label : "None"}
             </span>
           </div>
-          <p className="text-[11px] leading-snug text-muted-foreground/80">
+          <p className="text-xs leading-snug text-muted-foreground">
             A flame badge beside your name. Wear any tier you like.
             {bestWpm > 0
               ? ` Your best maps to ${RANKS[rankFromWpm(bestWpm)].label}.`
@@ -256,16 +256,16 @@ export function EditProfileDialog({
         {eligibleTags.length > 0 ? (
           <div className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              <span className="text-sm font-medium text-foreground">
                 Your tags
               </span>
-              <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+              <span className="text-xs text-muted-foreground">
                 {selectedTags.length === 0
-                  ? "none shown"
+                  ? "None shown"
                   : `${selectedTags.length} shown`}
               </span>
             </div>
-            <p className="text-[11px] leading-snug text-muted-foreground/80">
+            <p className="text-xs leading-snug text-muted-foreground">
               Tap a chip to toggle whether it appears beside your name.
             </p>
             <div className="flex flex-wrap items-center gap-2">
@@ -279,7 +279,7 @@ export function EditProfileDialog({
                     aria-pressed={on}
                     disabled={tagsSaving}
                     className={cn(
-                      "inline-flex items-center rounded-md transition-opacity",
+                      "inline-flex items-center rounded-pill transition-opacity",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                       "disabled:cursor-not-allowed",
                       on
@@ -328,7 +328,7 @@ export function EditProfileDialog({
         />
 
         {error ? (
-          <p className="text-sm text-primary" role="alert">
+          <p className="text-sm text-destructive" role="alert">
             {error}
           </p>
         ) : null}
@@ -352,11 +352,11 @@ function RankChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "rounded-md border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        "inline-flex h-8 items-center rounded-pill px-3 text-xs font-medium transition-[color,background-color,box-shadow] duration-200",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
         active
-          ? "border-primary/40 bg-primary/[0.08] text-primary"
-          : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
+          ? "brand-surface font-semibold text-primary-foreground shadow-card"
+          : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground",
       )}
     >
       {label}
@@ -390,16 +390,14 @@ function Field({
   return (
     <label className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          {label}
-        </span>
+        <span className="text-sm font-medium text-foreground">{label}</span>
         <span
           className={cn(
-            "text-[11px] tabular-nums text-muted-foreground/80",
+            "text-xs tabular-nums text-muted-foreground",
             mono && "font-mono",
           )}
         >
-          current · {current}
+          Current: {current}
         </span>
       </div>
       <Input
@@ -412,11 +410,11 @@ function Field({
         className={cn(mono && "font-mono")}
       />
       {error ? (
-        <span className="text-[11px] text-primary" role="alert">
+        <span className="text-xs text-destructive" role="alert">
           {error}
         </span>
       ) : hint ? (
-        <span className="text-[11px] text-muted-foreground/80">{hint}</span>
+        <span className="text-xs text-muted-foreground">{hint}</span>
       ) : null}
     </label>
   );

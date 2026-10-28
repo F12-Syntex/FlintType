@@ -3,28 +3,36 @@
 import { Crown } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { PageSection, Surface } from "@/components/page-shell";
 import { ShareRunButton } from "@/components/share-run-button";
+import { Button } from "@/components/ui/button";
 import { relativeTime } from "@/lib/relative-time";
-import { cn } from "@/lib/utils";
+import { shareLengthLabel } from "@/lib/share-length-label";
 import type { HistoryTest } from "@/types/history";
 
 const PAGE_SIZE = 10;
 
-/** Recent runs ledger inside a bordered card panel. Hairline-divided
- *  rows, one per completed test. PB crown marks the highest WPM in
- *  each (mode, length) bucket. Pagination loads more in-memory; the
- *  parent fetch already pulled up to 500 runs.
+const MODE_LABEL: Record<string, string> = {
+  race: "Race",
+  training: "Adapt",
+  reverse_adaptive: "Adapt",
+  casual: "Casual",
+};
+
+/** Every completed run, newest first, ten at a time. WPM stays ink; an
+ *  orange crown marks the fastest run at each mode + length. The share
+ *  button reveals on row hover on desktop and is always there on phones.
  *
- *  `handle` is the profile owner's identifier (so the share image
- *  link can be built as `/r/<handle>-<wpm>wpm-<id>` and the OG image
- *  reads as their artifact). Falls back to `racer` when the profile
- *  is anonymous for some reason. */
+ *  `handle` is the profile owner's identifier, used to build the share
+ *  image link (`/r/<handle>-<wpm>wpm-<id>`). */
 export function RecentRuns({
   tests,
   handle,
+  isOwner,
 }: {
   tests: readonly HistoryTest[];
   handle: string;
+  isOwner: boolean;
 }) {
   const completed = tests.filter((t) => t.wasCompleted);
   const [shown, setShown] = useState(PAGE_SIZE);
@@ -33,25 +41,35 @@ export function RecentRuns({
   const pbIds = pickPbIds(tests);
 
   return (
-    <section className="rounded-md border border-border bg-card px-4 py-4 sm:px-6 sm:py-5">
-      <header className="mb-4 flex items-center gap-3">
-        <span aria-hidden className="inline-block h-px w-4 bg-primary" />
-        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-          Recent runs
-        </span>
-      </header>
-
+    <PageSection
+      id="recent-runs"
+      title="Recent runs"
+      description={
+        completed.length > 0
+          ? `${completed.length} completed ${completed.length === 1 ? "test" : "tests"}`
+          : undefined
+      }
+    >
       {visible.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No completed runs yet — kick one off at{" "}
-          <Link href="/" className="text-primary hover:underline">
-            /app
-          </Link>
-          .
-        </p>
+        <div className="rounded-2xl border border-dashed border-border bg-card/40 px-5 py-6 text-sm text-muted-foreground">
+          {isOwner ? (
+            <>
+              No completed runs yet.{" "}
+              <Link
+                href="/"
+                className="font-medium text-foreground underline-offset-4 hover:underline"
+              >
+                Take a test
+              </Link>{" "}
+              and it lands here.
+            </>
+          ) : (
+            "No completed runs yet."
+          )}
+        </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          <ul className="flex flex-col divide-y divide-border/60">
+        <div className="flex flex-col gap-4">
+          <Surface as="ul" className="divide-y divide-border/60 overflow-hidden">
             {visible.map((t) => (
               <RunRow
                 key={t.id}
@@ -60,26 +78,22 @@ export function RecentRuns({
                 handle={handle}
               />
             ))}
-          </ul>
+          </Surface>
           {remaining > 0 ? (
-            <button
-              type="button"
+            <Button
+              variant="outline"
               onClick={() => setShown((s) => s + PAGE_SIZE)}
-              className={cn(
-                "mt-2 inline-flex h-7 items-center gap-2 self-start rounded-md border border-border px-2.5",
-                "text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
-                "transition-colors hover:border-foreground/30 hover:text-foreground",
-              )}
+              className="h-11 w-full sm:h-9 sm:w-auto sm:self-center"
             >
-              Load {Math.min(PAGE_SIZE, remaining)} more
-              <span className="text-muted-foreground/60 tabular-nums">
-                {visible.length} / {completed.length}
+              Show {Math.min(PAGE_SIZE, remaining)} more
+              <span className="tabular-nums text-muted-foreground">
+                {visible.length} of {completed.length}
               </span>
-            </button>
+            </Button>
           ) : null}
         </div>
       )}
-    </section>
+    </PageSection>
   );
 }
 
@@ -87,7 +101,7 @@ function pickPbIds(tests: readonly HistoryTest[]): Set<string> {
   const best = new Map<string, HistoryTest>();
   for (const t of tests) {
     if (!t.wasCompleted) continue;
-    const key = `${t.mode}|${t.durationOrWordCount}`;
+    const key = `${t.mode}|${t.lengthMode ?? "legacy"}|${t.durationOrWordCount}`;
     const cur = best.get(key);
     if (!cur || t.wpm > cur.wpm) best.set(key, t);
   }
@@ -103,61 +117,47 @@ function RunRow({
   pb: boolean;
   handle: string;
 }) {
+  const length = shareLengthLabel(test.lengthMode, test.durationOrWordCount);
   return (
-    <li className="group/row grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 py-3 sm:grid-cols-[1fr_auto_auto_auto] sm:gap-x-6">
+    <li className="group/row flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
       <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        <span className="truncate text-sm font-medium text-foreground">
+          {MODE_LABEL[test.mode] ?? "Casual"} · {length}
+        </span>
+        <span className="text-xs text-muted-foreground">
           {relativeTime(test.startedAtMs)}
         </span>
-        <div className="flex items-baseline gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground">
-            {prettyMode(test.mode)}
-          </span>
-          <span className="text-[11px] text-muted-foreground tabular-nums">
-            {test.durationOrWordCount}
-          </span>
-        </div>
       </div>
 
-      <span className="hidden text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground sm:inline">
-        <span className="tabular-nums text-foreground">{test.errorCount}</span>{" "}
-        err
-      </span>
-
-      <span className="hidden text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground sm:inline">
-        <span className="tabular-nums text-foreground">
-          {test.accuracy.toFixed(1)}%
-        </span>{" "}
-        acc
-      </span>
-
-      <div className="flex items-baseline gap-2 justify-self-end sm:gap-3">
-        {pb ? (
-          <Crown
-            size={14}
-            aria-label="Personal best"
-            className="self-center text-primary"
-          />
-        ) : null}
-        <span className="text-xl font-bold leading-none tracking-[-0.02em] tabular-nums text-primary sm:text-2xl">
-          {Math.round(test.wpm)}
+      <div className="flex shrink-0 items-center gap-3 tabular-nums sm:gap-5">
+        <span className="hidden text-xs text-muted-foreground sm:inline">
+          {test.errorCount} {test.errorCount === 1 ? "error" : "errors"}
         </span>
-        {/* Hover-reveal on desktop, always visible on mobile (no hover
-         *  state to trigger it). Self-center so it sits on the WPM
-         *  baseline cleanly. */}
+        <span className="text-xs text-muted-foreground">
+          {test.accuracy.toFixed(1)}%
+        </span>
+        <span className="flex w-14 items-baseline justify-end gap-1.5 sm:w-24">
+          {pb ? (
+            <Crown
+              size={14}
+              aria-label="Personal best"
+              className="shrink-0 self-center text-primary"
+            />
+          ) : null}
+          <span className="text-lg font-semibold leading-none text-foreground">
+            {Math.round(test.wpm)}
+          </span>
+          <span className="hidden text-xs text-muted-foreground sm:inline">
+            wpm
+          </span>
+        </span>
         <ShareRunButton
           testId={test.id}
           handle={handle}
           wpm={test.wpm}
-          className="self-center sm:opacity-0 sm:transition-opacity sm:group-hover/row:opacity-100 sm:group-focus-within/row:opacity-100"
+          className="size-9 sm:size-8 sm:opacity-0 sm:transition-opacity sm:group-hover/row:opacity-100 sm:group-focus-within/row:opacity-100"
         />
       </div>
     </li>
   );
 }
-
-function prettyMode(m: string): string {
-  if (m === "training" || m === "reverse_adaptive") return "training";
-  return m;
-}
-

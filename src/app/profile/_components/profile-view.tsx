@@ -2,6 +2,7 @@
 
 import { useUser } from "@clerk/nextjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PageShell } from "@/components/page-shell";
 import { BackendError, useBackend } from "@/lib/backend";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import type { FriendRelationship, FriendStats } from "@/types/friends";
@@ -19,11 +20,18 @@ import {
   mergePersonalBestsWithMt,
   mergeTotalsWithMt,
 } from "./derive-stats";
+import { matchesViewer } from "./matches-viewer";
 import { MonkeytypeBanner } from "./monkeytype-banner";
 import { MonkeyTypeImportDialog } from "./monkeytype-import-dialog";
 import { MonkeyTypeManageDialog } from "./monkeytype-manage-dialog";
 import { PersonalBests } from "./personal-bests";
 import { ProfileHero } from "./profile-hero";
+import {
+  type ProfileLoadError,
+  ProfileErrorState,
+  ProfileNotFound,
+  ProfileSkeleton,
+} from "./profile-states";
 import { RecentRuns } from "./recent-runs";
 import { WpmTrend } from "./wpm-trend";
 
@@ -32,20 +40,22 @@ const EMPTY_MT_SLICE: MonkeytypeStatsSlice = {
   pbs: { time: {}, words: {} },
 };
 
-/** /profile/<username> orchestrator. Wide MonkeyType-style layout —
- *  one card panel per section, stacked vertically with a tight gap.
+/** /profile/<username> orchestrator. One PageShell column: the hero
+ *  card (the page's header), then Personal bests → Activity and skill →
+ *  WPM trend → Recent runs as plain sections (ui-law §18).
  *
  *  Owns the MonkeyType import + manage dialog state so both the hero
- *  kebab menu AND the dismissible MonkeyType banner can open them
- *  through the same callbacks. */
+ *  ⋯ menu AND the dismissible MonkeyType banner can open them through
+ *  the same callbacks. */
 export function ProfileView({ username }: { username?: string }) {
   const backend = useBackend();
   const { user, isLoaded: userLoaded } = useUser();
   const isOwner = userLoaded ? matchesViewer(username, user) : null;
 
   const [snapshot, setSnapshot] = useState<HistorySummaryOutput | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<ProfileLoadError | null>(null);
+  // Bumped by "Try again" to re-run the snapshot fetch.
+  const [attempt, setAttempt] = useState(0);
   const [importOpen, setImportOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
   const [friendStats, setFriendStats] = useState<FriendStats | null>(null);
@@ -56,35 +66,52 @@ export function ProfileView({ username }: { username?: string }) {
   useEffect(() => {
     if (isOwner == null) return;
     let cancelled = false;
-    setLoading(true);
-    setError(null);
     const fetcher = isOwner
       ? backend.history.summary()
       : backend.history.publicProfile({ username: username! });
     fetcher
       .then((r) => {
         if (cancelled) return;
+        setError(null);
         setSnapshot(r);
       })
       .catch((err) => {
         if (cancelled) return;
         if (err instanceof BackendError && err.code === "UNAUTHORIZED") {
-          setError("Sign in to view your profile.");
+          setError({ kind: "signIn", message: "Sign in to view your profile." });
         } else if (err instanceof BackendError && err.code === "NOT_FOUND") {
-          setError(`No flinttype profile for @${username}.`);
+          setError({
+            kind: "notFound",
+            message: `There's no flinttype profile for @${username}.`,
+          });
+        } else if (err instanceof BackendError && err.code === "RATE_LIMITED") {
+          setError({
+            kind: "other",
+            message: "Too many requests. Wait a moment, then try again.",
+            detail: err.code,
+          });
         } else {
-          setError(
-            err instanceof Error ? err.message : "Failed to load profile.",
-          );
+          setError({
+            kind: "other",
+            message: "Couldn't load this profile.",
+            detail:
+              err instanceof BackendError
+                ? `${err.code}: ${err.message}`
+                : err instanceof Error
+                  ? err.message
+                  : undefined,
+          });
         }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [backend, isOwner, username]);
+  }, [backend, isOwner, username, attempt]);
+
+  const retry = useCallback(() => {
+    setError(null);
+    setAttempt((n) => n + 1);
+  }, []);
 
   // Friend data — counts for everyone, relationship only for visitors.
   // The friends routes require auth, so anonymous viewers get neither
@@ -118,7 +145,7 @@ export function ProfileView({ username }: { username?: string }) {
     };
   }, [backend, subjectUserId, isOwner, user]);
 
-  const tests = snapshot?.recentTests ?? [];
+  const tests = useMemo(() => snapshot?.recentTests ?? [], [snapshot]);
   const subjectMtSlice = snapshot?.monkeytype ?? null;
   const { value: mtSliceRaw, update: updateMtSlice } =
     useRemotePrefs<MonkeytypeStatsSlice>("monkeytypeStats", EMPTY_MT_SLICE);
@@ -191,54 +218,63 @@ export function ProfileView({ username }: { username?: string }) {
     else setImportOpen(true);
   }, [isMtConnected]);
 
+  if (error?.kind === "notFound") {
+    return (
+      <PageShell>
+        <ProfileNotFound message={error.message} />
+      </PageShell>
+    );
+  }
+
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-6 sm:gap-4 sm:px-5 sm:py-8 lg:px-8 lg:py-10">
-      <MonkeytypeBanner
-        isOwner={heroIsOwner}
-        isConnected={isMtConnected}
-        onConnect={() => setImportOpen(true)}
-      />
-      <ProfileHero
-        username={username}
-        isOwner={heroIsOwner}
-        tags={subjectTags}
-        eligibleTags={subjectEligibleTags}
-        onTagsChanged={heroIsOwner ? onTagsChanged : undefined}
-        rank={snapshot?.rank ?? null}
-        onRankChanged={heroIsOwner ? onRankChanged : undefined}
-        totals={totals}
-        streak={streak}
-        isMtConnected={isMtConnected}
-        onOpenMt={heroIsOwner ? onOpenMt : undefined}
-        subjectAvatarUrl={snapshot?.subjectAvatarUrl ?? null}
-        subjectUserId={subjectUserId}
-        friendStats={friendStats}
-        relationship={relationship}
-      />
+    <PageShell>
+      <div className="flex flex-col gap-3">
+        <ProfileHero
+          username={username}
+          isOwner={heroIsOwner}
+          pending={snapshot == null}
+          tags={subjectTags}
+          eligibleTags={subjectEligibleTags}
+          onTagsChanged={heroIsOwner ? onTagsChanged : undefined}
+          rank={snapshot?.rank ?? null}
+          onRankChanged={heroIsOwner ? onRankChanged : undefined}
+          totals={totals}
+          streak={streak}
+          isMtConnected={isMtConnected}
+          onOpenMt={heroIsOwner ? onOpenMt : undefined}
+          subjectAvatarUrl={snapshot?.subjectAvatarUrl ?? null}
+          subjectUserId={subjectUserId}
+          friendStats={friendStats}
+          relationship={relationship}
+        />
+        <MonkeytypeBanner
+          isOwner={heroIsOwner}
+          isConnected={isMtConnected}
+          onConnect={() => setImportOpen(true)}
+        />
+      </div>
 
       {error ? (
-        <div className="rounded-md border border-border bg-card px-4 py-3 text-sm text-primary">
-          {error}
-        </div>
+        <ProfileErrorState error={error} onRetry={retry} />
+      ) : snapshot == null ? (
+        <ProfileSkeleton />
       ) : (
         <>
+          <PersonalBests bests={bests} />
           <ActivitySkillCard
             days={activity}
             streak={streak}
             skills={skills}
             enoughSkill={totals.testsCompleted > 0}
           />
-          <PersonalBests bests={bests} />
           <WpmTrend points={trend} />
-          <RecentRuns tests={tests} handle={username ?? "racer"} />
+          <RecentRuns
+            tests={tests}
+            handle={username ?? "racer"}
+            isOwner={heroIsOwner}
+          />
         </>
       )}
-
-      {loading && !error ? (
-        <p className="rounded-md border border-border bg-card px-4 py-3 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          Loading the rest of {heroIsOwner ? "your" : "their"} history…
-        </p>
-      ) : null}
 
       {heroIsOwner ? (
         <>
@@ -261,41 +297,6 @@ export function ProfileView({ username }: { username?: string }) {
           ) : null}
         </>
       ) : null}
-    </main>
+    </PageShell>
   );
-}
-
-function matchesViewer(
-  urlUsername: string | undefined,
-  user: ReturnType<typeof useUser>["user"],
-): boolean {
-  if (!user) return false;
-  if (!urlUsername) return true;
-  // Case-insensitive compare — Clerk preserves casing on usernames
-  // but the auto-derived names from ensureUsername are lowercased,
-  // so the same user could be reachable via either form depending
-  // on which path generated the URL.
-  const target = urlUsername.toLowerCase();
-  const candidates = new Set<string>();
-  if (user.username) candidates.add(user.username.toLowerCase());
-  if (user.id) {
-    candidates.add(user.id.toLowerCase());
-    // Auto-derived fallback shape from ensureUsername when neither
-    // an email nor a name is usable: `u_<first-12-of-userId>`.
-    const tail = user.id.replace(/^user_/, "").slice(0, 12).toLowerCase();
-    candidates.add(`u_${tail}`);
-  }
-  const email = user.emailAddresses?.[0]?.emailAddress;
-  if (email) {
-    const local = email.split("@")[0]?.toLowerCase();
-    if (local) {
-      candidates.add(local);
-      // Sanitised form matching auto-username's derivation (dots /
-      // plus / non-word chars → underscore, trim leading/trailing).
-      candidates.add(
-        local.replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, ""),
-      );
-    }
-  }
-  return candidates.has(target);
 }
