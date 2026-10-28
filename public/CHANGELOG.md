@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.1 — 27 October 2026
+- On/off switches now follow your Button shape setting too (pill, rounded or square).
+
 ## 6.148.0 — 27 October 2026
 - Added a Style section to Interface settings: choose pill, rounded or square buttons, flat, soft or lifted cards, and turn the button glow and page glow on or off.
 - You can now pick the app's own font (Sans, Mono or System) and size (Compact, Default or Large) without changing the font you type in.
