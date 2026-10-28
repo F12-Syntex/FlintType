@@ -23,6 +23,7 @@ import { usePractice } from "../../_components/practice-state";
 import type { RoomRacer, RoomSnapshot } from "@/types/race";
 import { BOTS, type BotId } from "./race-data";
 import { useRaceRoom } from "./use-race-room";
+import { useRaceTrace } from "./use-race-trace";
 import { type RaceCtx, RaceContext } from "./race-context";
 import type { Racer, RaceState } from "./race-types";
 import type { RaceModeId } from "./race-data";
@@ -349,9 +350,17 @@ export function OnlineRaceProvider({
     raceStartedAt,
   ]);
 
+  // Per-second speed samples for the post-race chart (client-recorded;
+  // the snapshot carries no history).
+  const trace = useRaceTrace(state.phase, derived.elapsedSeconds, state.racers);
+  const tracedState = useMemo(
+    () => (trace.length > 0 ? { ...state, trace } : state),
+    [state, trace],
+  );
+
   const ctx = useMemo<RaceCtx>(
     () => ({
-      state,
+      state: tracedState,
       modeId,
       setModeId,
       enterQueue,
@@ -372,7 +381,7 @@ export function OnlineRaceProvider({
       roundNumber: snapshot?.roundNumber ?? 1,
     }),
     [
-      state,
+      tracedState,
       modeId,
       setModeId,
       enterQueue,

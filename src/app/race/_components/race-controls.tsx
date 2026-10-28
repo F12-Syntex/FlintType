@@ -1,9 +1,9 @@
 "use client";
 
 import { LogOut } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useRace } from "./race-state";
+import { useLeaveRace } from "./use-leave-race";
 
 /** Top race strip, sibling of practice's `<ModeBar>`. Phase-aware:
  *
@@ -14,24 +14,21 @@ import { useRace } from "./race-state";
  *               "Leave race" button, both the exit and the back button.
  *    finished → nothing; the results card owns Rematch + Leave. */
 export function RaceControls() {
-  const { state, abandon } = useRace();
-  const router = useRouter();
+  const { state } = useRace();
+  const leave = useLeaveRace();
   const phase = state.phase;
 
   if (phase === "queue" || phase === "finished") return null;
 
-  // In a room: drop the seat and return to /race. The leave-guard
-  // whitelists /race navigation, so this never stacks a confirm dialog.
+  // h-11 on phones clears the 44px touch floor (ui-law §7); the compact
+  // h-8 returns from sm where a pointer is likely.
   return (
-    <div className="flex shrink-0 items-center pt-3 sm:pt-4">
+    <div className="flex shrink-0 items-center pt-2 sm:pt-4">
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => {
-          abandon();
-          router.push("/race");
-        }}
-        className="-ml-3 text-muted-foreground"
+        onClick={leave}
+        className="-ml-3 h-11 text-muted-foreground sm:h-8"
       >
         <LogOut aria-hidden />
         Leave race

@@ -5,9 +5,12 @@ import { cn } from "@/lib/utils";
 import { progressOf, stoneSrc, stoneTierForWpm } from "./race-data";
 import type { Racer } from "./race-types";
 
-/** One racer's lane in the lineup card:
+/** One racer's lane in the lineup card. From sm it's one row:
  *
  *    [ ✓ name  bot ]  ( ····🔥··········· | )  [ status ]
+ *
+ *  On phones it stacks (name + status above a full-width track) so the
+ *  stone has the whole card width to travel instead of ~90px.
  *
  *  The track is a soft rounded pill; the racer's flint stone glides
  *  along a dashed ground line toward the finish post at the right end.
@@ -44,39 +47,57 @@ export function Lane({
       aria-valuemax={100}
       aria-valuenow={pct}
       className={cn(
-        "flex items-center gap-2 sm:gap-4",
+        // Phones stack the lane: name + status on one row, then a
+        // full-width track, so the stone has the card's whole width to
+        // travel. From sm it's one row: name | track | status.
+        "flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4",
         r.disconnected && "opacity-60",
       )}
     >
-      {/* Identity — ready check (lobby) or colour dot (racing) + name. */}
-      <div className="flex w-28 shrink-0 items-center gap-2 sm:w-44">
-        <LaneMark racer={r} showReady={showReady && !racing} accent={accent} />
-        <span
-          className={cn(
-            "min-w-0 truncate text-[13px]",
-            r.disconnected
-              ? "text-muted-foreground"
-              : r.isYou
-                ? "font-semibold text-foreground"
-                : "text-foreground/85",
-          )}
-        >
-          {r.name}
-        </span>
-        {r.bot != null ? (
-          <LaneTag label="Bot" aria-label="Bot opponent" />
-        ) : !racing && r.isHost ? (
-          <LaneTag label="Host" />
-        ) : null}
+      {/* Name row on phones; `sm:contents` dissolves it so identity and
+       *  status become direct row items (ordered around the track). */}
+      <div className="flex min-w-0 items-center justify-between gap-3 sm:contents">
+        {/* Identity — ready check (lobby) or colour dot (racing) + name. */}
+        <div className="flex min-w-0 items-center gap-2 sm:order-1 sm:w-44 sm:shrink-0">
+          <LaneMark racer={r} showReady={showReady && !racing} accent={accent} />
+          <span
+            className={cn(
+              "min-w-0 truncate text-[13px]",
+              r.disconnected
+                ? "text-muted-foreground"
+                : r.isYou
+                  ? "font-semibold text-foreground"
+                  : "text-foreground/85",
+            )}
+          >
+            {r.name}
+          </span>
+          {r.bot != null ? (
+            <LaneTag label="Bot" aria-label="Bot opponent" />
+          ) : !racing && r.isHost ? (
+            <LaneTag label="Host" />
+          ) : null}
+        </div>
+
+        {/* Status — WPM / place while racing, ready word in the lobby. */}
+        <div className="flex shrink-0 justify-end whitespace-nowrap sm:order-3 sm:w-20">
+          <LaneStatus
+            racer={r}
+            racing={racing}
+            showReady={showReady}
+            showWpm={showWpm}
+          />
+        </div>
       </div>
 
       {/* Track — a rounded pill with a dashed ground line, the racer's
        *  stone, and the finish post. Stacked lanes line their posts up
-       *  into one finish line. */}
+       *  into one finish line. Opponent tracks lift a touch in dark mode
+       *  so the dark stone never sinks into a dark card. */}
       <div
         className={cn(
-          "relative h-9 min-w-0 flex-1 rounded-pill",
-          r.isYou ? "bg-primary/[0.07]" : "bg-muted/70",
+          "relative h-8 min-w-0 rounded-pill sm:order-2 sm:h-9 sm:flex-1",
+          r.isYou ? "bg-primary/[0.07]" : "bg-muted/70 dark:bg-foreground/[0.07]",
         )}
       >
         <span
@@ -107,31 +128,22 @@ export function Lane({
               aria-hidden
               draggable={false}
               className="size-6 max-w-none select-none sm:size-7 motion-safe:animate-[ft-stone-bob_1.3s_ease-in-out_infinite]"
-              style={
-                r.isYou
-                  ? {
-                      filter:
-                        "drop-shadow(0 0 6px color-mix(in oklch, var(--primary) 75%, transparent))",
-                    }
-                  : undefined
-              }
+              style={{ filter: r.isYou ? YOU_GLOW : OPPONENT_HALO }}
             />
           </div>
         </div>
       </div>
-
-      {/* Status — WPM / place while racing, ready word in the lobby. */}
-      <div className="flex w-14 shrink-0 justify-end whitespace-nowrap sm:w-20">
-        <LaneStatus
-          racer={r}
-          racing={racing}
-          showReady={showReady}
-          showWpm={showWpm}
-        />
-      </div>
     </li>
   );
 }
+
+/** Your stone: the orange spark. */
+const YOU_GLOW =
+  "drop-shadow(0 0 6px color-mix(in oklch, var(--primary) 75%, transparent))";
+/** Opponents' stones: a thin theme-aware halo (light in dark mode, a
+ *  soft shadow in light mode) so the dark pebble art reads on any track. */
+const OPPONENT_HALO =
+  "drop-shadow(0 0 1.5px color-mix(in oklch, var(--foreground) 55%, transparent))";
 
 /** Left mark on a lane. In a private lobby it's a round check so ready
  *  vs not ready reads down the column (filled orange = ready, host

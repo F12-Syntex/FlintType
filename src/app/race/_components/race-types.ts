@@ -105,7 +105,7 @@ export type RaceState = {
   nowMs: number;
   racers: Racer[];
   feed: FeedEvent[];
-  trace: TraceSample[];
+  trace: readonly TraceSample[];
   /** Tracks the last leader so a feed entry fires once per change. */
   lastLeaderId: string | null;
   /** Which 25/50/75% milestones each racer has already triggered. */

@@ -126,6 +126,7 @@ function HostControls({
             size="sm"
             onClick={() => start(true)}
             disabled={pending}
+            className="h-11 px-4 sm:h-8 sm:px-3"
           >
             Force start now
           </Button>
@@ -239,7 +240,7 @@ function ShareLink({ slug }: { slug: string }) {
         variant="outline"
         onClick={() => copy(url)}
         aria-label={copied ? "Invite link copied" : `Copy invite link ${url}`}
-        className="w-full max-w-full justify-between gap-3 pr-3 font-normal"
+        className="h-11 w-full max-w-full justify-between gap-3 pr-3 font-normal sm:h-9"
       >
         <span className="min-w-0 truncate tabular-nums text-muted-foreground">
           {url}

@@ -98,10 +98,15 @@ export function RacePassage() {
   const youFinished = you?.finishedAt != null;
   // Swap in the live spectator passage when: you finished but the room
   // hasn't (watch another racer), OR you're a pure spectator (no seat)
-  // for the whole race + results.
+  // for the whole race. (Once the race is over the body shows the
+  // results card + a passage recap instead of this surface.)
   const showSpectator = isSpectator
-    ? state.phase === "racing" || state.phase === "finished"
+    ? state.phase === "racing"
     : state.phase === "racing" && youFinished;
+  // You finished while others race: the body scrolls and stacks your
+  // provisional results right under this surface, so lay out at natural
+  // height (no fill-and-clip) and the results start above the fold.
+  const natural = !isSpectator && youFinished;
   // Player roster shows from matching through the live race (incl. the
   // post-finish spectator view while the room runs on). At "finished"
   // it's dropped: the RaceResults standings table is THE roster then,
@@ -129,6 +134,7 @@ export function RacePassage() {
       totalWords={state.words.length}
       wpm={wpm}
       accuracy={acc}
+      showStats={!isSpectator}
       showReady={onlineSnapshot?.kind === "challenge"}
     />
   ) : null;
@@ -140,26 +146,34 @@ export function RacePassage() {
   // and crushed the passage to nothing once a lobby had several racers.)
   if (racing) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div
+        className={cn(
+          "flex flex-col",
+          !natural && "min-h-0 flex-1 overflow-hidden",
+        )}
+      >
         {/* Roster at the top, fully visible. mb gives the passage /
          *  spectator content below it real breathing room so the text
          *  never crowds the player-list card. */}
         {lineupEl ? (
           <div className="mb-4 shrink-0 sm:mb-6">{lineupEl}</div>
         ) : null}
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
-          {/* overflow-hidden is load-bearing: when the roster + a short
-           *  viewport squeeze this slot, the spectator header/passage must
-           *  clip at the slot boundary instead of painting under the
-           *  translucent roster card (the FT spectate-overlap bug). */}
-          <div className="min-h-0 flex-1 overflow-hidden">
-            {showSpectator ? (
-              <SpectatorPassage words={state.words} racers={state.racers} />
-            ) : (
-              <Passage wordBackground={wordTints} wordTextColor={wordTextColor} />
-            )}
-          </div>
-          {quoteSource ? <QuoteAttribution source={quoteSource} /> : null}
+        {/* overflow-hidden is load-bearing in the fill layout: when the
+         *  roster + a short viewport squeeze this slot, the spectator
+         *  header/passage must clip at the slot boundary instead of
+         *  painting under the roster card (the FT spectate-overlap bug).
+         *  The quote's author rides with the spectator text (inside it);
+         *  while you type, the pre-race note already named the author. */}
+        <div className={cn(!natural && "min-h-0 flex-1 overflow-hidden")}>
+          {showSpectator ? (
+            <SpectatorPassage
+              words={state.words}
+              racers={state.racers}
+              source={quoteSource}
+            />
+          ) : (
+            <Passage wordBackground={wordTints} wordTextColor={wordTextColor} />
+          )}
         </div>
       </div>
     );
@@ -216,22 +230,6 @@ function CountdownPanel({ n }: { n: number }) {
         {label}
       </span>
     </div>
-  );
-}
-
-/** Dash + author line that sits under the passage during racing in
- *  QUOTE rooms. Right-aligned and muted — the attribution reads as a
- *  footnote, never competing with the passage above it. */
-function QuoteAttribution({ source }: { source: string }) {
-  return (
-    <p
-      className={cn(
-        "px-1 text-right text-[12px] text-muted-foreground sm:text-[13px]",
-        "italic tabular-nums",
-      )}
-    >
-      — {source}
-    </p>
   );
 }
 

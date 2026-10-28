@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { BackendError, useBackend } from "@/lib/backend";
+import { cn } from "@/lib/utils";
 import type { JoinChallengeOutput } from "@/types/race";
 import { RaceShell, type RaceShellOnline } from "../../../_components/race-shell";
 import type { RaceModeId } from "../../../_components/race-data";
@@ -194,12 +195,15 @@ function ChallengeError({
         {explainer}
       </p>
       <div className="flex w-full max-w-xs flex-col gap-3 pt-2 sm:max-w-none sm:flex-row sm:justify-center">
-        <Link href="/race" className={buttonVariants({ size: "lg" })}>
+        {/* cn() runs twMerge so the outline variant's border colour wins
+         *  over the base `border-transparent` (a bare buttonVariants()
+         *  string keeps both, and the transparent one paints). */}
+        <Link href="/race" className={cn(buttonVariants({ size: "lg" }))}>
           Start a race
         </Link>
         <Link
           href="/"
-          className={buttonVariants({ variant: "outline", size: "lg" })}
+          className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
         >
           Practice instead
         </Link>

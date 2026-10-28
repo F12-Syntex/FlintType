@@ -12,11 +12,12 @@ import { useRace } from "./race-state";
  *  keystrokes to a button instead of the passage. So we swallow Tab
  *  during those two windows only.
  *
- *  Every other phase — the lobby, matchmaking, and the finished
- *  results screen — leaves Tab alone so keyboard-only users can reach
- *  the Ready, Start, Rematch, and Leave controls with native tab
- *  traversal. (Tab-as-restart was retired in <InputCapture>, so there
- *  is no longer any practice-side binding to out-race here.)
+ *  Every other phase — the launcher, matchmaking, the lobby and the
+ *  finished results screen — keeps Tab as native focus traversal so
+ *  keyboard-only users can reach the mode switch, Find race, Ready,
+ *  Start, Rematch and Leave controls, even when focus starts on the
+ *  hidden typing input (see the handler). The practice provider runs in
+ *  race mode on race pages, so its own Tab-restart binding stands down.
  *
  *  Capture phase so the decision is made before any bubble-phase
  *  listener runs. Returns no UI. */
@@ -32,10 +33,23 @@ export function TabFocusGuard() {
     state.phase === "countdown" || (state.phase === "racing" && !youFinished);
 
   useEffect(() => {
-    if (!lockFocus) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Tab") {
+      if (e.key !== "Tab") return;
+      if (lockFocus) {
         e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      // Not typing: Tab must do native focus traversal. But focus often
+      // rests on the hidden typing input (it grabs focus on mount), and
+      // that input's own key handler swallows EVERY key while the race
+      // input is locked (launcher, matchmaking, lobby), Tab included —
+      // which trapped keyboard users on the launcher and in the lobby.
+      // Stopping propagation here, at the window capture phase, keeps
+      // the event from ever reaching that handler; the browser's default
+      // Tab action (move focus) is untouched.
+      const target = e.target as HTMLElement | null;
+      if (target?.getAttribute("aria-label") === "Typing input") {
         e.stopPropagation();
       }
     };

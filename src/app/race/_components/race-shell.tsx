@@ -1,9 +1,9 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -14,7 +14,7 @@ import { InputCapture } from "../../_components/input-capture";
 import { PracticeProvider } from "../../_components/practice-state";
 import { ReportActivity } from "../../_components/report-activity";
 import { clearHostStorage } from "../c/[slug]/_components/challenge-shell";
-import type { RaceModeId } from "./race-data";
+import { hashSeed, type RaceModeId } from "./race-data";
 import { RaceProvider } from "./race-state";
 import { LeaveGuard } from "./leave-guard";
 import {
@@ -26,20 +26,7 @@ import { raceErrorMessage } from "./race-errors";
 import { SpectatorBanner } from "./spectator-banner";
 import { useLeaveOnUnmount } from "./use-leave-on-unmount";
 import { TabFocusGuard } from "./tab-focus-guard";
-
-/** Pull a short, race-feed-friendly handle from the Clerk session.
- *  Mirrors the `firstName ?? username ?? email-localpart ?? "you"`
- *  fallback chain used in the topbar. Always prefixed with `@`. */
-function useYouHandle(): string {
-  const { user, isSignedIn } = useUser();
-  if (!isSignedIn || !user) return "@you";
-  const raw =
-    user.firstName ??
-    user.username ??
-    user.emailAddresses[0]?.emailAddress.split("@")[0] ??
-    "you";
-  return raw.startsWith("@") ? raw : `@${raw}`;
-}
+import { useYouHandle } from "./use-you-handle";
 
 export type RaceShellOnline = {
   roomId: string;
@@ -228,6 +215,16 @@ export function RaceShell({
   // lags the practice state.
   const subtreeKey = `${modeId}:${online?.roomId ?? "queue"}:r${online?.roundNumber ?? 1}:${youName}`;
 
+  // Published to the body with the queue status: true while the shell
+  // is reconnecting to the SAME room for a rematch round (the subtree
+  // re-mounts and briefly has no snapshot), so the body shows a quiet
+  // "Starting the next round…" line instead of flashing the launcher.
+  const rematching = (online?.roundNumber ?? 1) > 1;
+  const queueContext = useMemo<QueueStatus>(
+    () => ({ ...queueStatus, rematching }),
+    [queueStatus, rematching],
+  );
+
   const initialRoomForProvider = online
     ? { roomId: online.roomId, sessionToken: online.sessionToken }
     : null;
@@ -236,7 +233,7 @@ export function RaceShell({
     <RaceProvider
       key={subtreeKey}
       modeId={modeId}
-      raceSeed={(online?.roomId ? hashSeed(online.roomId) : Date.now()) | 0}
+      raceSeed={online?.roomId ? hashSeed(online.roomId) | 0 : 0}
       withQueue={!online}
       youName={youName}
       setModeId={switchMode}
@@ -259,9 +256,13 @@ export function RaceShell({
     </RaceProvider>
   );
 
-  // raceMode tags the submitTest row as mode="race" so the user's
-  // history can distinguish race runs from regular practice.
-  const raceMode = online != null;
+  // The provider ALWAYS runs in race mode on race pages, even on the
+  // idle launcher before a room exists: race mode tags the submitted
+  // row as mode="race", hands Tab to <TabFocusGuard> (which leaves Tab
+  // alone outside the countdown / race, so keyboard users can reach the
+  // launcher's controls instead of Tab being swallowed as a practice
+  // "restart"), and keeps the solo live-practice broadcast off.
+  // Nothing is ever submitted from the queue phase.
 
   // Spectators are read-only — never wrap the surface in
   // InputCapture (we'd capture their typing into a hidden input that
@@ -271,26 +272,15 @@ export function RaceShell({
   // keystroke pipeline. A persistent banner at the top makes the
   // read-only context unmistakable.
   return (
-    <QueueStatusContext.Provider value={queueStatus}>
-      <PracticeProvider key={subtreeKey} lockedWords={words} raceMode={raceMode}>
+    <QueueStatusContext.Provider value={queueContext}>
+      <PracticeProvider key={subtreeKey} lockedWords={words} raceMode>
         <AutoHideApplier />
-        {isSpectating ? null : <ReportActivity status="racing" />}
+        {/* Only "racing" once there's a room; idling on the launcher is
+         *  not racing, and spectators never report activity. */}
+        {online != null && !isSpectating ? <ReportActivity status="racing" /> : null}
         {isSpectating ? <SpectatorBanner /> : null}
         {isSpectating ? raceTree : <InputCapture>{raceTree}</InputCapture>}
       </PracticeProvider>
     </QueueStatusContext.Provider>
   );
-}
-
-/** Stable 32-bit seed derived from a room id. Used so client-side
- *  features that key off `state.raceSeed` (e.g. the offline bots'
- *  jitter, which the online flow doesn't run anyway) still see a
- *  consistent value per room rather than a constantly-rotating
- *  Date.now(). */
-function hashSeed(roomId: string): number {
-  let h = 5381;
-  for (let i = 0; i < roomId.length; i += 1) {
-    h = ((h << 5) + h + roomId.charCodeAt(i)) >>> 0;
-  }
-  return h;
 }

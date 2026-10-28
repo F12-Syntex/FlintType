@@ -8,6 +8,12 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.3 — 27 October 2026
+- Race results now include a speed-over-the-race chart and a quiet recap of the passage with any words you left wrong underlined.
+- People watching a race see the final standings and a Find a race button when it ends, and Leave always takes you back to the race page.
+- Race lanes stack on phones so the stones have room to move, and stones stay visible in dark mode.
+- Keyboard users can now Tab to every race control outside the countdown and the race itself.
+
 ## 6.148.2 — 27 October 2026
 - The big speed number on the results screen always fits, even with decimals or other speed units, and the chart labels its seconds evenly.
 - Save image now saves a neat result card with the flinttype mark, and Replay plays your run back in the same font, colours and caret as the typing screen.

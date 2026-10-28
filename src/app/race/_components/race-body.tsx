@@ -1,5 +1,7 @@
 "use client";
 
+import { PassageRecap } from "./passage-recap";
+import { useQueueStatus } from "./queue-status";
 import { RaceLauncher } from "./race-launcher";
 import { RaceResults } from "./race-results";
 import { useRace } from "./race-state";
@@ -9,13 +11,16 @@ import { RaceSurface } from "./race-surface";
  *
  *    - **idle** (queue, no room) — the centred `<RaceLauncher>`.
  *    - **joining** (queue, room handle but no snapshot yet) — on a
- *      private-lobby link, a quiet "Joining lobby…" line. (On /race the
- *      launcher stays up with a disabled "Finding race…" button.)
+ *      private-lobby link, a quiet "Joining lobby…" line; while a
+ *      rematch reconnects to the same room, "Starting the next round…"
+ *      (never a flash of the launcher). On a first Find race the
+ *      launcher stays up with a disabled "Finding race…" button.
  *    - **race over** (`phase === "finished"`) — the results card FIRST so
- *      your place is above the fold, then the passage you typed below it.
+ *      your place is above the fold, then a quiet recap of the passage.
+ *      A watcher (no seat) gets the standings-only results card.
  *    - **you finished, room still racing** — keep the live surface (it
- *      swaps to a spectator view of the racers still going) with your
- *      provisional results beneath, so you can watch the rest finish.
+ *      swaps to a spectator view of the racers still going, sized to its
+ *      content) with your provisional results right beneath it.
  *    - **mid / pre-race** — just the surface.
  *
  *  During the race the surface is held in a fixed, non-scrolling region
@@ -26,12 +31,13 @@ import { RaceSurface } from "./race-surface";
  *  owns the page gutter and the page column caps the width. */
 export function RaceBody() {
   const { state, onlineRoomId, challengeSlug } = useRace();
+  const { rematching } = useQueueStatus();
   const you = state.racers.find((r) => r.isYou);
   const raceOver = state.phase === "finished";
   const youFinished = you?.finishedAt != null;
 
   if (state.phase === "queue") {
-    if (challengeSlug && onlineRoomId) {
+    if (onlineRoomId && (rematching || challengeSlug)) {
       return (
         <div className="flex flex-1 items-center justify-center py-16">
           <span
@@ -42,7 +48,7 @@ export function RaceBody() {
               aria-hidden
               className="size-1.5 rounded-full bg-primary motion-safe:animate-pulse"
             />
-            Joining lobby…
+            {rematching ? "Starting the next round…" : "Joining lobby…"}
           </span>
         </div>
       );
@@ -59,12 +65,7 @@ export function RaceBody() {
       <div className="-mx-3 flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-3 pt-3 pb-10 sm:gap-8 sm:pt-6">
         {srTitle}
         <RaceResults />
-        {/* The passage you typed, kept readable under the results. A real
-         *  height so the passage (which centres + clips to its box)
-         *  doesn't collapse inside the scrolling column. */}
-        <div className="flex min-h-48 shrink-0 flex-col">
-          <RaceSurface />
-        </div>
+        <PassageRecap />
       </div>
     );
   }
@@ -73,7 +74,7 @@ export function RaceBody() {
     return (
       <div className="-mx-3 flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-3 pt-3 pb-10 sm:gap-8 sm:pt-4">
         {srTitle}
-        <div className="flex min-h-[45vh] shrink-0 flex-col">
+        <div className="flex shrink-0 flex-col">
           <RaceSurface />
         </div>
         <RaceResults />

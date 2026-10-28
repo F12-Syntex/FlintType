@@ -6,9 +6,12 @@ import { Button } from "@/components/ui/button";
 import { formatClock } from "@/lib/format-duration";
 import { ordinal, provisionalLine, summaryLine } from "./race-result-copy";
 import { useRace } from "./race-state";
+import { SpectatorResults } from "./race-results-spectator";
 import { RaceStandings } from "./race-standings";
 import { RaceTrace } from "./race-trace";
 import { Stat } from "./result-stat";
+import { useLeaveRace } from "./use-leave-race";
+import { useSaveRaceImage } from "./use-save-race-image";
 
 /** Track whether the local user already cast a rematch vote on the
  *  current finished round. Read from the server snapshot
@@ -34,13 +37,16 @@ export function RaceResults() {
     rematch,
     rematchReady,
     onlineSessionToken,
-    abandon,
     isHost,
     isChallenge,
   } = useRace();
   const you = state.racers.find((r) => r.isYou) ?? null;
+  // One leave path for every exit: drops the seat, clears a private
+  // lobby's cached host handle and lands on /race (never strands the
+  // user on a dead /race/c/<slug> URL).
+  const leave = useLeaveRace();
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const [exporting, setExporting] = useState(false);
+  const { exporting, save: saveImage } = useSaveRaceImage(panelRef);
   const [rematchClicked, setRematchClicked] = useState(false);
 
   // Source of truth: did the server ack our vote? Plus optimistic
@@ -82,50 +88,18 @@ export function RaceResults() {
     rematch(true);
   }, [rematch]);
   const onDownload = useCallback(async () => {
-    // Capture the whole content area (data-screenshot-root on
-    // AppChrome's main scroller) rather than just this panel, so the
-    // PNG reads as a page snapshot — passage, lineup, results, the
-    // race trace — instead of an orphaned card. Fallback to the
-    // panel keeps the export working if this component is ever
-    // mounted outside the app shell.
-    const { findScreenshotRoot, naturalScreenshotSize, pickScreenshotBg } =
-      await import("@/lib/screenshot");
-    const node = findScreenshotRoot(panelRef.current);
-    if (!node || exporting) return;
-    setExporting(true);
     setActionError(null);
-    try {
-      const { toPng } = await import("html-to-image");
-      const bg = pickScreenshotBg(node);
-      const { width, height } = naturalScreenshotSize(node);
-      const dataUrl = await toPng(node, {
-        cacheBust: true,
-        backgroundColor: bg,
-        width,
-        height,
-        filter: (n) => !(n instanceof HTMLElement && n.dataset.noExport === "true"),
-      });
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = `flinttype-race-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch (err) {
-      console.error("[race-results] screenshot failed", err);
-      setActionError("Couldn't save the image. Try again.");
-    } finally {
-      setExporting(false);
-    }
-  }, [exporting]);
+    if (!(await saveImage())) setActionError("Couldn't save the image. Try again.");
+  }, [saveImage]);
   // Two surfaces: the room is fully finished (every racer crossed),
   // OR the local user has finished but bots / other real players
   // are still mid-race. In the second case we show your results
   // immediately — no need to wait on slower racers — and the live
   // player strip above still ticks while the room wraps up.
-  // A pure spectator (joined a full/started lobby) has no "you" racer —
-  // they never get a personal results panel.
-  if (!you) return null;
+  // A pure spectator (joined a full/started lobby) has no "you" racer:
+  // once the race is over they get the standings-only card (winner,
+  // standings, "Find a race"), never a personal results panel.
+  if (!you) return state.phase === "finished" ? <SpectatorResults /> : null;
   const allFinished = state.phase === "finished";
   const youFinished = you.finishedAt != null;
   if (!allFinished && !youFinished) return null;
@@ -228,7 +202,7 @@ export function RaceResults() {
               onClick={onDownload}
               disabled={exporting}
               aria-label="Save results as image"
-              className="text-muted-foreground"
+              className="h-11 text-muted-foreground sm:h-8"
             >
               <Download aria-hidden />
               {exporting ? "Saving…" : "Save image"}
@@ -236,8 +210,8 @@ export function RaceResults() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={abandon}
-              className="text-muted-foreground"
+              onClick={leave}
+              className="h-11 text-muted-foreground sm:h-8"
             >
               <LogOut aria-hidden />
               Leave

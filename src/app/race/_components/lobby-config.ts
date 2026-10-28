@@ -69,3 +69,39 @@ export function toggleQuoteLength(config: LobbyConfig, id: number): LobbyConfig 
   if (next.length === 0) return config;
   return { ...config, quoteLengths: next.sort((a, b) => a - b) };
 }
+
+/** Plain-English name for a quote-length bucket. The data layer calls
+ *  the 600+ char bucket "thicc"; the UI never shows the slang. */
+const QUOTE_LENGTH_LABELS = ["short", "medium", "long", "extra long"] as const;
+
+export function quoteLengthLabel(id: number): string {
+  return QUOTE_LENGTH_LABELS[id] ?? "long";
+}
+
+/** One sentence-case line describing what "Create private lobby" will
+ *  make from the saved config, shown under the launcher's buttons so the
+ *  settings aren't hidden behind the gear:
+ *
+ *    quote  → "Quote race, short to long" (contiguous range) or
+ *             "Quote race, short and long" (a gap) or "…, medium only"
+ *    words  → "25 words from English"
+ *    timed  → "30 second race from English" */
+export function lobbyConfigSummary(
+  config: LobbyConfig,
+  wordlistName: string,
+): string {
+  if (config.type === "words") return `${config.wordCount} words from ${wordlistName}`;
+  if (config.type === "timed") return `${config.durationSec} second race from ${wordlistName}`;
+  const ids = [...new Set(config.quoteLengths)].sort((a, b) => a - b);
+  if (ids.length === 0) return "Quote race";
+  const first = ids[0]!;
+  const last = ids[ids.length - 1]!;
+  if (ids.length === 1) return `Quote race, ${quoteLengthLabel(first)} only`;
+  const contiguous = last - first === ids.length - 1;
+  if (contiguous) {
+    return `Quote race, ${quoteLengthLabel(first)} to ${quoteLengthLabel(last)}`;
+  }
+  const labels = ids.map(quoteLengthLabel);
+  const head = labels.slice(0, -1).join(", ");
+  return `Quote race, ${head} and ${labels[labels.length - 1]}`;
+}
