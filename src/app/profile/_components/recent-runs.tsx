@@ -127,10 +127,12 @@ function RunRow({
       </div>
 
       <div className="flex shrink-0 items-center gap-3 tabular-nums sm:gap-5">
-        <span className="hidden text-xs text-muted-foreground sm:inline">
+        {/* Fixed minimum widths keep the errors and accuracy columns
+            aligned down the list whatever the digit count. */}
+        <span className="hidden min-w-16 text-right text-xs text-muted-foreground sm:inline">
           {test.errorCount} {test.errorCount === 1 ? "error" : "errors"}
         </span>
-        <span className="text-xs text-muted-foreground">
+        <span className="min-w-12 text-right text-xs text-muted-foreground">
           {test.accuracy.toFixed(1)}%
         </span>
         <span className="flex w-14 items-baseline justify-end gap-1.5 sm:w-24">

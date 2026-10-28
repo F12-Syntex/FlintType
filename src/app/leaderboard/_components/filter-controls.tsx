@@ -25,10 +25,12 @@ import {
 } from "./filters";
 import type { SetLeaderboardFilters } from "./use-leaderboard-params";
 
-/** Shared sizing for every switch in the toolbar: 44px on phones (touch
- *  floor), 40px from md so the row matches the dropdown pills. */
+/** Shared sizing for every switch in the toolbar. On phones the touch
+ *  target is the segment itself: 40px segments in a slim `p-0.5` track
+ *  (~46px, the §17.2 recipe), so a tap on the track edge still lands on
+ *  a segment. From md it is a 40px track matching the dropdown pills. */
 export const TOOLBAR_SWITCH =
-  "h-11 flex-nowrap md:h-10 [&>button]:h-full [&>button]:py-0";
+  "flex-nowrap p-0.5 md:h-10 md:p-1 [&>button]:h-10 [&>button]:py-0 md:[&>button]:h-full";
 
 export const AUDIENCES: readonly { value: LeaderboardAudience; label: string }[] = [
   { value: "global", label: "Global" },

@@ -9,6 +9,8 @@ import type { LoadError } from "./use-drills";
 
 /** The runner's fallback message when a load fails without a message. */
 const GENERIC_ERROR = "Couldn't load this drill.";
+/** Headings carry no trailing period, like every other page title. */
+const GENERIC_ERROR_TITLE = "Couldn't load this drill";
 
 /** Header + passage-shaped bones, so the real runner lands without the
  *  title or the typing area jumping. */
@@ -81,7 +83,7 @@ export function ErrorState({
       {error.signIn ? (
         <Notice
           level="h1"
-          title="Sign in to start this drill."
+          title="Sign in to start this drill"
           action={
             <Link href="/sign-in" className={buttonVariants({ size: "lg" })}>
               Sign in
@@ -95,7 +97,7 @@ export function ErrorState({
       ) : (
         <Notice
           level="h1"
-          title={GENERIC_ERROR}
+          title={GENERIC_ERROR_TITLE}
           action={
             <Button size="lg" onClick={onRetry}>
               Try again
@@ -125,7 +127,7 @@ export function NotFound({ id }: { id: string }) {
       <DrillHeader />
       <Notice
         level="h1"
-        title={`No drill called “${shortId(id)}”.`}
+        title={`No drill called “${shortId(id)}”`}
         action={
           <Link href="/drills" className={buttonVariants({ size: "lg" })}>
             See all drills
@@ -143,7 +145,7 @@ export function Locked({ drill }: { drill: DrillSpec }) {
     <>
       <DrillHeader title={drill.title} subtitle={drill.contextLabel} />
       <Notice
-        title="Needs more of your typing first."
+        title="Needs more of your typing first"
         action={
           <>
             <Link href="/" className={buttonVariants({ size: "lg" })}>

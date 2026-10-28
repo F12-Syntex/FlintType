@@ -69,9 +69,9 @@ function IsolationTile({ drills }: { drills: readonly DrillSpec[] }) {
       <Badge icon={<Target aria-hidden />}>Isolation</Badge>
       <TileText
         title={ISOLATION_TILE_TITLE}
-        summary="One slow motion drilled across many everyday words. Pick a pair to start."
+        summary="One weak letter pair or triple, drilled across many everyday words. Pick one to start."
       />
-      <ul className="mt-auto flex flex-wrap gap-2 pt-1" aria-label="Weak pairs">
+      <ul className="mt-auto flex flex-wrap gap-2 pt-1" aria-label="Weak letter pairs and triples">
         {ready.map((d) => {
           const pattern = isolationPattern(d) ?? d.title;
           return (

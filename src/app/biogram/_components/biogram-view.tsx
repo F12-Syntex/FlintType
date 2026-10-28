@@ -94,7 +94,7 @@ function SnapshotBody({ snap }: { snap: AdaptSnapshotOutput }) {
       <PageSection
         id="patterns"
         title="Patterns"
-        description="Every sequence the model tracks, ranked by how much slower you are on it than your usual pace."
+        description="Every sequence the model tracks. Weakness is how reliably slower you are on it than your usual pace."
       >
         <PatternModels snap={snap} />
       </PageSection>
@@ -118,7 +118,7 @@ function SnapshotBody({ snap }: { snap: AdaptSnapshotOutput }) {
       <PageSection
         id="recency-map"
         title="Recently shown words"
-        description="Words you've just seen are held back for a few tests so the same passage doesn't loop."
+        description="Words you've just seen are held back for a few tests so the same passage doesn't loop. The number is how many tests ago each one appeared."
       >
         <RecencyMap rows={snap.recentlyShown} />
       </PageSection>

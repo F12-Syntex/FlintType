@@ -138,7 +138,9 @@ export function ModelTable({
                       ) : null}
                       <span
                         className={cn(
-                          "min-w-[2.5ch] text-right",
+                          // Wide enough for "123.4", so every bar ends
+                          // at the same x whatever the value's width.
+                          "min-w-[5ch] text-right",
                           r.weakness > 0 ? "font-medium text-foreground" : "text-muted-foreground",
                         )}
                       >

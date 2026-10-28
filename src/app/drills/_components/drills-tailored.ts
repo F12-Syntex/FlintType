@@ -45,7 +45,7 @@ function weaknessDrill(
     return {
       ...base,
       summary:
-        "Unlocks once we've seen enough of your typing to find your slowest pairs.",
+        "Unlocks once we've seen enough of your typing to find your weakest pairs.",
       description:
         "Once we've seen enough of your typing to identify weak bigrams, this drill will build a passage around them and demand a clean run.",
       payoff: "Drilling your weakest pairs under sudden-death pressure is the highest-leverage path to a higher overall WPM.",
@@ -56,8 +56,8 @@ function weaknessDrill(
   const keys = weakestPairs.map((w) => w.key);
   return {
     ...base,
-    summary: `A passage built from your slowest pairs (${keys.slice(0, 3).join(", ")}). One mistake restarts it.`,
-    description: `A passage built from your slowest bigrams: ${quoted(keys.slice(0, 4))}. Clear it without a single mistake. One wrong key sends you back to word one.`,
+    summary: `A passage built from your weakest pairs (${keys.slice(0, 3).join(", ")}). One mistake restarts it.`,
+    description: `A passage built from your weakest bigrams: ${quoted(keys.slice(0, 4))}. Clear it without a single mistake. One wrong key sends you back to word one.`,
     payoff: "Sudden-death enforces accuracy where you're already slow. Your brain locks in the cleaner motion when error is non-negotiable.",
     ready: true,
     words: generateWeaknessPassage(weakestPairs, SUDDEN_DEATH_LENGTH, seed),
@@ -94,8 +94,8 @@ function worstWordsDrill(
   }
   return {
     ...base,
-    summary: `Your ${words.length} slowest words, one at a time, until each clears ${DEFAULT_BURST_THRESHOLD_WPM} wpm.`,
-    description: `Burst your slowest ${words.length} words: ${quoted(words.slice(0, 4))}${words.length > 4 ? ", …" : ""}. Each one drilled at ${DEFAULT_BURST_THRESHOLD_WPM} WPM until it stops dragging your average.`,
+    summary: `Your ${words.length} weakest words, one at a time, until each clears ${DEFAULT_BURST_THRESHOLD_WPM} wpm.`,
+    description: `Burst your weakest ${words.length} words: ${quoted(words.slice(0, 4))}${words.length > 4 ? ", …" : ""}. Each one drilled at ${DEFAULT_BURST_THRESHOLD_WPM} WPM until it stops dragging your average.`,
     payoff:
       "These are the exact words your hands keep hesitating on, usually a different shape than the bigram drill picks up. Clear the list and your overall WPM moves with it.",
     ready: true,

@@ -44,12 +44,12 @@ export const DRILL_COPY: Record<FixedDrillId, DrillCopy> = {
     title: "Weakness gauntlet",
     contextLabel: "Sudden death",
     about:
-      "A passage built from your slowest letter pairs. One mistake restarts it.",
+      "A passage built from your weakest letter pairs. One mistake restarts it.",
   },
   "worst-words": {
     title: "Worst-words burst",
     contextLabel: "Burst",
-    about: `Your slowest words, one at a time, until each clears ${DEFAULT_BURST_THRESHOLD_WPM} wpm.`,
+    about: `Your weakest words, one at a time, until each clears ${DEFAULT_BURST_THRESHOLD_WPM} wpm.`,
   },
   "trigram-burst": {
     title: "Trigram burst",

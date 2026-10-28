@@ -8,6 +8,12 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.21 — 27 October 2026
+- On phones, the leaderboard's view switch and filter switches are easier to tap.
+- The errors and accuracy columns in your profile's Recent runs now line up.
+- Biogram: Adapt tests are labelled Adapt, the recent tests table fits on a phone, weakness bars line up, and recently shown words explain what their number means.
+- Drills describe your weakest pairs and words the same way Insights does, and the isolation card now says it covers letter triples too.
+
 ## 6.148.20 — 27 October 2026
 - Menu section labels (such as Accounts in the profile menu) are now in plain sentence case.
 
