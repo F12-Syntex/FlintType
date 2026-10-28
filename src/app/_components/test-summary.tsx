@@ -1,55 +1,60 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { Crown, Download } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ShareRunButton } from "@/components/share-run-button";
-import { Button } from "@/components/ui/button";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { recordIfPb } from "@/lib/pb-cache";
-import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
+import { formatSpeed } from "@/lib/speed-unit";
 import { cn } from "@/lib/utils";
+import { wordlistLabel } from "@/lib/wordlists/use-wordlist";
 import { calcWpmAndRaw, keystrokeErrors } from "@/lib/wpm";
 import { consistencyScore, stallWpm } from "@/lib/wpm-stats";
-import { type KeyEvent, usePractice } from "./practice-state";
-import { reconstructCursor } from "./replay-cursor";
+import { PassageHeatmap } from "./passage-heatmap";
+import { PbConfetti, PbCrown } from "./pb-celebration";
+import { usePractice } from "./practice-state";
+import { ResultActions } from "./result-actions";
 import { type Bucket, ResultChart } from "./result-chart";
-import {
-  ExtraStats,
-  HandBalance,
-  PerLetterSlowness,
-} from "./result-insights";
+import { InsightCard } from "./insight-card";
+import { HandBalance, PerLetterSlowness } from "./result-insights";
+import { ExtraStats } from "./result-run-shape";
+import { ReplayView } from "./result-replay";
 
 // ─── Pieces ────────────────────────────────────────────────────────
 
-function BigStat({
+/** One result number with its label above. Three tiers so the screen
+ *  has one obvious answer: `hero` (speed, huge, primary), `lead`
+ *  (accuracy, large ink) and `detail` (the secondary row, ink). */
+function ResultStat({
   label,
   value,
   suffix,
-  accent = false,
+  tier = "detail",
   pb = false,
 }: {
   label: string;
   value: string | number;
   suffix?: string;
-  accent?: boolean;
-  /** When true, paint the PB crown + confetti burst over the stat. */
+  tier?: "hero" | "lead" | "detail";
+  /** Paint the PB crown + confetti burst beside the value. */
   pb?: boolean;
 }) {
   return (
-    <div className="relative flex flex-col gap-1 leading-none">
-      <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-        {label}
-      </span>
+    <div className="relative flex min-w-0 flex-col gap-1.5">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
       <span
         className={cn(
-          "relative inline-flex items-baseline gap-2 text-2xl font-semibold tabular-nums sm:text-3xl lg:text-4xl",
-          accent ? "text-primary" : "text-foreground",
+          "relative inline-flex items-baseline gap-1 leading-none tabular-nums",
+          tier === "hero" &&
+            "text-6xl font-bold tracking-[-0.04em] text-primary sm:text-7xl",
+          tier === "lead" &&
+            "text-4xl font-semibold tracking-[-0.03em] text-foreground sm:text-5xl",
+          tier === "detail" &&
+            "text-xl font-semibold tracking-tight text-foreground sm:text-2xl",
         )}
       >
         {value}
         {suffix ? (
-          <span className="text-base font-normal text-muted-foreground">
+          <span className="text-sm font-normal tracking-normal text-muted-foreground">
             {suffix}
           </span>
         ) : null}
@@ -60,427 +65,33 @@ function BigStat({
   );
 }
 
-/** Crown badge that sits to the right of the stat value on a new PB.
- *  Inline-positioned so it shares the value's baseline — no absolute
- *  positioning to collide with the digits. Pops in on mount under
- *  motion-safe; reduced-motion users see the rest pose. */
-function PbCrown() {
-  return (
-    <span
-      aria-label="new personal best"
-      className={cn(
-        "ml-1 inline-flex items-center self-center text-primary",
-        "motion-safe:animate-[pb-crown-pop_700ms_cubic-bezier(0.16,1,0.3,1)_both]",
-      )}
-    >
-      <Crown
-        strokeWidth={2.25}
-        className="size-7 sm:size-8 lg:size-9"
-        aria-hidden
-      />
-    </span>
-  );
-}
-
-/** Confetti burst that fires once when the user lands a new PB.
- *  Pure CSS — 24 thin rectangles fan out from the stat origin at
- *  pre-baked angles, drop under "gravity" via a `dy` offset, and
- *  fade out as they rotate. Each piece's end position is encoded as
- *  CSS variables (--burst-dx / --burst-dy) so the shared
- *  `pb-confetti` keyframe (in globals.css) interpolates from origin
- *  to a final point without trig functions. Hidden under
- *  prefers-reduced-motion via the `motion-safe:` prefix on the
- *  animation class. */
-function PbConfetti() {
-  return (
-    <span
-      aria-hidden
-      className="pointer-events-none absolute top-1/2 left-1/2 size-0"
-    >
-      {CONFETTI_PIECES.map((p, i) => (
-        <span
-          key={i}
-          className="absolute top-0 left-0 block opacity-0 motion-safe:animate-[pb-confetti_1200ms_cubic-bezier(0.22,0.61,0.36,1)_forwards]"
-          style={
-            {
-              ["--burst-dx"]: `${p.dx}px`,
-              ["--burst-dy"]: `${p.dy}px`,
-              ["--burst-rotate"]: `${p.rotate}deg`,
-              width: `${p.w}px`,
-              height: `${p.h}px`,
-              backgroundColor: p.color,
-              animationDelay: `${p.delay}ms`,
-            } as React.CSSProperties
-          }
-        />
-      ))}
-    </span>
-  );
-}
-
-/** Confetti is deterministic — pre-baked once at module load so each
- *  burst is identical (no SSR/client jitter, no per-render reshuffle).
- *  Two layers: a wide initial spray angled mostly upward, a slower
- *  trickle of larger pieces. Colours pull from the brand-accent set
- *  via `var(--primary)`, the accent foreground, and a couple of
- *  warm-paper highlights so the burst doesn't read as a single-hue
- *  glow. */
-type ConfettiPiece = {
-  dx: number;
-  dy: number;
-  rotate: number;
-  w: number;
-  h: number;
-  color: string;
-  delay: number;
-};
-const CONFETTI_PIECES: readonly ConfettiPiece[] = (() => {
-  const COUNT = 24;
-  const COLORS = [
-    "var(--primary)",
-    "var(--primary)",
-    "color-mix(in oklch, var(--primary) 60%, var(--foreground))",
-    "color-mix(in oklch, var(--primary) 55%, white)",
-    "var(--accent-foreground)",
-  ];
-  const out: ConfettiPiece[] = [];
-  for (let i = 0; i < COUNT; i += 1) {
-    // Upper hemisphere only (angle 200°-340°) so confetti shoots up
-    // and outward like a real party popper, then arcs back down via
-    // the +dy gravity addition. Mirror the index to keep distribution
-    // even on both sides of the stat.
-    const t = i / COUNT;
-    const angleDeg = 200 + t * 140 + (i % 2 === 0 ? -8 : 8);
-    const angleRad = (angleDeg * Math.PI) / 180;
-    const distance = 70 + ((i * 13) % 40);
-    const gravity = 60 + ((i * 7) % 40);
-    out.push({
-      dx: Math.round(Math.cos(angleRad) * distance),
-      dy: Math.round(Math.sin(angleRad) * distance + gravity),
-      rotate: 360 + ((i * 47) % 360),
-      w: 4 + ((i * 3) % 4),
-      h: 8 + ((i * 5) % 6),
-      color: COLORS[i % COLORS.length]!,
-      delay: (i * 14) % 120,
-    });
-  }
-  return out;
-})();
-
-/** Render the run's source passage with each character coloured by its
- *  *speed* — fast = foreground (white/black per theme), slow = primary
- *  full. The 10th–90th-percentile range becomes the colour scale so a
- *  single outlier (a yawn) doesn't crush the gradient. */
-function PassageHeatmap({
-  words,
-  events,
-}: {
-  words: readonly string[];
-  events: readonly KeyEvent[];
-}) {
-  const latencyByPos = useMemo(() => {
-    const map = new Map<string, number>();
-    let w = 0;
-    let c = 0;
-    let prevT = 0;
-    for (const e of events) {
-      if (!e.correct) continue;
-      const word = words[w];
-      if (!word) break;
-      map.set(`${w}:${c}`, Math.max(0, e.t - prevT));
-      prevT = e.t;
-      c += 1;
-      if (c >= word.length) {
-        w += 1;
-        c = 0;
-      }
-    }
-    return map;
-  }, [events, words]);
-
-  const [lo, hi] = useMemo(() => {
-    const sorted = [...latencyByPos.values()].sort((a, b) => a - b);
-    if (sorted.length < 4) return [0, 1] as const;
-    const p10 = sorted[Math.floor(sorted.length * 0.1)] ?? 0;
-    const p90 = sorted[Math.floor(sorted.length * 0.9)] ?? 1;
-    return [p10, Math.max(p90, p10 + 1)] as const;
-  }, [latencyByPos]);
-
-  if (words.length === 0) return null;
-
-  return (
-    <div className="font-mono text-base leading-[1.7] tracking-[0.04em] [word-spacing:0.25em]">
-      {words.map((word, wi) => (
-        <span key={wi}>
-          {[...word].map((ch, ci) => {
-            const lat = latencyByPos.get(`${wi}:${ci}`);
-            if (lat == null) {
-              return (
-                <span key={ci} className="text-muted-foreground/60">
-                  {ch}
-                </span>
-              );
-            }
-            const span = hi - lo;
-            const intensity =
-              span > 0 ? Math.max(0, Math.min(1, (lat - lo) / span)) : 0;
-            const pct = Math.round(intensity * 100);
-            return (
-              <span
-                key={ci}
-                style={{
-                  color: `color-mix(in oklch, var(--primary) ${pct}%, var(--foreground))`,
-                }}
-                title={`${Math.round(lat)} ms`}
-              >
-                {ch}
-              </span>
-            );
-          })}
-          {wi < words.length - 1 ? (
-            <span className="text-muted-foreground/60">{" "}</span>
-          ) : null}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-
-// ─── Replay ────────────────────────────────────────────────────────
-
-function ReplayView({
-  words,
-  events,
-  typedCount,
-  onExit,
-}: {
-  words: readonly string[];
-  events: readonly KeyEvent[];
-  /** How many words the user actually produced input for (`state.typed`
-   *  length). The honest "what you typed" cap — correctness-independent,
-   *  unlike the reconstructed cursor which only advances on correct keys. */
-  typedCount: number;
-  onExit: () => void;
-}) {
-  const [step, setStep] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [speed, setSpeed] = useState(1);
-
-  useEffect(() => {
-    if (paused) return;
-    if (step >= events.length) {
-      const id = setTimeout(onExit, 1500);
-      return () => clearTimeout(id);
-    }
-    const cur = events[step]!;
-    const next = events[step + 1];
-    const realDelay = next ? Math.max(20, next.t - cur.t) : 600;
-    const id = setTimeout(
-      () => setStep((s) => s + 1),
-      realDelay / speed,
-    );
-    return () => clearTimeout(id);
-  }, [step, events, paused, speed, onExit]);
-
-  const { wordIdx, charIdx, errorWords } = useMemo(
-    () => reconstructCursor(events, words, step),
-    [events, words, step],
-  );
-
-  // Timed tests keep a deep buffer of upcoming words past where the user
-  // actually typed (the passage tops up ahead of the cursor). The replay
-  // should mirror only the span the user typed, not the whole buffer —
-  // otherwise a 15s run renders hundreds of grey untyped words. Cap the
-  // rendered passage at the number of words the user produced input for.
-  // No-op for words/quote runs, where typedCount reaches the full length.
-  const displayWords = useMemo(
-    () => words.slice(0, Math.min(words.length, Math.max(1, typedCount))),
-    [words, typedCount],
-  );
-
-  const pct =
-    events.length > 0 ? Math.min(100, Math.round((step / events.length) * 100)) : 0;
-  const elapsed = step > 0 && events[step - 1] ? events[step - 1]!.t : 0;
-
-  return (
-    <div className="flex h-full min-h-0 flex-col items-center justify-center overflow-hidden px-4 py-6">
-      <div className="flex w-full max-w-4xl flex-col gap-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          <span>
-            replay · {pct}% · {(elapsed / 1000).toFixed(1)}s
-          </span>
-          <div className="flex items-center gap-1">
-            {[0.5, 1, 2].map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setSpeed(s)}
-                className={cn(
-                  "rounded-sm border px-2 py-0.5 font-mono normal-case",
-                  speed === s
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-card text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {s}×
-              </button>
-            ))}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setPaused((p) => !p)}
-            >
-              {paused ? "play" : "pause"}
-            </Button>
-            <Button variant="ghost" size="sm" onClick={onExit}>
-              stop
-            </Button>
-          </div>
-        </div>
-
-        <div
-          aria-hidden
-          className="h-0.5 w-full overflow-hidden rounded-full bg-border"
-        >
-          <div
-            className="h-full bg-primary transition-[width] duration-100 ease-linear"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-
-        <div className="font-mono text-xl leading-[1.7] tracking-[0.04em]">
-          {displayWords.map((word, wi) => (
-            <span key={wi}>
-              {[...word].map((ch, ci) => {
-                const typed =
-                  wi < wordIdx || (wi === wordIdx && ci < charIdx);
-                const cls = !typed
-                  ? "text-muted-foreground"
-                  : errorWords.has(wi)
-                    ? "text-primary underline decoration-1 underline-offset-[6px]"
-                    : "text-foreground";
-                const isCursor = wi === wordIdx && ci === charIdx;
-                return (
-                  <span
-                    key={ci}
-                    className={cn(cls, isCursor && "border-l-2 border-primary")}
-                  >
-                    {ch}
-                  </span>
-                );
-              })}
-              {wi < displayWords.length - 1 ? (
-                <span className="text-muted-foreground">{" "}</span>
-              ) : null}
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Page ──────────────────────────────────────────────────────────
-
-/** End-of-run report. The `preview` flag drops the interactive bits
- *  (replay button, restart hint footer) so this same component can
- *  render inside the customise → Result preview. The visual body is
- *  identical so settings tweaks read 1:1 against the live screen. */
-export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
-  const { state, wpm, raw, accuracy, elapsedMs, wpmHistory, lastTestId, lastTestIsPb } =
-    usePractice();
-  const { prefs: appearance } = useAppearancePrefs();
-  // The viewer's own Clerk handle — used to build a friendly slug for
-  // their own share image. Mirrors how the server picks a display
-  // name when joining identity onto a SharedTest.
-  const { user, isLoaded: userLoaded, isSignedIn } = useUser();
-  const shareHandle =
-    user?.firstName ??
-    user?.username ??
-    user?.primaryEmailAddress?.emailAddress?.split("@")[0] ??
-    "racer";
-  const [replaying, setReplaying] = useState(false);
-  const captureRef = useRef<HTMLDivElement | null>(null);
-  const [exporting, setExporting] = useState(false);
-  const onDownload = useCallback(async () => {
-    // Resolve the page-level content area (set via data-screenshot-root
-    // on AppChrome's main scroller). Captures everything between the
-    // topbar and footer — passage, stats, chart, ledger. Fallback to
-    // the inner result panel keeps preview / embedded uses working.
-    const { findScreenshotRoot, naturalScreenshotSize, pickScreenshotBg } =
-      await import("@/lib/screenshot");
-    const node = findScreenshotRoot(captureRef.current);
-    if (!node || exporting) return;
-    setExporting(true);
-    try {
-      const { toPng } = await import("html-to-image");
-      const bg = pickScreenshotBg(node);
-      const { width, height } = naturalScreenshotSize(node);
-      const dataUrl = await toPng(node, {
-        cacheBust: true,
-        backgroundColor: bg,
-        width,
-        height,
-        filter: (n) => !(n instanceof HTMLElement && n.dataset.noExport === "true"),
-      });
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = `flinttype-result-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch (err) {
-      console.error("[test-summary] screenshot failed", err);
-    } finally {
-      setExporting(false);
-    }
-  }, [exporting]);
-
-  // PB detection — drives the crown badge + confetti on the headline
-  // WPM stat. Two paths:
-  //
-  //  • Signed-in users get the *authoritative* verdict from the server
-  //    (`lastTestIsPb`), which compares this run against the user's full
-  //    history for the (mode, length) bucket. The crown pops in when the
-  //    submit resolves. This is the fix for "the crown shows on runs
-  //    that aren't my PB": the localStorage cache treated every unknown
-  //    bucket as 0, so the first run on each bucket (and every run after
-  //    a cache clear / on a new device) falsely crowned.
-  //
-  //  • Anonymous viewers have no server history, so they fall back to the
-  //    per-browser localStorage cache — the best we can do without an
-  //    account. The cache is cleared on sign-out (sign-out-cleanup.ts)
-  //    so it never carries a previous user's baseline.
-  //
-  // Reset to false whenever we leave the done screen so a stale crown
-  // never carries into the next run.
+/** PB verdict for the crown + confetti on the headline speed.
+ *
+ *  - Signed in: the server's authoritative verdict (`lastTestIsPb`),
+ *    which compares against the user's full history for the bucket.
+ *    (The local cache used to crown the first run of every bucket.)
+ *  - Anonymous: the per-browser localStorage cache, cleared on sign-out.
+ *
+ *  Resets whenever the done screen is left so a stale crown never
+ *  carries into the next run. */
+function usePbVerdict(preview: boolean): boolean {
+  const { state, lastTestIsPb } = usePractice();
+  const { isLoaded, isSignedIn } = useUser();
   const [isNewPb, setIsNewPb] = useState(false);
   useEffect(() => {
     if (state.phase !== "done") setIsNewPb(false);
   }, [state.phase]);
   useEffect(() => {
-    if (preview) return;
-    if (state.phase !== "done") return;
-    if (!userLoaded) return;
+    if (preview || state.phase !== "done" || !isLoaded) return;
     if (isSignedIn) {
-      // Authoritative path — only crown on the server's true PB verdict.
       if (lastTestIsPb === true) setIsNewPb(true);
       return;
     }
-    // Anonymous fallback — per-browser localStorage cache.
-    //
-    // Recompute the final WPM straight from state rather than reading the
-    // context `wpm`. The context value is the provider's 1 Hz-throttled
-    // liveStats, only snapped to the exact final value by the provider's
-    // own effect — and React runs this child effect BEFORE that parent
-    // effect on the commit where phase flips to "done", so `wpm` here is
-    // the last (up-to-1s-stale) mid-run sample. That stale value was being
-    // cached as the PB, causing both false crowns and missed crowns on the
-    // next run. This mirrors the submission path (practice-state.tsx),
-    // which also recomputes from state directly, and rounds to match the
-    // headline stat the user sees.
-    const mode = state.mode.toLowerCase();
+    // Recompute the final WPM from state rather than the context `wpm`:
+    // that value is the provider's 1 Hz-throttled live stat, and React
+    // runs this child effect before the provider snaps it to the final
+    // value — caching the stale sample caused false and missed crowns.
+    // Mirrors the submission path in practice-state.tsx.
     const durationMs =
       state.startTime != null && state.endTime != null
         ? state.endTime - state.startTime
@@ -492,12 +103,52 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
       true,
       state.events.length,
     );
-    if (recordIfPb(mode, state.length, Math.round(finalWpm))) setIsNewPb(true);
+    if (recordIfPb(state.mode.toLowerCase(), state.length, Math.round(finalWpm))) {
+      setIsNewPb(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.phase, userLoaded, isSignedIn, lastTestIsPb]);
-  // Convert the live wpmHistory samples into chart buckets keyed by
-  // whole-second markers. monkeytype draws its WPM trace from exactly
-  // this stream.
+  }, [state.phase, isLoaded, isSignedIn, lastTestIsPb]);
+  return isNewPb;
+}
+
+function testTypeLabel(mode: string, length: number): string {
+  if (mode === "TIME") return `Time ${length}s`;
+  if (mode === "QUOTE") return "Quote";
+  if (mode === "BURST") return `Burst ${length}`;
+  return `Words ${length}`;
+}
+
+// ─── Page ──────────────────────────────────────────────────────────
+
+/** End-of-run report. The `preview` flag drops the interactive bits
+ *  (the action row, replay) so the same component renders inside the
+ *  customise → Result preview and reads 1:1 against the live screen. */
+export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
+  const {
+    state,
+    wpm,
+    raw,
+    accuracy,
+    elapsedMs,
+    wpmHistory,
+    lastTestId,
+    restart,
+    wordlist,
+  } = usePractice();
+  const { prefs: appearance } = useAppearancePrefs();
+  const { user } = useUser();
+  // The viewer's own handle builds a friendly slug for their share image,
+  // mirroring how the server names a SharedTest.
+  const shareHandle =
+    user?.firstName ??
+    user?.username ??
+    user?.primaryEmailAddress?.emailAddress?.split("@")[0] ??
+    "racer";
+  const [replaying, setReplaying] = useState(false);
+  const captureRef = useRef<HTMLDivElement | null>(null);
+  const isNewPb = usePbVerdict(preview);
+
+  // Per-second chart buckets from the live wpmHistory samples.
   const buckets = useMemo<Bucket[]>(
     () =>
       wpmHistory.map((s) => ({
@@ -507,26 +158,20 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
       })),
     [wpmHistory],
   );
-  const stall = Math.round(stallWpm(buckets));
+  const slowest = Math.round(stallWpm(buckets));
   const cons = consistencyScore(buckets);
-  // Keystroke-true error count — the SAME metric the live ERR readout
-  // and the recorded/persisted value now use (incorrect keystrokes,
-  // including ones later backspaced or blocked by stop-on-error). The
-  // old countChars-over-typed[] count read 0 for a fully-corrected run
-  // while accuracy is keystroke-true, so the two disagreed.
+  // Keystroke-true error count: the SAME metric the live readout and
+  // the recorded run use (incorrect keystrokes, including corrected ones).
   const wrongTotal = keystrokeErrors(state.events);
   const elapsedSec = Math.max(1, Math.round(elapsedMs / 1000));
-  // Raw comes straight from the practice state now — same monkeytype
-  // formula as WPM but without the "only-perfect-words" filter.
-  const rawWpm = raw;
-  const modeLabel =
-    state.mode === "TIME"
-      ? `time ${state.length}`
-      : state.mode === "QUOTE"
-        ? "quote"
-        : state.mode === "BURST"
-          ? `burst ${state.length}`
-          : `words ${state.length}`;
+  const unit = appearance.typingSpeedUnit;
+  const decimals = appearance.alwaysShowDecimal;
+  const testType = [
+    testTypeLabel(state.mode, state.length),
+    state.mode === "QUOTE" ? null : wordlistLabel(wordlist),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   if (replaying) {
     return (
@@ -539,44 +184,35 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
     );
   }
 
+  const accValue = decimals
+    ? `${(Math.round(accuracy * 10) / 10).toFixed(1)}%`
+    : `${Math.round(accuracy * 10) / 10}%`;
+
   return (
-    <div className="flex h-full min-h-0 flex-col items-center overflow-y-auto px-2 py-3 sm:px-4 sm:py-6">
-      {/* my-auto keeps the content vertically centred when it fits in
-       *  the viewport; once it overflows, the auto margin collapses
-       *  and the natural overflow-y-auto scroll takes over. */}
+    <div className="flex h-full min-h-0 flex-col items-center overflow-y-auto py-3 sm:py-6">
+      {/* my-auto centres the report when it fits; once it overflows the
+       *  auto margin collapses and the column scrolls naturally. */}
       <div
         ref={captureRef}
-        className="my-auto flex w-full max-w-5xl flex-col gap-4 sm:gap-6"
+        className="my-auto flex w-full flex-col gap-4 sm:gap-6"
       >
-        {/* Top row: stat column on the left, smaller centered chart. */}
-        <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[140px_1fr] sm:gap-6 lg:grid-cols-[160px_1fr]">
-          <div className="flex flex-row items-baseline gap-6 sm:flex-col sm:items-start sm:gap-4">
-            <BigStat
-              label={SPEED_UNIT_LABEL[appearance.typingSpeedUnit]}
-              value={formatSpeed(
-                wpm,
-                appearance.typingSpeedUnit,
-                appearance.alwaysShowDecimal,
-              )}
-              accent
+        {/* Headline: speed is the answer, accuracy second, then the run's
+         *  shape on the chart. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,12rem)_1fr] sm:items-center sm:gap-8">
+          <div className="flex flex-row flex-wrap items-end gap-x-8 gap-y-3 sm:flex-col sm:items-start sm:gap-5">
+            <ResultStat
+              tier="hero"
+              label={unit.toUpperCase()}
+              value={formatSpeed(wpm, unit, decimals)}
               pb={isNewPb}
             />
-            <BigStat
-              label="acc"
-              value={
-                appearance.alwaysShowDecimal
-                  ? `${(Math.round(accuracy * 10) / 10).toFixed(1)}%`
-                  : `${Math.round(accuracy * 10) / 10}%`
-              }
-              accent
-            />
-            <div className="hidden text-[11px] uppercase tracking-[0.18em] text-muted-foreground sm:block">
-              <div>test type</div>
-              <div className="mt-1 text-foreground">{modeLabel}</div>
-              <div className="text-foreground">english</div>
-            </div>
+            <ResultStat tier="lead" label="Accuracy" value={accValue} />
+            {/* Phones already show this in the settings pill above. */}
+            <p className="hidden text-sm text-muted-foreground sm:block">
+              {testType}
+            </p>
           </div>
-          <div className="w-full">
+          <div className="min-w-0 rounded-2xl border border-border bg-card p-3 shadow-card sm:p-5">
             <ResultChart
               buckets={buckets}
               events={state.events}
@@ -585,37 +221,24 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
           </div>
         </div>
 
-        {/* Inline stats row on a single line at sm+; mobile still
-         *  wraps in a 2-column grid. */}
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-5 sm:gap-x-5">
-          <BigStat
-            label="raw"
-            value={formatSpeed(
-              rawWpm,
-              appearance.typingSpeedUnit,
-              appearance.alwaysShowDecimal,
-            )}
-            accent
-          />
-          <BigStat label="stall" value={stall} />
-          <BigStat label="consistency" value={`${cons}%`} />
-          <BigStat label="errors" value={wrongTotal} />
-          <BigStat label="time" value={`${elapsedSec}s`} />
+        <div className="grid grid-cols-2 gap-x-4 gap-y-4 rounded-2xl border border-border bg-card p-4 shadow-card sm:grid-cols-4 sm:p-5">
+          <ResultStat label="Raw" value={formatSpeed(raw, unit, decimals)} />
+          <ResultStat label="Consistency" value={`${cons}%`} />
+          <ResultStat label="Errors" value={wrongTotal} />
+          <ResultStat label="Time" value={`${elapsedSec}s`} />
         </div>
 
-        {/* Run shape — extra stats: streak, words, pauses. */}
         {appearance.resultShowExtras ? (
           <ExtraStats
             events={state.events}
             totalWords={state.words.length}
+            slowest={slowest}
+            unitLabel={unit}
           />
         ) : null}
 
-        {/* Two-column insight grid at lg+: per-letter slowness on
-         *  the left, hand balance on the right. Stacks as one column
-         *  on smaller viewports. */}
         {appearance.resultShowPerLetter || appearance.resultShowHandBalance ? (
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
             {appearance.resultShowPerLetter ? (
               <PerLetterSlowness events={state.events} />
             ) : null}
@@ -625,65 +248,24 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
           </div>
         ) : null}
 
-        {/* Heatmap strip — speed-coloured passage. */}
         {appearance.resultShowHeatmap && state.words.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-baseline justify-between gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              <span>passage heatmap</span>
-              <span className="text-muted-foreground/70">
-                fast → slow · hover for ms
-              </span>
-            </div>
+          <InsightCard label="Passage heatmap" meta="Fast to slow · hover for ms">
             <PassageHeatmap words={state.words} events={state.events} />
-          </div>
+          </InsightCard>
         ) : null}
 
-        {/* Restart hint — quiet footer. Hidden in preview so the
-         *  customise card doesn't show a replay button that would
-         *  enter ReplayView inside a settings page. */}
         {preview ? null : (
-          <div
-            data-no-export="true"
-            className="flex flex-wrap items-center justify-center gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
-          >
-            <span className="rounded-sm border border-border bg-card px-2 py-1 font-mono normal-case text-foreground">
-              tab
-            </span>
-            <span>restart</span>
-            {state.events.length > 0 ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setReplaying(true)}
-                className="text-[11px] uppercase tracking-[0.18em]"
-              >
-                ▶ replay
-              </Button>
-            ) : null}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onDownload}
-              disabled={exporting}
-              aria-label="Save results as image"
-              className="gap-1.5 text-[11px] uppercase tracking-[0.18em]"
-            >
-              <Download size={13} className="shrink-0" />
-              {exporting ? "saving" : "save image"}
-            </Button>
-            {/* Share affordance — only when the run was successfully
-             *  submitted (lastTestId !== null). Anonymous runs and
-             *  failed submits hide the button entirely; the user has
-             *  no actionable link to share in those cases. */}
-            {lastTestId ? (
-              <ShareRunButton
-                testId={lastTestId}
-                handle={shareHandle}
-                wpm={wpm}
-                variant="labelled"
-              />
-            ) : null}
-          </div>
+          <ResultActions
+            onNext={() => restart()}
+            onReplay={() => setReplaying(true)}
+            canReplay={state.events.length > 0}
+            captureRef={captureRef}
+            share={
+              lastTestId
+                ? { testId: lastTestId, handle: shareHandle, wpm }
+                : null
+            }
+          />
         )}
       </div>
     </div>

@@ -77,7 +77,20 @@ export function WordlistPicker({
     <>
       {trigger}
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="overflow-hidden p-0 sm:max-w-xl">
+        <DialogContent
+          className="overflow-hidden p-0 sm:max-w-xl"
+          // Hand focus back to the typing input instead of the trigger
+          // pill, so the next keystroke (and Tab = new passage) goes to
+          // the test rather than the mode bar.
+          onCloseAutoFocus={(e) => {
+            const typing = document.querySelector<HTMLInputElement>(
+              'input[aria-label="Typing input"]',
+            );
+            if (!typing) return;
+            e.preventDefault();
+            typing.focus({ preventScroll: true });
+          }}
+        >
           <DialogTitle className="sr-only">Pick a wordlist</DialogTitle>
           <DialogDescription className="sr-only">
             Search MonkeyType's full catalog of wordlists. Type to
@@ -116,9 +129,9 @@ export function WordlistPicker({
                 ))}
               </CommandGroup>
             </CommandList>
-            <div className="flex items-center justify-between border-t border-border bg-muted/30 px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              <span>{WORDLIST_IDS.length} wordlists · powered by MonkeyType</span>
-              <span>↑↓ move · ↵ pick · esc close</span>
+            <div className="flex items-center justify-between gap-3 border-t border-border bg-muted/30 px-4 py-2.5 text-xs text-muted-foreground">
+              <span>{WORDLIST_IDS.length} wordlists from MonkeyType</span>
+              <span className="hidden sm:inline">↑↓ move · ↵ pick · esc close</span>
             </div>
           </Command>
         </DialogContent>
@@ -144,7 +157,7 @@ function PickerItem({
         {active ? <Check className="h-3.5 w-3.5 text-primary" /> : null}
       </span>
       <span className={cn("text-sm", active && "text-primary")}>{label}</span>
-      <span className="ml-auto text-[10px] uppercase tracking-[0.18em] text-muted-foreground/80">
+      <span className="ml-auto font-mono text-[11px] text-muted-foreground/80">
         {id}
       </span>
     </CommandItem>

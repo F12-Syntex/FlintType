@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
+import { InsightCard } from "./insight-card";
 import type { KeyEvent } from "./practice-state";
 
 /** Extra result-screen visualisations — opt-in via appearance prefs.
@@ -57,25 +58,30 @@ export function PerLetterSlowness({ events }: { events: readonly KeyEvent[] }) {
   if (rows.length < 2) return null;
   const max = Math.max(...rows.map((r) => r.avgMs));
   return (
-    <Section
-      label="slowest letters"
-      meta={`top ${rows.length} · avg ms per keystroke`}
+    <InsightCard
+      label="Slowest letters"
+      meta={`Top ${rows.length} · average ms per key`}
     >
-      <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 sm:gap-x-6">
-        {rows.map((r) => (
+      <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-x-6">
+        {rows.map((r, i) => (
           <li
             key={r.ch}
-            className="grid grid-cols-[1.5rem_1fr_auto] items-center gap-3 font-mono text-xs tabular-nums"
+            className="grid grid-cols-[1.5rem_1fr_auto] items-center gap-3 font-mono text-sm tabular-nums"
           >
             <span className="font-semibold text-foreground">
               {r.ch === " " ? "␣" : r.ch}
             </span>
             <span
               aria-hidden
-              className="relative h-1.5 overflow-hidden rounded-full bg-foreground/[0.06]"
+              className="relative h-1.5 overflow-hidden rounded-full bg-muted"
             >
+              {/* Only the slowest letter carries the brand colour; the
+               *  rest stay ink so the one that matters stands out. */}
               <span
-                className="absolute inset-y-0 left-0 origin-left rounded-full bg-primary"
+                className={cn(
+                  "absolute inset-y-0 left-0 origin-left rounded-full",
+                  i === 0 ? "bg-primary" : "bg-foreground/35",
+                )}
                 style={{
                   transform: `scaleX(${Math.max(0.04, r.avgMs / max)})`,
                   width: "100%",
@@ -84,14 +90,12 @@ export function PerLetterSlowness({ events }: { events: readonly KeyEvent[] }) {
             </span>
             <span className="text-muted-foreground">
               {Math.round(r.avgMs)}
-              <span className="ml-0.5 text-[10px] uppercase tracking-[0.14em] opacity-70">
-                ms
-              </span>
+              <span className="ml-0.5 text-xs opacity-70">ms</span>
             </span>
           </li>
         ))}
       </ul>
-    </Section>
+    </InsightCard>
   );
 }
 
@@ -126,42 +130,39 @@ export function HandBalance({ events }: { events: readonly KeyEvent[] }) {
   const rightPct = Math.round((stats.right / stats.total) * 100);
   const otherPct = Math.max(0, 100 - leftPct - rightPct);
   return (
-    <Section
-      label="hand balance"
-      meta={`${stats.total} keystrokes`}
-    >
+    <InsightCard label="Hand balance" meta={`${stats.total} keystrokes`}>
       <div className="flex flex-col gap-2.5">
         <div
           aria-hidden
-          className="flex h-2 w-full overflow-hidden rounded-full bg-foreground/[0.05]"
+          className="flex h-2 w-full overflow-hidden rounded-full bg-muted"
         >
           <span
-            className="bg-primary"
+            className="bg-foreground/70"
             style={{ width: `${leftPct}%` }}
           />
           <span
-            className="bg-primary/55"
+            className="bg-foreground/30"
             style={{ width: `${rightPct}%` }}
           />
           <span
-            className="bg-foreground/15"
+            className="bg-foreground/10"
             style={{ width: `${otherPct}%` }}
           />
         </div>
-        <div className="flex flex-wrap gap-x-6 gap-y-1 font-mono text-xs tabular-nums">
-          <Legend dot="bg-primary" label="left" pct={leftPct} count={stats.left} />
-          <Legend dot="bg-primary/55" label="right" pct={rightPct} count={stats.right} />
+        <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm tabular-nums">
+          <Legend dot="bg-foreground/70" label="Left" pct={leftPct} count={stats.left} />
+          <Legend dot="bg-foreground/30" label="Right" pct={rightPct} count={stats.right} />
           {stats.other > 0 ? (
             <Legend
-              dot="bg-foreground/15"
-              label="other"
+              dot="bg-foreground/10"
+              label="Other"
               pct={otherPct}
               count={stats.other}
             />
           ) : null}
         </div>
       </div>
-    </Section>
+    </InsightCard>
   );
 }
 
@@ -178,158 +179,11 @@ function Legend({
 }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span aria-hidden className={cn("inline-block size-2 rounded-sm", dot)} />
+      <span aria-hidden className={cn("inline-block size-2 rounded-full", dot)} />
       <span className="text-foreground">{label}</span>
       <span className="text-muted-foreground">
         {pct}% · {count}
       </span>
     </span>
-  );
-}
-
-/* ─── Extra stats (streak / pauses / words) ─────────────────────── */
-
-type ExtraStatsResult = {
-  longestStreak: number;
-  pauseCount: number;
-  longestPauseMs: number;
-  wordsFinished: number;
-};
-
-function extraStats(
-  events: readonly KeyEvent[],
-  totalWords: number,
-  pauseThresholdMs: number,
-): ExtraStatsResult {
-  let longest = 0;
-  let cur = 0;
-  let prevT = 0;
-  let pauseCount = 0;
-  let longestPause = 0;
-  let lastWord = -1;
-  let wordsFinished = 0;
-  for (const e of events) {
-    if (e.correct) {
-      cur += 1;
-      if (cur > longest) longest = cur;
-      if (e.wordIndex !== lastWord) {
-        if (lastWord !== -1) wordsFinished += 1;
-        lastWord = e.wordIndex;
-      }
-    } else {
-      cur = 0;
-    }
-    if (prevT > 0) {
-      const gap = e.t - prevT;
-      if (gap > pauseThresholdMs) {
-        pauseCount += 1;
-        if (gap > longestPause) longestPause = gap;
-      }
-    }
-    prevT = e.t;
-  }
-  if (events.length > 0 && lastWord !== -1) wordsFinished += 1;
-  return {
-    longestStreak: longest,
-    pauseCount,
-    longestPauseMs: longestPause,
-    wordsFinished: Math.min(totalWords, wordsFinished),
-  };
-}
-
-export function ExtraStats({
-  events,
-  totalWords,
-}: {
-  events: readonly KeyEvent[];
-  totalWords: number;
-}) {
-  const stats = useMemo(
-    () => extraStats(events, totalWords, 800),
-    [events, totalWords],
-  );
-  if (events.length < 4) return null;
-  return (
-    <Section label="run shape" meta="">
-      <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4 sm:gap-x-6">
-        <Cell
-          label="longest streak"
-          value={`${stats.longestStreak}`}
-          suffix=" chars"
-          accent
-        />
-        <Cell
-          label="words finished"
-          value={`${stats.wordsFinished}/${totalWords}`}
-        />
-        <Cell label="pauses" value={`${stats.pauseCount}`} suffix=" >0.8s" />
-        <Cell
-          label="longest pause"
-          value={
-            stats.longestPauseMs > 0
-              ? (stats.longestPauseMs / 1000).toFixed(1)
-              : "0"
-          }
-          suffix="s"
-        />
-      </div>
-    </Section>
-  );
-}
-
-function Cell({
-  label,
-  value,
-  suffix,
-  accent,
-}: {
-  label: string;
-  value: string;
-  suffix?: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className="flex flex-col gap-1 leading-none">
-      <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-        {label}
-      </span>
-      <span
-        className={cn(
-          "font-mono text-xl font-semibold tabular-nums sm:text-2xl",
-          accent ? "text-primary" : "text-foreground",
-        )}
-      >
-        {value}
-        {suffix ? (
-          <span className="text-xs font-normal text-muted-foreground">
-            {suffix}
-          </span>
-        ) : null}
-      </span>
-    </div>
-  );
-}
-
-/* ─── Section shell ────────────────────────────────────────────── */
-
-function Section({
-  label,
-  meta,
-  children,
-}: {
-  label: string;
-  meta: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-        <span>{label}</span>
-        {meta ? (
-          <span className="text-muted-foreground/70">{meta}</span>
-        ) : null}
-      </div>
-      {children}
-    </div>
   );
 }

@@ -22,7 +22,7 @@ export function SpectatePill({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors",
+        "inline-flex h-7 items-center gap-1.5 rounded-pill border px-3 text-xs font-medium transition-colors",
         enabled
           ? "border-primary/30 bg-primary/[0.06] text-foreground"
           : "border-border bg-card text-muted-foreground",
@@ -92,7 +92,7 @@ export function SpectateIndicator({ className }: { className?: string }) {
   if (!active) return null;
   return (
     <div className={cn("flex justify-end", className)} aria-live="polite">
-      <span className="inline-flex items-center gap-2 rounded-md border border-primary/50 bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-foreground shadow-sm">
+      <span className="inline-flex h-8 items-center gap-2 rounded-pill border border-primary/40 bg-primary/10 px-3 text-xs font-medium text-foreground shadow-card">
         <span
           aria-hidden
           className="size-2 rounded-full bg-primary motion-safe:animate-pulse"

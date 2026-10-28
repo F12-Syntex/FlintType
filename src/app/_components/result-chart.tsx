@@ -18,6 +18,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/line-chart";
 import { cn } from "@/lib/utils";
+import { ErrorRibbon } from "./error-ribbon";
 import type { KeyEvent } from "./practice-state";
 
 export type Bucket = { sec: number; wpm: number; raw: number };
@@ -40,11 +41,10 @@ function bucketErrors(events: readonly KeyEvent[]): Map<number, number> {
   return out;
 }
 
-/** Detailed run chart: WPM line + raw line + raw-vs-wpm gap as a soft
- *  fill, average WPM reference line, peak / stall reference dots, and
- *  per-second error markers along the time axis. Below the chart, a
- *  thin strip plots the error distribution as bars on the same x scale
- *  so the user can read rhythm and miss-clusters at a glance. */
+/** Detailed run chart: the WPM trace with a soft fill, the dashed raw
+ *  trace, a faint average line and a ✕ on the trace at each second with
+ *  a mistake. Below it, a ribbon plots mistakes per second on the same
+ *  x scale (inset to the plot area) so miss-clusters line up with dips. */
 export function ResultChart({
   buckets,
   events,
@@ -99,10 +99,11 @@ export function ResultChart({
     );
   }
 
-  const totalSec = buckets[buckets.length - 1]?.sec ?? 0;
+  const firstSec = buckets[0]?.sec ?? 1;
+  const lastSec = buckets[buckets.length - 1]?.sec ?? 0;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       <ChartContainer
         config={chartConfig}
         className={cn("aspect-auto w-full", height)}
@@ -131,13 +132,19 @@ export function ResultChart({
             stroke="currentColor"
             strokeOpacity={0.08}
           />
+          {/* Numeric axis over the run's seconds. A category axis plus a
+           *  Scatter carrying its own copy of the data made recharts
+           *  concatenate both x sets (1..n, 1..n): every tick printed
+           *  twice and the plot filled only the left half. */}
           <XAxis
             dataKey="sec"
+            type="number"
+            domain={["dataMin", "dataMax"]}
+            allowDecimals={false}
             tickLine={false}
             axisLine={false}
             tickMargin={6}
             tickFormatter={(v: number) => `${v}s`}
-            interval="preserveStartEnd"
           />
           <YAxis
             tickLine={false}
@@ -163,15 +170,14 @@ export function ResultChart({
             }
           />
 
-          {/* Average WPM reference — line only, no overlay text.
-           *  The labelled value lives in the stat strip under the
-           *  chart so it never collides with the plot area. */}
+          {/* Average speed reference: a solid, faint line so it reads
+           *  as a level, distinct from the dashed raw trace. */}
           {avgWpm > 0 ? (
             <ReferenceLine
               y={avgWpm}
               stroke="currentColor"
-              strokeOpacity={0.32}
-              strokeDasharray="3 4"
+              strokeOpacity={0.15}
+              strokeWidth={1}
             />
           ) : null}
 
@@ -209,13 +215,13 @@ export function ResultChart({
            *  on the speed curve they slipped (errors usually sit in a
            *  dip). The count detail lives in the tooltip + the ribbon
            *  below; these are aria-hidden so they don't double-announce.
-           *  Keyed off `errorWpm` (NOT `wpm`) over the full merged array:
+           *  Keyed off `errorWpm` (NOT `wpm`) and inheriting the chart's
+           *  data (no `data` prop — passing a copy duplicated the x axis):
            *  null at clean seconds so recharts skips those points, and a
            *  unique dataKey so it never collides with the <Area>'s "wpm"
            *  tooltip row. `errorWpm` is absent from chartConfig, so the
            *  tooltip filters this decorative series out entirely (#13). */}
           <Scatter
-            data={merged}
             dataKey="errorWpm"
             shape={<ErrorMark />}
             isAnimationActive={false}
@@ -228,7 +234,8 @@ export function ResultChart({
       </ChartContainer>
 
       <ErrorRibbon
-        totalSec={totalSec}
+        firstSec={firstSec}
+        lastSec={lastSec}
         errorBuckets={errorBuckets}
         maxErrors={maxErrors}
       />
@@ -262,76 +269,5 @@ function ErrorMark(props: { cx?: number; cy?: number }) {
       <line x1={cx - r} y1={cy - r} x2={cx + r} y2={cy + r} />
       <line x1={cx - r} y1={cy + r} x2={cx + r} y2={cy - r} />
     </g>
-  );
-}
-
-/** Per-second error histogram aligned to the WPM time axis. Quiet
- *  while at zero, fills primary on every miss. Reads as the rhythm
- *  of the run's mistakes — clusters → a stretch where you stalled
- *  on a hard pair; sparse → clean run. */
-function ErrorRibbon({
-  totalSec,
-  errorBuckets,
-  maxErrors,
-}: {
-  totalSec: number;
-  errorBuckets: Map<number, number>;
-  maxErrors: number;
-}) {
-  if (totalSec < 2) return null;
-  const cells = Array.from({ length: totalSec }, (_, i) => {
-    const sec = i + 1;
-    return { sec, errors: errorBuckets.get(sec) ?? 0 };
-  });
-  const totalErrors = cells.reduce((s, c) => s + c.errors, 0);
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-baseline justify-between gap-3 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-        {/* "mistakes" (keystroke timeline — every wrong keypress, when it
-            happened) is deliberately distinct from the headline "errors"
-            stat (uncorrected characters in the final text). Different
-            label so the two numbers don't read as the same metric. */}
-        <span>mistakes over time</span>
-        <span className="text-muted-foreground/70 tabular-nums">
-          {totalErrors === 0
-            ? "no mistakes"
-            : `${totalErrors} total · peak ${maxErrors}/s`}
-        </span>
-      </div>
-      <div
-        className="relative grid h-5 w-full gap-px overflow-hidden rounded-sm bg-foreground/[0.04]"
-        style={{
-          gridTemplateColumns: `repeat(${cells.length}, minmax(0, 1fr))`,
-        }}
-      >
-        {cells.map((c) => {
-          const ratio =
-            maxErrors > 0
-              ? Math.max(0.18, c.errors / maxErrors)
-              : 0;
-          if (c.errors === 0) {
-            return (
-              <span
-                key={c.sec}
-                aria-hidden
-                className="bg-transparent"
-              />
-            );
-          }
-          return (
-            <span
-              key={c.sec}
-              aria-hidden
-              title={`${c.sec}s · ${c.errors} error${c.errors === 1 ? "" : "s"}`}
-              style={{
-                transform: `scaleY(${ratio})`,
-                transformOrigin: "bottom",
-              }}
-              className="bg-primary/85"
-            />
-          );
-        })}
-      </div>
-    </div>
   );
 }

@@ -8,6 +8,13 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.138.0 — 27 October 2026
+- The practice settings now sit in one calm bar above the text: your mode and length light up in orange, the wordlist is a single button, and Adaptive is one on/off switch.
+- Before you start, the practice screen simply says Start typing; while you type, one row shows your speed in orange with accuracy, errors, peak and progress beside it.
+- The results screen leads with a big speed number, has a clear Next test button, and its chart no longer repeats the time labels or misplaces the mistakes strip.
+- The on-screen keyboard has rounder keys, F and J show small homing bumps instead of always glowing, and pressed keys now light up orange.
+- Tab still gives you a new passage while you type, and keyboard users can now Shift+Tab to reach the settings and result buttons.
+
 ## 6.137.2 — 27 October 2026
 - Ghost buttons no longer show a faint outline ring, and selected options keep their orange outline under the default border style.
 

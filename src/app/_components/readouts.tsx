@@ -1,20 +1,26 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties } from "react";
-import { Stat } from "@/components/ft";
+import { Kbd } from "@/components/ft";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import type { LiveStatStyle } from "@/lib/appearance-prefs";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { formatClock } from "@/lib/format-duration";
 import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
-import { cn } from "@/lib/utils";
 import { keystrokeErrors } from "@/lib/wpm";
 import { usePractice } from "./practice-state";
+import { Readout, ReadoutRow } from "./readout";
 
 // Readouts hold milliseconds; the shared m:ss formatter takes seconds.
 function formatElapsed(ms: number): string {
   return formatClock(ms / 1000);
 }
+
+/** The shipped default for the "Live stats color" pref is the brand
+ *  hex itself. Treat it as "follow the theme" so other palettes keep
+ *  their own primary on the headline number; any other value is a real
+ *  user choice and paints every live number. */
+const DEFAULT_LIVE_COLOR = "#f97316";
 
 /** Toggle that turns true for ~1.5s every 15s — drives the "flash"
  *  variant of the live readouts so the screen stays clean otherwise. */
@@ -38,20 +44,38 @@ function useFlashVisible(active: boolean) {
   return visible;
 }
 
-/** Apply a `LiveStatStyle` to a single readout. Returns
- *    - rendered=false → don't render at all (off, or flash hidden)
- *    - cls           → extra class names for sizing variants
- */
-function useLiveStatGate(style: LiveStatStyle): {
-  rendered: boolean;
-  cls: string;
-} {
+/** Apply a `LiveStatStyle` to a single readout: whether it renders at
+ *  all (off, or flash currently hidden) and whether it's the quieter
+ *  "mini" size. */
+function useLiveStatGate(style: LiveStatStyle): { rendered: boolean; mini: boolean } {
   const flash = useFlashVisible(style === "flash");
-  if (style === "off") return { rendered: false, cls: "" };
-  if (style === "flash") return { rendered: flash, cls: "" };
-  if (style === "mini") return { rendered: true, cls: "scale-90 opacity-80" };
-  return { rendered: true, cls: "" };
+  if (style === "off") return { rendered: false, mini: false };
+  if (style === "flash") return { rendered: flash, mini: false };
+  return { rendered: true, mini: style === "mini" };
 }
+
+type StatsProps = {
+  wpm: number;
+  accuracy: number;
+  peak: number;
+  errs: number;
+  wordIdx: number;
+  wordCount: number;
+  elapsedMs: number;
+  running: boolean;
+  speedStyle: LiveStatStyle;
+  accuracyStyle: LiveStatStyle;
+  progressStyle: LiveStatStyle;
+  peakStyle: LiveStatStyle;
+  isTime: boolean;
+  remainingMs: number;
+  unit: ReturnType<typeof useAppearancePrefs>["prefs"]["typingSpeedUnit"];
+  alwaysDecimal: boolean;
+  /** A user-picked live stats colour paints every number; unset, only
+   *  the speed is primary and the rest stay ink. */
+  customColor: string | undefined;
+  style: CSSProperties;
+};
 
 function useStatsProps(): StatsProps {
   const { state, elapsedMs, wpm, accuracy, wpmHistory } = usePractice();
@@ -61,71 +85,56 @@ function useStatsProps(): StatsProps {
   const wordCount = state.words.length;
   const wordIdx = Math.min(state.cursorWord + (running ? 1 : 0), wordCount);
   const isTime = state.mode === "TIME";
-  const remainingMs = isTime
-    ? Math.max(0, state.length * 1000 - elapsedMs)
-    : 0;
+  const remainingMs = isTime ? Math.max(0, state.length * 1000 - elapsedMs) : 0;
 
+  // Each per-stat style is the single source of truth (`"off"` hides
+  // it). Blind mode is the master kill-switch over all of them.
   const blind = behaviour.blindMode;
-  // Each per-stat style is the single source of truth — `"off"` is a
-  // valid value, so behaviour no longer needs a duplicate gating
-  // boolean. Blind mode is the one master kill-switch that hides
-  // everything regardless of the styled value.
-  const speedStyle: LiveStatStyle = blind ? "off" : appearance.liveSpeedStyle;
-  const accuracyStyle: LiveStatStyle = blind
-    ? "off"
-    : appearance.liveAccuracyStyle;
-  const progressStyle: LiveStatStyle = blind ? "off" : appearance.liveProgressStyle;
-  const burstStyle: LiveStatStyle = blind ? "off" : appearance.liveBurstStyle;
+  const gate = (s: LiveStatStyle): LiveStatStyle => (blind ? "off" : s);
 
-  const burst = wpmHistory.reduce((m, s) => (s.wpm > m ? s.wpm : m), wpm);
-
-  const containerStyle: CSSProperties = {
-    opacity: appearance.liveStatsOpacity,
-    color: appearance.liveStatsColor || undefined,
-  };
+  const color = appearance.liveStatsColor?.trim();
+  const customColor =
+    color && color.toLowerCase() !== DEFAULT_LIVE_COLOR ? color : undefined;
 
   return {
     wpm,
     accuracy,
-    burst,
+    peak: wpmHistory.reduce((m, s) => (s.wpm > m ? s.wpm : m), wpm),
     // Keystroke-true error count — every incorrect keypress, including
     // ones later backspaced or blocked by stop-on-error. The SAME metric
-    // (keystrokeErrors over state.events) the results screen and the
-    // recorded run use, so live ERR, results ERRORS, and the saved value
-    // always agree, and a corrected mistake still shows as an error
-    // (#51 / FT-016). Must not regress to a typed[]-buffer walk, which
-    // structurally reads 0 after a correction.
+    // the results screen and the recorded run use, so live, results and
+    // saved values always agree (#51 / FT-016). Must not regress to a
+    // typed[]-buffer walk, which reads 0 after a correction.
     errs: keystrokeErrors(state.events),
     wordIdx,
     wordCount,
     elapsedMs,
     running,
-    speedStyle,
-    accuracyStyle,
-    progressStyle,
-    burstStyle,
+    speedStyle: gate(appearance.liveSpeedStyle),
+    accuracyStyle: gate(appearance.liveAccuracyStyle),
+    progressStyle: gate(appearance.liveProgressStyle),
+    peakStyle: gate(appearance.liveBurstStyle),
     isTime,
     remainingMs,
     unit: appearance.typingSpeedUnit,
     alwaysDecimal: appearance.alwaysShowDecimal,
-    style: containerStyle,
+    customColor,
+    style: { opacity: appearance.liveStatsOpacity },
   };
 }
 
-/** Desktop-only readouts strip. Mobile uses <MobileReadouts /> embedded
- *  inside <RestHint />'s footer row so the stats sit alongside the
- *  cancel control instead of taking a separate rail above the passage. */
+/** Desktop readouts that ride above the passage. At rest: a single
+ *  hint. While running: one left-aligned row, speed in primary and the
+ *  rest in ink. Mobile uses <MobileReadouts /> inside <RestHint />. */
 export function Readouts() {
-  // Hooks must run in the same order on every render — call
-  // useStatsProps() and useAppearancePrefs() unconditionally before
-  // any early return. Gating renders below.
+  // Hooks run unconditionally before the surface gate below.
   const { prefs } = useAppearancePrefs();
   const statsProps = useStatsProps();
   if (prefs.statStripSurface === "none") return null;
   const stats = <DesktopStats {...statsProps} />;
   if (prefs.statStripSurface === "card") {
     return (
-      <div className="rounded-md border border-border bg-card px-4 py-3">
+      <div className="rounded-2xl border border-border bg-card px-5 py-2 shadow-card">
         {stats}
       </div>
     );
@@ -133,8 +142,7 @@ export function Readouts() {
   return stats;
 }
 
-/** Inline pip row for mobile — no chrome (no border, no bg, no padding).
- *  Consumer wraps it in whatever footer container makes sense. */
+/** Inline readouts for the mobile footer row — no chrome. */
 export function MobileReadouts() {
   const { prefs } = useAppearancePrefs();
   const statsProps = useStatsProps();
@@ -142,223 +150,146 @@ export function MobileReadouts() {
   return <MobileStrip {...statsProps} />;
 }
 
-type StatsProps = {
-  wpm: number;
-  accuracy: number;
-  burst: number;
-  errs: number;
-  wordIdx: number;
-  wordCount: number;
-  elapsedMs: number;
-  running: boolean;
-  speedStyle: LiveStatStyle;
-  accuracyStyle: LiveStatStyle;
-  progressStyle: LiveStatStyle;
-  burstStyle: LiveStatStyle;
-  isTime: boolean;
-  remainingMs: number;
-  unit: ReturnType<typeof useAppearancePrefs>["prefs"]["typingSpeedUnit"];
-  alwaysDecimal: boolean;
-  style: CSSProperties;
-};
+function DesktopStats(props: StatsProps) {
+  const speed = useLiveStatGate(props.speedStyle);
+  const acc = useLiveStatGate(props.accuracyStyle);
+  const prog = useLiveStatGate(props.progressStyle);
+  const peak = useLiveStatGate(props.peakStyle);
+  const { unit, alwaysDecimal, customColor: color } = props;
 
-function MobileStrip(props: StatsProps) {
-  const {
-    wpm,
-    accuracy,
-    burst,
-    errs,
-    wordIdx,
-    wordCount,
-    running,
-    speedStyle,
-    accuracyStyle,
-    progressStyle,
-    burstStyle,
-    isTime,
-    remainingMs,
-    unit,
-    alwaysDecimal,
-    style,
-  } = props;
-  const speed = useLiveStatGate(speedStyle);
-  const acc = useLiveStatGate(accuracyStyle);
-  const prog = useLiveStatGate(progressStyle);
-  const burstGate = useLiveStatGate(burstStyle);
+  if (!props.running) {
+    return (
+      <ReadoutRow className="items-center text-sm text-muted-foreground">
+        <p className="flex items-center gap-2">
+          <span className="font-medium text-foreground">Start typing</span>
+          <span aria-hidden className="text-muted-foreground/50">
+            ·
+          </span>
+          <span>
+            <Kbd>tab</Kbd> for a new passage
+          </span>
+        </p>
+      </ReadoutRow>
+    );
+  }
 
   return (
-    <div
-      className="flex flex-wrap items-center gap-x-3 gap-y-1 tabular-nums"
-      style={style}
-    >
+    <ReadoutRow style={props.style}>
       {speed.rendered ? (
-        <Pip
+        <Readout
+          hero
+          accent
+          mini={speed.mini}
+          color={color}
           label={SPEED_UNIT_LABEL[unit]}
-          value={formatSpeed(wpm, unit, alwaysDecimal)}
-          tone={running ? "primary" : "ink"}
-          cls={speed.cls}
+          value={formatSpeed(props.wpm, unit, alwaysDecimal)}
         />
       ) : null}
-
       {acc.rendered ? (
-        <Pip label="acc" value={`${Math.round(accuracy)}%`} cls={acc.cls} />
+        <Readout
+          mini={acc.mini}
+          color={color}
+          label="acc"
+          value={`${Math.round(props.accuracy)}%`}
+        />
       ) : null}
-      {/* Errors only matter while running; behaviour blind-mode hides
-          everything anyway via the upstream stat-style gates. WPM
-          already carries the single primary accent — keep err in
-          foreground so the rail has one focal point. */}
-      {running ? <Pip label="err" value={String(errs)} /> : null}
-      {burstGate.rendered ? (
-        <Pip
-          label="burst"
-          value={formatSpeed(burst, unit, alwaysDecimal)}
-          cls={burstGate.cls}
+      {/* Errors have no style of their own; they follow speed's size. */}
+      {speed.rendered || acc.rendered ? (
+        <Readout
+          mini={speed.mini}
+          color={color}
+          label={props.errs === 1 ? "error" : "errors"}
+          value={String(props.errs)}
+        />
+      ) : null}
+      {peak.rendered ? (
+        <Readout
+          mini={peak.mini}
+          color={color}
+          label="peak"
+          value={formatSpeed(props.peak, unit, alwaysDecimal)}
         />
       ) : null}
       {prog.rendered ? (
-        isTime ? (
-          <Pip
+        props.isTime ? (
+          <Readout
+            mini={prog.mini}
+            color={color}
             label="left"
-            value={formatElapsed(remainingMs)}
-            cls={prog.cls}
+            value={formatElapsed(props.remainingMs)}
           />
         ) : (
-          <Pip
-            label="word"
-            value={`${wordIdx}/${wordCount}`}
-            cls={prog.cls}
-          />
+          <>
+            <Readout
+              mini={prog.mini}
+              color={color}
+              label="words"
+              value={`${props.wordIdx}/${props.wordCount}`}
+            />
+            <Readout
+              mini={prog.mini}
+              color={color}
+              label="time"
+              value={formatElapsed(props.elapsedMs)}
+            />
+          </>
         )
       ) : null}
-    </div>
+    </ReadoutRow>
   );
 }
 
-function Pip({
-  label,
-  value,
-  tone = "ink",
-  cls,
-}: {
-  label: string;
-  value: string;
-  tone?: "ink" | "primary";
-  cls?: string;
-}) {
-  return (
-    <div className={cn("flex items-baseline gap-1", cls)}>
-      <span
-        className={cn(
-          "text-sm font-semibold tracking-tight",
-          tone === "primary" ? "text-primary" : "text-foreground",
-        )}
-      >
-        {value}
-      </span>
-      <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-        {label}
-      </span>
-    </div>
-  );
-}
+function MobileStrip(props: StatsProps) {
+  const speed = useLiveStatGate(props.speedStyle);
+  const acc = useLiveStatGate(props.accuracyStyle);
+  const prog = useLiveStatGate(props.progressStyle);
+  const { unit, alwaysDecimal, customColor: color } = props;
 
-function DesktopStats(props: StatsProps) {
-  const {
-    wpm,
-    accuracy,
-    burst,
-    errs,
-    wordIdx,
-    wordCount,
-    elapsedMs,
-    running,
-    speedStyle,
-    accuracyStyle,
-    progressStyle,
-    burstStyle,
-    isTime,
-    remainingMs,
-    unit,
-    alwaysDecimal,
-    style,
-  } = props;
-  const speed = useLiveStatGate(speedStyle);
-  const acc = useLiveStatGate(accuracyStyle);
-  const prog = useLiveStatGate(progressStyle);
-  const burstGate = useLiveStatGate(burstStyle);
+  if (!props.running) {
+    return (
+      <p className="truncate text-sm text-muted-foreground">
+        Tap the text to start
+      </p>
+    );
+  }
 
-  const sizeFor = (cls: string) =>
-    cls.includes("scale-90") ? ("md" as const) : ("lg" as const);
-
+  // One line, never wrapping into the restart button: speed, accuracy,
+  // errors and progress. Peak stays a desktop readout on phones.
   return (
     <div
-      className="hidden flex-wrap items-end justify-between gap-4 select-none md:flex"
-      style={style}
+      className="flex min-w-0 flex-nowrap items-baseline gap-x-3 overflow-hidden"
+      style={props.style}
     >
-      <div className="flex flex-wrap gap-x-12 gap-y-3">
-        {prog.rendered ? (
-          isTime ? (
-            <Stat
-              label="REMAINING"
-              value={formatElapsed(remainingMs)}
-              size={sizeFor(prog.cls)}
-              accent={running}
-            />
-          ) : (
-            <>
-              <Stat
-                label="ELAPSED"
-                value={formatElapsed(elapsedMs)}
-                size={sizeFor(prog.cls)}
-              />
-              <Stat
-                label="WORD"
-                value={`${wordIdx}/${wordCount}`}
-                size={sizeFor(prog.cls)}
-              />
-            </>
-          )
-        ) : null}
-      </div>
-      <div className="flex flex-wrap gap-x-12 gap-y-3">
-        {speed.rendered ? (
-          <Stat
-            label={SPEED_UNIT_LABEL[unit].toUpperCase()}
-            value={formatSpeed(wpm, unit, alwaysDecimal)}
-            size={sizeFor(speed.cls)}
-            accent={running}
-            align="right"
-          />
-        ) : null}
-        {acc.rendered ? (
-          <Stat
-            label="ACC"
-            value={`${Math.round(accuracy)}%`}
-            size={sizeFor(acc.cls)}
-            align="right"
-          />
-        ) : null}
-        {burstGate.rendered ? (
-          <Stat
-            label="BURST"
-            value={formatSpeed(burst, unit, alwaysDecimal)}
-            size={sizeFor(burstGate.cls)}
-            align="right"
-          />
-        ) : null}
-        {running ? (
-          // ERR has no per-stat style of its own, so size it like the
-          // group's anchor (WPM) instead of a hardcoded lg — otherwise
-          // under the "mini" live-stat style WPM/ACC/BURST shrink to md
-          // and ERR stays lg, standing out bigger than the rest.
-          <Stat
-            label="ERR"
-            value={String(errs)}
-            size={sizeFor(speed.cls)}
-            align="right"
-          />
-        ) : null}
-      </div>
+      {speed.rendered ? (
+        <Readout
+          compact
+          accent
+          color={color}
+          label={SPEED_UNIT_LABEL[unit]}
+          value={formatSpeed(props.wpm, unit, alwaysDecimal)}
+        />
+      ) : null}
+      {acc.rendered ? (
+        <Readout
+          compact
+          color={color}
+          label="acc"
+          value={`${Math.round(props.accuracy)}%`}
+        />
+      ) : null}
+      <Readout compact color={color} label="err" value={String(props.errs)} />
+      {prog.rendered ? (
+        <Readout
+          compact
+          color={color}
+          label={props.isTime ? "left" : "words"}
+          value={
+            props.isTime
+              ? formatElapsed(props.remainingMs)
+              : `${props.wordIdx}/${props.wordCount}`
+          }
+        />
+      ) : null}
     </div>
   );
 }

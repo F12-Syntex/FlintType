@@ -170,13 +170,10 @@ export function InputCapture({ children }: { children: ReactNode }) {
           const wordWise =
             e.key === "Backspace" && (e.ctrlKey || e.altKey || e.metaKey);
           if (!wordWise && (e.ctrlKey || e.metaKey || e.altKey)) return;
-          // Tab-as-restart was retired — it kept breaking under the
-          // dialog-modal gate and the focus-trap edge cases. The
-          // command palette (Cmd+K → "Restart test") owns restart
-          // now, with Esc as the in-test fast path. Letting Tab
-          // through to its native focus-shift here also stops it
-          // from being a silent no-op when the user expects standard
-          // browser tab traversal.
+          // Tab never reaches here as a restart: the provider's
+          // capture-phase listener (practice-state.tsx) restarts on Tab
+          // while focus is on this input or the page, and leaves
+          // Shift+Tab / Tab-from-a-control to native focus traversal.
           // Suppress typing while a modal is open. preventDefault stops
           // Backspace / letters from doing anything page-level; the
           // modal's own window listener still receives the bubbled

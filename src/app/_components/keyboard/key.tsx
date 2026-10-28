@@ -11,6 +11,7 @@ import type { KeyDef } from "./types";
 export function Key({
   def,
   pressed,
+  homing = false,
   lit,
   upper,
   design,
@@ -20,6 +21,9 @@ export function Key({
 }: {
   def: KeyDef;
   pressed: boolean;
+  /** F/J home-row peg: draws a small tactile-style bump so the user can
+   *  find their hands without the key reading as pressed. */
+  homing?: boolean;
   /** Modifier in its "on" state (CapsLock active, Shift held). */
   lit: boolean;
   upper: boolean;
@@ -60,10 +64,19 @@ export function Key({
       className={cn(
         "relative flex h-7 items-center justify-center border font-mono text-xs sm:h-10 sm:text-sm",
         shapeClass(shape),
+        // The "rounded" shape follows the theme's radius scale (§21)
+        // instead of a fixed 6px, so keycaps match the rest of the app.
+        shape === "rounded" && "rounded-sm",
         hot ? cn(hotCls, "transition-none") : cn(resting, "transition-colors duration-150"),
         def.variant === "modifier" && "text-[8px] uppercase tracking-[0.12em] sm:text-[10px] sm:tracking-[0.14em]",
       )}
     >
+      {homing ? (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute bottom-1 left-1/2 h-0.5 w-2 -translate-x-1/2 rounded-full bg-current opacity-50"
+        />
+      ) : null}
       {showShiftLabel && def.shiftLabel && def.variant !== "modifier" && (
         <span
           className={cn(
