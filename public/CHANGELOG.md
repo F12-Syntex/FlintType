@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.38 — 28 October 2026
+- Typing tests with lots of uncorrected mistakes no longer make your adaptive practice think you are slower and slower over time.
+
 ## 6.148.37 — 28 October 2026
 - Signing in or signing up from a crafted link can no longer send you to another website afterwards.
 

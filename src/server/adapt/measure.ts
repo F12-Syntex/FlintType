@@ -1,5 +1,6 @@
 import type { HandLayoutPrefs } from "@/lib/hand-layout";
 import type { KeystrokeTiming } from "@/types/adapt";
+import { cleanPaceMs } from "./clean-pace";
 import { deriveFeatureKeys } from "./motor-features";
 import { extractSlips, type SlipSamples } from "./slips";
 
@@ -22,7 +23,8 @@ export const ABSOLUTE_PAUSE_MS = 1500;
  *  mean would let hesitations through for exactly those pairs, and the
  *  hesitations would push the mean up further. Once the user has an
  *  overall bigram baseline, the gate's reference is capped at this
- *  many times it per keystroke interval. */
+ *  many times their clean pace (`clean-pace.ts`) per keystroke
+ *  interval. */
 export const CLEAN_REF_CAP_RATIO = 2;
 
 /** Minimum word length before we trust a per-word timing. Two-letter
@@ -56,8 +58,9 @@ export type Baselines = {
    *  first sample isn't dropped for "exceeding" a baseline that
    *  doesn't exist yet. */
   word: ReadonlyMap<string, number>;
-  /** The user's overall bigram baseline (ms). Scales slip costs; when
-   *  absent or 0 the slip extractor uses a cold-start reference. */
+  /** The user's overall bigram baseline (ms). Caps the test's clean
+   *  pace (`clean-pace.ts`), which scales slip costs and the pause
+   *  gate; when absent or 0 both keep their cold-start values. */
   overallBigram?: number;
 };
 
@@ -84,7 +87,12 @@ export function extract(
   // (the user has just paused to recover — their timing says nothing
   // about their typing speed).
   const tainted = computeTaintMask(timings);
-  const overall = baselines.overallBigram ?? 0;
+  const pace = cleanPaceMs(
+    timings,
+    tainted,
+    baselines.overallBigram ?? 0,
+    MIN_INTERVAL_MS,
+  );
 
   // Per-word accumulator. We finalise (or discard) a word when the
   // wordIndex changes or we hit the end of the timing stream. A word
@@ -147,7 +155,7 @@ export function extract(
     const charB = b.expected;
     if (charA.length === 0 || charB.length === 0) continue;
     const bigram = (charA + charB).toLowerCase();
-    const baseline = gateRef(baselines.bigram.get(bigram), ABSOLUTE_PAUSE_MS, 1, overall);
+    const baseline = gateRef(baselines.bigram.get(bigram), ABSOLUTE_PAUSE_MS, 1, pace);
     if (dt > baseline * MAX_INTERVAL_RATIO) {
       rejected++;
       continue;
@@ -173,7 +181,7 @@ export function extract(
           baselines.trigram.get(trigram),
           ABSOLUTE_PAUSE_MS * 2,
           2,
-          overall,
+          pace,
         );
         const tdt = b.t - z.t;
         if (tdt >= MIN_INTERVAL_MS * 2 && tdt <= tBase * MAX_INTERVAL_RATIO) {
@@ -187,12 +195,7 @@ export function extract(
   // boundary; the last word never crosses one, so we close it here.
   if (curWord !== -1) flushWord();
 
-  const slips = extractSlips(
-    timings,
-    layout,
-    baselines.overallBigram ?? 0,
-    tainted,
-  );
+  const slips = extractSlips(timings, layout, pace, tainted);
 
   return {
     bigrams,
@@ -207,16 +210,16 @@ export function extract(
 
 /** Reference time for the pause gate: the stored mean (or `coldMs`
  *  when the pattern is new), capped at CLEAN_REF_CAP_RATIO × the
- *  overall bigram baseline per interval when that baseline exists. */
+ *  user's clean pace per interval once they have a baseline. */
 function gateRef(
   stored: number | undefined,
   coldMs: number,
   intervals: number,
-  overallBigram: number,
+  pace: number,
 ): number {
   const ref = stored ?? coldMs;
-  if (!(overallBigram > 0)) return ref;
-  return Math.min(ref, overallBigram * CLEAN_REF_CAP_RATIO * intervals);
+  if (!(pace > 0)) return ref;
+  return Math.min(ref, pace * CLEAN_REF_CAP_RATIO * intervals);
 }
 
 /** A keystroke is tainted if it itself was wrong, or if it's the
