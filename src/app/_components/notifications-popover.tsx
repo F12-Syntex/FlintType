@@ -171,7 +171,8 @@ export function NotificationsPopover() {
                 variant="ghost"
                 size="xs"
                 onClick={() => void markAllRead()}
-                className="-mr-1.5 text-muted-foreground"
+                // Finger-sized in the phone sheet (§7), compact at md+.
+                className="-mr-1.5 h-11 text-muted-foreground md:h-7"
               >
                 <CheckCheck aria-hidden />
                 Mark all read

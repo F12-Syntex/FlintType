@@ -8,6 +8,13 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.9 — 27 October 2026
+- The friends button now moves up so it never covers the links at the bottom of the page.
+- The What's new window waits while you're on the brand card or a release card, and notifications have a bigger Mark all read button on phones.
+- Long names on shared results now wrap neatly instead of running off the screen, and the link preview uses the logo orange.
+- The live-watching screen only says Watching live when someone really is live, and signed-out visitors get a clear Sign in button.
+- The Biogram page is shorter and calmer, with long lists behind Show all and technical details tucked away, and the brand card fits phone screens without sideways scrolling.
+
 ## 6.148.8 — 27 October 2026
 - Fixed email sign-up: when a quick "verify you are human" check is needed, it now appears right in the sign-up form, and the password hint shows the real minimum length.
 - Each sign-in step now has its own heading, such as "Check your email" or "Reset your password", and long email addresses no longer break in the middle.

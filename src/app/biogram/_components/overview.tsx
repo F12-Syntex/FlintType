@@ -1,31 +1,25 @@
 "use client";
 
 import { Surface } from "@/components/page-shell";
-import { cn } from "@/lib/utils";
 import type { AdaptSnapshotOutput } from "@/types/adapt";
 
 /* ─── Overview ─────────────────────────────────────────────────── */
 
+/** One overview figure. Always ink: these are data, and the page's
+ *  orange is kept for its actions and selections. */
 function StatTile({
   label,
   value,
   hint,
-  accent = false,
 }: {
   label: string;
   value: string;
   hint?: string;
-  accent?: boolean;
 }) {
   return (
     <Surface className="flex flex-col gap-1.5 p-4 sm:p-5">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span
-        className={cn(
-          "text-2xl font-bold tracking-tight tabular-nums sm:text-3xl",
-          accent ? "text-primary" : "text-foreground",
-        )}
-      >
+      <span className="text-2xl font-bold tracking-tight tabular-nums text-foreground sm:text-3xl">
         {value}
       </span>
       {hint ? <span className="text-xs text-muted-foreground">{hint}</span> : null}
@@ -36,26 +30,41 @@ function StatTile({
 export function OverviewBody({ snap }: { snap: AdaptSnapshotOutput }) {
   const patterns =
     snap.bigrams.length + snap.trigrams.length + snap.motorFeatures.length;
+  // The letter pair the model currently rates weakest, if any is weak.
+  const weakest = snap.bigrams.reduce<AdaptSnapshotOutput["bigrams"][number] | null>(
+    (worst, r) => (r.weakness > 0 && (!worst || r.weakness > worst.weakness) ? r : worst),
+    null,
+  );
 
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {/* Status + sample count live in the header pill, so the tiles
+            only show what isn't said elsewhere. */}
         <StatTile
-          label="Status"
-          value={snap.cold ? "Cold start" : "Warm"}
-          hint={snap.cold ? "Still learning your hands" : "Shaping your passages"}
-          accent={!snap.cold}
+          label="Patterns tracked"
+          value={patterns.toLocaleString()}
+          hint="Pairs, triples and finger moves"
         />
         <StatTile
-          label="Letter-pair samples"
-          value={snap.totalBigramSamples.toLocaleString()}
+          label="Words held back"
+          value={snap.recentlyShown.length.toLocaleString()}
+          hint="Recently shown, kept out for now"
         />
         <StatTile
           label="Fatigue damping"
           value={`× ${snap.fatigueDampener.toFixed(2)}`}
           hint={snap.fatigueDampener < 1 ? "Easing off while you're tired" : "No damping"}
         />
-        <StatTile label="Patterns tracked" value={patterns.toLocaleString()} />
+        <StatTile
+          label="Weakest pair"
+          value={weakest ? weakest.key : "None yet"}
+          hint={
+            weakest
+              ? `${weakest.meanMs.toFixed(0)} ms on average`
+              : "Nothing stands out so far"
+          }
+        />
       </div>
 
       <div className="flex flex-col gap-3">

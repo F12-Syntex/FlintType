@@ -47,7 +47,7 @@ export function PatternModels({ snap }: { snap: AdaptSnapshotOutput }) {
         value={kind}
         onValueChange={setKind}
         ariaLabel="Pattern model"
-        className="w-full flex-nowrap sm:w-fit [&>button]:flex-1 sm:[&>button]:flex-initial"
+        className="w-full flex-nowrap sm:w-fit [&>button]:h-10 [&>button]:flex-1 sm:[&>button]:h-auto sm:[&>button]:flex-initial"
         options={KINDS.map((k) => ({
           value: k.id,
           label: (

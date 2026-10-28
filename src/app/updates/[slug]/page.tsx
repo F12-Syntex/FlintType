@@ -103,7 +103,7 @@ export default async function UpdatePage({
 
       <Link
         href="/changelog"
-        className="inline-flex h-10 items-center rounded-full px-4 text-sm font-medium text-ft-dim-2 transition-colors hover:bg-ft-paper-2 hover:text-ft-ink"
+        className="inline-flex h-11 items-center rounded-pill px-4 text-sm font-medium text-ft-dim-2 transition-colors hover:bg-ft-paper-2 hover:text-ft-ink"
       >
         Back to changelog
       </Link>

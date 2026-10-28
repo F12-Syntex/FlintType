@@ -147,17 +147,21 @@ function CustomWheel({
           </span>
         </div>
       )}
-      <Saturation
-        hsva={hsv}
-        onChange={update}
-        style={{
-          width: "100%",
-          height: "auto",
-          aspectRatio: "4/2",
-          borderRadius: "var(--radius-lg)",
-        }}
-        className="overflow-hidden border border-border"
-      />
+      {/* The wrapper owns the hairline and the rounded clip: on the
+          library element itself the border sat over its coloured
+          background and a 1px gradient line showed under the corners. */}
+      <div className="overflow-hidden rounded-lg border border-border">
+        <Saturation
+          hsva={hsv}
+          onChange={update}
+          style={{
+            width: "100%",
+            height: "auto",
+            aspectRatio: "4/2",
+            borderRadius: 0,
+          }}
+        />
+      </div>
       <Hue
         hue={hsv.h}
         onChange={(h) => update({ ...hsv, ...h })}

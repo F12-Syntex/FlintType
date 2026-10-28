@@ -99,17 +99,21 @@ export function ColorPicker({
         }
       >
         <div className="space-y-2 p-4">
-          <Saturation
-            hsva={colorHsv}
-            onChange={handleValueChange}
-            style={{
-              width: "100%",
-              height: "auto",
-              aspectRatio: "4/2",
-              borderRadius: "var(--radius-lg)",
-            }}
-            className="overflow-hidden border border-border"
-          />
+          {/* The wrapper owns the hairline and the rounded clip: on the
+              library element itself the border sat over its coloured
+              background and a 1px gradient line showed under the corners. */}
+          <div className="overflow-hidden rounded-lg border border-border">
+            <Saturation
+              hsva={colorHsv}
+              onChange={handleValueChange}
+              style={{
+                width: "100%",
+                height: "auto",
+                aspectRatio: "4/2",
+                borderRadius: 0,
+              }}
+            />
+          </div>
           <Hue
             hue={colorHsv.h}
             onChange={(newHue) => handleValueChange({ ...colorHsv, ...newHue })}

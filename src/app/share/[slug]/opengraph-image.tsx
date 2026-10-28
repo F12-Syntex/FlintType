@@ -23,10 +23,10 @@ const INK_TRACK = "#1A1815";
 const INK_LINE = "#221F1A";
 const PAPER = "#F2EDE2";
 const WARM_1 = "#B5AF9F";
-const WARM_2 = "#9C978A";
 const WARM_3 = "#6E695F";
 const WARM_4 = "#5C5950";
-const EMBER = "#E1582C";
+// The logo orange (--primary), so the social preview matches the brand.
+const EMBER = "#F97316";
 
 /** Dynamic per-run OG image — mirrors the post-test results screen.
  *
@@ -217,7 +217,6 @@ function Header({
         }}
       >
         {avatarDataUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={avatarDataUrl}
             alt=""

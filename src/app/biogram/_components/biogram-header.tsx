@@ -43,10 +43,15 @@ export function BiogramHeader({
   );
 }
 
+/** Model status. Neutral on purpose: it's a status, not a selection or
+ *  an action, so it stays ink (the Refresh button and the selected
+ *  switches carry the orange). Green dot when warm, dim when cold. */
 function StatusPill({ snap }: { snap: AdaptSnapshotOutput | null }) {
+  const shell =
+    "inline-flex h-9 items-center gap-2 rounded-pill border border-border bg-card px-3.5 text-sm";
   if (!snap) {
     return (
-      <span className="inline-flex h-9 items-center gap-2 rounded-pill bg-muted px-3.5 text-sm text-muted-foreground">
+      <span className={cn(shell, "text-muted-foreground")}>
         <span className="size-1.5 rounded-full bg-muted-foreground/40" aria-hidden />
         Loading
       </span>
@@ -54,24 +59,19 @@ function StatusPill({ snap }: { snap: AdaptSnapshotOutput | null }) {
   }
   const cold = snap.cold;
   return (
-    <span
-      className={cn(
-        "inline-flex h-9 items-center gap-2 rounded-pill px-3.5 text-sm font-medium",
-        cold ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary",
-      )}
-    >
+    <span className={cn(shell, "text-foreground")}>
       <span
         className={cn(
           "size-1.5 rounded-full",
-          cold ? "bg-muted-foreground/40" : "bg-primary",
+          cold ? "bg-muted-foreground/50" : "bg-ft-ok",
         )}
         aria-hidden
       />
-      {cold ? "Cold start" : "Warm"}
-      <span className="opacity-50" aria-hidden>
+      <span className="font-medium">{cold ? "Cold start" : "Warm"}</span>
+      <span className="text-muted-foreground" aria-hidden>
         ·
       </span>
-      <span className="tabular-nums">
+      <span className="tabular-nums text-muted-foreground">
         {snap.totalBigramSamples.toLocaleString()} samples
       </span>
     </span>

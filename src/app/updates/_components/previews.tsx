@@ -45,21 +45,27 @@ function HubPreview() {
   );
 }
 
-/** Challenges — the inline race-invite row with a filled Join button. */
+/** Challenges — a race invite: who's asking, then a filled Join button
+ *  on its own row so the tile reads cleanly even at phone width (a
+ *  single row squeezed the caption one word per line). */
 function ChallengesPreview() {
   return (
     <div
       aria-hidden
-      className="flex w-full items-center gap-2.5 rounded-xl ring-1 ring-inset ring-ft-line-soft bg-ft-paper px-3 py-2.5"
+      className="flex w-full flex-col gap-2 rounded-xl ring-1 ring-inset ring-ft-line-soft bg-ft-paper p-2.5"
     >
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-ft-ember/10 text-ft-ember">
-        <Swords size={15} />
-      </span>
-      <span className="flex min-w-0 flex-col gap-0.5">
-        <span className="text-[11px] font-semibold text-ft-ink">@dao</span>
-        <span className="text-[9px] font-medium text-ft-dim">wants to race</span>
-      </span>
-      <span className="ml-auto rounded-full bg-ft-ember px-2.5 py-1 text-[9px] font-bold text-white">
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-ft-ember/10 text-ft-ember sm:size-7">
+          <Swords size={13} />
+        </span>
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="truncate text-[11px] font-semibold text-ft-ink">@dao</span>
+          <span className="truncate whitespace-nowrap text-[9px] font-medium text-ft-dim">
+            wants to race
+          </span>
+        </span>
+      </div>
+      <span className="flex h-6 items-center justify-center rounded-full bg-ft-ember text-[10px] font-bold text-white">
         Join
       </span>
     </div>
@@ -73,13 +79,14 @@ function SpectatePreview() {
       aria-hidden
       className="flex w-full flex-col gap-2.5 rounded-xl ring-1 ring-inset ring-ft-line-soft bg-ft-paper p-2.5"
     >
-      <div className="flex items-center gap-1.5">
-        <span className="size-1.5 rounded-full bg-ft-ember" />
-        <span className="text-[9px] font-bold text-ft-ember">
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span className="size-1.5 shrink-0 rounded-full bg-ft-ember" />
+        {/* The orange dot carries "live" on small tiles. */}
+        <span className="hidden text-[9px] font-bold text-ft-ember sm:inline">
           Live
         </span>
-        <span className="text-[10px] font-semibold text-ft-ink">@maya</span>
-        <span className="ml-auto text-[10px] font-semibold tabular-nums text-ft-ink">
+        <span className="min-w-0 truncate text-[10px] font-semibold text-ft-ink">@maya</span>
+        <span className="ml-auto shrink-0 whitespace-nowrap text-[10px] font-semibold tabular-nums text-ft-ink">
           92 <span className="font-medium text-ft-dim">wpm</span>
         </span>
       </div>
@@ -94,29 +101,30 @@ function SpectatePreview() {
   );
 }
 
-/** Profile — avatar, rank flair, headline stats, XP bar. */
+/** Profile — avatar + rank flair, headline stats, XP bar. Stacked so
+ *  it reads at phone width too (one row squeezed the handle to "@"). */
 function ProfilePreview() {
   return (
     <div
       aria-hidden
-      className="flex w-full flex-col gap-2.5 rounded-xl ring-1 ring-inset ring-ft-line-soft bg-ft-paper p-3"
+      className="flex w-full flex-col gap-2 rounded-xl ring-1 ring-inset ring-ft-line-soft bg-ft-paper p-2.5 sm:p-3"
     >
-      <div className="flex items-center gap-2">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-ft-ink/10 text-[10px] font-bold text-ft-dim">
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-ft-ink/10 text-[10px] font-bold text-ft-dim sm:size-7">
           Y
         </span>
-        <span className="flex flex-col gap-1">
-          <span className="text-[11px] font-semibold text-ft-ink">@you</span>
+        <span className="flex min-w-0 flex-col gap-1">
+          <span className="truncate text-[11px] font-semibold text-ft-ink">@you</span>
           <span className="inline-flex w-fit items-center gap-1 rounded-full bg-ft-ember/10 px-1.5 py-px text-[8px] font-bold text-ft-ember">
             <Flame size={8} /> Forge
           </span>
         </span>
-        <span className="ml-auto flex flex-col items-end gap-0.5 text-[10px] tabular-nums text-ft-dim">
-          <span>
-            <span className="font-bold text-ft-ink">128</span> wpm
-          </span>
-          <span className="font-bold text-ft-ink">97%</span>
+      </div>
+      <div className="flex items-baseline justify-between gap-2 whitespace-nowrap text-[10px] tabular-nums text-ft-dim">
+        <span>
+          <span className="font-bold text-ft-ink">128</span> wpm
         </span>
+        <span className="font-bold text-ft-ink">97%</span>
       </div>
       <span className="block h-1.5 w-full overflow-hidden rounded-full bg-ft-ink/10">
         <span className="block h-full w-[68%] rounded-full bg-ft-ember" />
