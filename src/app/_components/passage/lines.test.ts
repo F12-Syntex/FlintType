@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type GrowthGeometry, growthPull, scrollLines, visibleLines } from "./passage-lines";
+import { type GrowthGeometry, growthPull, scrollLines, visibleLines } from "./lines";
 
 describe("visibleLines", () => {
   it("hugs text shorter than the reservation", () => {
