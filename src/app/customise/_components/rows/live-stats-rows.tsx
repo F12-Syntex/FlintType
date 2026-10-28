@@ -141,12 +141,7 @@ function LiveStatsDetailRows({ anyShown }: { anyShown: boolean }) {
             label="Colour"
             desc="Colour of the live numbers."
             swatchColor={prefs.liveStatsColor || "var(--primary)"}
-            value={
-              prefs.liveStatsColor &&
-              prefs.liveStatsColor !== DEFAULT_APPEARANCE.liveStatsColor
-                ? prefs.liveStatsColor
-                : undefined
-            }
+            value={prefs.liveStatsColor || undefined}
             onChange={(hex) => update("liveStatsColor", hex)}
             onClear={() =>
               update("liveStatsColor", DEFAULT_APPEARANCE.liveStatsColor)

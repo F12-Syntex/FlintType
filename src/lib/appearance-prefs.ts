@@ -242,9 +242,9 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   liveSpeedStyle: "mini",
   liveAccuracyStyle: "mini",
   liveBurstStyle: "mini",
-  // Live stats paint in the brand orange by default; users can swap
-  // via customise → live stats. Empty string means "use --primary".
-  liveStatsColor: "#f97316",
+  // Empty = follow the palette's --primary (the brand orange on the
+  // default palette); a hex is a user pick from Stats & results.
+  liveStatsColor: "",
   liveStatsOpacity: 1,
 
   // Highlight off — past words stay untouched; the caret position is
@@ -368,10 +368,22 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   uiScale: "default",
 };
 
+/** The live-stats colour used to ship as the brand hex itself. Stored
+ *  copies of that old default read as "follow the palette", so other
+ *  palettes keep their own primary and Reset doesn't count it. */
+export const LEGACY_LIVE_STATS_COLOR = "#f97316";
+
 export function useAppearancePrefs() {
   const override = usePrefsOverride()?.appearance;
-  const { value: storePrefs, update: updateRaw, reset: resetRaw } =
+  const { value: storeRaw, update: updateRaw, reset: resetRaw } =
     useRemotePrefs("appearance", DEFAULT_APPEARANCE);
+  const storePrefs = useMemo(
+    () =>
+      storeRaw.liveStatsColor?.toLowerCase() === LEGACY_LIVE_STATS_COLOR
+        ? { ...storeRaw, liveStatsColor: "" }
+        : storeRaw,
+    [storeRaw],
+  );
   const prefs = override ?? storePrefs;
   const overridden = override != null;
 

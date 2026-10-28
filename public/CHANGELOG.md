@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.15 — 27 October 2026
+- Live stats now take their colour from your palette by default, so they no longer stay orange under other palettes.
+- The Kodama Grove look now also turns on letters-only for the keyboard, as intended.
+
 ## 6.148.14 — 27 October 2026
 - The About page, the Adaptive explainer and the Biogram now describe how practice paces itself: it eases off when you are tired or less accurate than usual and pushes harder on a good day.
 - The weakest-pair tip on Insights notes that time lost to mistakes counts too.
