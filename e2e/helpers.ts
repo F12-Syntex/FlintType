@@ -126,13 +126,18 @@ export async function passageMetrics(page: Page): Promise<{
     if (!inner)
       return { innerX: NaN, caretRatio: null, gapAbove: NaN, gapBelow: NaN, groupGapAbove: NaN };
     const viewport = inner.parentElement as HTMLElement;
-    const outer = viewport.parentElement as HTMLElement;
+    // The centred column is the nearest ancestor that centres its
+    // children vertically (the text sits in a block with the quote
+    // credit, so it isn't always the viewport's direct parent).
+    let outer = viewport.parentElement as HTMLElement;
+    while (outer.parentElement && getComputedStyle(outer).justifyContent !== "center")
+      outer = outer.parentElement;
     const oR = outer.getBoundingClientRect();
     const vR = viewport.getBoundingClientRect();
-    // The centred group is [optional readouts slot, viewport]. Its top is
-    // the outer's first child — the readouts when present, else the
-    // viewport itself. `groupGapAbove` is the space above that group, so
-    // it ≈ `gapBelow` when the whole group is vertically centred.
+    // The centred group is [optional readouts slot, text block]. Its top
+    // is the column's first child — the readouts when present, else the
+    // text block. `groupGapAbove` is the space above that group, so it ≈
+    // `gapBelow` when the whole group is vertically centred.
     const first = (outer.firstElementChild as HTMLElement | null) ?? viewport;
     const groupGapAbove = first.getBoundingClientRect().top - oR.top;
     const m = getComputedStyle(inner).transform.match(/matrix\(([^)]+)\)/);
