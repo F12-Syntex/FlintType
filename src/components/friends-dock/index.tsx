@@ -14,9 +14,13 @@ import { useDockData } from "./use-dock-data";
 
 const DEV = process.env.NODE_ENV === "development";
 
-/** Window event the top bar's mobile friends button dispatches to open
- *  the dock's bottom sheet. */
+/** Window event the top bar's friends button dispatches to toggle the
+ *  dock (the bottom sheet on phones, a panel under the bar from md). */
 export const OPEN_FRIENDS_EVENT = "ft:open-friends";
+
+/** Marks the top bar's friends button, so a click on it isn't read as a
+ *  click outside the open panel. */
+export const FRIENDS_TRIGGER_ATTR = "data-friends-trigger";
 
 /** Routes where the dock would fight an intentionally immersive surface:
  *  the dark race screen (incl. private lobbies at /race/c/<slug>), the
@@ -155,6 +159,10 @@ export function FriendsDock() {
   const focus = useHtmlFlag("data-ft-focus");
   const footerHeight = useFooterOffset(pathname);
   const [open, setOpen] = useState(false);
+  // Where the open panel hangs from: the corner pill (2xl+) or the top
+  // bar's friends button (below 2xl, where a floating pill would cover
+  // page content).
+  const [anchor, setAnchor] = useState<"corner" | "bar">("corner");
   const [query, setQuery] = useState("");
   const [last, setLast] = useState({ pathname, visible: false });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -181,13 +189,17 @@ export function FriendsDock() {
     }
   }
 
-  // Phones never float the pill (it covered page text and the typing
-  // surface's restart row); the top bar's friends button opens the
-  // sheet through this event instead.
+  // The pill only floats at 2xl+, where it sits in the page gutter
+  // (narrower screens: it covered the keyboard, cards and footer links).
+  // Below that the top bar's friends button toggles the dock through
+  // this event: the bottom sheet on phones, a panel under the bar from md.
   useEffect(() => {
-    const onOpen = () => setOpen(true);
-    window.addEventListener(OPEN_FRIENDS_EVENT, onOpen);
-    return () => window.removeEventListener(OPEN_FRIENDS_EVENT, onOpen);
+    const onToggle = () => {
+      setAnchor("bar");
+      setOpen((o) => !o);
+    };
+    window.addEventListener(OPEN_FRIENDS_EVENT, onToggle);
+    return () => window.removeEventListener(OPEN_FRIENDS_EVENT, onToggle);
   }, []);
 
   // Clear search whenever the panel closes, so the next open always
@@ -204,7 +216,11 @@ export function FriendsDock() {
     if (!open || isMobile) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     const onDown = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Element;
+      if (containerRef.current?.contains(target)) return;
+      // The bar button toggles on its own click.
+      if (target.closest?.(`[${FRIENDS_TRIGGER_ATTR}]`)) return;
+      setOpen(false);
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("mousedown", onDown);
@@ -233,6 +249,7 @@ export function FriendsDock() {
   if (!visible) return null;
 
   const close = () => setOpen(false);
+  const fromBar = open && anchor === "bar" && !isMobile;
   const body = (
     <DockPanelBody
       data={data}
@@ -252,15 +269,23 @@ export function FriendsDock() {
       // sits low, its gap above the footer matching the keyboard's — the
       // two bottom-anchored elements line up near the bottom edge.
       className="fixed z-40 flex flex-col items-end gap-2 [--ft-dock-gap:0.5rem] [@media(min-height:900px)]:sm:[--ft-dock-gap:0.75rem]"
-      style={{
-        right: "calc(0.75rem + env(safe-area-inset-right))",
-        // Float just above the page footer when it's there; when the
-        // footer is hidden (the §15 "hidden" footer style, compact-mobile
-        // chrome, or a footer-less route) `footerHeight` is 0 and the
-        // dock falls back to the normal corner gap instead of hovering
-        // in dead space.
-        bottom: `calc(${footerHeight}px + var(--ft-dock-gap) + env(safe-area-inset-bottom))`,
-      }}
+      style={
+        fromBar
+          ? {
+              // Hang under the 64px top bar, by its friends button.
+              right: "calc(0.75rem + env(safe-area-inset-right))",
+              top: "calc(4rem + env(safe-area-inset-top) + 0.5rem)",
+            }
+          : {
+              right: "calc(0.75rem + env(safe-area-inset-right))",
+              // Float just above the page footer when it's there; when
+              // the footer is hidden (the §15 "hidden" footer style,
+              // compact-mobile chrome, or a footer-less route)
+              // `footerHeight` is 0 and the dock falls back to the normal
+              // corner gap instead of hovering in dead space.
+              bottom: `calc(${footerHeight}px + var(--ft-dock-gap) + env(safe-area-inset-bottom))`,
+            }
+      }
     >
       {/* Desktop floating panel. Mobile uses the bottom sheet below. */}
       {!isMobile ? (
@@ -274,7 +299,7 @@ export function FriendsDock() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: reduce ? 1 : 0.985 }}
               transition={{ duration: 0.13, ease: "easeOut" }}
-              style={{ transformOrigin: "bottom right" }}
+              style={{ transformOrigin: fromBar ? "top right" : "bottom right" }}
               // Fixed height so switching between Friends and the Member
               // directory never resizes the panel — the views move within
               // a stable frame.
@@ -290,15 +315,19 @@ export function FriendsDock() {
         </MobileSheet>
       )}
 
-      {/* Collapsed pill — the dock's resting state (desktop only; phones
-          reach the sheet from the top bar's friends button). */}
-      {isMobile ? null : (
+      {/* Collapsed pill — the dock's resting state, 2xl+ only (below
+          that the top bar's friends button opens it). Hidden while the
+          panel hangs from the bar. */}
+      {isMobile || fromBar ? null : (
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          setAnchor("corner");
+          setOpen((o) => !o);
+        }}
         aria-label="Friends"
         aria-expanded={open}
-        className="group flex h-11 items-center gap-2 rounded-pill border border-border bg-card/90 pl-1.5 pr-4 text-foreground shadow-float backdrop-blur-xl transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 md:h-10"
+        className="group hidden h-10 items-center gap-2 rounded-pill border border-border bg-card/90 pl-1.5 pr-4 text-foreground shadow-float backdrop-blur-xl transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 2xl:flex"
       >
         {stack.length > 0 ? (
           <span className="flex -space-x-2">
