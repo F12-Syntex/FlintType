@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Tag } from "@/components/ft";
+import { buttonVariants } from "@/components/ui/button";
 import { useCaretSettings, type CaretStyle } from "@/lib/caret-settings";
 import { useTypingSurfaceMarker } from "@/lib/typing-surface";
 import { useLifetimeStats } from "@/lib/use-lifetime-stats";
@@ -346,14 +346,14 @@ export function BurstSurface({
       <DrillHeader title={title} subtitle={subtitle} />
 
       {state.finished ? (
-        <section className="flex min-h-0 flex-1 flex-col items-center justify-center px-5 py-10 sm:px-16">
+        <section className="flex min-h-0 flex-1 flex-col items-center justify-center py-10">
           <DrillComplete
             totalWins={state.totalWins}
             totalAttempts={state.totalAttempts}
           />
         </section>
       ) : (
-        <section className="flex min-h-0 flex-1 flex-col items-stretch gap-8 px-5 py-8 sm:gap-12 sm:px-12 lg:px-20">
+        <section className="flex min-h-0 flex-1 flex-col items-stretch gap-8 py-8 sm:gap-12">
           {/* Top bracketed stat strip — the four most useful counters
            *  at a glance. The bracket frame mirrors the editorial
            *  flourish on the customise page; the strip is centred so
@@ -451,7 +451,7 @@ function StatCard({
   return (
     <div
       className={cn(
-        "flex min-w-[68px] flex-col items-center justify-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-center sm:min-w-[80px] sm:py-2.5",
+        "flex min-w-[68px] flex-col items-center justify-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-center shadow-card sm:min-w-[80px] sm:py-2.5",
         accent === "muted" && "border-dashed",
       )}
     >
@@ -464,7 +464,7 @@ function StatCard({
       >
         {top}
       </span>
-      <span className="text-[9px] font-medium uppercase tracking-[0.18em] text-muted-foreground sm:text-[10px]">
+      <span className="text-[11px] font-medium text-muted-foreground sm:text-xs">
         {caption}
       </span>
     </div>
@@ -791,13 +791,13 @@ function DrillComplete({
     totalAttempts > 0 ? Math.round((totalWins / totalAttempts) * 100) : 100;
   return (
     <div className="flex flex-col items-center gap-6 text-center">
-      <Tag>Drill clear</Tag>
-      <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+      <span className="text-xs font-semibold text-primary">Drill clear</span>
+      <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
         You cleared the run.
       </h2>
       <div className="flex items-center gap-12 text-muted-foreground">
         <div className="flex flex-col items-center gap-1">
-          <span className="text-[10px] uppercase tracking-[0.18em]">
+          <span className="text-xs font-medium">
             Successful bursts
           </span>
           <span className="text-2xl font-bold tabular-nums text-foreground">
@@ -805,7 +805,7 @@ function DrillComplete({
           </span>
         </div>
         <div className="flex flex-col items-center gap-1">
-          <span className="text-[10px] uppercase tracking-[0.18em]">
+          <span className="text-xs font-medium">
             Accuracy
           </span>
           <span className="text-2xl font-bold tabular-nums text-foreground">
@@ -813,10 +813,7 @@ function DrillComplete({
           </span>
         </div>
       </div>
-      <Link
-        href="/drills"
-        className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-      >
+      <Link href="/drills" className={buttonVariants({ size: "lg" })}>
         Back to drills
       </Link>
     </div>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
-import { Tag } from "@/components/ft";
+import { buttonVariants } from "@/components/ui/button";
 import { EN_COMMON_1000 } from "@/data/en-common-1000";
 import { useDrillProgress } from "@/lib/drill-progress";
 import { cn } from "@/lib/utils";
@@ -86,9 +86,11 @@ export function Burst1000Surface({
     return (
       <>
         <DrillHeader title={title} subtitle={subtitle} />
-        <section className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-5 py-16 text-center">
-          <Tag>Drill complete</Tag>
-          <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+        <section className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 py-16 text-center">
+          <span className="text-xs font-semibold text-primary">
+            Drill complete
+          </span>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             Every word cleared.
           </h2>
           <p className="max-w-md text-sm text-muted-foreground">
@@ -97,10 +99,7 @@ export function Burst1000Surface({
             here. Try Pangram sprint or Tongue-twister gauntlet for a
             fresh challenge.
           </p>
-          <Link
-            href="/drills"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
+          <Link href="/drills" className={buttonVariants({ size: "lg" })}>
             Back to drills
           </Link>
         </section>
@@ -146,7 +145,7 @@ function DiscoveryGrid({
   const lit = Array.from(discovered).length + Array.from(sessionDiscovered).length;
   return (
     <div className="relative mx-auto w-full max-w-3xl">
-      <div className="rounded-md border border-border bg-card/40 p-3 sm:p-4">
+      <div className="rounded-2xl border border-border bg-card/40 p-3 sm:p-4">
         <div
           role="progressbar"
           aria-valuemin={0}

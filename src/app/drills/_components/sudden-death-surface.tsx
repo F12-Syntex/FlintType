@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef } from "react";
-import { Tag } from "@/components/ft";
 import { SpectateIndicator } from "@/components/spectate-indicator";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Passage } from "@/app/_components/passage";
 import {
   PracticeProvider,
@@ -64,7 +63,8 @@ function Body() {
   }, [done, incrementDrillsCompleted]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pt-6 pb-3 sm:gap-6 sm:px-12 sm:py-8 lg:px-20">
+    // No horizontal padding: the runner page owns the column (§10.3).
+    <div className="flex min-h-0 flex-1 flex-col gap-4 pt-6 pb-3 sm:gap-6 sm:py-8">
       {!done ? <SpectateIndicator /> : null}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {done ? (
@@ -102,19 +102,21 @@ function DrillCleared({
 }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
-      <Tag>Drill clear</Tag>
-      <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+      <span className="text-xs font-semibold text-primary">Drill clear</span>
+      <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
         Clean run.
       </h2>
       <div className="flex items-center gap-12 text-muted-foreground">
         <Stat label="Words" value={words.toString()} />
         <Stat label="Resets burned" value={restarts.toString()} />
       </div>
-      <div className="flex gap-3">
-        <Button onClick={onRetry}>Run again</Button>
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button size="lg" onClick={onRetry}>
+          Run again
+        </Button>
         <Link
           href="/drills"
-          className="inline-flex items-center justify-center rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          className={buttonVariants({ variant: "outline", size: "lg" })}
         >
           Back to drills
         </Link>
@@ -126,7 +128,7 @@ function DrillCleared({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col items-center gap-1">
-      <span className="text-[10px] uppercase tracking-[0.18em]">{label}</span>
+      <span className="text-xs font-medium">{label}</span>
       <span className="text-2xl font-bold tabular-nums text-foreground">
         {value}
       </span>
@@ -151,19 +153,15 @@ function SuddenDeathFooter({
 }) {
   if (done) return null;
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 border-t border-border pt-3 text-xs text-muted-foreground">
+    <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-border pt-3 text-xs text-muted-foreground">
       <span className="flex items-center gap-1.5 tabular-nums">
-        <span className="text-[10px] uppercase tracking-[0.18em]">
-          Progress
-        </span>
+        Progress
         <span className="font-semibold text-foreground">
           {cursorWord} / {totalWords}
         </span>
       </span>
       <span className="flex items-center gap-1.5 tabular-nums">
-        <span className="text-[10px] uppercase tracking-[0.18em]">
-          Resets
-        </span>
+        Resets
         <span
           className={
             restarts > 0 ? "font-semibold text-destructive" : "text-foreground"
@@ -172,9 +170,7 @@ function SuddenDeathFooter({
           {restarts}
         </span>
       </span>
-      <span className="text-[10px] uppercase tracking-[0.18em]">
-        One miss = back to word 1
-      </span>
+      <span>One miss restarts the run</span>
     </div>
   );
 }
