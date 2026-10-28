@@ -28,9 +28,11 @@ test.describe("practice layout defaults", () => {
     await dismissChangelog(page);
 
     const style = await page.evaluate(() => {
-      const kb = document.querySelector('[aria-label*="virtual keyboard"]');
+      const kb = document.querySelector('[aria-label*="virtual keyboard" i]');
       return kb ? kb.getAttribute("style") || "" : null;
     });
-    expect(style).toContain("scale(0.8)");
+    // Applied as CSS zoom (not a transform) so the layout box shrinks
+    // with it and leaves no dead band under the keyboard.
+    expect((style ?? "").replace(/\s+/g, "")).toContain("zoom:0.8");
   });
 });

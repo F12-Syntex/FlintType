@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.18 — 27 October 2026
+- Internal changes only.
+
 ## 6.148.17 — 27 October 2026
 - The friends button now sits in the top bar on laptop and tablet screens and opens your friends list right under it, so the floating friends pill no longer covers the keyboard, cards or footer links. On very wide screens the pill stays in the corner, clear of the page.
 
