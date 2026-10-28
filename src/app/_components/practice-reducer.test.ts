@@ -734,3 +734,67 @@ describe("practice reducer — stop-on-error keeps a corrected word unflagged (F
     expect(s.errorWords.has(0)).toBe(true);
   });
 });
+
+describe("practice reducer — ANCHOR_START (race clock starts at the gun)", () => {
+  const key = (char: string, now: number): Action => ({
+    type: "TYPE_CHAR",
+    char,
+    now,
+    stopOnError: false,
+    allowExtras: true,
+  });
+  const atRest = (): State => ({ ...initialState, words: ["hi", "yo"] });
+
+  it("pins the clock at rest without starting the run", () => {
+    const s = reducer(atRest(), { type: "ANCHOR_START", at: 1_000 });
+    expect(s.startTime).toBe(1_000);
+    expect(s.phase).toBe("rest");
+    expect(s.events).toEqual([]);
+  });
+
+  it("times the run from the anchor, not the first keystroke", () => {
+    let s = reducer(atRest(), { type: "ANCHOR_START", at: 1_000 });
+    s = run(s, key("h", 3_000), key("i", 3_200));
+    expect(s.phase).toBe("running");
+    expect(s.startTime).toBe(1_000);
+    expect(s.events.map((e) => e.t)).toEqual([2_000, 2_200]);
+    s = run(s, { type: "SPACE", now: 3_300, strictSpace: false }, key("y", 3_400), key("o", 3_500));
+    expect(s.phase).toBe("done");
+    // The run's duration includes the wait after the gun.
+    expect((s.endTime ?? 0) - (s.startTime ?? 0)).toBe(2_500);
+  });
+
+  it("solo practice is unchanged: without an anchor the first keystroke starts the clock", () => {
+    const s = run(atRest(), key("h", 3_000), key("i", 3_200));
+    expect(s.startTime).toBe(3_000);
+    expect(s.events.map((e) => e.t)).toEqual([0, 200]);
+  });
+
+  it("moves a clock that started after the gun back to it, shifting events", () => {
+    let s = run(atRest(), key("h", 3_000), key("i", 3_200));
+    s = reducer(s, { type: "ANCHOR_START", at: 1_000 });
+    expect(s.startTime).toBe(1_000);
+    expect(s.phase).toBe("running");
+    expect(s.events.map((e) => e.t)).toEqual([2_000, 2_200]);
+  });
+
+  it("never moves a started clock forward", () => {
+    const started = run(atRest(), key("h", 3_000));
+    expect(reducer(started, { type: "ANCHOR_START", at: 5_000 })).toBe(started);
+  });
+
+  it("returns the same state when already anchored there, or once the run is done", () => {
+    const anchored = reducer(atRest(), { type: "ANCHOR_START", at: 1_000 });
+    expect(reducer(anchored, { type: "ANCHOR_START", at: 1_000 })).toBe(anchored);
+    const done = { ...anchored, phase: "done" as const, endTime: 9_000 };
+    expect(reducer(done, { type: "ANCHOR_START", at: 500 })).toBe(done);
+  });
+
+  it("a restart clears the anchor so the caller can re-apply it", () => {
+    let s = reducer(atRest(), { type: "ANCHOR_START", at: 1_000 });
+    s = run(s, key("h", 3_000), { type: "RESTART", words: ["hi", "yo"], quoteSource: null });
+    expect(s.startTime).toBeNull();
+    s = reducer(s, { type: "ANCHOR_START", at: 1_000 });
+    expect(s.startTime).toBe(1_000);
+  });
+});

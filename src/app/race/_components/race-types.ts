@@ -32,6 +32,10 @@ export type TraceSample = {
   t: number;
   /** Map of racer id → instantaneous WPM at this sample. */
   wpmByRacer: Record<string, number>;
+  /** Racers who had already crossed when this sample was taken: it holds
+   *  their final speed, and later samples leave them out. Omitted when
+   *  empty. */
+  finished?: readonly string[];
 };
 
 /** Generic racer snapshot. The human's typing data lives in the
