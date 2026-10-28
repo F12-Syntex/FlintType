@@ -8,6 +8,12 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.2 — 27 October 2026
+- The big speed number on the results screen always fits, even with decimals or other speed units, and the chart labels its seconds evenly.
+- Save image now saves a neat result card with the flinttype mark, and Replay plays your run back in the same font, colours and caret as the typing screen.
+- The practice settings bar keeps the same width when you switch modes, fades with the rest of the screen while you type, and closes on phones once you pick something.
+- In Burst, your numbers now sit right above the word, and Shift+Tab on the results screen jumps straight to the result buttons.
+
 ## 6.148.1 — 27 October 2026
 - On/off switches now follow your Button shape setting too (pill, rounded or square).
 

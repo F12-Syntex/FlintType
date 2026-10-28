@@ -13,6 +13,7 @@ export function Readout({
   mini = false,
   compact = false,
   color,
+  title,
 }: {
   value: string;
   label: string;
@@ -21,6 +22,8 @@ export function Readout({
   mini?: boolean;
   compact?: boolean;
   color?: string;
+  /** Optional hover note (e.g. how a value was chosen). */
+  title?: string;
 }) {
   const size = compact
     ? "text-base"
@@ -32,7 +35,10 @@ export function Readout({
         ? "text-lg"
         : "text-xl";
   return (
-    <div className={cn("flex shrink-0 items-baseline gap-1.5", mini && "opacity-80")}>
+    <div
+      title={title}
+      className={cn("flex shrink-0 items-baseline gap-1.5", mini && "opacity-80")}
+    >
       <span
         className={cn(
           "font-semibold tracking-tight tabular-nums",

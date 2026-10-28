@@ -114,16 +114,6 @@ function TypingSurfaceBody({
   const body = (
     <>
       {!done ? <SpectateIndicator /> : null}
-      {/* BURST keeps its readouts pinned above the single centred word.
-       *  The WORDS/TIME/QUOTE passage instead renders the readouts in
-       *  its own `above` slot (below), so the strip rides directly above
-       *  the vertically-centred text as one group rather than floating
-       *  at the top of the surface. */}
-      {showReadouts && !done && isBurst ? (
-        <div className="hidden md:block">
-          <BurstReadouts />
-        </div>
-      ) : null}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {done ? (
           <TestSummary />
@@ -132,10 +122,12 @@ function TypingSurfaceBody({
           // the drills-page burst feel — but paints through the same
           // --ft-passage-* tokens + caret settings so typography /
           // colour customisation flows through 1:1 with WORDS. Stats
-          // (item / reps / threshold / last) render in the readouts
-          // slot above; the BurstProvider wrap is what shares those
-          // values between the two surfaces.
-          <BurstWordView />
+          // (last / reps / goal / items) ride in its `above` slot,
+          // directly over the word, like the passage readouts; the
+          // BurstProvider wrap shares those values between the two.
+          <BurstWordView
+            above={showReadouts ? <BurstReadouts /> : undefined}
+          />
         ) : (
           <Passage
             above={

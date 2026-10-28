@@ -8,6 +8,7 @@ import {
   LEFT_FINGERS,
   RIGHT_FINGERS,
 } from "@/lib/hand-layout";
+import { Button } from "@/components/ui/button";
 import { useHandLayout } from "@/lib/use-hand-layout";
 import { cn } from "@/lib/utils";
 import { Keyboard, type KeyboardProps } from "./index";
@@ -310,13 +311,9 @@ export function HandLayoutEditor(props: KeyboardProps) {
           Click a finger to disable it · drag a finger onto a key to
           move its home position.
         </span>
-        <button
-          type="button"
-          onClick={reset}
-          className="rounded-md px-2 py-1 text-foreground transition-colors hover:bg-muted"
-        >
+        <Button variant="ghost" size="sm" onClick={reset} className="shrink-0">
           Reset
-        </button>
+        </Button>
       </div>
 
       {/* Floating drag avatar — portalled to <body> so its `fixed`

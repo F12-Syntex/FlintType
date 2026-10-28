@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Lock, X } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -32,11 +32,49 @@ export function AdaptModal({
    *  The header swaps the status chip for a sign-in action. */
   requiresSignIn: boolean;
 }) {
-  // Body scroll lock + Esc dismissal while open.
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement | null>(null);
+  // The caller passes an inline onClose; keep the latest in a ref so the
+  // open effect below runs once per open, not on every parent render
+  // (which would keep yanking focus back to the close button).
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  // While open: body scroll lock, Esc to close, focus moved into the
+  // panel and Tab kept inside it. On close, focus goes back to the
+  // hidden typing input so the next Tab restarts the test (§22.4).
   useEffect(() => {
     if (!open) return;
+    closeRef.current?.focus({ preventScroll: true });
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      const items = Array.from(
+        panel.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.offsetParent !== null);
+      if (items.length === 0) return;
+      const first = items[0]!;
+      const last = items[items.length - 1]!;
+      const active = document.activeElement;
+      if (!panel.contains(active)) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+      } else if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
@@ -44,8 +82,11 @@ export function AdaptModal({
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
+      document
+        .querySelector<HTMLElement>('input[aria-label="Typing input"]')
+        ?.focus({ preventScroll: true });
     };
-  }, [open, onClose]);
+  }, [open]);
 
   // Only ever open after a user action, so document.body exists; the
   // server render (open = false) returns null.
@@ -60,11 +101,13 @@ export function AdaptModal({
     >
       <button
         type="button"
-        aria-label="Close"
+        aria-hidden
+        tabIndex={-1}
         onClick={onClose}
         className="absolute inset-0 bg-background/70 backdrop-blur-sm"
       />
       <div
+        ref={panelRef}
         className="relative flex max-h-[90dvh] w-[min(48rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-float"
         onClick={(e) => e.stopPropagation()}
       >
@@ -108,6 +151,7 @@ export function AdaptModal({
               </span>
             )}
             <Button
+              ref={closeRef}
               variant="ghost"
               size="icon"
               onClick={onClose}

@@ -26,6 +26,7 @@ export function LengthPicker({
   ariaLabel,
   framed = false,
   fill = false,
+  className,
 }: {
   presets: ReadonlyArray<LengthPreset>;
   value: number;
@@ -34,6 +35,7 @@ export function LengthPicker({
   ariaLabel: string;
   framed?: boolean;
   fill?: boolean;
+  className?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -63,6 +65,7 @@ export function LengthPicker({
       className={cn(
         framed ? SEGMENT_TRACK : "inline-flex items-center gap-0.5",
         fill && "flex w-full",
+        className,
       )}
     >
       {presets.map((p) => {

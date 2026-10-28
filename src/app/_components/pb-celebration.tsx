@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 export function PbCrown() {
   return (
     <span
+      role="img"
       aria-label="New personal best"
       className={cn(
         "ml-1 inline-flex items-center self-center text-primary",

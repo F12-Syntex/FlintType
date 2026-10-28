@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   HOME_ROW_PEGS,
   type KeyboardSettings,
@@ -13,18 +12,13 @@ import type {
 } from "@/lib/appearance-prefs";
 import { cn } from "@/lib/utils";
 import { Key } from "./key";
-import { LayoutPicker } from "./layout-picker";
 import { LAYOUTS, type LayoutId } from "./layouts";
 import { usePressedKeys } from "./use-pressed-keys";
 
 export type KeyboardProps = {
-  /** Initial layout. The user can switch via the picker (when shown);
-   *  nothing else in the app needs to change. */
+  /** Layout to draw. The keymap layout setting (Customise → Keyboard)
+   *  is the single source; the widget has no picker of its own. */
   layout?: LayoutId;
-  /** Render the QWERTY/Dvorak/Colemak picker above the keys. Off by
-   *  default — the picker is implemented and ready to expose, currently
-   *  hidden until layout switching ships as a real setting. */
-  showLayoutPicker?: boolean;
   /** Demo / preview surfaces force a few keys into the lit state so
    *  the design's hot palette is visible without anyone typing. The
    *  union of these and any actually-pressed keys is highlighted. */
@@ -53,7 +47,6 @@ export type KeyboardProps = {
 
 export function Keyboard({
   layout = "qwerty",
-  showLayoutPicker = false,
   forcedPressed,
   settingsOverride,
   mode = "react",
@@ -63,13 +56,7 @@ export function Keyboard({
   nextKey,
   className,
 }: KeyboardProps) {
-  const [active, setActive] = useState<LayoutId>(layout);
-  // Keep the internal layout in step with the prop. Without this the
-  // Keyboard would lock onto whatever layout it mounted with and ignore
-  // later changes from the appearance settings.
-  useEffect(() => {
-    setActive(layout);
-  }, [layout]);
+  const active = layout;
   const { pressed, shift, caps } = usePressedKeys();
   const { settings } = useKeyboardSettings();
   const effective = { ...settings, ...settingsOverride };
@@ -113,9 +100,6 @@ export function Keyboard({
       aria-label={`Virtual keyboard, ${LAYOUTS[active].name} layout`}
       style={scale !== 1 ? { zoom: scale } : undefined}
     >
-      {showLayoutPicker && (
-        <LayoutPicker active={active} onChange={setActive} />
-      )}
       <div className="flex flex-col gap-1 sm:gap-1.5">
         {rows.map((row, i) => {
           const visible = effective.compact

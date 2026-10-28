@@ -1,7 +1,7 @@
 "use client";
 
 import { Download, Play, RotateCcw } from "lucide-react";
-import { type RefObject, useCallback, useState } from "react";
+import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { Kbd } from "@/components/ft";
 import { ShareRunButton } from "@/components/share-run-button";
 import { Button } from "@/components/ui/button";
@@ -20,42 +20,53 @@ export function ResultActions({
   onNext: () => void;
   onReplay: () => void;
   canReplay: boolean;
-  /** The result body; the save-image export walks up from it to the
-   *  page's screenshot root. */
+  /** The result body; the save-image export captures it, cropped to
+   *  its content and branded (see result-export.ts). */
   captureRef: RefObject<HTMLDivElement | null>;
   /** Present only when the run was saved and has a shareable link. */
   share: { testId: string; handle: string; wpm: number } | null;
 }) {
   const [exporting, setExporting] = useState(false);
   const [exportFailed, setExportFailed] = useState(false);
+  const rowRef = useRef<HTMLDivElement | null>(null);
+
+  // On the result screen focus stays on the hidden typing input so Tab
+  // starts the next test. Shift+Tab from there would land in the top bar,
+  // leaving Replay / Save image / Share reachable only by tabbing forward
+  // through the whole settings capsule. Send it to the last result action
+  // instead, so the actions are one keystroke away in both directions.
+  useEffect(() => {
+    function onShiftTab(e: KeyboardEvent) {
+      if (e.key !== "Tab" || !e.shiftKey) return;
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+      const focused = document.activeElement;
+      const inTest =
+        !focused ||
+        focused === document.body ||
+        focused === document.documentElement ||
+        focused.getAttribute("aria-label") === "Typing input";
+      if (!inTest) return;
+      const buttons = rowRef.current?.querySelectorAll<HTMLElement>(
+        "button:not([disabled]), a[href]",
+      );
+      const last = buttons?.[buttons.length - 1];
+      if (!last) return;
+      e.preventDefault();
+      last.focus();
+    }
+    window.addEventListener("keydown", onShiftTab, true);
+    return () => window.removeEventListener("keydown", onShiftTab, true);
+  }, []);
 
   const onDownload = useCallback(async () => {
-    // Capture the page-level content area (data-screenshot-root on
-    // AppChrome's scroller): everything between the top bar and footer.
-    // Falls back to the result body for preview / embedded uses.
-    const { findScreenshotRoot, naturalScreenshotSize, pickScreenshotBg } =
-      await import("@/lib/screenshot");
-    const node = findScreenshotRoot(captureRef.current);
+    const node = captureRef.current;
     if (!node || exporting) return;
     setExporting(true);
     setExportFailed(false);
     try {
-      const { toPng } = await import("html-to-image");
-      const bg = pickScreenshotBg(node);
-      const { width, height } = naturalScreenshotSize(node);
-      const dataUrl = await toPng(node, {
-        cacheBust: true,
-        backgroundColor: bg,
-        width,
-        height,
-        filter: (n) => !(n instanceof HTMLElement && n.dataset.noExport === "true"),
-      });
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = `flinttype-result-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      const { exportResultImage } = await import("./result-export");
+      await exportResultImage(node);
     } catch (err) {
       console.error("[result-actions] screenshot failed", err);
       setExportFailed(true);
@@ -66,6 +77,7 @@ export function ResultActions({
 
   return (
     <div
+      ref={rowRef}
       data-no-export="true"
       className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-4"
     >
