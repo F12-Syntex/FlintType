@@ -113,9 +113,10 @@ type PracticeCtx = {
   wpm: number;
   raw: number;
   accuracy: number;
-  /** Per-second sample of (wpm, raw, t-since-first-keystroke). Cleared on
-   *  every fresh run; populated by an interval while the test is running
-   *  so the chart and any history view share the same data. */
+  /** Per-second sample of (wpm, raw, t since the run's clock started:
+   *  the first keystroke, or the gun in a race). Cleared on every fresh
+   *  run; populated by an interval while the test is running so the
+   *  chart and any history view share the same data. */
   wpmHistory: readonly WpmSample[];
   /** True while an adaptive fetch is in flight and the user is sitting
    *  in a fresh rest passage. The Passage component reads this to swap
@@ -445,9 +446,14 @@ export function PracticeProvider({
         },
       ]);
     };
-    // Schedule the first sample at the next 1s boundary so consecutive
-    // samples land on whole-second ticks.
-    const firstDelay = Math.max(50, 1000 - (Date.now() - startTime));
+    // Schedule the first sample at the next 1s boundary of the run's
+    // clock so consecutive samples land on whole-second ticks. Solo
+    // runs start sampling within a second of the clock; a race run is
+    // anchored on the gun (ANCHOR_START), so the first keystroke can
+    // come seconds after it and the modulo keeps the ticks on race
+    // seconds.
+    const intoSecond = (Date.now() - startTime) % 1000;
+    const firstDelay = Math.max(50, 1000 - intoSecond);
     timeoutId = setTimeout(() => {
       tick();
       intervalId = setInterval(tick, 1000);

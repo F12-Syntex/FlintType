@@ -96,6 +96,17 @@ export type Action =
    *  words ahead of them. Pure append — never touches cursor / run
    *  state. */
   | { type: "APPEND_WORDS"; words: string[] }
+  /** Pin the run's clock to an outside start instant: the race gun.
+   *  Solo practice never dispatches it, so there the first keystroke
+   *  still starts the clock. In a race the server times everyone from
+   *  the gun, so the race provider anchors the run there and every
+   *  client figure (published wpm, recorded result, chart) is measured
+   *  on the same window as the result card. Phase is left alone: the
+   *  run still turns "running" on the first keystroke, it just times
+   *  from `at`. A clock that already started later than `at` moves
+   *  back to it (its events shift with it); a later `at` never moves a
+   *  started clock forward, and a finished run is left as is. */
+  | { type: "ANCHOR_START"; at: number }
   /** Burst-mode mid-run retry. The burst controller dispatches this
    *  on every failed attempt (wrong word OR below threshold WPM) and
    *  on every successful-but-rep-incomplete attempt: clears the
@@ -342,6 +353,20 @@ export function reducer(s: State, a: Action): State {
       // churn the array identity and re-trigger downstream effects.
       if (a.words.length === 0) return s;
       return { ...s, words: [...s.words, ...a.words] };
+    case "ANCHOR_START": {
+      // Same reference on a no-op so the provider skips the re-render.
+      if (s.phase === "done" || s.startTime === a.at) return s;
+      if (s.startTime == null) return { ...s, startTime: a.at };
+      if (a.at > s.startTime) return s;
+      // A keystroke landed before the anchor did: move the clock back
+      // to the gun and keep every event's offset relative to it.
+      const shift = s.startTime - a.at;
+      return {
+        ...s,
+        startTime: a.at,
+        events: s.events.map((e) => ({ ...e, t: e.t + shift })),
+      };
+    }
     case "BURST_RESET": {
       // Reset the user's typed buffer for the current word so they
       // can re-attempt it. Don't touch errorWords (burst retries

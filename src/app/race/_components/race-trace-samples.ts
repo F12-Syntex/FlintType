@@ -21,10 +21,17 @@ export const MAX_TRACE_SAMPLES = 600;
  *  - One sample per second: a `t` that isn't later than the last
  *    sample's is ignored, so re-renders inside the same second (or a
  *    clock that steps backwards) never duplicate or reorder points.
- *  - A racer is sampled while racing, plus the first sample after they
- *    crossed (so their line ends at their final speed), and never after
- *    leaving. Their line stops there instead of running flat to the end
- *    of the chart.
+ *  - A racer is sampled while racing, plus the first sample taken once
+ *    they show as crossed (so their line ends at their final speed),
+ *    and never after leaving. Their line stops there instead of running
+ *    flat to the end of the chart.
+ *
+ *  "Already ended" is recorded on the sample (`finished`), not inferred
+ *  from `finishedAt`: that is floored to whole seconds, and the sample
+ *  for a second is taken as the second starts, so a racer who crossed
+ *  at 11.7s has `finishedAt` 11 while sample 11 still shows them
+ *  racing. Comparing the two dropped the final point (and "Your peak"
+ *  read below your result).
  *
  *  Returns the same array when nothing was added, so callers can use
  *  reference equality to skip a state update. */
@@ -37,16 +44,18 @@ export function appendTraceSample(
   const last = samples[samples.length - 1];
   if (last && t <= last.t) return samples;
   if (samples.length >= MAX_TRACE_SAMPLES) return samples;
+  const ended = new Set(samples.flatMap((s) => s.finished ?? []));
   const wpmByRacer: Record<string, number> = {};
-  let any = false;
+  const finished: string[] = [];
   for (const r of racers) {
     if (r.disconnected) continue;
-    // Still racing, or crossed since the previous sample.
-    const sampled = r.finishedAt == null || r.finishedAt > (last?.t ?? 0);
-    if (!sampled) continue;
+    if (r.finishedAt != null) {
+      // Their final point is already on the chart.
+      if (ended.has(r.id)) continue;
+      finished.push(r.id);
+    }
     wpmByRacer[r.id] = Math.max(0, Math.round(r.wpm));
-    any = true;
   }
-  if (!any) return samples;
-  return [...samples, { t, wpmByRacer }];
+  if (Object.keys(wpmByRacer).length === 0) return samples;
+  return [...samples, finished.length > 0 ? { t, wpmByRacer, finished } : { t, wpmByRacer }];
 }

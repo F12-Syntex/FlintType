@@ -11,7 +11,8 @@ import type { RoomSnapshot } from "@/types/race";
  *  - Exposes `sendProgress` — debounced wrapper around the keystroke
  *    POST. The debounce coalesces a flurry of keystrokes into at most
  *    one POST every `keystrokeFlushMs` (default ~120ms). The
- *    trailing flush guarantees the latest cursor lands.
+ *    trailing flush guarantees the latest cursor lands. The finishing
+ *    POST goes as soon as the previous one has settled instead.
  *  - On unmount: closes the stream and fires `race.leave` so the room
  *    bookkeeping is honest (matchmaking rooms dispose when the last
  *    real player exits). */
@@ -63,6 +64,9 @@ export function useRaceRoom({
   } | null>(null);
   const lastSentAtRef = useRef(0);
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Settles when the last keystroke POST does (never rejects); null once
+  // it has. The finishing post waits on it so it can't overtake it.
+  const inFlightRef = useRef<Promise<void> | null>(null);
 
   // SSE subscription. We carry roomId + sessionToken in refs so the
   // leave-on-unmount handler can fire one final POST without re-binding
@@ -119,15 +123,26 @@ export function useRaceRoom({
     if (!room || !token || !data) return;
     lastSentAtRef.current = Date.now();
     latestProgressRef.current = null;
-    // Fire-and-forget; the route always returns ok=true.
-    void backend.race.keystroke({
-      roomId: room,
-      sessionToken: token,
-      progressChars: data.progressChars,
-      wpm: data.wpm,
-      finished: data.finished,
-      errors: data.errors,
-      accuracy: data.accuracy,
+    // Fire-and-forget: the route returns ok=true for any seat it can't
+    // apply, and a failed post (say the room vanished) is dropped here;
+    // the stream stays the source of truth.
+    const settled = backend.race
+      .keystroke({
+        roomId: room,
+        sessionToken: token,
+        progressChars: data.progressChars,
+        wpm: data.wpm,
+        finished: data.finished,
+        errors: data.errors,
+        accuracy: data.accuracy,
+      })
+      .then(
+        () => undefined,
+        () => undefined,
+      );
+    inFlightRef.current = settled;
+    void settled.then(() => {
+      if (inFlightRef.current === settled) inFlightRef.current = null;
     });
   }, [backend]);
 
@@ -153,6 +168,29 @@ export function useRaceRoom({
           flushTimerRef.current = null;
         }
         flush();
+        return;
+      }
+      // The finishing post doesn't sit out the whole debounce: the
+      // server stamps your finish (and final wpm) when it arrives, so
+      // every ms held back lowers your result. It goes as soon as the
+      // previous post has settled, so it can't arrive first and be
+      // overwritten by older progress, and never later than the
+      // debounce would have sent it.
+      if (finished) {
+        if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
+        const timer = setTimeout(() => {
+          if (flushTimerRef.current === timer) flushTimerRef.current = null;
+          flush();
+        }, keystrokeFlushMs - since);
+        flushTimerRef.current = timer;
+        const prev = inFlightRef.current ?? Promise.resolve();
+        void prev.then(() => {
+          // Already sent by the timer, or replaced by a newer call.
+          if (flushTimerRef.current !== timer) return;
+          clearTimeout(timer);
+          flushTimerRef.current = null;
+          flush();
+        });
         return;
       }
       if (flushTimerRef.current) return;

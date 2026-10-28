@@ -54,6 +54,10 @@ The SSE route does **not** check the secret — it only reads room snapshots (no
 6. The proxy receives the JSON, returns it from the Vercel handler, dispatcher serializes it back to the client.
 7. Errors: a `BackendError` thrown on Railway is serialized as JSON, the proxy reconstructs it as a `BackendError` of the same shape and re-throws — client `useBackend()` catches the original error class. The fact there were two hops is invisible.
 
+### Client run clock
+
+The local practice run in a race is timed from the gun, like the server. On the first snapshot that shows your seat racing, `useGunAnchoredRun` (src/app/race/_components/use-race-run.ts) dispatches `ANCHOR_START` with `localGunInstant` (race-anchor.ts). That is the earlier of two estimates, both on the local clock: the time the snapshot was seen minus (serverNowMs − raceStartedAt), and raceStartedAt minus the countdown's clock offset. Raw Date.now() is never compared with a server stamp. Solo practice never anchors, so there the first keystroke still starts the clock. The wpm a client posts is advisory: `Room.setProgress` ignores it and recomputes from progress. The server stamps elapsed time when each keystroke POST arrives, so the history row can read higher than the result card by that POST's latency. The finishing POST waits for the previous keystroke POST to settle, but never longer than the debounce window, so it can't be overtaken by older progress.
+
 ## Deployment
 
 **One-time Railway setup:**

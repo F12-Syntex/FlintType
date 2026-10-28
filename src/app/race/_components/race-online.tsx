@@ -18,12 +18,12 @@ import {
   serverNow,
 } from "@/lib/race-clock";
 import { isRaceInputLocked, setRaceInputLocked } from "@/lib/race-input";
-import { calcWpmAndRaw } from "@/lib/wpm";
-import { usePractice } from "../../_components/practice-state";
 import type { RoomRacer, RoomSnapshot } from "@/types/race";
+import { publishedWpm } from "./race-anchor";
 import { BOTS, type BotId } from "./race-data";
 import { useRaceRoom } from "./use-race-room";
 import { useRaceTrace } from "./use-race-trace";
+import { useGunAnchoredRun, useYouProgress, type YouProgress } from "./use-race-run";
 import { type RaceCtx, RaceContext } from "./race-context";
 import type { Racer, RaceState } from "./race-types";
 import type { RaceModeId } from "./race-data";
@@ -106,31 +106,34 @@ export function OnlineRaceProvider({
     sessionToken: room?.sessionToken ?? null,
   });
 
-  const youSnapshot = useYouLocalSnapshot(snapshot?.raceStartedAt ?? null);
   const youSessionToken = room?.sessionToken ?? null;
+  // Server-minus-local clock offset estimate (see "Server-anchored
+  // clock" below, which samples it).
+  const offsetRef = useRef<number | null>(null);
+  // Time the local run from the gun, like the server does, so your
+  // published wpm and recorded result are measured on the same window
+  // as the result card even when you start typing late (see
+  // use-race-run.ts). The server still stamps time on arrival, so the
+  // recorded row can sit a POST's latency above the card.
+  useGunAnchoredRun(snapshot, youSessionToken, offsetRef);
+  const youSnapshot = useYouProgress();
 
   // Push the local progress to the server as it changes during racing.
   // Outside racing we don't post (the server only accepts updates
   // while phase === "racing"). The hook itself debounces, so this
   // effect can fire on every practice-state change without flooding.
+  // The wpm is measured here, at send time, with the server's formula
+  // over the gun-anchored clock (the server recomputes its own anyway).
   useEffect(() => {
     if (snapshot?.phase !== "racing") return;
     sendProgress(
       youSnapshot.correctChars,
-      youSnapshot.wpm,
+      publishedWpm(youSnapshot, Date.now()),
       youSnapshot.finished,
       youSnapshot.errors,
       youSnapshot.accuracy,
     );
-  }, [
-    youSnapshot.correctChars,
-    youSnapshot.wpm,
-    youSnapshot.finished,
-    youSnapshot.errors,
-    youSnapshot.accuracy,
-    snapshot?.phase,
-    sendProgress,
-  ]);
+  }, [youSnapshot, snapshot?.phase, sendProgress]);
 
   // Lock keystroke input until the server flips the room to "racing".
   // Published to the shared store the keystroke handlers (the hidden
@@ -270,8 +273,8 @@ export function OnlineRaceProvider({
   // start at a different moment. Instead we estimate
   // offset = serverClock − localClock from each snapshot's
   // serverNowMs stamp (mergeOffset keeps the lowest-latency sample)
-  // and derive all timings from Date.now() + offset.
-  const offsetRef = useRef<number | null>(null);
+  // and derive all timings from Date.now() + offset. (`offsetRef` is
+  // declared at the top: the gun anchor reads it too.)
   const serverNowMs = snapshot?.serverNowMs ?? null;
   // Sample in a layout effect — never during render, where a discarded
   // concurrent render (or Strict Mode's double-invoke) would record a
@@ -401,75 +404,6 @@ export function OnlineRaceProvider({
   return <RaceContext.Provider value={ctx}>{children}</RaceContext.Provider>;
 }
 
-/* ─── Local progress derived from PracticeContext ─────────────── */
-
-function useYouLocalSnapshot(raceStartedAt: number | null) {
-  const { state } = usePractice();
-  return useMemo(() => {
-    // progressChars — cursor position in the passage, computed from
-    // the *current* typed state (since the cursor moves with
-    // backspaces). This is what the server uses for spectator views
-    // and progress bars; it doesn't count corrected mistakes.
-    let progressChars = 0;
-    for (let i = 0; i < state.typed.length; i += 1) {
-      const t = state.typed[i] ?? "";
-      const w = state.words[i] ?? "";
-      progressChars += Math.min(t.length, w.length);
-      if (i < state.typed.length - 1) progressChars += 1;
-    }
-    // Strict accuracy + errors — derived from the reducer's running
-    // counters, which increment on every keystroke and DO NOT
-    // decrement on backspace. Making a mistake counts as a mistake
-    // even if the user corrects it — the user's reasonable
-    // expectation for a typing race, and what the race UI was missing
-    // before (the old calc walked state.typed and only saw the
-    // post-correction state, so a fix-up looked like 100% accuracy).
-    const totalKeystrokes = state.totalChars;
-    const correctKeystrokes = state.correctChars;
-    const errors = Math.max(0, totalKeystrokes - correctKeystrokes);
-    const accuracy =
-      totalKeystrokes === 0
-        ? 100
-        : Math.round((correctKeystrokes / totalKeystrokes) * 1000) / 10;
-    // Elapsed is anchored on the local `state.startTime` (the practice
-    // reducer sets it on the first keystroke), NOT on the server's
-    // `raceStartedAt`. Same-clock subtraction means a client whose
-    // wall clock is even slightly behind the server's still measures
-    // its own typing duration correctly — the previous Date.now() vs
-    // raceStartedAt math clamped elapsedMs to 0 on any sub-250ms
-    // skew, so the cold-start guard fired forever and the client
-    // published wpm=0 for the entire race. Opponents then saw that
-    // client at 0 wpm in the lineup + result panel.
-    //
-    // `raceStartedAt` stays in the dep array so the memo recomputes
-    // when the new round begins (state.startTime alone wouldn't
-    // change between rounds until the user types).
-    void raceStartedAt;
-    const startTime = state.startTime;
-    const elapsedMs =
-      startTime != null ? Math.max(0, Date.now() - startTime) : 0;
-    const wpm =
-      elapsedMs > 250
-        ? calcWpmAndRaw(state.typed, state.words, elapsedMs, true).wpm
-        : 0;
-    return {
-      correctChars: progressChars,
-      errors,
-      wpm: Math.max(0, Math.round(wpm)),
-      accuracy,
-      finished: state.phase === "done",
-    };
-  }, [
-    state.typed,
-    state.words,
-    state.phase,
-    state.totalChars,
-    state.correctChars,
-    state.startTime,
-    raceStartedAt,
-  ]);
-}
-
 /* ─── Snapshot → RaceState mapping ───────────────────────────── */
 
 function snapshotToRaceState({
@@ -485,13 +419,7 @@ function snapshotToRaceState({
   modeId: RaceModeId;
   raceSeed: number;
   youName: string;
-  youSnapshot: {
-    correctChars: number;
-    wpm: number;
-    finished: boolean;
-    errors: number;
-    accuracy: number;
-  };
+  youSnapshot: YouProgress;
 }): RaceState {
   // No room yet → synthesise the "queue" state the UI surfaces while
   // the user hasn't pressed Find race.
@@ -569,13 +497,7 @@ function serverRacerToClient(
   s: RoomRacer,
   mySessionToken: string,
   youName: string,
-  youSnapshot: {
-    correctChars: number;
-    wpm: number;
-    finished: boolean;
-    errors: number;
-    accuracy: number;
-  },
+  youSnapshot: YouProgress,
 ): Racer {
   const isYou = s.id === mySessionToken;
   // Map id to its client-meaningful form: "you" / bot id / opaque

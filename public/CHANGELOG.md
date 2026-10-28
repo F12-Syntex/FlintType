@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.27 — 27 October 2026
+- Races: your speed is now timed from the start signal while you type, the same way as the race's result card, so starting late no longer shows a much higher live speed than your final result.
+- Races: the speed chart now ends at your final speed, so "Your peak" no longer reads below your result.
+- Races: your finishing time reaches the server sooner after your last keystroke, and an older progress update can no longer arrive after it and lower your result.
+
 ## 6.148.26 — 27 October 2026
 - On phones, "Are you sure?" questions (such as resetting a settings page) now appear in a short sheet that fits the question, with bigger buttons.
 - Bottom sheets now dim the page behind them in dark mode too, instead of washing it out in grey.
