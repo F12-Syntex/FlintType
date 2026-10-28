@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.41 — 28 October 2026
+- Personal bests now shows its short "no runs at these lengths yet" message when none of your runs are at a standard length, instead of a grid of empty dashes.
+
 ## 6.148.40 — 28 October 2026
 - Signing in from a drill's "Sign in to start this drill" prompt, or from the sign-in prompts on Drills, Insights and your profile, now brings you back to that page.
 

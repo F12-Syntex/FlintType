@@ -42,10 +42,14 @@ export function stripUnitFor(
 }
 
 /** Index personal bests for one strip (Time or Words), keeping the
- *  highest WPM per amount across the allowed modes.
+ *  highest WPM per amount across the allowed modes. Only the strip's
+ *  own tile lengths (`amounts`) are kept, so an empty map means every
+ *  tile is empty.
  *
  *  - Rows tagged with the other unit, or a quote, never leak in: a
  *    60-word run must not show up as a 60-second best.
+ *  - Non-standard lengths (a 54-word race passage, a custom 45 s test)
+ *    have no tile and are left out.
  *  - Rows with no unit (`lengthMode: null` — legacy tests and the
  *    MonkeyType overlay) land in the strip whose `amounts` list holds
  *    their amount, since the two strips' amounts don't overlap. */
@@ -63,8 +67,8 @@ export function indexBestsByAmount(
   for (const b of bests) {
     if (!allowedModes.has(b.mode)) continue;
     const inStrip =
-      b.lengthMode === opts.unit ||
-      (b.lengthMode == null && homeAmounts.has(b.amount));
+      homeAmounts.has(b.amount) &&
+      (b.lengthMode === opts.unit || b.lengthMode == null);
     if (!inStrip) continue;
     const existing = out.get(b.amount);
     if (!existing || b.bestWpm > existing.bestWpm) out.set(b.amount, b);

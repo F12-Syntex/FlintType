@@ -50,6 +50,7 @@ export function PersonalBests({ bests }: { bests: PersonalBest[] }) {
       indexBestsByAmount(bests, { modes, unit: "words", amounts: WORDS_AMOUNTS }),
     [bests, modes],
   );
+  // The maps hold only tile lengths, so empty maps mean every tile is a dash.
   const empty = time.size === 0 && words.size === 0;
 
   return (
