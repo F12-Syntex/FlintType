@@ -51,6 +51,24 @@ describe("indexBestsByAmount", () => {
     expect([...words.keys()]).toEqual([25]);
   });
 
+  it("leaves out non-standard lengths, so a strip with no tile filled is empty", () => {
+    // Race passages are saved as words runs of any length; custom tests
+    // can be any length too. None of these has a tile.
+    const bests = [
+      pb({ mode: "race", amount: 7, lengthMode: "words", bestWpm: 90 }),
+      pb({ mode: "race", amount: 54, lengthMode: "words", bestWpm: 95 }),
+      pb({ mode: "casual", amount: 45, lengthMode: "time", bestWpm: 80 }),
+    ];
+    for (const modes of [ALL_MODES, ["race"], ["casual"]]) {
+      expect(indexBestsByAmount(bests, { modes, ...TIME }).size).toBe(0);
+      expect(indexBestsByAmount(bests, { modes, ...WORDS }).size).toBe(0);
+    }
+    const withTile = [...bests, pb({ mode: "race", amount: 25, lengthMode: "words" })];
+    expect([
+      ...indexBestsByAmount(withTile, { modes: ["race"], ...WORDS }).keys(),
+    ]).toEqual([25]);
+  });
+
   it("filters by mode", () => {
     const bests = [
       pb({ mode: "race", amount: 30, bestWpm: 150 }),
