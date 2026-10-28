@@ -22,8 +22,9 @@ import { deriveFeatureKeys } from "./motor-features";
  *  Only the first wrong key after a correct one counts, so a cascade
  *  of follow-on errors is a single slip. */
 
-/** Cost bounds relative to the user's typical bigram time (`refMs`):
- *  a slip always costs at least two key-times (wrong press + right
+/** Cost bounds relative to the user's clean pace for the test (`refMs`,
+ *  from `clean-pace.ts`, which never includes past slip costs): a slip
+ *  always costs at least two key-times (wrong press + right
  *  press); past MAX the user stopped to think and the excess isn't
  *  typing signal. An uncorrected slip (the intended key never arrives
  *  in that word) is charged DEFAULT. */

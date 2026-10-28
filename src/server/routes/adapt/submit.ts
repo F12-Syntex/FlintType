@@ -80,9 +80,11 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
       word: new Map(
         Array.from(wordStates, ([k, s]) => [k, s.mean] as const),
       ),
-      // Scales the cost charged for each fumbled pair (slips.ts) — the
-      // user's overall pace, not the pair's own mean, so a pair's error
-      // cost can't feed back into itself.
+      // Caps the test's clean pace (clean-pace.ts), which scales the
+      // cost charged for each fumbled pair (slips.ts) and the pause
+      // gate. This mean already includes past slip costs, so it is only
+      // a cap: the pace itself comes from this test's clean intervals,
+      // and mistake costs can't compound from one test to the next.
       overallBigram: baselineMean(bigramStates),
     };
     const samples = extract(input.timings, prefs.handLayout, baselines);
