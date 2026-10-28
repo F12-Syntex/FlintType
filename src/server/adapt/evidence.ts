@@ -68,9 +68,69 @@ export function exploreWeight(nEff: number): number {
 /** Standard errors subtracted from a gap before it counts as weakness. */
 export const WEAKNESS_CONFIDENCE_Z = 1;
 
-/** Standard error of the running mean: √(variance / n), with n capped
- *  at the EWMA memory (older samples have decayed out) and floored at 1. */
-export function standardError(state: ModelState, nEff: number): number {
-  const n = Math.max(1, Math.min(nEff, EWMA_MEMORY));
-  return Math.sqrt(Math.max(0, state.variance) / n);
+/** Prior strength, in samples, of the pooled spread in a pattern's
+ *  variance estimate (see `standardError`). */
+export const VARIANCE_PRIOR_N = 3;
+
+/** Pooled relative variance (squared coefficient of variation) across
+ *  a pattern type: Σ (n − 1)·var / mean² ÷ Σ (n − 1) over states with at
+ *  least two samples. The user's typical noise for this kind of
+ *  pattern, scale-free so a slow pattern's prior spread is
+ *  proportionally wider. 0 when nothing qualifies. */
+export function pooledRelativeVariance(states: Iterable<ModelState>): number {
+  let num = 0;
+  let den = 0;
+  for (const st of states) {
+    if (!(st.n >= 2) || !(st.mean > 0) || !(st.variance >= 0)) continue;
+    const w = st.n - 1;
+    num += w * (st.variance / (st.mean * st.mean));
+    den += w;
+  }
+  return den > 0 ? num / den : 0;
+}
+
+/** Standard error of the running mean: √(v / n), with n capped at the
+ *  EWMA memory (older samples have decayed out) and floored at 1.
+ *
+ *  `v` is the pattern's own variance shrunk toward the pooled spread
+ *  for its type (`priorRelVar` × mean², worth VARIANCE_PRIOR_N
+ *  samples). On its own a one-sample pattern has variance 0 — so the
+ *  confidence bound gave no protection exactly where it mattered: a
+ *  pair whose only sample was one mistake looked as certain as a pair
+ *  measured sixty times. The prior gives early estimates a realistic
+ *  error bar and fades as the pattern's own samples arrive. Omit
+ *  `priorRelVar` (or pass 0) to use the raw variance. */
+export function standardError(
+  state: ModelState,
+  nEff: number,
+  priorRelVar = 0,
+): number {
+  const own = Math.max(0, state.variance);
+  const m = Math.min(Math.max(0, nEff), EWMA_MEMORY);
+  const prior = priorRelVar > 0 ? priorRelVar * state.mean * state.mean : 0;
+  const v = prior > 0 ? (m * own + VARIANCE_PRIOR_N * prior) / (m + VARIANCE_PRIOR_N) : own;
+  return Math.sqrt(v / Math.max(1, m));
+}
+
+/** Pooled spread per pattern type — the `priorRelVar` each type's
+ *  weakness uses. Compute once per request with `patternSpreads`. */
+export type PatternSpreads = {
+  bigram: number;
+  trigram: number;
+  motorFeature: number;
+  word: number;
+};
+
+export function patternSpreads(models: {
+  bigram: ReadonlyMap<string, ModelState>;
+  trigram: ReadonlyMap<string, ModelState>;
+  motorFeature: ReadonlyMap<string, ModelState>;
+  word?: ReadonlyMap<string, ModelState>;
+}): PatternSpreads {
+  return {
+    bigram: pooledRelativeVariance(models.bigram.values()),
+    trigram: pooledRelativeVariance(models.trigram.values()),
+    motorFeature: pooledRelativeVariance(models.motorFeature.values()),
+    word: models.word ? pooledRelativeVariance(models.word.values()) : 0,
+  };
 }

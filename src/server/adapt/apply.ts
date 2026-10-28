@@ -46,10 +46,13 @@ export function deltasFor(
   return out;
 }
 
-/** Spread `extra` evenly through `base` (order otherwise preserved).
- *  The EWMA weights later samples slightly more, so appending all the
- *  slip costs at the end of a test would over-count them; spacing them
- *  through the clean samples approximates their real chronology. */
+/** Spread `extra` evenly through `base` (each list's own order is
+ *  preserved). The EWMA weights later samples slightly more, so
+ *  appending all the slip costs at the end of a test would over-count
+ *  them; spacing them through the clean samples approximates their real
+ *  chronology. Both lists are placed at evenly spaced fractional
+ *  positions — item i of n at (i + 1) / (n + 1) — and merged, so the
+ *  spread stays even whichever list is longer. */
 export function interleave(
   base: readonly number[],
   extra: readonly number[],
@@ -57,17 +60,13 @@ export function interleave(
   if (extra.length === 0) return [...base];
   if (base.length === 0) return [...extra];
   const out: number[] = [];
-  const total = base.length + extra.length;
   let bi = 0;
   let ei = 0;
-  for (let pos = 0; pos < total; pos++) {
-    // Place extra #ei at its evenly-spaced slot: (ei + 1) / (n + 1).
-    const slot = Math.round(((ei + 1) * total) / (extra.length + 1)) - 1;
-    if (ei < extra.length && (pos >= slot || bi >= base.length)) {
-      out.push(extra[ei++]!);
-    } else {
-      out.push(base[bi++]!);
-    }
+  while (bi < base.length || ei < extra.length) {
+    const bPos = bi < base.length ? (bi + 1) / (base.length + 1) : Infinity;
+    const ePos = ei < extra.length ? (ei + 1) / (extra.length + 1) : Infinity;
+    if (bPos <= ePos) out.push(base[bi++]!);
+    else out.push(extra[ei++]!);
   }
   return out;
 }

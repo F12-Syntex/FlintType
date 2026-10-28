@@ -7,7 +7,13 @@ import {
   wordRowsToStates,
 } from "@/server/adapt/apply";
 import { bigramCategory, deriveFeatureKeys } from "@/server/adapt/motor-features";
-import { inChallengeBand, pacingFrom } from "@/server/adapt/pacing";
+import { patternSpreads } from "@/server/adapt/evidence";
+import {
+  PACING_TESTS,
+  inChallengeBand,
+  pacingFrom,
+} from "@/server/adapt/pacing";
+import { predictedWordMs } from "@/server/adapt/prediction";
 import { recencyMultiplier } from "@/server/adapt/recency";
 import {
   DEFAULT_WEIGHTS,
@@ -15,7 +21,6 @@ import {
   baselineMean,
   bigramBaselines,
   bigramTerm,
-  predictedWordMs,
   scoreWord,
   weakness,
 } from "@/server/adapt/scoring";
@@ -26,9 +31,6 @@ import {
   type WeaknessBreakdown,
 } from "@/types/adapt";
 import { loadAdaptPrefs } from "./prefs";
-
-/** Recent tests read for pacing — matches `adapt.words`. */
-const PACING_TESTS = 20;
 
 /** Tighter route-level cap because scoreWord loads four model tables
  *  and walks per-character against word.length² in the breakdown
@@ -64,6 +66,12 @@ export const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
       motorFeature: baselineMean(motorStates),
       word: baselineMean(wordStates),
     };
+    const spreads = patternSpreads({
+      bigram: bigramStates,
+      trigram: trigramStates,
+      motorFeature: motorStates,
+      word: wordStates,
+    });
 
     const word = input.word.toLowerCase();
     const total = scoreWord({
@@ -75,6 +83,7 @@ export const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
       layout: prefs.handLayout,
       baselines,
       nowMs,
+      spreads,
     });
 
     const bigrams: WeaknessBreakdown[] = [];
@@ -93,7 +102,7 @@ export const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
       // shrunk weakness (same-finger / same-hand / cross-hand).
       const cat = bigramCategory(a, b, prefs.handLayout);
       const cb = baselineForCategory(cat, bigramBs);
-      const term = bigramTerm(bgState, cb, nowMs);
+      const term = bigramTerm(bgState, cb, nowMs, spreads.bigram);
       const bgWeak = term.weakness + term.explore;
       alphaContribution += DEFAULT_WEIGHTS.alpha * bgWeak;
       bigrams.push({
@@ -106,7 +115,9 @@ export const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
         if (seenFeatures.has(fk)) continue;
         seenFeatures.add(fk);
         const fst = motorStates.get(fk);
-        const fweak = fst ? weakness(fst, baselines.motorFeature, nowMs) : 0;
+        const fweak = fst
+          ? weakness(fst, baselines.motorFeature, nowMs, spreads.motorFeature)
+          : 0;
         gammaContribution += DEFAULT_WEIGHTS.gamma * fweak;
         motorFeatures.push({
           key: fk,
@@ -122,7 +133,9 @@ export const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
     for (let i = 2; i < word.length; i++) {
       const tg = word[i - 2]! + word[i - 1]! + word[i]!;
       const st = trigramStates.get(tg);
-      const tweak = st ? weakness(st, baselines.trigram, nowMs) : 0;
+      const tweak = st
+        ? weakness(st, baselines.trigram, nowMs, spreads.trigram)
+        : 0;
       betaContribution += DEFAULT_WEIGHTS.beta * tweak;
       trigrams.push({
         key: tg,
@@ -139,7 +152,9 @@ export const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
     const wordState = wordStates.get(word);
     if (wordState) {
       const wweak =
-        baselines.word > 0 ? weakness(wordState, baselines.word, nowMs) : 0;
+        baselines.word > 0
+          ? weakness(wordState, baselines.word, nowMs, spreads.word)
+          : 0;
       deltaContribution = DEFAULT_WEIGHTS.delta * wweak;
       wordBreakdown = {
         key: word,
@@ -156,6 +171,9 @@ export const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
       prefs.handLayout,
     );
     const bigramCount = Math.max(0, word.length - 1);
+    // The *strict* band at this request's pacing ceiling. Selection
+    // relaxes the band when too few pool words qualify (see
+    // select.ts → bandedPool), so a word outside it can still be served.
     const banded =
       bigramBs.overall > 0
         ? inChallengeBand(

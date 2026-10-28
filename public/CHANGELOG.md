@@ -8,6 +8,12 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.10 — 27 October 2026
+- Practice no longer eases off just because you switched from casual to adaptive tests or changed test length. It now compares each run with your usual pace and accuracy for that same kind of test.
+- If your accuracy stays at your own usual level, practice keeps serving your hardest words instead of holding back.
+- A single stray mistake no longer marks a letter pair as a weak spot.
+- Improvement still shows up quickly, but one off day no longer overwrites what practice has learned about your typing.
+
 ## 6.148.9 — 27 October 2026
 - The friends button now moves up so it never covers the links at the bottom of the page.
 - The What's new window waits while you're on the brand card or a release card, and notifications have a bigger Mark all read button on phones.
@@ -69,7 +75,7 @@ User-facing changes to flinttype, newest first — one section per version. Also
 - Adaptive practice now counts your mistakes: letter pairs you often mistype get practised even if you type them quickly the rest of the time.
 - Practice notices improvement sooner, so a pattern you have fixed stops being drilled and your remaining weak spots get the time instead.
 - Practice eases off when you are tiring or making lots of mistakes, and pushes a little harder when you are on form.
-- Weak spots now take turns between tests instead of one dominating every passage, and restarting a test gives you fresh words.
+- Restarting a test is less likely to repeat the words you just skipped.
 - The hardest words no longer crowd a short passage just because there were too few words of the right difficulty.
 
 ## 6.146.1 — 27 October 2026

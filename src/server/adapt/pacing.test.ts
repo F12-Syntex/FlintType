@@ -1,21 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { TestRow } from "@/types/adapt";
+import { ACCURACY_FLOOR, ACCURACY_SPAN, SESSION_GAP_MS } from "./session-form";
 import {
-  ACCURACY_SPAN,
-  ACCURACY_TARGET,
   CHALLENGE_HIGH,
   CHALLENGE_HIGH_FRESH,
   CHALLENGE_HIGH_TIRED,
   CHALLENGE_LOW,
   CONCENTRATION_FRESH,
   CONCENTRATION_TIRED,
-  FATIGUE_MIN_MULT,
   FORM_MAX,
   NEUTRAL_PACING,
-  SESSION_GAP_MS,
   WEAKNESS_CONCENTRATION,
-  currentSession,
-  fatigueDampener,
   inChallengeBand,
   pacingForForm,
   pacingFrom,
@@ -44,39 +39,6 @@ function makeTestRow(over: Partial<TestRow>): TestRow {
     ...over,
   };
 }
-
-describe("fatigueDampener", () => {
-  it("returns 1 with too few tests", () => {
-    expect(fatigueDampener([])).toBe(1);
-    expect(fatigueDampener([makeTestRow({ wpm: 100 })])).toBe(1);
-  });
-
-  it("returns 1 when WPM is flat or rising", () => {
-    const flat = Array.from({ length: 5 }, () => makeTestRow({ wpm: 100 }));
-    expect(fatigueDampener(flat)).toBe(1);
-    // Rising: newer (index 0) is faster than older.
-    const rising = [
-      makeTestRow({ wpm: 110 }),
-      makeTestRow({ wpm: 108 }),
-      makeTestRow({ wpm: 105 }),
-      makeTestRow({ wpm: 100 }),
-      makeTestRow({ wpm: 95 }),
-    ];
-    expect(fatigueDampener(rising)).toBe(1);
-  });
-
-  it("clamps to FATIGUE_MIN_MULT for severe declines", () => {
-    // Older average ~120, newer average ~80 → 33% decline → clamps.
-    const decline = [
-      makeTestRow({ wpm: 70 }),
-      makeTestRow({ wpm: 80 }),
-      makeTestRow({ wpm: 90 }),
-      makeTestRow({ wpm: 120 }),
-      makeTestRow({ wpm: 120 }),
-    ];
-    expect(fatigueDampener(decline)).toBe(FATIGUE_MIN_MULT);
-  });
-});
 
 describe("inChallengeBand", () => {
   it("accepts predictions slightly above baseline", () => {
@@ -131,30 +93,6 @@ function session(
   );
 }
 
-describe("currentSession", () => {
-  it("chains tests until a gap longer than SESSION_GAP_MS", () => {
-    const newest = 1_700_000_000_000;
-    const rows = [
-      makeTestRow({ startedAt: new Date(newest) }),
-      makeTestRow({ startedAt: new Date(newest - 60_000) }),
-      makeTestRow({ startedAt: new Date(newest - 60_000 - SESSION_GAP_MS - 1) }),
-    ];
-    expect(currentSession(rows).length).toBe(2);
-  });
-
-  it("is empty when the newest test is older than the gap", () => {
-    const rows = session([100, 100], { newestMs: 1_000_000 });
-    expect(currentSession(rows, 1_000_000 + SESSION_GAP_MS + 1)).toEqual([]);
-    expect(currentSession(rows, 1_000_000 + 1_000).length).toBe(2);
-  });
-
-  it("skips aborted runs", () => {
-    const rows = session([100, 40, 100]);
-    rows[1] = { ...rows[1]!, wasCompleted: false };
-    expect(currentSession(rows).map((r) => r.wpm)).toEqual([100, 100]);
-  });
-});
-
 describe("pacingForForm", () => {
   it("is neutral at 0", () => {
     expect(pacingForForm(0)).toEqual(NEUTRAL_PACING);
@@ -201,11 +139,55 @@ describe("pacingFrom", () => {
     expect(p.concentration).toBeLessThan(WEAKNESS_CONCENTRATION);
   });
 
-  it("eases off when session accuracy is below target", () => {
+  it("eases off when session accuracy is very low", () => {
     const p = pacingFrom(
-      session([100, 100], { accuracy: ACCURACY_TARGET - ACCURACY_SPAN }),
+      session([100, 100], { accuracy: ACCURACY_FLOOR - ACCURACY_SPAN }),
     );
     expect(p.form).toBeCloseTo(-1, 5);
+  });
+
+  it("eases off when accuracy drops well below the user's usual", () => {
+    const newest = 1_700_000_000_000;
+    const today = session([100, 100], { newestMs: newest, accuracy: 90 });
+    const before = session([100, 100, 100, 100], {
+      newestMs: newest - 3 * 86_400_000,
+      accuracy: 97,
+    });
+    expect(pacingFrom([...today, ...before]).form).toBeLessThan(-0.5);
+  });
+
+  it("stays neutral for a steady learner whose accuracy is always ~91%", () => {
+    // 91% is this user's level, not a bad day — don't hold them back.
+    const steady = session(Array.from({ length: 20 }, () => 55), { accuracy: 91 });
+    expect(pacingFrom(steady)).toEqual(NEUTRAL_PACING);
+  });
+
+  it("stays neutral when adaptive runs follow faster casual ones", () => {
+    // Yesterday: casual runs at ~80 wpm. Today: fresh, accurate
+    // adaptive runs at ~70 — slower because adaptive words are the
+    // user's weak ones, not because they're tired.
+    const newest = 1_700_000_000_000;
+    const today = session([70, 71, 69], { newestMs: newest });
+    const casual = session(
+      Array.from({ length: 17 }, (_, i) => 80 + (i % 3) - 1),
+      { newestMs: newest - 86_400_000 },
+    ).map((r) => ({ ...r, mode: "casual" as const }));
+    expect(pacingFrom([...today, ...casual], newest + 60_000)).toEqual(
+      NEUTRAL_PACING,
+    );
+  });
+
+  it("does not read a switch to longer tests as fatigue", () => {
+    // 15-word runs at 90, then 60-word runs at 75, all in one session.
+    const rows = session([75, 76, 75, 90, 91]).map((r, i) => ({
+      ...r,
+      durationOrWordCount: i < 3 ? 60 : 15,
+    }));
+    expect(pacingFrom(rows)).toEqual(NEUTRAL_PACING);
+  });
+
+  it("ignores test-to-test noise of a couple of percent", () => {
+    expect(pacingFrom(session([99, 101, 100, 101, 100]))).toEqual(NEUTRAL_PACING);
   });
 
   it("ignores a decline spread across separate sessions", () => {
@@ -222,6 +204,10 @@ describe("pacingFrom", () => {
       newestMs: newest - 3 * 86_400_000,
     });
     expect(pacingFrom([...today, ...before]).form).toBeLessThan(0);
+    // The same slower runs against a different kind of test (casual)
+    // are not a slump.
+    const casualBefore = before.map((r) => ({ ...r, mode: "casual" as const }));
+    expect(pacingFrom([...today, ...casualBefore])).toEqual(NEUTRAL_PACING);
   });
 
   it("stretches a little when faster than usual and accurate", () => {

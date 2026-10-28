@@ -16,6 +16,15 @@ export const MIN_INTERVAL_MS = 25;
 export const MAX_INTERVAL_RATIO = 4;
 export const ABSOLUTE_PAUSE_MS = 1500;
 
+/** Stored bigram and trigram means are *effective* times — they fold
+ *  in what mistakes cost (see `slips.ts`) — so a pair you fumble often
+ *  has a mean well above its clean speed. Gating clean samples on that
+ *  mean would let hesitations through for exactly those pairs, and the
+ *  hesitations would push the mean up further. Once the user has an
+ *  overall bigram baseline, the gate's reference is capped at this
+ *  many times it per keystroke interval. */
+export const CLEAN_REF_CAP_RATIO = 2;
+
 /** Minimum word length before we trust a per-word timing. Two-letter
  *  words are dominated by their single bigram and add no fresh signal
  *  beyond what the bigram model already captures; the word model
@@ -75,6 +84,7 @@ export function extract(
   // (the user has just paused to recover — their timing says nothing
   // about their typing speed).
   const tainted = computeTaintMask(timings);
+  const overall = baselines.overallBigram ?? 0;
 
   // Per-word accumulator. We finalise (or discard) a word when the
   // wordIndex changes or we hit the end of the timing stream. A word
@@ -137,7 +147,7 @@ export function extract(
     const charB = b.expected;
     if (charA.length === 0 || charB.length === 0) continue;
     const bigram = (charA + charB).toLowerCase();
-    const baseline = baselines.bigram.get(bigram) ?? ABSOLUTE_PAUSE_MS;
+    const baseline = gateRef(baselines.bigram.get(bigram), ABSOLUTE_PAUSE_MS, 1, overall);
     if (dt > baseline * MAX_INTERVAL_RATIO) {
       rejected++;
       continue;
@@ -159,7 +169,12 @@ export function extract(
         z.expected.length > 0
       ) {
         const trigram = (z.expected + charA + charB).toLowerCase();
-        const tBase = baselines.trigram.get(trigram) ?? ABSOLUTE_PAUSE_MS * 2;
+        const tBase = gateRef(
+          baselines.trigram.get(trigram),
+          ABSOLUTE_PAUSE_MS * 2,
+          2,
+          overall,
+        );
         const tdt = b.t - z.t;
         if (tdt >= MIN_INTERVAL_MS * 2 && tdt <= tBase * MAX_INTERVAL_RATIO) {
           pushSample(trigrams, trigram, tdt);
@@ -188,6 +203,20 @@ export function extract(
     accepted,
     rejected,
   };
+}
+
+/** Reference time for the pause gate: the stored mean (or `coldMs`
+ *  when the pattern is new), capped at CLEAN_REF_CAP_RATIO × the
+ *  overall bigram baseline per interval when that baseline exists. */
+function gateRef(
+  stored: number | undefined,
+  coldMs: number,
+  intervals: number,
+  overallBigram: number,
+): number {
+  const ref = stored ?? coldMs;
+  if (!(overallBigram > 0)) return ref;
+  return Math.min(ref, overallBigram * CLEAN_REF_CAP_RATIO * intervals);
 }
 
 /** A keystroke is tainted if it itself was wrong, or if it's the

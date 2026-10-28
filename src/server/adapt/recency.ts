@@ -1,7 +1,6 @@
 /** Word-level recency: words served recently are down-weighted so a
  *  passage doesn't keep repeating the same carriers. The persisted
- *  `adaptRecency` user-prefs slice maps word → tests ago; it is also
- *  the record `spacing.ts` reads to see which patterns were drilled.
+ *  `adaptRecency` user-prefs slice maps word → tests ago.
  *
  *  Recency penalty multiplier: a word seen `testsAgo` tests back scales
  *  its score down on a curve that recovers to 1.0 over the recovery

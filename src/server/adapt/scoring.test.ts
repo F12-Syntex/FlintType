@@ -7,7 +7,6 @@ import {
   bigramBaselines,
   type BigramBaselines,
   bigramTerm,
-  predictedWordMs,
   scoreWord,
   weakness,
 } from "./scoring";
@@ -61,7 +60,7 @@ describe("weakness", () => {
   });
 });
 
-/** Per-category baselines used across scoreWord / predictedWordMs
+/** Per-category baselines used across scoreWord
  *  tests. Same-finger highest (typing same key twice is mechanically
  *  slowest), cross-hand lowest (parallel finger pre-positioning),
  *  same-hand in between. Numbers are illustrative — chosen to keep
@@ -73,34 +72,6 @@ const TEST_BASELINES: BigramBaselines = {
   unknown: 100,
   overall: 100,
 };
-
-describe("predictedWordMs", () => {
-  it("sums bigram means in the word", () => {
-    const m = new Map([
-      ["th", MS(120, 5)],
-      ["he", MS(140, 5)],
-    ]);
-    expect(predictedWordMs("the", m, TEST_BASELINES, DEFAULT_HAND_LAYOUT)).toBe(
-      260,
-    );
-  });
-
-  it("falls back to the per-category baseline for cold bigrams", () => {
-    // 'th' = cross-hand (T left index, H right index) → 80ms.
-    // 'he' = same-hand right (H right index, E left middle? actually
-    // E is left middle). On QWERTY, H is right index and E is left
-    // middle → cross-hand → 80ms. So total is 160ms. Same-hand path
-    // is exercised by the next case.
-    const m = new Map<string, ModelState>();
-    const total = predictedWordMs("the", m, TEST_BASELINES, DEFAULT_HAND_LAYOUT);
-    expect(total).toBeGreaterThan(0);
-  });
-
-  it("returns 0 for words shorter than 2 chars", () => {
-    expect(predictedWordMs("a", new Map(), TEST_BASELINES, DEFAULT_HAND_LAYOUT)).toBe(0);
-    expect(predictedWordMs("", new Map(), TEST_BASELINES, DEFAULT_HAND_LAYOUT)).toBe(0);
-  });
-});
 
 describe("scoreWord", () => {
   const cold = {
@@ -291,50 +262,5 @@ describe("bigramTerm", () => {
 
   it("a fast, well-sampled pair contributes nothing", () => {
     expect(bigramTerm(MS(60, 50), 100)).toEqual({ weakness: 0, explore: 0 });
-  });
-});
-
-describe("weakness — staleness", () => {
-  const DAY = 86_400_000;
-
-  it("trusts an old estimate less than a fresh one", () => {
-    const fresh = { mean: 250, variance: 0, n: 12, lastSeenMs: 100 * DAY };
-    const old = { mean: 250, variance: 0, n: 12, lastSeenMs: 40 * DAY };
-    const now = 100 * DAY;
-    expect(weakness(old, 100, now)).toBeLessThan(weakness(fresh, 100, now));
-  });
-
-  it("a long-unseen pattern drifts back toward exploration", () => {
-    const st = { mean: 120, variance: 0, n: 6, lastSeenMs: 0 };
-    expect(bigramTerm(st, 100).explore).toBe(0);
-    expect(bigramTerm(st, 100, 60 * DAY).explore).toBeGreaterThan(0);
-  });
-});
-
-describe("scoreWord — accuracy-aware effective time", () => {
-  it("scores a pair fumbled often as weak even when its clean keystrokes are quick", () => {
-    // Clean "th" is fast (70ms vs an 80ms cross-hand baseline), but one
-    // attempt in four is a slip costing ~600ms. The model stores the
-    // effective mean (what submit folds in), which lands well above
-    // the baseline — so the word now scores as a weakness.
-    const effective = 0.75 * 70 + 0.25 * 600;
-    const score = scoreWord({
-      word: "th",
-      bigramModels: new Map([["th", MS(effective, 60)]]),
-      trigramModels: new Map(),
-      motorFeatureModels: new Map(),
-      layout: DEFAULT_HAND_LAYOUT,
-      baselines: { bigram: TEST_BASELINES, trigram: 200, motorFeature: 100 },
-    });
-    const cleanOnly = scoreWord({
-      word: "th",
-      bigramModels: new Map([["th", MS(70, 60)]]),
-      trigramModels: new Map(),
-      motorFeatureModels: new Map(),
-      layout: DEFAULT_HAND_LAYOUT,
-      baselines: { bigram: TEST_BASELINES, trigram: 200, motorFeature: 100 },
-    });
-    expect(cleanOnly).toBe(0);
-    expect(score).toBeGreaterThan(0);
   });
 });

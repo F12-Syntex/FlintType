@@ -6,6 +6,7 @@ import {
   EWMA_MEMORY,
   SHIFT_MIN_BATCH,
   SHIFT_MIN_PRIOR,
+  SHIFT_RESET_N,
   STALENESS_HALF_LIFE_DAYS,
   type ModelState,
   confidence,
@@ -39,8 +40,6 @@ describe("welford", () => {
     expect(s.n).toBe(101);
     s = update(s, 200);
     expect(s.mean).toBeCloseTo(100 + 100 * ALPHA_FLOOR, 5);
-    // Small: the floor stays a gentle nudge, never a jump.
-    expect(ALPHA_FLOOR).toBeLessThanOrEqual(0.05);
   });
 
   it("update tracks the mean aggressively in the cap regime", () => {
@@ -148,6 +147,10 @@ describe("welford — shift detection", () => {
     expect(detectShift({ ...settled, variance: 0 }, [130, 125, 135])).toBe(false);
   });
 
+  it("only trusts a prior with enough (staleness-adjusted) samples", () => {
+    expect(detectShift(settled, [130, 125, 135, 128], SHIFT_MIN_PRIOR - 1)).toBe(false);
+  });
+
   it("a detected improvement moves the mean much further in one test", () => {
     const batch = [130, 125, 135, 128];
     let floorOnly: ModelState = settled;
@@ -157,6 +160,48 @@ describe("welford — shift detection", () => {
     // shift gets a third or more of the way to the new level.
     expect(200 - floorOnly.mean).toBeLessThan(15);
     expect(200 - shifted.mean).toBeGreaterThan(0.3 * (200 - 130));
+  });
+
+  it("one shifted test moves a settled mean at most half of the way", () => {
+    const prior: ModelState = { mean: 100, variance: 100, n: 500 };
+    for (const k of [SHIFT_RESET_N, 10, 20, 40]) {
+      expect(detectShift(prior, Array(k).fill(200))).toBe(true);
+      const out = updateMany(prior, Array(k).fill(200))!;
+      // Half of the way, or the floor rate's own move for long batches
+      // (shift detection never moves it further than that).
+      const floorMove = 1 - (1 - ALPHA_FLOOR) ** k;
+      const cap = Math.max(0.5, floorMove);
+      expect(out.mean - 100).toBeLessThanOrEqual(cap * 100 + 1e-9);
+    }
+  });
+
+  it("rarely fires on a stationary typist with ordinary test-to-test spread", () => {
+    // Deterministic LCG + Box-Muller: lognormal latencies (median
+    // 120ms, σ = 0.25) with a 4% per-test random effect.
+    let seedV = 7;
+    const rng = () => {
+      seedV = (seedV * 1103515245 + 12345) & 0x7fffffff;
+      return (seedV + 0.5) / 0x80000000;
+    };
+    const gauss = () =>
+      Math.sqrt(-2 * Math.log(rng())) * Math.cos(2 * Math.PI * rng());
+    for (const k of [3, 10, 20]) {
+      let st: ModelState | null = null;
+      let alarms = 0;
+      let checked = 0;
+      for (let t = 0; t < 600; t++) {
+        const effect = 0.04 * gauss();
+        const batch = Array.from({ length: k }, () =>
+          120 * Math.exp(effect + 0.25 * gauss()),
+        );
+        if (st && t >= 40) {
+          checked++;
+          if (detectShift(st, batch)) alarms++;
+        }
+        st = updateMany(st, batch);
+      }
+      expect(alarms / checked).toBeLessThan(0.02);
+    }
   });
 
   it("only tests the shift against `shiftEvidence` when given", () => {

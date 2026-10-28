@@ -58,6 +58,26 @@ describe("extractSlips", () => {
     expect(s.bigrams.get("th")).toEqual([SLIP_COST_DEFAULT_RATIO * REF]);
   });
 
+  it("doesn't take a later identical letter as the fix of an unfixed slip", () => {
+    // "thought" typed "tgought": the h at index 5 is the word's own
+    // second h, not a correction of the slip at index 1.
+    const word = "thought";
+    const typed = "tgought";
+    const s = run(
+      [...word].map((ch, i) => k(i * 120, ch, typed[i]!, typed[i] === ch)),
+    );
+    expect(s.bigrams.get("th")).toEqual([SLIP_COST_DEFAULT_RATIO * REF]);
+  });
+
+  it("charges the default when the user moves to the next word", () => {
+    const s = run([
+      k(0, "t", "t", true, 0),
+      k(120, "o", "p", false, 0),
+      k(300, "o", "o", true, 1),
+    ]);
+    expect(s.bigrams.get("to")).toEqual([SLIP_COST_DEFAULT_RATIO * REF]);
+  });
+
   it("clamps the cost into [MIN, MAX] × the reference", () => {
     const quick = run([
       k(0, "t", "t", true),
