@@ -58,7 +58,7 @@ export async function notifyPersonalBest(args: {
       const displays = await resolveUserDisplays(db, [userId]);
       const me = displays.get(userId);
       const name = me?.name ?? "A friend";
-      const where = formatLength(input.mode, input.durationOrWordCount);
+      const where = formatLength(input.durationOrWordCount, input.lengthMode);
       await Promise.all(
         followers.map((f) =>
           db.notifications.createIfAbsent({
@@ -89,18 +89,17 @@ export async function notifyPersonalBest(args: {
   }
 }
 
-/** Compose the body line for a personal-best notification. WORDS
- *  modes show the word count; TIME modes show seconds; QUOTE / other
- *  modes fall back to the raw amount. The previous best is appended
- *  in parens when there was one, so the user can read the delta at a
- *  glance ("Casual 60s · 102 wpm · 98% acc (previous best 92)"). */
+/** Compose the body line for a personal-best notification: the mode
+ *  as the app names it, the length with its unit, speed and accuracy.
+ *  The previous best is appended in parens when there was one, so the
+ *  user can read the delta at a glance
+ *  ("Casual · 60s · 102 wpm · 98.0% acc (previous best 92 · +10)"). */
 export function formatPbBody(
   input: SubmitTestInput,
   previousWpm: number | null,
 ): string {
-  const lengthLabel = formatLength(input.mode, input.durationOrWordCount);
-  const modeLabel = input.mode === "training" ? "Training" : "Casual";
-  const head = `${modeLabel} ${lengthLabel} · ${Math.round(input.wpm)} wpm · ${input.accuracy.toFixed(1)}% acc`;
+  const lengthLabel = formatLength(input.durationOrWordCount, input.lengthMode);
+  const head = `${modeLabel(input.mode)} · ${lengthLabel} · ${Math.round(input.wpm)} wpm · ${input.accuracy.toFixed(1)}% acc`;
   if (previousWpm == null) return head;
   // Derive the delta from the ROUNDED figures the user sees, not from
   // the raw difference — otherwise round(new) − round(prev) can disagree
@@ -112,10 +111,26 @@ export function formatPbBody(
   return head + deltaTail;
 }
 
-function formatLength(mode: string, amount: number): string {
-  // Time-mode lengths read as seconds; everything else as a count.
-  if (mode === "time" || (typeof amount === "number" && amount >= 5 && amount <= 600 && /time/i.test(mode))) {
-    return `${amount}s`;
-  }
-  return String(amount);
+/** The mode as the rest of the app labels it (profile, insights, the
+ *  leaderboard): Adapt for adaptive runs, never "Training". */
+function modeLabel(mode: SubmitTestInput["mode"]): string {
+  if (mode === "training") return "Adapt";
+  if (mode === "reverse_adaptive") return "Reverse";
+  if (mode === "race") return "Race";
+  return "Casual";
+}
+
+/** Common time-test lengths, used to guess the unit of a legacy run
+ *  that was submitted without a `lengthMode`. */
+const TIME_AMOUNTS = new Set([15, 30, 60, 120]);
+
+/** A run length with its unit: "60s" for timed runs, "25 words"
+ *  otherwise. */
+export function formatLength(
+  amount: number,
+  lengthMode: SubmitTestInput["lengthMode"],
+): string {
+  const isTime = lengthMode ? lengthMode === "time" : TIME_AMOUNTS.has(amount);
+  if (isTime) return `${amount}s`;
+  return `${amount} ${amount === 1 ? "word" : "words"}`;
 }
