@@ -5,11 +5,13 @@
 import { useSignIn } from "@clerk/nextjs/legacy";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
+import { redirectFromSearch } from "@/lib/auth-redirect";
 
 type Attempt = { status: string | null; createdSessionId: string | null };
 
 /** Returns `finish(attempt)`: when a Clerk attempt is complete it
- *  activates the new session and sends the user home, resolving true;
+ *  activates the new session and sends the user on (to the page's safe
+ *  `redirect_url`, else home), resolving true;
  *  otherwise it does nothing and resolves false so the caller can show
  *  its own "didn't complete" message. */
 export function useFinishSignIn() {
@@ -21,7 +23,7 @@ export function useFinishSignIn() {
         return false;
       }
       await setActive?.({ session: attempt.createdSessionId });
-      router.push("/");
+      router.push(redirectFromSearch(window.location.search, window.location.origin));
       router.refresh();
       return true;
     },

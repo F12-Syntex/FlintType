@@ -195,6 +195,10 @@ NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/
 
 Without those, `<UserButton />` sign-out and other Clerk components would fall back to Clerk's hosted accounts portal instead of our pages.
 
+### Returning to where you were (`redirect_url`)
+
+Links into the auth pages may carry `?redirect_url=<path>` (a profile's Follow link, the AI studio). The custom forms honour it through `src/lib/auth-redirect.ts` (tested): `redirectFromSearch()` accepts only a same-origin path, never the auth pages themselves, and falls back to `/`. It drives the post-sign-in / sign-up push and Discord's `redirectUrlComplete`, and `<AltAuthLink>` carries it across between `/sign-in` and `/sign-up`. Never push a raw `redirect_url` without that helper.
+
 ## Testing protected routes
 
 `auth()` and `clerkClient()` cannot run outside a Clerk-aware request context, so tests mock both at the module boundary:

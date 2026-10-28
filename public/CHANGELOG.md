@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.16 — 27 October 2026
+- After signing in or creating an account you land back on the page that sent you there (for example a profile you wanted to follow), instead of the home page.
+
 ## 6.148.15 — 27 October 2026
 - Live stats now take their colour from your palette by default, so they no longer stay orange under other palettes.
 - The Kodama Grove look now also turns on letters-only for the keyboard, as intended.
