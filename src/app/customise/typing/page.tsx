@@ -26,7 +26,7 @@ import {
   CaretPreview,
   TypingAreaPreview,
   TypographyPreview,
-} from "../_components/rows/section-previews";
+} from "../_components/rows/passage-previews";
 import { TapeRows } from "../_components/rows/tape-row";
 import { TypographyRows } from "../_components/rows/typography-row";
 import { SettingsSection } from "../_components/settings-section";

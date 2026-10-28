@@ -16,7 +16,7 @@ import { ResultRows } from "../_components/rows/result-rows";
 import {
   LiveStatsPreview,
   ResultLivePreview,
-} from "../_components/rows/section-previews";
+} from "../_components/rows/stats-previews";
 import { SettingsSection } from "../_components/settings-section";
 
 export default function StatsSettingsPage() {

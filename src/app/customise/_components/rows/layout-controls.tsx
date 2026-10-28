@@ -49,7 +49,7 @@ export function LinesRenderedControl({
           setLastN(clamped);
           onChange(clamped);
         }}
-        className="h-9 w-[4.5rem] text-right tabular-nums"
+        className="h-11 w-[4.5rem] text-right tabular-nums sm:h-9"
       />
       <Chip
         label="All"

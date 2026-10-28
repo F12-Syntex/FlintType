@@ -127,7 +127,7 @@ export function BackgroundRow() {
               value={prefs.imageUrl}
               onChange={(e) => update("imageUrl", e.target.value)}
               aria-label="Background image link"
-              className="h-10 text-sm sm:h-9"
+              className="h-11 text-base sm:h-9 sm:text-sm"
             />
             {prefs.imageUrl ? (
               <Button
@@ -136,6 +136,7 @@ export function BackgroundRow() {
                 size="icon"
                 onClick={() => update("imageUrl", "")}
                 aria-label="Clear image link"
+                className="size-11 shrink-0 sm:size-9"
               >
                 <X size={14} aria-hidden />
               </Button>
@@ -169,6 +170,7 @@ export function BackgroundRow() {
                 variant="ghost"
                 size="sm"
                 onClick={clearLocalImage}
+                className="h-11 sm:h-8"
               >
                 Remove
               </Button>
@@ -179,7 +181,7 @@ export function BackgroundRow() {
               size="sm"
               onClick={() => fileRef.current?.click()}
               disabled={busy}
-              className="h-9 gap-2 sm:h-8"
+              className="h-11 gap-2 sm:h-8"
             >
               <Upload size={14} aria-hidden />
               {busy ? "Uploading…" : hasLocalImage ? "Replace" : "Choose"}

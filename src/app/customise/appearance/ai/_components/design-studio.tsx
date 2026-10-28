@@ -12,13 +12,13 @@ import { type AiChange } from "@/types/appearance-ai";
 import { useApplyPatch } from "../../../_components/use-apply-patch";
 import { useCurrentSettings } from "../../../_components/use-current-settings";
 import { StylePreview } from "../../../_components/rows/style-preview";
+import { KeyboardLivePreview } from "../../../_components/rows/keyboard-preview";
+import { MultiplayerPreview } from "../../../_components/rows/multiplayer-preview";
+import { ThemePreview } from "../../../_components/rows/passage-previews";
 import {
-  KeyboardLivePreview,
   LiveStatsPreview,
-  MultiplayerPreview,
   ResultLivePreview,
-  ThemePreview,
-} from "../../../_components/rows/section-previews";
+} from "../../../_components/rows/stats-previews";
 import { EMPTY_PATCH, isEmptyPatch, mergePatch, overlayCurrent } from "./patch-merge";
 import { PreviewScope } from "./preview-scope";
 import type { AppearancePatch } from "@/types/appearance-ai";
@@ -80,27 +80,6 @@ function ProcessingDots() {
   );
 }
 
-/** Footer height so the fixed dock floats just above the page footer. */
-function useFooterHeight(): number {
-  const [h, setH] = useState(0);
-  useEffect(() => {
-    const measure = () => {
-      const el = document.querySelector<HTMLElement>("[data-ft-footer][data-pinned]");
-      if (!el) return setH(0);
-      const visible = getComputedStyle(el).display !== "none";
-      setH(visible ? el.getBoundingClientRect().height : 0);
-    };
-    measure();
-    const raf = requestAnimationFrame(measure);
-    window.addEventListener("resize", measure);
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", measure);
-    };
-  }, []);
-  return h;
-}
-
 /** The Design with AI studio: a grid of six previews themed by the AI's
  *  proposed look (preview-only — the real config is untouched), and a
  *  minimal chat dock that drives it. "Apply" commits the preview to the
@@ -109,7 +88,6 @@ export function DesignStudio() {
   const backend = useBackend();
   const { apply, commit } = useApplyPatch();
   const readCurrent = useCurrentSettings();
-  const footerH = useFooterHeight();
   const { isLoaded, isSignedIn } = useAuth();
   const signedOut = isLoaded && !isSignedIn;
 
@@ -124,12 +102,15 @@ export function DesignStudio() {
     const el = logRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, loading]);
+  // Fit the textarea to its text — or to its placeholder, which swaps
+  // once Clerk reports the session, so re-measure then too (the long
+  // signed-in hint wraps on a phone; the signed-out one doesn't).
   useEffect(() => {
     const el = taRef.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
-  }, [value]);
+  }, [value, signedOut]);
 
   function push(m: Omit<Message, "id">) {
     setMessages((prev) => [...prev, { ...m, id: crypto.randomUUID() }]);
@@ -182,7 +163,7 @@ export function DesignStudio() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setPatch(EMPTY_PATCH)}
-                className="h-9 sm:h-8"
+                className="h-11 sm:h-8"
               >
                 <RotateCcw aria-hidden />
                 Reset
@@ -195,7 +176,7 @@ export function DesignStudio() {
                   setPatch(EMPTY_PATCH);
                   push({ role: "assistant", text: "Applied to your settings." });
                 }}
-                className="h-9 sm:h-8"
+                className="h-11 sm:h-8"
               >
                 <Check aria-hidden />
                 Apply to settings
@@ -205,9 +186,8 @@ export function DesignStudio() {
         }
       />
 
-      {/* Previews — preview-only theming. Extra bottom padding so the
-          floating dock never covers the last row. */}
-      <div className="pb-36">
+      {/* Previews — preview-only theming. */}
+      <div>
         <PreviewScope patch={patch}>
           <div className="grid gap-4 sm:grid-cols-2">
             {PREVIEWS.map(({ label, Comp, wide }) => (
@@ -230,12 +210,15 @@ export function DesignStudio() {
         </PreviewScope>
       </div>
 
-      {/* Minimal chat dock — preview-only, floating bottom-centre. */}
+      {/* Minimal chat dock — preview-only. Sticky to the bottom of the
+          settings scroller, so it floats over the previews while they
+          scroll, stays centred on the page column (not the window, which
+          pushed it over the sidebar) and comes to rest under the last
+          preview instead of covering it. The pinned footer sits outside
+          the scroller, so the dock never overlaps it. */}
       <div
-        className="pointer-events-none fixed inset-x-0 z-40 flex justify-center px-3"
-        style={{
-          bottom: `calc(${footerH}px + 0.75rem + env(safe-area-inset-bottom))`,
-        }}
+        className="pointer-events-none sticky z-20 flex justify-center"
+        style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
       >
         <div className="pointer-events-auto flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-card/95 text-card-foreground shadow-float backdrop-blur-md">
           {messages.length > 0 || loading ? (
@@ -314,14 +297,15 @@ export function DesignStudio() {
                 }
                 aria-label="Describe a change"
                 disabled={loading || signedOut}
-                className="max-h-32 min-h-8 flex-1 resize-none bg-transparent px-1 py-1 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-50"
+                // 16px on phones so iOS doesn't zoom the page on focus.
+                className="max-h-32 min-h-8 flex-1 resize-none self-center bg-transparent px-1 py-1 text-base leading-relaxed text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-50 sm:text-sm"
               />
               <button
                 type="button"
                 onClick={() => void onSend()}
                 disabled={loading || signedOut || value.trim().length === 0}
                 aria-label="Send"
-                className="brand-surface flex size-8 shrink-0 items-center justify-center rounded-pill text-primary-foreground shadow-glow transition-opacity hover:brightness-110 disabled:opacity-40 disabled:shadow-none"
+                className="brand-surface flex size-11 shrink-0 items-center justify-center rounded-pill text-primary-foreground shadow-glow transition-opacity hover:brightness-110 disabled:opacity-40 disabled:shadow-none sm:size-8"
               >
                 <ArrowUp size={15} aria-hidden />
               </button>

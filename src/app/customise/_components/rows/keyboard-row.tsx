@@ -13,8 +13,19 @@ import { cn } from "@/lib/utils";
 import { Chip, ChipGroup } from "../chip";
 import { SettingsRow, SwitchRow } from "../row";
 
-/** Mini chip preview — same designClasses + shapeClass, two tiny key
- *  tiles (resting + hot) so the chip itself communicates the variant. */
+/** Key corners at chip-sample scale. A real key is about 40px tall
+ *  with `rounded-sm` (the card radius less 4px); the samples are half
+ *  that size, so they take half the radius. With the full radius the
+ *  20px "Rounded" sample read as a circle, the same as "Pill". */
+function sampleShapeClass(shape: KeyboardShape): string {
+  return shape === "rounded"
+    ? "rounded-[calc((var(--radius)_-_4px)/2)]"
+    : shapeClass(shape);
+}
+
+/** Mini chip preview — same designClasses as the real keys, two tiny
+ *  key tiles (resting + hot) so the chip itself communicates the
+ *  variant. */
 function DesignChipPreview({
   design,
   shape,
@@ -23,7 +34,7 @@ function DesignChipPreview({
   shape: KeyboardShape;
 }) {
   const [resting, hot] = designClasses(design);
-  const r = shapeClass(shape);
+  const r = sampleShapeClass(shape);
   return (
     <span className="flex gap-0.5">
       <span
@@ -48,7 +59,7 @@ function ShapeChipPreview({
     <span
       className={cn(
         "block h-5 w-5 border text-[0px]",
-        shapeClass(shape),
+        sampleShapeClass(shape),
         resting,
       )}
     />

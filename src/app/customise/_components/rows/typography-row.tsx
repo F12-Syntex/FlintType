@@ -63,7 +63,7 @@ function FontSizeInput({
             Math.round((clamped / FONT_SIZE_PX_DEFAULT) * 100) / 100;
           onChange(snapped);
         }}
-        className="h-9 w-[5.5rem] pr-9 text-right tabular-nums"
+        className="h-11 w-[5.5rem] pr-9 text-right tabular-nums sm:h-9"
       />
       <span
         aria-hidden

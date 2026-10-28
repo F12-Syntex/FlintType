@@ -569,6 +569,8 @@ Every section renders through `<SettingsSection id title description preview?>`:
    - `<SwitchRow title desc checked onChange>`: the whole row is the switch's `<label>`, so the tap target is at least 56px.
 4. **Reset.** There is no per-section reset; Reset lives in the page header (§12.7). Colour and typeface rows keep their own Reset (`h-9 sm:h-7`).
 
+**Finger-sized controls.** Row controls are finger-sized on phones: dropdown triggers, colour swatch buttons, number and URL inputs, and per-row Reset / Remove / Choose / Browse buttons are `h-11` below `sm`, then `h-8`/`h-9`. The Mode switch segments are 40px (`max-sm:[&>button]:size-10`), like every settings segmented switch. Inputs keep the primitive's 16px phone text (no `text-sm` override) so iOS doesn't zoom.
+
 **Progressive disclosure:** show a row only when it does something. A section whose rows all depend on one master choice puts that choice first, as a switch or a row with an Off option, and renders the rest only while it's on.
 - **Keyboard:** "Show keyboard" comes first. While it isn't Off, the rows are Layout, Key arrangement, Key style, Key shape, Key labels, Number row, Size, Letters only (`keymapCompact`), Home row bumps, Shift symbols.
 - **Live stats:** "Show live stats" (`statStripSurface` none/plain) comes first; the per-number styles, Background (Plain | Card), Colour and Opacity follow.
@@ -588,6 +590,7 @@ Every section renders through `<SettingsSection id title description preview?>`:
 | Single on/off (any boolean) | `<SwitchRow>`, never Off/On chips. |
 | 2–8 short **text** values | `<SelectChips>` without previews, which renders the shared segmented switch (pill track, brand-orange selected pill). On phones it is full width with equal segments at `min-h-10` (a 48px target with the track padding); from `sm` it hugs its options at the compact height. |
 | 2–6 **visual** values | `<SelectChips>` or `<ChipGroup>` of `<Chip preview>` (§12.2a). |
+| 6+ short word values (caret Movement) | `<SelectChips>` segmented switch; on phones it drops to `text-xs` + `px-1` so the equal `flex-1` segments fit one row; below 375px it becomes a 3-column grid on a `rounded-3xl` track. |
 | 7+ values, or long names | `<DropdownMenu>` with the active swatch + label on the trigger button (Theme). |
 | Colour | `<ColorRow>`: an inline `SettingsRow` with a swatch button (hex shown from `sm`) and a ghost Reset while overridden. |
 | Free input (URL, hex, name) | `<Input>` (right-aligned within the row). |
@@ -601,6 +604,7 @@ Every section renders through `<SettingsSection id title description preview?>`:
 - **Phone grid:** `<ChipGroup>` is an even grid on phones. Up to four options share one row. Five or more use a 6-column grid with each tile spanning 2, and a short last row stretches (5 → 3 + 2, 7 → 3 + 3 + 1), so no row leaves an empty cell. From `sm` the tiles sit right-aligned in a wrapping flex row.
 - Text-only options never use chips; they use the segmented switch.
 - Chip samples that depict a Style option (shape, depth, font, size) hard-code their own radius, shadow or font stack instead of reading the live token, so the sample doesn't change with the current pick.
+- A chip sample that draws a real component smaller also scales its radius. The 20px Key shape sample takes half the real key's `rounded-sm` (`rounded-[calc((var(--radius)_-_4px)/2)]`); otherwise Rounded reads as a circle next to Pill.
 
 
 Whenever a setting's value is **visual**, each option in the chip group carries its own preview — a small sample of what that option does — stacked above the chip label. The user picks by comparison, not by guessing what "Bold" vs "Underline" means in context.
@@ -678,6 +682,8 @@ Don't sprinkle related settings across sections; if you find yourself doing that
 - **Phones** get the same structure in a `<MobileSheet>`: search at the top, the pages as pills, the current page's sections, and Design with AI. The trigger names the current page, or "Design with AI" on the studio.
 - **Never mock a preview.** If it needs a setting the real component doesn't honour yet, fix the component.
 
+- **Preview sample.** Previews type through one shared sample, `PREVIEW_WORDS` in `_components/preview-practice.tsx`. It is 36 words, starting with the pangram that the cursor and error positions are tuned to, so the passage fills its lines like a real test and Lines shown, Line width and Size visibly change it. The result preview keeps the 9-word `PREVIEW_PANGRAM` run. Previews live by area in `_components/rows/`: `passage-previews.tsx` (Theme, Colours, Background, Font, Caret, Typing area), `interface-previews.tsx`, `stats-previews.tsx`, `keyboard-preview.tsx` and `multiplayer-preview.tsx`.
+
 ### 12.6 Don't
 - **Don't** re-implement the row shell ad-hoc; always use `<SettingsRow>` / `<SwitchRow>`.
 - **Don't** use Off/On chips for a boolean; use `<SwitchRow>`.
@@ -697,11 +703,13 @@ Don't sprinkle related settings across sections; if you find yourself doing that
 - **"Design with AI":** an outline link button with an orange Sparkles icon.
 - **Phones:** Import / export and Design with AI collapse to `size-9` icon buttons with aria-labels (§10.6).
 
+- **Import / export status.** The status line sits under its button: left-aligned on phones, where the header actions start at the left edge, and right-aligned from `sm`. Its menu items are `min-h-11` on phones.
+
 ### 12.8 AI settings assistant
 - **Where it lives.** The studio stays at `/customise/appearance/ai`, inside the settings shell. It is reached from the "Design with AI" header button on every settings page and from the sidebar entry. The floating "Design with AI" pill is **retired**: it covered the first control and doubled up with the friends dock.
 - **Header.** The studio header is a `<PageHeader>`. It shows Apply to settings (primary) and Reset (ghost) only while a preview patch is pending.
 - **Previews.** Previews are `rounded-2xl` cards in a two-column grid; Result and Keyboard span both columns. The Keyboard tile always draws the keyboard (`KeyboardLivePreview alwaysShow`). The sixth tile is "Buttons & cards" and renders `<StylePreview>`, which uses a container query (`@container` / `@lg:`) to fit both a full-width section and a half-width tile.
-- **Chat dock.** The dock is `rounded-2xl border bg-card/95 shadow-float` with a `brand-surface` send pill.
+- **Chat dock.** The dock is `rounded-2xl border bg-card/95 shadow-float` with a `brand-surface` send pill (`size-11` on phones, `size-8` from sm). It is `sticky` to the bottom of the settings scroller (`bottom: calc(0.75rem + env(safe-area-inset-bottom))`) and centred on the page column (`max-w-2xl`). It floats over the previews while they scroll and comes to rest under the last one. It needs no footer measuring, because the pinned footer sits outside the scroller. Its textarea is 16px on phones (14px from sm), and Apply / Reset are `h-11` on phones.
 - **Signed out.** The dock shows a muted line, "Sign in to design with AI.", where "Sign in" is a `text-primary` link to `/sign-in?redirect_url=/customise/appearance/ai`. The textarea and send button are disabled, with the placeholder "Sign in to describe a look". If the session runs out mid-chat, the reply shows the same line, never red error text.
 - **Catalog values.** The fixed-option catalog's radius and word-spacing values match the settings presets, so the matching preset lights up after Apply.
 - **Style knobs.** The catalog also carries `controls` (pill | rounded | square), `depth` (flat | soft | lifted), `glow` (on | off) and `appFont` (sans | mono | system). They resolve to `controlShape`, `depth`, `buttonGlow` and `uiFont` and are whitelisted in `APPEARANCE_FIELDS`. `<PreviewScope>` writes the Style picks a patch makes onto its wrapper as explicit `data-ft-controls|depth|glow|ui-font` attributes, defaults included. App size (`uiScale`) and Page glow (`pageAura`) stay out of the catalog, because a tile can't show a root font size or the page background.
@@ -837,11 +845,15 @@ A globally-mounted Cmd/Ctrl+K palette is the keyboard-first surface for every cu
 - **Third opener:** `openCommandPalette()` from `@/lib/command-palette/open` dispatches `ft:command-palette:open`, which `<CommandPalette>` listens for. Use it for "Search" affordances; never import the palette component. `commandKeyLabel(navigator.platform)` returns "⌘" or "Ctrl" for shortcut hints.
 - The Escape opener ignores events that are already `defaultPrevented` (e.g. Radix closing a dialog), so the palette's own closing Escape can't reopen it.
 - Style entries: Button shape, Depth, App font and App size are enums; Button glow and Page glow are toggles.
-- Palette copy is sentence case: group headings, value chips, the footer, and a "Current" tag in `text-primary`. Entry labels mirror the settings row titles; keyboard entries sit under the Keyboard heading (Show keyboard, Key style, Key shape, Key labels, Keyboard number row, Keyboard: letters only). "Show live stats" is a toggle (`statStripSurface` plain/none). There is one "<Page> settings" entry per settings page; `SETTINGS_PAGES` in `use-command-entries.ts` mirrors the route catalog by hand (lib can't import from app/), so keep them in step.
+- Palette copy is sentence case: group headings, value chips, the footer, and a "Current" tag in `text-primary`. Entry labels mirror the settings row titles; keyboard entries sit under the Keyboard heading (Show keyboard, Key style, Key shape, Key labels, Keyboard number row, Keyboard: letters only). "Show live stats" is a toggle (`statStripSurface` plain/none). There is one "<Page> settings" entry per settings page; `SETTINGS_PAGES` (`src/lib/command-palette/`) mirrors the route catalog by hand (lib can't import from app/), so keep them in step.
+
+- Escape in a sub-view goes back to the root list. The palette handles Radix's `onEscapeKeyDown` and only lets it close the dialog at root, because Radix listens on the document in the capture phase, before the content's own key handler.
+- Rows: an enum shows its current option label and a disclosure chevron. A link shows where it lands as muted `Page · Section` text from `sm`, hidden on phones so the label keeps the width. Action and link rows have no trailing arrow (§17.5). On phones the dialog keeps a 16px gutter (`w-[calc(100%-2rem)]`), the search input is 16px, enum option rows are `min-h-11`, and the keyboard-hint footer is hidden.
+- The Palette entry lists Default first (a reset, as in Settings), plus Custom while a custom fork is active. Re-picking the current palette is a no-op. Colours, Background image and Palette gallery links sit in the Theme group; Pulse caret is a Caret toggle.
 
 ### 16.2 Adding an entry
 
-Edit `src/lib/command-palette/use-command-entries.ts`. Every entry is one of four kinds — `action`, `toggle`, `enum`, `link` — described in `src/lib/command-palette/types.ts`. Discipline:
+Add the entry to the builder for its settings area: `src/lib/command-palette/entries-<area>.ts` (`general`, `behaviour`, `typing`, `keyboard`, `interface`, `stats` (which includes races), `navigate`), using the helpers in `entry-helpers.ts`. `use-command-entries.ts` only wires in the pref hooks. The label, hint and every option label mirror the settings row exactly, in the settings order. `entries.test.ts` checks unique ids, hints of 80 characters or fewer, that every enum's value is one of its options, that link anchors exist in `SETTINGS_GROUPS`, and that `SETTINGS_PAGES` matches the catalog. Every entry is one of four kinds — `action`, `toggle`, `enum`, `link` — described in `src/lib/command-palette/types.ts`. Discipline:
 
 - **One entry per user-facing setting.** Toggles and enums render inline; the user never leaves the palette to flip them.
 - **Sliders, colour pickers, and any control that needs a custom widget** ship as `link` entries that deep-link to `/customise/...#<section>` (the customise page's section anchor). The palette closes and the customise page opens at the right surface. Don't try to inline a slider — the keyboard flow degrades and the palette becomes its own form.

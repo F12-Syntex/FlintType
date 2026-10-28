@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Slider } from "@/components/ui/slider";
+import { cn } from "@/lib/utils";
 import { Chip, ChipGroup } from "./chip";
 
 /** N-way enum picker for a settings row.
@@ -27,6 +28,13 @@ export function SelectChips<T extends string | number>({
 }) {
   const visual = options.some((o) => o.preview != null);
   if (!visual) {
+    // Six or more word labels (caret Movement) don't fit a phone row at
+    // 13px: the short ones shrank to tight pills around their text.
+    // Dense rows drop to 12px with slimmer padding on phones, so the
+    // equal-share segments (`flex-1`) all fit and every pill gets the
+    // same breathing room. Digit rows (Shortest word) already fit.
+    const dense =
+      options.length >= 6 && options.some((o) => o.label.length > 2);
     return (
       <SegmentedControl
         value={value}
@@ -36,7 +44,15 @@ export function SelectChips<T extends string | number>({
         // Phones: a full-width track with equal, 40px-tall segments (a
         // 48px target with the track's padding); from `sm` up it hugs
         // its options beside the label at the compact height.
-        className="w-full max-w-full sm:w-auto [&>button]:min-h-10 [&>button]:flex-1 [&>button]:px-1.5 sm:[&>button]:min-h-0 sm:[&>button]:flex-none sm:[&>button]:px-3"
+        className={cn(
+          "w-full max-w-full sm:w-auto [&>button]:min-h-10 [&>button]:flex-1 [&>button]:px-1.5 sm:[&>button]:min-h-0 sm:[&>button]:flex-none sm:[&>button]:px-3",
+          dense &&
+            "max-sm:[&>button]:px-1 max-sm:[&>button]:text-xs",
+          // Below the 375px baseline even that wraps one pill onto its
+          // own line, so narrow phones get two even rows instead.
+          dense &&
+            "max-[374px]:grid max-[374px]:grid-cols-3 max-[374px]:rounded-3xl",
+        )}
       />
     );
   }

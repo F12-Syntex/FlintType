@@ -71,7 +71,7 @@ export function ImportExportMenu({
       if (next.changes.length === 0) {
         setStatus({
           ok: true,
-          msg: "Nothing matched — file had no recognised settings.",
+          msg: "Nothing to import: the file had no settings we recognise.",
         });
         return;
       }
@@ -81,7 +81,7 @@ export function ImportExportMenu({
         ok: false,
         msg:
           err instanceof SyntaxError
-            ? "Could not parse JSON — is the file valid?"
+            ? "That file isn't valid JSON."
             : err instanceof Error
               ? err.message
               : "Import failed.",
@@ -124,7 +124,7 @@ export function ImportExportMenu({
         <DropdownMenuContent align="end" className="min-w-[15rem]">
           <DropdownMenuItem
             onSelect={() => void handleExport()}
-            className="gap-2"
+            className="min-h-11 gap-2 sm:min-h-0"
           >
             <Download size={14} aria-hidden className="text-muted-foreground" />
             Export settings
@@ -132,14 +132,14 @@ export function ImportExportMenu({
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onSelect={() => chooseFile("flinttype")}
-            className="gap-2"
+            className="min-h-11 gap-2 sm:min-h-0"
           >
             <Upload size={14} aria-hidden className="text-muted-foreground" />
             Import flinttype settings
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={() => chooseFile("monkeytype")}
-            className="gap-2"
+            className="min-h-11 gap-2 sm:min-h-0"
           >
             <Upload size={14} aria-hidden className="text-muted-foreground" />
             Import MonkeyType settings
@@ -150,7 +150,10 @@ export function ImportExportMenu({
       {status ? (
         <p
           className={cn(
-            "absolute right-0 top-full mt-2 max-w-xs text-right text-[11px] leading-snug",
+            // Under the button: left-aligned on phones, where the header
+            // actions sit at the left edge (right-anchored, the message
+            // ran off-screen), right-aligned from sm.
+            "absolute top-full left-0 z-10 mt-2 w-max max-w-[calc(100vw-2rem)] text-left text-xs leading-snug sm:right-0 sm:left-auto sm:max-w-xs sm:text-right",
             status.ok ? "text-muted-foreground" : "text-destructive",
           )}
           role={status.ok ? undefined : "alert"}
