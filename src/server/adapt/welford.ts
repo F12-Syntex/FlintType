@@ -1,5 +1,5 @@
 /** Incremental running statistics for a single (bigram | trigram |
- *  motor-feature). Mean is updated via an exponentially-weighted
+ *  motor-feature | word). Mean is updated via an exponentially-weighted
  *  moving average with an adaptive learning rate; variance follows
  *  the same weighting so the two stay self-consistent.
  *
@@ -7,30 +7,110 @@
  *  timings drift over weeks (the user gets faster). A pure mean
  *  averages today's keystrokes with measurements from a year ago.
  *  EWMA with a learning-rate floor lets old measurements decay
- *  while still tracking long-term consistency. */
+ *  while still tracking long-term consistency.
+ *
+ *  Two refinements make improvement show up quickly without making
+ *  stable estimates jumpy:
+ *   - **Staleness.** A state that hasn't been sampled for weeks has
+ *     its prior weight decayed (`stalenessFactor`), so the first new
+ *     samples after a break re-learn the pattern fast.
+ *   - **Shift detection.** When a test's clean samples sit far outside
+ *     the stored mean's noise band (`detectShift`), the prior is
+ *     treated as a small one for that batch so a genuinely fixed (or
+ *     newly broken) pattern registers within a test or two instead of
+ *     a few dozen. */
 export type ModelState = {
   mean: number;
   variance: number;
   n: number;
+  /** Epoch ms of the last sample folded into this state (the model
+   *  row's `updatedAt`). Optional: absent on freshly-built states and
+   *  in tests, where staleness is simply not applied. */
+  lastSeenMs?: number;
 };
 
 /** Floor on the learning rate. Even after thousands of samples, each
- *  new measurement nudges the mean by at least 2% — without this, an
- *  established pattern becomes uneditable and the algorithm stops
- *  reacting to the user's improvements. */
-export const ALPHA_FLOOR = 0.02;
+ *  new measurement nudges the mean by at least 5%. Raised from 2%:
+ *  at 2% a drilled pattern the user had genuinely fixed kept scoring
+ *  as weak for ~30 more tests (the mean needed ~100 samples to move),
+ *  so adaptive practice kept serving it long after it stopped being a
+ *  problem. 5% keeps a ~39-sample memory: still smooth (standard
+ *  error ≈ 5% of the mean for typical keystroke noise) but responsive. */
+export const ALPHA_FLOOR = 0.05;
 
 /** Cap so a brand-new pattern doesn't fully overwrite the seed on
  *  its second sample (which would make variance estimation noisy). */
 export const ALPHA_CAP = 0.5;
 
-/** Learning rate as a function of sample count. Naive `1 / (n + 1)`
- *  decays toward zero; clamping to [floor, cap] gives the spec'd
- *  "aggressive at first, gentle later, never zero" behaviour. */
+/** Effective sample size of an EWMA running at the floor rate —
+ *  (2 − α) / α. Past this many samples, more history doesn't make the
+ *  mean any more certain, because the oldest samples have decayed out.
+ *  Evidence weighting (`evidence.ts`) caps sample counts here. */
+export const EWMA_MEMORY = (2 - ALPHA_FLOOR) / ALPHA_FLOOR;
+
+/** Learning rate as a function of (effective) sample count. Naive
+ *  `1 / (n + 1)` decays toward zero; clamping to [floor, cap] gives
+ *  the spec'd "aggressive at first, gentle later, never zero"
+ *  behaviour. Accepts fractional `n` (decayed / shift-reset priors). */
 export function learningRate(n: number): number {
   if (n < 0) return ALPHA_CAP;
   const naive = 1 / (n + 1);
   return Math.max(ALPHA_FLOOR, Math.min(ALPHA_CAP, naive));
+}
+
+/** Half-life, in days, of the weight a state's history carries. A
+ *  pattern unseen for three weeks counts as half as many samples —
+ *  both when new samples arrive (it re-learns faster) and when it is
+ *  scored (its weakness is trusted less, and it drifts back toward
+ *  exploration so it gets re-measured). */
+export const STALENESS_HALF_LIFE_DAYS = 21;
+const DAY_MS = 86_400_000;
+
+/** Days since `lastSeenMs`, or 0 when either side is unknown. Clamped
+ *  at 0 so a clock-skewed future timestamp never inflates weight. */
+export function staleDays(
+  lastSeenMs: number | undefined,
+  nowMs: number | undefined,
+): number {
+  if (lastSeenMs == null || nowMs == null) return 0;
+  if (!Number.isFinite(lastSeenMs) || !Number.isFinite(nowMs)) return 0;
+  return Math.max(0, (nowMs - lastSeenMs) / DAY_MS);
+}
+
+/** Multiplier in (0, 1] applied to a state's sample count after
+ *  `days` without practice. */
+export function stalenessFactor(days: number): number {
+  if (!(days > 0)) return 1;
+  return 0.5 ** (days / STALENESS_HALF_LIFE_DAYS);
+}
+
+/** Shift detection thresholds. A batch needs at least
+ *  `SHIFT_MIN_BATCH` clean samples and the prior at least
+ *  `SHIFT_MIN_PRIOR` samples before the test is meaningful; the batch
+ *  mean must sit `SHIFT_Z` standard errors away from the stored mean.
+ *  2.5σ keeps the false-alarm rate well under 1% per pattern per test. */
+export const SHIFT_MIN_BATCH = 3;
+export const SHIFT_MIN_PRIOR = 10;
+export const SHIFT_Z = 2.5;
+/** On a detected shift the prior is treated as this many samples, so
+ *  the batch moves the mean roughly a third to a half of the way to
+ *  its new level (vs ~15% at the floor rate). */
+export const SHIFT_RESET_N = 5;
+
+/** True when `batch` (clean samples from one test) is strong evidence
+ *  that the pattern's true speed has moved away from `state.mean`. */
+export function detectShift(
+  state: ModelState,
+  batch: readonly number[],
+): boolean {
+  if (batch.length < SHIFT_MIN_BATCH) return false;
+  if (state.n < SHIFT_MIN_PRIOR) return false;
+  if (!(state.variance > 0)) return false;
+  let sum = 0;
+  for (const v of batch) sum += v;
+  const batchMean = sum / batch.length;
+  const standardError = Math.sqrt(state.variance / batch.length);
+  return Math.abs(batchMean - state.mean) >= SHIFT_Z * standardError;
 }
 
 /** Seed a brand-new pattern from its first observation. Variance
@@ -41,9 +121,15 @@ export function seed(sample: number): ModelState {
 
 /** Apply a single sample. Returns the next state; the input is not
  *  mutated. The variance update uses the new mean (delta2) so the
- *  estimator stays consistent with the EWMA mean. */
-export function update(state: ModelState, sample: number): ModelState {
-  const alpha = learningRate(state.n);
+ *  estimator stays consistent with the EWMA mean. `rateN` overrides
+ *  the sample count used to pick the learning rate (decayed or
+ *  shift-reset priors); the stored count always advances by one. */
+export function update(
+  state: ModelState,
+  sample: number,
+  rateN: number = state.n,
+): ModelState {
+  const alpha = learningRate(rateN);
   const delta = sample - state.mean;
   const newMean = state.mean + alpha * delta;
   const delta2 = sample - newMean;
@@ -56,25 +142,46 @@ export function update(state: ModelState, sample: number): ModelState {
   };
 }
 
+export type UpdateOptions = {
+  /** Days since the state last received a sample — decays the prior's
+   *  weight (see `stalenessFactor`). */
+  staleDays?: number;
+  /** The samples to run shift detection against. Defaults to
+   *  `samples`. Callers folding in synthetic samples (mistake costs)
+   *  pass only the clean timings here so a burst of slips can't
+   *  masquerade as a change in typing speed. */
+  shiftEvidence?: readonly number[];
+};
+
 /** Apply many samples in order, starting from an existing state (or
  *  seeded from the first sample if `state` is null). */
 export function updateMany(
   state: ModelState | null,
   samples: readonly number[],
+  opts: UpdateOptions = {},
 ): ModelState | null {
   if (samples.length === 0) return state;
-  let s = state ?? seed(samples[0]!);
-  const start = state == null ? 1 : 0;
-  for (let i = start; i < samples.length; i++) {
-    s = update(s, samples[i]!);
+  if (state == null) {
+    let s = seed(samples[0]!);
+    for (let i = 1; i < samples.length; i++) s = update(s, samples[i]!);
+    return s;
+  }
+  let rateN = state.n * stalenessFactor(opts.staleDays ?? 0);
+  if (detectShift(state, opts.shiftEvidence ?? samples)) {
+    rateN = Math.min(rateN, SHIFT_RESET_N);
+  }
+  let s: ModelState = { mean: state.mean, variance: state.variance, n: state.n };
+  for (const v of samples) {
+    s = update(s, v, rateN);
+    rateN += 1;
   }
   return s;
 }
 
 /** Confidence in the running mean as a value in [0, 1]. Saturates
  *  once enough samples have accumulated; before then, it scales
- *  linearly with sample count. The cap is the point past which more
- *  samples don't materially improve the estimate. */
+ *  linearly with sample count. Kept for display callers; weakness
+ *  scoring uses the smoother Bayesian `evidenceWeight` instead. */
 export const CONFIDENCE_SATURATION = 30;
 
 export function confidence(n: number): number {

@@ -6,11 +6,11 @@ import {
 } from "@/server/adapt/apply";
 import { fingerMapHash } from "@/server/adapt/key-map";
 import { bigramCategory } from "@/server/adapt/motor-features";
+import { pacingFrom } from "@/server/adapt/pacing";
 import {
   baselineForCategory,
   baselineMean,
   bigramBaselines,
-  fatigueDampener,
   weakness,
   type BigramBaselines,
 } from "@/server/adapt/scoring";
@@ -40,6 +40,9 @@ export const snapshot = defineRoute<void, AdaptSnapshotOutput>({
         db.tests.recentForUser(userId, 25),
       ]);
 
+    // Same clock the selector uses, so the weakness shown here is the
+    // weakness acted on (staleness included).
+    const nowMs = Date.now();
     const bigramStates = bigramRowsToStates(bigramRows);
     const trigramStates = trigramRowsToStates(trigramRows);
     const motorStates = motorFeatureRowsToStates(motorRows);
@@ -70,10 +73,18 @@ export const snapshot = defineRoute<void, AdaptSnapshotOutput>({
       baselines,
       totalBigramSamples,
       cold: totalBigramSamples < COLD_BIGRAM_THRESHOLD,
-      fatigueDampener: fatigueDampener(recentTestRows),
-      bigrams: toBigramModelRows(bigramStates, bigramBs, prefs.handLayout),
-      trigrams: toModelRows(trigramStates, baselines.trigram),
-      motorFeatures: toModelRows(motorStates, baselines.motorFeature),
+      // How far difficulty pacing has pulled the challenge ceiling in
+      // (1 = not at all). Replaces the old flat fatigue multiplier,
+      // which scaled every candidate equally and so changed nothing.
+      fatigueDampener: pacingFrom(recentTestRows, nowMs).damping,
+      bigrams: toBigramModelRows(
+        bigramStates,
+        bigramBs,
+        prefs.handLayout,
+        nowMs,
+      ),
+      trigrams: toModelRows(trigramStates, baselines.trigram, nowMs),
+      motorFeatures: toModelRows(motorStates, baselines.motorFeature, nowMs),
       recentTests,
       recentlyShown: Array.from(prefs.adaptRecency, ([word, testsAgo]) => ({
         word,
@@ -88,6 +99,7 @@ export const snapshot = defineRoute<void, AdaptSnapshotOutput>({
 function toModelRows(
   states: ReadonlyMap<string, ModelState>,
   baseline: number,
+  nowMs: number,
 ): AdaptModelRow[] {
   const out: AdaptModelRow[] = [];
   for (const [key, st] of states) {
@@ -96,7 +108,7 @@ function toModelRows(
       meanMs: st.mean,
       varianceMs: st.variance,
       sampleCount: st.n,
-      weakness: weakness(st, baseline),
+      weakness: weakness(st, baseline, nowMs),
     });
   }
   out.sort((a, b) => b.weakness - a.weakness);
@@ -111,6 +123,7 @@ function toBigramModelRows(
   states: ReadonlyMap<string, ModelState>,
   baselines: BigramBaselines,
   layout: HandLayoutPrefs,
+  nowMs: number,
 ): AdaptModelRow[] {
   const out: AdaptModelRow[] = [];
   for (const [key, st] of states) {
@@ -124,7 +137,7 @@ function toBigramModelRows(
       meanMs: st.mean,
       varianceMs: st.variance,
       sampleCount: st.n,
-      weakness: weakness(st, cb),
+      weakness: weakness(st, cb, nowMs),
     });
   }
   out.sort((a, b) => b.weakness - a.weakness);

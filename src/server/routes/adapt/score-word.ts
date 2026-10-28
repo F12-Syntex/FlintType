@@ -7,16 +7,15 @@ import {
   wordRowsToStates,
 } from "@/server/adapt/apply";
 import { bigramCategory, deriveFeatureKeys } from "@/server/adapt/motor-features";
+import { inChallengeBand, pacingFrom } from "@/server/adapt/pacing";
+import { recencyMultiplier } from "@/server/adapt/recency";
 import {
   DEFAULT_WEIGHTS,
-  MIN_SAMPLES_FOR_WEAKNESS,
-  UNTESTED_BIGRAM_BONUS,
   baselineForCategory,
   baselineMean,
   bigramBaselines,
-  inChallengeBand,
+  bigramTerm,
   predictedWordMs,
-  recencyMultiplier,
   scoreWord,
   weakness,
 } from "@/server/adapt/scoring";
@@ -27,6 +26,9 @@ import {
   type WeaknessBreakdown,
 } from "@/types/adapt";
 import { loadAdaptPrefs } from "./prefs";
+
+/** Recent tests read for pacing — matches `adapt.words`. */
+const PACING_TESTS = 20;
 
 /** Tighter route-level cap because scoreWord loads four model tables
  *  and walks per-character against word.length² in the breakdown
@@ -39,12 +41,18 @@ export const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
   handler: async ({ input, db, meta }) => {
     const userId = meta.userId as string;
     const prefs = await loadAdaptPrefs(db, userId);
-    const [bigramRows, trigramRows, motorRows, wordRows] = await Promise.all([
-      db.bigramModels.listForUser(userId),
-      db.trigramModels.listForUser(userId),
-      db.motorFeatureModels.listForUser(userId),
-      db.wordModels.listForUser(userId),
-    ]);
+    const [bigramRows, trigramRows, motorRows, wordRows, recentTests] =
+      await Promise.all([
+        db.bigramModels.listForUser(userId),
+        db.trigramModels.listForUser(userId),
+        db.motorFeatureModels.listForUser(userId),
+        db.wordModels.listForUser(userId),
+        db.tests.recentForUser(userId, PACING_TESTS),
+      ]);
+    // Same clock + pacing the selector uses, so this breakdown explains
+    // exactly the number (and band verdict) adaptive selection acts on.
+    const nowMs = Date.now();
+    const pacing = pacingFrom(recentTests, nowMs);
     const bigramStates = bigramRowsToStates(bigramRows);
     const trigramStates = trigramRowsToStates(trigramRows);
     const motorStates = motorFeatureRowsToStates(motorRows);
@@ -66,6 +74,7 @@ export const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
       wordModels: wordStates,
       layout: prefs.handLayout,
       baselines,
+      nowMs,
     });
 
     const bigrams: WeaknessBreakdown[] = [];
@@ -78,16 +87,14 @@ export const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
       const b = word[i]!;
       const bg = a + b;
       const bgState = bigramStates.get(bg);
-      const isUnsampled = !bgState || bgState.n < MIN_SAMPLES_FOR_WEAKNESS;
-      // Mirror scoreWord's bigram contribution exactly so the breakdown
-      // explains what the algorithm actually does. Untested bigrams
-      // surface as the exploration bonus; sampled ones as their
-      // category-aware weakness (same-finger / same-hand / cross-hand).
+      // Mirror scoreWord's bigram contribution exactly (same shared
+      // helper) so the breakdown explains what the algorithm actually
+      // does: the remaining exploration bonus plus the category-aware,
+      // shrunk weakness (same-finger / same-hand / cross-hand).
       const cat = bigramCategory(a, b, prefs.handLayout);
       const cb = baselineForCategory(cat, bigramBs);
-      const bgWeak = isUnsampled
-        ? UNTESTED_BIGRAM_BONUS
-        : weakness(bgState, cb);
+      const term = bigramTerm(bgState, cb, nowMs);
+      const bgWeak = term.weakness + term.explore;
       alphaContribution += DEFAULT_WEIGHTS.alpha * bgWeak;
       bigrams.push({
         key: bg,
@@ -99,7 +106,7 @@ export const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
         if (seenFeatures.has(fk)) continue;
         seenFeatures.add(fk);
         const fst = motorStates.get(fk);
-        const fweak = fst ? weakness(fst, baselines.motorFeature) : 0;
+        const fweak = fst ? weakness(fst, baselines.motorFeature, nowMs) : 0;
         gammaContribution += DEFAULT_WEIGHTS.gamma * fweak;
         motorFeatures.push({
           key: fk,
@@ -115,7 +122,7 @@ export const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
     for (let i = 2; i < word.length; i++) {
       const tg = word[i - 2]! + word[i - 1]! + word[i]!;
       const st = trigramStates.get(tg);
-      const tweak = st ? weakness(st, baselines.trigram) : 0;
+      const tweak = st ? weakness(st, baselines.trigram, nowMs) : 0;
       betaContribution += DEFAULT_WEIGHTS.beta * tweak;
       trigrams.push({
         key: tg,
@@ -132,7 +139,7 @@ export const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
     const wordState = wordStates.get(word);
     if (wordState) {
       const wweak =
-        baselines.word > 0 ? weakness(wordState, baselines.word) : 0;
+        baselines.word > 0 ? weakness(wordState, baselines.word, nowMs) : 0;
       deltaContribution = DEFAULT_WEIGHTS.delta * wweak;
       wordBreakdown = {
         key: word,
@@ -151,7 +158,12 @@ export const scoreWordRoute = defineRoute<ScoreWordInput, ScoreWordOutput>({
     const bigramCount = Math.max(0, word.length - 1);
     const banded =
       bigramBs.overall > 0
-        ? inChallengeBand(predicted, bigramBs.overall, bigramCount)
+        ? inChallengeBand(
+            predicted,
+            bigramBs.overall,
+            bigramCount,
+            pacing.challengeHigh,
+          )
         : true;
     const recency = prefs.adaptRecency.has(word)
       ? recencyMultiplier(prefs.adaptRecency.get(word)!)

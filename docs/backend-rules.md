@@ -446,6 +446,30 @@ So handlers only need to log **their own** interesting events — don't re-log t
 - Don't log payloads that may contain PII, secrets, or tokens.
 - Outside a request (startup code, scheduled tasks), import `{ logger } from '@/server/logger'` and use the root logger directly.
 
+## Adaptive engine (`src/server/adapt/`)
+
+Pure, unit-tested modules behind `adapt.submit` (measure, then update) and `adapt.words` / `adapt.scoreWord` / `adapt.snapshot` (score, then select). No module touches the DB: routes load rows, convert them with `apply.ts`, and write deltas back through the repos.
+
+| Module | Owns |
+|---|---|
+| `measure.ts` | Clean timing samples from the keystroke stream (bigrams, trigrams, motor features, whole words). Drops wrong keys, recovery keys and pauses. |
+| `slips.ts` | Mistake costs. A wrong key right after a correct one in the same word is a slip on that pair; its sample is the time until the intended key was typed correctly, clamped to 2–8× the user's overall bigram baseline (4× if never fixed). Also charged to the pair's motor features and trigram. |
+| `apply.ts` | `deltasFor`: folds clean + slip samples (interleaved) into stored states; row → `ModelState` adapters carry `updatedAt` as `lastSeenMs`. |
+| `welford.ts` | EWMA mean/variance. α floor 0.05 (~39-sample memory). Staleness: a state's weight halves every 21 days unseen. Shift detection: a test whose clean samples sit ≥ 2.5 SE from the stored mean resets the prior to 5 samples. |
+| `evidence.ts` | Staleness-adjusted effective samples, Bayesian shrinkage `n/(n+5)` (n capped at the EWMA memory), exploration ramp (full bonus at 0 samples, none at 6), standard error. |
+| `scoring.ts` | Baselines (bigrams per mechanical category), `weakness = max(0, mean − baseline − 1·SE) × shrinkage`, `bigramTerm`, `scoreWord` (α/β/γ/δ), `predictedWordMs`. |
+| `pacing.ts` | Session-aware difficulty (tests < 30 min apart). Fading WPM, accuracy below 94% or a slump vs usual speed lower the challenge ceiling (2.6× → 1.9×) and soften weakness concentration (1.8 → 1.3); good form stretches them to 3.0× / 2.1. |
+| `spacing.ts` | Pattern-level spaced repetition read from the `adaptRecency` map: patterns recent tests drilled start the coverage pick partly covered. |
+| `sampling.ts` | Weighted picks and `pickWithCoverage` (×0.4 per already-covered pattern). |
+| `recency.ts` | Word recency penalty and `advanceRecency`. |
+| `select.ts` | `selectBatches`: score once, apply the band with progressive relaxation (strict → easy end relaxed → no band), draw N batches with cross-batch recency. |
+
+Rules:
+- Stored `meanMs` on bigram / trigram / motor-feature rows is **effective time per attempt**: clean timing plus the cost of fixing slips. Word rows stay clean-only.
+- Pass `nowMs` to `weakness` / `scoreWord` wherever the result drives or mirrors selection (words, scoreWord, snapshot). Omit it only for time-independent display (e.g. history lists).
+- `adapt.scoreWord` must mirror `scoreWord` through the shared helpers (`bigramTerm`, `weakness`, pacing's `inChallengeBand` ceiling). Never re-derive the math inline.
+- Extra per-pattern state needs a real justification for a migration: the dev server does not auto-migrate. Prefer deriving from `updatedAt`, `varianceMs`, `adaptRecency` and recent test rows, as the engine does today.
+
 ## How to add a method
 
 Always two files, in this order:

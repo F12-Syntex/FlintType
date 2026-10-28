@@ -216,4 +216,35 @@ describe("measure.extract", () => {
       expect(m.words.has("the")).toBe(false);
     });
   });
+
+  describe("slips", () => {
+    it("keeps clean buckets clean and reports mistakes separately", () => {
+      const timings = [
+        k(0, "t", "t", true),
+        k(120, "h", "g", false),
+        k(500, "h", "h", true),
+        k(620, "e", "e", true),
+      ];
+      const m = extract(timings, DEFAULT_HAND_LAYOUT, {
+        ...EMPTY_BASELINES,
+        overallBigram: 100,
+      });
+      // Clean timing for th is still dropped…
+      expect(m.bigrams.has("th")).toBe(false);
+      // …but the fumble is charged to it as a mistake cost.
+      expect(m.slips.bigrams.get("th")).toEqual([500]);
+      expect(m.slips.count).toBe(1);
+    });
+
+    it("has no slips for a clean run", () => {
+      const timings = [
+        k(0, "t", "t", true),
+        k(120, "h", "h", true),
+        k(240, "e", "e", true),
+      ];
+      const m = extract(timings, DEFAULT_HAND_LAYOUT, EMPTY_BASELINES);
+      expect(m.slips.count).toBe(0);
+      expect(m.slips.bigrams.size).toBe(0);
+    });
+  });
 });

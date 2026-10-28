@@ -1,6 +1,7 @@
 import type { HandLayoutPrefs } from "@/lib/hand-layout";
 import type { KeystrokeTiming } from "@/types/adapt";
 import { deriveFeatureKeys } from "./motor-features";
+import { extractSlips, type SlipSamples } from "./slips";
 
 /** Inter-keystroke intervals below this are physiologically
  *  impossible — they indicate paste artifacts, hardware autorepeat,
@@ -21,15 +22,18 @@ export const ABSOLUTE_PAUSE_MS = 1500;
  *  starts to earn its keep at three or more characters. */
 export const MIN_WORD_LENGTH_FOR_SAMPLE = 3;
 
-/** Result of the measurement phase — four parallel buckets of raw
- *  samples ready for the Welford updater. The new `words` bucket holds
- *  whole-word total durations (last keystroke time minus first), keyed
- *  by the lowercase target word. */
+/** Result of the measurement phase — four parallel buckets of clean
+ *  timing samples ready for the Welford updater, plus the slip (mistake
+ *  cost) samples from `slips.ts`. The `words` bucket holds whole-word
+ *  total durations (last keystroke time minus first), keyed by the
+ *  lowercase target word. Clean and slip samples stay separate so the
+ *  updater can run shift detection on real timings only. */
 export type Measurements = {
   bigrams: Map<string, number[]>;
   trigrams: Map<string, number[]>;
   motorFeatures: Map<string, number[]>;
   words: Map<string, number[]>;
+  slips: SlipSamples;
   accepted: number;
   rejected: number;
 };
@@ -43,6 +47,9 @@ export type Baselines = {
    *  first sample isn't dropped for "exceeding" a baseline that
    *  doesn't exist yet. */
   word: ReadonlyMap<string, number>;
+  /** The user's overall bigram baseline (ms). Scales slip costs; when
+   *  absent or 0 the slip extractor uses a cold-start reference. */
+  overallBigram?: number;
 };
 
 /** Walk the keystroke stream and emit bigram, trigram, motor-feature,
@@ -165,7 +172,22 @@ export function extract(
   // boundary; the last word never crosses one, so we close it here.
   if (curWord !== -1) flushWord();
 
-  return { bigrams, trigrams, motorFeatures, words, accepted, rejected };
+  const slips = extractSlips(
+    timings,
+    layout,
+    baselines.overallBigram ?? 0,
+    tainted,
+  );
+
+  return {
+    bigrams,
+    trigrams,
+    motorFeatures,
+    words,
+    slips,
+    accepted,
+    rejected,
+  };
 }
 
 /** A keystroke is tainted if it itself was wrong, or if it's the

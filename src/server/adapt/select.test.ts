@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_HAND_LAYOUT } from "@/lib/hand-layout";
+import type { TestRow } from "@/types/adapt";
+import { CHALLENGE_HIGH, WEAKNESS_CONCENTRATION } from "./pacing";
 import {
   COLD_BIGRAM_THRESHOLD,
-  advanceRecency,
+  selectBatches,
   selectWords,
 } from "./select";
 import type { ModelState } from "./welford";
@@ -168,25 +170,179 @@ describe("selectWords", () => {
   });
 });
 
-describe("advanceRecency", () => {
-  it("ages prior entries by 1 and stamps new words at 0", () => {
-    const prev = new Map([["the", 0], ["and", 1]]);
-    const next = advanceRecency(prev, ["for"], 5);
-    expect(next.get("the")).toBe(1);
-    expect(next.get("and")).toBe(2);
-    expect(next.get("for")).toBe(0);
+const warm = (mean: number, n = 50): ModelState => ({ mean, variance: 0, n });
+
+describe("selectBatches — challenge band relaxation", () => {
+  it("keeps pathological words out when the strict band is short", () => {
+    // Overall baseline ≈ 108ms. "qz" predicts ~3.7× (pathological, and
+    // the highest-weight word); "qx" ~1.7× (in band); the rest are easy.
+    // The strict band holds only "qx" — fewer than count — so it must
+    // relax its easy end, not drop the ceiling and let "qz" flood in.
+    const bigramModels = new Map<string, ModelState>([
+      ["qz", warm(400)],
+      ["qx", warm(180)],
+      ["ty", warm(80)],
+      ["ui", warm(80)],
+      ["op", warm(80)],
+      ["dd", warm(100, 200)],
+      ["ff", warm(100, 200)],
+      ["gg", warm(100, 200)],
+      ["hh", warm(100, 200)],
+      ["jj", warm(100, 200)],
+    ]);
+    const pool = ["qz", "qx", "ty", "ui", "op"];
+    const rng = SEED_RNG();
+    for (let t = 0; t < 200; t++) {
+      const r = selectWords({ count: 3, pool, ...EMPTY, bigramModels, rng });
+      expect(r.words.length).toBe(3);
+      expect(r.words).not.toContain("qz");
+      expect(r.words).toContain("qx");
+    }
   });
 
-  it("drops entries past the recovery window", () => {
-    const prev = new Map([["old", 4]]);
-    const next = advanceRecency(prev, [], 5);
-    // 4 + 1 = 5 → at-or-past the window → dropped.
-    expect(next.has("old")).toBe(false);
+  it("still fills the passage when nothing at all is under the ceiling", () => {
+    const bigramModels = new Map<string, ModelState>([
+      ["qz", warm(900)],
+      ["jj", warm(100, 400)],
+    ]);
+    const r = selectWords({
+      count: 1,
+      pool: ["qz"],
+      ...EMPTY,
+      bigramModels,
+      rng: SEED_RNG(),
+    });
+    expect(r.words).toEqual(["qz"]);
+  });
+});
+
+describe("selectBatches — pattern spacing", () => {
+  it("rotates away from a pattern the last test drilled heavily", () => {
+    // Same setup as the coverage test: "kx" and "vy" are equally weak
+    // (both unsampled). The last test served four "kx" carriers, so
+    // this passage should lean to "vy" instead of a coin flip.
+    const fast = (): ModelState => warm(80);
+    const bigramModels = new Map<string, ModelState>([
+      ["xa", fast()], ["xe", fast()], ["xo", fast()],
+      ["ya", fast()], ["ye", fast()], ["yo", fast()],
+    ]);
+    const recentlyShown = new Map([
+      ["kxe", 0], ["kxo", 0], ["kxi", 0], ["kxu", 0],
+    ]);
+    const rng = SEED_RNG();
+    const TRIALS = 1000;
+    let vy = 0;
+    for (let t = 0; t < TRIALS; t++) {
+      const r = selectWords({
+        count: 1,
+        pool: ["kxa", "vya"],
+        ...EMPTY,
+        bigramModels,
+        recentlyShown,
+        rng,
+      });
+      if (r.words[0] === "vya") vy++;
+    }
+    expect(vy / TRIALS).toBeGreaterThan(0.62);
+  });
+});
+
+describe("selectBatches — multiple batches", () => {
+  it("returns the requested number of batches", () => {
+    const r = selectBatches(
+      { count: 3, pool: POOL, ...EMPTY, rng: SEED_RNG() },
+      4,
+    );
+    expect(r.batches.length).toBe(4);
+    for (const b of r.batches) expect(b.length).toBe(3);
   });
 
-  it("a word both aged-out and freshly shown lands at distance 0", () => {
-    const prev = new Map([["x", 4]]);
-    const next = advanceRecency(prev, ["x"], 5);
-    expect(next.get("x")).toBe(0);
+  it("later batches prefer words the earlier batches didn't use", () => {
+    const pool = ["bad", "cog", "fun", "hip", "jam", "kit", "mop", "rex"];
+    const rng = SEED_RNG();
+    const TRIALS = 300;
+    let overlap = 0;
+    for (let t = 0; t < TRIALS; t++) {
+      const r = selectBatches({ count: 4, pool, ...EMPTY, rng }, 2);
+      const first = new Set(r.batches[0]);
+      overlap += r.batches[1]!.filter((w) => first.has(w)).length;
+    }
+    // Independent draws would share 2 of 4 on average.
+    expect(overlap / TRIALS).toBeLessThan(1.2);
+  });
+});
+
+describe("selectBatches — difficulty pacing", () => {
+  const NOW = 1_700_000_000_000;
+  const row = (wpm: number, minutesAgo: number): TestRow => ({
+    id: `t${minutesAgo}`,
+    userId: "u1",
+    startedAt: new Date(NOW - minutesAgo * 60_000),
+    completedAt: new Date(NOW - minutesAgo * 60_000 + 30_000),
+    mode: "training",
+    durationOrWordCount: 25,
+    lengthMode: "words",
+    wpm,
+    accuracy: 97,
+    errorCount: 0,
+    resetCount: 0,
+    wasCompleted: true,
+    rawWpm: null,
+    peakWpm: null,
+    avgWpm: null,
+    stallWpm: null,
+    consistency: null,
+    wpmHistory: null,
+  });
+  // Newest first; WPM fading across the session.
+  const fading = [row(80, 1), row(85, 3), row(90, 5), row(110, 7), row(110, 9)];
+
+  // Both words are same-hand (left) pairs against a same-hand baseline
+  // of ~117ms: "qx" predicts ~2.2× (hard), "wc" ~1.5× (moderate).
+  const bigramModels = new Map<string, ModelState>([
+    ["qx", warm(260)],
+    ["wc", warm(180)],
+    ["sd", warm(100, 300)],
+    ["fe", warm(100, 300)],
+  ]);
+
+  it("serves the hardest words when fresh", () => {
+    const rng = SEED_RNG();
+    let qx = 0;
+    for (let t = 0; t < 200; t++) {
+      const r = selectWords({
+        count: 1, pool: ["qx", "wc"], ...EMPTY, bigramModels, rng, nowMs: NOW,
+      });
+      if (r.words[0] === "qx") qx++;
+    }
+    expect(qx).toBeGreaterThan(100);
+  });
+
+  it("eases the ceiling and softens concentration when fading", () => {
+    const rng = SEED_RNG();
+    for (let t = 0; t < 200; t++) {
+      const r = selectBatches(
+        {
+          count: 1, pool: ["qx", "wc"], ...EMPTY, bigramModels, rng,
+          recentTests: fading, nowMs: NOW,
+        },
+        1,
+      );
+      expect(r.pacing.challengeHigh).toBeLessThan(CHALLENGE_HIGH);
+      expect(r.pacing.concentration).toBeLessThan(WEAKNESS_CONCENTRATION);
+      // A word predicted at ~2.2× is above the tired ceiling.
+      expect(r.batches[0]).toEqual(["wc"]);
+    }
+  });
+
+  it("ignores a fade from an earlier session", () => {
+    const r = selectBatches(
+      {
+        count: 1, pool: ["qx", "wc"], ...EMPTY, bigramModels,
+        rng: SEED_RNG(), recentTests: fading, nowMs: NOW + 3 * 3_600_000,
+      },
+      1,
+    );
+    expect(r.pacing.challengeHigh).toBe(CHALLENGE_HIGH);
   });
 });

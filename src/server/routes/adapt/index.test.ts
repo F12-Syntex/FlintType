@@ -881,4 +881,74 @@ describe("adapt routes", () => {
     });
     expect(out.isPersonalBest).toBe(false);
   });
+
+  // ── adaptive-engine upgrades ───────────────────────────────────────
+
+  it("submit charges a fumbled pair its mistake cost in the bigram model", async () => {
+    signedInAs("u1");
+    // "the": t ✓, h ✗ (typed g), then the corrected h at 600ms. The
+    // clean "th" timing is unusable, but the slip still teaches the
+    // model that "th" costs ~600ms when it goes wrong.
+    const timings: KeystrokeTiming[] = [
+      { t: 0, expected: "t", typed: "t", correct: true, wordIndex: 0 },
+      { t: 120, expected: "h", typed: "g", correct: false, wordIndex: 0 },
+      { t: 600, expected: "h", typed: "h", correct: true, wordIndex: 0 },
+      { t: 720, expected: "e", typed: "e", correct: true, wordIndex: 0 },
+      { t: 960, expected: "a", typed: "a", correct: true, wordIndex: 1 },
+      { t: 1080, expected: "n", typed: "n", correct: true, wordIndex: 1 },
+      { t: 1200, expected: "d", typed: "d", correct: true, wordIndex: 1 },
+    ];
+    await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+      db: ctx.db,
+      // Below the verify floor so this hand-built stream skips the
+      // plausibility gate.
+      input: submitInput({ wpm: 30, accuracy: 86, errorCount: 1, timings }),
+    });
+    const rows = await ctx.db.bigramModels.listForUser("u1");
+    const th = rows.find((r) => r.bigram === "th");
+    const an = rows.find((r) => r.bigram === "an");
+    expect(th?.meanMs).toBe(600);
+    expect(th?.sampleCount).toBe(1);
+    expect(an?.meanMs).toBe(120);
+    // The motor features of the fumbled motion are charged too.
+    const motor = await ctx.db.motorFeatureModels.listForUser("u1");
+    expect(motor.some((r) => r.meanMs === 600)).toBe(true);
+  });
+
+  it("snapshot reports pacing easing off over a fading session", async () => {
+    signedInAs("u1");
+    // Five completed runs in the last few minutes, newest slowest.
+    const now = Date.now();
+    const wpms = [28, 30, 32, 38, 38]; // newest → oldest, all < verify floor
+    for (let i = wpms.length - 1; i >= 0; i--) {
+      const startedAt = now - (i + 1) * 60_000;
+      await callRoute<SubmitTestOutput>(["adapt", "submit"], {
+        db: ctx.db,
+        input: submitInput({
+          mode: "casual",
+          wpm: wpms[i]!,
+          startedAt,
+          completedAt: startedAt + 30_000,
+        }),
+      });
+    }
+    const snap = await callRoute<AdaptSnapshotOutput>(["adapt", "snapshot"], {
+      db: ctx.db,
+    });
+    expect(snap.fatigueDampener).toBeLessThan(1);
+  });
+
+  it("words prefers fresh words across prefetch batches", async () => {
+    signedInAs("u1");
+    const pool = ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta"];
+    const out = await callRoute<RequestWordsOutput>(["adapt", "words"], {
+      db: ctx.db,
+      input: { count: 4, pool, batches: 2 },
+    });
+    expect(out.batches.length).toBe(2);
+    for (const b of out.batches) {
+      expect(new Set(b).size).toBe(4);
+      for (const w of b) expect(pool).toContain(w);
+    }
+  });
 });
