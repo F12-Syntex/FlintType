@@ -150,41 +150,46 @@ export function countTiles(
   ).length;
 }
 
-// ─── copy ─────────────────────────────────────────────────────────
-
-/** Reps the runner will actually ask for: the user's Burst reps pref
- *  wins on drills that allow it. */
-export function effectiveReps(drill: DrillSpec, burstReps: number): number {
-  if (drill.kind !== "burst") return 1;
-  return drill.repsConfigurable ? burstReps : drill.repsPerItem;
+/** The recommended tile sits above the grid; it follows the filter like
+ *  any other drill, so a "Burst" filter never leads with a sudden-death
+ *  drill. */
+export function showRecommended(
+  recommended: DrillSpec | null,
+  filter: DrillFilterId,
+): recommended is DrillSpec {
+  return recommended !== null && matchesFilter(recommended, filter);
 }
 
-const NUMBER = new Intl.NumberFormat("en");
-
-function plural(n: number, one: string, many: string): string {
-  return `${NUMBER.format(n)} ${n === 1 ? one : many}`;
+/** Drills a filter shows on the page: grid tiles plus the recommended
+ *  tile when it matches. */
+export function filterCount(
+  groups: DrillTileGroups,
+  recommended: DrillSpec | null,
+  filter: DrillFilterId,
+): number {
+  return (
+    countTiles(groups, filter) + (showRecommended(recommended, filter) ? 1 : 0)
+  );
 }
 
-/** Short spec line under a tile: "30 words · no mistakes",
- *  "20 words · 5 reps · 60 wpm". */
-export function drillSpecLine(drill: DrillSpec, burstReps: number): string {
-  if (drill.kind === "sudden-death") {
-    return drill.words.length > 0
-      ? `${plural(drill.words.length, "word", "words")} · no mistakes`
-      : "No mistakes allowed";
-  }
-  const count = drill.tracker === "common-1000" ? 1000 : drill.items.length;
-  const unit =
-    drill.id === "pangrams"
-      ? (["sentence", "sentences"] as const)
-      : drill.id === "trigram-burst"
-        ? (["cluster", "clusters"] as const)
-        : (["word", "words"] as const);
-  const reps = effectiveReps(drill, burstReps);
-  const parts = [
-    plural(reps, "rep", "reps"),
-    `${drill.thresholdWpm} wpm`,
-  ];
-  if (count > 0) parts.unshift(plural(count, unit[0], unit[1]));
-  return parts.join(" · ");
+/** Filter options worth offering: All and the active one always; any
+ *  other option only when it narrows the page (some drills, but not all
+ *  of them). A filter that shows exactly what All shows is a dead end. */
+export function visibleFilters(
+  groups: DrillTileGroups,
+  recommended: DrillSpec | null,
+  active: DrillFilterId,
+): readonly DrillFilter[] {
+  const all = filterCount(groups, recommended, "all");
+  return DRILL_FILTERS.filter((f) => {
+    if (f.id === "all" || f.id === active) return true;
+    const n = filterCount(groups, recommended, f.id);
+    return n > 0 && n < all;
+  });
+}
+
+export const ISOLATION_TILE_TITLE = "Isolate weak pairs";
+
+export function tileTitle(tile: DrillTile): string {
+  return tile.type === "drill" ? tile.drill.title : ISOLATION_TILE_TITLE;
 }

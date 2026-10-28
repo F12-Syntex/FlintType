@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { SpectateIndicator } from "@/components/spectate-indicator";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { InputCapture } from "@/app/_components/input-capture";
 import { Passage } from "@/app/_components/passage";
 import {
   PracticeProvider,
@@ -11,6 +10,7 @@ import {
 } from "@/app/_components/practice-state";
 import { ReportActivity } from "@/app/_components/report-activity";
 import { useLifetimeStats } from "@/lib/use-lifetime-stats";
+import { DrillCleared } from "./drill-cleared";
 import { DrillHeader } from "./drill-header";
 
 /** Sudden-death runner that piggybacks on the practice surface.
@@ -23,9 +23,10 @@ import { DrillHeader } from "./drill-header";
  *  overrides, line scrolling, and tape-mode preferences all apply
  *  unchanged.
  *
- *  The only thing the drill adds on top is a "drill clear" overlay
- *  when the run reaches phase===done and a footer strip showing the
- *  current restart count. */
+ *  Typing goes through the same <InputCapture> as the practice page:
+ *  a focused hidden input, so a phone raises its soft keyboard when the
+ *  passage is tapped. The drill adds a clear screen when the run
+ *  reaches phase===done and a footer strip with the reset count. */
 export function SuddenDeathSurface({
   title,
   subtitle,
@@ -40,11 +41,15 @@ export function SuddenDeathSurface({
       <DrillHeader title={title} subtitle={subtitle} />
       <PracticeProvider lockedWords={words} suddenDeath>
         <ReportActivity status="practicing" />
-        <Body />
+        <InputCapture>
+          <Body />
+        </InputCapture>
       </PracticeProvider>
     </>
   );
 }
+
+const INTERACTIVE = "button, a, input, select, textarea, [role='radio'], [role='switch']";
 
 function Body() {
   const { state, suddenDeathRestarts, restart } = usePractice();
@@ -64,13 +69,24 @@ function Body() {
 
   return (
     // No horizontal padding: the runner page owns the column (§10.3).
-    <div className="flex min-h-0 flex-1 flex-col gap-4 pt-6 pb-3 sm:gap-6 sm:py-8">
+    // mousedown's default would move focus off <InputCapture>'s hidden
+    // input right after its tap handler focuses it (closing a phone's
+    // keyboard), so it's prevented on everything but real controls.
+    <div
+      className="flex min-h-0 flex-1 flex-col gap-4 pt-6 pb-3 sm:gap-6 sm:py-8"
+      onMouseDown={(e) => {
+        if (!(e.target as HTMLElement).closest(INTERACTIVE)) e.preventDefault();
+      }}
+    >
       {!done ? <SpectateIndicator /> : null}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {done ? (
           <DrillCleared
-            words={totalWords}
-            restarts={suddenDeathRestarts}
+            title="Clean run."
+            stats={[
+              { label: "Words", value: String(totalWords) },
+              { label: "Resets", value: String(suddenDeathRestarts) },
+            ]}
             onRetry={restart}
           />
         ) : (
@@ -82,74 +98,28 @@ function Body() {
         totalWords={totalWords}
         restarts={suddenDeathRestarts}
         done={done}
+        resting={state.phase === "rest"}
       />
     </div>
   );
 }
 
-/** Full-clear celebration. Sits inside the same layout shell as the
- *  Passage so swapping in/out doesn't shift other chrome. The retry
- *  affordance re-uses the locked words (PracticeProvider.restart in
- *  drill mode) — same exercise, fresh attempt. */
-function DrillCleared({
-  words,
-  restarts,
-  onRetry,
-}: {
-  words: number;
-  restarts: number;
-  onRetry: () => void;
-}) {
-  return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
-      <span className="text-xs font-semibold text-primary">Drill clear</span>
-      <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-        Clean run.
-      </h2>
-      <div className="flex items-center gap-12 text-muted-foreground">
-        <Stat label="Words" value={words.toString()} />
-        <Stat label="Resets burned" value={restarts.toString()} />
-      </div>
-      <div className="flex flex-wrap justify-center gap-2">
-        <Button size="lg" onClick={onRetry}>
-          Run again
-        </Button>
-        <Link
-          href="/drills"
-          className={buttonVariants({ variant: "outline", size: "lg" })}
-        >
-          Back to drills
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <span className="text-xs font-medium">{label}</span>
-      <span className="text-2xl font-bold tabular-nums text-foreground">
-        {value}
-      </span>
-    </div>
-  );
-}
-
-/** Footer strip that surfaces the unique sudden-death stats — words
- *  cleared so far in the current attempt and how many resets have
- *  burned. Hidden when the drill is done since the cleared overlay
- *  takes over and a duplicate counter would look noisy. */
+/** Footer strip with the sudden-death stats: words cleared in this
+ *  attempt and resets burned. Before the first key on a phone it also
+ *  says how to raise the keyboard. Hidden on the clear screen, which
+ *  shows the same numbers. */
 function SuddenDeathFooter({
   cursorWord,
   totalWords,
   restarts,
   done,
+  resting,
 }: {
   cursorWord: number;
   totalWords: number;
   restarts: number;
   done: boolean;
+  resting: boolean;
 }) {
   if (done) return null;
   return (
@@ -171,6 +141,11 @@ function SuddenDeathFooter({
         </span>
       </span>
       <span>One miss restarts the run</span>
+      {resting ? (
+        <span className="font-medium text-foreground md:hidden">
+          Tap the words to type
+        </span>
+      ) : null}
     </div>
   );
 }

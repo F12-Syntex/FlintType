@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.7 — 27 October 2026
+- Burst drills now work with phone keyboards, and sudden-death drills raise the keyboard when you tap the words.
+- Drill filters only offer choices that change the list, the recommended drill follows your filter, and new accounts see the drills they can start today first.
+- Every drill ends with Run again and Back to drills, the cards show your target speed, streak and progress plainly, and Burst 1000 counts each discovered word once and picks fresh words when you run it again.
+
 ## 6.148.6 — 27 October 2026
 - The WPM trend on profiles now covers your whole history: 1D, 1W, 1M, 3M and All each show their own runs, labelled by date.
 - Record crowns in Recent runs only mark runs that match your personal bests, and new players see a dash instead of an orange zero.

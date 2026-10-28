@@ -4,7 +4,12 @@ import { Lock, Skull, Target, Zap } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { type DrillTile, drillSpecLine, isolationPattern } from "./drill-tiles";
+import { drillSpecLine } from "./drill-spec-line";
+import {
+  type DrillTile,
+  ISOLATION_TILE_TITLE,
+  isolationPattern,
+} from "./drill-tiles";
 import type { DrillSpec } from "./drills-data";
 
 /** Card shell shared by every tile: the <Surface> recipe (ui-law §21)
@@ -51,7 +56,7 @@ function IsolationTile({ drills }: { drills: readonly DrillSpec[] }) {
   if (ready.length === 0) {
     const placeholder = drills[0];
     return placeholder ? (
-      <LockedTile drill={placeholder} title="Isolate weak pairs" />
+      <LockedTile drill={placeholder} title={ISOLATION_TILE_TITLE} />
     ) : null;
   }
   return (
@@ -63,7 +68,7 @@ function IsolationTile({ drills }: { drills: readonly DrillSpec[] }) {
     >
       <Badge icon={<Target aria-hidden />}>Isolation</Badge>
       <TileText
-        title="Isolate weak pairs"
+        title={ISOLATION_TILE_TITLE}
         summary="One slow motion drilled across many everyday words. Pick a pair to start."
       />
       <ul className="mt-auto flex flex-wrap gap-2 pt-1" aria-label="Weak pairs">

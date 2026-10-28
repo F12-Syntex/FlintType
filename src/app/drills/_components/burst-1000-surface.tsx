@@ -9,22 +9,28 @@ import { cn } from "@/lib/utils";
 import { BurstSurface } from "./burst-surface";
 import { DrillHeader } from "./drill-header";
 
-/** Per-session item count drawn from the user's outstanding (un-
- *  discovered) words. Bigger than the 25-item generic burst so the
- *  user can rack up multiple words per session, but small enough that
- *  a sitting clears in a few minutes. */
+/** Words per sitting: more than a regular burst so a session racks up
+ *  several discoveries, few enough to clear in a few minutes. */
 const BURST_1000_PER_SESSION = 30;
 
-/** Burst-1000 wrapper. Reaches into the persisted drill-progress
- *  slice to figure out which words the user has cleared, picks the
- *  next slug of unseen words for this session, hands them to the
- *  shared `BurstSurface`, and persists every clear back to the slice
- *  via `markDiscovered`.
- *
- *  The bottom of the surface gets a 1000-cell discovery grid (one
- *  cell per word in `EN_COMMON_1000`). Each cell lights primary the
- *  moment the user has ever cleared the word — so progress reads as
- *  an honest, slow accumulation across many sessions. */
+/** The next `count` words the user hasn't cleared, in frequency order. */
+function nextUndiscovered(
+  discovered: ReadonlySet<string>,
+  count: number,
+): readonly string[] {
+  const out: string[] = [];
+  for (const w of EN_COMMON_1000) {
+    if (discovered.has(w.toLowerCase())) continue;
+    out.push(w);
+    if (out.length >= count) break;
+  }
+  return out;
+}
+
+/** Burst 1000: a burst over the next 30 undiscovered words of the 1,000
+ *  most common English words. Every clear is saved to the user's
+ *  drill-progress slice, and a 1000-cell grid under the word shows the
+ *  long-running total. "Run again" picks the next 30. */
 export function Burst1000Surface({
   title,
   subtitle,
@@ -37,67 +43,50 @@ export function Burst1000Surface({
   repsPerItem: number;
 }) {
   const { discoveredSet, markDiscovered } = useDrillProgress();
-  // Track session-local clears separately so the discovery grid
-  // updates instantly on each clear without waiting for the prefs
-  // round-trip; merged with the persisted set when computing what's
-  // lit.
-  const [sessionDiscovered, setSessionDiscovered] = useState<Set<string>>(
+  // Clears from this sitting, so the grid lights instantly without
+  // waiting for the prefs round-trip. Lit = saved ∪ session.
+  const [sessionDiscovered, setSessionDiscovered] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
-
-  // Items the user hasn't cleared yet, in frequency order. Computed
-  // once at mount so the session's word list stays stable while the
-  // user types — we don't want a freshly-cleared word being yanked
-  // mid-attempt because it just landed in the discovered set.
-  const sessionItems = useMemo<readonly string[]>(() => {
-    const out: string[] = [];
-    for (const w of EN_COMMON_1000) {
-      const lower = w.toLowerCase();
-      if (discoveredSet.has(lower)) continue;
-      out.push(w);
-      if (out.length >= BURST_1000_PER_SESSION) break;
-    }
-    return out;
-    // discoveredSet only changes between sessions in practice (a fresh
-    // mount of this surface). Capturing once on mount is intentional.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const discovered = useMemo(
+    () => new Set([...discoveredSet, ...sessionDiscovered]),
+    [discoveredSet, sessionDiscovered],
+  );
+  // Picked once per round, so a word just cleared isn't pulled out
+  // from under the user mid-run.
+  const [sessionItems, setSessionItems] = useState(() =>
+    nextUndiscovered(discoveredSet, BURST_1000_PER_SESSION),
+  );
 
   const handleCleared = useCallback(
     (word: string) => {
       const lower = word.toLowerCase();
-      setSessionDiscovered((prev) => {
-        if (prev.has(lower)) return prev;
-        const next = new Set(prev);
-        next.add(lower);
-        return next;
-      });
+      setSessionDiscovered((prev) =>
+        prev.has(lower) ? prev : new Set([...prev, lower]),
+      );
       markDiscovered(lower);
     },
     [markDiscovered],
   );
 
-  const totalDiscovered = discoveredSet.size + sessionDiscovered.size;
-  const litCount = Math.min(EN_COMMON_1000.length, totalDiscovered);
+  const total = EN_COMMON_1000.length;
+  const lit = Math.min(total, discovered.size);
 
-  // Already-cleared the whole 1000? Surface a celebration card and a
-  // back-link instead of mounting BurstSurface against an empty list.
   if (sessionItems.length === 0) {
     return (
       <>
         <DrillHeader title={title} subtitle={subtitle} />
         <section className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 py-16 text-center">
-          <span className="text-xs font-semibold text-primary">
-            Drill complete
-          </span>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Every word cleared.
-          </h2>
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-xs font-semibold text-primary">Drill complete</span>
+            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              Every word cleared.
+            </h2>
+          </div>
           <p className="max-w-md text-sm text-muted-foreground">
-            All {EN_COMMON_1000.length} of the most common English words
-            sit in your discovered set — there's nothing left to drill
-            here. Try Pangram sprint or Tongue-twister gauntlet for a
-            fresh challenge.
+            You&apos;ve cleared all {total.toLocaleString("en")} of the most
+            common English words. Try Pangram sprint or Tongue-twister
+            gauntlet next.
           </p>
           <Link href="/drills" className={buttonVariants({ size: "lg" })}>
             Back to drills
@@ -114,80 +103,61 @@ export function Burst1000Surface({
       items={sessionItems}
       thresholdWpm={thresholdWpm}
       repsPerItem={repsPerItem}
+      unit="word"
       onItemCleared={handleCleared}
-      itemStat={{
-        top: `${litCount}/${EN_COMMON_1000.length}`,
-        caption: "Discovered",
-      }}
+      onRestart={() =>
+        setSessionItems(nextUndiscovered(discovered, BURST_1000_PER_SESSION))
+      }
+      itemStat={{ value: `${lit}/${total}`, caption: "Discovered" }}
       progressSlot={
-        <DiscoveryGrid
-          discovered={discoveredSet}
-          sessionDiscovered={sessionDiscovered}
-        />
+        <DiscoveryGrid discovered={discovered} session={sessionDiscovered} lit={lit} />
       }
     />
   );
 }
 
-/** Long-running discovery grid. One cell per word in
- *  `EN_COMMON_1000`, lit when the user has ever cleared that word.
- *  The cell labels itself with the underlying word as a `title` so a
- *  user can hover to see exactly which word the cell tracks (a small
- *  affordance — the cells are too small for inline labels). */
+/** One cell per word in `EN_COMMON_1000`, lit once the user has ever
+ *  cleared it; this sitting's clears are full primary. Each cell's
+ *  `title` names its word for anyone curious enough to hover. The
+ *  "Discovered" stat card above carries the count. */
 function DiscoveryGrid({
   discovered,
-  sessionDiscovered,
+  session,
+  lit,
 }: {
   discovered: ReadonlySet<string>;
-  sessionDiscovered: ReadonlySet<string>;
+  session: ReadonlySet<string>;
+  lit: number;
 }) {
-  const total = EN_COMMON_1000.length;
-  const lit = Array.from(discovered).length + Array.from(sessionDiscovered).length;
   return (
-    <div className="relative mx-auto w-full max-w-3xl">
-      <div className="rounded-2xl border border-border bg-card/40 p-3 sm:p-4">
-        <div
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={total}
-          aria-valuenow={Math.min(total, lit)}
-          aria-label="Words discovered"
-          className="grid gap-[3px]"
-          style={{
-            gridTemplateColumns: "repeat(auto-fill, minmax(8px, 1fr))",
-          }}
-        >
-          {EN_COMMON_1000.map((word, i) => {
-            const lower = word.toLowerCase();
-            const isLit =
-              discovered.has(lower) || sessionDiscovered.has(lower);
-            const isSession = sessionDiscovered.has(lower);
-            return (
-              <span
-                key={`${i}-${word}`}
-                aria-hidden
-                title={word}
-                className={cn(
-                  "h-2 rounded-[1px] transition-colors",
-                  isLit
-                    ? isSession
-                      ? "bg-primary motion-safe:animate-pulse"
-                      : "bg-primary/85"
-                    : "bg-foreground/[0.07]",
-                )}
-              />
-            );
-          })}
-        </div>
-      </div>
+    <div className="mx-auto w-full max-w-3xl rounded-2xl border border-border bg-card/40 p-3 sm:p-4">
       <div
-        aria-hidden
-        className="relative mt-2 flex items-center justify-center"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={EN_COMMON_1000.length}
+        aria-valuenow={lit}
+        aria-label="Words discovered"
+        className="grid gap-[3px]"
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(8px, 1fr))" }}
       >
-        <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
-        <span className="relative bg-background px-3 text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground tabular-nums">
-          Discovered · {Math.min(total, lit)}/{total}
-        </span>
+        {EN_COMMON_1000.map((word, i) => {
+          const lower = word.toLowerCase();
+          return (
+            <span
+              key={`${i}-${word}`}
+              aria-hidden
+              title={word}
+              className={cn(
+                "h-2 rounded-[1px] transition-colors",
+                session.has(lower)
+                  ? "bg-primary"
+                  : discovered.has(lower)
+                    ? "bg-primary/60"
+                    : "bg-foreground/[0.07]",
+              )}
+            />
+          );
+        })}
       </div>
     </div>
   );
