@@ -1,47 +1,55 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import { PageHeader, PageSection, PageShell } from "@/components/page-shell";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { BackendError, useBackend } from "@/lib/backend";
 import type { HistorySummaryOutput } from "@/types/history";
 import { ConfidencePlayground } from "./confidence-playground";
-import { Guidance } from "./guidance";
-import { InsightsHero } from "./insights-hero";
-import { InsightsSection } from "./insights-section";
-import { InsightsTrend } from "./insights-trend";
+import { FocusNext } from "./guidance";
+import { TrendPanel } from "./insights-trend";
+import { InsightsSkeleton } from "./insights-skeleton";
+import { TwoUp } from "./panel";
 import { RecentTests } from "./recent-tests";
-import { WeaknessChart } from "./weakness-chart";
+import { StatusPill } from "./status-pill";
+import { WeakSpots } from "./weak-spots";
 
-/** /insights orchestrator. One backend.history.summary() call
- *  fans out to: hero status, WPM trend, slow words, slow bigrams,
- *  recent tests, practical guidance. The confidence playground is
- *  independent, it talks to /api/adapt/scoreWord per-word.
- *
- *  Replaces the old /history page; the data is the same source
- *  (recent tests + weakness lists), but the framing pivots from
- *  'audit log of the last 90 days' to 'what does the algorithm
- *  understand about your typing right now'. */
+type LoadError = { message: string; signIn: boolean };
+
+/** /insights: what the algorithm knows about your typing, answer first.
+ *  One `history.summary()` call feeds every section, in priority order:
+ *  Focus next → Weak spots → Trend → Playground. The playground is
+ *  independent and scores words through `adapt.scoreWord`. */
 export function InsightsView() {
   const backend = useBackend();
   const [snap, setSnap] = useState<HistorySummaryOutput | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<LoadError | null>(null);
   const [loading, setLoading] = useState(true);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     backend.history
       .summary()
       .then((r) => {
-        if (cancelled) return;
-        setSnap(r);
+        if (!cancelled) setSnap(r);
       })
       .catch((err) => {
         if (cancelled) return;
         if (err instanceof BackendError && err.code === "UNAUTHORIZED") {
-          setError("Sign in to load your insights.");
+          setError({ message: "Sign in to see your insights.", signIn: true });
+        } else if (err instanceof BackendError && err.code === "RATE_LIMITED") {
+          setError({
+            message: "Too many refreshes in a row. Wait a moment, then try again.",
+            signIn: false,
+          });
         } else {
-          setError(
-            err instanceof Error ? err.message : "Failed to load insights.",
-          );
+          setError({
+            message:
+              err instanceof Error ? err.message : "Couldn't load your insights.",
+            signIn: false,
+          });
         }
       })
       .finally(() => {
@@ -50,87 +58,86 @@ export function InsightsView() {
     return () => {
       cancelled = true;
     };
-  }, [backend]);
+  }, [backend, attempt]);
+
+  const retry = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    setAttempt((n) => n + 1);
+  }, []);
 
   return (
-    <>
-      <InsightsHero snap={snap} loading={loading} />
-
-      {error ? (
-        <section className="px-5 py-12 sm:px-12 lg:px-16">
-          <p className="text-sm text-primary">{error}</p>
-        </section>
+    <PageShell>
+      <PageHeader
+        eyebrow="Insights"
+        title="Your typing model"
+        description="What the algorithm has learned from your typing."
+        aside={<StatusPill snap={snap} loading={loading} />}
+      />
+      {error && !snap ? (
+        <ErrorState error={error} onRetry={retry} />
       ) : !snap ? (
-        <section className="px-5 py-12 sm:px-12 lg:px-16">
-          <p className="text-sm text-muted-foreground">Reading your model…</p>
-        </section>
+        <InsightsSkeleton />
       ) : (
         <>
-          {/* Trend + recent tests share a row at lg+, both are
-           *  time-axis summaries and read together. */}
-          <div className="grid gap-0 border-b border-border lg:grid-cols-[2fr_1fr]">
-            <InsightsSection
-              label="WPM trend"
-              subtitle="Your last 30 completed tests, oldest left."
-              noBorder
-              className="lg:border-r lg:border-border"
-            >
-              <InsightsTrend tests={snap.recentTests} />
-            </InsightsSection>
-            <InsightsSection
-              label="Recent runs"
-              subtitle="Latest six. Tap into your profile for the longer list."
-              noBorder
-            >
+          <PageSection
+            id="focus"
+            title="Focus next"
+            description="Your highest-leverage practice right now."
+          >
+            <FocusNext snap={snap} />
+          </PageSection>
+          <PageSection
+            id="weak-spots"
+            title="Weak spots"
+            description="Slowest compared with your own average."
+          >
+            <WeakSpots snap={snap} />
+          </PageSection>
+          <PageSection
+            id="trend"
+            title="Trend"
+            description="Your last 30 completed tests."
+          >
+            <TwoUp>
+              <TrendPanel tests={snap.recentTests} />
               <RecentTests tests={snap.recentTests} />
-            </InsightsSection>
-          </div>
-
-          {/* Weakness charts side-by-side at lg+, words on the
-           *  left, bigrams on the right. Both read the same summary
-           *  payload; the chart primitive is shared. */}
-          <div className="grid gap-0 border-b border-border lg:grid-cols-2">
-            <InsightsSection
-              label="Slowest words"
-              subtitle="Whole-word slowness vs your own baseline. Drill these in the Worst-words burst."
-              noBorder
-              className="lg:border-r lg:border-border"
-            >
-              <WeaknessChart
-                rows={snap.weakestWords}
-                emptyHint="No word baseline yet. Finish a few more tests."
-                baselineMs={snap.wordBaselineMs}
-              />
-            </InsightsSection>
-            <InsightsSection
-              label="Slowest bigrams"
-              subtitle="Two-character clusters that drag your hands. The Weakness gauntlet drill turns these into a sudden-death passage."
-              noBorder
-            >
-              <WeaknessChart
-                rows={snap.weakestPairs}
-                emptyHint="No bigram baseline yet. Type a bit more and the model will surface your weak pairs."
-                baselineMs={snap.bigramBaselineMs}
-              />
-            </InsightsSection>
-          </div>
-
-          <InsightsSection
-            label="Coaching · what to focus on next"
-            subtitle="Plain-language guidance derived from your model: what's actually slow, what to drill."
+            </TwoUp>
+          </PageSection>
+          <PageSection
+            id="playground"
+            title="Playground"
+            description="Score any text against your model."
           >
-            <Guidance snap={snap} />
-          </InsightsSection>
-
-          <InsightsSection
-            label="Confidence playground"
-            subtitle="Type or paste any text. The algorithm scores every word against your model and paints challenge-band words in primary."
-            noBorder
-          >
-            <ConfidencePlayground />
-          </InsightsSection>
+            <ConfidencePlayground cold={snap.cold} />
+          </PageSection>
         </>
       )}
-    </>
+    </PageShell>
+  );
+}
+
+function ErrorState({
+  error,
+  onRetry,
+}: {
+  error: LoadError;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-start gap-4 rounded-2xl border border-dashed border-border bg-card/40 px-5 py-8 sm:items-center sm:text-center">
+      <p className="text-sm text-muted-foreground" role="alert">
+        {error.message}
+      </p>
+      {error.signIn ? (
+        <Link href="/sign-in" className={buttonVariants({ size: "lg" })}>
+          Sign in
+        </Link>
+      ) : (
+        <Button variant="outline" size="lg" onClick={onRetry}>
+          Try again
+        </Button>
+      )}
+    </div>
   );
 }

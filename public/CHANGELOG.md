@@ -8,6 +8,13 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.141.0 — 27 October 2026
+- The Insights page now opens with what to practise next, and each tip has a button that starts the right drill.
+- Your slowest letter pairs and words, your WPM trend and your recent runs now sit in rounded cards that line up on phones and desktops, with only your top weakness and your trend line in orange.
+- The playground now predicts a realistic WPM for any text, shows each word's predicted speed, and only highlights the words worth practising.
+- Recent runs now link to your profile for the full list, and practice links now go to the home page.
+- Insights now shows a loading preview while your data arrives, and a Try again button if it fails.
+
 ## 6.140.0 — 27 October 2026
 - The leaderboard has a simpler layout: one row of filters above the table replaces the long side menu, so you can always see which board you're looking at.
 - Your own row is highlighted in orange, and the top three players get a small medal.
