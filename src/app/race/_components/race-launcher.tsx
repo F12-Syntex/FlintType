@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { wordlistLabel } from "@/lib/wordlists/use-wordlist";
 import { CreateChallengePanel } from "./challenge-config";
+import { lobbyConfigSummary } from "./lobby-config";
 import { useQueueStatus } from "./queue-status";
 import { RACE_MODES, RACE_MODE_ORDER, type RaceModeId } from "./race-data";
 import { useRace } from "./race-state";
+import { useLobbyConfig } from "./use-lobby-config";
 
 const MODE_OPTIONS = RACE_MODE_ORDER.map((id) => ({
   value: id,
@@ -20,15 +23,19 @@ const MODE_OPTIONS = RACE_MODE_ORDER.map((id) => ({
  *    2. the mode as the shared segmented switch (orange selected pill),
  *    3. a one-sentence description of the picked mode,
  *    4. "Find race" — the one filled primary (public matchmaking),
- *    5. "Create private lobby" (outline) + its settings gear.
+ *    5. "Create private lobby" (outline) + its settings gear, with one
+ *       muted line naming what that lobby will be (the saved settings),
+ *       so the config isn't hidden behind an unlabeled gear.
  *
  *  Stacked full-width at phone sizes (max-w-xs), one row from sm. Any
  *  failure (finding a race, creating a lobby) shows as a single
- *  destructive line under the buttons (ui-law §6.3). */
+ *  destructive line under the buttons (ui-law §6.3), in a slot that's
+ *  always reserved so the centred block never jumps when it appears. */
 export function RaceLauncher() {
   const { modeId, setModeId, enterQueue, onlineRoomId } = useRace();
   const queue = useQueueStatus();
   const [createError, setCreateError] = useState<string | null>(null);
+  const [lobbyConfig, setLobbyConfig] = useLobbyConfig();
   // The request is in flight, or it landed and we're waiting on the
   // room's first snapshot — either way the race is being found.
   const finding = queue.pending || onlineRoomId != null;
@@ -63,7 +70,7 @@ export function RaceLauncher() {
             setModeId(id);
           }}
           options={MODE_OPTIONS}
-          className="flex w-full flex-nowrap sm:inline-flex sm:w-auto [&>button]:flex-1 sm:[&>button]:flex-none sm:[&>button]:px-5"
+          className="flex w-full flex-nowrap sm:inline-flex sm:w-auto [&>button]:h-10 [&>button]:flex-1 sm:[&>button]:h-auto sm:[&>button]:flex-none sm:[&>button]:px-5"
         />
         <p className="min-h-10 text-sm leading-relaxed text-muted-foreground">
           {mode.description}
@@ -83,13 +90,22 @@ export function RaceLauncher() {
           >
             {finding ? "Finding race…" : "Find race"}
           </Button>
-          <CreateChallengePanel modeId={modeId} onError={setCreateError} />
+          <CreateChallengePanel
+            modeId={modeId}
+            config={lobbyConfig}
+            setConfig={setLobbyConfig}
+            onError={setCreateError}
+          />
         </div>
-        {error ? (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        ) : null}
+        <p className="text-xs text-muted-foreground">
+          Private lobby:{" "}
+          <span className="text-foreground/80">
+            {lobbyConfigSummary(lobbyConfig, wordlistLabel(lobbyConfig.wordlistId))}
+          </span>
+        </p>
+        <p role="alert" className="min-h-5 text-sm text-destructive">
+          {error ?? ""}
+        </p>
       </div>
     </section>
   );

@@ -10,6 +10,7 @@ import { wordlistLabel } from "@/lib/wordlists/use-wordlist";
 import { RACE_QUOTE_GROUPS } from "@/types/race";
 import {
   DURATIONS,
+  quoteLengthLabel,
   toggleQuoteLength,
   WORD_COUNTS,
   type LobbyConfig,
@@ -51,7 +52,7 @@ export function LobbySettings({
           value={config.type}
           onValueChange={(type) => setConfig((c) => ({ ...c, type }))}
           options={TYPE_OPTIONS}
-          className="flex w-full flex-nowrap [&>button]:flex-1"
+          className="flex w-full flex-nowrap [&>button]:h-10 [&>button]:flex-1 sm:[&>button]:h-auto"
         />
       </Row>
 
@@ -67,12 +68,12 @@ export function LobbySettings({
                   setConfig((c) => toggleQuoteLength(c, g.id))
                 }
                 className={cn(
-                  "h-8 bg-card px-3 text-[13px] text-muted-foreground",
+                  "h-10 bg-card px-3 text-[13px] text-muted-foreground sm:h-8",
                   "aria-pressed:brand-surface aria-pressed:border-transparent aria-pressed:text-primary-foreground aria-pressed:shadow-card",
                   "aria-pressed:hover:text-primary-foreground",
                 )}
               >
-                {g.label.charAt(0).toUpperCase() + g.label.slice(1)}
+                {capitalize(quoteLengthLabel(g.id))}
               </Toggle>
             ))}
           </div>
@@ -97,7 +98,7 @@ export function LobbySettings({
             value={config.wordCount}
             onValueChange={(wordCount) => setConfig((c) => ({ ...c, wordCount }))}
             options={WORD_COUNTS.map((w) => ({ value: w, label: String(w) }))}
-            className="flex w-full flex-nowrap tabular-nums [&>button]:flex-1"
+            className="flex w-full flex-nowrap tabular-nums [&>button]:h-10 [&>button]:flex-1 sm:[&>button]:h-auto"
           />
         </Row>
       ) : null}
@@ -111,7 +112,7 @@ export function LobbySettings({
               setConfig((c) => ({ ...c, durationSec }))
             }
             options={DURATIONS.map((d) => ({ value: d, label: `${d}s` }))}
-            className="flex w-full flex-nowrap tabular-nums [&>button]:flex-1"
+            className="flex w-full flex-nowrap tabular-nums [&>button]:h-10 [&>button]:flex-1 sm:[&>button]:h-auto"
           />
         </Row>
       ) : null}
@@ -144,10 +145,14 @@ function Row({
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-xs font-medium text-muted-foreground">{label}</span>
         {hint ? (
-          <span className="text-[11px] text-muted-foreground/70">{hint}</span>
+          <span className="text-xs text-muted-foreground">{hint}</span>
         ) : null}
       </div>
       {children}
     </div>
   );
+}
+
+function capitalize(label: string): string {
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }

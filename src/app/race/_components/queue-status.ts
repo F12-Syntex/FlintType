@@ -11,6 +11,10 @@ import { createContext, useContext } from "react";
 export type QueueStatus = {
   pending: boolean;
   error: string | null;
+  /** True while the shell re-joins the same room for a rematch round
+   *  (round > 1). The re-mounted subtree has no snapshot for a moment,
+   *  which would otherwise route the body back to the launcher. */
+  rematching?: boolean;
 };
 
 export const IDLE_QUEUE_STATUS: QueueStatus = { pending: false, error: null };

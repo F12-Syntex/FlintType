@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { QuoteAttribution } from "./quote-attribution";
 import { playerColorFor } from "./race-data";
 import type { Racer } from "./race-types";
 
@@ -16,7 +17,8 @@ import type { Racer } from "./race-types";
  *  before the room does, we re-pick the next-leading unfinished
  *  racer automatically so the view never goes dead.
  *
- *  We render the passage as plain monospaced prose with three glyph
+ *  We render the passage as plain prose (the app font, same as the
+ *  live passage, so the screen never switches typeface) with three glyph
  *  states (typed / cursor / upcoming) rather than reusing
  *  PracticeProvider's `<Passage>` — the practice component is tightly
  *  bound to the local typer's state and bringing it into spectator
@@ -26,9 +28,12 @@ import type { Racer } from "./race-types";
 export function SpectatorPassage({
   words,
   racers,
+  source,
 }: {
   words: readonly string[];
   racers: readonly Racer[];
+  /** Quote author, credited directly under the text. */
+  source?: string;
 }) {
   const unfinished = useMemo(
     () =>
@@ -39,17 +44,12 @@ export function SpectatorPassage({
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Default selection / re-selection when the watched racer drops
-  // off (finishes or disconnects). Always tracks the leader among
-  // still-racing opponents.
-  useEffect(() => {
-    if (unfinished.length === 0) return;
-    if (!unfinished.some((r) => r.id === selectedId)) {
-      setSelectedId(unfinished[0]!.id);
-    }
-  }, [unfinished, selectedId]);
-
-  const selected = unfinished.find((r) => r.id === selectedId) ?? null;
+  // The watched racer: the user's pick while they're still racing,
+  // otherwise the leader among still-racing opponents. Derived (not
+  // synced in an effect), so when the watched racer finishes or drops
+  // the view moves on in the same render and never goes dead.
+  const selected =
+    unfinished.find((r) => r.id === selectedId) ?? unfinished[0] ?? null;
 
   if (unfinished.length === 0 || !selected) {
     // Should not happen during state.phase === "racing", but a brief
@@ -74,13 +74,14 @@ export function SpectatorPassage({
         onPick={setSelectedId}
         totalChars={totalChars(words)}
       />
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto">
         <p
-          aria-label={`Watching ${selected.name} — cursor at character ${cursor}`}
-          className="whitespace-pre-wrap break-words font-mono text-[20px] leading-[1.7] tracking-[-0.005em] sm:text-[24px]"
+          aria-label={`Watching ${selected.name}, cursor at character ${cursor}`}
+          className="whitespace-pre-wrap break-words text-xl leading-[1.7] sm:text-2xl"
         >
           {renderPassage(words, cursor, color)}
         </p>
+        {source ? <QuoteAttribution source={source} /> : null}
       </div>
     </div>
   );
@@ -113,36 +114,40 @@ function SpectatorHeader({
           <span className="font-semibold text-foreground">{watched.wpm}</span> wpm
         </span>
       </span>
-      <div
-        role="group"
-        aria-label="Racer to watch"
-        className="ml-auto flex flex-wrap items-center gap-1.5"
-      >
-        {unfinished.map((r) => {
-          const active = r.id === watched.id;
-          return (
-            <Button
-              key={r.id}
-              variant="outline"
-              size="xs"
-              onClick={() => onPick(r.id)}
-              aria-pressed={active}
-              className={cn(
-                "gap-1.5",
-                active &&
-                  "border-primary/50 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
-              )}
-            >
-              <span
-                aria-hidden
-                className="size-1.5 shrink-0 rounded-full"
-                style={{ backgroundColor: playerColorFor(r.id) }}
-              />
-              {r.name}
-            </Button>
-          );
-        })}
-      </div>
+      {/* The picker only earns its place with a real choice: with one
+       *  racer left there's nothing to switch to. */}
+      {unfinished.length > 1 ? (
+        <div
+          role="group"
+          aria-label="Racer to watch"
+          className="ml-auto flex flex-wrap items-center gap-1.5"
+        >
+          {unfinished.map((r) => {
+            const active = r.id === watched.id;
+            return (
+              <Button
+                key={r.id}
+                variant="outline"
+                size="xs"
+                onClick={() => onPick(r.id)}
+                aria-pressed={active}
+                className={cn(
+                  "h-9 gap-1.5 sm:h-7",
+                  active &&
+                    "border-primary/50 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
+                )}
+              >
+                <span
+                  aria-hidden
+                  className="size-1.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: playerColorFor(r.id) }}
+                />
+                {r.name}
+              </Button>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -206,7 +211,7 @@ function Glyph({
   if (state === "cursor") {
     return (
       <span
-        className="rounded-[2px]"
+        className="rounded-sm"
         style={{
           backgroundColor: `color-mix(in oklch, ${cursorColor} 35%, transparent)`,
           color: "var(--foreground)",

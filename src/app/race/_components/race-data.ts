@@ -221,3 +221,16 @@ export function stoneSrc(tier: number): string {
   const i = Math.max(0, Math.min(STONE_TIERS.length - 1, tier));
   return `/stone-assets/${STONE_TIERS[i]!.name}.svg`;
 }
+
+/** Stable 32-bit seed derived from a room id. Used so client-side
+ *  features that key off `state.raceSeed` (e.g. the offline bots'
+ *  jitter, which the online flow doesn't run anyway) still see a
+ *  consistent value per room rather than a constantly-rotating
+ *  Date.now(). */
+export function hashSeed(roomId: string): number {
+  let h = 5381;
+  for (let i = 0; i < roomId.length; i += 1) {
+    h = ((h << 5) + h + roomId.charCodeAt(i)) >>> 0;
+  }
+  return h;
+}

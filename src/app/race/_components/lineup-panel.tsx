@@ -41,6 +41,7 @@ export function RaceLineupPanel({
   totalWords,
   wpm,
   accuracy,
+  showStats = true,
   showReady = false,
 }: {
   racers: readonly Racer[];
@@ -55,6 +56,10 @@ export function RaceLineupPanel({
   totalWords: number;
   wpm: number;
   accuracy: number;
+  /** False for a watcher with no seat: the header's Words / WPM / Acc
+   *  strip describes YOUR run, so a spectator never sees it (it read as
+   *  a phantom racer's "WPM 0" in orange). */
+  showStats?: boolean;
   /** True for a private lobby (challenge room): lanes show ready checks
    *  during the lobby phase. Public races never show readiness. */
   showReady?: boolean;
@@ -106,7 +111,7 @@ export function RaceLineupPanel({
             totalOpponents={totalOpponents}
           />
         </div>
-        {racing ? (
+        {racing && showStats ? (
           <dl className="flex items-baseline gap-x-5 text-xs text-muted-foreground">
             <LiveStat label="Words">
               {wordsDone}/{totalWords}

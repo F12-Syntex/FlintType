@@ -2,7 +2,7 @@
 
 import { SlidersHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
 import {
@@ -16,12 +16,7 @@ import { fetchWordlist } from "@/lib/wordlists/fetch";
 import { RACE_WORD_POOL_MAX } from "@/types/race";
 import { WordlistPicker } from "../../_components/wordlist-picker";
 import { writeHostStorage } from "../c/[slug]/_components/challenge-shell";
-import {
-  DEFAULT_LOBBY_CONFIG,
-  LOBBY_CONFIG_STORAGE_KEY,
-  loadLobbyConfig,
-  type LobbyConfig,
-} from "./lobby-config";
+import type { LobbyConfig } from "./lobby-config";
 import { LobbySettings } from "./lobby-settings";
 import type { RaceModeId } from "./race-data";
 import { raceErrorMessage } from "./race-errors";
@@ -32,8 +27,9 @@ const CREATE_FAILED = "Couldn't create the lobby. Try again in a moment.";
  *  "Create private lobby" button creates a lobby IMMEDIATELY (no config
  *  step) and navigates to it; the gear beside it opens the settings
  *  editor (popover on desktop, bottom sheet on mobile per ui-law
- *  §10.5). The config is saved per browser, so the next instant-create
- *  reuses it. A fresh lobby defaults to a small-to-large quote race.
+ *  §10.5). The config is saved per browser (`useLobbyConfig`), so the
+ *  next instant-create reuses it. A fresh lobby defaults to a
+ *  small-to-large quote race.
  *
  *  Quote races draw a curated quote whose length sits in the chosen
  *  range, server-side. Word / timed races fetch the chosen MonkeyType
@@ -44,9 +40,15 @@ const CREATE_FAILED = "Couldn't create the lobby. Try again in a moment.";
  *  one error line under its buttons) and inside the open editor. */
 export function CreateChallengePanel({
   modeId,
+  config,
+  setConfig,
   onError,
 }: {
   modeId: RaceModeId;
+  /** The saved lobby config (owned by the launcher via useLobbyConfig,
+   *  so its summary line and this editor share one value). */
+  config: LobbyConfig;
+  setConfig: Dispatch<SetStateAction<LobbyConfig>>;
   onError?: (message: string | null) => void;
 }) {
   const isMobile = useIsMobile();
@@ -56,25 +58,6 @@ export function CreateChallengePanel({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Hydrate config from localStorage after mount so the server-rendered
-  // markup (always the default) matches the first client render, then
-  // swap in the saved value. Persist on every later change.
-  const [config, setConfig] = useState<LobbyConfig>(DEFAULT_LOBBY_CONFIG);
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => {
-    setConfig(loadLobbyConfig());
-    setHydrated(true);
-  }, []);
-  useEffect(() => {
-    if (!hydrated) return;
-    try {
-      window.localStorage.setItem(LOBBY_CONFIG_STORAGE_KEY, JSON.stringify(config));
-    } catch {
-      // Private mode / blocked storage — the config just won't persist
-      // across reloads. Creation still works from in-memory state.
-    }
-  }, [config, hydrated]);
 
   function reportError(message: string | null) {
     setError(message);
