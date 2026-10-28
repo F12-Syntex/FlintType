@@ -103,6 +103,9 @@ export function WordlistPicker({
               onValueChange={setQuery}
               placeholder="Search 440+ wordlists…"
               autoFocus
+              // 16px on phones: iOS zooms the page into a smaller field
+              // when it takes focus (and this one focuses on open).
+              className="text-base sm:text-sm"
             />
             <CommandList>
               <CommandEmpty>No wordlists match.</CommandEmpty>
@@ -153,11 +156,15 @@ function PickerItem({
 }) {
   return (
     <CommandItem value={`${id} ${label}`} onSelect={() => onPick(id)}>
-      <span className="flex h-4 w-4 items-center justify-center">
-        {active ? <Check className="h-3.5 w-3.5 text-primary" /> : null}
+      {/* shrink-0 so a long name can't squeeze the check column and
+       *  knock its row out of line with the others. */}
+      <span className="flex size-4 shrink-0 items-center justify-center">
+        {active ? <Check className="size-3.5 text-primary" /> : null}
       </span>
-      <span className={cn("text-sm", active && "text-primary")}>{label}</span>
-      <span className="ml-auto font-mono text-[11px] text-muted-foreground/80">
+      <span className={cn("min-w-0 text-sm", active && "text-primary")}>{label}</span>
+      {/* The raw id helps on desktop (it's searchable either way); on a
+       *  phone it only crowds the name onto two lines. */}
+      <span className="ml-auto hidden shrink-0 font-mono text-[11px] text-muted-foreground/80 sm:inline">
         {id}
       </span>
     </CommandItem>

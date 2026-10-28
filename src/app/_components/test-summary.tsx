@@ -92,7 +92,6 @@ function ResultStat({
  *
  *  - Signed in: the server's authoritative verdict (`lastTestIsPb`),
  *    which compares against the user's full history for the bucket.
- *    (The local cache used to crown the first run of every bucket.)
  *  - Anonymous: the per-browser localStorage cache, cleared on sign-out.
  *
  *  Resets whenever the done screen is left so a stale crown never
@@ -110,11 +109,12 @@ function usePbVerdict(preview: boolean): boolean {
       if (lastTestIsPb === true) setIsNewPb(true);
       return;
     }
+    // BURST isn't recorded (no signed-in crown), so no local one either.
+    if (state.mode === "BURST") return;
     // Recompute the final WPM from state rather than the context `wpm`:
     // that value is the provider's 1 Hz-throttled live stat, and React
     // runs this child effect before the provider snaps it to the final
-    // value — caching the stale sample caused false and missed crowns.
-    // Mirrors the submission path in practice-state.tsx.
+    // value (false and missed crowns). Mirrors practice-state's submit.
     const durationMs =
       state.startTime != null && state.endTime != null
         ? state.endTime - state.startTime

@@ -56,66 +56,72 @@ export function LobbySettings({
         />
       </Row>
 
-      {config.type === "quote" ? (
-        <Row label="Quote length" hint="Pick one or more">
-          <div role="group" aria-label="Quote length" className="flex flex-wrap gap-1.5">
-            {RACE_QUOTE_GROUPS.map((g) => (
-              <Toggle
-                key={g.id}
-                variant="outline"
-                pressed={config.quoteLengths.includes(g.id)}
-                onPressedChange={() =>
-                  setConfig((c) => toggleQuoteLength(c, g.id))
-                }
-                className={cn(
-                  "h-10 bg-card px-3 text-[13px] text-muted-foreground sm:h-8",
-                  "aria-pressed:brand-surface aria-pressed:border-transparent aria-pressed:text-primary-foreground aria-pressed:shadow-card",
-                  "aria-pressed:hover:text-primary-foreground",
-                )}
-              >
-                {capitalize(quoteLengthLabel(g.id))}
-              </Toggle>
-            ))}
-          </div>
-        </Row>
-      ) : (
-        <Row label="Word list">
-          <Button
-            variant="outline"
-            onClick={onOpenWordlist}
-            className="w-full justify-between"
-          >
-            <span className="truncate">{wordlistLabel(config.wordlistId)}</span>
-            <ChevronDown className="text-muted-foreground" aria-hidden />
-          </Button>
-        </Row>
-      )}
+      {/* One height for every race type (the Words / Timed knobs are the
+       *  tallest), so switching type never resizes the desktop popover:
+       *  a taller panel used to flip above the gear mid-click and move
+       *  the type switch out from under the pointer. */}
+      <div className="flex flex-col gap-4 sm:min-h-36">
+        {config.type === "quote" ? (
+          <Row label="Quote length" hint="Pick one or more">
+            <div role="group" aria-label="Quote length" className="flex flex-wrap gap-1.5">
+              {RACE_QUOTE_GROUPS.map((g) => (
+                <Toggle
+                  key={g.id}
+                  variant="outline"
+                  pressed={config.quoteLengths.includes(g.id)}
+                  onPressedChange={() =>
+                    setConfig((c) => toggleQuoteLength(c, g.id))
+                  }
+                  className={cn(
+                    "h-10 bg-card px-3 text-[13px] text-muted-foreground sm:h-8",
+                    "aria-pressed:brand-surface aria-pressed:border-transparent aria-pressed:text-primary-foreground aria-pressed:shadow-card",
+                    "aria-pressed:hover:text-primary-foreground",
+                  )}
+                >
+                  {capitalize(quoteLengthLabel(g.id))}
+                </Toggle>
+              ))}
+            </div>
+          </Row>
+        ) : (
+          <Row label="Word list">
+            <Button
+              variant="outline"
+              onClick={onOpenWordlist}
+              className="w-full justify-between"
+            >
+              <span className="truncate">{wordlistLabel(config.wordlistId)}</span>
+              <ChevronDown className="text-muted-foreground" aria-hidden />
+            </Button>
+          </Row>
+        )}
 
-      {config.type === "words" ? (
-        <Row label="Words">
-          <SegmentedControl
-            ariaLabel="Word count"
-            value={config.wordCount}
-            onValueChange={(wordCount) => setConfig((c) => ({ ...c, wordCount }))}
-            options={WORD_COUNTS.map((w) => ({ value: w, label: String(w) }))}
-            className="flex w-full flex-nowrap tabular-nums [&>button]:h-10 [&>button]:flex-1 sm:[&>button]:h-auto"
-          />
-        </Row>
-      ) : null}
+        {config.type === "words" ? (
+          <Row label="Words">
+            <SegmentedControl
+              ariaLabel="Word count"
+              value={config.wordCount}
+              onValueChange={(wordCount) => setConfig((c) => ({ ...c, wordCount }))}
+              options={WORD_COUNTS.map((w) => ({ value: w, label: String(w) }))}
+              className="flex w-full flex-nowrap tabular-nums [&>button]:h-10 [&>button]:flex-1 sm:[&>button]:h-auto"
+            />
+          </Row>
+        ) : null}
 
-      {config.type === "timed" ? (
-        <Row label="Seconds">
-          <SegmentedControl
-            ariaLabel="Race length in seconds"
-            value={config.durationSec}
-            onValueChange={(durationSec) =>
-              setConfig((c) => ({ ...c, durationSec }))
-            }
-            options={DURATIONS.map((d) => ({ value: d, label: `${d}s` }))}
-            className="flex w-full flex-nowrap tabular-nums [&>button]:h-10 [&>button]:flex-1 sm:[&>button]:h-auto"
-          />
-        </Row>
-      ) : null}
+        {config.type === "timed" ? (
+          <Row label="Seconds">
+            <SegmentedControl
+              ariaLabel="Race length in seconds"
+              value={config.durationSec}
+              onValueChange={(durationSec) =>
+                setConfig((c) => ({ ...c, durationSec }))
+              }
+              options={DURATIONS.map((d) => ({ value: d, label: `${d}s` }))}
+              className="flex w-full flex-nowrap tabular-nums [&>button]:h-10 [&>button]:flex-1 sm:[&>button]:h-auto"
+            />
+          </Row>
+        ) : null}
+      </div>
 
       <div className="flex flex-col gap-2 pt-1">
         <Button size="lg" onClick={onCreate} disabled={pending} className="w-full">

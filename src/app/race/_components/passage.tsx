@@ -263,7 +263,7 @@ function PreRaceNote({
       ) : null}
       {quoteSource ? (
         <p className="text-sm italic text-muted-foreground">
-          A quote by {quoteSource}
+          A quote from {quoteSource}
         </p>
       ) : null}
     </div>

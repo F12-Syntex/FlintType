@@ -161,8 +161,16 @@ function PastErrorWord({ target, typed }: { target: string; typed: string }) {
   const t = [...target];
   const u = [...typed];
   const len = Math.max(t.length, u.length);
+  // The underline lives on this inline-block itself: a text-decoration
+  // set on the outer word span doesn't reach into an inline-block, so it
+  // used to underline only the trailing space (a stray "_" after the word).
   return (
-    <span className="inline-block whitespace-nowrap">
+    <span
+      className={cn(
+        "inline-block whitespace-nowrap underline decoration-1 underline-offset-[6px]",
+        ERROR_DECORATION,
+      )}
+    >
       {Array.from({ length: len }, (_, ci) => {
         const exp = t[ci];
         const got = u[ci];
@@ -716,11 +724,6 @@ function PassageBody({
                 style={tintStyle}
                 className={cn(
                   blind ? UNTYPED_TEXT : TYPED_TEXT,
-                  showErr &&
-                    cn(
-                      "underline decoration-1 underline-offset-[6px]",
-                      ERROR_DECORATION,
-                    ),
                   // typedEffect: fade dims past words; strike crosses them.
                   !blind && typedEffect === "fade" && "opacity-40",
                   !blind && typedEffect === "strike" && "line-through decoration-1 opacity-70",

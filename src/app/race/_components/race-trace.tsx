@@ -51,6 +51,16 @@ export function RaceTrace() {
             vectorEffect="non-scaling-stroke"
           />
         ))}
+        {/* Solid zero line: without it the band under the lowest dashed
+         *  rule read as empty space rather than the bottom of the scale. */}
+        <line
+          x1={0}
+          x2={W}
+          y1={H}
+          y2={H}
+          stroke="var(--border)"
+          vectorEffect="non-scaling-stroke"
+        />
         {/* Opponents first so your orange line paints on top. */}
         {[...state.racers]
           .sort((a, b) => (a.isYou === b.isYou ? 0 : a.isYou ? 1 : -1))

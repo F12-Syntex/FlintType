@@ -23,14 +23,18 @@ export const MODES: readonly { value: Mode; label: string }[] = [
   { value: "BURST", label: "Burst" },
 ];
 
-const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+/** Plain-English names for the quote length brackets. The data layer
+ *  calls the 600+ char bucket "thicc"; the UI never shows the slang
+ *  (races say "Extra long" too, see race/lobby-config.ts). */
+const QUOTE_LENGTH_NAMES = ["Short", "Medium", "Long", "Extra long"] as const;
+const quoteLengthName = (id: number) => QUOTE_LENGTH_NAMES[id] ?? "";
 
 /** Length presets per mode. WORDS counts words, TIME seconds, QUOTE
  *  picks a length bracket, BURST how many items to clear. */
 export const LENGTH_PRESETS: Record<Mode, ReadonlyArray<LengthPreset>> = {
   WORDS: [10, 25, 50, 100, 200].map((n) => ({ value: n, label: String(n) })),
   TIME: [15, 30, 60, 120].map((n) => ({ value: n, label: String(n) })),
-  QUOTE: QUOTE_GROUPS.map((g) => ({ value: g.id, label: capitalise(g.label) })),
+  QUOTE: QUOTE_GROUPS.map((g) => ({ value: g.id, label: quoteLengthName(g.id) })),
   BURST: [10, 20, 40, 80].map((n) => ({ value: n, label: String(n) })),
 };
 
@@ -54,9 +58,7 @@ export const LENGTH_LABEL: Record<Mode, string> = {
 export const usesWordlist = (mode: Mode) => mode !== "QUOTE";
 
 export function lengthSummary(mode: Mode, length: number): string {
-  if (mode === "QUOTE") {
-    return capitalise(QUOTE_GROUPS[length as 0 | 1 | 2 | 3]?.label ?? "");
-  }
+  if (mode === "QUOTE") return quoteLengthName(length);
   if (mode === "TIME") return `${length}s`;
   if (mode === "BURST") return `${length} items`;
   return String(length);
@@ -95,7 +97,7 @@ export function WordlistControl({
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-label={`Wordlist: ${wordlistLabel(wordlist)}. Change wordlist`}
-        className={segmentClass(false, cn("min-w-0", fill && "w-full justify-between px-3"))}
+        className={segmentClass(false, cn("min-w-0", fill && "h-10 w-full justify-between px-3"))}
       >
         <span className="max-w-[12rem] truncate">{wordlistLabel(wordlist)}</span>
         <ChevronDown aria-hidden className="size-3.5 shrink-0 opacity-70" />
@@ -132,7 +134,7 @@ export function AdaptControl({ fill = false }: { fill?: boolean }) {
         toggleAdapt();
         blurAfterPointerClick(e);
       }}
-      className={segmentClass(adaptOn, cn(fill && "flex-1"))}
+      className={segmentClass(adaptOn, cn(fill && "h-10 flex-1"))}
     >
       {requiresSignIn ? (
         <Lock aria-hidden className="size-3 shrink-0 opacity-70" />
@@ -149,7 +151,7 @@ export function AdaptControl({ fill = false }: { fill?: boolean }) {
       )}
       <Button
         variant="ghost"
-        size="icon-sm"
+        size={fill ? "icon-lg" : "icon-sm"}
         onClick={() => setOpen(true)}
         aria-label="How adaptive practice works, and your hand layout"
         className="text-muted-foreground"

@@ -469,9 +469,28 @@ export function PracticeProvider({
     ) {
       return;
     }
-    const remaining =
-      state.length * 1000 - (Date.now() - state.startTime);
+    const startTime = state.startTime;
+    const endMs = state.length * 1000;
+    const remaining = endMs - (Date.now() - startTime);
     const id = setTimeout(() => {
+      // Close the WPM trace on the final second. The 1s sampler and
+      // this timeout race at the end of the run, and the run usually
+      // ended first, so a 15s test charted 1s..14s. Skip it when the
+      // sampler already landed a sample on the last second.
+      const s = stateForSampleRef.current;
+      const { wpm, raw } = calcWpmAndRaw(s.typed, s.words, endMs, false, s.events.length);
+      setWpmHistory((prev) =>
+        prev.length > 0 && prev[prev.length - 1]!.t >= endMs - 500
+          ? prev
+          : [
+              ...prev,
+              {
+                t: endMs,
+                wpm: Math.round(wpm * 10) / 10,
+                raw: Math.round(raw * 10) / 10,
+              },
+            ],
+      );
       dispatch({ type: "FINISH_TIME", now: Date.now() });
     }, Math.max(0, remaining));
     return () => clearTimeout(id);
