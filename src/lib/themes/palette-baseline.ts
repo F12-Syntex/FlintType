@@ -60,9 +60,10 @@ export function paletteBaseline(theme: PresetSource): PaletteBaseline {
   };
 }
 
-/** The named palette whose presets set the baseline: the active palette,
- *  or the palette a custom fork came off (null for Default and for a
- *  fork without a base). */
+/** The palette whose presets set the baseline: the active palette, or
+ *  the palette a custom fork came off (null for Default and for a fork
+ *  without a base). Background reactive has no presets, so its baseline
+ *  is the bare defaults. */
 export function baselinePaletteId(
   palette: PaletteSlice,
   customId: string,

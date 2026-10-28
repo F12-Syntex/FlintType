@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.32 — 27 October 2026
+- Putting a colour, corner, size or spacing back to your palette's own value now switches the palette picker back to that palette instead of leaving it on Custom. This works on every palette, Default included.
+- A palette whose size or spacing you changed now still reads Custom after you reload, so the picker and the settings pages' Reset button agree.
+- A look made from Background reactive keeps its colours from your background image, and Reset takes you back to Background reactive instead of Default.
+
 ## 6.148.31 — 27 October 2026
 - Dialogs and bottom sheets now keep keyboard focus inside while they're open: Tab and Shift+Tab cycle through their controls, Escape closes them, and focus goes back to the button that opened them.
 - On phones, the page no longer stays stuck and unscrollable after you close a warning opened from a sheet.

@@ -7,12 +7,14 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
 } from "react";
 import { useBackgroundPrefs } from "../background-prefs";
-import { clearSlice, readSlice, writeSlice } from "../prefs-store";
+import { clearSlice, writeSlice } from "../prefs-store";
 import type { ThemeOverrides } from "../theme-customization";
 import { useRemotePrefs } from "../use-remote-prefs";
-import { EMPTY_OVERRIDES } from "./overrides";
+import { BACKGROUND_REACTIVE_ID } from "./background-reactive";
+import { EMPTY_OVERRIDES, overriddenVars } from "./overrides";
 import {
   baselinePaletteId,
   palettePresetSlices,
@@ -20,14 +22,12 @@ import {
 } from "./palette-baseline";
 import type { PaletteSlice } from "./palette-fork";
 import {
-  applyReactivePalette,
-  BACKGROUND_REACTIVE_ID,
-  clearReactivePalette,
-  samplePalette,
-} from "./background-reactive";
+  paintForkBase,
+  paintNamed,
+  paintReactive,
+  type ReactiveSample,
+} from "./palette-paint";
 import {
-  applyTheme,
-  clearThemeVars,
   CUSTOM_THEME_ID,
   findTheme,
   getThemeRoot,
@@ -47,25 +47,14 @@ const REACTIVE_THEME: Theme = {
 type Ctx = {
   themes: readonly Theme[];
   activeId: string | null;
-  /** The named palette whose presets the settings pages measure
-   *  changes against: the active palette, or the one a custom fork came
-   *  off. Null for Default and baseless forks (palette-baseline.ts). */
+  /** The palette whose presets the settings pages measure changes
+   *  against: the active palette, or the one a custom fork came off
+   *  (Background reactive included). Null for Default and baseless
+   *  forks (palette-baseline.ts). */
   baselineId: string | null;
   apply: (id: string) => void;
   reset: () => void;
 };
-
-/** Re-paint the stored per-var overrides on top of whatever the palette
- *  just painted. Palette vars and overrides share names (`--radius`,
- *  colours), and this effect runs after the overrides hook's own effect
- *  (it's the parent), so without this a pick painted the palette's
- *  `radius` over the preset's `--radius` until the next reload. */
-function reassertOverrides(root: HTMLElement) {
-  const overrides = readSlice<ThemeOverrides>("theme", EMPTY_OVERRIDES);
-  for (const [k, v] of Object.entries(overrides)) {
-    if (typeof v === "string" && v) root.style.setProperty(k, v);
-  }
-}
 
 // Fresh accounts land on the real Default theme — `activeId: null`, no
 // overrides. The brand baseline (the orange --primary / --ring, the
@@ -88,94 +77,48 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     DEFAULT_PALETTE,
   );
   const activeId = value.activeId;
-  // Snapshot of the named palette a "custom" fork came off (see
+  // Snapshot of the palette a "custom" fork came off (see
   // palette-fork.ts). Stable reference — only replaced on a new fork —
   // so it's safe as an effect dep without thrashing on unrelated
   // pref-store notifies.
   const base = value.base;
   const { effectiveImage } = useBackgroundPrefs();
+  // Which vars carry an override (not their values). Palette vars and
+  // overrides share one inline style on <html>, so when an override
+  // goes away the effect below repaints the palette's own value for it;
+  // value-only changes (a slider drag) don't re-run it.
+  const { value: overrides } = useRemotePrefs<ThemeOverrides>(
+    "theme",
+    EMPTY_OVERRIDES,
+  );
+  const overriddenKeys = overriddenVars(overrides).sort().join(" ");
+  const sampleRef = useRef<ReactiveSample | null>(null);
 
   useEffect(() => {
     // Themes paint on <html> so every surface (chrome, typing area,
     // customise previews) picks them up via the CSS cascade. SSR
-    // no-op.
+    // no-op. Every painter re-asserts the overrides on top.
     const root = getThemeRoot();
     if (!root) return;
+    const mode = resolvedTheme === "dark" ? "dark" : "light";
+    // The palette the colours come from: the active one, or the one a
+    // "custom" fork came off (palette-fork.ts).
+    const origin = activeId === CUSTOM_THEME_ID ? base?.id : activeId;
 
-    // "custom" — the user has per-var overrides applied via
-    // useThemeOverrides. Don't touch ANY vars: the inline overrides
-    // from useThemeOverrides are the source of truth for the keys
-    // they cover, and the rest of whatever base palette the user
-    // forked from (reactive sample, named theme) should keep
-    // painting underneath. Earlier versions called
-    // clearReactivePalette() here, which wiped the sampled reactive
-    // colours the moment the user nudged a single colour / radius /
-    // font scale — read as "changing any value resets the colours".
+    // Reactive, or a fork off it: re-sample the background image.
+    if (origin === BACKGROUND_REACTIVE_ID) {
+      return paintReactive(root, effectiveImage, mode, sampleRef);
+    }
     if (activeId === CUSTOM_THEME_ID) {
-      // A fork off a NAMED palette carries a `base` snapshot — repaint
-      // it (for the current mode) so the palette survives reloads and
-      // light/dark flips, then re-assert the per-var overrides on top
-      // so they keep winning where the names collide. Baseless customs
-      // (forked from Default / reactive) keep the old hands-off path.
-      if (base) {
-        const mode = resolvedTheme === "dark" ? "dark" : "light";
-        const vars = mode === "dark" ? base.dark : base.light;
-        for (const [k, v] of Object.entries(vars)) {
-          if (typeof v === "string" && v) root.style.setProperty(`--${k}`, v);
-        }
-        reassertOverrides(root);
-      }
+      // A fork off a named palette repaints its `base` snapshot under
+      // the overrides. Baseless forks (off Default, or reactive forks
+      // from before the origin was recorded) keep the hands-off path:
+      // clearing here would wipe whatever they were painted on.
+      if (base) paintForkBase(root, base, mode);
       return;
     }
-
-    if (activeId === BACKGROUND_REACTIVE_ID) {
-      // Reactive is async — sampling takes a frame or two. If we
-      // cleared upfront and *then* sampled, every re-render would
-      // briefly drop the user back to the default palette until the
-      // sample resolves. Instead, leave the prior reactive palette
-      // in place and swap atomically inside the .then — clear +
-      // apply in the same paint, no flash.
-      if (!effectiveImage) {
-        clearThemeVars(root);
-        clearReactivePalette(root);
-        reassertOverrides(root);
-        return;
-      }
-      let cancelled = false;
-      const sampleMode: "light" | "dark" =
-        resolvedTheme === "dark" ? "dark" : "light";
-      void samplePalette(effectiveImage, sampleMode).then((palette) => {
-        if (cancelled || !palette) return;
-        clearThemeVars(root);
-        applyReactivePalette(root, palette);
-        reassertOverrides(root);
-      });
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    // Non-reactive paths are synchronous — clear and apply in one
-    // pass so the swap repaints every surface at once.
-    const theme = findTheme(activeId);
-    const mode = resolvedTheme === "dark" ? "dark" : "light";
-    clearThemeVars(root);
-    clearReactivePalette(root);
-    if (theme) {
-      applyTheme(root, theme, mode);
-      // One-time self-heal: users who picked this palette before its vars
-      // were persisted have a `palette` slice with no varsLight/varsDark,
-      // so they'd still flash the default palette on load. Backfill them
-      // straight to storage — the bootstrap reads localStorage, not React
-      // state, so this needs no setState (no effect loop). The readSlice
-      // guard stops it re-writing once the vars are present.
-      const persisted = readSlice<PaletteSlice>("palette", DEFAULT_PALETTE);
-      if (persisted.activeId === activeId && persisted.varsLight == null) {
-        writeSlice("palette", paletteSliceFor(theme.id));
-      }
-    }
-    reassertOverrides(root);
-  }, [activeId, base, resolvedTheme, effectiveImage]);
+    paintNamed(root, activeId, mode);
+  }, [activeId, base, resolvedTheme, effectiveImage, overriddenKeys]);
 
   const apply = useCallback(
     (id: string) => {

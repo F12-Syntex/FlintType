@@ -79,6 +79,16 @@ describe("baselinePaletteId", () => {
       ),
     ).toBe("catppuccin");
     expect(baselinePaletteId({ activeId: CUSTOM }, CUSTOM)).toBeNull();
+    // A fork off Background reactive measures against Reactive.
+    expect(
+      baselinePaletteId(
+        {
+          activeId: CUSTOM,
+          base: { id: "background-reactive", light: {}, dark: {} },
+        },
+        CUSTOM,
+      ),
+    ).toBe("background-reactive");
   });
 });
 
@@ -219,6 +229,16 @@ describe("paletteAfterRestore", () => {
   it("returns a custom fork back to its palette once it matches again", () => {
     const after = paletteAfterRestore(fork, b, b, CUSTOM);
     expect(after).toEqual(paletteSliceFor("cyberpunk"));
+  });
+
+  it("returns a fork off Background reactive to Reactive, not Default", () => {
+    const reactiveFork = {
+      activeId: CUSTOM,
+      base: { id: "background-reactive", light: {}, dark: {} },
+    };
+    expect(paletteAfterRestore(reactiveFork, {}, {}, CUSTOM)).toEqual({
+      activeId: "background-reactive",
+    });
   });
 
   it("returns a baseless fork to Default once no overrides are left", () => {

@@ -6,16 +6,18 @@ import {
   clearOverride,
   diffAppliedVars,
   EMPTY_OVERRIDES,
+  isOverridden,
   migrateThemeState,
+  overriddenVars,
   setOverride,
 } from "./themes/overrides";
 import {
-  forkPaletteToCustom,
+  paletteAfterOverrideWrite,
   paletteAfterReset,
-  type PaletteBase,
+  paletteAfterThemeMigration,
   type PaletteSlice,
 } from "./themes/palette-fork";
-import { CUSTOM_THEME_ID, findTheme, getThemeRoot } from "./themes/registry";
+import { CUSTOM_THEME_ID, getThemeRoot } from "./themes/registry";
 import { useRemotePrefs } from "./use-remote-prefs";
 
 /** Every CSS variable the user can override from the appearance page.
@@ -74,12 +76,20 @@ function applyVar(name: ThemeVar, value: string | undefined) {
   }
 }
 
-/** Resolve a named palette id to a fork snapshot (both mode var maps).
- *  Reactive / unknown ids resolve to undefined — those fork baseless. */
-function resolvePaletteBase(id: string): PaletteBase | undefined {
-  const t = findTheme(id);
-  if (!t) return undefined;
-  return { id: t.id, light: t.cssVars.light, dark: t.cssVars.dark };
+/** Write the overrides slice, then settle the palette slice: fork to
+ *  "custom" while the overrides differ from what the palette sets, and
+ *  go back to the palette a fork came off (Default when it has no base)
+ *  once they match it again (`paletteAfterOverrideWrite`). The load-time
+ *  migration below settles a stored fork by the same rule, so the
+ *  picker reads the same after a reload. A no-op write, such as
+ *  clicking the corner option the palette already uses, leaves the
+ *  palette as it is. The fork snapshots the palette's cssVars (`base`)
+ *  so the rest of it keeps painting after a reload (palette-fork.ts). */
+function writeOverrides(next: ThemeOverrides, changed: ThemeVar) {
+  writeSlice("theme", next, [changed]);
+  const palette = readSlice<PaletteSlice>("palette", { activeId: null });
+  const after = paletteAfterOverrideWrite(palette, next, CUSTOM_THEME_ID);
+  if (after !== palette) writeSlice("palette", after);
 }
 
 /** Run the one-shot migration off the pre-2026-05 fake-default state
@@ -98,9 +108,16 @@ function runThemeMigrationOnce() {
       activeId: null,
     });
     const m = migrateThemeState(storedPalette, storedTheme, CUSTOM_THEME_ID);
-    if (!m.changed) return;
-    writeSlice("theme", m.theme);
-    writeSlice("palette", m.palette);
+    // The migration demotes a Custom fork as soon as no overrides are
+    // left; a fork settles by the override-write rule instead, so it
+    // stays Custom while it still differs from its palette's presets.
+    const palette = paletteAfterThemeMigration(
+      storedPalette,
+      m.theme,
+      CUSTOM_THEME_ID,
+    );
+    if (m.theme !== storedTheme) writeSlice("theme", m.theme);
+    if (palette !== storedPalette) writeSlice("palette", palette);
   });
 }
 
@@ -108,7 +125,7 @@ export function useThemeOverrides() {
   // The slice itself is the ThemeOverrides record. We deliberately use
   // an empty-object default so peer slices (caret, behaviour, …) don't
   // see leaked theme keys.
-  const { value: overrides, update: updateRaw, reset: resetRaw } =
+  const { value: overrides, reset: resetRaw } =
     useRemotePrefs<ThemeOverrides>("theme", EMPTY_OVERRIDES);
 
   // One-shot migration off the old fake-default (orange-as-override).
@@ -134,43 +151,26 @@ export function useThemeOverrides() {
     appliedRef.current = nextKeys;
   }, [overrides]);
 
-  const setVar = useCallback(
-    (name: ThemeVar, value: string) => {
-      updateRaw((prev) => setOverride(prev, name, value));
-      applyVar(name, value);
-      // Any per-var override forks the user off whatever named palette
-      // they were on — mark the palette slice as "custom" so the theme
-      // picker reads as Custom instead of misleadingly still saying
-      // "Cosmic Night" (etc.) once the colours diverge. The fork
-      // snapshots the named palette's cssVars (`base`) so the rest of
-      // the palette keeps painting after a reload — without it the
-      // bootstrap script replays only blob.theme and the named palette
-      // was silently destroyed (it persisted as nothing but its id).
-      const palette = readSlice<PaletteSlice>("palette", { activeId: null });
-      const forked = forkPaletteToCustom(
-        palette,
-        resolvePaletteBase,
-        CUSTOM_THEME_ID,
-      );
-      if (forked !== palette) writeSlice("palette", forked);
-    },
-    [updateRaw],
-  );
+  const setVar = useCallback((name: ThemeVar, value: string) => {
+    const current = readSlice<ThemeOverrides>("theme", EMPTY_OVERRIDES);
+    writeOverrides(setOverride(current, name, value), name);
+    applyVar(name, value);
+  }, []);
 
-  const clearVar = useCallback(
-    (name: ThemeVar) => {
-      updateRaw((prev) => clearOverride(prev, name));
-      applyVar(name, undefined);
-      // Don't auto-demote palette here — the user might still have other
-      // overrides active. They demote by either resetting all overrides
-      // or by picking a real theme from the picker (which clears the
-      // override slice via PaletteProvider.apply).
-    },
-    [updateRaw],
-  );
+  const clearVar = useCallback((name: ThemeVar) => {
+    const current = readSlice<ThemeOverrides>("theme", EMPTY_OVERRIDES);
+    // Nothing to clear. Removing the inline var anyway would strip the
+    // palette's own value for it (they share one inline style).
+    if (!isOverridden(current, name)) return;
+    writeOverrides(clearOverride(current, name), name);
+    // PaletteProvider repaints the palette's own value underneath once
+    // the set of overridden vars changes.
+    applyVar(name, undefined);
+  }, []);
 
   const reset = useCallback(() => {
-    for (const v of THEME_VARS) applyVar(v, undefined);
+    const current = readSlice<ThemeOverrides>("theme", EMPTY_OVERRIDES);
+    for (const v of overriddenVars(current)) applyVar(v, undefined);
     resetRaw();
     // No more overrides — a custom fork off a named palette goes back
     // to that palette (the user dropped their nudges, not the palette
