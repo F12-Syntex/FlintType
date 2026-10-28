@@ -78,7 +78,14 @@ export function useAdaptState() {
 
 /** The wordlist trigger: a plain pill showing the current list with a
  *  chevron, opening the searchable catalog dialog. */
-export function WordlistControl({ fill = false }: { fill?: boolean }) {
+export function WordlistControl({
+  fill = false,
+  onPicked,
+}: {
+  fill?: boolean;
+  /** Called after a wordlist is chosen (the compact bar folds away). */
+  onPicked?: () => void;
+}) {
   const { wordlist, setWordlist } = usePractice();
   const [open, setOpen] = useState(false);
   return (
@@ -100,6 +107,7 @@ export function WordlistControl({ fill = false }: { fill?: boolean }) {
         onPick={(id) => {
           setWordlist(id);
           setOpen(false);
+          onPicked?.();
         }}
       />
     </>

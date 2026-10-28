@@ -18,6 +18,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/line-chart";
 import { cn } from "@/lib/utils";
+import { secondTicks } from "./chart-ticks";
 import { ErrorRibbon } from "./error-ribbon";
 import type { KeyEvent } from "./practice-state";
 
@@ -140,6 +141,8 @@ export function ResultChart({
             dataKey="sec"
             type="number"
             domain={["dataMin", "dataMax"]}
+            ticks={secondTicks(firstSec, lastSec)}
+            interval={0}
             allowDecimals={false}
             tickLine={false}
             axisLine={false}

@@ -978,12 +978,20 @@ The practice screen answers one question ("type this") and the result screen ans
 - The "rounded" key shape uses `rounded-sm` (the theme radius scale); rows use `gap-1 sm:gap-1.5`.
 
 ### 22.3 Result screen (`test-summary.tsx`)
-- Headline: speed (hero) over accuracy (lead) and the test type, beside the chart in a `rounded-2xl border bg-card shadow-card` card. The secondary row (Raw, Consistency, Errors, Time) is a second card, `grid-cols-2 sm:grid-cols-4`. Optional insights (run shape, slowest letters, hand balance, heatmap) are `<InsightCard>`s with the same surface. Only the slowest letter's bar is primary; hand-balance bars are ink tints.
-- Chart: a numeric x-axis (`type="number"`, `domain={["dataMin","dataMax"]}`). A series that adds no data of its own (the ✕ Scatter) must not get a `data` prop: a copy of the chart data duplicates every x tick. The raw trace is dashed muted and the average line is solid at `strokeOpacity 0.15`. The mistakes ribbon is inset to the plot area (`pl-10 pr-4`, the y-axis column plus margins) with thin `bg-destructive/70` bars at each second's x position.
-- Actions (`result-actions.tsx`, excluded from the exported image): one `<Button size="lg">` "Next test" with RotateCcw and a translucent `<Kbd>tab</Kbd>` (sm+), full width on mobile, then ghost Replay / Save image / Share buttons. Save image shows a failure label if the export throws.
+- **Headline:** speed (hero) over accuracy (lead) and the test type, beside the chart in a `rounded-2xl border bg-card shadow-card` card. The headline column is `sm:grid-cols-[minmax(12rem,auto)_minmax(0,1fr)]`, so it grows with a long value instead of overflowing into the chart. On mobile, speed and accuracy sit side by side on a two-row subgrid (`grid-cols-[auto_auto]` + `row-span-2 grid-rows-subgrid` per stat): the labels share row 1 and the values are bottom-aligned in row 2.
+- **Secondary stats:** Raw, Consistency, Errors and Time are a second card, `grid-cols-2 sm:grid-cols-4`.
+- **Insights:** optional insights (run shape, slowest letters, hand balance, heatmap) are `<InsightCard>`s with the same surface. Only the slowest letter's bar is primary; hand-balance bars are ink tints.
+- **Chart:**
+  - A numeric x-axis (`type="number"`, `domain={["dataMin","dataMax"]}`) with explicit ticks from `secondTicks(first, last)` (`chart-ticks.ts`) and `interval={0}`: at most four even gaps, always closing on the last second, never a crowded final pair.
+  - A series that adds no data of its own (the ✕ Scatter) must not get a `data` prop: a copy of the chart data duplicates every x tick.
+  - The raw trace is dashed muted and the average line is solid at `strokeOpacity 0.15`.
+  - The mistakes ribbon is inset to the plot area (`pl-10 pr-4`, the y-axis column plus margins), with thin `bg-destructive/70` bars at each second's x position.
+- **Actions** (`result-actions.tsx`, `data-no-export`): one `<Button size="lg">` "Next test" with RotateCcw and a translucent `<Kbd>tab</Kbd>` (sm+), full width on mobile, then ghost Replay / Save image / Share buttons. Save image shows a failure label if the export throws.
+- **Save image** (`result-export.ts`): captures the result body only, cropped to the bottom of its last exportable block, padded on a page-coloured canvas, with the flame + "flinttype" wordmark drawn underneath. Anything marked `data-no-export` (mode bar, actions) is left out.
+- **Replay** (`result-replay.tsx`): draws the run with the passage tokens (`--ft-passage-typed/-untyped/-error`), the passage font and spacing variables and the user's caret style (`InlineCaret`), at `text-2xl sm:text-3xl leading-[1.9]`. Errored words get the passage's past-error underline. The text box scrolls to keep the caret in view. The speed switch is the shared `<SegmentedControl>` (orange selected pill).
 
 ### 22.4 Tab on the practice surface
-Tab restarts (or retries the word in BURST) only while focus is on the page or the hidden typing input. Shift+Tab, and Tab from any focused control, do native focus traversal. Dialogs opened from the mode bar hand focus back to the typing input when they close, so the next Tab restarts.
+Tab restarts (or retries the word in BURST) only while focus is on the page or the hidden typing input. Shift+Tab, and Tab from any focused control, do native focus traversal. On the result screen, Shift+Tab from the typing input jumps to the last result action, so Replay / Save image / Share are one keystroke away. Dialogs opened from the mode bar hand focus back to the typing input when they close, so the next Tab restarts. The Adaptive explainer modal moves focus to its Close button on open and keeps Tab inside the panel.
 
 ## 23. Race screens (`/race`, `/race/c/[slug]`)
 

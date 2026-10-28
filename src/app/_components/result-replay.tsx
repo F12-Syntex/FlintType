@@ -4,9 +4,21 @@ import { Pause, Play, Square } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { useCaretSettings } from "@/lib/caret-settings";
 import { cn } from "@/lib/utils";
+import { InlineCaret } from "./burst-practice";
 import type { KeyEvent } from "./practice-state";
 import { reconstructCursor } from "./replay-cursor";
+
+/** Passage colour tokens (mirrors passage.tsx) so the replay reads as
+ *  the same text the user typed: typed in the passage's typed colour
+ *  (the brand orange by default), untyped muted, mistakes in the error
+ *  colour with the past-error underline. */
+const TYPED_TEXT = "text-[var(--ft-passage-typed,var(--primary))]";
+const UNTYPED_TEXT =
+  "text-[var(--ft-passage-untyped,var(--muted-foreground))]";
+const ERROR_WORD =
+  "text-[var(--ft-passage-error,var(--destructive))] underline decoration-1 underline-offset-[6px] decoration-[var(--ft-passage-error,var(--destructive))]";
 
 const SPEEDS = [
   { value: 0.5, label: "0.5×" },
@@ -33,6 +45,12 @@ export function ReplayView({
   const [step, setStep] = useState(0);
   const [paused, setPaused] = useState(false);
   const [speed, setSpeed] = useState<number>(1);
+  const { settings: caret } = useCaretSettings();
+  // Keep the caret in view on long runs (the text box scrolls).
+  const [caretEl, setCaretEl] = useState<HTMLSpanElement | null>(null);
+  useEffect(() => {
+    caretEl?.scrollIntoView({ block: "nearest" });
+  }, [caretEl]);
 
   useEffect(() => {
     if (paused) return;
@@ -66,8 +84,8 @@ export function ReplayView({
   const elapsed = step > 0 && events[step - 1] ? events[step - 1]!.t : 0;
 
   return (
-    <div className="flex h-full min-h-0 flex-col items-center justify-center overflow-hidden py-6">
-      <div className="flex w-full flex-col gap-5">
+    <div className="flex h-full min-h-0 flex-col justify-center overflow-hidden py-6">
+      <div className="flex min-h-0 w-full flex-col gap-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground tabular-nums">
             <span className="font-medium text-foreground">Replay</span>
@@ -108,31 +126,51 @@ export function ReplayView({
           />
         </div>
 
-        <div className="font-mono text-xl leading-[1.7] tracking-[0.04em]">
-          {displayWords.map((word, wi) => (
-            <span key={wi}>
-              {[...word].map((ch, ci) => {
-                const typed = wi < wordIdx || (wi === wordIdx && ci < charIdx);
-                const cls = !typed
-                  ? "text-muted-foreground"
-                  : errorWords.has(wi)
-                    ? "text-[var(--ft-passage-error,var(--destructive))] underline decoration-1 underline-offset-[6px]"
-                    : "text-foreground";
-                const isCursor = wi === wordIdx && ci === charIdx;
-                return (
-                  <span
-                    key={ci}
-                    className={cn(cls, isCursor && "border-l-2 border-primary")}
-                  >
-                    {ch}
-                  </span>
-                );
-              })}
-              {wi < displayWords.length - 1 ? (
-                <span className="text-muted-foreground"> </span>
-              ) : null}
-            </span>
-          ))}
+        <div className="min-h-0 overflow-y-auto">
+          <div
+            className={cn(
+              "text-2xl leading-[1.9] tracking-[0.04em] sm:text-3xl",
+              UNTYPED_TEXT,
+            )}
+            style={{
+              fontFamily: "var(--ft-font-family, inherit)",
+              wordSpacing: "var(--ft-word-spacing, 0.25em)",
+            }}
+          >
+            {displayWords.map((word, wi) => (
+              <span key={wi}>
+                <span className="inline-block whitespace-nowrap">
+                  {[...word].map((ch, ci) => {
+                    const typed =
+                      wi < wordIdx || (wi === wordIdx && ci < charIdx);
+                    const cls = !typed
+                      ? UNTYPED_TEXT
+                      : errorWords.has(wi)
+                        ? ERROR_WORD
+                        : TYPED_TEXT;
+                    const here = caret.style !== "off" && wi === wordIdx;
+                    const isCursor = here && ci === charIdx;
+                    // Word fully typed: park the caret after its last letter.
+                    const isTrailing =
+                      here && charIdx >= word.length && ci === word.length - 1;
+                    return (
+                      <span
+                        key={ci}
+                        ref={isCursor || isTrailing ? setCaretEl : undefined}
+                        className={cn("relative", cls)}
+                      >
+                        {ch}
+                        {isCursor || isTrailing ? (
+                          <InlineCaret style={caret.style} trailing={isTrailing} />
+                        ) : null}
+                      </span>
+                    );
+                  })}
+                </span>
+                {wi < displayWords.length - 1 ? " " : null}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     </div>

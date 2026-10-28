@@ -213,10 +213,10 @@ export function BurstProvider({ children }: { children: ReactNode }) {
 
 /* ─── Readouts (replaces <Readouts /> in BURST) ─────────────── */
 
-/** Desktop readouts row for BURST: the same left-aligned <Readout>
- *  row as the WORDS readouts, so the rhythm above the typing area stays
- *  identical. The last speed is the headline; it turns primary on a
- *  clean, fast-enough commit. */
+/** Desktop readouts row for BURST: the same <Readout> row as the
+ *  WORDS readouts, centred directly above the single centred word so
+ *  the two read as one group. The last speed is the headline; it turns
+ *  primary on a clean, fast-enough commit. */
 export function BurstReadouts() {
   const { state } = usePractice();
   const { reps, repsRequired, threshold, thresholdAuto, lastWpm, outcome } =
@@ -225,7 +225,7 @@ export function BurstReadouts() {
   const itemIdx = Math.min(state.cursorWord + 1, itemsLength);
 
   return (
-    <ReadoutRow className="hidden md:flex">
+    <ReadoutRow className="hidden justify-center md:flex">
       {/* LAST is always rendered (an em dash until the first commit) so
        *  the row never reflows mid-run and shifts the centred word. */}
       <Readout
@@ -235,9 +235,15 @@ export function BurstReadouts() {
         value={lastWpm != null ? String(lastWpm) : "—"}
       />
       <Readout label="reps" value={`${reps}/${repsRequired}`} />
+      {/* The speed a rep has to reach to count. When it's set
+       *  automatically from your speed, a hover note says so rather
+       *  than a jargon suffix on the label. */}
       <Readout
-        label={thresholdAuto ? "target · auto" : "target"}
+        label="goal"
         value={`${threshold}`}
+        title={
+          thresholdAuto ? "Set automatically from your recent speed" : undefined
+        }
       />
       <Readout label="items" value={`${itemIdx}/${itemsLength}`} />
     </ReadoutRow>
@@ -260,7 +266,7 @@ export function BurstMobileReadouts() {
         value={lastWpm != null ? String(lastWpm) : "—"}
       />
       <Readout compact label="reps" value={`${reps}/${repsRequired}`} />
-      <Readout compact label="target" value={String(threshold)} />
+      <Readout compact label="goal" value={String(threshold)} />
       <Readout compact label="items" value={`${itemIdx}/${itemsLength}`} />
     </div>
   );
@@ -273,7 +279,7 @@ export function BurstMobileReadouts() {
  *  Paints each character through the same tokens Passage uses
  *  (TYPED_TEXT / UNTYPED_TEXT / ERROR_TEXT) plus the mistakeStyle
  *  pref so customisation flows through 1:1 with WORDS. */
-export function BurstWordView() {
+export function BurstWordView({ above }: { above?: ReactNode } = {}) {
   const { state } = usePractice();
   const { prefs: behaviour } = useBehaviourPrefs();
   const { prefs: appearance } = useAppearancePrefs();
@@ -285,6 +291,9 @@ export function BurstWordView() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 sm:gap-12">
+      {/* Optional slot directly above the word (the desktop readouts),
+       *  so stats and word centre together like the passage's `above`. */}
+      {above}
       <BurstWord
         word={target}
         typed={typedHere}
@@ -393,7 +402,10 @@ function BurstWord({
   );
 }
 
-function InlineCaret({
+/** The configured caret (line / block / underline / outline) drawn
+ *  inside a relative glyph span. Shared with the result replay so both
+ *  show the same caret as the passage. */
+export function InlineCaret({
   style,
   trailing,
 }: {
