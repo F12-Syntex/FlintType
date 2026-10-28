@@ -343,6 +343,8 @@ describe("friends routes", () => {
     expect(ids).toContain("me");
     expect(ids).toContain("alice");
     expect(ids).not.toContain("bob");
+    // Rows inserted without a length unit are legacy rows.
+    expect(out.entries.every((e) => e.lengthMode === null)).toBe(true);
   });
 
   it("leaderboard honours the scope (mode) filter", async () => {

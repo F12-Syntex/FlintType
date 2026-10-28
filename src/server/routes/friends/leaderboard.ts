@@ -4,6 +4,7 @@ import { resolveUserDisplays } from "@/server/user-display";
 import {
   leaderboardInputSchema,
   lengthModeForPreset,
+  toRunLengthMode,
   PRESET_AMOUNT,
   type LeaderboardEntry,
   type LeaderboardInput,
@@ -65,6 +66,7 @@ export const leaderboard = defineRoute<LeaderboardInput, LeaderboardOutput>({
         accuracy: Math.round(r.accuracy * 10) / 10,
         mode: r.mode,
         durationOrWordCount: r.durationOrWordCount,
+        lengthMode: toRunLengthMode(r.lengthMode),
         completedAtMs: r.completedAt.getTime(),
       };
     });

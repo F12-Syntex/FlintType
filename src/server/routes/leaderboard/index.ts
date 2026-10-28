@@ -17,6 +17,7 @@ import { computeTotalXp } from "@/lib/xp-rewards";
 import {
   leaderboardInputSchema,
   lengthModeForPreset,
+  toRunLengthMode,
   PRESET_AMOUNT,
   topByLevelInputSchema,
   topPlayersInputSchema,
@@ -126,6 +127,7 @@ const list = defineRoute<LeaderboardInput, LeaderboardOutput>({
         accuracy: Math.round(r.accuracy * 10) / 10,
         mode: r.mode,
         durationOrWordCount: r.durationOrWordCount,
+        lengthMode: toRunLengthMode(r.lengthMode),
         completedAtMs: r.completedAt.getTime(),
       };
     });
