@@ -1,9 +1,12 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { lockBodyScroll } from "@/lib/scroll-lock";
+import { coarsePointer, tabbables } from "@/lib/tabbable";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 import { useMounted } from "@/lib/use-mounted";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +23,13 @@ import { cn } from "@/lib/utils";
  *        [header] title + close X
  *        [body]   children
  *        [footer] cancel + confirm buttons
+ *
+ *  Keyboard (useFocusTrap): opening moves focus into the panel — a
+ *  control the caller focused (autoFocus) or marked `data-autofocus`,
+ *  else the body's first control, else Cancel; on touch devices the
+ *  panel itself, so no on-screen keyboard pops up. Tab and Shift+Tab
+ *  stay inside, Escape closes, and closing returns focus to whatever
+ *  opened the dialog.
  */
 const ANIM_MS = 220;
 
@@ -66,6 +76,21 @@ export function ConfirmDialog({
   const mounted = useMounted();
   const [render, setRender] = useState(false);
   const [entered, setEntered] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLElement>(null);
+
+  useFocusTrap({
+    active: open && mounted,
+    panelRef,
+    rootRef,
+    onEscape: () => onOpenChange(false),
+    initialFocus: () =>
+      coarsePointer()
+        ? panelRef.current
+        : (tabbables(bodyRef.current)[0] ?? tabbables(footerRef.current)[0]),
+  });
 
   // Mount on open; start the exit slide on close. Adjusted during render
   // (React's "adjust state when a prop changes" pattern, as in
@@ -92,19 +117,13 @@ export function ConfirmDialog({
     };
   }, [render, open]);
 
+  // Body scroll lock while rendered, counted so overlapping overlays
+  // (a sheet handing off to a dialog) restore it correctly. Escape
+  // lives in useFocusTrap.
   useEffect(() => {
     if (!render) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onOpenChange(false);
-    };
-    window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [render, onOpenChange]);
+    return lockBodyScroll();
+  }, [render]);
 
   if (!mounted || !render) return null;
 
@@ -115,14 +134,17 @@ export function ConfirmDialog({
 
   const dialog = (
     <div
+      ref={rootRef}
       className="fixed inset-0 z-[60] flex items-end justify-center md:items-center"
       role="dialog"
       aria-modal="true"
       aria-label={title}
     >
+      {/* Pointer-only dismiss; keyboard users have the X and Escape. */}
       <button
         type="button"
         aria-label="Close"
+        tabIndex={-1}
         onClick={() => onOpenChange(false)}
         className={cn(
           "absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity ease-out dark:bg-black/60",
@@ -131,8 +153,14 @@ export function ConfirmDialog({
         style={{ transitionDuration: `${ANIM_MS}ms` }}
       />
       <div
+        ref={panelRef}
+        // Focus fallback when nothing inside can take focus.
+        tabIndex={-1}
+        // Closing: no second confirm, and focus can't stay on a control
+        // that is sliding away.
+        inert={!open}
         className={cn(
-          "relative flex w-full flex-col overflow-hidden",
+          "relative flex w-full flex-col overflow-hidden outline-none",
           // Mobile: bottom sheet sized to its content.
           "max-h-[85dvh] rounded-t-2xl border-t safe-pb",
           // Desktop: centered, capped width + height, full rounded.
@@ -146,10 +174,12 @@ export function ConfirmDialog({
         style={{ transitionDuration: `${ANIM_MS}ms` }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Mobile grab handle — desktop suppresses via md:hidden. */}
+        {/* Mobile grab handle — desktop suppresses via md:hidden. A
+            touch affordance, so it stays out of the Tab order. */}
         <button
           type="button"
           aria-label="Close"
+          tabIndex={-1}
           onClick={() => onOpenChange(false)}
           className="flex h-5 items-center justify-center pt-2 md:hidden"
         >
@@ -168,11 +198,11 @@ export function ConfirmDialog({
             <X size={18} />
           </button>
         </header>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5">
+        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5">
           {children}
         </div>
         {hideFooter ? null : (
-          <footer className="flex shrink-0 items-center justify-end gap-2 border-t border-border bg-background/60 px-4 py-3 md:px-5">
+          <footer ref={footerRef} className="flex shrink-0 items-center justify-end gap-2 border-t border-border bg-background/60 px-4 py-3 md:px-5">
             <Button
               variant="ghost"
               size="sm"
