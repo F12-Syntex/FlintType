@@ -80,7 +80,7 @@ export function Burst1000Surface({
           <div className="flex flex-col items-center gap-2">
             <span className="text-xs font-semibold text-primary">Drill complete</span>
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              Every word cleared.
+              Every word cleared
             </h2>
           </div>
           <p className="max-w-md text-sm text-muted-foreground">

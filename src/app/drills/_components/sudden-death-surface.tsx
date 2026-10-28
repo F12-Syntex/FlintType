@@ -82,7 +82,7 @@ function Body() {
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {done ? (
           <DrillCleared
-            title="Clean run."
+            title="Clean run"
             stats={[
               { label: "Words", value: String(totalWords) },
               { label: "Resets", value: String(suddenDeathRestarts) },

@@ -188,7 +188,8 @@ export function visibleFilters(
   });
 }
 
-export const ISOLATION_TILE_TITLE = "Isolate weak pairs";
+/** Covers both kinds of isolation drill: weak letter pairs and triples. */
+export const ISOLATION_TILE_TITLE = "Isolate weak spots";
 
 export function tileTitle(tile: DrillTile): string {
   return tile.type === "drill" ? tile.drill.title : ISOLATION_TILE_TITLE;

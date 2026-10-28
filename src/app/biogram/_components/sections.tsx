@@ -21,6 +21,22 @@ function EmptyNote({ children }: { children: React.ReactNode }) {
  *  dozens of rows. */
 const RECENT_LIMIT = 10;
 
+/** Mode names as the rest of the app shows them (profile, insights,
+ *  leaderboard): the internal `training` mode is "Adapt" to users. */
+const MODE_LABEL: Record<string, string> = {
+  race: "Race",
+  training: "Adapt",
+  reverse_adaptive: "Reverse",
+  casual: "Casual",
+};
+
+function modeLabel(mode: string): string {
+  const known = MODE_LABEL[mode];
+  if (known) return known;
+  const words = mode.replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 export function RecentTests({ tests }: { tests: AdaptTestSummary[] }) {
   const [showAll, setShowAll] = useState(false);
   if (tests.length === 0) {
@@ -38,7 +54,7 @@ export function RecentTests({ tests }: { tests: AdaptTestSummary[] }) {
                 <th className="py-3 pr-3 font-medium">Mode</th>
                 <th className="py-3 pr-3 text-right font-medium">WPM</th>
                 <th className="py-3 pr-3 text-right font-medium">Accuracy</th>
-                <th className="py-3 pr-3 text-right font-medium">Errors</th>
+                <th className="hidden py-3 pr-3 text-right font-medium sm:table-cell">Errors</th>
                 <th className="py-3 pr-5 text-right font-medium">Finished</th>
               </tr>
             </thead>
@@ -51,8 +67,8 @@ export function RecentTests({ tests }: { tests: AdaptTestSummary[] }) {
                   <td className="whitespace-nowrap py-2.5 pl-5 pr-3 text-muted-foreground">
                     {relativeTime(t.startedAtMs)}
                   </td>
-                  <td className="py-2.5 pr-3 capitalize text-foreground">
-                    {t.mode.replace(/_/g, " ")}
+                  <td className="py-2.5 pr-3 text-foreground">
+                    {modeLabel(t.mode)}
                   </td>
                   <td className="py-2.5 pr-3 text-right font-medium text-foreground">
                     {t.wpm.toFixed(0)}
@@ -60,7 +76,8 @@ export function RecentTests({ tests }: { tests: AdaptTestSummary[] }) {
                   <td className="py-2.5 pr-3 text-right text-foreground">
                     {t.accuracy.toFixed(1)}%
                   </td>
-                  <td className="py-2.5 pr-3 text-right text-muted-foreground">
+                  {/* Errors drop on phones so the table fits 375px. */}
+                  <td className="hidden py-2.5 pr-3 text-right text-muted-foreground sm:table-cell">
                     {t.errorCount}
                   </td>
                   <td className="py-2.5 pr-5 text-right">

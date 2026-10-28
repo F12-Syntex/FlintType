@@ -138,7 +138,7 @@ export function BurstSurface({
 
       {state.finished ? (
         <DrillCleared
-          title="You cleared the run."
+          title="You cleared the run"
           stats={[
             { label: "Successful bursts", value: String(state.totalWins) },
             { label: "Accuracy", value: accuracy },

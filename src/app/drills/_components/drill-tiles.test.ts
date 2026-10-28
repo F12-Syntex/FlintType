@@ -241,7 +241,7 @@ describe("tileTitle + drillUnit", () => {
   it("names the folded isolation tile", () => {
     const groups = buildDrillTiles(WARM);
     const iso = groups.tailored.find((t) => t.type === "isolation")!;
-    expect(tileTitle(iso)).toBe("Isolate weak pairs");
+    expect(tileTitle(iso)).toBe("Isolate weak spots");
     expect(tileTitle(groups.generic[0]!)).toBe("Burst 1000");
   });
 

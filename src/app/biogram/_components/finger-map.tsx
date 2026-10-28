@@ -1,5 +1,6 @@
 "use client";
 
+import { Kbd } from "@/components/ft";
 import { Surface } from "@/components/page-shell";
 import {
   FINGER_NAME,
@@ -93,9 +94,9 @@ function FingerColumn({
                 </span>
               </span>
               {f.enabled ? (
-                <span className="inline-flex min-w-7 items-center justify-center rounded-md border border-border border-b-2 bg-background px-1.5 py-0.5 font-mono text-xs font-semibold text-foreground">
+                <Kbd className="mx-0 min-w-7 bg-background py-0.5 text-xs">
                   {keyLabel(f.homeKey)}
-                </span>
+                </Kbd>
               ) : (
                 <span className="text-xs text-muted-foreground">Off</span>
               )}
