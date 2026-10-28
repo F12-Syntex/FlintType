@@ -3,6 +3,7 @@ import {
   type LeaderboardScope,
   type LeaderboardWindow,
   lengthModeForPreset,
+  type RunLengthMode,
 } from "@/types/leaderboard";
 import {
   ALL_LENGTHS_LABEL,
@@ -26,8 +27,11 @@ const TIME_AMOUNTS = new Set([15, 30, 60, 120]);
 export function runLengthLabel(
   amount: number,
   preset: LeaderboardPreset,
+  rowMode: RunLengthMode | null = null,
 ): string {
-  const mode = lengthModeForPreset(preset);
+  // The row's own unit wins; then the board's; legacy rows on "All
+  // lengths" fall back to guessing from the amount.
+  const mode = rowMode ?? lengthModeForPreset(preset);
   const isTime = mode ? mode === "time" : TIME_AMOUNTS.has(amount);
   return isTime ? `${amount}s` : `${amount} ${amount === 1 ? "word" : "words"}`;
 }

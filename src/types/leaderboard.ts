@@ -67,6 +67,14 @@ export function lengthModeForPreset(
   return undefined;
 }
 
+export type RunLengthMode = "words" | "time" | "quote";
+
+/** A stored row's length unit, narrowed to the known values (legacy
+ *  rows carry null, and any unknown string reads as null too). */
+export function toRunLengthMode(raw: string | null | undefined): RunLengthMode | null {
+  return raw === "words" || raw === "time" || raw === "quote" ? raw : null;
+}
+
 export const leaderboardInputSchema = z.object({
   scope: leaderboardScopeSchema.optional(),
   window: leaderboardWindowSchema.optional(),
@@ -101,6 +109,10 @@ export type LeaderboardEntry = {
   accuracy: number;
   mode: string;
   durationOrWordCount: number;
+  /** Unit of `durationOrWordCount` (seconds for "time", words for
+   *  "words" / "quote"), or null on legacy rows. Lets "All lengths" label
+   *  a 60-word run as words instead of guessing from the number. */
+  lengthMode: RunLengthMode | null;
   completedAtMs: number;
 };
 

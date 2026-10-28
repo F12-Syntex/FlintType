@@ -157,6 +157,24 @@ describe("leaderboard.list", () => {
     expect(res.preset).toBe("w25");
   });
 
+  it("each entry carries its run's length unit (null for legacy rows)", async () => {
+    await ctx.db.tests.insert(
+      row({ id: "t_w60", userId: "u1", durationOrWordCount: 60, lengthMode: "words", wpm: 120 }),
+    );
+    await ctx.db.tests.insert(
+      row({ id: "t_t30", userId: "u2", durationOrWordCount: 30, lengthMode: "time", wpm: 110 }),
+    );
+    await ctx.db.tests.insert(
+      row({ id: "t_old", userId: "u1", durationOrWordCount: 15, wpm: 100 }),
+    );
+    const res = await callRoute<LeaderboardOutput>(["leaderboard", "list"], {
+      input: {},
+      db: ctx.db,
+    });
+    const unitById = Object.fromEntries(res.entries.map((e) => [e.testId, e.lengthMode]));
+    expect(unitById).toEqual({ t_w60: "words", t_t30: "time", t_old: null });
+  });
+
   it("preset=any (default) is unfiltered on amount", async () => {
     await ctx.db.tests.insert(
       row({ id: "t_25", userId: "u1", durationOrWordCount: 25 }),

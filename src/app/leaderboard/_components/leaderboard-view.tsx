@@ -102,7 +102,7 @@ function RunRow({
   you?: YouMark;
 }) {
   const acc = `${Math.round(entry.accuracy)}%`;
-  const length = runLengthLabel(entry.durationOrWordCount, preset);
+  const length = runLengthLabel(entry.durationOrWordCount, preset, entry.lengthMode);
   const when = relativeTime(entry.completedAtMs);
   const mode = MODE_LABEL[entry.mode] ?? entry.mode;
   const handle = entry.username ? `@${entry.username}` : entry.name;

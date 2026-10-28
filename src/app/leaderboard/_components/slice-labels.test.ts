@@ -60,6 +60,15 @@ describe("runLengthLabel", () => {
     expect(runLengthLabel(50, "any")).toBe("50 words");
     expect(runLengthLabel(1, "any")).toBe("1 word");
   });
+
+  it("prefers the row's own unit when the server sends one", () => {
+    // A 60-word run on All lengths no longer reads as 60 seconds.
+    expect(runLengthLabel(60, "any", "words")).toBe("60 words");
+    expect(runLengthLabel(50, "any", "time")).toBe("50s");
+    expect(runLengthLabel(40, "any", "quote")).toBe("40 words");
+    // Legacy rows (null) keep the old fallback.
+    expect(runLengthLabel(60, "any", null)).toBe("60s");
+  });
 });
 
 describe("otherScope", () => {

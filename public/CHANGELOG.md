@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.19 — 27 October 2026
+- On the leaderboard's All lengths board, each run now shows its real length, so a 60-word run no longer reads as 60 seconds.
+
 ## 6.148.18 — 27 October 2026
 - Internal changes only.
 
