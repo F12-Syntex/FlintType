@@ -104,7 +104,7 @@ export function TypographyRows() {
         label={
           <LabelWithDesc
             title="Size"
-            desc="Text size on a desktop screen. Smaller screens scale it down."
+            desc="Text size on a large screen; smaller screens scale it down."
           />
         }
         control={

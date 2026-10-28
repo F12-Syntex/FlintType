@@ -41,14 +41,14 @@ export function SettingsRow({
           "min-h-8",
           inline
             ? "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:gap-8"
-            : "flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(9rem,1fr)_auto] sm:items-center sm:gap-8",
+            : "flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-8",
         )}
       >
         {typeof label === "string" ? <LabelWithDesc title={label} /> : label}
         {control ? (
           <div
             className={cn(
-              "flex min-w-0 items-center",
+              "flex min-w-0 shrink-0 items-center",
               inline ? "justify-end" : "sm:justify-end",
             )}
           >

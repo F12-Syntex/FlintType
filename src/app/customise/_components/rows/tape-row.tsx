@@ -124,7 +124,7 @@ export function TapeRows() {
             label={
               <LabelWithDesc
                 title="Caret position"
-                desc="Where the caret sits along the line. 50% is the middle."
+                desc="How far along the line the caret sits; 50% is the middle."
               />
             }
             control={

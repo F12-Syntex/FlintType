@@ -540,13 +540,13 @@ Settings are a quiet inspector, not a magazine: short task-based pages, one grou
 
 ### 12.1 Anatomy of a section
 
-Settings are split into **task-based pages** (one route each), catalogued in `src/customise/_components/groups.ts` (`SETTINGS_GROUPS`): Theme (`themes`, `colors`, `background`), Typing (`typography`, `caret`, `typing-area` with the row anchors `#mistakes` and `#tape`), Interface (`surface`, `geometry`, `chrome`, and the §21 `style` section), Keyboard (`keyboard` "Practice keyboard", `keymap` "Keymap overlay"), Stats & results (`live-stats`, `result`), Behaviour (`input-handling`, `word-list`, `burst`, `audio`, `adaptive`) and Multiplayer & social (`multiplayer`, `spectate`). The catalog drives the sidebar, the mobile picker, section headings (`sectionTitle`), each page's Reset count (`GROUP_APPEARANCE_KEYS`, `GROUP_THEME_VARS`) and the legacy redirect. Add a section to the catalog first, then render it.
+Settings are split into **task-based pages** (one route each), catalogued in `src/customise/_components/groups.ts` (`SETTINGS_GROUPS`): Theme (`themes`, `colors`, `background`), Typing (`typography`, `caret`, `typing-area` with the row anchors `#mistakes` and `#tape`), Interface (`style`, `surface`, `geometry`, `chrome`), Keyboard (`keyboard` "Practice keyboard", `keymap` "Keymap overlay"), Stats & results (`live-stats`, `result`), Behaviour (`input-handling`, `word-list`, `burst`, `audio`, `adaptive`) and Multiplayer & social (`multiplayer`, `spectate`). The catalog drives the sidebar, the mobile picker, section headings (`sectionTitle`), each page's Reset count (`GROUP_APPEARANCE_KEYS`, `GROUP_THEME_VARS`) and the legacy redirect. Add a section to the catalog first, then render it.
 
 Every section renders through `<SettingsSection id title description preview?>`:
 1. **Header**: an `h2` (`text-lg font-semibold tracking-tight`) plus **one plain sentence**. No eyebrows. A ghost `Preview` button sits on the right when a preview exists.
 2. **One grouped list**: a `<Surface>` (`rounded-2xl border bg-card shadow-card`) holding the optional preview (top, `border-b bg-background`) and the rows, separated by `divide-y divide-border/70`. Row components return fragments, never wrapper divs, so the hairlines land between rows.
 3. **Rows**:
-   - `<SettingsRow label control inline? id? preview?>`: `px-4 py-3.5 sm:px-5`. The label is `<LabelWithDesc title desc>` (14px medium title plus one 13px muted line). Wide controls stack under the label on phones and sit right from `sm` (`sm:grid-cols-[minmax(9rem,1fr)_auto] sm:gap-8`). `inline` keeps short controls (swatch, typeface, mode, number input) beside the label at every width.
+   - `<SettingsRow label control inline? id? preview?>`: `px-4 py-3.5 sm:px-5`. The label is `<LabelWithDesc title desc>` (14px medium title plus one 13px muted line). Wide controls stack under the label on phones and sit right from `sm` (`sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-8`, control wrapper `shrink-0`), so a wide chip row keeps its natural size and the label wraps instead. `inline` keeps short controls (swatch, typeface, mode, number input) beside the label at every width.
    - `<SwitchRow title desc checked onChange>`: the whole row is the switch's `<label>`, so the tap target is at least 56px.
 4. There is **no per-section reset**. Reset lives in the page header (§12.7). Per-row Reset stays on colour and typeface rows.
 
@@ -567,7 +567,7 @@ Every section renders through `<SettingsSection id title description preview?>`:
 
 ### 12.2a Per-option chip previews
 
-- Chips are `rounded-xl` **tiles** with the sample above a 12px label. Selected = `border-primary bg-primary/10 text-primary`; at rest = `border-transparent bg-muted text-muted-foreground`. On phones `<ChipGroup>` is an even grid (up to four options per row, five or more in rows of three); from `sm` the tiles sit right-aligned. Minimum height `min-h-11 sm:min-h-9`. Text-only options never use chips (they use the segmented switch).
+- Chips are **pills** (`rounded-pill`, so the Style → Button shape setting reshapes them too) with the sample above a 12px label, `px-2 py-2 sm:min-w-18 sm:px-4`. Chip samples that depict a Style option (shape, depth, font, size) hard-code their own radius, shadow or font stack so the sample doesn't change with the current pick. Selected = `border-primary bg-primary/10 text-primary`; at rest = `border-transparent bg-muted text-muted-foreground`. On phones `<ChipGroup>` is an even grid (up to four options per row, five or more in rows of three); from `sm` the tiles sit right-aligned. Minimum height `min-h-11 sm:min-h-9`. Text-only options never use chips (they use the segmented switch).
 
 
 Whenever a setting's value is **visual**, each option in the chip group carries its own preview — a small sample of what that option does — stacked above the chip label. The user picks by comparison, not by guessing what "Bold" vs "Underline" means in context.
@@ -650,6 +650,7 @@ Don't sprinkle related settings across sections; if you find yourself doing that
 - The model **never invents values**: it picks option ids from the fixed catalog (`src/server/routes/appearance/options.ts` → `KNOBS`), resolved server-side to an `AppearancePatch` and re-validated by `sanitizePatch`. The catalog's radius and word-spacing values match the settings presets, so the matching preset lights up after Apply.
 - The flow is preview-only until Apply: the preview patch themes the previews through `<PreviewScope>` / `<PrefsOverrideProvider>`; Apply writes through the same typed setters as the manual controls (`useApplyPatch`).
 - No API key → a clear error under the input; unauthenticated → a sign-in prompt.
+- The catalog also carries the Style knobs `controls` (pill | rounded | square), `depth` (flat | soft | lifted), `glow` (on | off) and `appFont` (sans | mono | system), resolving to the `controlShape`, `depth`, `buttonGlow` and `uiFont` prefs (whitelisted in `APPEARANCE_FIELDS`). `<PreviewScope>` writes a patch's Style picks onto its wrapper as explicit `data-ft-controls|depth|glow|ui-font` attributes so the studio previews show them before Apply. App size and Page glow stay out of the catalog (a tile can't show a root font size or the page background). The studio's sixth tile is "Buttons & cards" (`<StylePreview>`, container-query sized).
 
 ## 13. Animation primitives
 
@@ -725,7 +726,15 @@ Every Surface / Chrome knob lands as a `<html data-ft-…>` attribute, applied b
 | `topbarStyle` | `data-ft-topbar-style` | `elevated` (note the `-style` suffix — `data-ft-topbar` is the self-marker on the TopBar element) |
 | `footerStyle` | `data-ft-footer-style` | `visible` (`-style` suffix for the same reason — `data-ft-footer` is the AppFooter self-marker) |
 | `autoHide` | `data-ft-autohide` + runtime `data-ft-running` | `off` |
+| `controlShape` | `data-ft-controls` | `pill` |
+| `depth` | `data-ft-depth` | `soft` |
+| `buttonGlow` | `data-ft-glow="off"` when false | on |
+| `pageAura` | `data-ft-aura="off"` when false | on |
+| `uiFont` | `data-ft-ui-font` | `sans` |
+| `uiScale` | `data-ft-ui-scale` | `default` |
 | `(Focus shortcut)` | `data-ft-focus="on"` | (off; attr absent) |
+
+The whole table lives in one place: `HTML_ATTR_RULES` in `src/lib/bootstrap.ts` (kinds `enum`, written unless it equals `fallback`; `flag-on`; `flag-off`). Both the pre-paint bootstrap script (the table is embedded as JSON) and `<AppearanceApplier>` (via `htmlAttrsFor()`) read it, so a new knob is one row there plus its CSS. Never hand-write a `setAttribute` for an appearance knob.
 
 Component self-markers that the CSS rules attach to:
 
@@ -761,6 +770,7 @@ A globally-mounted Cmd/Ctrl+K palette is the keyboard-first surface for every cu
 
 - **Third opener:** `openCommandPalette()` from `@/lib/command-palette/open` dispatches `ft:command-palette:open`, which `<CommandPalette>` listens for. Use it for "Search" affordances; never import the palette component. `commandKeyLabel(navigator.platform)` returns "⌘" or "Ctrl" for shortcut hints.
 - The Escape opener ignores events that are already `defaultPrevented` (e.g. Radix closing a dialog), so the palette's own closing Escape can't reopen it.
+- Style entries: Button shape, Depth, App font and App size are enums; Button glow and Page glow are toggles. The value tag on the active option reads "Current" in sentence case `text-primary`.
 - Palette copy is sentence case (group headings, value chips, footer); entry labels mirror the settings row titles; there is one "<Page> settings" entry per settings page.
 
 ### 16.2 Adding an entry
@@ -946,6 +956,12 @@ Rules:
 - The Outlines knob (`data-ft-borders`, Settings → Interface → Outlines) recolours borders globally; `.border-transparent` stays transparent (ghost buttons, chips at rest) and `.border-primary` stays orange (selected chips) under every mode. Rely on those two utilities rather than inline styles.
 - Motion on controls is limited to colour/shadow transitions (~200ms ease-out) and the button press (`active:scale-[0.98]`); no bounce.
 - Primary is the logo orange `#f97316` in both modes with white, `font-semibold` label text on `brand-surface` (its deeper base improves label contrast).
+
+### 21.1 Style settings (Settings → Interface → Style)
+- **Rows** (`_components/rows/style-rows.tsx`): Button shape (Pill / Rounded / Square → `--ft-radius-control`, the value behind `rounded-pill`); Depth (Flat / Soft / Lifted → `--ft-shadow-card` / `--ft-shadow-float`); Button glow (switch → `--ft-shadow-glow`); Page glow (switch, the radial accent wash on `body`); App font (Sans = Plus Jakarta Sans / Mono = IBM Plex Mono / System stack — overrides `--font-sans` on `html` and `body`; the passage keeps `--ft-font-family`); App size (Compact / Default / Large = root `font-size` 93.75% / 100% / 106.25%; everything in rem scales).
+- **Layer rule:** `--ft-shadow-*` and `--font-sans` are declared on the unlayered `:root` / `.dark`, which outrank `@layer base`, so their overrides in the Style block carry `!important`. Vars declared only inside the block (`--ft-radius-control`) don't need it.
+- **Scope rule:** every Style selector is written as `html[data-ft-x="v"], [data-ft-x="v"]:not(html)`, so a wrapper can preview a pick (the AI studio). Explicit default values have `:not(html)` rules for undoing a global non-default choice inside a preview; keep them in step with the `:root` / `.dark` tokens.
+- **Preview:** `<StylePreview>` shows the real card, segmented switch, primary and outline buttons, input, floating menu and switch side by side.
 
 ## 22. Practice surface and result screen
 

@@ -229,7 +229,7 @@ export function LayoutRows() {
         label={
           <LabelWithDesc
             title="Line width"
-            desc="The longest a line can get, in characters. 0 uses the full width."
+            desc="The longest a line can get, in characters (0 uses the full width)."
           />
         }
         control={

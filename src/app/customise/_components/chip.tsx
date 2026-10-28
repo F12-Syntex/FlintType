@@ -8,9 +8,11 @@ import { cn } from "@/lib/utils";
  *  comparison. Text-only choices don't use this — they render as the
  *  shared segmented switch (see `SelectChips`).
  *
- *  Selected = the brand orange (tinted fill + orange hairline + orange
- *  label); at rest it's a quiet muted tile. The border is always
- *  present (transparent at rest) so selecting never shifts layout. */
+ *  A pill like every other control (`rounded-pill`, so the Style →
+ *  Buttons setting reshapes it too). Selected = the brand orange
+ *  (tinted fill + orange hairline + orange label); at rest it's a quiet
+ *  muted pill. The border is always present (transparent at rest) so
+ *  selecting never shifts layout. */
 export function Chip({
   label,
   preview,
@@ -31,7 +33,7 @@ export function Chip({
         "inline-flex min-h-11 cursor-pointer items-center justify-center border text-[13px] font-medium transition-[color,background-color,border-color] duration-200 outline-none sm:min-h-9",
         "focus-visible:ring-2 focus-visible:ring-ring/50",
         preview
-          ? "min-w-0 flex-col gap-1.5 rounded-xl px-1.5 py-2 text-xs sm:min-w-16 sm:px-3"
+          ? "min-w-0 flex-col gap-1.5 rounded-pill px-2 py-2 text-xs sm:min-w-18 sm:px-4"
           : "rounded-pill px-3.5 py-1.5",
         active
           ? "border-primary bg-primary/10 text-primary"

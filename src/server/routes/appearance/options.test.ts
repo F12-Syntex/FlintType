@@ -26,6 +26,24 @@ describe("resolveAi — options", () => {
     expect(patch.appearance.maxLineWidth).toBe(60);
   });
 
+  it("resolves the Style knobs into appearance prefs", () => {
+    const { patch, changes } = resolveAi({
+      options: { controls: "square", depth: "flat", glow: "off", appFont: "mono" },
+    });
+    expect(patch.appearance).toEqual({
+      controlShape: "square",
+      depth: "flat",
+      buttonGlow: false,
+      uiFont: "mono",
+    });
+    expect(changes.map((c) => c.label)).toEqual([
+      "Button shape",
+      "Depth",
+      "Button glow",
+      "App font",
+    ]);
+  });
+
   it("drops unknown knobs and invalid option ids", () => {
     const { patch, changes } = resolveAi({
       options: { accent: "ultraviolet", bogusKnob: "x", surface: "sepia" },

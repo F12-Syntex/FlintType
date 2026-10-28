@@ -69,7 +69,7 @@ export function LiveStatsRows() {
     <>
       <StyleRow
         title="Timer"
-        desc="Time or words left. Flash shows it briefly every 15 seconds."
+        desc="Time or words left; Flash shows it briefly every 15 seconds."
         value={prefs.liveProgressStyle}
         onChange={(v) => update("liveProgressStyle", v)}
       />

@@ -67,8 +67,9 @@ export const SETTINGS_GROUPS: readonly SettingsGroup[] = [
     id: "interface",
     name: "Interface",
     href: "/customise/interface",
-    description: "How much of the app frames the test, and its shape.",
+    description: "The shape, depth and type of the app around the test.",
     sections: [
+      { id: "style", name: "Style" },
       { id: "surface", name: "Surfaces" },
       { id: "geometry", name: "Corners & borders" },
       { id: "chrome", name: "Top bar & footer" },
@@ -194,6 +195,12 @@ export const GROUP_APPEARANCE_KEYS: Readonly<
     "quoteAttribution",
   ],
   interface: [
+    "controlShape",
+    "depth",
+    "buttonGlow",
+    "pageAura",
+    "uiFont",
+    "uiScale",
     "cardSurfaces",
     "dividers",
     "pagePadding",

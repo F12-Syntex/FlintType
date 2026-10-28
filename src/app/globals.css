@@ -660,31 +660,66 @@
   }
 
   /* ── Style (ui-law §21) ──────────────────────────────────────────
-     data-ft-controls: shape of every interactive control.
-     data-ft-depth:    flat drops every card/float shadow.
-     data-ft-glow:     off drops the primary-CTA glow.
-     data-ft-aura:     off drops the soft accent wash behind the page. */
+     Settings → Interface → Style. Each knob is an attribute on <html>
+     written by AppearanceApplier (and pre-paint by the bootstrap
+     script); the AI studio previews set the same attribute on a
+     wrapper, so every rule also matches a non-html scope.
+       data-ft-controls: shape of every interactive control.
+       data-ft-depth:    flat drops every card/float shadow; lifted
+                         deepens the card shadow.
+       data-ft-glow:     off drops the primary-CTA glow.
+       data-ft-aura:     off drops the soft accent wash behind the page.
+       data-ft-ui-font:  the interface typeface (not the passage).
+       data-ft-ui-scale: the root text size; everything in rem scales.
+     The shadow + font tokens are declared on the unlayered :root /
+     .dark blocks, which beat anything in this layer, so the overrides
+     below carry !important (a layered !important outranks them). */
   html {
     --ft-radius-control: 9999px;
   }
-  html[data-ft-controls="rounded"] {
+  html[data-ft-controls="rounded"],
+  [data-ft-controls="rounded"]:not(html) {
     --ft-radius-control: calc(var(--radius) - 2px);
   }
-  html[data-ft-controls="square"] {
+  html[data-ft-controls="square"],
+  [data-ft-controls="square"]:not(html) {
     --ft-radius-control: 0px;
   }
-  html[data-ft-depth="flat"] {
-    --ft-shadow-card: 0 0 #0000;
-    --ft-shadow-float: 0 0 #0000;
+  [data-ft-controls="pill"]:not(html) {
+    --ft-radius-control: 9999px;
   }
-  html[data-ft-depth="lifted"] {
-    --ft-shadow-card: 0 1px 3px oklch(0.3 0.03 60 / 0.08), 0 14px 36px -14px oklch(0.3 0.03 60 / 0.30);
+  html[data-ft-depth="flat"],
+  [data-ft-depth="flat"]:not(html) {
+    --ft-shadow-card: 0 0 #0000 !important;
+    --ft-shadow-float: 0 0 #0000 !important;
   }
-  html.dark[data-ft-depth="lifted"] {
-    --ft-shadow-card: 0 1px 3px oklch(0 0 0 / 0.35), 0 16px 40px -14px oklch(0 0 0 / 0.75);
+  html[data-ft-depth="lifted"],
+  [data-ft-depth="lifted"]:not(html) {
+    --ft-shadow-card: 0 1px 3px oklch(0.3 0.03 60 / 0.08), 0 14px 36px -14px oklch(0.3 0.03 60 / 0.30) !important;
   }
-  html[data-ft-glow="off"] {
-    --ft-shadow-glow: 0 0 #0000;
+  html.dark[data-ft-depth="lifted"],
+  .dark [data-ft-depth="lifted"]:not(html) {
+    --ft-shadow-card: 0 1px 3px oklch(0 0 0 / 0.35), 0 16px 40px -14px oklch(0 0 0 / 0.75) !important;
+  }
+  /* Explicit defaults, for a preview scope that has to undo a global
+     non-default choice. Mirror the :root / .dark tokens. */
+  [data-ft-depth="soft"]:not(html) {
+    --ft-shadow-card: 0 1px 2px oklch(0.35 0.03 60 / 0.05), 0 6px 20px -10px oklch(0.35 0.03 60 / 0.16) !important;
+    --ft-shadow-float: 0 2px 6px oklch(0.3 0.03 60 / 0.06), 0 18px 48px -16px oklch(0.3 0.03 60 / 0.30) !important;
+  }
+  .dark [data-ft-depth="soft"]:not(html) {
+    --ft-shadow-card: 0 1px 2px oklch(0 0 0 / 0.25), 0 8px 24px -12px oklch(0 0 0 / 0.55) !important;
+    --ft-shadow-float: 0 2px 8px oklch(0 0 0 / 0.30), 0 24px 56px -16px oklch(0 0 0 / 0.65) !important;
+  }
+  html[data-ft-glow="off"],
+  [data-ft-glow="off"]:not(html) {
+    --ft-shadow-glow: 0 0 #0000 !important;
+  }
+  [data-ft-glow="on"]:not(html) {
+    --ft-shadow-glow: 0 8px 24px -8px color-mix(in oklch, var(--primary) 55%, transparent) !important;
+  }
+  .dark [data-ft-glow="on"]:not(html) {
+    --ft-shadow-glow: 0 8px 28px -8px color-mix(in oklch, var(--primary) 45%, transparent) !important;
   }
   html:not([data-ft-aura="off"]) body {
     background-image: radial-gradient(
@@ -693,6 +728,34 @@
       transparent 70%
     );
     background-attachment: fixed;
+  }
+  /* Interface font. next/font re-declares --font-sans on <body>, so the
+     override lands on body as well as html; the passage keeps its own
+     --ft-font-family and font-mono stays mono. */
+  html[data-ft-ui-font="mono"],
+  html[data-ft-ui-font="mono"] body,
+  [data-ft-ui-font="mono"]:not(html) {
+    --font-sans: var(--font-mono) !important;
+  }
+  html[data-ft-ui-font="system"],
+  html[data-ft-ui-font="system"] body,
+  [data-ft-ui-font="system"]:not(html) {
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  }
+  [data-ft-ui-font="sans"]:not(html) {
+    --font-sans: "Plus Jakarta Sans", ui-sans-serif, sans-serif, system-ui !important;
+  }
+  html[data-ft-ui-font] body,
+  [data-ft-ui-font]:not(html) {
+    font-family: var(--font-sans);
+  }
+  /* Interface size. Percentages so a browser's own text-size setting
+     still scales on top (16px default → 15px / 17px). */
+  html[data-ft-ui-scale="compact"] {
+    font-size: 93.75%;
+  }
+  html[data-ft-ui-scale="large"] {
+    font-size: 106.25%;
   }
   /* Outlines knob exceptions (Settings → Interface → Outlines). The
      data-ft-borders soft/hidden rules recolour *every* border with
