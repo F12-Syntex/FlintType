@@ -1,11 +1,10 @@
-import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** Tile shell — bordered card with the rendered preview on top and a
  *  hairline-divided footer band below carrying the theme name and the
  *  active-state chip. Keeps the name attached to the tile (instead of
- *  floating below it) so each card reads as one unit; hover reveals a
- *  quiet "→" arrow on inactive tiles to telegraph the click affordance.
+ *  floating below it) so each card reads as one unit. The hover lift
+ *  carries the click affordance (no trailing arrow, ui-law §17.5).
  */
 export function TileShell({
   active,
@@ -54,13 +53,7 @@ export function TileShell({
             <span aria-hidden className="size-1.5 rounded-full bg-primary" />
             Active
           </span>
-        ) : (
-          <ArrowRight
-            size={14}
-            aria-hidden
-            className="shrink-0 text-muted-foreground opacity-0 transition-opacity duration-150 group-hover:opacity-70"
-          />
-        )}
+        ) : null}
       </div>
     </button>
   );

@@ -204,8 +204,9 @@ export function AdaptModal({
               New passages sample from a{" "}
               <span className="text-foreground">challenge band</span>{" "}just
               above your current speed, never so far that you stall, with a
-              recency penalty so words don&apos;t repeat and a fatigue damper
-              when recent sessions show you slowing.
+              recency penalty so words don&apos;t repeat. It eases off when
+              you&apos;re tiring or less accurate than usual, and pushes a
+              little harder on a good day.
             </p>
             <p className="text-xs">
               Adaptive practice runs on desktop only. Phones always behave as

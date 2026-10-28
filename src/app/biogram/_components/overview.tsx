@@ -52,9 +52,13 @@ export function OverviewBody({ snap }: { snap: AdaptSnapshotOutput }) {
           hint="Recently shown, kept out for now"
         />
         <StatTile
-          label="Fatigue damping"
+          label="Pacing"
           value={`× ${snap.fatigueDampener.toFixed(2)}`}
-          hint={snap.fatigueDampener < 1 ? "Easing off while you're tired" : "No damping"}
+          hint={
+            snap.fatigueDampener < 1
+              ? "Easing off: tired, less accurate or slower than usual"
+              : "At your usual pace"
+          }
         />
         <StatTile
           label="Weakest pair"

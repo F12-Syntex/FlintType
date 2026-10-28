@@ -6,11 +6,8 @@
 
 - [Home](/): the typing practice surface — start typing to begin a test, switch modes (words / time / quote) at the top
 - [About](/about): what flinttype is, who it's for, and the adaptive-drills story
-- [Leaderboard](/leaderboard): global top WPM and net-WPM scores across modes
-- [Race](/race): multiplayer races against bots or friends; private challenge links shareable per lobby
-- [Drills](/drills): targeted drills (burst, pangram, top-100, sudden death, worst words)
-- [Insights](/insights): per-user weakness ranking + WPM history (requires sign-in)
-- [Customise](/customise): theme, typography, caret, keyboard, layout, multiplayer
+- [Leaderboard](/leaderboard): fastest typing tests ranked by net WPM, filterable by Casual or Adapt mode, test length, time window and friends
+- [Race](/race): live races against other typists; find a public race in one click or share a private lobby link with friends
 - [Blog](/blog): notes on typing, adaptive practice, and engineering behind flinttype
 - [Changelog](/changelog): curated release notes — features, fixes, policy updates
 - [FAQ](/faq): common questions about accounts, WPM math, the adaptive engine, supported layouts

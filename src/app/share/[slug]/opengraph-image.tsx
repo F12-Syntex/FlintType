@@ -155,7 +155,7 @@ export default async function RunOpengraphImage({
               lineHeight: 1,
             }}
           >
-            Take the same test →
+            Take the same test
           </span>
         </div>
       </div>

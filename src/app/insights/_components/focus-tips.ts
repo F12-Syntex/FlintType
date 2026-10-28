@@ -13,8 +13,9 @@ export type FocusTip = {
   lockedNote?: string;
 };
 
-/** Mirrors `worstWordsReady` in `drills/_components/drills-data.ts`:
- *  the Worst-words burst unlocks once five slow words are timed. */
+/** Mirrors the gate in `worstWordsDrill` (drills/_components/
+ *  drills-tailored.ts): the Worst-words burst unlocks once five slow
+ *  words are timed. */
 export const WORST_WORDS_MIN = 5;
 /** Average accuracy below this over the recent window earns a tip. */
 export const ACCURACY_FLOOR = 95;
@@ -82,7 +83,7 @@ export function buildFocusTips(snap: HistorySummaryOutput): FocusTip[] {
     tips.push({
       id: "pair",
       title: `Weakest pair: “${pair.key}”`,
-      detail: `${figures(pair.meanMs, snap.bigramBaselineMs, "pair")} The Weakness gauntlet builds a passage around it.`,
+      detail: `${figures(pair.meanMs, snap.bigramBaselineMs, "pair")} Time lost to mistakes counts too. The Weakness gauntlet builds a passage around it.`,
       action: { href: "/drills/weakness", label: LABEL.weakness },
     });
   }

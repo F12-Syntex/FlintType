@@ -8,9 +8,8 @@ import { RaceShell } from "./_components/race-shell";
 export const metadata = buildPageMetadata({
   title: "Race",
   description:
-    "Race against deterministic bots — pick your mode, share the same passage, race to the line.",
+    "Race other typists live on flinttype. Find a public race in one click, or open a private lobby and share the link so friends type the same passage with you.",
   path: "/race",
-  noIndex: true,
 });
 
 /** Layout mirrors `<TypingSurface>` on `/` so the race surface reads as

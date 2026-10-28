@@ -15,7 +15,6 @@
  *  Pure — no I/O, no React. Used by:
  *    src/app/profile/_components/derive-stats.ts
  *    src/server/routes/leaderboard/index.ts (Top by Level route)
- *    src/app/leaderboard/_components/user-views.tsx
  *
  *  When changing the formula, change it here. Do not duplicate. */
 

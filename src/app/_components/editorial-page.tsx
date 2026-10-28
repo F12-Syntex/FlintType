@@ -99,7 +99,7 @@ export function EditorialSection({
 
 /** Inline link inside reading copy. Internal routes go through
  *  `next/link`; anything starting with `http` opens in a new tab, and a
- *  static file (`/changelog.md`) is a plain anchor. */
+ *  static file (`/CHANGELOG.md`) is a plain anchor. */
 export function EditorialLink({
   href,
   children,

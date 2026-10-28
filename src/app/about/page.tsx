@@ -51,12 +51,15 @@ export default function AboutPage() {
             storing your raw keystrokes.
           </p>
           <p>
-            Every new practice run leans toward words that stress your
-            slowest pairs: not random ones, not the most common ones, but
-            the ones holding your overall speed back. Over time the pairs
-            you missed early start landing as fast as your fastest. Once
-            you&apos;re signed in, the per-pair heatmap and your current
-            weak spots live on{" "}
+            Every new practice run leans toward the words that stress your
+            weakest pairs: the slow ones, and the ones you keep mistyping,
+            because a fumbled pair costs you time even when it is quick the
+            rest of the time. When you fix a pattern, practice notices
+            sooner and moves on, and a pattern you haven&apos;t typed in
+            weeks gets checked again. If you&apos;re tiring or making more
+            mistakes than usual, the next passage eases off; on a good day
+            it pushes a little harder. Once you&apos;re signed in, the
+            per-pair heatmap and your current weak spots live on{" "}
             <EditorialLink href="/insights">your insights page</EditorialLink>.
           </p>
         </EditorialSection>

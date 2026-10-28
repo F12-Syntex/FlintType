@@ -21,12 +21,12 @@ import { ChangeLines, DayReleases, Fold } from "./_components/release-list";
 export const metadata = buildPageMetadata({
   title: "Changelog — what's new on flinttype",
   description:
-    "Release notes for flinttype. Plain-language summary of every release — new features, fixes, and policy updates. The raw file is served at /changelog.md.",
+    "Release notes for flinttype. Plain-language summary of every release — new features, fixes, and policy updates. The raw file is served at /CHANGELOG.md.",
   path: "/changelog",
 });
 
 /** Single source of truth: `public/CHANGELOG.md`, also served raw at
- *  `/changelog.md`. Read off disk and parsed at build time (this page
+ *  `/CHANGELOG.md`. Read off disk and parsed at build time (this page
  *  is static), so the summary stays in lockstep with the file the
  *  commit protocol updates on every version bump. The page groups
  *  releases by day and drops internal-only lines; the raw file keeps
@@ -49,7 +49,7 @@ export default function ChangelogPage() {
         footer={
           <>
             Want every version, including internal ones? The full log is
-            at <EditorialLink href="/changelog.md">/changelog.md</EditorialLink>.
+            at <EditorialLink href="/CHANGELOG.md">/CHANGELOG.md</EditorialLink>.
           </>
         }
       >
