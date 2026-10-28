@@ -198,8 +198,10 @@ export type AdaptSnapshotOutput = {
   totalBigramSamples: number;
   cold: boolean;
   /** Difficulty pacing, as how far it has pulled the challenge-band
-   *  ceiling in: 1 = not at all, < 1 = easing off because the current
-   *  session shows fading speed, low accuracy or a slump. */
+   *  ceiling in: 1 = not at all, < 1 (down to ~0.73) = easing off
+   *  because the current session shows fading speed, accuracy below
+   *  the user's usual, or a slump against their usual speed for the
+   *  same kind of run. Same value adaptive selection applies. */
   fatigueDampener: number;
   bigrams: AdaptModelRow[];
   trigrams: AdaptModelRow[];
@@ -236,6 +238,9 @@ export type ScoreWordOutput = {
   deltaContribution: number;
   predictedMs: number;
   recencyMultiplier: number;
+  /** Whether the word sits in the *strict* challenge band at this
+   *  request's pacing ceiling. Selection relaxes the band when too few
+   *  pool words qualify, so a word outside it can still be served. */
   inChallengeBand: boolean;
   bigrams: WeaknessBreakdown[];
   trigrams: WeaknessBreakdown[];

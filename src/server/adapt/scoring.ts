@@ -1,5 +1,6 @@
 import type { HandLayoutPrefs } from "@/lib/hand-layout";
 import {
+  type PatternSpreads,
   WEAKNESS_CONFIDENCE_Z,
   effectiveSamples,
   evidenceWeight,
@@ -83,15 +84,19 @@ export function baselineMean(models: ModelMap): number {
  *  attempts fold in what the mistake cost (see `slips.ts`) — so a pair
  *  you mistype scores as weak even when its clean keystrokes are quick.
  *  `nowMs` enables staleness: a pattern unseen for weeks is trusted
- *  less. Omit it for display-only callers. */
+ *  less. Omit it for display-only callers. `priorRelVar` is the pooled
+ *  spread for this pattern type (`patternSpreads`); it gives low-sample
+ *  patterns a realistic error bar, so one mistake can't make a normal
+ *  pair look confidently weak. */
 export function weakness(
   state: ModelState,
   baseline: number,
   nowMs?: number,
+  priorRelVar?: number,
 ): number {
   const nEff = effectiveSamples(state, nowMs);
-  const gap =
-    state.mean - baseline - WEAKNESS_CONFIDENCE_Z * standardError(state, nEff);
+  const se = standardError(state, nEff, priorRelVar);
+  const gap = state.mean - baseline - WEAKNESS_CONFIDENCE_Z * se;
   if (!(gap > 0)) return 0;
   return gap * evidenceWeight(nEff);
 }
@@ -104,10 +109,11 @@ export function bigramTerm(
   state: ModelState | undefined,
   categoryBaseline: number,
   nowMs?: number,
+  priorRelVar?: number,
 ): { weakness: number; explore: number } {
   if (!state) return { weakness: 0, explore: UNTESTED_BIGRAM_BONUS };
   return {
-    weakness: weakness(state, categoryBaseline, nowMs),
+    weakness: weakness(state, categoryBaseline, nowMs, priorRelVar),
     explore: UNTESTED_BIGRAM_BONUS * exploreWeight(effectiveSamples(state, nowMs)),
   };
 }
@@ -188,31 +194,6 @@ export function baselineForCategory(
   }
 }
 
-/** Per-word predicted typing time, used by the challenge-band
- *  sampler. Sums bigram means within the word. Cold bigrams fall
- *  back to the *category* baseline so an unsampled doubled letter
- *  is predicted to take roughly as long as the user's other doubled
- *  letters, rather than the global average (which would make
- *  doubled-heavy words look easier than they really are). */
-export function predictedWordMs(
-  word: string,
-  bigramModels: ModelMap,
-  baselines: BigramBaselines,
-  layout: HandLayoutPrefs,
-): number {
-  if (word.length < 2) return 0;
-  let total = 0;
-  for (let i = 1; i < word.length; i++) {
-    const a = word[i - 1]!.toLowerCase();
-    const b = word[i]!.toLowerCase();
-    const st = bigramModels.get(a + b);
-    total += st
-      ? st.mean
-      : baselineForCategory(bigramCategory(a, b, layout), baselines);
-  }
-  return total;
-}
-
 /** Word score per the spec: Σ-of-bigram-weakness + Σ-of-trigram-weakness +
  *  Σ-of-motor-feature-weakness + word-level-weakness, weighted by α
  *  / β / γ / δ. Each unique motor-feature key contributes once even
@@ -242,9 +223,13 @@ export function scoreWord(args: {
   /** Request time — enables staleness (see `evidence.ts`). Omit for
    *  a time-independent score. */
   nowMs?: number;
+  /** Pooled spread per pattern type (`patternSpreads`). Omit to score
+   *  on each pattern's raw variance. */
+  spreads?: PatternSpreads;
 }): number {
   const w = args.word.toLowerCase();
   const now = args.nowMs;
+  const sp = args.spreads;
   const weights = args.weights ?? DEFAULT_WEIGHTS;
   let bigSum = 0;
   let triSum = 0;
@@ -263,21 +248,21 @@ export function scoreWord(args: {
     // unremarkable for that motion class.
     const cat = bigramCategory(a, b, args.layout);
     const cb = baselineForCategory(cat, args.baselines.bigram);
-    const term = bigramTerm(args.bigramModels.get(bg), cb, now);
+    const term = bigramTerm(args.bigramModels.get(bg), cb, now, sp?.bigram);
     bigSum += term.weakness + term.explore;
 
     for (const fk of deriveFeatureKeys(a, b, args.layout)) {
       if (seenFeatures.has(fk)) continue;
       seenFeatures.add(fk);
       const fst = args.motorFeatureModels.get(fk);
-      if (fst) featSum += weakness(fst, args.baselines.motorFeature, now);
+      if (fst) featSum += weakness(fst, args.baselines.motorFeature, now, sp?.motorFeature);
     }
   }
 
   for (let i = 2; i < w.length; i++) {
     const tg = w[i - 2]! + w[i - 1]! + w[i]!;
     const st = args.trigramModels.get(tg);
-    if (st) triSum += weakness(st, args.baselines.trigram, now);
+    if (st) triSum += weakness(st, args.baselines.trigram, now, sp?.trigram);
   }
 
   // Word-level term — only contributes when a model and baseline are
@@ -286,7 +271,7 @@ export function scoreWord(args: {
   let wordWeakness = 0;
   if (args.wordModels && args.baselines.word !== undefined) {
     const ws = args.wordModels.get(w);
-    if (ws) wordWeakness = weakness(ws, args.baselines.word, now);
+    if (ws) wordWeakness = weakness(ws, args.baselines.word, now, sp?.word);
   }
 
   return (

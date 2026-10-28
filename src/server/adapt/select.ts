@@ -7,6 +7,8 @@ import {
   pacingFrom,
   type Pacing,
 } from "./pacing";
+import { type PatternSpreads, patternSpreads } from "./evidence";
+import { predictedWordMs } from "./prediction";
 import { recencyMultiplier } from "./recency";
 import { pickWithCoverage } from "./sampling";
 import {
@@ -15,13 +17,11 @@ import {
   type BigramBaselines,
   bigramBaselines,
   bigramTerm,
-  predictedWordMs,
   scoreWord,
   weakness,
   type ModelMap,
   type ScoringWeights,
 } from "./scoring";
-import { initialOverlaps, patternDose } from "./spacing";
 
 /** Total bigram samples below this and the user is still cold —
  *  the route should fall back to its own random word generation
@@ -45,7 +45,7 @@ export type SelectionInput = {
   recentTests: readonly TestRow[];
   /** Map from word to the test-distance back at which it was last
    *  shown. 0 = the test we just ran; 1 = the test before that. Drives
-   *  word recency and pattern spacing (`spacing.ts`). */
+   *  the word recency penalty. */
   recentlyShown: ReadonlyMap<string, number>;
   weights?: ScoringWeights;
   rng?: () => number;
@@ -98,6 +98,12 @@ export function selectBatches(
     motorFeature: baselineMean(input.motorFeatureModels),
     word: input.wordModels ? baselineMean(input.wordModels) : 0,
   };
+  const spreads = patternSpreads({
+    bigram: input.bigramModels,
+    trigram: input.trigramModels,
+    motorFeature: input.motorFeatureModels,
+    word: input.wordModels,
+  });
 
   const candidates: Candidate[] = input.pool.map((word) => {
     const raw = scoreWord({
@@ -110,6 +116,7 @@ export function selectBatches(
       baselines,
       weights: input.weights,
       nowMs: now,
+      spreads,
     });
     return {
       word,
@@ -119,7 +126,7 @@ export function selectBatches(
       // user is struggling and sharpens it when they're in form.
       // Recency stays a *linear* multiplier (applied per batch below).
       concentrated: raw > 0 ? raw ** pacing.concentration : 0,
-      patterns: weakPatternKeys(word, input, baselines.bigram, baselines.motorFeature),
+      patterns: weakPatternKeys(word, input, baselines.bigram, baselines.motorFeature, spreads),
       predictedMs: predictedWordMs(
         word,
         input.bigramModels,
@@ -134,14 +141,6 @@ export function selectBatches(
     ? candidates
     : bandedPool(candidates, baselines.bigram.overall, input.count, pacing);
 
-  // Pattern spacing: patterns recent tests already drilled start the
-  // coverage pick partially covered, so this passage rotates to other
-  // weaknesses for a test or two (see spacing.ts).
-  const overlaps = initialOverlaps(
-    patternDose(input.recentlyShown, input.layout),
-    pool.map((c) => c.patterns),
-  );
-
   const recency = new Map(input.recentlyShown);
   const batches: string[][] = [];
   for (let b = 0; b < Math.max(1, batchCount); b++) {
@@ -150,7 +149,7 @@ export function selectBatches(
       weight: c.concentrated * recencyMultiplier(recency.get(c.word) ?? Infinity),
       patterns: c.patterns,
     }));
-    const words = pickWithCoverage(items, input.count, input.rng, overlaps);
+    const words = pickWithCoverage(items, input.count, input.rng);
     batches.push(words);
     for (const w of words) recency.set(w, 0);
   }
@@ -196,6 +195,7 @@ function weakPatternKeys(
   input: SelectionInput,
   bigramBs: BigramBaselines,
   motorFeatureBaseline: number,
+  spreads: PatternSpreads,
 ): string[] {
   const w = word.toLowerCase();
   const keys = new Set<string>();
@@ -204,11 +204,11 @@ function weakPatternKeys(
     const b = w[i]!;
     const bg = a + b;
     const cb = baselineForCategory(bigramCategory(a, b, input.layout), bigramBs);
-    const term = bigramTerm(input.bigramModels.get(bg), cb, input.nowMs);
+    const term = bigramTerm(input.bigramModels.get(bg), cb, input.nowMs, spreads.bigram);
     if (term.weakness > 0 || term.explore > 0) keys.add(`b:${bg}`);
     for (const fk of deriveFeatureKeys(a, b, input.layout)) {
       const fst = input.motorFeatureModels.get(fk);
-      if (fst && weakness(fst, motorFeatureBaseline, input.nowMs) > 0) {
+      if (fst && weakness(fst, motorFeatureBaseline, input.nowMs, spreads.motorFeature) > 0) {
         keys.add(`f:${fk}`);
       }
     }

@@ -939,16 +939,26 @@ describe("adapt routes", () => {
   });
 
   it("words prefers fresh words across prefetch batches", async () => {
-    signedInAs("u1");
-    const pool = ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta"];
-    const out = await callRoute<RequestWordsOutput>(["adapt", "words"], {
-      db: ctx.db,
-      input: { count: 4, pool, batches: 2 },
-    });
-    expect(out.batches.length).toBe(2);
-    for (const b of out.batches) {
-      expect(new Set(b).size).toBe(4);
-      for (const w of b) expect(pool).toContain(w);
+    // Own user so these calls don't share the u1 rate-limit bucket.
+    signedInAs("u-fresh");
+    // Equal-weight words (cold model, no shared bigrams): independent
+    // draws of 4 from 8 would share 2 words on average.
+    const pool = ["bad", "cog", "fun", "hip", "jam", "kit", "mop", "rex"];
+    const CALLS = 40;
+    let overlap = 0;
+    for (let c = 0; c < CALLS; c++) {
+      const out = await callRoute<RequestWordsOutput>(["adapt", "words"], {
+        db: ctx.db,
+        input: { count: 4, pool, batches: 2 },
+      });
+      expect(out.batches.length).toBe(2);
+      for (const b of out.batches) {
+        expect(new Set(b).size).toBe(4);
+        for (const w of b) expect(pool).toContain(w);
+      }
+      const first = new Set(out.batches[0]);
+      overlap += out.batches[1]!.filter((w) => first.has(w)).length;
     }
+    expect(overlap / CALLS).toBeLessThan(1.3);
   });
 });

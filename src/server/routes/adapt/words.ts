@@ -5,6 +5,7 @@ import {
   trigramRowsToStates,
   wordRowsToStates,
 } from "@/server/adapt/apply";
+import { PACING_TESTS } from "@/server/adapt/pacing";
 import { selectBatches } from "@/server/adapt/select";
 import {
   requestWordsInputSchema,
@@ -12,10 +13,6 @@ import {
   type RequestWordsOutput,
 } from "@/types/adapt";
 import { loadAdaptPrefs } from "./prefs";
-
-/** Recent tests read for difficulty pacing: enough for a full session
- *  plus a "usual speed" reference (see `pacing.ts`). */
-const PACING_TESTS = 20;
 
 export const words = defineRoute<RequestWordsInput, RequestWordsOutput>({
   input: requestWordsInputSchema,
@@ -39,8 +36,8 @@ export const words = defineRoute<RequestWordsInput, RequestWordsOutput>({
     const batchCount = input.batches ?? 1;
 
     // Score the pool once against this snapshot and draw every batch
-    // from it. Later batches treat earlier ones as just shown, so the
-    // prefetch queue serves fresh words on each restart. The DB reads
+    // from it. Later batches treat earlier ones as just shown, so a
+    // restart is unlikely to repeat the passage the user skipped. The DB reads
     // above are amortised across all batches — the whole point of the
     // multi-batch parameter.
     const r = selectBatches(

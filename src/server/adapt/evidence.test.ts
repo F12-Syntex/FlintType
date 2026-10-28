@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   EXPLORE_SAMPLES,
   SHRINKAGE_PRIOR,
+  VARIANCE_PRIOR_N,
   effectiveSamples,
   evidenceWeight,
   exploreWeight,
+  patternSpreads,
+  pooledRelativeVariance,
+  standardError,
 } from "./evidence";
 import { EWMA_MEMORY, STALENESS_HALF_LIFE_DAYS } from "./welford";
 
@@ -51,5 +55,49 @@ describe("effectiveSamples", () => {
   it("decays with time since the pattern was last typed", () => {
     const st = { mean: 1, variance: 0, n: 12, lastSeenMs: 0 };
     expect(effectiveSamples(st, STALENESS_HALF_LIFE_DAYS * DAY)).toBeCloseTo(6, 5);
+  });
+});
+
+describe("pooledRelativeVariance", () => {
+  it("is 0 when no pattern has two samples", () => {
+    expect(pooledRelativeVariance([])).toBe(0);
+    expect(pooledRelativeVariance([{ mean: 100, variance: 0, n: 1 }])).toBe(0);
+  });
+
+  it("pools CV² weighted by n − 1", () => {
+    const v = pooledRelativeVariance([
+      { mean: 100, variance: 100, n: 2 }, // CV² 0.01, weight 1
+      { mean: 200, variance: 1600, n: 4 }, // CV² 0.04, weight 3
+    ]);
+    expect(v).toBeCloseTo((0.01 + 3 * 0.04) / 4, 10);
+  });
+
+  it("feeds one spread per pattern type", () => {
+    const m = new Map([["a", { mean: 100, variance: 400, n: 5 }]]);
+    const s = patternSpreads({ bigram: m, trigram: new Map(), motorFeature: m });
+    expect(s.bigram).toBeCloseTo(0.04, 10);
+    expect(s.trigram).toBe(0);
+    expect(s.word).toBe(0);
+  });
+});
+
+describe("standardError", () => {
+  it("is the raw √(var / n) without a prior", () => {
+    expect(standardError({ mean: 100, variance: 400, n: 4 }, 4)).toBeCloseTo(10, 10);
+    expect(standardError({ mean: 100, variance: 0, n: 1 }, 1)).toBe(0);
+  });
+
+  it("gives a one-sample pattern the pooled spread instead of zero", () => {
+    const se = standardError({ mean: 400, variance: 0, n: 1 }, 1, 0.09);
+    const prior = 0.09 * 400 * 400;
+    expect(se).toBeCloseTo(Math.sqrt((VARIANCE_PRIOR_N * prior) / (1 + VARIANCE_PRIOR_N)), 10);
+  });
+
+  it("lets the pattern's own variance take over as samples arrive", () => {
+    const st = { mean: 100, variance: 400, n: 39 };
+    const raw = standardError(st, 39);
+    const withPrior = standardError(st, 39, 0.5);
+    expect(withPrior).toBeGreaterThan(raw);
+    expect(withPrior).toBeLessThan(2 * raw);
   });
 });

@@ -107,22 +107,23 @@ describe("pickWithCoverage", () => {
     expect(out.sort()).toEqual(["a", "b"]);
   });
 
-  it("damps a candidate whose pattern starts partially covered", () => {
-    // Two equal-weight candidates; "drilled" carries a pattern recent
-    // tests already dosed fully (initial overlap 1 → ×COVERAGE_DECAY).
+  it("damps candidates whose pattern the passage already covers", () => {
+    // a and b share pattern p; c carries q. Once a or b is picked, the
+    // other is worth COVERAGE_DECAY of c, so c lands in the passage
+    // more often than an undamped pick would allow (2/3).
     const items = [
-      { word: "drilled", weight: 1, patterns: ["b:br"] },
-      { word: "fresh", weight: 1, patterns: ["b:kx"] },
+      { word: "a", weight: 1, patterns: ["p"] },
+      { word: "b", weight: 1, patterns: ["p"] },
+      { word: "c", weight: 1, patterns: ["q"] },
     ];
     const rng = seeded();
-    let fresh = 0;
-    const TRIALS = 2000;
+    const TRIALS = 3000;
+    let withC = 0;
     for (let i = 0; i < TRIALS; i++) {
-      const [w] = pickWithCoverage(items, 1, rng, new Map([["b:br", 1]]));
-      if (w === "fresh") fresh++;
+      if (pickWithCoverage(items, 2, rng).includes("c")) withC++;
     }
-    const expected = 1 / (1 + COVERAGE_DECAY);
-    expect(fresh / TRIALS).toBeGreaterThan(expected - 0.05);
-    expect(fresh / TRIALS).toBeLessThan(expected + 0.05);
+    const expected = 1 / 3 + (2 / 3) * (1 / (1 + COVERAGE_DECAY));
+    expect(withC / TRIALS).toBeGreaterThan(expected - 0.04);
+    expect(withC / TRIALS).toBeLessThan(expected + 0.04);
   });
 });

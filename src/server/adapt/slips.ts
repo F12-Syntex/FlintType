@@ -102,8 +102,12 @@ export function extractSlips(
 }
 
 /** Time from the last correct key (`fromT`) until `target` was typed
- *  correctly in the same word, clamped to [min, max]; DEFAULT × ref
- *  when the slip was never corrected within the search window. */
+ *  correctly, clamped to [min, max]. The fix must be the *next* correct
+ *  keystroke, in the same word: wrong presses in between are the user
+ *  still fumbling (or a stop-on-error block), but if the next correct
+ *  key is a different letter — or the user moved to another word — the
+ *  slip was never fixed, and a later identical letter further along
+ *  the word is not its correction. Unfixed slips cost DEFAULT × ref. */
 function slipCost(
   timings: readonly KeystrokeTiming[],
   slipIndex: number,
@@ -117,8 +121,9 @@ function slipCost(
   const end = Math.min(timings.length, slipIndex + 1 + SLIP_SEARCH_WINDOW);
   for (let j = slipIndex + 1; j < end; j++) {
     const c = timings[j]!;
-    if (c.wordIndex !== word || !c.correct) continue;
-    if (c.expected.toLowerCase() !== target) continue;
+    if (c.wordIndex !== word) break;
+    if (!c.correct) continue;
+    if (c.expected.toLowerCase() !== target) break;
     return Math.min(max, Math.max(min, c.t - fromT));
   }
   return SLIP_COST_DEFAULT_RATIO * ref;

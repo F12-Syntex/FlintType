@@ -216,37 +216,6 @@ describe("selectBatches — challenge band relaxation", () => {
   });
 });
 
-describe("selectBatches — pattern spacing", () => {
-  it("rotates away from a pattern the last test drilled heavily", () => {
-    // Same setup as the coverage test: "kx" and "vy" are equally weak
-    // (both unsampled). The last test served four "kx" carriers, so
-    // this passage should lean to "vy" instead of a coin flip.
-    const fast = (): ModelState => warm(80);
-    const bigramModels = new Map<string, ModelState>([
-      ["xa", fast()], ["xe", fast()], ["xo", fast()],
-      ["ya", fast()], ["ye", fast()], ["yo", fast()],
-    ]);
-    const recentlyShown = new Map([
-      ["kxe", 0], ["kxo", 0], ["kxi", 0], ["kxu", 0],
-    ]);
-    const rng = SEED_RNG();
-    const TRIALS = 1000;
-    let vy = 0;
-    for (let t = 0; t < TRIALS; t++) {
-      const r = selectWords({
-        count: 1,
-        pool: ["kxa", "vya"],
-        ...EMPTY,
-        bigramModels,
-        recentlyShown,
-        rng,
-      });
-      if (r.words[0] === "vya") vy++;
-    }
-    expect(vy / TRIALS).toBeGreaterThan(0.62);
-  });
-});
-
 describe("selectBatches — multiple batches", () => {
   it("returns the requested number of batches", () => {
     const r = selectBatches(

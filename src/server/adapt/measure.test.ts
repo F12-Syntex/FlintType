@@ -3,6 +3,7 @@ import { DEFAULT_HAND_LAYOUT } from "@/lib/hand-layout";
 import type { KeystrokeTiming } from "@/types/adapt";
 import {
   ABSOLUTE_PAUSE_MS,
+  CLEAN_REF_CAP_RATIO,
   MAX_INTERVAL_RATIO,
   MIN_INTERVAL_MS,
   extract,
@@ -214,6 +215,47 @@ describe("measure.extract", () => {
       ];
       const m = extract(timings, DEFAULT_HAND_LAYOUT, baselines);
       expect(m.words.has("the")).toBe(false);
+    });
+  });
+
+  describe("pause gate on fumbled pairs", () => {
+    // "th"'s stored mean is an effective time inflated by mistake costs
+    // (300ms) while the user's overall pace is 100ms per pair.
+    const baselines = {
+      bigram: new Map([["th", 300]]),
+      trigram: new Map<string, number>(),
+      word: new Map<string, number>(),
+      overallBigram: 100,
+    };
+    const gate = 100 * CLEAN_REF_CAP_RATIO * MAX_INTERVAL_RATIO;
+
+    it("rejects a hesitation the inflated mean alone would have let through", () => {
+      const dt = gate + 100; // < 300 × 4, > the capped gate
+      const m = extract(
+        [k(0, "t", "t", true), k(dt, "h", "h", true)],
+        DEFAULT_HAND_LAYOUT,
+        baselines,
+      );
+      expect(m.bigrams.has("th")).toBe(false);
+      expect(m.rejected).toBe(1);
+    });
+
+    it("still accepts ordinary clean timings", () => {
+      const m = extract(
+        [k(0, "t", "t", true), k(gate - 100, "h", "h", true)],
+        DEFAULT_HAND_LAYOUT,
+        baselines,
+      );
+      expect(m.bigrams.get("th")).toEqual([gate - 100]);
+    });
+
+    it("keeps the uncapped gate before the user has a baseline", () => {
+      const m = extract(
+        [k(0, "t", "t", true), k(gate + 100, "h", "h", true)],
+        DEFAULT_HAND_LAYOUT,
+        { ...baselines, overallBigram: 0 },
+      );
+      expect(m.bigrams.get("th")).toEqual([gate + 100]);
     });
   });
 

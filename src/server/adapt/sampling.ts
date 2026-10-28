@@ -3,8 +3,7 @@
 /** Coverage decay base. During selection, each weak pattern (weak
  *  bigram, weak motor-feature, or still-exploring bigram) a word
  *  touches is down-weighted by this factor once another word in the
- *  passage already covers it — and, through `spacing.ts`, partially
- *  when recent tests already drilled it. So the first carrier of a
+ *  passage already covers it. So the first carrier of a
  *  weak motion keeps full weight and a word sharing k covered patterns
  *  is worth 0.4^k of its score. The net effect is a passage that
  *  spreads across the user's top weak motions instead of stacking
@@ -45,19 +44,16 @@ export type CoverageItem = {
 
 /** Weighted random sampling without replacement, damped by pattern
  *  overlap. Each candidate's weight is multiplied by
- *  COVERAGE_DECAY^(Σ overlap of its patterns), where a pattern's overlap
- *  starts at `initialOverlap` (0–1, how heavily recent tests already
- *  drilled it — see `spacing.ts`) and becomes 1 once a word in this
- *  passage covers it. */
+ *  COVERAGE_DECAY^(number of its patterns a word already picked for
+ *  this passage covers). */
 export function pickWithCoverage(
   items: readonly CoverageItem[],
   count: number,
   rng: () => number = Math.random,
-  initialOverlap: ReadonlyMap<string, number> = new Map(),
 ): string[] {
   if (items.length === 0) return [];
   const pool = [...items];
-  const overlap = new Map(initialOverlap);
+  const overlap = new Map<string, number>();
   const out: string[] = [];
   const target = Math.min(count, pool.length);
   for (let pick = 0; pick < target; pick++) {

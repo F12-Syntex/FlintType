@@ -144,4 +144,12 @@ describe("apply", () => {
     // Neither extra sits at the very end.
     expect(mixed[mixed.length - 1]).toBeLessThan(5);
   });
+
+  it("interleave stays even when extras outnumber the base", () => {
+    // Base samples land a third and two thirds of the way through,
+    // not bunched at the end.
+    expect(interleave([1, 2], [7, 8, 9, 10, 11, 12])).toEqual([
+      7, 8, 1, 9, 10, 2, 11, 12,
+    ]);
+  });
 });
