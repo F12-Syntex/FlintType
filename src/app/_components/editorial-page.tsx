@@ -145,13 +145,15 @@ export function EditorialList({ children }: { children: ReactNode }) {
 }
 
 /** "On this page" pills. Secondary navigation, so the pills are
- *  outline-weight and only turn orange on hover/focus. */
+ *  outline-weight and only turn orange on hover/focus. On phones they
+ *  sit in one sideways-scrolling row (bleeding to the screen edge)
+ *  instead of stacking five rows deep above the first section. */
 function JumpList({ items }: { items: readonly { id: string; label: string }[] }) {
   return (
     <nav aria-label="On this page">
-      <ul className="flex flex-wrap gap-2">
+      <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
         {items.map((item) => (
-          <li key={item.id}>
+          <li key={item.id} className="shrink-0">
             <a
               href={`#${item.id}`}
               className="inline-flex h-9 items-center rounded-pill border border-border bg-card px-4 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:border-primary/40 hover:text-primary focus-visible:border-ring focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40"

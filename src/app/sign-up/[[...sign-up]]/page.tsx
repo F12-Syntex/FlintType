@@ -1,5 +1,5 @@
 import { AuthShell } from "@/components/auth/auth-shell";
-import { SignUpForm } from "@/components/auth/sign-up-form";
+import { SignUpForm } from "@/components/auth/sign-up";
 import { buildPageMetadata } from "@/server/seo";
 
 export const metadata = buildPageMetadata({
@@ -13,8 +13,6 @@ export const metadata = buildPageMetadata({
 export default function SignUpPage() {
   return (
     <AuthShell
-      title="Create your account"
-      description="Keep your history on every device, unlock adaptive drills and bring your MonkeyType results with you."
       altLabel="Already have an account?"
       altHref="/sign-in"
       altLinkText="Sign in"

@@ -3,6 +3,7 @@
 import { useSignIn } from "@clerk/nextjs/legacy";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { AuthStep } from "../auth-step";
 import { extractClerkError } from "../clerk-error";
 import { OtpField } from "../fields";
 import { ErrorLine, UtilityButton, UtilityRow } from "../form-controls";
@@ -68,36 +69,38 @@ export function CodeFlow({
   }
 
   return (
-    <form
-      className="flex flex-col gap-4"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void submit();
-      }}
+    <AuthStep
+      title="Check your email"
+      description="Enter the 6-digit code we just sent you."
     >
-      <SigningInAs email={email} onChange={onChangeEmail} disabled={busy != null} />
-      <p className="text-sm text-muted-foreground">
-        We emailed you a 6-digit code. Enter it below.
-      </p>
-      <OtpField
-        id="sign-in-code"
-        label="Verification code"
-        value={code}
-        onChange={setCode}
-        onComplete={(value) => void submit(value)}
-      />
-      {error ? <ErrorLine message={error} /> : null}
-      <Button type="submit" size="lg" disabled={busy != null} className="w-full">
-        {busy === "verify" ? "Verifying…" : "Sign in"}
-      </Button>
-      <UtilityRow>
-        <UtilityButton onClick={onBack} disabled={busy != null}>
-          {backLabel}
-        </UtilityButton>
-        <UtilityButton onClick={() => void resend()} disabled={busy != null}>
-          {busy === "resend" ? "Resending…" : resent ? "Sent again" : "Resend code"}
-        </UtilityButton>
-      </UtilityRow>
-    </form>
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void submit();
+        }}
+      >
+        <SigningInAs email={email} onChange={onChangeEmail} disabled={busy != null} />
+        <OtpField
+          id="sign-in-code"
+          label="Verification code"
+          value={code}
+          onChange={setCode}
+          onComplete={(value) => void submit(value)}
+        />
+        {error ? <ErrorLine message={error} /> : null}
+        <Button type="submit" size="lg" disabled={busy != null} className="w-full">
+          {busy === "verify" ? "Verifying…" : "Sign in"}
+        </Button>
+        <UtilityRow>
+          <UtilityButton onClick={onBack} disabled={busy != null}>
+            {backLabel}
+          </UtilityButton>
+          <UtilityButton onClick={() => void resend()} disabled={busy != null}>
+            {busy === "resend" ? "Resending…" : resent ? "Sent again" : "Resend code"}
+          </UtilityButton>
+        </UtilityRow>
+      </form>
+    </AuthStep>
   );
 }

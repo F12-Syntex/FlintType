@@ -64,14 +64,15 @@ export default function AboutPage() {
         <EditorialSection title="Races and private lobbies">
           <p>
             <EditorialLink href="/race">Races</EditorialLink> work out of
-            the box. Press <strong className="font-semibold text-foreground">Find race</strong> and we drop you into a public
-            lobby, looking for real players for up to five seconds; if
+            the box. Press{" "}
+            <strong className="font-semibold text-foreground">Find race</strong>{" "}
+            and we drop you into a public lobby, looking for real players for up to five seconds; if
             nobody shows, bots fill the empty seats so you&apos;re never
             waiting on someone else being online.
           </p>
           <p>
-            <strong className="font-semibold text-foreground">Create lobby</strong> opens a private race with a short,
-            friendly link (like{" "}
+            <strong className="font-semibold text-foreground">Create lobby</strong>{" "}
+            opens a private race with a short, friendly link (like{" "}
             <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-foreground">
               quick-otter-42
             </code>

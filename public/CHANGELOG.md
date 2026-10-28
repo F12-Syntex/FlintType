@@ -8,6 +8,13 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.8 — 27 October 2026
+- Fixed email sign-up: when a quick "verify you are human" check is needed, it now appears right in the sign-up form, and the password hint shows the real minimum length.
+- Each sign-in step now has its own heading, such as "Check your email" or "Reset your password", and long email addresses no longer break in the middle.
+- The changelog now splits each busy day into its releases and folds the rest behind a "Show more changes" row, and bold words show as bold instead of stars.
+- The FAQ now explains that MonkeyType history is imported from your profile, and the privacy page lists every service we use, including the race server, the AI design assistant and Discord.
+- The About page no longer runs words together, the cover page's caret and Start typing button are full size, and the not-found screen's caret no longer blinks.
+
 ## 6.148.7 — 27 October 2026
 - Burst drills now work with phone keyboards, and sudden-death drills raise the keyboard when you tap the words.
 - Drill filters only offer choices that change the list, the recommended drill follows your filter, and new accounts see the drills they can start today first.

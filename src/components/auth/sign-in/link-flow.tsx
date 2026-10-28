@@ -2,6 +2,7 @@
 
 import { useSignIn } from "@clerk/nextjs/legacy";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AuthStep } from "../auth-step";
 import { extractClerkError } from "../clerk-error";
 import { ErrorLine, UtilityButton, UtilityRow } from "../form-controls";
 import { SigningInAs } from "./stages";
@@ -78,30 +79,31 @@ export function LinkStage({
   onBack: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-4">
-      <SigningInAs email={email} onChange={onChangeEmail} />
-      <p className="text-sm text-muted-foreground">
-        We emailed you a sign-in link. Open it on this device and
-        you&apos;ll be signed in here automatically.
-      </p>
-      {status.kind === "waiting" ? (
-        <div
-          role="status"
-          className="flex items-center gap-3 rounded-xl border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground"
-        >
-          <span
-            aria-hidden
-            className="size-2 shrink-0 rounded-full bg-primary motion-safe:animate-pulse"
-          />
-          Waiting for you to open the link…
-        </div>
-      ) : (
-        <ErrorLine message={status.message} />
-      )}
-      <UtilityRow>
-        <UtilityButton onClick={onBack}>Try another way</UtilityButton>
-        <span />
-      </UtilityRow>
-    </div>
+    <AuthStep
+      title="Check your email"
+      description="Open the sign-in link we sent you on this device and you'll be signed in here."
+    >
+      <div className="flex flex-col gap-4">
+        <SigningInAs email={email} onChange={onChangeEmail} />
+        {status.kind === "waiting" ? (
+          <div
+            role="status"
+            className="flex items-center gap-3 rounded-xl border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground"
+          >
+            <span
+              aria-hidden
+              className="size-2 shrink-0 rounded-full bg-primary motion-safe:animate-pulse"
+            />
+            Waiting for you to open the link…
+          </div>
+        ) : (
+          <ErrorLine message={status.message} />
+        )}
+        <UtilityRow>
+          <UtilityButton onClick={onBack}>Try another way</UtilityButton>
+          <span />
+        </UtilityRow>
+      </div>
+    </AuthStep>
   );
 }

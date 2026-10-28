@@ -12,11 +12,11 @@ import {
 export const metadata = buildPageMetadata({
   title: "Privacy — what flinttype collects and why",
   description:
-    "How flinttype handles your typing data, account information, and preferences. Plain-language privacy policy covering Clerk auth, Neon storage, and the third parties we rely on.",
+    "What flinttype collects and why: account details, typing history, preferences, races and every third party we use, in a plain-language privacy policy.",
   path: "/privacy",
 });
 
-const LAST_UPDATED = "12 May 2026";
+const LAST_UPDATED = "28 October 2026";
 
 const SECTIONS = [
   "Short version",
@@ -48,9 +48,10 @@ export default function PrivacyPage() {
         <EditorialSection title="Short version">
           <p>
             Anyone can use flinttype without an account. The practice
-            surface, drills, and races against bots all run without
-            ever introducing yourself. Your typing stays in the
-            browser unless you sign in.
+            surface, drills, and races all run without ever
+            introducing yourself. Your typing stays in the browser
+            unless you sign in or join a race (see{" "}
+            <EditorialLink href="#third-parties">third parties</EditorialLink>).
           </p>
           <p>
             Signing in (via Clerk) lets us store your typing history,
@@ -93,6 +94,15 @@ export default function PrivacyPage() {
             adaptive drills work. We don't sell, syndicate, or share
             it with anyone.
           </p>
+          <p>
+            When you&apos;re signed in, friends who follow you back can
+            watch your practice live while you type. It&apos;s on by
+            default; turn it off, or hide from particular friends, in{" "}
+            <EditorialLink href="/customise/social">
+              Multiplayer &amp; social settings
+            </EditorialLink>
+            .
+          </p>
         </EditorialSection>
 
         <EditorialSection title="Preferences and theme">
@@ -117,8 +127,14 @@ export default function PrivacyPage() {
           <p>The services flinttype runs on:</p>
           <EditorialList>
             <li>
-              <span className="font-medium text-foreground">Clerk</span>: auth,
-              session management, optional MonkeyType import handshake.
+              <span className="font-medium text-foreground">Clerk</span>:
+              sign-in, sessions and your account details.
+            </li>
+            <li>
+              <span className="font-medium text-foreground">Discord</span>:
+              only if you choose Continue with Discord. Discord shares
+              your account id, username and email with Clerk to sign you
+              in.
             </li>
             <li>
               <span className="font-medium text-foreground">Vercel</span>: hosting
@@ -128,6 +144,26 @@ export default function PrivacyPage() {
             <li>
               <span className="font-medium text-foreground">Neon</span>: managed
               Postgres for the typing-history database.
+            </li>
+            <li>
+              <span className="font-medium text-foreground">Railway</span>: the
+              live race server. While you race, your progress (how far
+              you&apos;ve typed and your speed) and your IP address pass
+              through it, signed in or not. Race rooms live in memory
+              and are gone once the race ends.
+            </li>
+            <li>
+              <span className="font-medium text-foreground">OpenRouter</span>:
+              only when you use Design with AI. The words you type there
+              and a snapshot of your current appearance settings go to
+              OpenRouter, which passes them to an AI model to suggest a
+              look.
+            </li>
+            <li>
+              <span className="font-medium text-foreground">MonkeyType</span>:
+              only if you import from it. We keep your Ape Key
+              encrypted so your profile can pull in new results, and use
+              it only to read your MonkeyType results.
             </li>
           </EditorialList>
         </EditorialSection>
