@@ -5,6 +5,7 @@
 import { useSignUp } from "@clerk/nextjs/legacy";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { redirectFromSearch } from "@/lib/auth-redirect";
 import { extractClerkError } from "../clerk-error";
 import { OrDivider } from "../form-controls";
 import { DiscordButton } from "../oauth-buttons";
@@ -72,7 +73,7 @@ export function SignUpForm() {
       return false;
     }
     await setActive({ session: signUp.createdSessionId });
-    router.push("/");
+    router.push(redirectFromSearch(window.location.search, window.location.origin));
     router.refresh();
     return true;
   }
@@ -154,7 +155,10 @@ export function SignUpForm() {
       await signUp.authenticateWithRedirect({
         strategy: "oauth_discord",
         redirectUrl: "/sign-in/sso-callback",
-        redirectUrlComplete: "/",
+        redirectUrlComplete: redirectFromSearch(
+          window.location.search,
+          window.location.origin,
+        ),
       });
     } catch (err) {
       setError(extractClerkError(err) ?? "Discord sign-up failed.");

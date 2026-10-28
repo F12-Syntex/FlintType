@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AltAuthLink } from "./alt-auth-link";
 import type { ReactNode } from "react";
 
 /** Auth surface shell — a single centred card over the page aura.
@@ -48,12 +49,12 @@ export function AuthShell({
           <div className="flex w-full flex-col items-center gap-2 text-center text-sm text-muted-foreground animate-in fade-in-0 slide-in-from-bottom-4 duration-500 [animation-delay:200ms] [animation-fill-mode:both] motion-reduce:animate-none">
             <p>
               {altLabel}{" "}
-              <Link
+              <AltAuthLink
                 href={altHref}
                 className="font-semibold text-primary underline-offset-4 hover:underline"
               >
                 {altLinkText}
-              </Link>
+              </AltAuthLink>
             </p>
             <Link
               href="/"

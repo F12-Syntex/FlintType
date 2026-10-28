@@ -7,6 +7,7 @@
 // custom flow is driven from.
 import { useSignIn } from "@clerk/nextjs/legacy";
 import { useState } from "react";
+import { redirectFromSearch } from "@/lib/auth-redirect";
 import { extractClerkError } from "../clerk-error";
 import { OrDivider } from "../form-controls";
 import { DiscordButton } from "../oauth-buttons";
@@ -150,7 +151,10 @@ export function SignInForm() {
       await signIn.authenticateWithRedirect({
         strategy: "oauth_discord",
         redirectUrl: "/sign-in/sso-callback",
-        redirectUrlComplete: "/",
+        redirectUrlComplete: redirectFromSearch(
+          window.location.search,
+          window.location.origin,
+        ),
       });
     } catch (err) {
       setError(extractClerkError(err) ?? "Discord sign-in failed.");
