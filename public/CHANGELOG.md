@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.146.1 — 27 October 2026
+- Old shared-result links that use a run's full ID open the result again instead of a not-found page.
+
 ## 6.146.0 — 27 October 2026
 - The friends panel is easier to scan: race invites, live friends, online and offline people now sit in their own small groups, with clear orange Join and Watch buttons and a Find people button at the bottom, now on phones too.
 - The What's new window now actually appears after an update, with a cleaner, rounder look, and notifications got the same softer, tidier rows.

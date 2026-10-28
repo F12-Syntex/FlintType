@@ -52,17 +52,23 @@ export function buildShareSlug(input: {
 /** Extract the test-id prefix from a share slug. The contract is the
  *  inverse of `buildShareSlug` — take the last `-`-separated segment.
  *
- *  Backward-compat: visitors hitting an old `/r/<full-uuid>` URL still
- *  resolve because UUIDs themselves contain `-` separators in the
- *  format `8-4-4-4-12`; the parser takes the trailing 12-char chunk,
- *  which is a valid id-prefix lookup the repo can still satisfy.
+ *  Backward-compat: an old `/r/<full-uuid>` (or `/share/<full-uuid>`)
+ *  URL is recognised as a whole UUID and returned intact. The repo's
+ *  lookup is a *prefix* match (`id LIKE '<prefix>%'`), so a full id is
+ *  just the longest possible prefix. (Taking the UUID's trailing
+ *  12-char group — what this used to do — can never match a prefix
+ *  lookup, so every legacy link 404'd.)
  *
  *  Hex-only enforcement is deliberate — without it a malformed slug
  *  whose tail happens to be alphabetical (`foo-bar-baz`) would issue
  *  a `LIKE 'baz%'` query that scans the whole tests table. Returns
  *  null when the tail isn't a hex prefix so the caller can 404 cleanly. */
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function parseShareSlug(slug: string): string | null {
   if (!slug) return null;
+  if (UUID_RE.test(slug)) return slug.toLowerCase();
   const idx = slug.lastIndexOf("-");
   const tail = idx === -1 ? slug : slug.slice(idx + 1);
   if (!/^[0-9a-f]+$/i.test(tail)) return null;
