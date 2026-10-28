@@ -9,9 +9,13 @@ import { AuthenticateWithRedirectCallback } from "@clerk/nextjs";
  *  the brief moment Clerk takes to flip into the active session. */
 export default function SsoCallbackPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background text-foreground">
+    <main className="flex min-h-dvh items-center justify-center gap-3 text-foreground">
       <AuthenticateWithRedirectCallback />
-      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+      <span
+        aria-hidden
+        className="size-2 rounded-full bg-primary motion-safe:animate-pulse"
+      />
+      <p role="status" className="text-sm text-muted-foreground">
         Finishing sign-in…
       </p>
     </main>

@@ -1,374 +1,148 @@
 "use client";
 
 // /legacy path — the stable resource-based hook with create() /
-// setActive() / authenticateWithRedirect() / createEmailLinkFlow().
-// The default @clerk/nextjs export now points at the experimental
-// "signals" API which doesn't expose the methods we drive the custom
-// flow from.
+// attemptFirstFactor() / authenticateWithRedirect() /
+// createEmailLinkFlow(). The default @clerk/nextjs export now points at
+// the experimental "signals" API, which doesn't expose the methods this
+// custom flow is driven from.
 import { useSignIn } from "@clerk/nextjs/legacy";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { extractClerkError } from "../clerk-error";
+import { OrDivider } from "../form-controls";
 import { DiscordButton } from "../oauth-buttons";
-import { Divider, ErrorLine, extractError } from "./shared";
-import {
-  CodeStage,
-  EmailStage,
-  type FactorKind,
-  LinkStage,
-  MethodStage,
-  PasswordStage,
-  ResetCodeStage,
-  ResetPasswordStage,
-} from "./stages";
+import { CodeFlow } from "./code-flow";
+import { collectFactors, type FactorKind } from "./factors";
+import { LinkStage, useEmailLinkFlow } from "./link-flow";
+import { ResetFlow } from "./reset-flow";
+import { EmailStage, MethodStage, PasswordStage } from "./stages";
+import { useFinishSignIn } from "./use-finish-sign-in";
+
+type Factors = { emailAddressId: string | null; available: FactorKind[] };
 
 type Stage =
   | { kind: "email" }
-  | {
-      kind: "method";
-      emailAddressId: string | null;
-      available: FactorKind[];
-    }
-  | { kind: "password"; emailAddressId: string | null }
-  | { kind: "code"; emailAddressId: string }
-  | { kind: "link"; emailAddressId: string; cancelled: boolean }
-  | { kind: "reset-code" }
-  | { kind: "reset-password" };
+  | ({ kind: "password" } & Factors)
+  | ({ kind: "method" } & Factors)
+  | { kind: "code"; emailAddressId: string; from: Stage }
+  | { kind: "link"; emailAddressId: string; from: Stage }
+  | { kind: "reset" };
 
-/** Custom sign-in form — Clerk hooks under the hood, our design surface
- *  on top. Discord shortcut up top, then a multi-stage email funnel:
+/** Custom sign-in form — Clerk hooks under the hood, our design on top.
+ *  Discord shortcut first, then an email-first funnel:
  *
- *    1. email          →  signIn.create({ identifier }) and read
- *                         supportedFirstFactors
- *    2. method         →  user picks password / email code / magic link
- *                         (only the methods Clerk reports as available
- *                         render — toggle the rest in the Clerk Dashboard)
- *    3a password       →  attemptFirstFactor with the password.
- *                         "Forgot password?" branches off to the reset
- *                         flow (4a → 4b below).
- *    3b code           →  prepareFirstFactor(email_code), enter 6-digit
- *                         code, attemptFirstFactor(email_code)
- *    3c link           →  createEmailLinkFlow + startEmailLinkFlow, poll
- *                         until the magic link is tapped (the
- *                         /sign-in/verify page completes the verification
- *                         on the other tab)
- *    4a reset-code     →  signIn.create({ strategy:
- *                         'reset_password_email_code', identifier }) sends
- *                         a code, attemptFirstFactor verifies it (status
- *                         flips to needs_new_password)
- *    4b reset-password →  signIn.resetPassword({ password }) saves the new
- *                         password and returns a complete session
+ *    1. email     →  signIn.create({ identifier }) and read
+ *                    supportedFirstFactors
+ *    2. password  →  straight here when the account has a password, with
+ *                    "Email me a code instead" and "Forgot password?"
+ *                    (the reset lives in ./reset-flow)
+ *       method    →  only for passwordless accounts: code or magic link
+ *    3. code      →  ./code-flow (prepareFirstFactor already sent it)
+ *       link      →  ./link-flow polls until the emailed link is opened
  *
- *  Errors render inline (Clerk returns err.errors[].longMessage which
- *  is already human-readable). */
+ *  Errors render inline (Clerk's longMessage is already human-readable). */
 export function SignInForm() {
-  const { signIn, isLoaded, setActive } = useSignIn();
-  const router = useRouter();
+  const { signIn, isLoaded } = useSignIn();
+  const finish = useFinishSignIn();
+  const link = useEmailLinkFlow();
   const [stage, setStage] = useState<Stage>({ kind: "email" });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [code, setCode] = useState("");
-  const [resetCode, setResetCode] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [busy, setBusy] = useState<
-    | "email"
-    | "discord"
-    | "method"
-    | "password"
-    | "code"
-    | "resend"
-    | "forgot"
-    | "reset-code"
-    | "reset-password"
-    | "reset-resend"
-    | null
+    "email" | "discord" | "password" | "forgot" | "send" | null
   >(null);
-  const [busyMethod, setBusyMethod] = useState<FactorKind | null>(null);
+  const [sendingKind, setSendingKind] = useState<FactorKind | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [resentAt, setResentAt] = useState<number | null>(null);
-  const [resetResentAt, setResetResentAt] = useState<number | null>(null);
-  const cancelLinkFlow = useRef<(() => void) | null>(null);
 
-  // Cancel any in-flight email-link polling on unmount / stage change.
-  useEffect(() => {
-    return () => {
-      cancelLinkFlow.current?.();
-      cancelLinkFlow.current = null;
-    };
-  }, []);
-
-  function reset(next: Stage) {
-    cancelLinkFlow.current?.();
-    cancelLinkFlow.current = null;
+  function goTo(next: Stage) {
+    link.cancel();
     setError(null);
     setBusy(null);
-    setBusyMethod(null);
+    setSendingKind(null);
     setStage(next);
   }
+  const changeEmail = () => goTo({ kind: "email" });
 
-  async function handleSubmitEmail() {
+  async function submitEmail() {
     if (!isLoaded || busy) return;
     setBusy("email");
     setError(null);
     try {
       const attempt = await signIn.create({ identifier: email.trim() });
-      // Already complete is extremely rare here (would mean a passwordless
-      // identifier resolved on create), but treat it the same way.
-      if (attempt.status === "complete" && attempt.createdSessionId) {
-        await setActive({ session: attempt.createdSessionId });
-        router.push("/");
-        router.refresh();
-        return;
-      }
+      if (await finish(attempt)) return;
       const factors = collectFactors(attempt.supportedFirstFactors ?? []);
       if (factors.available.length === 0) {
-        setError(
-          "No sign-in methods available for this email. Try a different account.",
-        );
+        setError("No sign-in methods are available for this email. Try another account.");
         return;
       }
+      setPassword("");
       setStage({
-        kind: "method",
-        emailAddressId: factors.emailAddressId,
-        available: factors.available,
+        kind: factors.available.includes("password") ? "password" : "method",
+        ...factors,
       });
     } catch (err) {
-      setError(extractError(err) ?? "Couldn't continue. Try again.");
+      setError(extractClerkError(err) ?? "Couldn't continue. Try again.");
     } finally {
       setBusy(null);
     }
   }
 
-  async function handlePickMethod(kind: FactorKind) {
-    if (!isLoaded || busy || stage.kind !== "method") return;
-    const { emailAddressId } = stage;
-    if (kind === "password") {
-      setStage({ kind: "password", emailAddressId });
-      return;
-    }
-    if (!emailAddressId) {
-      setError("Couldn't find your email on this account.");
-      return;
-    }
-    setBusy("method");
-    setBusyMethod(kind);
-    setError(null);
-    try {
-      if (kind === "code") {
-        await signIn.prepareFirstFactor({
-          strategy: "email_code",
-          emailAddressId,
-        });
-        setStage({ kind: "code", emailAddressId });
-        setResentAt(null);
-      } else {
-        await startLinkFlow(emailAddressId);
-      }
-    } catch (err) {
-      setError(extractError(err) ?? "Couldn't send. Try again.");
-    } finally {
-      setBusy(null);
-      setBusyMethod(null);
-    }
-  }
-
-  async function startLinkFlow(emailAddressId: string) {
-    if (!signIn) return;
-    const flow = signIn.createEmailLinkFlow();
-    cancelLinkFlow.current = () => {
-      try {
-        flow.cancelEmailLinkFlow();
-      } catch {
-        /* already cancelled */
-      }
-    };
-    setStage({ kind: "link", emailAddressId, cancelled: false });
-    try {
-      const completed = await flow.startEmailLinkFlow({
-        emailAddressId,
-        redirectUrl: `${window.location.origin}/sign-in/verify`,
-      });
-      if (completed.status === "complete" && completed.createdSessionId) {
-        await setActive({ session: completed.createdSessionId });
-        router.push("/");
-        router.refresh();
-      } else {
-        setStage((prev) =>
-          prev.kind === "link" ? { ...prev, cancelled: true } : prev,
-        );
-        setError("Sign-in didn't complete. Try a different method.");
-      }
-    } catch (err) {
-      // Cancellation throws — only surface non-cancel errors.
-      const message = extractError(err);
-      if (message) {
-        setStage((prev) =>
-          prev.kind === "link" ? { ...prev, cancelled: true } : prev,
-        );
-        setError(message);
-      }
-    } finally {
-      cancelLinkFlow.current = null;
-    }
-  }
-
-  async function handleSubmitPassword() {
+  async function submitPassword() {
     if (!isLoaded || busy) return;
     setBusy("password");
     setError(null);
     try {
-      const attempt = await signIn.attemptFirstFactor({
-        strategy: "password",
-        password,
-      });
-      if (attempt.status === "complete" && attempt.createdSessionId) {
-        await setActive({ session: attempt.createdSessionId });
-        router.push("/");
-        router.refresh();
-      } else {
-        setError("Additional verification required. Try a code instead.");
+      const attempt = await signIn.attemptFirstFactor({ strategy: "password", password });
+      if (!(await finish(attempt))) {
+        setError("This account needs another check. Try emailing yourself a code.");
       }
     } catch (err) {
-      setError(extractError(err) ?? "Sign in failed.");
+      setError(extractClerkError(err) ?? "Sign in failed.");
     } finally {
       setBusy(null);
     }
   }
 
-  async function handleSubmitCode() {
+  /** Send a code or a magic link; `from` is where "back" returns to. */
+  async function sendVia(kind: "code" | "link", from: Stage & Factors) {
     if (!isLoaded || busy) return;
-    setBusy("code");
+    const { emailAddressId } = from;
+    if (!emailAddressId) {
+      setError("Couldn't find your email on this account.");
+      return;
+    }
+    if (kind === "link") {
+      goTo({ kind: "link", emailAddressId, from });
+      void link.start(emailAddressId);
+      return;
+    }
+    setBusy("send");
+    setSendingKind("code");
     setError(null);
     try {
-      const attempt = await signIn.attemptFirstFactor({
-        strategy: "email_code",
-        code: code.trim(),
-      });
-      if (attempt.status === "complete" && attempt.createdSessionId) {
-        await setActive({ session: attempt.createdSessionId });
-        router.push("/");
-        router.refresh();
-      } else {
-        setError("That code didn't work. Try again or resend.");
-      }
+      await signIn.prepareFirstFactor({ strategy: "email_code", emailAddressId });
+      goTo({ kind: "code", emailAddressId, from });
     } catch (err) {
-      setError(extractError(err) ?? "Verification failed.");
-    } finally {
+      setError(extractClerkError(err) ?? "Couldn't send the email. Try again.");
       setBusy(null);
+      setSendingKind(null);
     }
   }
 
-  async function handleResend() {
-    if (!isLoaded || busy || stage.kind !== "code") return;
-    setBusy("resend");
-    setError(null);
-    try {
-      await signIn.prepareFirstFactor({
-        strategy: "email_code",
-        emailAddressId: stage.emailAddressId,
-      });
-      setResentAt(Date.now());
-    } catch (err) {
-      setError(extractError(err) ?? "Couldn't resend the code.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  // Forgot-password flow ----------------------------------------------------
-  // signIn.create() with strategy: 'reset_password_email_code' both creates
-  // (or refreshes) the SignIn resource and sends the reset code, so this
-  // single call also doubles as the resend.
-  async function handleForgotPassword() {
-    if (!isLoaded || !signIn || busy) return;
+  // Creating a reset sign-in both starts the flow and emails the code.
+  async function forgotPassword() {
+    if (!isLoaded || busy) return;
     setBusy("forgot");
     setError(null);
     try {
-      await signIn.create({
-        strategy: "reset_password_email_code",
-        identifier: email.trim(),
-      });
-      setResetCode("");
-      setResetResentAt(null);
-      setStage({ kind: "reset-code" });
+      await signIn.create({ strategy: "reset_password_email_code", identifier: email.trim() });
+      goTo({ kind: "reset" });
     } catch (err) {
-      setError(extractError(err) ?? "Couldn't start password reset.");
-    } finally {
+      setError(extractClerkError(err) ?? "Couldn't start a password reset.");
       setBusy(null);
     }
   }
 
-  async function handleResendResetCode() {
-    if (!isLoaded || !signIn || busy) return;
-    setBusy("reset-resend");
-    setError(null);
-    try {
-      await signIn.create({
-        strategy: "reset_password_email_code",
-        identifier: email.trim(),
-      });
-      setResetResentAt(Date.now());
-    } catch (err) {
-      setError(extractError(err) ?? "Couldn't resend the code.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function handleSubmitResetCode() {
-    if (!isLoaded || !signIn || busy) return;
-    setBusy("reset-code");
-    setError(null);
-    try {
-      const attempt = await signIn.attemptFirstFactor({
-        strategy: "reset_password_email_code",
-        code: resetCode.trim(),
-      });
-      if (attempt.status === "needs_new_password") {
-        setNewPassword("");
-        setConfirmPassword("");
-        setStage({ kind: "reset-password" });
-      } else if (attempt.status === "complete" && attempt.createdSessionId) {
-        // Edge case: account had no password to begin with — Clerk
-        // completes immediately. Just sign them in.
-        await setActive({ session: attempt.createdSessionId });
-        router.push("/");
-        router.refresh();
-      } else {
-        setError("That code didn't work. Try again or resend.");
-      }
-    } catch (err) {
-      setError(extractError(err) ?? "Verification failed.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function handleSubmitResetPassword() {
-    if (!isLoaded || !signIn || busy) return;
-    if (newPassword !== confirmPassword) {
-      setError("Passwords don't match.");
-      return;
-    }
-    setBusy("reset-password");
-    setError(null);
-    try {
-      const attempt = await signIn.resetPassword({ password: newPassword });
-      if (attempt.status === "complete" && attempt.createdSessionId) {
-        await setActive({ session: attempt.createdSessionId });
-        router.push("/");
-        router.refresh();
-      } else {
-        setError("Password saved, but sign-in didn't complete. Try signing in.");
-      }
-    } catch (err) {
-      setError(extractError(err) ?? "Couldn't save the new password.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function handleDiscord() {
+  async function signInWithDiscord() {
     if (!isLoaded || busy) return;
     setBusy("discord");
     setError(null);
@@ -379,155 +153,81 @@ export function SignInForm() {
         redirectUrlComplete: "/",
       });
     } catch (err) {
-      setError(extractError(err) ?? "Discord sign-in failed.");
+      setError(extractClerkError(err) ?? "Discord sign-in failed.");
       setBusy(null);
     }
   }
 
-  // Header text — only the email stage gets the Discord shortcut + the
-  // "or sign in with email" divider. The follow-up stages render on
-  // their own.
-  if (stage.kind === "email") {
-    return (
-      <div className="flex flex-col gap-5">
-        <DiscordButton onStart={handleDiscord} disabled={busy != null} />
-        <Divider label="or sign in with email" />
-        <EmailStage
-          email={email}
-          onEmailChange={setEmail}
-          onSubmit={handleSubmitEmail}
-          busy={busy === "email"}
-          error={error}
-        />
-      </div>
-    );
-  }
-
-  if (stage.kind === "method") {
-    return (
-      <MethodStage
-        email={email}
-        available={stage.available}
-        onPick={handlePickMethod}
-        onBack={() => reset({ kind: "email" })}
-        busy={busy === "method"}
-        busyKind={busyMethod}
-      />
-    );
-  }
-
-  if (stage.kind === "password") {
-    return (
-      <div className="flex flex-col gap-4">
+  switch (stage.kind) {
+    case "email":
+      return (
+        <div className="flex flex-col gap-5">
+          <DiscordButton onStart={signInWithDiscord} disabled={busy != null} />
+          <OrDivider label="or use your email" />
+          <EmailStage
+            email={email}
+            onEmailChange={setEmail}
+            onSubmit={submitEmail}
+            busy={busy === "email"}
+            error={error}
+          />
+        </div>
+      );
+    case "password": {
+      const alt = stage.available.includes("code")
+        ? { kind: "code" as const, label: "Email me a code instead" }
+        : stage.available.includes("link")
+          ? { kind: "link" as const, label: "Email me a link instead" }
+          : null;
+      return (
         <PasswordStage
           email={email}
           password={password}
           onPasswordChange={setPassword}
-          onSubmit={handleSubmitPassword}
-          onBack={() => reset(methodStageFrom(stage))}
-          onForgot={handleForgotPassword}
-          busy={busy === "password"}
-          forgotBusy={busy === "forgot"}
+          onSubmit={submitPassword}
+          onChangeEmail={changeEmail}
+          onForgot={forgotPassword}
+          alternative={
+            alt ? { label: alt.label, onClick: () => void sendVia(alt.kind, stage) } : null
+          }
+          busy={busy === "password" || busy === "forgot" || busy === "send" ? busy : null}
           error={error}
         />
-      </div>
-    );
-  }
-
-  if (stage.kind === "code") {
-    return (
-      <CodeStage
-        email={email}
-        code={code}
-        onCodeChange={setCode}
-        onSubmit={handleSubmitCode}
-        onResend={handleResend}
-        onBack={() => reset(methodStageFrom(stage))}
-        busy={busy === "code"}
-        resending={busy === "resend"}
-        resentAt={resentAt}
-        error={error}
-      />
-    );
-  }
-
-  if (stage.kind === "reset-code") {
-    return (
-      <ResetCodeStage
-        email={email}
-        code={resetCode}
-        onCodeChange={setResetCode}
-        onSubmit={handleSubmitResetCode}
-        onResend={handleResendResetCode}
-        onBack={() => reset({ kind: "email" })}
-        busy={busy === "reset-code"}
-        resending={busy === "reset-resend"}
-        resentAt={resetResentAt}
-        error={error}
-      />
-    );
-  }
-
-  if (stage.kind === "reset-password") {
-    return (
-      <ResetPasswordStage
-        password={newPassword}
-        confirm={confirmPassword}
-        onPasswordChange={setNewPassword}
-        onConfirmChange={setConfirmPassword}
-        onSubmit={handleSubmitResetPassword}
-        onCancel={() => reset({ kind: "email" })}
-        busy={busy === "reset-password"}
-        error={error}
-      />
-    );
-  }
-
-  // stage.kind === "link"
-  return (
-    <div className="flex flex-col gap-4">
-      <LinkStage
-        email={email}
-        onBack={() => reset(methodStageFrom(stage))}
-        error={error}
-        cancelled={stage.cancelled}
-      />
-      {stage.cancelled ? <ErrorLine message={"Magic link cancelled."} /> : null}
-    </div>
-  );
-}
-
-// Rebuild the method-picker view from one of the inner stages so "back"
-// drops the user where they came from instead of all the way to email.
-function methodStageFrom(stage: Stage): Stage {
-  // We don't store the full factor list on inner stages — recompute by
-  // sending the user back to email and letting them re-enter. In
-  // practice that's the safer move: tokens / sessions may have rolled.
-  return { kind: "email" } satisfies Stage;
-}
-
-type SupportedFirstFactor =
-  | { strategy: "password" }
-  | { strategy: "email_code"; emailAddressId: string }
-  | { strategy: "email_link"; emailAddressId: string }
-  | { strategy: string; emailAddressId?: string };
-
-function collectFactors(factors: readonly SupportedFirstFactor[]): {
-  emailAddressId: string | null;
-  available: FactorKind[];
-} {
-  const available: FactorKind[] = [];
-  let emailAddressId: string | null = null;
-  for (const factor of factors) {
-    if (factor.strategy === "password" && !available.includes("password")) {
-      available.push("password");
-    } else if (factor.strategy === "email_code") {
-      if (!available.includes("code")) available.push("code");
-      emailAddressId = emailAddressId ?? factor.emailAddressId ?? null;
-    } else if (factor.strategy === "email_link") {
-      if (!available.includes("link")) available.push("link");
-      emailAddressId = emailAddressId ?? factor.emailAddressId ?? null;
+      );
     }
+    case "method":
+      return (
+        <MethodStage
+          email={email}
+          available={stage.available}
+          onPick={(kind) => {
+            if (kind === "code" || kind === "link") void sendVia(kind, stage);
+          }}
+          onChangeEmail={changeEmail}
+          busyKind={sendingKind}
+          error={error}
+        />
+      );
+    case "code":
+      return (
+        <CodeFlow
+          email={email}
+          emailAddressId={stage.emailAddressId}
+          onChangeEmail={changeEmail}
+          onBack={() => goTo(stage.from)}
+          backLabel={stage.from.kind === "password" ? "Use my password" : "Try another way"}
+        />
+      );
+    case "link":
+      return (
+        <LinkStage
+          email={email}
+          status={link.status}
+          onChangeEmail={changeEmail}
+          onBack={() => goTo(stage.from)}
+        />
+      );
+    case "reset":
+      return <ResetFlow email={email} onCancel={changeEmail} />;
   }
-  return { emailAddressId, available };
 }

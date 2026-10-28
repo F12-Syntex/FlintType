@@ -1,15 +1,14 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Tag } from "@/components/ft";
 
-/** Auth surface shell — single centered card on bg-background.
+/** Auth surface shell — a single centred card over the page aura.
  *
- *  Renders a flame logo + optional eyebrow + h1 title + description as
- *  the card header, then the page's form `children`, then an alt-link
- *  sentence below the card ("No account yet? Create one"). The card
- *  fades and zooms in on mount; the footer trails it by 200ms. */
+ *  Flame logo + h1 + one line of description as the card header, the
+ *  page's form as the body, then two quiet links under the card: the
+ *  alternative ("No account yet? Create one") and a way back out to
+ *  practice without an account. The card fades and lifts in on mount;
+ *  the links trail it by 200ms. */
 export function AuthShell({
-  eyebrow,
   title,
   description,
   children,
@@ -17,7 +16,6 @@ export function AuthShell({
   altHref,
   altLinkText,
 }: {
-  eyebrow?: string;
   title: string;
   description?: ReactNode;
   children: ReactNode;
@@ -26,41 +24,56 @@ export function AuthShell({
   altLinkText: string;
 }) {
   return (
-    <main className="safe-pt safe-pb flex min-h-screen w-full items-center justify-center bg-background p-4 text-foreground">
-      <div className="flex w-full max-w-md flex-col items-center gap-6">
-        <div className="w-full animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 rounded-md border border-border bg-card text-card-foreground shadow-sm duration-500">
-          <div className="flex flex-col items-center gap-3 px-6 pt-8 pb-6 text-center sm:px-8">
-            <Link href="/" aria-label="flinttype home" className="mb-2 inline-flex">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/flinttype-logo.svg"
-                alt=""
-                aria-hidden
-                className="size-12"
-              />
-            </Link>
-            {eyebrow ? <Tag>{eyebrow}</Tag> : null}
-            <h1 className="text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-              {title}
-            </h1>
-            {description ? (
-              <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-                {description}
-              </p>
-            ) : null}
+    // The safe-area utilities set padding-top/bottom themselves, so the
+    // breathing room lives on an inner wrapper rather than fighting them.
+    <main className="safe-pt safe-pb flex min-h-dvh w-full flex-col text-foreground">
+      <div className="flex flex-1 items-center justify-center px-4 py-10">
+        <div className="flex w-full max-w-md flex-col items-center gap-6">
+          <div className="w-full animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 rounded-2xl border border-border bg-card text-card-foreground shadow-card duration-500 motion-reduce:animate-none">
+            <div className="flex flex-col items-center gap-3 px-6 pt-8 pb-6 text-center sm:px-8">
+              <Link
+                href="/"
+                aria-label="flinttype home"
+                className="mb-1 inline-flex rounded-pill focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/flinttype-logo.svg"
+                  alt=""
+                  aria-hidden
+                  className="size-12"
+                />
+              </Link>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                {title}
+              </h1>
+              {description ? (
+                <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+                  {description}
+                </p>
+              ) : null}
+            </div>
+            <div className="px-6 pb-8 sm:px-8">{children}</div>
           </div>
-          <div className="px-6 pb-8 sm:px-8">{children}</div>
-        </div>
 
-        <p className="animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 w-full max-w-md text-center text-sm text-muted-foreground duration-500 [animation-delay:200ms] [animation-fill-mode:both]">
-          {altLabel}{" "}
-          <Link
-            href={altHref}
-            className="font-semibold text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
-          >
-            {altLinkText}
-          </Link>
-        </p>
+          <div className="flex w-full flex-col items-center gap-3 text-center text-sm text-muted-foreground animate-in fade-in-0 slide-in-from-bottom-4 duration-500 [animation-delay:200ms] [animation-fill-mode:both] motion-reduce:animate-none">
+            <p>
+              {altLabel}{" "}
+              <Link
+                href={altHref}
+                className="font-semibold text-primary underline-offset-4 hover:underline"
+              >
+                {altLinkText}
+              </Link>
+            </p>
+            <Link
+              href="/"
+              className="inline-flex min-h-11 items-center rounded-pill px-3 underline-offset-4 transition-colors hover:text-foreground hover:underline"
+            >
+              Keep practising without an account
+            </Link>
+          </div>
+        </div>
       </div>
     </main>
   );

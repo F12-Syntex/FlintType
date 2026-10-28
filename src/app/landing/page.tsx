@@ -1,4 +1,5 @@
-import { Logo, Kbd } from "@/components/ft";
+import Link from "next/link";
+import { ftButtonVariants, Kbd, Logo } from "@/components/ft";
 import { buildPageMetadata } from "@/server/seo";
 
 export const metadata = buildPageMetadata({
@@ -25,7 +26,7 @@ export default function LandingCover() {
       {/* Printed-page margin rule — purely decorative containment. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-3 rounded-lg border border-ft-line-soft sm:inset-5"
+        className="pointer-events-none absolute inset-3 rounded-2xl border border-ft-line-soft sm:inset-5"
       />
 
       <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-6xl flex-col px-6 py-7 sm:px-12 sm:py-10">
@@ -94,14 +95,19 @@ export default function LandingCover() {
 
         {/* Product strip — a faithful frozen practice surface so the cover
             shows the real thing, not an abstraction. */}
-        <section className="rounded-md border border-ft-line-soft bg-ft-paper-soft px-5 py-5 sm:px-7 sm:py-6">
+        <section className="rounded-2xl border border-ft-line-soft bg-ft-paper-soft px-5 py-5 sm:px-7 sm:py-6">
           <div className="mb-4 flex items-center justify-between gap-3">
             <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ft-dim">
               words · 50
             </span>
-            <span className="hidden text-[10px] font-medium uppercase tracking-[0.18em] text-ft-dim sm:inline">
-              press any key to begin
-            </span>
+            {/* A real way in: the cover is static, so instead of a
+                "press any key" hint that does nothing, link to practice. */}
+            <Link
+              href="/"
+              className={ftButtonVariants({ variant: "ember", size: "sm" })}
+            >
+              Start typing
+            </Link>
           </div>
 
           {/* Passage: typed (ink) → caret → untyped (dim), with one errored
@@ -121,7 +127,7 @@ export default function LandingCover() {
           </p>
 
           {/* Readouts — tabular, organic numbers, ink (the caret is the spark) */}
-          <div className="mt-5 flex flex-wrap items-end gap-x-8 gap-y-3 border-t border-ft-line-soft pt-4">
+          <div className="mt-5 grid grid-cols-2 gap-x-8 gap-y-4 border-t border-ft-line-soft pt-4 sm:flex sm:flex-wrap sm:items-end sm:gap-y-3">
             <Readout label="wpm" value="124" />
             <Readout label="acc" value="98.7" suffix="%" />
             <Readout label="peak" value="161" />

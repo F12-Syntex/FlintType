@@ -1,7 +1,12 @@
 import Link from "next/link";
+import { GITHUB_URL } from "@/lib/version";
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../_components/app-chrome";
-import { EditorialPage, EditorialSection } from "../_components/editorial-page";
+import {
+  EditorialLink,
+  EditorialPage,
+  EditorialSection,
+} from "../_components/editorial-page";
 
 export const metadata = buildPageMetadata({
   title: "Blog — notes from the flinttype team",
@@ -29,74 +34,79 @@ const POSTS: readonly {
   },
   {
     slug: "net-wpm-vs-raw-wpm",
-    title: "Net WPM vs raw WPM — what each one really tells you",
+    title: "Net WPM vs raw WPM: what each one really tells you",
     excerpt:
       "The leaderboard ranks by net WPM (raw × accuracy). Why we picked that over raw, and what each number is honestly measuring.",
     publishedAt: "Coming soon",
   },
   {
     slug: "building-the-race-engine",
-    title: "Building the race engine — friendly slugs, fixed countdowns, bot fillers",
+    title: "Building the race engine: friendly links, fixed countdowns and bots",
     excerpt:
-      "An engineering write-up on the multiplayer race surface: friendly-slug challenge links, deterministic bots, the fixed three-second countdown, and how we keep rooms alive across React strict-mode remounts.",
+      "How the live races work behind the scenes: short shareable lobby links, bots that fill empty seats, and a countdown that keeps every racer in sync.",
     publishedAt: "Coming soon",
   },
 ];
 
 export default function BlogIndexPage() {
+  // Only posts with a real page get linked; "Coming soon" entries have
+  // no `/blog/<slug>/page.tsx` yet, and /blog is crawlable, so they are
+  // listed as plain upcoming titles instead of dead links (#45 / FT-010).
+  const published = POSTS.filter((p) => p.publishedAt !== "Coming soon");
+  const upcoming = POSTS.filter((p) => p.publishedAt === "Coming soon");
+
   return (
     <AppChrome>
       <EditorialPage
         eyebrow="Writing"
-        title="Blog."
-        subtitle="Notes on typing, adaptive practice, and the engineering behind flinttype. New entries land as we ship."
+        title="Blog"
+        subtitle="Notes on typing, adaptive practice and the engineering behind flinttype."
       >
-        <EditorialSection>
-          <ul className="flex flex-col divide-y divide-border border-y border-border">
-            {POSTS.map((p) => {
-              // Only link posts that actually have a page. Unpublished
-              // ("Coming soon") entries have no `/blog/<slug>/page.tsx`
-              // yet, so linking them dead-ends on the 404 page — and
-              // /blog is crawlable (in the sitemap). Render those titles
-              // as plain text until their post ships (#45 / FT-010).
-              const published = p.publishedAt !== "Coming soon";
-              return (
-                <li key={p.slug} className="py-5 sm:py-6">
-                  <article className="flex flex-col gap-2">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <h2 className="text-[18px] font-semibold tracking-tight text-foreground sm:text-[20px]">
-                        {published ? (
-                          <Link
-                            href={`/blog/${p.slug}`}
-                            className="transition-colors hover:text-primary"
-                          >
-                            {p.title}
-                          </Link>
-                        ) : (
-                          p.title
-                        )}
-                      </h2>
-                      <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                        {p.publishedAt}
-                      </span>
-                    </div>
-                    <p className="text-[14px] leading-relaxed text-foreground/85">
-                      {p.excerpt}
-                    </p>
+        {published.length > 0 ? (
+          <EditorialSection title="Posts">
+            <ul className="flex flex-col gap-6">
+              {published.map((p) => (
+                <li key={p.slug}>
+                  <article className="flex flex-col gap-1.5">
+                    <h3 className="text-base font-semibold tracking-tight text-foreground sm:text-lg">
+                      <Link
+                        href={`/blog/${p.slug}`}
+                        className="transition-colors hover:text-primary"
+                      >
+                        {p.title}
+                      </Link>
+                    </h3>
+                    <p className="text-xs text-muted-foreground">{p.publishedAt}</p>
+                    <p>{p.excerpt}</p>
                   </article>
                 </li>
-              );
-            })}
-          </ul>
-        </EditorialSection>
+              ))}
+            </ul>
+          </EditorialSection>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-8 text-center sm:px-8">
+            <p className="text-[15px] leading-7 text-foreground/85 sm:text-base">
+              No posts yet. Watch the project on{" "}
+              <EditorialLink href={GITHUB_URL}>GitHub</EditorialLink> to hear
+              when the first one lands.
+            </p>
+          </div>
+        )}
 
-        <EditorialSection title="Subscribe">
-          <p>
-            There's no RSS feed yet. Star or watch the repo on GitHub
-            to get notified when new posts ship — they go in
-            alongside the release that motivated them.
-          </p>
-        </EditorialSection>
+        {upcoming.length > 0 ? (
+          <EditorialSection title="Coming up">
+            <ul className="flex flex-col gap-5">
+              {upcoming.map((p) => (
+                <li key={p.slug} className="flex flex-col gap-1">
+                  <span className="font-medium text-foreground/70">{p.title}</span>
+                  <span className="text-sm leading-6 text-muted-foreground">
+                    {p.excerpt}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </EditorialSection>
+        ) : null}
       </EditorialPage>
     </AppChrome>
   );

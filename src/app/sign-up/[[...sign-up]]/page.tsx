@@ -13,9 +13,8 @@ export const metadata = buildPageMetadata({
 export default function SignUpPage() {
   return (
     <AuthShell
-      eyebrow="Sign up"
-      title="Make it count."
-      description="Track your typing model across sessions, unlock adaptive drills, and bring your MonkeyType history with you."
+      title="Create your account"
+      description="Keep your history on every device, unlock adaptive drills and bring your MonkeyType results with you."
       altLabel="Already have an account?"
       altHref="/sign-in"
       altLinkText="Sign in"

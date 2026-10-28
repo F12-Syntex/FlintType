@@ -16,13 +16,16 @@ export function DiscordButton({
   disabled?: boolean;
 }) {
   return (
+    // Built on the `secondary` variant, not `default`: the default's
+    // flame gradient would paint over the Discord blurple and leave two
+    // orange buttons competing on the card.
     <Button
       type="button"
-      variant="default"
-      size="default"
+      variant="secondary"
+      size="lg"
       disabled={disabled}
       onClick={() => void onStart()}
-      className="w-full justify-center gap-3 bg-ft-brand-discord text-white hover:bg-ft-brand-discord-hover"
+      className="w-full justify-center gap-3 bg-ft-brand-discord font-semibold text-white hover:bg-ft-brand-discord-hover hover:text-white aria-expanded:bg-ft-brand-discord-hover"
     >
       <DiscordGlyph />
       Continue with Discord

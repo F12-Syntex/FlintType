@@ -1,12 +1,22 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import Link from "next/link";
-import { parseChangelog } from "@/lib/changelog";
+import { ChevronDown } from "lucide-react";
+import {
+  type ChangelogDay,
+  groupChangelogByDay,
+  groupDaysByMonth,
+  parseChangelog,
+  splitRecentDays,
+} from "@/lib/changelog";
 import { updateForVersion } from "@/lib/updates";
-import { cn } from "@/lib/utils";
 import { buildPageMetadata } from "@/server/seo";
 import { AppChrome } from "../_components/app-chrome";
-import { EditorialPage } from "../_components/editorial-page";
+import {
+  EditorialLink,
+  EditorialList,
+  EditorialPage,
+  EditorialSection,
+} from "../_components/editorial-page";
 
 export const metadata = buildPageMetadata({
   title: "Changelog — what's new on flinttype",
@@ -17,87 +27,135 @@ export const metadata = buildPageMetadata({
 
 /** Single source of truth: `public/CHANGELOG.md`, also served raw at
  *  `/changelog.md`. Read off disk and parsed at build time (this page
- *  is static), so the user-facing summary stays in lockstep with the
- *  file the commit protocol updates on every version bump — no second
- *  hand-curated list to drift. */
+ *  is static), so the summary stays in lockstep with the file the
+ *  commit protocol updates on every version bump. The page groups
+ *  releases by day and drops internal-only lines; the raw file keeps
+ *  every version. */
 const CHANGELOG_PATH = join(process.cwd(), "public", "CHANGELOG.md");
 
 export default function ChangelogPage() {
-  const entries = parseChangelog(readFileSync(CHANGELOG_PATH, "utf8"));
+  const days = groupChangelogByDay(
+    parseChangelog(readFileSync(CHANGELOG_PATH, "utf8")),
+  );
+  const { recent, older } = splitRecentDays(days, 30);
+  const months = groupDaysByMonth(older);
 
   return (
     <AppChrome>
       <EditorialPage
         eyebrow="Releases"
-        title="Changelog."
-        subtitle="What changed and when, in plain language. Per-commit detail lives on GitHub; this is the curated user-facing summary."
+        title="Changelog"
+        subtitle="What changed and when, in plain language, one day at a time. Behind-the-scenes work is left out."
         footer={
           <>
-            Prefer plain text? The raw changelog lives at{" "}
-            <a
-              href="/changelog.md"
-              className="text-foreground underline-offset-4 hover:underline"
-            >
-              /changelog.md
-            </a>
-            .
+            Want every version, including internal ones? The full log is
+            at <EditorialLink href="/changelog.md">/changelog.md</EditorialLink>.
           </>
         }
       >
-        <div className="flex flex-col">
-          {entries.map((entry, i) => {
-            const update = updateForVersion(entry.version);
-            return (
-            <article
-              key={entry.version}
-              className="flex flex-col gap-3 border-t border-border/60 pt-7 pb-1 first:border-t-0 first:pt-0 md:grid md:grid-cols-[8rem_minmax(0,1fr)] md:gap-10 md:pt-9"
-            >
-              {/* Version + date rail — a justified row on mobile, a
-                  sticky stacked column from md up so it stays beside a
-                  long change list as the reader scrolls. The newest
-                  release carries the single coral spark. */}
-              <div className="md:sticky md:top-6 md:self-start">
-                <div className="flex items-baseline justify-between gap-3 md:block">
-                  <h2
-                    className={cn(
-                      "text-lg font-bold tracking-tight tabular-nums",
-                      i === 0 ? "text-primary" : "text-foreground",
-                    )}
-                  >
-                    {entry.version}
-                  </h2>
-                  <time className="shrink-0 text-[10px] font-medium uppercase tracking-[0.18em] tabular-nums text-muted-foreground md:mt-2 md:block">
-                    {entry.date}
-                  </time>
-                </div>
-                {update ? (
-                  <Link
-                    href={`/updates/${update.slug}`}
-                    className="mt-2 inline-block text-[10px] font-semibold uppercase tracking-[0.14em] text-primary underline-offset-4 transition-opacity hover:opacity-80"
-                  >
-                    Read the update
-                  </Link>
+        {recent.map((day, i) => (
+          <EditorialSection
+            key={day.date}
+            id={dayAnchor(day)}
+            title={<time dateTime={day.iso ?? undefined}>{day.date}</time>}
+            meta={
+              <span className="inline-flex items-center gap-2">
+                {i === 0 ? (
+                  <span className="inline-flex h-6 items-center rounded-pill bg-primary/10 px-2.5 text-xs font-semibold text-primary">
+                    Latest
+                  </span>
                 ) : null}
-              </div>
+                {versionLabel(day)}
+              </span>
+            }
+          >
+            <DayBody day={day} />
+          </EditorialSection>
+        ))}
 
-              <ul className="flex flex-col gap-2.5">
-                {entry.lines.map((line, lineIndex) => (
-                  <li key={lineIndex} className="flex items-baseline gap-3">
-                    <span
-                      aria-hidden
-                      className="mt-[0.55em] size-1 shrink-0 rounded-[1px] bg-foreground/25"
-                    />
-                    <span className="text-[14px] leading-relaxed text-foreground/85">
-                      {line}
+        {months.length > 0 ? (
+          <EditorialSection
+            title={recent.length > 0 ? "Earlier releases" : "Releases"}
+          >
+            <div className="flex flex-col gap-3">
+              {months.map((m) => (
+                <details
+                  key={m.month}
+                  className="group rounded-2xl border border-border bg-card text-card-foreground shadow-card"
+                >
+                  <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-5 py-3 transition-colors duration-200 hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40 [&::-webkit-details-marker]:hidden">
+                    <span className="flex items-baseline gap-3">
+                      <span className="text-base font-semibold tracking-tight text-foreground">
+                        {m.month}
+                      </span>
+                      <span className="text-xs tabular-nums text-muted-foreground">
+                        {m.days.length} {m.days.length === 1 ? "day" : "days"}
+                      </span>
                     </span>
-                  </li>
-                ))}
-              </ul>
-            </article>
-            );
-          })}
-        </div>
+                    <ChevronDown
+                      aria-hidden
+                      className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180"
+                    />
+                  </summary>
+                  <div className="flex flex-col gap-8 border-t border-border px-5 pt-5 pb-6">
+                    {m.days.map((day) => (
+                      <div
+                        key={day.date}
+                        id={dayAnchor(day)}
+                        className="flex scroll-mt-24 flex-col gap-3"
+                      >
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                          <h3 className="text-base font-semibold tracking-tight text-foreground">
+                            <time dateTime={day.iso ?? undefined}>{day.date}</time>
+                          </h3>
+                          <span className="text-xs tabular-nums text-muted-foreground">
+                            {versionLabel(day)}
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-3 text-[15px] leading-7 text-foreground/85">
+                          <DayBody day={day} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </EditorialSection>
+        ) : null}
       </EditorialPage>
     </AppChrome>
   );
+}
+
+/** The merged bullet list for one day, plus a link to the update card
+ *  when one of that day's versions has one. */
+function DayBody({ day }: { day: ChangelogDay }) {
+  const update = day.versions
+    .map((v) => updateForVersion(v))
+    .find((u) => u != null);
+  return (
+    <>
+      <EditorialList>
+        {day.lines.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </EditorialList>
+      {update ? (
+        <p className="text-sm">
+          <EditorialLink href={`/updates/${update.slug}`}>
+            Read the update: {update.title}
+          </EditorialLink>
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+function versionLabel(day: ChangelogDay): string {
+  return day.from === day.to ? `v${day.to}` : `v${day.from} to ${day.to}`;
+}
+
+function dayAnchor(day: ChangelogDay): string {
+  return day.iso ? `d-${day.iso}` : `d-${day.date.toLowerCase().replace(/\s+/g, "-")}`;
 }
