@@ -2,22 +2,26 @@ import type { HandLayoutPrefs } from "@/lib/hand-layout";
 import type { TestRow } from "@/types/adapt";
 import { bigramCategory, deriveFeatureKeys } from "./motor-features";
 import {
+  CHALLENGE_LOW,
+  inChallengeBand,
+  pacingFrom,
+  type Pacing,
+} from "./pacing";
+import { recencyMultiplier } from "./recency";
+import { pickWithCoverage } from "./sampling";
+import {
   baselineForCategory,
   baselineMean,
   type BigramBaselines,
   bigramBaselines,
-  COVERAGE_DECAY,
-  fatigueDampener,
-  inChallengeBand,
-  MIN_SAMPLES_FOR_WEAKNESS,
+  bigramTerm,
   predictedWordMs,
-  recencyMultiplier,
   scoreWord,
   weakness,
-  WEAKNESS_CONCENTRATION,
   type ModelMap,
   type ScoringWeights,
 } from "./scoring";
+import { initialOverlaps, patternDose } from "./spacing";
 
 /** Total bigram samples below this and the user is still cold —
  *  the route should fall back to its own random word generation
@@ -36,13 +40,19 @@ export type SelectionInput = {
    *  term and weights it via `δ`. */
   wordModels?: ModelMap;
   layout: HandLayoutPrefs;
-  /** Newest-first list of recent test rows. Used for fatigue. */
+  /** Newest-first list of recent test rows. Drives difficulty pacing
+   *  (fatigue, accuracy strain, form — see `pacing.ts`). */
   recentTests: readonly TestRow[];
   /** Map from word to the test-distance back at which it was last
-   *  shown. 0 = the test we just ran; 1 = the test before that. */
+   *  shown. 0 = the test we just ran; 1 = the test before that. Drives
+   *  word recency and pattern spacing (`spacing.ts`). */
   recentlyShown: ReadonlyMap<string, number>;
   weights?: ScoringWeights;
   rng?: () => number;
+  /** Request time. Enables staleness (old estimates are trusted less
+   *  and drift back toward exploration) and session-aware pacing.
+   *  Omitted → time-independent selection. */
+  nowMs?: number;
 };
 
 export type SelectionResult = {
@@ -50,9 +60,37 @@ export type SelectionResult = {
   cold: boolean;
 };
 
+export type BatchSelectionResult = {
+  batches: string[][];
+  cold: boolean;
+  pacing: Pacing;
+};
+
+type Candidate = {
+  word: string;
+  /** Weakness score after the pacing concentration exponent. */
+  concentrated: number;
+  patterns: string[];
+  predictedMs: number;
+  bigramCount: number;
+};
+
 export function selectWords(input: SelectionInput): SelectionResult {
-  const totalBigramSamples = sumSamples(input.bigramModels);
-  const cold = totalBigramSamples < COLD_BIGRAM_THRESHOLD;
+  const r = selectBatches(input, 1);
+  return { words: r.batches[0] ?? [], cold: r.cold };
+}
+
+/** Score the pool once and draw `batchCount` passages from it. Each
+ *  later batch treats the earlier batches' words as just shown, so a
+ *  user who restarts without finishing gets fresh words rather than a
+ *  reshuffle of the passage they skipped. */
+export function selectBatches(
+  input: SelectionInput,
+  batchCount: number,
+): BatchSelectionResult {
+  const cold = sumSamples(input.bigramModels) < COLD_BIGRAM_THRESHOLD;
+  const now = input.nowMs;
+  const pacing = pacingFrom(input.recentTests, now);
 
   const baselines = {
     bigram: bigramBaselines(input.bigramModels, input.layout),
@@ -61,9 +99,7 @@ export function selectWords(input: SelectionInput): SelectionResult {
     word: input.wordModels ? baselineMean(input.wordModels) : 0,
   };
 
-  const fatigue = fatigueDampener(input.recentTests);
-
-  const candidates = input.pool.map((word) => {
+  const candidates: Candidate[] = input.pool.map((word) => {
     const raw = scoreWord({
       word,
       bigramModels: input.bigramModels,
@@ -73,78 +109,93 @@ export function selectWords(input: SelectionInput): SelectionResult {
       layout: input.layout,
       baselines,
       weights: input.weights,
+      nowMs: now,
     });
-    const recency = recencyMultiplier(input.recentlyShown.get(word) ?? Infinity);
-    const predicted = predictedWordMs(
-      word,
-      input.bigramModels,
-      baselines.bigram,
-      input.layout,
-    );
-    // Sharpen the weakness signal so the weighted pick concentrates on
-    // the user's actual worst words rather than spreading flatly across
-    // every middling candidate. Recency / fatigue stay *linear*
-    // multipliers — a recently-shown word is suppressed proportionally,
-    // not exponentially, so it can still resurface when it's genuinely
-    // the weakest thing left. See WEAKNESS_CONCENTRATION.
-    const concentrated = raw > 0 ? raw ** WEAKNESS_CONCENTRATION : 0;
     return {
       word,
-      weight: Math.max(0, concentrated * fatigue * recency),
-      patterns: weakPatternKeys(
+      // Sharpen the weakness signal so the weighted pick concentrates
+      // on the user's actual worst words rather than spreading flatly
+      // across every middling candidate. Pacing softens this when the
+      // user is struggling and sharpens it when they're in form.
+      // Recency stays a *linear* multiplier (applied per batch below).
+      concentrated: raw > 0 ? raw ** pacing.concentration : 0,
+      patterns: weakPatternKeys(word, input, baselines.bigram, baselines.motorFeature),
+      predictedMs: predictedWordMs(
         word,
         input.bigramModels,
-        input.motorFeatureModels,
         baselines.bigram,
-        baselines.motorFeature,
         input.layout,
       ),
-      predictedMs: predicted,
       bigramCount: Math.max(0, word.length - 1),
     };
   });
 
-  // Apply the challenge band — but only after we have a baseline.
-  // On cold start, we accept everything (the band would reject every
-  // candidate when baseline is 0). When applying it would exclude the
-  // entire pool, we fall back to "no band" so we never return [] —
-  // an empty word list breaks the practice surface. The band still
-  // uses the *overall* baseline because it's a coarse "is this word
-  // in the right ballpark" filter, not a per-pair weakness check.
-  let filtered = candidates;
-  if (!cold) {
-    const banded = candidates.filter((c) =>
-      inChallengeBand(c.predictedMs, baselines.bigram.overall, c.bigramCount),
-    );
-    if (banded.length >= input.count) filtered = banded;
+  const pool = cold
+    ? candidates
+    : bandedPool(candidates, baselines.bigram.overall, input.count, pacing);
+
+  // Pattern spacing: patterns recent tests already drilled start the
+  // coverage pick partially covered, so this passage rotates to other
+  // weaknesses for a test or two (see spacing.ts).
+  const overlaps = initialOverlaps(
+    patternDose(input.recentlyShown, input.layout),
+    pool.map((c) => c.patterns),
+  );
+
+  const recency = new Map(input.recentlyShown);
+  const batches: string[][] = [];
+  for (let b = 0; b < Math.max(1, batchCount); b++) {
+    const items = pool.map((c) => ({
+      word: c.word,
+      weight: c.concentrated * recencyMultiplier(recency.get(c.word) ?? Infinity),
+      patterns: c.patterns,
+    }));
+    const words = pickWithCoverage(items, input.count, input.rng, overlaps);
+    batches.push(words);
+    for (const w of words) recency.set(w, 0);
   }
 
-  // Greedy coverage pick: weighted-random without replacement, but
-  // each pick down-weights candidates whose weak patterns are already
-  // represented in the passage so far (COVERAGE_DECAY). This spreads a
-  // passage across the user's top weak motions instead of stacking
-  // carriers of the single weakest pair. On cold start every weight is
-  // an exploration bonus and coverage spreads across distinct unsampled
-  // bigrams; if a sub-pool is genuinely all-zero, the pick falls
-  // through to uniform random.
-  const words = selectWithCoverage(filtered, input.count, input.rng);
-
-  return { words, cold };
+  return { batches, cold, pacing };
 }
 
-/** The weak / explore patterns a word touches, used by the coverage
- *  pick. A bigram that's still unsampled is an exploration target
- *  (`u:`); a sampled bigram or motor-feature counts only when it
- *  scores positive weakness (`b:` / `f:`). Spreading across these keys
- *  is what turns "20 copies of the weakest word" into "the top weak
- *  motions, each covered". */
+/** Apply the challenge band with progressive relaxation. The band is a
+ *  coarse "is this word in the right ballpark" filter on the overall
+ *  baseline. When the strict band can't fill a passage, it relaxes the
+ *  *easy* end first — easy words carry ~0 weight, so they only pad the
+ *  gaps — and drops the ceiling only as a last resort. Dropping the
+ *  whole band at once (the old behaviour) let the most pathological
+ *  words, which carry the highest weights, flood a short pool. Never
+ *  returns fewer candidates than the full pool can supply. */
+function bandedPool(
+  candidates: readonly Candidate[],
+  baselineMs: number,
+  count: number,
+  pacing: Pacing,
+): readonly Candidate[] {
+  const tiers: Array<[number, number]> = [
+    [CHALLENGE_LOW, pacing.challengeHigh],
+    [0, pacing.challengeHigh],
+  ];
+  for (const [low, high] of tiers) {
+    const banded = candidates.filter((c) =>
+      inChallengeBand(c.predictedMs, baselineMs, c.bigramCount, high, low),
+    );
+    if (banded.length >= count) return banded;
+  }
+  return candidates;
+}
+
+/** The weak / still-exploring patterns a word touches, used by the
+ *  coverage pick. A bigram counts (`b:`) while it earns exploration
+ *  bonus or scores positive weakness; a motor feature (`f:`) when it
+ *  scores positive weakness. Spreading across these keys is what turns
+ *  "20 copies of the weakest word" into "the top weak motions, each
+ *  covered". */
 function weakPatternKeys(
   word: string,
-  bigramModels: ModelMap,
-  motorFeatureModels: ModelMap,
+  input: SelectionInput,
   bigramBs: BigramBaselines,
   motorFeatureBaseline: number,
-  layout: HandLayoutPrefs,
 ): string[] {
   const w = word.toLowerCase();
   const keys = new Set<string>();
@@ -152,81 +203,17 @@ function weakPatternKeys(
     const a = w[i - 1]!;
     const b = w[i]!;
     const bg = a + b;
-    const st = bigramModels.get(bg);
-    if (!st || st.n < MIN_SAMPLES_FOR_WEAKNESS) {
-      keys.add(`u:${bg}`);
-    } else {
-      const cb = baselineForCategory(bigramCategory(a, b, layout), bigramBs);
-      if (weakness(st, cb) > 0) keys.add(`b:${bg}`);
-    }
-    for (const fk of deriveFeatureKeys(a, b, layout)) {
-      const fst = motorFeatureModels.get(fk);
-      if (fst && weakness(fst, motorFeatureBaseline) > 0) keys.add(`f:${fk}`);
+    const cb = baselineForCategory(bigramCategory(a, b, input.layout), bigramBs);
+    const term = bigramTerm(input.bigramModels.get(bg), cb, input.nowMs);
+    if (term.weakness > 0 || term.explore > 0) keys.add(`b:${bg}`);
+    for (const fk of deriveFeatureKeys(a, b, input.layout)) {
+      const fst = input.motorFeatureModels.get(fk);
+      if (fst && weakness(fst, motorFeatureBaseline, input.nowMs) > 0) {
+        keys.add(`f:${fk}`);
+      }
     }
   }
   return [...keys];
-}
-
-/** Weighted random sampling without replacement, biased by `weight`
- *  and damped by pattern overlap with already-picked words. */
-function selectWithCoverage(
-  items: readonly { word: string; weight: number; patterns: readonly string[] }[],
-  count: number,
-  rng: () => number = Math.random,
-): string[] {
-  if (items.length === 0) return [];
-  const pool = items.map((i) => ({ ...i }));
-  const covered = new Set<string>();
-  const out: string[] = [];
-  const target = Math.min(count, pool.length);
-  for (let pick = 0; pick < target; pick++) {
-    const weights = pool.map((p) => {
-      let overlap = 0;
-      for (const pat of p.patterns) if (covered.has(pat)) overlap++;
-      return Math.max(0, p.weight) * COVERAGE_DECAY ** overlap;
-    });
-    const idx = weightedPickIndex(weights, rng);
-    const chosen = pool[idx]!;
-    out.push(chosen.word);
-    for (const pat of chosen.patterns) covered.add(pat);
-    pool.splice(idx, 1);
-  }
-  return out;
-}
-
-/** Pick one index from a weight array, biased by weight. Falls back to
- *  uniform random when every weight is zero (cold sub-pool). */
-function weightedPickIndex(
-  weights: readonly number[],
-  rng: () => number,
-): number {
-  let total = 0;
-  for (const w of weights) total += Math.max(0, w);
-  if (total === 0) return Math.floor(rng() * weights.length);
-  let r = rng() * total;
-  for (let i = 0; i < weights.length; i++) {
-    r -= Math.max(0, weights[i]!);
-    if (r <= 0) return i;
-  }
-  return weights.length - 1;
-}
-
-/** Step the recently-shown map forward by one test: every existing
- *  entry's distance increases by 1, words from the just-served test
- *  are stamped at distance 0. Old entries past the recovery window
- *  are dropped to keep the map bounded. */
-export function advanceRecency(
-  prev: ReadonlyMap<string, number>,
-  newWords: readonly string[],
-  recoveryWindow: number,
-): Map<string, number> {
-  const next = new Map<string, number>();
-  for (const [word, dist] of prev) {
-    const aged = dist + 1;
-    if (aged < recoveryWindow) next.set(word, aged);
-  }
-  for (const word of newWords) next.set(word, 0);
-  return next;
 }
 
 function sumSamples(models: ModelMap): number {

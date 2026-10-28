@@ -169,6 +169,8 @@ export type RequestWordsOutput = {
 
 export type AdaptModelRow = {
   key: string;
+  /** Effective time per attempt: clean timings plus, for fumbled
+   *  attempts, the time the mistake cost to fix. */
   meanMs: number;
   varianceMs: number;
   sampleCount: number;
@@ -195,6 +197,9 @@ export type AdaptSnapshotOutput = {
   };
   totalBigramSamples: number;
   cold: boolean;
+  /** Difficulty pacing, as how far it has pulled the challenge-band
+   *  ceiling in: 1 = not at all, < 1 = easing off because the current
+   *  session shows fading speed, low accuracy or a slump. */
   fatigueDampener: number;
   bigrams: AdaptModelRow[];
   trigrams: AdaptModelRow[];
@@ -224,10 +229,10 @@ export type ScoreWordOutput = {
   betaContribution: number;
   gammaContribution: number;
   /** Word-level (δ) contribution — the algorithm's whole-word
-   *  weakness term. Heavier than α/β/γ at default weighting because
-   *  word data is the most authoritative signal we have for a word
-   *  the user has actually typed enough times to score. Zero when
-   *  the word has no measurements yet. */
+   *  weakness term. A light tie-breaker at default weighting (δ = 0.5)
+   *  so the selector trains the motions under a word rather than
+   *  memorising the word itself. Zero when the word has no
+   *  measurements yet. */
   deltaContribution: number;
   predictedMs: number;
   recencyMultiplier: number;

@@ -3,9 +3,17 @@ import {
   ALPHA_CAP,
   ALPHA_FLOOR,
   CONFIDENCE_SATURATION,
+  EWMA_MEMORY,
+  SHIFT_MIN_BATCH,
+  SHIFT_MIN_PRIOR,
+  STALENESS_HALF_LIFE_DAYS,
+  type ModelState,
   confidence,
+  detectShift,
   learningRate,
   seed,
+  staleDays,
+  stalenessFactor,
   update,
   updateMany,
 } from "./welford";
@@ -24,14 +32,15 @@ describe("welford", () => {
 
   it("update tracks the mean toward a new value with a small alpha at high n", () => {
     let s = seed(100);
-    // Push n into the floor-rate regime so each sample only nudges 2%.
+    // Push n into the floor-rate regime so each sample only nudges by
+    // ALPHA_FLOOR of the gap.
     for (let i = 0; i < 100; i++) s = update(s, 100);
     expect(s.mean).toBeCloseTo(100, 5);
     expect(s.n).toBe(101);
     s = update(s, 200);
-    // 100 → ~102 with alpha ≈ 0.02
-    expect(s.mean).toBeGreaterThan(101);
-    expect(s.mean).toBeLessThan(103);
+    expect(s.mean).toBeCloseTo(100 + 100 * ALPHA_FLOOR, 5);
+    // Small: the floor stays a gentle nudge, never a jump.
+    expect(ALPHA_FLOOR).toBeLessThanOrEqual(0.05);
   });
 
   it("update tracks the mean aggressively in the cap regime", () => {
@@ -82,5 +91,81 @@ describe("welford", () => {
     expect(confidence(CONFIDENCE_SATURATION)).toBe(1);
     expect(confidence(CONFIDENCE_SATURATION * 10)).toBe(1);
     expect(confidence(CONFIDENCE_SATURATION / 2)).toBeCloseTo(0.5, 5);
+  });
+});
+
+describe("welford — staleness", () => {
+  const DAY = 86_400_000;
+
+  it("staleDays measures days since last seen, clamped at 0", () => {
+    expect(staleDays(0, 3 * DAY)).toBeCloseTo(3, 5);
+    expect(staleDays(5 * DAY, 3 * DAY)).toBe(0); // clock skew
+    expect(staleDays(undefined, 3 * DAY)).toBe(0);
+    expect(staleDays(0, undefined)).toBe(0);
+  });
+
+  it("stalenessFactor halves weight every half-life", () => {
+    expect(stalenessFactor(0)).toBe(1);
+    expect(stalenessFactor(STALENESS_HALF_LIFE_DAYS)).toBeCloseTo(0.5, 5);
+    expect(stalenessFactor(2 * STALENESS_HALF_LIFE_DAYS)).toBeCloseTo(0.25, 5);
+  });
+
+  it("a long-unseen pattern re-learns faster from new samples", () => {
+    const old: ModelState = { mean: 200, variance: 0, n: 40 };
+    const fresh = updateMany(old, [120])!;
+    const stale = updateMany(old, [120], {
+      staleDays: 4 * STALENESS_HALF_LIFE_DAYS,
+    })!;
+    expect(stale.mean).toBeLessThan(fresh.mean);
+    // Stored count still advances by the real number of samples.
+    expect(stale.n).toBe(41);
+  });
+
+  it("EWMA_MEMORY matches the floor rate's effective sample size", () => {
+    expect(EWMA_MEMORY).toBeCloseTo((2 - ALPHA_FLOOR) / ALPHA_FLOOR, 5);
+  });
+
+  it("learningRate accepts fractional (decayed) counts", () => {
+    expect(learningRate(1.5)).toBeCloseTo(1 / 2.5, 5);
+  });
+});
+
+describe("welford — shift detection", () => {
+  // Established pattern: 200ms ± 30ms over plenty of samples.
+  const settled: ModelState = { mean: 200, variance: 30 * 30, n: 60 };
+
+  it("flags a batch far outside the mean's noise band", () => {
+    expect(detectShift(settled, [130, 125, 135, 128])).toBe(true);
+  });
+
+  it("ignores ordinary noise", () => {
+    expect(detectShift(settled, [190, 215, 205, 185])).toBe(false);
+  });
+
+  it("needs enough batch and prior samples, and some variance", () => {
+    expect(detectShift(settled, [130, 125].slice(0, SHIFT_MIN_BATCH - 1))).toBe(false);
+    expect(detectShift({ ...settled, n: SHIFT_MIN_PRIOR - 1 }, [130, 125, 135])).toBe(false);
+    expect(detectShift({ ...settled, variance: 0 }, [130, 125, 135])).toBe(false);
+  });
+
+  it("a detected improvement moves the mean much further in one test", () => {
+    const batch = [130, 125, 135, 128];
+    let floorOnly: ModelState = settled;
+    for (const v of batch) floorOnly = update(floorOnly, v);
+    const shifted = updateMany(settled, batch)!;
+    // Floor-rate updates barely move a 60-sample mean; a detected
+    // shift gets a third or more of the way to the new level.
+    expect(200 - floorOnly.mean).toBeLessThan(15);
+    expect(200 - shifted.mean).toBeGreaterThan(0.3 * (200 - 130));
+  });
+
+  it("only tests the shift against `shiftEvidence` when given", () => {
+    // Clean timings say nothing changed; the extra slow samples are
+    // mistake costs and must not trigger a reset.
+    const clean = [200, 198, 205];
+    const withSlips = [...clean, 900, 900];
+    const guarded = updateMany(settled, withSlips, { shiftEvidence: clean })!;
+    const unguarded = updateMany(settled, withSlips)!;
+    expect(guarded.mean).toBeLessThan(unguarded.mean);
   });
 });

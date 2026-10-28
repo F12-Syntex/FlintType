@@ -8,6 +8,13 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.147.0 — 27 October 2026
+- Adaptive practice now counts your mistakes: letter pairs you often mistype get practised even if you type them quickly the rest of the time.
+- Practice notices improvement sooner, so a pattern you have fixed stops being drilled and your remaining weak spots get the time instead.
+- Practice eases off when you are tiring or making lots of mistakes, and pushes a little harder when you are on form.
+- Weak spots now take turns between tests instead of one dominating every passage, and restarting a test gives you fresh words.
+- The hardest words no longer crowd a short passage just because there were too few words of the right difficulty.
+
 ## 6.146.1 — 27 October 2026
 - Old shared-result links that use a run's full ID open the result again instead of a not-found page.
 

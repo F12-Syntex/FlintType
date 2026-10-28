@@ -5,13 +5,17 @@ import {
   trigramRowsToStates,
   wordRowsToStates,
 } from "@/server/adapt/apply";
-import { selectWords } from "@/server/adapt/select";
+import { selectBatches } from "@/server/adapt/select";
 import {
   requestWordsInputSchema,
   type RequestWordsInput,
   type RequestWordsOutput,
 } from "@/types/adapt";
 import { loadAdaptPrefs } from "./prefs";
+
+/** Recent tests read for difficulty pacing: enough for a full session
+ *  plus a "usual speed" reference (see `pacing.ts`). */
+const PACING_TESTS = 20;
 
 export const words = defineRoute<RequestWordsInput, RequestWordsOutput>({
   input: requestWordsInputSchema,
@@ -25,7 +29,7 @@ export const words = defineRoute<RequestWordsInput, RequestWordsOutput>({
         db.trigramModels.listForUser(userId),
         db.motorFeatureModels.listForUser(userId),
         db.wordModels.listForUser(userId),
-        db.tests.recentForUser(userId, 5),
+        db.tests.recentForUser(userId, PACING_TESTS),
       ]);
 
     const bigramModels = bigramRowsToStates(bigramRows);
@@ -34,16 +38,13 @@ export const words = defineRoute<RequestWordsInput, RequestWordsOutput>({
     const wordModels = wordRowsToStates(wordRows);
     const batchCount = input.batches ?? 1;
 
-    // Run selectWords once per requested batch against the same model
-    // snapshot. Each batch uses an independent RNG seed so batches[0]
-    // and batches[1] aren't identical word lists. The DB reads above
-    // are amortised across all batches — this is the whole point of
-    // the multi-batch parameter.
-    const batches: string[][] = [];
-    let cold = false;
-    let prevLast = "";
-    for (let i = 0; i < batchCount; i++) {
-      const r = selectWords({
+    // Score the pool once against this snapshot and draw every batch
+    // from it. Later batches treat earlier ones as just shown, so the
+    // prefetch queue serves fresh words on each restart. The DB reads
+    // above are amortised across all batches — the whole point of the
+    // multi-batch parameter.
+    const r = selectBatches(
+      {
         count: input.count,
         pool: input.pool,
         bigramModels,
@@ -53,13 +54,20 @@ export const words = defineRoute<RequestWordsInput, RequestWordsOutput>({
         layout: prefs.handLayout,
         recentTests,
         recentlyShown: prefs.adaptRecency,
-      });
-      // `selectWords` samples without replacement so a batch is already
-      // adjacent-dup free internally. The only remaining seam is the
-      // first word of this batch matching the last word of the
-      // previous batch — swap it forward with the next non-matching
-      // word so the stitched stream never repeats back-to-back.
-      const w = [...r.words];
+        nowMs: Date.now(),
+      },
+      batchCount,
+    );
+    const cold = r.cold;
+    // A batch never repeats a word internally (sampling is without
+    // replacement). The only remaining seam is the first word of a
+    // batch matching the last word of the previous one — swap it
+    // forward with the next non-matching word so the stitched stream
+    // never repeats back-to-back.
+    const batches: string[][] = [];
+    let prevLast = "";
+    for (const batch of r.batches) {
+      const w = [...batch];
       if (prevLast && w.length > 1 && w[0] === prevLast) {
         for (let j = 1; j < w.length; j++) {
           if (w[j] !== prevLast) {
@@ -70,7 +78,6 @@ export const words = defineRoute<RequestWordsInput, RequestWordsOutput>({
       }
       batches.push(w);
       prevLast = w[w.length - 1] ?? prevLast;
-      if (r.cold) cold = true;
     }
 
     return { batches, cold };

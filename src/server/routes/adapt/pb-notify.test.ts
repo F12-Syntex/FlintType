@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SubmitTestInput } from "@/types/adapt";
-import { formatPbBody } from "./submit";
+import { formatPbBody } from "./pb-notify";
 
 function input(over: Partial<SubmitTestInput> = {}): SubmitTestInput {
   return {
