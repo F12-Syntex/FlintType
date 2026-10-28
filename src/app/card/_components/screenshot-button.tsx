@@ -1,10 +1,10 @@
 "use client";
 
-import { Download } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 
-/** Floats above the card frame. Resolves `[data-screenshot-target=
+/** Sits in the toolbar above the card. Resolves `[data-screenshot-target=
  *  "og-card"]` and exports it via html-to-image at the card's natural
  *  1500×787 footprint × 2x device pixels — the result is a crisp
  *  PNG suitable for portfolio embeds, Twitter / Discord previews, or
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
  *  so successive grabs don't overwrite each other in Downloads. */
 export function ScreenshotButton() {
   const [saving, setSaving] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const onClick = useCallback(async () => {
     if (saving) return;
@@ -20,6 +21,7 @@ export function ScreenshotButton() {
     );
     if (!node) return;
     setSaving(true);
+    setFailed(false);
     try {
       const { toPng } = await import("html-to-image");
       const dataUrl = await toPng(node, {
@@ -41,23 +43,34 @@ export function ScreenshotButton() {
       document.body.removeChild(a);
     } catch (err) {
       console.error("[card] screenshot failed", err);
+      setFailed(true);
     } finally {
       setSaving(false);
     }
   }, [saving]);
 
   return (
-    <Button
-      type="button"
-      onClick={onClick}
-      disabled={saving}
-      variant="outline"
-      size="sm"
-      aria-label="Download card as PNG"
-      className="absolute top-6 right-6 gap-2 font-mono text-[11px] uppercase tracking-[0.22em]"
-    >
-      <Download size={13} className="shrink-0" />
-      {saving ? "Saving…" : "Download PNG"}
-    </Button>
+    <div className="flex flex-col items-stretch gap-1.5 sm:items-end">
+      <Button
+        type="button"
+        onClick={onClick}
+        disabled={saving}
+        variant="outline"
+        aria-label="Download card as PNG"
+        className="w-full sm:w-auto"
+      >
+        {saving ? (
+          <Loader2 aria-hidden className="motion-safe:animate-spin" />
+        ) : (
+          <Download aria-hidden />
+        )}
+        {saving ? "Saving…" : "Download PNG"}
+      </Button>
+      {failed ? (
+        <p role="alert" className="text-xs text-destructive">
+          Couldn&apos;t save the image. Try again.
+        </p>
+      ) : null}
+    </div>
   );
 }

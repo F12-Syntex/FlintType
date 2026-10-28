@@ -90,7 +90,7 @@ export function ColorPicker({
     <Popover {...props}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent
-        className={cn("w-[350px] p-0", className)}
+        className={cn("w-[min(350px,calc(100vw-2rem))] p-0", className)}
         {...props}
         style={
           {
@@ -106,18 +106,18 @@ export function ColorPicker({
               width: "100%",
               height: "auto",
               aspectRatio: "4/2",
-              borderRadius: "0.3rem",
+              borderRadius: "var(--radius-lg)",
             }}
-            className="border border-border"
+            className="overflow-hidden border border-border"
           />
           <Hue
             hue={colorHsv.h}
             onChange={(newHue) => handleValueChange({ ...colorHsv, ...newHue })}
-            className="[&>div:first-child]:overflow-hidden [&>div:first-child]:!rounded"
+            className="[&>div:first-child]:overflow-hidden [&>div:first-child]:!rounded-full"
             style={{
               width: "100%",
               height: "0.9rem",
-              borderRadius: "0.3rem",
+              borderRadius: "9999px",
             }}
           />
 
@@ -212,7 +212,7 @@ export function ColorPicker({
                       style={{ backgroundColor: color }}
                       onClick={() => handleValueChange(hexToHsva(color))}
                       aria-label={`Set color to ${color}`}
-                      className="size-5 cursor-pointer rounded ring-2 ring-transparent ring-offset-1 ring-offset-background transition-all duration-100 hover:ring-foreground/40"
+                      className="size-6 cursor-pointer rounded-full border border-foreground/15 ring-2 ring-transparent ring-offset-2 ring-offset-popover transition-[box-shadow,transform] duration-200 hover:scale-110 hover:ring-foreground/30"
                     />
                   ))}
               </div>
@@ -231,9 +231,8 @@ export function ColorPicker({
 }
 
 function ContrastRatio({ color }: { color: HsvaColor }) {
-  const [ratio, setRatio] = React.useState(0);
-
-  React.useEffect(() => {
+  // Derived straight from the colour — no effect/state round-trip.
+  const ratio = React.useMemo(() => {
     const rgb = hsvaToRgba(color);
     const toSRGB = (c: number) => {
       const channel = c / 255;
@@ -245,13 +244,13 @@ function ContrastRatio({ color }: { color: HsvaColor }) {
       0.2126 * toSRGB(rgb.r) +
       0.7152 * toSRGB(rgb.g) +
       0.0722 * toSRGB(rgb.b);
-    setRatio(Number(((luminance + 0.05) / 0.05).toFixed(2)));
+    return Number(((luminance + 0.05) / 0.05).toFixed(2));
   }, [color]);
 
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="flex items-center gap-3">
-        <div className="flex size-10 items-center justify-center rounded bg-[var(--selected-color)]">
+        <div className="flex size-10 items-center justify-center rounded-xl bg-[var(--selected-color)]">
           <span className="font-medium text-foreground">A</span>
         </div>
         <div className="flex flex-col">

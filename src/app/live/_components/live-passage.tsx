@@ -21,20 +21,20 @@ export function LivePassage({ snapshot }: { snapshot: LiveSnapshot }) {
     <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between gap-4">
         <div className="flex items-end gap-8">
-          <Stat label="wpm" value={Math.round(snapshot.wpm)} size="lg" />
+          <Stat label="wpm" value={Math.round(snapshot.wpm)} size="lg" accent />
           <Stat
-            label="acc"
+            label="accuracy"
             value={Math.round(snapshot.accuracy)}
             suffix="%"
             size="lg"
           />
         </div>
-        <span className="flex items-center gap-1.5 pb-1 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="mb-1 inline-flex h-7 items-center gap-1.5 rounded-pill bg-primary/10 px-3 text-xs font-semibold text-primary">
           <span
             aria-hidden
             className="size-1.5 rounded-full bg-primary motion-safe:animate-pulse"
           />
-          live
+          Live
         </span>
       </div>
 
@@ -63,7 +63,7 @@ export function LivePassage({ snapshot }: { snapshot: LiveSnapshot }) {
               className={cn(
                 state === "typed" && "text-foreground",
                 state === "cursor" &&
-                  "rounded-[2px] bg-primary/15 text-foreground underline decoration-primary decoration-2 underline-offset-4",
+                  "rounded-sm bg-primary/15 text-foreground underline decoration-primary decoration-2 underline-offset-4",
                 state === "untyped" && "text-muted-foreground/60",
                 ch === " " && "px-px",
               )}

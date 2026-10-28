@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Tag } from "@/components/ft";
-import { Button } from "@/components/ui/button";
+import { Sparkles } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import {
   changesSince,
   parseChangelog,
 } from "@/lib/changelog";
+import { cn } from "@/lib/utils";
 import { APP_VERSION } from "@/lib/version";
 
 /** localStorage key holding the last app version this browser has seen
@@ -66,7 +67,9 @@ export function WhatsNewDialog() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/changelog.md", { cache: "no-cache" });
+        // The file is public/CHANGELOG.md. Static hosting is case
+        // sensitive on Linux (Vercel), so the path must match exactly.
+        const res = await fetch("/CHANGELOG.md", { cache: "no-cache" });
         if (!res.ok) throw new Error(`changelog ${res.status}`);
         const fresh = changesSince(parseChangelog(await res.text()), seen, APP_VERSION);
         if (cancelled) return;
@@ -99,54 +102,63 @@ export function WhatsNewDialog() {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && dismiss()}>
       <DialogContent className="flex max-h-[78vh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0">
-        <div className="shrink-0 border-b border-border px-5 py-4 sm:px-6 sm:py-5">
-          <Tag className="mb-2 block">Changelog</Tag>
-          <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground sm:text-xl">
-            What&apos;s new.
-          </DialogTitle>
-          <DialogDescription className="mt-1.5 text-xs text-muted-foreground sm:text-sm">
-            Everything that landed since you were last here{" "}
-            <span className="tabular-nums text-foreground/70">(v{since})</span>.
-          </DialogDescription>
+        <div className="flex shrink-0 items-start gap-3.5 px-5 pb-4 pt-5 sm:px-6 sm:pt-6">
+          <span
+            aria-hidden
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
+          >
+            <Sparkles size={18} />
+          </span>
+          <div className="flex min-w-0 flex-col gap-1 pr-6">
+            <DialogTitle className="text-xl font-bold tracking-tight text-foreground">
+              What&apos;s new
+            </DialogTitle>
+            <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
+              Everything that changed since you were last here{" "}
+              <span className="tabular-nums">(v{since})</span>.
+            </DialogDescription>
+          </div>
         </div>
 
-        <div className="flex-1 space-y-8 overflow-y-auto px-5 py-5 sm:px-6">
-          {entries.map((entry) => (
-            <section key={entry.version}>
-              <header className="flex items-baseline justify-between gap-3 border-b border-border pb-2">
-                <h3 className="text-[15px] font-semibold tracking-tight tabular-nums text-foreground">
-                  {entry.version}
-                </h3>
-                <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] tabular-nums text-muted-foreground">
-                  {entry.date}
-                </span>
-              </header>
-              <ul className="flex flex-col gap-2 pt-3">
-                {entry.lines.map((line, i) => (
-                  <li key={i} className="flex items-baseline gap-3">
-                    <span
-                      aria-hidden
-                      className="mt-[0.5em] size-1 shrink-0 rounded-[1px] bg-primary/60"
-                    />
-                    <span className="text-[13px] leading-relaxed text-foreground/85 sm:text-sm">
-                      {line}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
+        <div className="flex-1 overflow-y-auto border-y border-border/70 px-5 py-5 sm:px-6">
+          <div className="flex flex-col gap-6">
+            {entries.map((entry) => (
+              <section key={entry.version} className="flex flex-col gap-3">
+                <header className="flex items-center gap-2.5">
+                  <h3 className="inline-flex h-6 items-center rounded-pill bg-muted px-2.5 text-xs font-semibold tabular-nums text-foreground">
+                    v{entry.version}
+                  </h3>
+                  <span className="text-xs tabular-nums text-muted-foreground">
+                    {entry.date}
+                  </span>
+                </header>
+                <ul className="flex flex-col gap-2">
+                  {entry.lines.map((line, i) => (
+                    <li key={i} className="flex gap-3">
+                      <span
+                        aria-hidden
+                        className="mt-[0.6em] size-1.5 shrink-0 rounded-full bg-primary/70"
+                      />
+                      <span className="text-sm leading-relaxed text-foreground/85">
+                        {line}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
         </div>
 
-        <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="flex shrink-0 flex-col-reverse gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <Link
             href="/changelog"
             onClick={dismiss}
-            className="text-center text-xs text-muted-foreground transition-colors hover:text-foreground sm:text-left"
+            className={cn(buttonVariants({ variant: "ghost" }), "h-11 text-muted-foreground sm:h-9")}
           >
             Full changelog
           </Link>
-          <Button onClick={dismiss} className="w-full sm:w-auto">
+          <Button onClick={dismiss} size="lg" className="w-full sm:h-9 sm:w-auto sm:px-5">
             Got it
           </Button>
         </div>

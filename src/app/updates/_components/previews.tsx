@@ -26,7 +26,7 @@ function HubRow({
   dot: string;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-md border border-ft-line-soft bg-ft-paper px-2 py-1.5">
+    <div className="flex items-center gap-2 rounded-full ring-1 ring-inset ring-ft-line-soft bg-ft-paper py-1 pl-1 pr-2.5">
       <Initial>{letter}</Initial>
       <span className="text-[10px] font-semibold text-ft-ink">{handle}</span>
       <span className={cn("ml-auto size-1.5 shrink-0 rounded-full", dot)} />
@@ -50,16 +50,16 @@ function ChallengesPreview() {
   return (
     <div
       aria-hidden
-      className="flex w-full items-center gap-2.5 rounded-md border border-ft-line-soft bg-ft-paper px-3 py-2.5"
+      className="flex w-full items-center gap-2.5 rounded-xl ring-1 ring-inset ring-ft-line-soft bg-ft-paper px-3 py-2.5"
     >
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-ft-ember/10 text-ft-ember">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-ft-ember/10 text-ft-ember">
         <Swords size={15} />
       </span>
       <span className="flex min-w-0 flex-col gap-0.5">
         <span className="text-[11px] font-semibold text-ft-ink">@dao</span>
         <span className="text-[9px] font-medium text-ft-dim">wants to race</span>
       </span>
-      <span className="ml-auto rounded-md bg-ft-ember px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-ft-paper">
+      <span className="ml-auto rounded-full bg-ft-ember px-2.5 py-1 text-[9px] font-bold text-white">
         Join
       </span>
     </div>
@@ -71,11 +71,11 @@ function SpectatePreview() {
   return (
     <div
       aria-hidden
-      className="flex w-full flex-col gap-2.5 rounded-md border border-ft-line-soft bg-ft-paper p-2.5"
+      className="flex w-full flex-col gap-2.5 rounded-xl ring-1 ring-inset ring-ft-line-soft bg-ft-paper p-2.5"
     >
       <div className="flex items-center gap-1.5">
         <span className="size-1.5 rounded-full bg-ft-ember" />
-        <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-ft-ember">
+        <span className="text-[9px] font-bold text-ft-ember">
           Live
         </span>
         <span className="text-[10px] font-semibold text-ft-ink">@maya</span>
@@ -99,7 +99,7 @@ function ProfilePreview() {
   return (
     <div
       aria-hidden
-      className="flex w-full flex-col gap-2.5 rounded-md border border-ft-line-soft bg-ft-paper p-3"
+      className="flex w-full flex-col gap-2.5 rounded-xl ring-1 ring-inset ring-ft-line-soft bg-ft-paper p-3"
     >
       <div className="flex items-center gap-2">
         <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-ft-ink/10 text-[10px] font-bold text-ft-dim">
@@ -107,7 +107,7 @@ function ProfilePreview() {
         </span>
         <span className="flex flex-col gap-1">
           <span className="text-[11px] font-semibold text-ft-ink">@you</span>
-          <span className="inline-flex w-fit items-center gap-1 rounded border border-ft-ember/30 bg-ft-ember/10 px-1 py-px text-[8px] font-bold uppercase tracking-[0.08em] text-ft-ember">
+          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-ft-ember/10 px-1.5 py-px text-[8px] font-bold text-ft-ember">
             <Flame size={8} /> Forge
           </span>
         </span>
@@ -217,7 +217,8 @@ function IgnitePreview() {
           <Stone key={name} name={name} className="size-7 sm:size-9" />
         ))}
       </div>
-      <div className="flex items-center justify-between border-t border-ft-line-soft pt-1 text-[7px] font-bold uppercase tracking-[0.18em] text-ft-dim">
+      <span className="h-px bg-ft-line-soft" />
+      <div className="flex items-center justify-between text-[9px] font-semibold text-ft-dim">
         <span>Slow</span>
         <span>Fast</span>
       </div>
@@ -238,7 +239,7 @@ function FixLine({ children }: { children: string }) {
 /** Fixes — a short checklist of squashed bugs. No coral; success ink only. */
 function FixesPreview() {
   return (
-    <div aria-hidden className="flex w-full flex-col gap-1.5">
+    <div aria-hidden className="flex w-fit flex-col gap-1.5">
       <FixLine>Error counts agree</FixLine>
       <FixLine>Net + raw WPM match</FixLine>
       <FixLine>Tab no longer resets</FixLine>

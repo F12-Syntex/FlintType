@@ -8,6 +8,13 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.146.0 — 27 October 2026
+- The friends panel is easier to scan: race invites, live friends, online and offline people now sit in their own small groups, with clear orange Join and Watch buttons and a Find people button at the bottom, now on phones too.
+- The What's new window now actually appears after an update, with a cleaner, rounder look, and notifications got the same softer, tidier rows.
+- Shared results open on a polished page that asks visitors if they can beat your score, with one tap to take the test themselves.
+- The live-watching screen, the Biogram page and the release cards were tidied up with rounded cards and plain wording, and the Biogram's three pattern tables now sit behind one simple switch.
+- Friends without a profile picture now show their initial instead of an empty circle, and identity tags are pill-shaped.
+
 ## 6.145.0 — 27 October 2026
 - About, FAQ, Privacy, Terms and Blog now share one comfortable reading column with clear headings, and the FAQ and Privacy pages have quick links to jump to each section.
 - The changelog is now grouped by day and leaves out behind-the-scenes updates, with older months folded away so it is much quicker to scan.
