@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { DISCORD_URL, GITHUB_URL } from "@/lib/version";
-import { getAppVersion } from "@/server/version";
+import { FooterVersion } from "./footer-version";
 
 const LINKS: { href: string; label: string; external?: boolean }[] = [
   { href: DISCORD_URL, label: "Discord", external: true },
@@ -20,9 +20,6 @@ const LINKS: { href: string; label: string; external?: boolean }[] = [
  *    keyboard never displaces the typing area.
  *  The version links to the changelog. */
 export function AppFooter({ pinned = false }: { pinned?: boolean }) {
-  // Request-time VERSION read (same source the old top-bar pill used),
-  // so an editor-side bump shows on the next navigation.
-  const version = getAppVersion();
   return (
     <footer
       data-ft-footer
@@ -37,7 +34,7 @@ export function AppFooter({ pinned = false }: { pinned?: boolean }) {
         className="transition-colors hover:text-foreground"
         title="What's new"
       >
-        flinttype <span className="tabular-nums">v{version}</span>
+        flinttype <FooterVersion />
       </Link>
       {/* data-ft-footer-expand — the link row hides under
        *  data-ft-footer-style="compact" so only the version remains. */}
