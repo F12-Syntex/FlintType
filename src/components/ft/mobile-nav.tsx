@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useMounted } from "@/lib/use-mounted";
 import { cn } from "@/lib/utils";
 import type { NavItem } from "./top-bar";
 
@@ -63,18 +64,17 @@ export function MobileNav({
   drawerExtras?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  // Portal needs document — only available after mount.
+  const mounted = useMounted();
   const pathname = usePathname();
 
-  // Portal needs document — only available after mount.
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Close on route change.
-  useEffect(() => {
+  // Close on route change. Adjusted during render (React's "adjust
+  // state when a prop changes" pattern) rather than in an effect.
+  const [lastPath, setLastPath] = useState(pathname);
+  if (lastPath !== pathname) {
+    setLastPath(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   // Lock body scroll + close on Escape while open.
   useEffect(() => {
