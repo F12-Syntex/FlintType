@@ -46,8 +46,9 @@ export function TopbarActions() {
   );
 }
 
-/** Phones only: opens the friends sheet (the floating dock pill is
- *  desktop-only so it never covers page content on a small screen). */
+/** Toggles the friends dock below 2xl: the bottom sheet on phones, a
+ *  panel under the bar from md. At 2xl+ the dock's own corner pill
+ *  takes over (it sits in the page gutter there). */
 function FriendsButton() {
   const { isLoaded, isSignedIn } = useUser();
   const pathname = usePathname();
@@ -56,8 +57,10 @@ function FriendsButton() {
     <button
       type="button"
       aria-label="Friends"
+      title="Friends"
+      data-friends-trigger
       onClick={() => window.dispatchEvent(new Event(OPEN_FRIENDS_EVENT))}
-      className="flex size-11 items-center justify-center rounded-pill text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden"
+      className="flex size-11 items-center justify-center rounded-pill text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:size-9 2xl:hidden"
     >
       <Users className="size-[18px]" aria-hidden />
     </button>
