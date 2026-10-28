@@ -145,6 +145,17 @@ function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
+/** Everything the results screen shows for a burst run. */
+export type BurstResult = { summary: BurstSummary; buckets: BurstBucket[] };
+
+/** A run's figures and chart series in one call, so the results screen
+ *  and the live broadcast (which sends them to spectators) agree. `null`
+ *  while no try has cleared, like `summariseBursts`. */
+export function burstResult(tries: readonly BurstTry[]): BurstResult | null {
+  const summary = summariseBursts(tries);
+  return summary ? { summary, buckets: burstBuckets(tries) } : null;
+}
+
 /** The line under a burst headline saying what the number is (the
  *  speed over cleared tries, not a mean of them) and, when some tries
  *  didn't clear, why Raw comes out lower: it counts those too. `best`

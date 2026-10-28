@@ -1,5 +1,10 @@
 import { z } from "zod";
 import {
+  LIVE_MAX_CHART_SAMPLES,
+  liveBurstWireSchema,
+  type LiveBurst,
+} from "./live-burst";
+import {
   liveAppearanceSchema,
   liveCaretSchema,
   liveThemeVarsSchema,
@@ -47,6 +52,9 @@ export type LiveScreen = {
   quoteSource: string | null;
   elapsedMs: number;
   raw: number;
+  /** Whether the run is adaptive, for the mode bar's Adaptive pill.
+   *  Optional: an older broadcaster doesn't send it (reads as off). */
+  adapt?: boolean;
   /** The static "meta" block. Optional because the broadcaster sends it
    *  only every ~8th frame; the server backfills lean frames from the
    *  last stored value, and consumers merge over client defaults, so a
@@ -59,6 +67,8 @@ export type LiveScreen = {
    *  heatmap, per-letter) renders from the broadcaster's real run. */
   wpmHistory?: LiveWpmSample[];
   events?: LiveKeyEvent[];
+  /** A BURST run's result figures, on the `done` frame (live-burst.ts). */
+  burst?: LiveBurst;
 };
 
 /** A broadcaster's latest live-practice state. Snapshotted ~every
@@ -91,6 +101,7 @@ const liveScreenSchema = z.object({
   quoteSource: z.string().max(400).nullable(),
   elapsedMs: z.number().min(0).max(86_400_000),
   raw: z.number().min(0).max(1000),
+  adapt: z.boolean().optional().catch(undefined),
   // The static "meta" block (appearance, caret, behaviour, resolved
   // theme vars) — shape-validated against the real pref types (see
   // live-screen-meta.ts): unknown keys are stripped, invalid values
@@ -110,7 +121,7 @@ const liveScreenSchema = z.object({
         raw: z.number(),
       }),
     )
-    .max(3_600)
+    .max(LIVE_MAX_CHART_SAMPLES)
     .optional(),
   events: z
     .array(
@@ -124,6 +135,7 @@ const liveScreenSchema = z.object({
     )
     .max(3_000)
     .optional(),
+  burst: liveBurstWireSchema,
 });
 
 export const liveProgressInputSchema = z.object({

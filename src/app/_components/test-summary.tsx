@@ -8,8 +8,8 @@ import { formatSpeed } from "@/lib/speed-unit";
 import { wordlistLabel } from "@/lib/wordlists/use-wordlist";
 import { calcWpmAndRaw, keystrokeErrors } from "@/lib/wpm";
 import { consistencyScore, stallWpm } from "@/lib/wpm-stats";
-import { useBurstTries } from "./burst-log";
-import { burstBuckets, burstCaption, summariseBursts } from "./burst-stats";
+import { useBurstResult } from "./burst-log";
+import { burstCaption } from "./burst-stats";
 import { PassageHeatmap } from "./passage-heatmap";
 import { usePractice } from "./practice-state";
 import { ResultActions } from "./result-actions";
@@ -106,27 +106,25 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
   const isNewPb = usePbVerdict(preview);
 
   // BURST: every figure comes from the timed tries (burst-stats.ts), not
-  // the whole-run clock. Null elsewhere, and outside a typing surface
-  // (no try log), which keeps the regular figures.
-  const burstTries = useBurstTries();
-  const burst = useMemo(
-    () =>
-      state.mode === "BURST" && burstTries ? summariseBursts(burstTries) : null,
-    [state.mode, burstTries],
-  );
+  // the whole-run clock: this run's try log, or the broadcaster's figures
+  // on the live-spectate clone. Null elsewhere, and on a surface with
+  // neither (the settings preview), which keeps the regular figures.
+  const burstFigures = useBurstResult();
+  const burst =
+    state.mode === "BURST" && burstFigures ? burstFigures.summary : null;
 
   // Per-second chart buckets: the live wpmHistory samples, or the
   // running burst figures for a burst run.
   const buckets = useMemo<Bucket[]>(
     () =>
-      burst && burstTries
-        ? burstBuckets(burstTries)
+      burst && burstFigures
+        ? burstFigures.buckets
         : wpmHistory.map((s) => ({
             sec: Math.max(1, Math.round(s.t / 1000)),
             wpm: s.wpm,
             raw: s.raw,
           })),
-    [burst, burstTries, wpmHistory],
+    [burst, burstFigures, wpmHistory],
   );
   const slowest = burst ? burst.slowest : stallWpm(buckets);
   const cons = burst ? burst.consistency : consistencyScore(buckets);

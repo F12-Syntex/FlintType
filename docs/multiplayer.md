@@ -54,6 +54,14 @@ The SSE route does **not** check the secret — it only reads room snapshots (no
 6. The proxy receives the JSON, returns it from the Vercel handler, dispatcher serializes it back to the client.
 7. Errors: a `BackendError` thrown on Railway is serialized as JSON, the proxy reconstructs it as a `BackendError` of the same shape and re-throws — client `useBackend()` catches the original error class. The fact there were two hops is invisible.
 
+## Progress authority (`RaceRoom.setProgress`)
+
+Keystroke posts are fire-and-forget and can arrive out of order, so the room decides what counts:
+- **Forward-only within an attempt.** A post with lower progress can't pull a racer's lane back; the server keeps the furthest point reached. A post back at 0 chars, or with fewer errors than the server holds, starts a fresh attempt (Esc restarts the passage mid-race, and the client's keystroke error counter only resets on a restart). That post's progress is taken as sent.
+- **Errors and accuracy** are the latest post's running totals for the current attempt.
+- **Finishing** needs a post with `finished: true` whose bounded progress reaches the end of the passage. The FT-030 clamp (at most 500 WPM worth of chars since the gun) still bounds progress, so a forged post can't win.
+- **Frozen once finished.** After a racer finishes (by their own post, the timed-race buzzer or the watchdog), every later post from them is ignored, so their wpm, raw, errors, accuracy, finish time and place are final.
+
 ### Client run clock
 
 The local practice run in a race is timed from the gun, like the server. On the first snapshot that shows your seat racing, `useGunAnchoredRun` (src/app/race/_components/use-race-run.ts) dispatches `ANCHOR_START` with `localGunInstant` (race-anchor.ts). That is the earlier of two estimates, both on the local clock: the time the snapshot was seen minus (serverNowMs − raceStartedAt), and raceStartedAt minus the countdown's clock offset. Raw Date.now() is never compared with a server stamp. Solo practice never anchors, so there the first keystroke still starts the clock. The wpm a client posts is advisory: `Room.setProgress` ignores it and recomputes from progress. The server stamps elapsed time when each keystroke POST arrives, so the history row can read higher than the result card by that POST's latency. The finishing POST waits for the previous keystroke POST to settle, but never longer than the debounce window, so it can't be overtaken by older progress.

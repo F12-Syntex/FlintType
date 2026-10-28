@@ -10,27 +10,19 @@ import { broadcastPlan } from "@/lib/live-cadence";
 import { setWatcherCount } from "@/lib/live-watchers";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { LIVE_MAX_WORDS } from "@/types/live";
-import { CLONE_THEME_VARS } from "@/types/live-screen-meta";
+import { buildLiveScreen } from "./live-screen-payload";
 import { liveSnapshotWindow } from "./practice-progress";
 import type { State } from "./practice-state";
+
 /** Module-level stable default — useRemotePrefs captures it once.
  *  Sharing is ON by default; only an explicit `false` turns it off. */
 const SPECTATE_DEFAULT: { enabled?: boolean } = { enabled: true };
 
-/** Resolved CSS custom properties sent so the spectator's clone matches
- *  the broadcaster's colours + typography exactly. Read from <html> at
- *  push time so a theme switch mid-session flows through. The list is
- *  the wire allowlist (`CLONE_THEME_VARS` in src/types/live-screen-meta)
- *  — single source, so the sender and the schema can't drift. */
-function readThemeVars(): Record<string, string> {
-  const cs = getComputedStyle(document.documentElement);
-  const out: Record<string, string> = {};
-  for (const v of CLONE_THEME_VARS) {
-    const val = cs.getPropertyValue(v).trim();
-    if (val) out[v] = val;
-  }
-  return out;
-}
+/** Send the static meta block (appearance, caret, theme vars) on every
+ *  Nth screen push; the server backfills the lean frames in between. At
+ *  the watched 700ms rate that's a full refresh ~every 5.6s — fast
+ *  enough to catch a theme/setting change, lean the rest of the time. */
+const META_EVERY = 8;
 
 /** Invisible. Mounted once inside every real <PracticeProvider>, so any
  *  passage-based surface (home practice, sudden-death drills) streams
@@ -41,23 +33,13 @@ function readThemeVars(): Record<string, string> {
  *  passes the 30s grace (no forever-heartbeat on an idle results tab).
  *  The payload is the windowed passage + the broadcaster's appearance,
  *  caret, behaviour, resolved theme vars, and (on done) the results data,
- *  so a spectator reconstructs the exact screen — passage, mode, results.
+ *  so a spectator reconstructs the exact screen — passage, mode, results
+ *  (built in live-screen-payload.ts).
  *
  *  State/stats arrive as props (the provider passes them) so this file
  *  never imports `usePractice` (that would close an import cycle with
  *  practice-state). Appearance/caret/behaviour come from the pref hooks
  *  — never overridden here (the override only wraps the watch clone). */
-/** Cap on the per-keystroke event log sent on the `done` frame (drives
- *  the spectator's results chart/heatmap). Big enough for any normal run,
- *  bounded so a marathon TIME run can't push a huge payload. */
-const MAX_EVENTS = 3_000;
-
-/** Send the static meta block (appearance, caret, theme vars) on every
- *  Nth screen push; the server backfills the lean frames in between. At
- *  the watched 700ms rate that's a full refresh ~every 5.6s — fast
- *  enough to catch a theme/setting change, lean the rest of the time. */
-const META_EVERY = 8;
-
 export function PracticeLiveBroadcast({
   active = true,
   state,
@@ -116,62 +98,6 @@ export function PracticeLiveBroadcast({
     // always has it (phase changes restart this effect).
     frameRef.current = 0;
 
-    // Build the clone payload. `includeMeta` carries the static block
-    // (appearance, caret, behaviour, resolved theme vars) — sent only
-    // every Nth frame; the server backfills the lean frames in between,
-    // so the steady-state push is tiny and skips the getComputedStyle
-    // read. The per-frame fields (cursor, typed, etc.) always go.
-    const buildScreen = (
-      s: typeof snapRef.current,
-      win: ReturnType<typeof liveSnapshotWindow>,
-      includeMeta: boolean,
-    ) => {
-      const st = s.state;
-      const start = win.start;
-      const len = win.words.length;
-      const done = st.phase === "done";
-      return {
-        phase: st.phase,
-        typed: st.typed.slice(start, start + len),
-        cursorWord: Math.max(0, st.cursorWord - start),
-        cursorChar: st.cursorChar,
-        mode: st.mode,
-        length: st.length,
-        quoteSource: st.quoteSource,
-        elapsedMs: s.elapsedMs,
-        raw: s.raw,
-        ...(includeMeta
-          ? {
-              appearance: s.appearance,
-              caret: s.caret,
-              behaviour: { blindMode: s.behaviour.blindMode },
-              themeVars: readThemeVars(),
-            }
-          : {}),
-        ...(done
-          ? {
-              wpmHistory: s.wpmHistory.map((h) => ({
-                t: h.t,
-                wpm: h.wpm,
-                raw: h.raw,
-              })),
-              events: st.events
-                .filter(
-                  (e) => e.wordIndex >= start && e.wordIndex < start + len,
-                )
-                .slice(0, MAX_EVENTS)
-                .map((e) => ({
-                  t: e.t,
-                  expected: e.expected,
-                  typed: e.typed,
-                  correct: e.correct,
-                  wordIndex: e.wordIndex - start,
-                })),
-            }
-          : {}),
-      };
-    };
-
     // Reschedule on the plan's cadence (reads the freshest watcher count
     // + phase). Idle + unwatched yields a null delay → the loop stops and
     // resumes only when the phase changes (the effect dep below).
@@ -212,7 +138,7 @@ export function PracticeLiveBroadcast({
           accuracy: s.accuracy,
           // Heavy clone payload only when someone's watching.
           ...(plan.includeScreen
-            ? { screen: buildScreen(s, win, includeMeta) }
+            ? { screen: buildLiveScreen(s, win, includeMeta) }
             : {}),
         })
         .then((r) => {
