@@ -109,8 +109,8 @@ export function KeyMarkRows() {
   return (
     <>
       <SwitchRow
-        title="Mark F and J"
-        desc="Highlight the home-row keys so you can find your hands."
+        title="Home row bumps"
+        desc="Add the small bumps on F and J that help you find your hands."
         checked={settings.highlightHomeRow}
         onChange={(v) => update({ highlightHomeRow: v })}
       />

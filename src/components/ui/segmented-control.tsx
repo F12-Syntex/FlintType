@@ -32,6 +32,22 @@ export interface SegmentedControlProps<T extends string | number> {
   className?: string;
 }
 
+// A keyboard pick that remounts the control (a page that renders a
+// different view per choice) would drop focus on <body>. The new
+// instance takes it back on mount when its label and value match.
+let pendingFocus: { label: string; value: string; at: number } | null = null;
+
+function handOffFocus(label: string, value: string) {
+  pendingFocus = { label, value, at: Date.now() };
+}
+
+function takeFocusHandOff(label: string, value: string): boolean {
+  const p = pendingFocus;
+  if (!p || p.label !== label) return false;
+  pendingFocus = null;
+  return p.value === value && Date.now() - p.at < 1000;
+}
+
 export function SegmentedControl<T extends string | number>({
   value,
   onValueChange,
@@ -41,10 +57,52 @@ export function SegmentedControl<T extends string | number>({
   ariaLabel,
   className,
 }: SegmentedControlProps<T>) {
+  const items: SegmentedControlOption<T>[] = options.map((opt) =>
+    typeof opt === "object" ? opt : { value: opt },
+  );
+  const activeIndex = items.findIndex((item) => item.value === value);
+  // Roving tab stop (ARIA radio group): one Tab stop for the group, on
+  // the selected option (or the first when none is selected).
+  const tabStop = activeIndex === -1 ? 0 : activeIndex;
+  const groupRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!ariaLabel || !takeFocusHandOff(ariaLabel, String(value))) return;
+    if (groupRef.current?.contains(document.activeElement)) return;
+    groupRef.current
+      ?.querySelector<HTMLButtonElement>("button[aria-checked='true']")
+      ?.focus();
+    // Mount-only: this is a hand-off from the instance that unmounted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Arrow keys move the selection, wrapping at the ends; Home / End
+  // jump to the first / last option.
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const last = items.length - 1;
+    let next: number;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown")
+      next = tabStop >= last ? 0 : tabStop + 1;
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp")
+      next = tabStop <= 0 ? last : tabStop - 1;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = last;
+    else return;
+    e.preventDefault();
+    const buttons = e.currentTarget.querySelectorAll<HTMLButtonElement>(
+      "button[role='radio']",
+    );
+    buttons[next]?.focus();
+    if (ariaLabel) handOffFocus(ariaLabel, String(items[next].value));
+    onValueChange(items[next].value);
+  };
+
   return (
     <div
+      ref={groupRef}
       role="radiogroup"
       aria-label={ariaLabel}
+      onKeyDown={onKeyDown}
       className={cn(
         "inline-flex flex-wrap items-center gap-0.5",
         framed &&
@@ -52,21 +110,21 @@ export function SegmentedControl<T extends string | number>({
         className,
       )}
     >
-      {options.map((opt) => {
-        const item: SegmentedControlOption<T> =
-          typeof opt === "object" ? opt : { value: opt };
-        const active = item.value === value;
+      {items.map((item, i) => {
+        const active = i === activeIndex;
         return (
           <button
             key={String(item.value)}
             type="button"
             role="radio"
             aria-checked={active}
+            tabIndex={i === tabStop ? 0 : -1}
             onClick={(e) => {
               onValueChange(item.value);
-              // Drop focus after selection so the focus ring doesn't
-              // linger on the previously-clicked pill.
-              e.currentTarget.blur();
+              // Drop focus after a pointer click so the focus ring
+              // doesn't linger on the clicked pill. Keyboard activation
+              // (detail 0) keeps focus where the user is.
+              if (e.detail > 0) e.currentTarget.blur();
             }}
             className={cn(
               "cursor-pointer rounded-pill font-medium transition-[color,background-color,box-shadow] duration-200 outline-none",

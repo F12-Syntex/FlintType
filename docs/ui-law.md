@@ -570,7 +570,7 @@ Every section renders through `<SettingsSection id title description preview?>`:
 4. **Reset.** There is no per-section reset; Reset lives in the page header (§12.7). Colour and typeface rows keep their own Reset (`h-9 sm:h-7`).
 
 **Progressive disclosure:** show a row only when it does something. A section whose rows all depend on one master choice puts that choice first, as a switch or a row with an Off option, and renders the rest only while it's on.
-- **Keyboard:** "Show keyboard" comes first. While it isn't Off, the rows are Layout, Key arrangement, Key style, Key shape, Key labels, Number row, Size, Letters only (`keymapCompact`), Mark F and J, Shift symbols.
+- **Keyboard:** "Show keyboard" comes first. While it isn't Off, the rows are Layout, Key arrangement, Key style, Key shape, Key labels, Number row, Size, Letters only (`keymapCompact`), Home row bumps, Shift symbols.
 - **Live stats:** "Show live stats" (`statStripSurface` none/plain) comes first; the per-number styles, Background (Plain | Card), Colour and Opacity follow.
 - **Other rows that show only while they apply:**
   - Background fit, opacity, blur and darken show once an image is set.
@@ -877,7 +877,7 @@ The Follow / Follow back CTA carries a leading `UserPlus` icon; the ⋯ trigger 
 
 ### 17.2 People navigation — one switch idiom
 
-Every segmented switch in the app is the **§21 segmented switch**: a pill track (`rounded-pill border border-border bg-muted/70 p-1`) with the selected option as a filled brand pill (`rounded-pill brand-surface text-primary-foreground shadow-card`) and `text-muted-foreground hover:text-foreground` at rest. Use `<OptionSwitch>` / `<SegmentedControl>` from `@/components/ui` rather than re-rolling it. Counts ride inline per segment in `tabular-nums text-muted-foreground`. Full-width (segments `flex-1`) on mobile so it never overflows 375px; hugging from `sm+`. The top-bar nav uses the same language: its active route is a filled brand pill with the glow (`brand-surface text-primary-foreground shadow-glow`). (The friends dock (§17.5) deliberately uses a single search over friends + following rather than a Friends / Following switch — it's a glanceable directory, not a tabbed list.)
+Every segmented switch in the app is the **§21 segmented switch**: a pill track (`rounded-pill border border-border bg-muted/70 p-1`) with the selected option as a filled brand pill (`rounded-pill brand-surface text-primary-foreground shadow-card`) and `text-muted-foreground hover:text-foreground` at rest. Use `<OptionSwitch>` / `<SegmentedControl>` from `@/components/ui` rather than re-rolling it. `<SegmentedControl>` is an ARIA radio group with one Tab stop (the selected option): arrow keys move the selection and wrap, Home / End jump to the ends, and a pointer click drops focus while keyboard activation keeps it. When a pick remounts the control (a page that renders a different view per choice), the new instance takes focus back. Counts ride inline per segment in `tabular-nums text-muted-foreground`. Full-width (segments `flex-1`) on mobile so it never overflows 375px; hugging from `sm+`. The top-bar nav uses the same language: its active route is a filled brand pill with the glow (`brand-surface text-primary-foreground shadow-glow`). (The friends dock (§17.5) deliberately uses a single search over friends + following rather than a Friends / Following switch — it's a glanceable directory, not a tabbed list.)
 
 In a dense in-page section on phones (e.g. a sort-by or model switch above a table), the segments get the §7 finger target: `[&>button]:h-10 sm:[&>button]:h-auto` (with `[&>button]:px-3 sm:[&>button]:px-2.5` on `size="sm"`), so the pill track reaches about 44px at <sm and stays compact from sm.
 
@@ -1049,6 +1049,7 @@ The rehaul's visual system. Every value routes through a token so the Settings �
 Rules:
 - Never hard-code `rounded-md`/`rounded-full` on a control, or an arbitrary `shadow-[…]` on a surface — use the tokens above so the Style settings reach it. (Avatars, dots and progress tracks stay `rounded-full`: they are shapes, not controls.)
 - One filled primary button per view. Secondary actions are `outline` or `ghost`.
+- `buttonVariants()` returns merged classes (`cn()`), so a `className` passed to it replaces a conflicting variant class (`h-11` over the size's `h-9`) on a `<Link>` exactly as it does on `<Button>`.
 - Selected/active states are orange (`brand-surface` or `text-primary`), never black or neutral grey.
 - Fixed artifacts that ignore the user's theme (the share result card, the /card brand card, the update cards, the `/landing` cover) paint their hairlines as `ring-1` / `ring-inset` or 1px `bg-*` fills, not `border-*` — the Borders setting recolours every border with `!important` and would wash out a fixed-colour hairline.
 - The Outlines knob (`data-ft-borders`, Settings → Interface → Outlines) recolours borders globally; `.border-transparent` stays transparent (ghost buttons, chips at rest) and `.border-primary` stays orange (selected chips) under every mode. Rely on those two utilities rather than inline styles.

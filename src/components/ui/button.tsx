@@ -7,7 +7,7 @@ import { useState, type ReactNode } from "react"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { cn } from "@/lib/utils"
 
-const buttonVariants = cva(
+const buttonVariantsBase = cva(
   "group/button inline-flex shrink-0 items-center justify-center rounded-pill border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-out outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 active:not-aria-[haspopup]:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
@@ -47,6 +47,16 @@ const buttonVariants = cva(
   }
 )
 
+/** Button classes for any element (a `<Link>` styled as a button, a
+ *  trigger). Runs through `cn()` so a caller's `className` replaces a
+ *  conflicting variant class (`h-11` over the size's `h-9`) instead of
+ *  both landing in the class list, the same as `<Button>` does. */
+function buttonVariants(
+  props?: Parameters<typeof buttonVariantsBase>[0]
+): string {
+  return cn(buttonVariantsBase(props))
+}
+
 /** Optional confirmation gate. When passed, clicking the button opens a
  *  ConfirmDialog instead of firing onClick directly; onClick runs only
  *  after the user confirms. Cancel does nothing. Use for destructive or
@@ -62,7 +72,7 @@ type ConfirmConfig = {
 }
 
 type ButtonProps = ButtonPrimitive.Props &
-  VariantProps<typeof buttonVariants> & { confirm?: ConfirmConfig }
+  VariantProps<typeof buttonVariantsBase> & { confirm?: ConfirmConfig }
 
 function Button({
   className,
@@ -78,7 +88,7 @@ function Button({
     return (
       <ButtonPrimitive
         data-slot="button"
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={buttonVariants({ variant, size, className })}
         onClick={onClick}
         {...props}
       />
@@ -89,7 +99,7 @@ function Button({
     <>
       <ButtonPrimitive
         data-slot="button"
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={buttonVariants({ variant, size, className })}
         onClick={(e) => {
           // Swallow the original click; defer the real action until the
           // user confirms in the dialog below.
