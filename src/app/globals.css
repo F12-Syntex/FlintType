@@ -467,7 +467,7 @@
        NOT applied here. Both are practice-text settings — the user
        expects "size" and "family" to scope to the passage they type,
        not to every chrome surface. The passage element consumes them
-       directly (see `src/app/_components/passage.tsx`). */
+       directly (see `src/app/_components/passage/index.tsx`). */
     scrollbar-color: color-mix(in oklch, var(--foreground) 25%, transparent)
       var(--background);
     scrollbar-width: thin;
