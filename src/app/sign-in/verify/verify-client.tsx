@@ -1,60 +1,57 @@
 "use client";
 
 import { useClerk } from "@clerk/nextjs";
-import { EmailLinkErrorCode } from "@clerk/nextjs/errors";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  explainLinkError,
+  precheck,
+  statusAfterVerify,
+  type VerifyStatus,
+} from "./verify-status";
 
-type Status =
-  | { kind: "verifying" }
-  | { kind: "ok" }
-  | { kind: "error"; message: string };
-
-/** Runs Clerk's handleEmailLinkVerification on mount.
+/** Runs Clerk's handleEmailLinkVerification once Clerk has loaded.
  *
- *  - Same-device flow: the user clicked the link in the same browser
- *    they started in. handleEmailLinkVerification picks up the ticket
- *    in the URL, sets the active session, and Clerk redirects to
+ *  - Same-device flow: the link was opened in the browser that asked
+ *    for it. Clerk activates the new session and sends the user to
  *    redirectUrlComplete ("/").
- *  - Cross-device flow: link clicked from email on another device.
- *    The verification still completes server-side, which is what
- *    unblocks the originating tab's startEmailLinkFlow polling. We
- *    just show a "you can close this tab" screen — Clerk won't have a
- *    session to set on *this* device. */
+ *  - Cross-device flow: the link was opened somewhere else. The
+ *    verification still completes server-side, which is what unblocks
+ *    the original tab's startEmailLinkFlow polling, so this tab only
+ *    says where to go back to.
+ *  - Expired, failed or wrong-device links reject with Clerk's
+ *    EmailLinkError and show its plain explanation. */
 export function VerifyEmailLink() {
   const clerk = useClerk();
-  const [status, setStatus] = useState<Status>({ kind: "verifying" });
+  // useClerk re-renders on every load-status change, so these stay live.
+  const loaded = clerk.loaded;
+  const clerkStatus = clerk.status;
+  const [status, setStatus] = useState<VerifyStatus>({ kind: "verifying" });
+  // One verification per visit, including React's dev double-mount.
+  const started = useRef(false);
 
   useEffect(() => {
-    let cancelled = false;
+    if (started.current) return;
+    const search = window.location.search;
+    const blocked = precheck(search, clerkStatus);
+    // Before clerk-js loads, Clerk only queues the call and resolves at
+    // once; the queued call's real error is then dropped. Wait for it.
+    if (!blocked && !loaded) return;
+    started.current = true;
     (async () => {
-      // Clerk's link lands here with `__clerk_status` (or a ticket). A
-      // bookmark, a refresh or a mangled link has neither, and must not
-      // read as a success.
-      const params = new URLSearchParams(window.location.search);
-      if (!params.has("__clerk_status") && !params.has("__clerk_ticket")) {
-        setStatus({
-          kind: "error",
-          message: "This link is incomplete. Start signing in again to get a new one.",
-        });
+      if (blocked) {
+        setStatus(blocked);
         return;
       }
       try {
-        await clerk.handleEmailLinkVerification({
-          redirectUrl: "/sign-in/verify",
-          redirectUrlComplete: "/",
-        });
-        if (!cancelled) setStatus({ kind: "ok" });
+        await clerk.handleEmailLinkVerification({ redirectUrlComplete: "/" });
+        setStatus(statusAfterVerify(search, clerk.session?.id));
       } catch (err) {
-        if (cancelled) return;
-        setStatus({ kind: "error", message: explainError(err) });
+        setStatus({ kind: "error", message: explainLinkError(err) });
       }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, [clerk]);
+  }, [clerk, loaded, clerkStatus]);
 
   return (
     <main className="safe-pt safe-pb flex min-h-dvh items-center justify-center px-4 text-foreground">
@@ -77,14 +74,28 @@ export function VerifyEmailLink() {
           </>
         ) : null}
 
-        {status.kind === "ok" ? (
+        {status.kind === "signed-in" ? (
+          <>
+            <h1 className="text-2xl font-bold tracking-tight">
+              You&apos;re signed in
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Taking you to practice…
+            </p>
+            <Link href="/" className={buttonVariants({ size: "lg", className: "mt-2" })}>
+              Go to practice
+            </Link>
+          </>
+        ) : null}
+
+        {status.kind === "elsewhere" ? (
           <>
             <h1 className="text-2xl font-bold tracking-tight">
               You&apos;re verified
             </h1>
             <p className="text-sm text-muted-foreground">
-              If you started sign-in on another device, head back to that
-              tab, it&apos;s already signed in. You can close this one.
+              Go back to the tab where you started signing in to carry on.
+              You can close this one.
             </p>
             <Link href="/" className={buttonVariants({ size: "lg", className: "mt-2" })}>
               Go to practice
@@ -109,25 +120,4 @@ export function VerifyEmailLink() {
       </div>
     </main>
   );
-}
-
-function explainError(err: unknown): string {
-  const code =
-    err && typeof err === "object" && "code" in err
-      ? (err as { code?: string }).code
-      : undefined;
-  if (code === EmailLinkErrorCode.Expired)
-    return "This link has expired. Request a new one.";
-  if (code === EmailLinkErrorCode.Failed)
-    return "Verification failed. Request a fresh sign-in link.";
-  if (code === EmailLinkErrorCode.ClientMismatch)
-    return "This link was opened on a different device or browser than the one that started sign-in. Open it on the original device, or start signing in again.";
-  if (err && typeof err === "object" && "errors" in err) {
-    const first = (err as { errors?: { longMessage?: string; message?: string }[] })
-      .errors?.[0];
-    if (first?.longMessage) return first.longMessage;
-    if (first?.message) return first.message;
-  }
-  if (err instanceof Error) return err.message;
-  return "Something went wrong verifying the link.";
 }
