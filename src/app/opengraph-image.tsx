@@ -38,7 +38,7 @@ export default async function OpengraphImage() {
   const WARM_1 = "#B5AF9F";
   const WARM_3 = "#6E695F";
   const WARM_4 = "#5C5950";
-  const EMBER = "#E1582C";
+  const EMBER = "#F97316";
   const PASSAGE_PX = 56;
 
   return new ImageResponse(

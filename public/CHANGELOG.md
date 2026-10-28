@@ -8,6 +8,12 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.14 — 27 October 2026
+- The About page, the Adaptive explainer and the Biogram now describe how practice paces itself: it eases off when you are tired or less accurate than usual and pushes harder on a good day.
+- The weakest-pair tip on Insights notes that time lost to mistakes counts too.
+- The changelog's link to the raw file works again.
+- Link previews for flinttype use the logo orange, and share previews and palette tiles drop their arrows.
+
 ## 6.148.13 — 27 October 2026
 - Option switches now work with the keyboard: Tab reaches the selected option, arrow keys change it, and focus stays put after you pick.
 - Group names in the command palette and wordlist picker are in plain sentence case.

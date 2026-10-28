@@ -56,7 +56,7 @@ export function parseChangelogDate(date: string): Date | null {
 
 /** Group entries (newest first) into one block per date heading, in
  *  first-seen order. Days left with no user-facing lines are dropped:
- *  the raw file at /changelog.md still lists every version. */
+ *  the raw file at /CHANGELOG.md still lists every version. */
 export function groupChangelogByDay(entries: ChangelogEntry[]): ChangelogDay[] {
   const byDate = new Map<string, ChangelogEntry[]>();
   for (const entry of entries) {
