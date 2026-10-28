@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.13 — 27 October 2026
+- Option switches now work with the keyboard: Tab reaches the selected option, arrow keys change it, and focus stays put after you pick.
+- Group names in the command palette and wordlist picker are in plain sentence case.
+- Rounded keys in keyboard settings previews now match the keyboard on the practice screen, and "Mark F and J" is now called Home row bumps.
+
 ## 6.148.12 — 27 October 2026
 - Typing now works with Android keyboards such as Gboard on the practice screen, in races and in sudden-death drills.
 - Tapping the text on a phone keeps the keyboard open instead of closing it straight away.

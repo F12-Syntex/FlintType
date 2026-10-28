@@ -364,8 +364,8 @@ export function useCommandEntries(): readonly CommandEntry[] {
       ),
       toggle(
         "k.highlightHomeRow",
-        "Mark F and J",
-        "Highlight the home-row keys",
+        "Home row bumps",
+        "Small bumps on F and J",
         "Keyboard",
         ks.highlightHomeRow,
         (v) => setKs({ highlightHomeRow: v }),

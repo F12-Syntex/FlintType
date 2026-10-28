@@ -124,14 +124,14 @@ export function designClasses(design: KeyboardDesign): [string, string] {
 }
 
 /** Single class fragment that maps a shape to the border-radius
- *  utility used on every key. Pill is much rounder than rounded
- *  because rounded already matches the Tailwind default. */
+ *  utility used on every key. "Rounded" follows the theme's radius
+ *  scale (ui-law §21), so keycaps match the rest of the app. */
 export function shapeClass(shape: KeyboardShape): string {
   switch (shape) {
     case "square":
       return "rounded-none";
     case "rounded":
-      return "rounded-[6px]";
+      return "rounded-sm";
     case "pill":
       return "rounded-full";
   }

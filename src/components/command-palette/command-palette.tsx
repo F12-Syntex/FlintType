@@ -322,11 +322,7 @@ function RootView({
       <CommandList>
         <CommandEmpty>No matches.</CommandEmpty>
         {groups.map(({ group, items }) => (
-          <CommandGroup
-            key={group}
-            heading={group}
-            className="[&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:normal-case [&_[cmdk-group-heading]]:tracking-normal"
-          >
+          <CommandGroup key={group} heading={group}>
             {items.map((entry) => (
               <CommandItem
                 key={entry.id}
@@ -388,10 +384,7 @@ function EnumView({
       />
       <CommandList>
         <CommandEmpty>No matches.</CommandEmpty>
-        <CommandGroup
-          heading="Options"
-          className="[&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:normal-case [&_[cmdk-group-heading]]:tracking-normal"
-        >
+        <CommandGroup heading="Options">
           {entry.options.map((opt) => {
             const active = opt.id === entry.value;
             return (
