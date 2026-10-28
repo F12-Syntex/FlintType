@@ -326,6 +326,7 @@ export const THEME_PRESETS: Record<string, ThemePreset> = {
       keymapLegend: "blank",
       keymapTopRow: "never",
       keymapSize: 0.95,
+      keymapCompact: true,
     },
     keyboard: {
       design: "ghost",

@@ -2,7 +2,10 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { Kbd } from "@/components/ft";
-import { useAppearancePrefs } from "@/lib/appearance-prefs";
+import {
+  LEGACY_LIVE_STATS_COLOR,
+  useAppearancePrefs,
+} from "@/lib/appearance-prefs";
 import type { LiveStatStyle } from "@/lib/appearance-prefs";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { formatClock } from "@/lib/format-duration";
@@ -16,21 +19,12 @@ function formatElapsed(ms: number): string {
   return formatClock(ms / 1000);
 }
 
-/** The shipped default for the "Live stats color" pref is the brand
- *  hex itself. Treat it as "follow the theme" so other palettes keep
- *  their own primary on the headline number; any other value is a real
- *  user choice and paints every live number. */
-const DEFAULT_LIVE_COLOR = "#f97316";
-
 /** Toggle that turns true for ~1.5s every 15s — drives the "flash"
  *  variant of the live readouts so the screen stays clean otherwise. */
 function useFlashVisible(active: boolean) {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
-    if (!active) {
-      setVisible(false);
-      return;
-    }
+    if (!active) return;
     let hideTimer: ReturnType<typeof setTimeout> | null = null;
     const id = setInterval(() => {
       setVisible(true);
@@ -39,9 +33,10 @@ function useFlashVisible(active: boolean) {
     return () => {
       clearInterval(id);
       if (hideTimer) clearTimeout(hideTimer);
+      setVisible(false);
     };
   }, [active]);
-  return visible;
+  return active && visible;
 }
 
 /** Apply a `LiveStatStyle` to a single readout: whether it renders at
@@ -93,8 +88,11 @@ function useStatsProps(): StatsProps {
   const gate = (s: LiveStatStyle): LiveStatStyle => (blind ? "off" : s);
 
   const color = appearance.liveStatsColor?.trim();
+  // Empty follows the palette's primary on the headline number. The old
+  // shipped default (the brand hex) still arrives in a broadcaster's
+  // prefs on the live view, so it reads the same way.
   const customColor =
-    color && color.toLowerCase() !== DEFAULT_LIVE_COLOR ? color : undefined;
+    color && color.toLowerCase() !== LEGACY_LIVE_STATS_COLOR ? color : undefined;
 
   return {
     wpm,
