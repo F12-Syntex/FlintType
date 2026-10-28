@@ -1,22 +1,13 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { Check } from "lucide-react";
-import Link from "next/link";
+import { CheckCheck } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBackend } from "@/lib/backend";
-import { relativeTime } from "@/lib/relative-time";
 import { cn } from "@/lib/utils";
-import { UserTag } from "@/components/ft";
-import type {
-  Notification,
-  PersonalBestData,
-  AnnouncementData,
-  FollowNotificationData,
-  MutualNotificationData,
-  FriendPbNotificationData,
-  RaceInviteData,
-} from "@/types/notification";
+import { Button } from "@/components/ui/button";
+import type { Notification } from "@/types/notification";
+import { BellIcon, NotificationRow } from "./notification-row";
 
 /** Bell + popover. Reads the live feed from
  *  `backend.notifications.list()`. Anonymous viewers don't see the
@@ -140,6 +131,7 @@ export function NotificationsPopover() {
         aria-haspopup="dialog"
         className={cn(
           "relative flex size-11 items-center justify-center rounded-pill text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:size-9",
+          open && "bg-accent text-foreground",
         )}
       >
         <BellIcon />
@@ -157,279 +149,73 @@ export function NotificationsPopover() {
           aria-label="Notifications"
           className={cn(
             // Mobile: full-width sheet pinned below the topbar.
-            "fixed inset-x-2 top-[calc(4.25rem+env(safe-area-inset-top))] z-40 max-h-[70vh] overflow-y-auto",
+            "fixed inset-x-2 top-[calc(4.25rem+env(safe-area-inset-top))] z-40 flex max-h-[70vh] flex-col overflow-hidden",
             // Desktop: anchored to the bell, fixed width.
-            "md:absolute md:inset-x-auto md:top-full md:right-0 md:mt-2 md:w-[360px]",
+            "md:absolute md:inset-x-auto md:top-full md:right-0 md:mt-2 md:max-h-[min(70vh,560px)] md:w-[380px]",
             "rounded-2xl border border-border bg-popover text-popover-foreground shadow-float",
           )}
         >
-          <div
-            className={cn(
-              "flex items-center justify-between gap-3 border-b px-4 py-3",
-              "border-border",
-            )}
-          >
-            <span
-              className={cn(
-                "text-sm font-semibold",
-                "text-foreground",
-              )}
-            >
-              Notifications
+          <div className="flex shrink-0 items-center justify-between gap-3 px-4 pb-2 pt-3.5">
+            <span className="flex items-center gap-2">
+              <span className="text-base font-semibold tracking-tight text-foreground">
+                Notifications
+              </span>
               {unreadCount > 0 ? (
-                <span
-                  className={cn(
-                    "ml-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums",
-                    "bg-primary text-primary-foreground",
-                  )}
-                >
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-pill bg-primary/10 px-1.5 text-[11px] font-semibold tabular-nums text-primary">
                   {unreadCount}
                 </span>
               ) : null}
             </span>
             {unreadCount > 0 ? (
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="xs"
                 onClick={() => void markAllRead()}
-                className={cn(
-                  "text-xs transition-colors",
-                  "text-muted-foreground hover:text-foreground",
-                )}
+                className="-mr-1.5 text-muted-foreground"
               >
+                <CheckCheck aria-hidden />
                 Mark all read
-              </button>
+              </Button>
             ) : null}
           </div>
 
-          {loading && items.length === 0 ? (
-            <div
-              className={cn(
-                "px-4 py-6 text-center text-[12px]",
-                "text-muted-foreground",
-              )}
-            >
-              Loading…
-            </div>
-          ) : items.length === 0 ? (
-            <div
-              className={cn(
-                "px-4 py-6 text-center text-[12px]",
-                "text-muted-foreground",
-              )}
-            >
-              All caught up.
-            </div>
-          ) : (
-            <ul className="flex flex-col">
-              {items.map((n, i) => (
-                <li
-                  key={n.id}
-                  className={cn(
-                    i > 0 && "border-t",
-                    "border-border",
-                  )}
-                >
-                  <Row item={n} onMarkRead={markOneRead} />
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {loading && items.length === 0 ? (
+              <div className="flex flex-col gap-1 px-2 pb-2" aria-hidden>
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="flex items-start gap-3 rounded-xl px-2.5 py-2.5">
+                    <span className="mt-1.5 size-2 shrink-0 rounded-full bg-muted" />
+                    <span className="flex flex-1 flex-col gap-1.5">
+                      <span className="h-2.5 w-36 rounded-full bg-muted motion-safe:animate-pulse" />
+                      <span className="h-2 w-52 rounded-full bg-muted/70" />
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : items.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 px-4 pb-8 pt-6 text-center">
+                <span className="inline-flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                  <BellIcon />
+                </span>
+                <p className="text-sm font-medium text-foreground">
+                  You&apos;re all caught up
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  New followers, races and personal bests show up here.
+                </p>
+              </div>
+            ) : (
+              <ul className="flex flex-col gap-0.5 px-2 pb-2">
+                {items.map((n) => (
+                  <li key={n.id}>
+                    <NotificationRow item={n} onMarkRead={markOneRead} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       ) : null}
     </div>
   );
 }
-
-function Row({
-  item,
-  onMarkRead,
-}: {
-  item: Notification;
-  onMarkRead: (id: string) => void;
-}) {
-  const accent = item.kind === "personal_best" || item.kind === "mutual";
-  const unread = item.readAtMs == null;
-  const href = isAnnouncement(item)
-    ? item.data?.href
-    : isFollowNotification(item)
-      ? `/profile/${item.data.followerUsername ?? item.data.followerId}`
-      : isMutualNotification(item)
-        ? `/profile/${item.data.friendUsername ?? item.data.friendId}`
-        : isFriendPb(item)
-          ? `/profile/${item.data.friendUsername ?? item.data.friendId}`
-          : isRaceInvite(item)
-            ? `/race/c/${item.data.slug}`
-            : undefined;
-  const body = (
-    <div className="flex items-start gap-3 px-4 py-3">
-      <span
-        aria-hidden
-        className={cn(
-          "mt-1.5 size-1.5 shrink-0 rounded-full",
-          unread
-            ? accent
-              ? "bg-primary"
-              : "bg-foreground"
-            : "bg-muted-foreground/40",
-        )}
-      />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <div className="flex items-baseline justify-between gap-2">
-          <span
-            className={cn(
-              "truncate text-[12px] font-semibold",
-              accent ? "text-primary" : "text-foreground",
-            )}
-          >
-            {item.title}
-          </span>
-          <span
-            className={cn(
-              "shrink-0 text-[10px] uppercase tracking-[0.12em]",
-              "text-muted-foreground",
-            )}
-          >
-            {relativeTime(item.createdAtMs)}
-          </span>
-        </div>
-        <p
-          className={cn(
-            "text-[11px] leading-snug",
-            "text-muted-foreground",
-          )}
-        >
-          {item.body}
-        </p>
-        {isPersonalBest(item) ? <PbDelta data={item.data} /> : null}
-        {item.kind === "og_granted" ? (
-          <span className="mt-1.5 inline-flex">
-            <UserTag tag="og" size="sm" />
-          </span>
-        ) : null}
-        {item.kind === "mutual" ? (
-          <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
-            <Check size={12} aria-hidden /> Friends
-          </span>
-        ) : null}
-      </div>
-    </div>
-  );
-  if (href) {
-    return (
-      <Link
-        href={href}
-        // Clicking a race invite through to the lobby marks it read, so
-        // it stops haunting the dock + bell (FT-031). Other kinds keep
-        // their unread state until Mark all read.
-        onClick={
-          isRaceInvite(item) ? () => onMarkRead(item.id) : undefined
-        }
-        className={cn(
-          "block transition-colors",
-          "hover:bg-foreground/[0.03]",
-        )}
-      >
-        {body}
-      </Link>
-    );
-  }
-  return body;
-}
-
-function PbDelta({ data }: { data: PersonalBestData }) {
-  if (data.previousWpm == null) {
-    return (
-      <span
-        className={cn(
-          "mt-1 inline-flex w-fit items-center rounded-pill border px-2 py-0.5 text-[10px] font-medium tabular-nums",
-          "border-primary/40 bg-primary/[0.06] text-primary",
-        )}
-      >
-        first run
-      </span>
-    );
-  }
-  // Delta from the rounded figures the user sees (not the raw gap), so
-  // "+N wpm vs M" always reconciles with the headline best (#12).
-  const delta = Math.round(data.wpm) - Math.round(data.previousWpm);
-  return (
-    <span
-      className={cn(
-        "mt-1 inline-flex w-fit items-center gap-1 rounded-pill border px-2 py-0.5 text-[10px] font-medium tabular-nums",
-        delta > 0
-          ? "border-primary/40 bg-primary/[0.06] text-primary"
-          : "border-border bg-muted/40 text-muted-foreground",
-      )}
-    >
-      {delta > 0 ? `+${delta}` : delta} wpm vs {Math.round(data.previousWpm)}
-    </span>
-  );
-}
-
-function isAnnouncement(n: Notification): n is Notification & {
-  data: AnnouncementData;
-} {
-  return n.kind === "announcement";
-}
-
-function isPersonalBest(n: Notification): n is Notification & {
-  data: PersonalBestData;
-} {
-  if (n.kind !== "personal_best") return false;
-  if (n.data == null || typeof n.data !== "object") return false;
-  return "wpm" in (n.data as Record<string, unknown>);
-}
-
-function isFollowNotification(n: Notification): n is Notification & {
-  data: FollowNotificationData;
-} {
-  if (n.kind !== "follow") return false;
-  if (n.data == null || typeof n.data !== "object") return false;
-  return "followerId" in (n.data as Record<string, unknown>);
-}
-
-function isMutualNotification(n: Notification): n is Notification & {
-  data: MutualNotificationData;
-} {
-  if (n.kind !== "mutual") return false;
-  if (n.data == null || typeof n.data !== "object") return false;
-  return "friendId" in (n.data as Record<string, unknown>);
-}
-
-function isFriendPb(n: Notification): n is Notification & {
-  data: FriendPbNotificationData;
-} {
-  if (n.kind !== "friend_pb") return false;
-  if (n.data == null || typeof n.data !== "object") return false;
-  return "friendId" in (n.data as Record<string, unknown>);
-}
-
-/** A friend opened a race lobby and invited you — links to the lobby. */
-function isRaceInvite(n: Notification): n is Notification & {
-  data: RaceInviteData;
-} {
-  if (n.kind !== "race_invite") return false;
-  if (n.data == null || typeof n.data !== "object") return false;
-  return "slug" in (n.data as Record<string, unknown>);
-}
-
-function BellIcon() {
-  // Inline SVG so we don't pull a stroke-width-2 lucide icon into the topbar
-  // (lucide's default weight reads heavier than the typography here).
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="size-[18px]"
-      aria-hidden
-    >
-      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-    </svg>
-  );
-}
-

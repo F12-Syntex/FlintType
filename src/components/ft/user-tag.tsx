@@ -53,7 +53,7 @@ export function UserTag({
   // leading-none so the chip's intrinsic height matches the h-* class.
   const sizeClass =
     size === "md"
-      ? "h-[26px] gap-1.5 px-2.5 text-[11px]"
+      ? "h-[26px] gap-1.5 px-3 text-[11px]"
       : "h-5 gap-1 px-2 text-[10px]";
   const iconSize = size === "md" ? 14 : 12;
   const Icon = config.icon;
@@ -79,7 +79,7 @@ export function UserTag({
       onClick={swallowClick}
       onMouseDown={swallowClick}
       className={cn(
-        "inline-flex cursor-pointer items-center whitespace-nowrap rounded-md border font-semibold uppercase leading-none tracking-[0.12em]",
+        "inline-flex cursor-pointer items-center whitespace-nowrap rounded-pill border font-semibold uppercase leading-none tracking-[0.08em]",
         sizeClass,
         className,
       )}
@@ -105,7 +105,7 @@ export function UserTag({
       <TooltipTrigger asChild>{chip}</TooltipTrigger>
       <TooltipContent side="top" sideOffset={6} className="px-2.5 py-1.5">
         <div className="flex flex-col gap-0.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.12em]">
+          <span className="text-xs font-semibold">
             {config.tooltipTitle}
           </span>
           <span className="text-xs text-muted-foreground">

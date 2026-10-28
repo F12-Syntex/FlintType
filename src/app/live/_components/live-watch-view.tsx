@@ -1,10 +1,18 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { ArrowLeft, Maximize2, Minimize2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  Maximize2,
+  Minimize2,
+  RadioTower,
+} from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Avatar, UserTag } from "@/components/ft";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { LiveSubject } from "@/types/live";
 import { LivePassage } from "./live-passage";
 import { LiveStage } from "./live-stage";
@@ -27,11 +35,18 @@ export function LiveWatchView({ userId }: { userId: string }) {
       <div className="flex min-h-0 w-full flex-1 flex-col">
         {isLoaded && !isSignedIn ? (
           <Centered>
-            <Notice>Sign in to watch friends practise.</Notice>
+            <Notice>
+              <span>
+                <Link href="/sign-in" className="font-semibold text-primary hover:underline">
+                  Sign in
+                </Link>{" "}
+                to watch friends practise.
+              </span>
+            </Notice>
           </Centered>
         ) : state == null ? (
           <Centered>
-            <Notice>Connecting…</Notice>
+            <Notice busy>Connecting…</Notice>
           </Centered>
         ) : !watchable ? (
           <Centered>
@@ -45,7 +60,7 @@ export function LiveWatchView({ userId }: { userId: string }) {
             accuracy={state.snapshot.accuracy}
           />
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col justify-center px-5 py-8 sm:px-10">
+          <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col justify-center px-4 py-8 sm:px-10">
             <LivePassage snapshot={state.snapshot} />
           </div>
         )}
@@ -56,45 +71,41 @@ export function LiveWatchView({ userId }: { userId: string }) {
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-1 items-center justify-center">{children}</div>
+    <div className="flex flex-1 items-center justify-center px-4 py-10">
+      {children}
+    </div>
   );
 }
 
-/** Slim, editorial header. Identity sits on the left under a single coral
- *  "Spectating" eyebrow (the one spark + the live signal — no competing
- *  pills or dots); back + fullscreen are quiet icon affordances. */
+const ICON_BUTTON = cn(
+  buttonVariants({ variant: "ghost", size: "icon-lg" }),
+  "shrink-0 text-muted-foreground sm:size-9",
+);
+
+/** Slim header. Identity sits on the left under a single orange "Live"
+ *  marker (the one spark + the live signal, no competing pills); back +
+ *  fullscreen are quiet pill icon buttons. */
 function WatchHeader({ subject }: { subject: LiveSubject | null }) {
   return (
-    <header className="safe-pt sticky top-0 z-10 border-b border-border bg-background/85 backdrop-blur">
-      <div className="flex w-full items-center gap-3 px-3 py-2.5 sm:px-6 sm:py-3">
-        <Link
-          href="/"
-          aria-label="Back to practice"
-          className="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        >
+    <header className="safe-pt sticky top-0 z-10 border-b border-border/70 bg-background/80 backdrop-blur-xl">
+      <div className="flex w-full items-center gap-2 px-2 py-2 sm:gap-3 sm:px-6 sm:py-3">
+        <Link href="/" aria-label="Back to practice" className={ICON_BUTTON}>
           <ArrowLeft size={18} aria-hidden />
         </Link>
 
         {subject ? (
-          <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <Avatar
               src={subject.imageUrl}
               alt={subject.name}
-              size="sm"
+              size="md"
               liven={false}
             />
-            <span className="flex min-w-0 flex-col leading-tight">
-              <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
-                <span
-                  aria-hidden
-                  className="size-1.5 rounded-full bg-primary motion-safe:animate-pulse"
-                />
-                Spectating
-              </span>
+            <span className="flex min-w-0 flex-col gap-0.5 leading-tight">
               <span className="flex min-w-0 items-center gap-1.5">
                 <Link
                   href={`/profile/${subject.username ?? subject.userId}`}
-                  className="truncate text-sm font-semibold text-foreground hover:text-primary"
+                  className="truncate text-sm font-semibold text-foreground transition-colors hover:text-primary"
                 >
                   {subject.name}
                 </Link>
@@ -102,10 +113,17 @@ function WatchHeader({ subject }: { subject: LiveSubject | null }) {
                   <UserTag key={t} tag={t} size="sm" />
                 ))}
               </span>
+              <span className="flex items-center gap-1.5 text-xs font-medium text-primary">
+                <span
+                  aria-hidden
+                  className="size-1.5 rounded-full bg-primary motion-safe:animate-pulse"
+                />
+                Watching live
+              </span>
             </span>
           </div>
         ) : (
-          <span className="flex-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
             Watching live
           </span>
         )}
@@ -139,7 +157,7 @@ function FullscreenButton() {
       type="button"
       onClick={toggle}
       aria-label={isFs ? "Exit fullscreen" : "Enter fullscreen"}
-      className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+      className={ICON_BUTTON}
     >
       <Icon size={16} aria-hidden />
     </button>
@@ -148,25 +166,42 @@ function FullscreenButton() {
 
 function NotLive() {
   return (
-    <div className="mx-auto flex max-w-md flex-col gap-3 rounded-md border border-dashed border-border bg-card/40 px-4 py-10 text-center">
-      <p className="text-sm text-muted-foreground">
-        They&apos;re not practising right now, or aren&apos;t sharing their live
-        sessions.
-      </p>
-      <Link
-        href="/"
-        className="mx-auto w-fit text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-      >
+    <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border border-dashed border-border bg-card/40 px-6 py-10 text-center">
+      <span className="inline-flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <RadioTower size={20} aria-hidden />
+      </span>
+      <div className="flex flex-col gap-1.5">
+        <p className="text-base font-semibold text-foreground">
+          Not live right now
+        </p>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          They&apos;re not practising at the moment, or they aren&apos;t
+          sharing their live sessions.
+        </p>
+      </div>
+      <Link href="/" className={buttonVariants({ variant: "outline", size: "lg" })}>
         Back to practice
       </Link>
     </div>
   );
 }
 
-function Notice({ children }: { children: React.ReactNode }) {
+function Notice({
+  children,
+  busy = false,
+}: {
+  children: React.ReactNode;
+  busy?: boolean;
+}) {
   return (
-    <p className="mx-auto max-w-md rounded-md border border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground">
+    <div
+      role="status"
+      className="flex w-full max-w-md items-center justify-center gap-2.5 rounded-2xl border border-border bg-card px-5 py-6 text-center text-sm text-muted-foreground shadow-card"
+    >
+      {busy ? (
+        <Loader2 size={16} aria-hidden className="shrink-0 motion-safe:animate-spin" />
+      ) : null}
       {children}
-    </p>
+    </div>
   );
 }

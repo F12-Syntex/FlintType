@@ -1,22 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PageSection, PageShell, Surface } from "@/components/page-shell";
+import { Button } from "@/components/ui/button";
 import { BackendError, useBackend } from "@/lib/backend";
 import type { AdaptSnapshotOutput } from "@/types/adapt";
 import { BiogramHeader } from "./biogram-header";
-import { ModelTable } from "./model-table";
-import { SectionFrame } from "./section-frame";
-import {
-  FingerMapView,
-  OverviewBody,
-  RecencyMap,
-  RecentTests,
-} from "./sections";
+import { PatternModels } from "./pattern-models";
+import { OverviewBody } from "./overview";
+import { FingerMapView, RecencyMap, RecentTests } from "./sections";
 import { WordScorer } from "./word-scorer";
 
-/** /biogram landing — fetches the snapshot and renders every
- *  section. Manual refresh button so the user can re-poll after
- *  taking a test in another tab without a full reload. */
+/** /biogram — fetches the adapt snapshot and renders every section.
+ *  Manual refresh so the user can re-poll after taking a test in
+ *  another tab without a full reload. */
 export function BiogramView() {
   const backend = useBackend();
   const [snap, setSnap] = useState<AdaptSnapshotOutput | null>(null);
@@ -45,121 +42,96 @@ export function BiogramView() {
   }, []);
 
   return (
-    <>
+    <PageShell>
       <BiogramHeader snap={snap} loading={loading} onRefresh={() => void load()} />
 
       {error ? (
-        <section className="px-5 py-12 sm:px-14 sm:py-16">
-          <p className="text-sm text-primary">{error}</p>
-        </section>
-      ) : !snap ? (
-        <section className="px-5 py-12 sm:px-14 sm:py-16">
-          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-            Loading snapshot…
+        <Surface className="flex flex-col items-start gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <p role="alert" className="text-sm text-destructive">
+            {error}
           </p>
-        </section>
+          <Button variant="outline" size="sm" onClick={() => void load()}>
+            Try again
+          </Button>
+        </Surface>
+      ) : !snap ? (
+        <LoadingSkeleton />
       ) : (
         <SnapshotBody snap={snap} />
       )}
-    </>
+    </PageShell>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="flex flex-col gap-4" aria-busy aria-label="Loading snapshot">
+      <span className="h-4 w-28 rounded-full bg-muted" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <span
+            key={i}
+            className="h-24 rounded-2xl bg-muted motion-safe:animate-pulse"
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
 function SnapshotBody({ snap }: { snap: AdaptSnapshotOutput }) {
   return (
     <>
-      <SectionFrame
+      <PageSection
         id="overview"
-        label="OVERVIEW"
-        subtitle="State at a glance — sample volume, fatigue dampener, baseline keystroke times, and whether the model has left cold start."
+        title="Overview"
+        description="How much the model has seen, and how it's tuned right now."
       >
         <OverviewBody snap={snap} />
-      </SectionFrame>
+      </PageSection>
 
-      <SectionFrame
-        id="bigrams"
-        label="BIGRAMS"
-        subtitle="Two-character sequences. Weakness is measured against the bigram baseline."
-        actions={<RowCount n={snap.bigrams.length} />}
+      <PageSection
+        id="patterns"
+        title="Patterns"
+        description="Every sequence the model tracks, ranked by how much slower you are on it than your usual pace."
       >
-        <ModelTable
-          rows={snap.bigrams}
-          patternHeader="BIGRAM"
-          baseline={snap.baselines.bigram}
-          emptyHint="No bigram measurements yet — finish a test."
-        />
-      </SectionFrame>
+        <PatternModels snap={snap} />
+      </PageSection>
 
-      <SectionFrame
-        id="trigrams"
-        label="TRIGRAMS"
-        subtitle="Three-character sequences. Slower-moving than bigrams — more samples needed before they're load-bearing."
-        actions={<RowCount n={snap.trigrams.length} />}
+      <PageSection
+        id="word-scorer"
+        title="Word scorer"
+        description="Type any word to see exactly how it would be scored for your next test."
       >
-        <ModelTable
-          rows={snap.trigrams}
-          patternHeader="TRIGRAM"
-          baseline={snap.baselines.trigram}
-          emptyHint="No trigram measurements yet."
-        />
-      </SectionFrame>
+        <WordScorer />
+      </PageSection>
 
-      <SectionFrame
-        id="motor-features"
-        label="MOTOR FEATURES"
-        subtitle="Derived from your finger map — same-finger, hand-alternation, row-jump and friends. Cleared and rebuilt whenever fingers are reconfigured."
-        actions={<RowCount n={snap.motorFeatures.length} />}
-      >
-        <ModelTable
-          rows={snap.motorFeatures}
-          patternHeader="FEATURE"
-          baseline={snap.baselines.motorFeature}
-          emptyHint="No motor-feature measurements yet."
-        />
-      </SectionFrame>
-
-      <SectionFrame
+      <PageSection
         id="recent-tests"
-        label="RECENT TESTS"
-        subtitle="Last few completed runs. The status dot flags a test that wasn't finished — those still feed the model where measurements are clean."
+        title="Recent tests"
+        description="Your last few runs. Unfinished ones still teach the model where the timing is clean."
       >
         <RecentTests tests={snap.recentTests} />
-      </SectionFrame>
+      </PageSection>
 
-      <SectionFrame
+      <PageSection
         id="recency-map"
-        label="RECENCY MAP"
-        subtitle="Words you've recently seen. Each carries a multiplier that decays back to 1.0 over the next few tests so the algorithm doesn't loop the same passage at you."
+        title="Recently shown words"
+        description="Words you've just seen are held back for a few tests so the same passage doesn't loop."
       >
         <RecencyMap rows={snap.recentlyShown} />
-      </SectionFrame>
+      </PageSection>
 
-      <SectionFrame
+      <PageSection
         id="finger-map"
-        label="FINGER MAP"
-        subtitle="The hand layout the algorithm assumes. The hash changes whenever you move a key — invalidating every motor-feature row."
+        title="Finger map"
+        description="The hand layout the model assumes. Moving a key resets the finger-movement model."
       >
         <FingerMapView
           layout={snap.handLayout}
           fingerMapHash={snap.fingerMapHash}
         />
-      </SectionFrame>
-
-      <SectionFrame
-        id="word-scorer"
-        label="WORD SCORER"
-        subtitle="Type any word to see exactly how the algorithm scores it — α/β/γ contributions, per-pattern weakness, predicted typing time, and whether the word lands in your challenge band."
-      >
-        <WordScorer />
-      </SectionFrame>
+      </PageSection>
     </>
-  );
-}
-
-function RowCount({ n }: { n: number }) {
-  return (
-    <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
-      <span className="text-foreground tabular-nums">{n}</span> tracked
-    </span>
   );
 }

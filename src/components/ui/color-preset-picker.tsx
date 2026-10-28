@@ -88,10 +88,10 @@ function Swatch({
       aria-label={`Pick ${hex}`}
       aria-pressed={active}
       className={cn(
-        "relative aspect-square w-full rounded-md border transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "relative aspect-square w-full rounded-full border transition-[transform,box-shadow] duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         mobile ? "min-h-10" : "h-7 w-7",
         active
-          ? "border-primary ring-2 ring-primary/40"
+          ? "border-primary ring-2 ring-primary ring-offset-2 ring-offset-popover"
           : "border-foreground/15",
       )}
       style={{ backgroundColor: hex }}
@@ -136,15 +136,14 @@ function CustomWheel({
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
+            size="icon-sm"
             onClick={onBack}
             aria-label="Back to presets"
           >
             <ArrowLeft size={14} />
           </Button>
-          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-            Custom
+          <span className="text-sm font-medium text-foreground">
+            Custom colour
           </span>
         </div>
       )}
@@ -155,15 +154,15 @@ function CustomWheel({
           width: "100%",
           height: "auto",
           aspectRatio: "4/2",
-          borderRadius: "0.3rem",
+          borderRadius: "var(--radius-lg)",
         }}
-        className="border border-border"
+        className="overflow-hidden border border-border"
       />
       <Hue
         hue={hsv.h}
         onChange={(h) => update({ ...hsv, ...h })}
-        className="[&>div:first-child]:overflow-hidden [&>div:first-child]:!rounded"
-        style={{ width: "100%", height: "0.9rem", borderRadius: "0.3rem" }}
+        className="[&>div:first-child]:overflow-hidden [&>div:first-child]:!rounded-full"
+        style={{ width: "100%", height: "0.9rem", borderRadius: "9999px" }}
       />
       <Input
         value={hexDraft}
@@ -177,7 +176,8 @@ function CustomWheel({
             /* ignore mid-typing invalid hex */
           }
         }}
-        className="h-8 font-mono text-xs"
+        aria-label="Hex colour"
+        className="h-9 font-mono text-xs"
       />
     </div>
   );
@@ -218,7 +218,7 @@ export function ColorPresetPicker({
 
   const presetGrid = (
     <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-8 gap-1.5 sm:grid-cols-8">
+      <div className="grid grid-cols-8 gap-2">
         {PRESET_SWATCHES.map((hex) => (
           <Swatch
             key={hex}
@@ -230,16 +230,22 @@ export function ColorPresetPicker({
         ))}
       </div>
 
-      <div className="flex items-center justify-between border-t border-border pt-2">
-        <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
-          {value ? value.toUpperCase() : "Default"}
+      <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
+        <span className="flex items-center gap-2 text-xs text-muted-foreground">
+          {value ? (
+            <>
+              <span
+                aria-hidden
+                className="size-3.5 rounded-full border border-foreground/15"
+                style={{ backgroundColor: value }}
+              />
+              <span className="font-mono text-foreground">{value.toUpperCase()}</span>
+            </>
+          ) : (
+            "Default colour"
+          )}
         </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-9 gap-1.5 text-[11px] uppercase tracking-widest"
-          onClick={() => setView("custom")}
-        >
+        <Button variant="outline" size="sm" onClick={() => setView("custom")}>
           <Pipette size={14} />
           Custom
         </Button>
@@ -272,7 +278,7 @@ export function ColorPresetPicker({
                 type="button"
                 aria-label="Back to presets"
                 onClick={() => setView("presets")}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+                className="inline-flex size-9 items-center justify-center rounded-pill text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
                 <ArrowLeft size={18} />
               </button>

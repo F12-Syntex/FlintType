@@ -14,7 +14,19 @@ const DOT = {
   xl: "size-3.5",
 } as const;
 
+const INITIAL_TEXT = {
+  sm: "text-xs",
+  md: "text-sm",
+  lg: "text-base",
+  xl: "text-xl",
+} as const;
+
 export type AvatarSize = keyof typeof SIZE;
+
+/** First letter of a display name or handle (skipping a leading `@`). */
+function initialOf(name: string): string {
+  return name.replace(/^@/, "").trim().charAt(0);
+}
 
 /** A user's Clerk avatar, circular with a hairline ring. flinttype's
  *  surfaces are deliberately inky, so the image is **desaturated at
@@ -60,13 +72,18 @@ export function Avatar({
           )}
         />
       ) : (
+        // No picture: a warm initial instead of an empty grey disc, so a
+        // stack of fallbacks still reads as people.
         <span
           aria-hidden
           className={cn(
             SIZE[size],
-            "rounded-full bg-muted ring-1 ring-foreground/10",
+            INITIAL_TEXT[size],
+            "inline-flex select-none items-center justify-center rounded-full bg-muted font-semibold uppercase text-muted-foreground ring-1 ring-foreground/10",
           )}
-        />
+        >
+          {initialOf(alt)}
+        </span>
       )}
       {status ? (
         <span

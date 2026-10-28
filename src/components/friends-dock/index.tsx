@@ -14,17 +14,26 @@ import { useDockData } from "./use-dock-data";
 
 const DEV = process.env.NODE_ENV === "development";
 
-/** Routes where the dock would fight an intentionally immersive surface:
- *  the dark race screen (incl. private lobbies at /race/c/<slug>), the
- *  fullscreen live-watch clone, the auth pages, and the standalone
- *  cover/landing asset (which is meant to be screenshotted clean, with
- *  no app chrome). Everywhere else (practice, customise, leaderboard,
- *  profile, …) it floats quietly in the corner. */
 /** Window event the top bar's mobile friends button dispatches to open
  *  the dock's bottom sheet. */
 export const OPEN_FRIENDS_EVENT = "ft:open-friends";
 
-const HIDDEN_PREFIXES = ["/race", "/live", "/sign-in", "/sign-up", "/landing"];
+/** Routes where the dock would fight an intentionally immersive surface:
+ *  the dark race screen (incl. private lobbies at /race/c/<slug>), the
+ *  fullscreen live-watch clone, the auth pages, and the chrome-less
+ *  screenshot assets (the cover/landing page, the brand card and the
+ *  update cards, which are meant to be captured clean). Everywhere else
+ *  (practice, customise, leaderboard, profile, …) it floats quietly in
+ *  the corner. */
+const HIDDEN_PREFIXES = [
+  "/race",
+  "/live",
+  "/sign-in",
+  "/sign-up",
+  "/landing",
+  "/card",
+  "/updates",
+];
 
 /** Whether the dock is available on this route at all — the top bar's
  *  mobile friends button hides itself where the dock steps aside. */
