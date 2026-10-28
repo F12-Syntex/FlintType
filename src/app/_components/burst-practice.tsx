@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -13,19 +14,9 @@ import {
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { resolveBurstThreshold } from "@/lib/avg-wpm-cache";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
-import { useCaretSettings } from "@/lib/caret-settings";
 import { useLifetimeStats } from "@/lib/use-lifetime-stats";
-import { cn } from "@/lib/utils";
+import { useRecordBurstTry } from "./burst-log";
 import { usePractice } from "./practice-state";
-import { Readout, ReadoutRow } from "./readout";
-
-/** Per-letter colour tokens, mirrored from Passage. Both surfaces
- *  read the same CSS variables so the user's colour customisation
- *  applies to BURST identically. */
-const TYPED_TEXT = "text-[var(--ft-passage-typed,var(--primary))]";
-const UNTYPED_TEXT =
-  "text-[var(--ft-passage-untyped,var(--muted-foreground))]";
-const ERROR_TEXT = "text-[var(--ft-passage-error,var(--destructive))]";
 
 /* ─── Shared state ───────────────────────────────────────────── */
 
@@ -42,7 +33,9 @@ type BurstContextValue = {
 
 const BurstContext = createContext<BurstContextValue | null>(null);
 
-function useBurstView(): BurstContextValue {
+/** Read-only burst slice for the readouts and word view
+ *  (burst-view.tsx). */
+export function useBurstView(): BurstContextValue {
   const v = useContext(BurstContext);
   if (!v) {
     throw new Error("BurstReadouts / BurstWordView must mount inside BurstProvider");
@@ -79,15 +72,58 @@ export function BurstProvider({ children }: { children: ReactNode }) {
   const cursorWord = state.cursorWord;
   const typedHere = state.typed[cursorWord] ?? "";
 
+  // Try log for the results screen (burst-log.tsx). Each try is timed
+  // on the same clock as `lastWpm`: from its first key to the key that
+  // ends it. The refs mirror the live state so the space handler and
+  // the effects below read current values without re-subscribing.
+  const recordTry = useRecordBurstTry();
+  const liveRef = useRef(state);
+  // Layout effect: runs before the effects below in the same commit.
+  useLayoutEffect(() => {
+    liveRef.current = state;
+  });
+  const tryFirstEventRef = useRef(0);
+  const tryWordsRef = useRef<readonly string[]>(state.words);
+
+  /** Close the open try (no-op when none is open) and log it. */
+  const closeTry = useCallback(
+    (now: number, endedBySpace: boolean, cleared: boolean) => {
+      const startedAt = attemptStartRef.current;
+      if (startedAt == null) return;
+      attemptStartRef.current = null;
+      const s = liveRef.current;
+      // A try left open across a new passage belongs to neither.
+      if (tryWordsRef.current !== s.words) return;
+      recordTry(
+        {
+          endT: Math.max(0, now - (s.startTime ?? startedAt)),
+          ms: Math.max(1, now - startedAt),
+          keys: Math.max(1, s.events.length - tryFirstEventRef.current),
+          chars: (s.words[s.cursorWord] ?? "").length,
+          endedBySpace,
+          cleared,
+        },
+        tryWordsRef.current,
+      );
+    },
+    [recordTry],
+  );
+
   useEffect(() => {
     const len = typedHere.length;
     if (len === 1 && prevTypedLenRef.current === 0) {
       attemptStartRef.current = Date.now();
+      tryFirstEventRef.current = liveRef.current.events.length - 1;
+      tryWordsRef.current = liveRef.current.words;
     } else if (len === 0) {
+      // Still open here means the buffer was cleared from outside the
+      // burst rules (Tab retries the word): log it as a try that didn't
+      // clear. Rule outcomes close their try before they reset.
+      if (liveRef.current.phase === "running") closeTry(Date.now(), false, false);
       attemptStartRef.current = null;
     }
     prevTypedLenRef.current = len;
-  }, [typedHere]);
+  }, [typedHere, closeTry]);
 
   useEffect(() => {
     setReps(0);
@@ -111,24 +147,26 @@ export function BurstProvider({ children }: { children: ReactNode }) {
     if (state.phase === "done" || state.phase === "rest") return;
     const tgt = state.words[cursorWord] ?? "";
     if (typedHere.length > 0 && !tgt.startsWith(typedHere)) {
+      closeTry(Date.now(), false, false);
       setOutcome("wrong");
       setReps(0);
       dispatch({ type: "BURST_RESET" });
     }
-  }, [typedHere, cursorWord, state.phase, state.words, dispatch]);
+  }, [typedHere, cursorWord, state.phase, state.words, dispatch, closeTry]);
 
   const handleSpace = useCallback(() => {
     if (state.phase === "done" || state.phase === "rest") return;
     const tgt = state.words[state.cursorWord] ?? "";
     const typed = state.typed[state.cursorWord] ?? "";
+    const startedAt = attemptStartRef.current;
+    const now = Date.now();
     if (typed !== tgt) {
+      closeTry(now, true, false);
       setOutcome("wrong");
       setReps(0);
       dispatch({ type: "BURST_RESET" });
       return;
     }
-    const startedAt = attemptStartRef.current;
-    const now = Date.now();
     if (startedAt == null) {
       setOutcome("slow");
       setReps(0);
@@ -140,11 +178,13 @@ export function BurstProvider({ children }: { children: ReactNode }) {
     const wpmRounded = Math.round(wpm);
     setLastWpm(wpmRounded);
     if (wpm < threshold) {
+      closeTry(now, true, false);
       setOutcome("slow");
       setReps(0);
       dispatch({ type: "BURST_RESET" });
       return;
     }
+    closeTry(now, true, true);
     setOutcome("win");
     const nextReps = repsRef.current + 1;
     if (nextReps < repsRequired) {
@@ -162,6 +202,7 @@ export function BurstProvider({ children }: { children: ReactNode }) {
     threshold,
     repsRequired,
     dispatch,
+    closeTry,
   ]);
 
   useEffect(() => {
@@ -209,256 +250,4 @@ export function BurstProvider({ children }: { children: ReactNode }) {
     outcome,
   };
   return <BurstContext.Provider value={value}>{children}</BurstContext.Provider>;
-}
-
-/* ─── Readouts (replaces <Readouts /> in BURST) ─────────────── */
-
-/** Desktop readouts row for BURST: the same <Readout> row as the
- *  WORDS readouts, centred directly above the single centred word so
- *  the two read as one group. The last speed is the headline; it turns
- *  primary on a clean, fast-enough commit. */
-export function BurstReadouts() {
-  const { state } = usePractice();
-  const { reps, repsRequired, threshold, thresholdAuto, lastWpm, outcome } =
-    useBurstView();
-  const itemsLength = state.words.length;
-  const itemIdx = Math.min(state.cursorWord + 1, itemsLength);
-
-  return (
-    <ReadoutRow className="hidden justify-center md:flex">
-      {/* LAST is always rendered (an em dash until the first commit) so
-       *  the row never reflows mid-run and shifts the centred word. */}
-      <Readout
-        hero
-        accent={outcome === "win"}
-        label="last wpm"
-        value={lastWpm != null ? String(lastWpm) : "—"}
-      />
-      <Readout label="reps" value={`${reps}/${repsRequired}`} />
-      {/* The speed a rep has to reach to count. When it's set
-       *  automatically from your speed, a hover note says so rather
-       *  than a jargon suffix on the label. */}
-      <Readout
-        label="goal"
-        value={`${threshold}`}
-        title={
-          thresholdAuto ? "Set automatically from your recent speed" : undefined
-        }
-      />
-      <Readout label="items" value={`${itemIdx}/${itemsLength}`} />
-    </ReadoutRow>
-  );
-}
-
-/** Mobile readouts for BURST — drops in where <MobileReadouts /> would
- *  otherwise render, one line. */
-export function BurstMobileReadouts() {
-  const { state } = usePractice();
-  const { reps, repsRequired, threshold, lastWpm, outcome } = useBurstView();
-  const itemsLength = state.words.length;
-  const itemIdx = Math.min(state.cursorWord + 1, itemsLength);
-  return (
-    <div className="flex min-w-0 flex-nowrap items-baseline gap-x-3 overflow-hidden">
-      <Readout
-        compact
-        accent={outcome === "win"}
-        label="last"
-        value={lastWpm != null ? String(lastWpm) : "—"}
-      />
-      <Readout compact label="reps" value={`${reps}/${repsRequired}`} />
-      <Readout compact label="goal" value={String(threshold)} />
-      <Readout compact label="items" value={`${itemIdx}/${itemsLength}`} />
-    </div>
-  );
-}
-
-/* ─── Word view (replaces <Passage /> in BURST) ─────────────── */
-
-/** The centred, large single word the user is currently typing.
- *  Pure renderer — all the BURST behaviour lives in BurstProvider.
- *  Paints each character through the same tokens Passage uses
- *  (TYPED_TEXT / UNTYPED_TEXT / ERROR_TEXT) plus the mistakeStyle
- *  pref so customisation flows through 1:1 with WORDS. */
-export function BurstWordView({ above }: { above?: ReactNode } = {}) {
-  const { state } = usePractice();
-  const { prefs: behaviour } = useBehaviourPrefs();
-  const { prefs: appearance } = useAppearancePrefs();
-  const { settings: caret } = useCaretSettings();
-  const { outcome } = useBurstView();
-  const cursorWord = state.cursorWord;
-  const typedHere = state.typed[cursorWord] ?? "";
-  const target = state.words[cursorWord] ?? "";
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 sm:gap-12">
-      {/* Optional slot directly above the word (the desktop readouts),
-       *  so stats and word centre together like the passage's `above`. */}
-      {above}
-      <BurstWord
-        word={target}
-        typed={typedHere}
-        blind={behaviour.blindMode}
-        mistakeStyle={appearance.mistakeStyle}
-        showCaret={caret.style !== "off" && state.phase !== "done"}
-        caretStyle={caret.style}
-      />
-      {/* Hint line — always rendered, with a non-breaking space
-       *  fallback ( ) when there's nothing to say so the
-       *  paragraph reserves real line height. Without this the
-       *  column re-centers mid-attempt when the hint goes empty
-       *  and the word visibly jumps. */}
-      <p className="min-h-[1.5em] text-sm text-muted-foreground">
-        {outcome === "wrong"
-          ? "Not quite, try again"
-          : outcome === "slow"
-            ? "Too slow, go again"
-            : typedHere === target && target.length > 0
-              ? "Press space to commit"
-              : typedHere.length === 0
-                ? "Type the word, then space"
-                : "\u00a0"}
-      </p>
-    </div>
-  );
-}
-
-function BurstWord({
-  word,
-  typed,
-  blind,
-  mistakeStyle,
-  showCaret,
-  caretStyle,
-}: {
-  word: string;
-  typed: string;
-  blind: boolean;
-  mistakeStyle: "color" | "bold" | "underline" | "highlight";
-  showCaret: boolean;
-  caretStyle: "line" | "block" | "underline" | "outline" | "off";
-}) {
-  const targetChars = [...word];
-  const typedChars = [...typed];
-  const len = Math.max(targetChars.length, typedChars.length);
-  const cursorChar = Math.min(typedChars.length, targetChars.length);
-  return (
-    <div
-      className="tracking-tight"
-      style={{
-        fontFamily: "var(--ft-font-family, inherit)",
-        fontSize: "clamp(2.5rem, 7vw, 5rem)",
-      }}
-    >
-      <span className="inline-block whitespace-nowrap">
-        {Array.from({ length: len }, (_, ci) => {
-          const expected = targetChars[ci];
-          const got = typedChars[ci];
-          const isExtra = ci >= targetChars.length;
-          const glyph = got ?? expected ?? "";
-
-          let cls: string;
-          if (blind) cls = UNTYPED_TEXT;
-          else if (isExtra) cls = ERROR_TEXT;
-          else if (got === undefined) cls = UNTYPED_TEXT;
-          else if (got === expected) cls = TYPED_TEXT;
-          else cls = ERROR_TEXT;
-
-          const isError =
-            !blind && (isExtra || (got !== undefined && got !== expected));
-          let errorCls = "";
-          let errorStyle: React.CSSProperties | undefined;
-          if (isError) {
-            if (mistakeStyle === "bold") {
-              errorCls = "font-bold";
-            } else if (mistakeStyle === "underline") {
-              errorCls =
-                "underline decoration-2 underline-offset-[6px] decoration-[var(--ft-passage-error,var(--destructive))]";
-            } else if (mistakeStyle === "highlight") {
-              errorCls = "rounded-sm font-bold";
-              errorStyle = {
-                backgroundColor:
-                  "color-mix(in oklch, var(--ft-passage-error, var(--destructive)) 20%, transparent)",
-              };
-            }
-          }
-
-          const isCursor = showCaret && ci === cursorChar && !isExtra;
-          return (
-            <span key={ci} className="relative inline-block">
-              <span className={cn(cls, errorCls)} style={errorStyle}>
-                {glyph}
-              </span>
-              {isCursor ? <InlineCaret style={caretStyle} /> : null}
-            </span>
-          );
-        })}
-        {showCaret && cursorChar === targetChars.length && typed === word ? (
-          <span className="relative inline-block">
-            <InlineCaret style={caretStyle} trailing />
-          </span>
-        ) : null}
-      </span>
-    </div>
-  );
-}
-
-/** The configured caret (line / block / underline / outline) drawn
- *  inside a relative glyph span. Shared with the result replay so both
- *  show the same caret as the passage. */
-export function InlineCaret({
-  style,
-  trailing,
-}: {
-  style: "line" | "block" | "underline" | "outline" | "off";
-  trailing?: boolean;
-}) {
-  const base = "pointer-events-none absolute ft-caret-blink";
-  if (style === "line") {
-    return (
-      <span
-        aria-hidden
-        className={cn(base, "top-0 bottom-[0.1em] w-[0.08em]")}
-        style={{
-          left: trailing ? "100%" : "-0.04em",
-          backgroundColor: "var(--primary)",
-          borderRadius: "2px",
-        }}
-      />
-    );
-  }
-  if (style === "block") {
-    return (
-      <span
-        aria-hidden
-        className={cn(base, "inset-0")}
-        style={{
-          backgroundColor:
-            "color-mix(in oklch, var(--primary) 35%, transparent)",
-          borderRadius: "2px",
-        }}
-      />
-    );
-  }
-  if (style === "underline") {
-    return (
-      <span
-        aria-hidden
-        className={cn(base, "right-0 bottom-0 left-0 h-[0.08em]")}
-        style={{ backgroundColor: "var(--primary)" }}
-      />
-    );
-  }
-  if (style === "outline") {
-    return (
-      <span
-        aria-hidden
-        className={cn(base, "inset-0 border")}
-        style={{
-          borderColor: "var(--primary)",
-          borderRadius: "2px",
-        }}
-      />
-    );
-  }
-  return null;
 }

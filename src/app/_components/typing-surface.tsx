@@ -2,12 +2,13 @@
 
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { AutoHideApplier } from "./autohide-applier";
+import { BurstLogProvider } from "./burst-log";
+import { BurstProvider } from "./burst-practice";
 import {
   BurstMobileReadouts,
-  BurstProvider,
   BurstReadouts,
   BurstWordView,
-} from "./burst-practice";
+} from "./burst-view";
 import { InputCapture } from "./input-capture";
 import { Keyboard } from "./keyboard";
 import type { LayoutId } from "./keyboard/layouts";
@@ -170,7 +171,11 @@ function TypingSurfaceBody({
        *  restores the roomier spacing only when there's actually
        *  room. Same trick for the gap. */}
       <div className="flex min-h-0 flex-1 flex-col gap-3 pt-3 pb-2 sm:gap-4 sm:pt-4 [@media(min-height:900px)]:sm:gap-6 [@media(min-height:900px)]:sm:pt-8 [@media(min-height:900px)]:sm:pb-4">
-        {isBurst ? <BurstProvider>{body}</BurstProvider> : body}
+        {/* The try log sits outside BurstProvider (which unmounts once
+         *  the run is done) so the results screen can read it. */}
+        <BurstLogProvider>
+          {isBurst ? <BurstProvider>{body}</BurstProvider> : body}
+        </BurstLogProvider>
         {renderKeyboard ? (
           // Auto-hide the keyboard widget at short viewports — its
           // intrinsic height (6 rows × ~h-10 + gaps ≈ 260 px) was

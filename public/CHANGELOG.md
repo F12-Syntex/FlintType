@@ -8,6 +8,13 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.28 — 27 October 2026
+- Burst results now lead with your speed across the bursts you cleared, labelled "Burst WPM", with a short line under it saying what it counts. Raw covers every try, and the result says how many tries didn't clear.
+- The Burst result chart now starts at the first second, so mistakes at the start of a run show on it.
+- Short quotes now keep their source right under the text instead of below a block of empty lines.
+- A word that gets pushed onto a new line while you type no longer nudges the passage up; the new line appears below.
+- Long quotes on shorter laptop screens (such as 1366×768) no longer cut off part of their last line.
+
 ## 6.148.27 — 27 October 2026
 - Races: your speed is now timed from the start signal while you type, the same way as the race's result card, so starting late no longer shows a much higher live speed than your final result.
 - Races: the speed chart now ends at your final speed, so "Your peak" no longer reads below your result.

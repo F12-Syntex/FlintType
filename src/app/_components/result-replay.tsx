@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useCaretSettings } from "@/lib/caret-settings";
 import { cn } from "@/lib/utils";
-import { InlineCaret } from "./burst-practice";
+import { InlineCaret } from "./burst-view";
 import type { KeyEvent } from "./practice-state";
 import { reconstructCursor } from "./replay-cursor";
 

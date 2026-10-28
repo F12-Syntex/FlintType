@@ -62,8 +62,9 @@ export function ExtraStats({
 }: {
   events: readonly KeyEvent[];
   totalWords: number;
-  /** Lowest per-second speed in the run (the old "stall" number). */
-  slowest: number;
+  /** Lowest speed in the run, already in the user's unit: the lowest
+   *  per-second speed, or the slowest cleared try in a burst run. */
+  slowest: string;
   /** Speed unit caption for `slowest` (wpm, cpm, …). */
   unitLabel: string;
 }) {
@@ -75,7 +76,7 @@ export function ExtraStats({
   return (
     <InsightCard label="Run shape">
       <div className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-5 sm:gap-x-6">
-        <Cell label="Slowest" value={`${slowest}`} suffix={` ${unitLabel}`} />
+        <Cell label="Slowest" value={slowest} suffix={` ${unitLabel}`} />
         <Cell
           label="Longest streak"
           value={`${stats.longestStreak}`}

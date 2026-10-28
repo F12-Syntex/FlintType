@@ -6,7 +6,9 @@ import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { useCaretSettings } from "@/lib/caret-settings";
 import { tapeFadeMask } from "@/lib/tape-fade";
 import { cn } from "@/lib/utils";
+import { scrollLines } from "./passage-lines";
 import { usePractice } from "./practice-state";
+import { usePassageLines } from "./use-passage-lines";
 
 /** Practice-text colour roles — kept as separate tokens from the
  *  global palette because the passage is the only place where
@@ -317,6 +319,8 @@ function PassageBody({
   // time they fade out — so we reserve the tallest height seen and only
   // reset it when appearance changes (which re-runs the effect).
   const aboveMaxRef = useRef(0);
+  // The text block: the viewport plus the quote credit under it.
+  const groupRef = useRef<HTMLDivElement | null>(null);
   const targetRef = useRef<HTMLSpanElement | null>(null);
   const activeWordRef = useRef<HTMLSpanElement | null>(null);
   const targetSideRef = useRef<"left" | "right">("left");
@@ -378,7 +382,7 @@ function PassageBody({
   // sliced it through the middle).
   //
   // Algorithm, given available height H (minus the reserved `above`
-  // slot) and the target whole-line count T:
+  // slot and quote credit) and the target whole-line count T:
   //   1. font = H / (T · LINE_RATIO)        — largest size fitting T lines
   //   2. clamp to [MIN, MAX·scale]          — Size preset raises the ceiling
   //   3. font = min(font, H / LINE_RATIO)   — but ALWAYS keep ≥1 whole line
@@ -407,7 +411,14 @@ function PassageBody({
       // hide doesn't reflow the text (see aboveMaxRef).
       const aboveNow = aboveRef.current?.offsetHeight ?? 0;
       aboveMaxRef.current = Math.max(aboveMaxRef.current, aboveNow);
-      const h = outer.clientHeight - aboveMaxRef.current;
+      // Reserve the quote credit under the text too (0 elsewhere).
+      // Without it a long quote that filled its lines pushed the group
+      // past the column, and the viewport shrank into its last line.
+      const group = groupRef.current;
+      const credit = group
+        ? Math.max(0, group.offsetHeight - (inner.parentElement?.offsetHeight ?? 0))
+        : 0;
+      const h = outer.clientHeight - aboveMaxRef.current - credit;
       if (!Number.isFinite(h) || h <= 0) return;
 
       // The Size preset (`--ft-font-scale`) raises/lowers the ceiling
@@ -454,6 +465,8 @@ function PassageBody({
     const ro = new ResizeObserver(measure);
     ro.observe(outer);
     if (aboveRef.current) ro.observe(aboveRef.current);
+    // The credit appears (and changes) as quotes load.
+    if (groupRef.current) ro.observe(groupRef.current);
     // Size / palette changes flip CSS vars on <html> without resizing the
     // box; observe its attribute mutations so the fit recomputes live.
     const mo = new MutationObserver(measure);
@@ -466,6 +479,22 @@ function PassageBody({
       mo.disconnect();
     };
   }, [appearance, tapeOn]);
+
+  // The viewport hugs text shorter than `clipHeight` (a one-line quote
+  // keeps its credit right under it) and, mid-run, grows downward
+  // without moving the text (`pull`). See use-passage-lines.ts.
+  const lines = usePassageLines({
+    outerRef,
+    aboveRef,
+    groupRef,
+    innerRef,
+    lineHeight,
+    clipHeight,
+    tapeOn,
+    running: phase === "running",
+    words,
+    typed,
+  });
 
   useLayoutEffect(() => {
     const inner = innerRef.current;
@@ -524,25 +553,16 @@ function PassageBody({
       setScrollOffset(0);
     } else {
       // Multi-line — keep the cursor at the mid-line of the viewport
-      // once it's typed past it. cap = round(clipHeight/lh), trigger =
-      // floor(cap/2), scroll = max(0, currentLine - trigger) * lh.
-      //
-      // The trigger is also clamped to `cap - 2` so at least one
-      // lookahead line stays below the caret. Without it, cap=2 gives
-      // trigger=1, which pins the caret to the BOTTOM of the two visible
-      // lines — the line above is already-typed history and the upcoming
-      // line is clipped, so the user has zero lookahead (#43 / FT-008).
-      // The clamp only affects cap=2 (1→0); cap=1 and cap>=3 are
-      // unchanged (cap-2 >= floor(cap/2) there), and max(0,…) keeps it
-      // non-negative for cap=1.
+      // once it's typed past it (cap = the reserved lines), with at
+      // least one lookahead line below it; text that fits the
+      // reservation never scrolls. See scrollLines (passage-lines.ts).
       setScrollX(0);
       const lh = lineHeight ?? parseFloat(getComputedStyle(inner).lineHeight);
       if (Number.isFinite(lh) && lh > 0 && clipHeight != null && clipHeight > 0) {
         const cap = Math.max(1, Math.round(clipHeight / lh));
-        const trigger = Math.max(0, Math.min(Math.floor(cap / 2), cap - 2));
         const currentLine = Math.max(0, Math.floor(targetTopInInner / lh));
-        const desired = Math.max(0, currentLine - trigger) * lh;
-        setScrollOffset(desired);
+        const content = Math.round(inner.offsetHeight / lh);
+        setScrollOffset(scrollLines(cap, currentLine, content) * lh);
       } else {
         setScrollOffset(0);
       }
@@ -566,15 +586,16 @@ function PassageBody({
   ]);
 
   // Viewport height — multi-line uses `clipHeight` (a whole-line
-  // multiple of the parent height); tape mode collapses to a single
-  // line so the surrounding chrome doesn't reserve space the user
-  // can't see content in.
+  // multiple of the parent height), trimmed to the text's own lines
+  // when it is shorter; tape mode collapses to a single line so the
+  // surrounding chrome doesn't reserve space the user can't see
+  // content in.
   const viewportHeight = tapeOn
     ? lineHeight != null
       ? `${lineHeight}px`
       : "auto"
-    : clipHeight != null
-      ? `${clipHeight}px`
+    : lines.height != null
+      ? `${lines.height}px`
       : "100%";
   // Smooth scroll is honoured in every mode when the user has it on,
   // but ONLY while a run is in progress. At rest the line snaps to its
@@ -626,6 +647,16 @@ function PassageBody({
           {above}
         </div>
       ) : null}
+      {/* Text block: the viewport and the quote credit, one flex item.
+       *  `min-h-0` lets it shrink like the bare viewport used to when
+       *  the group overflows. The negative bottom margin (`lines.pull`)
+       *  cancels lines a run adds out of the centred layout, so they
+       *  grow downward instead of shifting the text. */}
+      <div
+        ref={groupRef}
+        className="flex min-h-0 w-full flex-col"
+        style={lines.pull > 0 ? { marginBottom: -lines.pull } : undefined}
+      >
       {/* Viewport — fixes the visible region to a whole-line multiple of
        *  the parent height so a partial line never peeks at the bottom.
        *  The translated `inner` block scrolls inside this clip box. */}
@@ -820,6 +851,7 @@ function PassageBody({
           Loading quote…
         </p>
       ) : null}
+      </div>
     </div>
   );
 }

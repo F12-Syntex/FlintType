@@ -5,12 +5,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { recordIfPb } from "@/lib/pb-cache";
 import { formatSpeed } from "@/lib/speed-unit";
-import { cn } from "@/lib/utils";
 import { wordlistLabel } from "@/lib/wordlists/use-wordlist";
 import { calcWpmAndRaw, keystrokeErrors } from "@/lib/wpm";
 import { consistencyScore, stallWpm } from "@/lib/wpm-stats";
+import { useBurstTries } from "./burst-log";
+import { burstBuckets, burstCaption, summariseBursts } from "./burst-stats";
 import { PassageHeatmap } from "./passage-heatmap";
-import { PbConfetti, PbCrown } from "./pb-celebration";
 import { usePractice } from "./practice-state";
 import { ResultActions } from "./result-actions";
 import { type Bucket, ResultChart } from "./result-chart";
@@ -18,75 +18,9 @@ import { InsightCard } from "./insight-card";
 import { HandBalance, PerLetterSlowness } from "./result-insights";
 import { ExtraStats } from "./result-run-shape";
 import { ReplayView } from "./result-replay";
+import { ResultStat } from "./result-stat";
 
 // ─── Pieces ────────────────────────────────────────────────────────
-
-/** Hero size steps down as the value grows ("271.0", "17760.0" with the
- *  decimal pref or the cpm / wph units) so value + PB crown always fit
- *  the headline column instead of running into the chart card. */
-function heroSize(value: string): string {
-  if (value.length <= 3) return "text-6xl sm:text-7xl";
-  if (value.length <= 5) return "text-5xl sm:text-6xl";
-  return "text-4xl sm:text-5xl";
-}
-
-/** One result number with its label above. Three tiers so the screen
- *  has one obvious answer: `hero` (speed, huge, primary), `lead`
- *  (accuracy, large ink) and `detail` (the secondary row, ink).
- *
- *  `subgrid` lets the mobile headline row share two grid rows across
- *  stats (labels in row 1, values bottom-aligned in row 2) so the
- *  labels line up even though the values differ in size; from sm the
- *  stat is a plain stack again. */
-function ResultStat({
-  label,
-  value,
-  suffix,
-  tier = "detail",
-  pb = false,
-  subgrid = false,
-}: {
-  label: string;
-  value: string | number;
-  suffix?: string;
-  tier?: "hero" | "lead" | "detail";
-  /** Paint the PB crown + confetti burst beside the value. */
-  pb?: boolean;
-  subgrid?: boolean;
-}) {
-  const text = String(value);
-  return (
-    <div
-      className={cn(
-        "relative flex min-w-0 flex-col gap-1.5",
-        subgrid && "row-span-2 grid grid-rows-subgrid sm:flex",
-      )}
-    >
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
-      <span
-        className={cn(
-          "relative inline-flex items-baseline gap-1 whitespace-nowrap leading-none tabular-nums",
-          subgrid && "self-end sm:self-start",
-          tier === "hero" &&
-            cn("font-bold tracking-[-0.04em] text-primary", heroSize(text)),
-          tier === "lead" &&
-            "text-4xl font-semibold tracking-[-0.03em] text-foreground sm:text-5xl",
-          tier === "detail" &&
-            "text-xl font-semibold tracking-tight text-foreground sm:text-2xl",
-        )}
-      >
-        {text}
-        {suffix ? (
-          <span className="text-sm font-normal tracking-normal text-muted-foreground">
-            {suffix}
-          </span>
-        ) : null}
-        {pb ? <PbCrown /> : null}
-        {pb ? <PbConfetti /> : null}
-      </span>
-    </div>
-  );
-}
 
 /** PB verdict for the crown + confetti on the headline speed.
  *
@@ -171,18 +105,31 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
   const captureRef = useRef<HTMLDivElement | null>(null);
   const isNewPb = usePbVerdict(preview);
 
-  // Per-second chart buckets from the live wpmHistory samples.
+  // BURST: every figure comes from the timed tries (burst-stats.ts), not
+  // the whole-run clock. Null elsewhere, and outside a typing surface
+  // (no try log), which keeps the regular figures.
+  const burstTries = useBurstTries();
+  const burst = useMemo(
+    () =>
+      state.mode === "BURST" && burstTries ? summariseBursts(burstTries) : null,
+    [state.mode, burstTries],
+  );
+
+  // Per-second chart buckets: the live wpmHistory samples, or the
+  // running burst figures for a burst run.
   const buckets = useMemo<Bucket[]>(
     () =>
-      wpmHistory.map((s) => ({
-        sec: Math.max(1, Math.round(s.t / 1000)),
-        wpm: s.wpm,
-        raw: s.raw,
-      })),
-    [wpmHistory],
+      burst && burstTries
+        ? burstBuckets(burstTries)
+        : wpmHistory.map((s) => ({
+            sec: Math.max(1, Math.round(s.t / 1000)),
+            wpm: s.wpm,
+            raw: s.raw,
+          })),
+    [burst, burstTries, wpmHistory],
   );
-  const slowest = Math.round(stallWpm(buckets));
-  const cons = consistencyScore(buckets);
+  const slowest = burst ? burst.slowest : stallWpm(buckets);
+  const cons = burst ? burst.consistency : consistencyScore(buckets);
   // Keystroke-true error count: the SAME metric the live readout and
   // the recorded run use (incorrect keystrokes, including corrected ones).
   const wrongTotal = keystrokeErrors(state.events);
@@ -210,6 +157,9 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
   const accValue = decimals
     ? `${(Math.round(accuracy * 10) / 10).toFixed(1)}%`
     : `${Math.round(accuracy * 10) / 10}%`;
+  const unitLabel = unit.toUpperCase();
+  const rawLabel =
+    burst && burst.tries > 1 ? `Raw (all ${burst.tries} tries)` : "Raw";
 
   return (
     <div className="flex h-full min-h-0 flex-col items-center overflow-y-auto py-3 sm:py-6">
@@ -228,16 +178,31 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
           <div className="grid grid-cols-[auto_auto] justify-start gap-x-8 gap-y-1.5 sm:flex sm:flex-col sm:items-start sm:gap-5">
             <ResultStat
               tier="hero"
-              label={unit.toUpperCase()}
-              value={formatSpeed(wpm, unit, decimals)}
+              label={burst ? `Burst ${unitLabel}` : unitLabel}
+              value={formatSpeed(burst ? burst.wpm : wpm, unit, decimals)}
               pb={isNewPb}
               subgrid
             />
             <ResultStat tier="lead" label="Accuracy" value={accValue} subgrid />
-            {/* Phones already show this in the settings pill above. */}
-            <p className="hidden text-sm text-muted-foreground sm:block">
-              {testType}
-            </p>
+            {burst ? (
+              // The caption spans the phone row too and wraps in a
+              // narrow measure, so it never widens the headline column.
+              <div className="col-span-2 mt-2 flex max-w-64 flex-col gap-1 text-sm text-muted-foreground sm:mt-0">
+                <p>
+                  {burstCaption(
+                    burst,
+                    formatSpeed(burst.best, unit, decimals),
+                    unitLabel,
+                  )}
+                </p>
+                <p className="hidden sm:block">{testType}</p>
+              </div>
+            ) : (
+              // Phones already show this in the settings pill above.
+              <p className="hidden text-sm text-muted-foreground sm:block">
+                {testType}
+              </p>
+            )}
           </div>
           <div className="min-w-0 rounded-2xl border border-border bg-card p-3 shadow-card sm:p-5">
             <ResultChart
@@ -249,7 +214,10 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
         </div>
 
         <div className="grid grid-cols-2 gap-x-4 gap-y-4 rounded-2xl border border-border bg-card p-4 shadow-card sm:grid-cols-4 sm:p-5">
-          <ResultStat label="Raw" value={formatSpeed(raw, unit, decimals)} />
+          <ResultStat
+            label={rawLabel}
+            value={formatSpeed(burst ? burst.raw : raw, unit, decimals)}
+          />
           <ResultStat label="Consistency" value={`${cons}%`} />
           <ResultStat label="Errors" value={wrongTotal} />
           <ResultStat label="Time" value={`${elapsedSec}s`} />
@@ -259,7 +227,7 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
           <ExtraStats
             events={state.events}
             totalWords={state.words.length}
-            slowest={slowest}
+            slowest={formatSpeed(slowest, unit, decimals)}
             unitLabel={unit}
           />
         ) : null}
