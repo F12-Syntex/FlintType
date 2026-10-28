@@ -15,6 +15,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 import { cn } from "@/lib/utils";
 import {
   ALL_LENGTHS_LABEL,
+  DEFAULT_PRESET,
   type LeaderboardAudience,
   type LeaderboardFilters,
   PRESET_GROUPS,
@@ -60,6 +61,7 @@ export function InlineFilters({
         icon={<CalendarDays aria-hidden />}
         label={WINDOWS.find((w) => w.id === filters.window)?.label ?? "All time"}
         ariaLabel="Time window"
+        changed={filters.window !== "all_time"}
       >
         {WINDOWS.map((w) => (
           <MenuOption
@@ -75,6 +77,7 @@ export function InlineFilters({
         icon={<Ruler aria-hidden />}
         label={presetLabel(filters.preset)}
         ariaLabel="Test length"
+        changed={filters.preset !== DEFAULT_PRESET}
       >
         <MenuOption
           checked={filters.preset === "any"}
@@ -113,16 +116,20 @@ export function InlineFilters({
   );
 }
 
-/** A select rendered as an outline pill that opens a dropdown menu. */
+/** A select rendered as an outline pill that opens a dropdown menu.
+ *  `changed` (value moved off its default) tints the pill orange, so
+ *  you can see at a glance which dropdowns are shaping the board. */
 function PillMenu({
   icon,
   label,
   ariaLabel,
+  changed,
   children,
 }: {
   icon: ReactNode;
   label: string;
   ariaLabel: string;
+  changed: boolean;
   children: ReactNode;
 }) {
   return (
@@ -132,10 +139,21 @@ function PillMenu({
           type="button"
           variant="outline"
           aria-label={`${ariaLabel}: ${label}`}
-          className="h-10 gap-2 px-4 [&>svg]:text-muted-foreground"
+          className={cn(
+            "h-10 gap-2 px-4",
+            changed
+              ? "border-primary/40 bg-primary/[0.06] hover:bg-primary/10 [&>svg]:text-primary"
+              : "[&>svg]:text-muted-foreground",
+          )}
         >
           {icon}
-          <span className="text-foreground">{label}</span>
+          <span
+            className={cn(
+              changed ? "font-semibold text-primary" : "text-foreground",
+            )}
+          >
+            {label}
+          </span>
           <ChevronDown aria-hidden className="-mr-1" />
         </Button>
       </DropdownMenuTrigger>

@@ -102,6 +102,9 @@ export type LeaderboardState = {
  *    - Filter change → switches to the new slice's cache entry; same
  *      rules apply.
  *
+ *    - `enabled=false` → no network, reported as loading (used while a
+ *      friends board waits for Clerk to say who is signed in).
+ *
  *  This replaces the previous on-every-mount fetch which made the
  *  page feel sluggish each time the user navigated between filters
  *  or returned from another tab. */
@@ -110,6 +113,7 @@ export function useLeaderboard(
   window_: LeaderboardWindow,
   preset: LeaderboardPreset,
   audience: LeaderboardAudience = "global",
+  enabled = true,
 ): LeaderboardState {
   const backend = useBackend() as unknown as BackendShape;
   const key = keyFor(audience, scope, window_, preset);
@@ -124,6 +128,7 @@ export function useLeaderboard(
   const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     const entry = cache.get(key) ?? null;
     const fresh =
@@ -172,11 +177,14 @@ export function useLeaderboard(
     return () => {
       cancelled = true;
     };
-  }, [backend, key, refreshTick, audience, scope, window_, preset]);
+  }, [backend, key, refreshTick, audience, scope, window_, preset, enabled]);
 
   function refresh() {
     setRefreshTick((n) => n + 1);
   }
 
+  if (!enabled) {
+    return { data: null, error: null, loading: true, refreshing: false, refresh };
+  }
   return { data, error, loading, refreshing, refresh };
 }

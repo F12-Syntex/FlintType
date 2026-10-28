@@ -15,6 +15,11 @@ import { cn } from "@/lib/utils";
 export const ROW_GRID =
   "grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-3 px-4 sm:px-5 md:grid-cols-[2.5rem_minmax(0,1fr)_8rem_4.5rem_4.5rem_4.5rem] md:gap-x-4";
 
+/** Sizing for buttons inside the board's empty and error states: 44px
+ *  and full width on phones (touch floor), the default 36px inline from
+ *  `sm`. */
+export const STATE_CTA = "h-11 w-full sm:h-9 sm:w-auto";
+
 export type BoardColumns = {
   /** Labels for the three md+ detail columns (first is left-aligned,
    *  the other two are numeric and right-aligned). */
@@ -56,7 +61,12 @@ export function LeaderboardBoard({
         <div className="flex flex-col items-center gap-4 px-6 py-12 text-center">
           <p className="max-w-sm text-sm text-muted-foreground">{error}</p>
           {onRetry ? (
-            <Button type="button" variant="outline" onClick={onRetry}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onRetry}
+              className={cn(STATE_CTA, "max-w-xs")}
+            >
               Try again
             </Button>
           ) : null}
@@ -94,7 +104,7 @@ export function BoardSkeleton() {
     <div className="flex flex-col gap-3 md:gap-2">
       <div className="h-11 w-full rounded-pill bg-muted/70 md:h-10 md:w-80" />
       <LeaderboardBoard
-        columns={{ cells: ["Mode", "Raw", "Acc"], headline: "WPM" }}
+        columns={{ cells: ["When", "Raw", "Acc"], headline: "WPM" }}
         loading
       />
     </div>
@@ -102,7 +112,8 @@ export function BoardSkeleton() {
 }
 
 /** Empty board: a dashed card (ui-law §17.3) with one sentence and the
- *  action that is most likely to fill it. */
+ *  action that is most likely to fill it. Actions stack full width on
+ *  phones; give each one `STATE_CTA`. */
 export function EmptyBoard({
   message,
   actions,
@@ -115,7 +126,7 @@ export function EmptyBoard({
       <p className="max-w-md text-sm leading-relaxed text-foreground sm:text-[15px]">
         {message}
       </p>
-      <div className="flex flex-wrap items-center justify-center gap-2">
+      <div className="flex w-full max-w-xs flex-col gap-2 sm:w-auto sm:max-w-none sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
         {actions}
       </div>
     </div>

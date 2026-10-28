@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  describeSlice,
-  filterSummary,
   filtersToQuery,
   type LeaderboardFilters,
   parseFilters,
@@ -9,6 +7,8 @@ import {
   parseScope,
   parseView,
   parseWindow,
+  VIEW_DESCRIPTIONS,
+  withAuth,
 } from "./filters";
 
 const DEFAULTS: LeaderboardFilters = {
@@ -83,32 +83,28 @@ describe("filtersToQuery", () => {
   });
 });
 
-describe("describeSlice", () => {
-  it("names mode and length by default", () => {
-    expect(describeSlice(DEFAULTS)).toBe("casual runs at 60 seconds");
+describe("withAuth", () => {
+  const friends: LeaderboardFilters = { ...DEFAULTS, audience: "friends" };
+
+  it("shows a friends link as global once auth says signed out", () => {
+    expect(withAuth(friends, { isLoaded: true, isSignedIn: false }).audience).toBe(
+      "global",
+    );
   });
 
-  it("adds window and audience, drops length for all lengths", () => {
-    expect(
-      describeSlice({
-        ...DEFAULTS,
-        scope: "training",
-        preset: "any",
-        window: "week",
-        audience: "friends",
-      }),
-    ).toBe("adapt runs this week from friends");
+  it("keeps friends while auth loads and when signed in", () => {
+    expect(withAuth(friends, { isLoaded: false, isSignedIn: false })).toBe(friends);
+    expect(withAuth(friends, { isLoaded: true, isSignedIn: true })).toBe(friends);
+  });
+
+  it("leaves a global board alone", () => {
+    expect(withAuth(DEFAULTS, { isLoaded: true, isSignedIn: false })).toBe(DEFAULTS);
   });
 });
 
-describe("filterSummary", () => {
-  it("summarises the slice compactly", () => {
-    expect(filterSummary(DEFAULTS)).toBe("Casual · 60s · All time");
-    expect(
-      filterSummary({ ...DEFAULTS, preset: "w25", window: "day", audience: "friends" }),
-    ).toBe("Friends · Casual · 25 words · Today");
-    expect(filterSummary({ ...DEFAULTS, preset: "any" })).toBe(
-      "Casual · All lengths · All time",
-    );
+describe("VIEW_DESCRIPTIONS", () => {
+  it("doesn't tie levels to a test count (XP also comes from drills and races)", () => {
+    expect(VIEW_DESCRIPTIONS.levels).not.toMatch(/\d|tests earn a level/i);
+    expect(VIEW_DESCRIPTIONS.levels).toMatch(/XP/);
   });
 });

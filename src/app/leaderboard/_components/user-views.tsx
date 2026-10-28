@@ -8,14 +8,14 @@ import type { useBackend } from "@/lib/backend";
 import { skillTierForNetWpm } from "@/lib/skill-tier";
 import { cn } from "@/lib/utils";
 import type { TopLevelPlayer, TopPlayer } from "@/types/leaderboard";
-import { BoardActions } from "./board-actions";
+import { BoardFrame } from "./board-frame";
 import { CellPill, LeaderboardRow } from "./board-row";
 import {
   type BoardColumns,
   EmptyBoard,
   LeaderboardBoard,
+  STATE_CTA,
 } from "./shared-list";
-import { LeaderboardToolbar } from "./toolbar";
 import { type RankedState, useRanked } from "./use-ranked";
 
 /** User-centric views (Players, Level). Both render through the shared
@@ -54,8 +54,12 @@ export function TopPlayersView() {
             username={p.username}
             name={p.name}
             tags={p.tags}
-            isYou={isYou}
-            cells={[<CellPill key="t">{tier}</CellPill>, p.testsCompleted, `${Math.round(p.bestAccuracy)}%`]}
+            you={isYou ? "best" : undefined}
+            cells={[
+              <CellPill key="t">{tier}</CellPill>,
+              p.testsCompleted.toLocaleString(),
+              `${Math.round(p.bestAccuracy)}%`,
+            ]}
             headline={p.bestNetWpm}
             summary={`${tier} · ${runs}`}
             ariaLabel={`Rank ${p.rank}, ${handleOf(p)}${isYou ? " (you)" : ""}: best ${p.bestNetWpm} WPM, ${tier}, ${runs}`}
@@ -83,10 +87,10 @@ export function TopLevelsView() {
             username={p.username}
             name={p.name}
             tags={p.tags}
-            isYou={isYou}
+            you={isYou ? "best" : undefined}
             cells={[
               <LevelProgress key="p" pct={pct} isYou={isYou} />,
-              p.testsCompleted,
+              p.testsCompleted.toLocaleString(),
               p.xp.toLocaleString(),
             ]}
             headline={p.level}
@@ -99,7 +103,9 @@ export function TopLevelsView() {
   );
 }
 
-/** Toolbar + board + empty state shared by both user-centric views. */
+/** Frame + board + empty state shared by both user-centric views. A
+ *  failed refresh over cached rows shows the frame's notice; with no
+ *  rows the board shows its own error state. */
 function RankedBoard<T>({
   state,
   columns,
@@ -111,22 +117,19 @@ function RankedBoard<T>({
 }) {
   const empty =
     !state.loading && !state.error && (state.data?.length ?? 0) === 0;
+  const hasRows = (state.data?.length ?? 0) > 0;
   return (
-    <div className="flex flex-col gap-4">
-      <LeaderboardToolbar
-        actions={
-          <BoardActions
-            onRefresh={state.refresh}
-            refreshing={state.loading || state.refreshing}
-            generatedAt={state.generatedAt}
-          />
-        }
-      />
+    <BoardFrame
+      onRefresh={state.refresh}
+      refreshing={state.loading || state.refreshing}
+      generatedAt={state.generatedAt}
+      refreshError={hasRows ? state.error : null}
+    >
       {empty ? (
         <EmptyBoard
           message="No ranked players yet. Finish a test to put your name on the board."
           actions={
-            <Link href="/" className={buttonVariants()}>
+            <Link href="/" className={cn(buttonVariants(), STATE_CTA)}>
               Start a test
             </Link>
           }
@@ -141,7 +144,7 @@ function RankedBoard<T>({
           {children}
         </LeaderboardBoard>
       )}
-    </div>
+    </BoardFrame>
   );
 }
 
@@ -170,7 +173,7 @@ function handleOf(p: { username: string | null; name: string }): string {
 }
 
 function plural(n: number, word: string): string {
-  return `${n} ${word}${n === 1 ? "" : "s"}`;
+  return `${n.toLocaleString()} ${word}${n === 1 ? "" : "s"}`;
 }
 
 function sentenceCase(s: string): string {

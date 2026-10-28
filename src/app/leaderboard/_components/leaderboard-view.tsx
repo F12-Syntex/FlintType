@@ -1,26 +1,17 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Button, buttonVariants } from "@/components/ui/button";
-import type { LeaderboardEntry } from "@/types/leaderboard";
-import { BoardActions } from "./board-actions";
-import {
-  describeSlice,
-  type LeaderboardAudience,
-  type LeaderboardFilters,
-  MODE_LABEL,
-  parseView,
-} from "./filters";
-import { CellPill, LeaderboardRow } from "./board-row";
-import { EmptyBoard, LeaderboardBoard } from "./shared-list";
-import { LeaderboardToolbar } from "./toolbar";
+import { relativeTime } from "@/lib/relative-time";
+import type { LeaderboardEntry, LeaderboardPreset } from "@/types/leaderboard";
+import { BoardFrame } from "./board-frame";
+import { CellPill, LeaderboardRow, type YouMark } from "./board-row";
+import { EmptyActions } from "./empty-actions";
+import { MODE_LABEL, parseView } from "./filters";
+import { type BoardColumns, EmptyBoard, LeaderboardBoard } from "./shared-list";
+import { describeSlice, runLengthLabel } from "./slice-labels";
 import { useLeaderboard } from "./use-leaderboard";
-import {
-  type SetLeaderboardFilters,
-  useLeaderboardParams,
-} from "./use-leaderboard-params";
+import { useLeaderboardParams } from "./use-leaderboard-params";
 import { TopLevelsView, TopPlayersView } from "./user-views";
 
 /** /leaderboard board area (toolbar + table). The dispatcher picks one
@@ -32,48 +23,51 @@ export function LeaderboardView() {
   return <BestRunsView />;
 }
 
-const RUN_COLUMNS = {
-  cells: ["Mode", "Raw", "Acc"],
-  headline: "WPM",
-} as const;
+/** The first detail column: on a board pinned to one length every row
+ *  shares it, so the column shows when the run happened instead. Only
+ *  "All lengths" needs a per-row length. */
+function runColumns(preset: LeaderboardPreset): BoardColumns {
+  return {
+    cells: [preset === "any" ? "Length" : "When", "Raw", "Acc"],
+    headline: "WPM",
+  };
+}
 
 function BestRunsView() {
-  const { filters, setFilters } = useLeaderboardParams();
-  const { user } = useUser();
-  const youUserId = user?.id ?? null;
-  // Friends needs a signed-in caller; anonymous viewers always see the
-  // global board (the switch is hidden for them too).
-  const audience: LeaderboardAudience = user ? filters.audience : "global";
-  const slice: LeaderboardFilters = { ...filters, audience };
+  const { filters, setFilters, authLoaded } = useLeaderboardParams();
+  const youUserId = useUser().user?.id ?? null;
+  // `filters` is already the effective slice (a friends link opened
+  // signed out reads as global). A friends board waits for Clerk so a
+  // signed-in viewer never sees the global board paint first.
+  const waiting = filters.audience === "friends" && !authLoaded;
 
   const { data, error, loading, refreshing, refresh } = useLeaderboard(
-    slice.scope,
-    slice.window,
-    slice.preset,
-    audience,
+    filters.scope,
+    filters.window,
+    filters.preset,
+    filters.audience,
+    !waiting,
   );
   const entries = data?.entries ?? [];
   const showEmpty = !loading && !error && entries.length === 0;
+  // Entries arrive ranked, so your first row is your best run.
+  const yourBest = entries.find((e) => e.userId === youUserId)?.testId;
 
   return (
-    <div className="flex flex-col gap-4">
-      <LeaderboardToolbar
-        actions={
-          <BoardActions
-            onRefresh={refresh}
-            refreshing={refreshing || loading}
-            generatedAt={data?.generatedAtMs ?? null}
-          />
-        }
-      />
+    <BoardFrame
+      onRefresh={refresh}
+      refreshing={refreshing || loading}
+      generatedAt={data?.generatedAtMs ?? null}
+      refreshError={error && entries.length > 0 ? error : null}
+    >
       {showEmpty ? (
         <EmptyBoard
-          message={`No ${describeSlice(slice)} yet.`}
-          actions={<EmptyActions slice={slice} setFilters={setFilters} />}
+          message={`No ${describeSlice(filters)} yet.`}
+          actions={<EmptyActions slice={filters} setFilters={setFilters} />}
         />
       ) : (
         <LeaderboardBoard
-          columns={RUN_COLUMNS}
+          columns={runColumns(filters.preset)}
           loading={loading && entries.length === 0}
           error={error && entries.length === 0 ? error : null}
           onRetry={refresh}
@@ -82,20 +76,37 @@ function BestRunsView() {
             <RunRow
               key={entry.testId}
               entry={entry}
-              isYou={entry.userId === youUserId}
+              preset={filters.preset}
+              you={
+                entry.userId !== youUserId
+                  ? undefined
+                  : entry.testId === yourBest
+                    ? "best"
+                    : "other"
+              }
             />
           ))}
         </LeaderboardBoard>
       )}
-    </div>
+    </BoardFrame>
   );
 }
 
-function RunRow({ entry, isYou }: { entry: LeaderboardEntry; isYou: boolean }) {
+function RunRow({
+  entry,
+  preset,
+  you,
+}: {
+  entry: LeaderboardEntry;
+  preset: LeaderboardPreset;
+  you?: YouMark;
+}) {
   const acc = `${Math.round(entry.accuracy)}%`;
-  const length = lengthLabel(entry.durationOrWordCount);
+  const length = runLengthLabel(entry.durationOrWordCount, preset);
+  const when = relativeTime(entry.completedAtMs);
   const mode = MODE_LABEL[entry.mode] ?? entry.mode;
   const handle = entry.username ? `@${entry.username}` : entry.name;
+  const anyLength = preset === "any";
   return (
     <LeaderboardRow
       href={`/profile/${entry.username ?? entry.userId}`}
@@ -103,51 +114,25 @@ function RunRow({ entry, isYou }: { entry: LeaderboardEntry; isYou: boolean }) {
       username={entry.username}
       name={entry.name}
       tags={entry.tags}
-      isYou={isYou}
-      cells={[<CellPill key="m">{`${mode} · ${length}`}</CellPill>, entry.wpm, acc]}
+      you={you}
+      cells={[
+        anyLength ? (
+          <CellPill key="l">{length}</CellPill>
+        ) : (
+          <span key="w" className="text-sm text-muted-foreground">
+            {when}
+          </span>
+        ),
+        entry.wpm,
+        acc,
+      ]}
       headline={entry.netWpm}
-      summary={`${length} · ${acc} acc · raw ${entry.wpm}`}
-      ariaLabel={`Rank ${entry.rank}, ${handle}${isYou ? " (you)" : ""}: ${entry.netWpm} WPM, raw ${entry.wpm}, ${acc} accuracy, ${mode} ${length}`}
+      summary={
+        anyLength
+          ? `${length} · ${acc} acc · raw ${entry.wpm}`
+          : `${acc} acc · raw ${entry.wpm} · ${when}`
+      }
+      ariaLabel={`Rank ${entry.rank}, ${handle}${you ? " (you)" : ""}: ${entry.netWpm} WPM, raw ${entry.wpm}, ${acc} accuracy, ${mode} ${length}, ${when}`}
     />
-  );
-}
-
-const TIME_AMOUNTS = new Set([15, 30, 60, 120]);
-
-function lengthLabel(amount: number): string {
-  return TIME_AMOUNTS.has(amount) ? `${amount}s` : `${amount} words`;
-}
-
-/** The widest filter that is narrowing the board, offered as one tap to
- *  show more, plus a way to put a run on the board. */
-function EmptyActions({
-  slice,
-  setFilters,
-}: {
-  slice: LeaderboardFilters;
-  setFilters: SetLeaderboardFilters;
-}) {
-  const widen =
-    slice.preset !== "any"
-      ? { label: "Show all lengths", next: { preset: "any" as const } }
-      : slice.window !== "all_time"
-        ? { label: "Show all time", next: { window: "all_time" as const } }
-        : slice.audience === "friends"
-          ? { label: "Show everyone", next: { audience: "global" as const } }
-          : null;
-  return (
-    <>
-      {widen ? (
-        <Button type="button" onClick={() => setFilters(widen.next)}>
-          {widen.label}
-        </Button>
-      ) : null}
-      <Link
-        href="/"
-        className={buttonVariants({ variant: widen ? "ghost" : "default" })}
-      >
-        Start a test
-      </Link>
-    </>
   );
 }

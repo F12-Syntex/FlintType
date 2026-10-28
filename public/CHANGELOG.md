@@ -8,6 +8,12 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.4 — 27 October 2026
+- Any leaderboard filter you've changed is now highlighted in orange, and the table shows each run's length (or when it happened, on a single-length board).
+- Only your best run carries the orange You badge, so the table stays readable if you have many runs on it.
+- Empty boards can now also suggest switching between Casual and Adapt, and a failed refresh or image save tells you and lets you try again.
+- The Level board explains that tests, drills and races all earn XP, and large numbers are easier to read.
+
 ## 6.148.3 — 27 October 2026
 - Race results now include a speed-over-the-race chart and a quiet recap of the passage with any words you left wrong underlined.
 - People watching a race see the final standings and a Find a race button when it ends, and Leave always takes you back to the race page.
