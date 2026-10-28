@@ -33,7 +33,7 @@ function SearchBox({
           onChange={(e) => onChange(e.target.value)}
           placeholder="Search friends"
           aria-label="Search friends"
-          className="bg-background pl-9"
+          className="h-11 bg-background pl-9 md:h-10"
         />
       </div>
     </div>
@@ -161,7 +161,7 @@ export function DockPanelBody({
         <Link
           href="/leaderboard"
           onClick={onNavigate}
-          className={cn(buttonVariants({ variant: "outline" }), "h-10 w-full")}
+          className={cn(buttonVariants({ variant: "outline" }), "h-11 w-full md:h-10")}
         >
           <UserPlus aria-hidden />
           Find people to follow

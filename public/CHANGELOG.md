@@ -8,6 +8,14 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.23 — 27 October 2026
+- Buttons and links are easier to tap on phones: the top bar, the Discord strip, the footer, the menu drawer, dropdown menus, pop-up close buttons, the friends list and the page jump links all have finger-sized tap areas now.
+- The "What's new" popup only lists changes you can see, not behind-the-scenes releases.
+- The friends list that opens under the top bar now lines up with the rest of the bar.
+- Long page titles wrap more evenly instead of leaving one word on its own line.
+- The brand card page fits on a laptop screen without scrolling, and the keyboard hints on the cover page stay light in dark mode.
+- The privacy page uses the same mode names as the app (Casual, Adapt).
+
 ## 6.148.22 — 27 October 2026
 - In the command palette (Ctrl/Cmd+K), Esc now steps back out of a list of choices instead of closing the palette, and you can switch back to the Default palette from it.
 - Command palette entries now use the same names and options as the Settings pages, and Key arrangement, Palette gallery and Design with AI were added.

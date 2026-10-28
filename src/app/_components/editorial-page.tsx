@@ -156,7 +156,7 @@ function JumpList({ items }: { items: readonly { id: string; label: string }[] }
           <li key={item.id} className="shrink-0">
             <a
               href={`#${item.id}`}
-              className="inline-flex h-9 items-center rounded-pill border border-border bg-card px-4 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:border-primary/40 hover:text-primary focus-visible:border-ring focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
+              className="inline-flex h-11 items-center rounded-pill border border-border bg-card px-4 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:border-primary/40 hover:text-primary focus-visible:border-ring focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40 sm:h-9"
             >
               {item.label}
             </a>

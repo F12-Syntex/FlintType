@@ -123,7 +123,7 @@ export function PasswordField({
           aria-pressed={visible}
           aria-controls={id}
           onClick={() => setVisible((v) => !v)}
-          className="absolute top-1/2 right-1 size-9 -translate-y-1/2 text-muted-foreground sm:size-8"
+          className="absolute top-1/2 right-1 size-9 -translate-y-1/2 touch-hit text-muted-foreground sm:size-8"
         >
           {visible ? <EyeOff aria-hidden /> : <Eye aria-hidden />}
         </Button>

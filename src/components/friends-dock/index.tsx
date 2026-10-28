@@ -272,8 +272,10 @@ export function FriendsDock() {
       style={
         fromBar
           ? {
-              // Hang under the 64px top bar, by its friends button.
-              right: "calc(0.75rem + env(safe-area-inset-right))",
+              // Hang under the 64px top bar, by its friends button, on
+              // the bar's own gutter (md+: px-6) so its right edge lines
+              // up with the avatar and the avatar menu.
+              right: "calc(1.5rem + env(safe-area-inset-right))",
               top: "calc(4rem + env(safe-area-inset-top) + 0.5rem)",
             }
           : {

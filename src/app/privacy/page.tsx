@@ -82,7 +82,7 @@ export default function PrivacyPage() {
         <EditorialSection title="Typing data">
           <p>
             Every completed test stores a row with: start / end
-            timestamps, mode (casual / training / race), word count,
+            timestamps, mode (Casual, Adapt or race), word count,
             WPM, accuracy, error count, reset count, and a boolean for
             whether the run was completed. Per-keystroke timings are
             processed transiently: they update your weakness model

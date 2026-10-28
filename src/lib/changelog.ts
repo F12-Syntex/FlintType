@@ -37,6 +37,13 @@ export function parseChangelog(md: string): ChangelogEntry[] {
   return entries;
 }
 
+/** True for a line that only concerns developers — "Internal changes
+ *  only.", "Internal: …", "Internal groundwork …". The file's own header
+ *  mandates that wording for non-user-facing versions. */
+export function isInternalLine(line: string): boolean {
+  return /^internal\b/i.test(line.trim());
+}
+
 /** Compare two dotted version strings numerically, segment by segment.
  *  Returns <0 if `a` is older, 0 if equal, >0 if `a` is newer. Tolerant
  *  of a leading `v`, missing segments (treated as 0), and non-numeric

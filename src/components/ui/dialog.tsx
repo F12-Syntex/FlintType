@@ -44,8 +44,10 @@ const DialogContent = React.forwardRef<
     >
       {children}
       {hideClose ? null : (
-        <DialogPrimitive.Close className="absolute right-3 top-3 rounded-pill opacity-60 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-1 focus:ring-ring">
-          <X className="h-4 w-4" />
+        // A 32px pill whose tap area grows to 44px on touch (touch-hit,
+        // ui-law §7); the bare 16px glyph used to be the whole target.
+        <DialogPrimitive.Close className="absolute right-2 top-2 inline-flex size-8 touch-hit items-center justify-center rounded-pill text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40">
+          <X className="size-4" aria-hidden />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
       )}

@@ -2,6 +2,11 @@ import Link from "next/link";
 import { ftButtonVariants, Kbd, Logo } from "@/components/ft";
 import { buildPageMetadata } from "@/server/seo";
 
+/** The cover is fixed-light (ui-law §21), but <Kbd> is theme-aware and
+ *  turned into black chips in dark mode. Fixed paper keycaps instead,
+ *  with a ring hairline so the Outlines setting can't recolour it. */
+const COVER_KBD = "border-0 bg-ft-paper-2 text-ft-ink ring-1 ring-inset ring-ft-line-soft";
+
 export const metadata = buildPageMetadata({
   title: "flinttype — a typing speed test, set in ink",
   description:
@@ -143,9 +148,9 @@ export default function LandingCover() {
             <Readout label="peak" value="161" />
             <Readout label="consistency" value="92" suffix="%" />
             <span className="ml-auto hidden items-center gap-1.5 text-[11px] text-ft-dim sm:flex">
-              <Kbd>esc</Kbd> restart
+              <Kbd className={COVER_KBD}>esc</Kbd> restart
               <span className="mx-1 text-ft-line-soft">·</span>
-              <Kbd>tab</Kbd> new test
+              <Kbd className={COVER_KBD}>tab</Kbd> new test
             </span>
           </div>
         </section>

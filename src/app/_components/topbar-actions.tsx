@@ -115,7 +115,12 @@ function ProfileLink() {
     return (
       <Link
         href="/sign-in"
-        className={cn(buttonVariants({ variant: "outline", size: "sm" }), "ml-1")}
+        // h-9 like every top-bar control (ui-law §11); touch-hit grows
+        // the tap area to 44px on phones without a taller pill.
+        className={cn(
+          buttonVariants({ variant: "outline", size: "sm" }),
+          "relative ml-1 h-9 px-3.5 touch-hit",
+        )}
       >
         Sign in
       </Link>
@@ -161,7 +166,7 @@ function ProfileLink() {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={`Profile · ${displayName}`}
-        className="ml-1 flex size-9 items-center justify-center rounded-pill outline-none transition-[box-shadow] focus-visible:ring-2 focus-visible:ring-ring/40"
+        className="flex size-11 items-center justify-center rounded-pill outline-none transition-[box-shadow] focus-visible:ring-2 focus-visible:ring-ring/40 md:ml-1 md:size-9"
       >
         <AccountAvatar initial={initial} src={imageUrl} />
       </DropdownMenuTrigger>

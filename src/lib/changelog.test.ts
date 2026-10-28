@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changesSince, compareVersions, parseChangelog } from "./changelog";
+import { changesSince, compareVersions, isInternalLine, parseChangelog } from "./changelog";
 
 describe("parseChangelog", () => {
   it("parses version, date, and lines per section", () => {
@@ -83,5 +83,20 @@ describe("changesSince", () => {
   it("shows everything newer when the cached version predates the log", () => {
     const r = changesSince(entries, "6.0.0", "6.77.6");
     expect(r).toHaveLength(4);
+  });
+});
+
+describe("isInternalLine", () => {
+  it("matches every internal-only wording the file uses", () => {
+    expect(isInternalLine("Internal changes only.")).toBe(true);
+    expect(isInternalLine("Internal changes only (added tests).")).toBe(true);
+    expect(isInternalLine("Internal: refreshed a baseline.")).toBe(true);
+    expect(isInternalLine("internal groundwork for friends")).toBe(true);
+  });
+
+  it("keeps user-facing lines, including ones mentioning 'internal' later", () => {
+    expect(isInternalLine("Fixed the footer link.")).toBe(false);
+    expect(isInternalLine("Removed an unfinished internal page.")).toBe(false);
+    expect(isInternalLine("Internally-themed tags look sharper.")).toBe(false);
   });
 });

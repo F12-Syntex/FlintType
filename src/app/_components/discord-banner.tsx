@@ -55,7 +55,8 @@ export function DiscordBanner() {
         href={DISCORD_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+        // touch-hit: 44px tap area on phones inside the slim strip (§7).
+        className={cn(buttonVariants({ variant: "outline", size: "sm" }), "relative touch-hit")}
       >
         Join
         <ArrowUpRight className="size-3.5" aria-hidden />
@@ -64,7 +65,7 @@ export function DiscordBanner() {
         type="button"
         onClick={dismiss}
         aria-label="Dismiss Discord banner"
-        className="inline-flex size-8 shrink-0 items-center justify-center rounded-pill text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+        className="relative inline-flex size-8 shrink-0 touch-hit items-center justify-center rounded-pill text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
       >
         <X className="size-3.5" aria-hidden />
       </button>
