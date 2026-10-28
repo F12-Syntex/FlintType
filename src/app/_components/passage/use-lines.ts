@@ -1,7 +1,7 @@
 "use client";
 
 import { type RefObject, useCallback, useLayoutEffect, useState } from "react";
-import { growthPull, visibleLines } from "./passage-lines";
+import { growthPull, visibleLines } from "./lines";
 
 type LineFit = {
   /** Lines the viewport shows. */
@@ -13,7 +13,7 @@ type LineFit = {
 };
 
 /** Hugs the passage viewport to the text's own lines and keeps it still
- *  while a run is in progress. The maths lives in passage-lines.ts
+ *  while a run is in progress. The maths lives in lines.ts
  *  (unit-tested); this hook only measures the DOM.
  *
  *  - The viewport reserves `clipHeight` (whole lines), but text shorter

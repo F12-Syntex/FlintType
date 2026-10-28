@@ -1,5 +1,5 @@
-/** Line maths for the passage viewport (passage.tsx). Pure, so the
- *  rules are unit-tested in passage-lines.test.ts.
+/** Line maths for the passage viewport (index.tsx). Pure, so the
+ *  rules are unit-tested in lines.test.ts.
  *
  *  The passage reserves a whole number of lines (`reserved`: the Lines
  *  setting, or as many as fit). A passage shorter than that used to

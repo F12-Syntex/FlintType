@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.34 — 27 October 2026
+- Internal changes only.
+
 ## 6.148.33 — 27 October 2026
 - Races: your result is final once you cross the line; a slow connection can no longer lower your speed, accuracy or place afterwards.
 - Races: if you restart the passage with Esc mid-race, your result now shows the new attempt's errors, accuracy and speed, not the abandoned attempt's.
