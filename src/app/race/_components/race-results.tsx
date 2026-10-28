@@ -1,10 +1,14 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
-import { Download } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Download, LogOut, RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { formatClock } from "@/lib/format-duration";
-import { cn } from "@/lib/utils";
+import { ordinal, provisionalLine, summaryLine } from "./race-result-copy";
 import { useRace } from "./race-state";
+import { RaceStandings } from "./race-standings";
+import { RaceTrace } from "./race-trace";
+import { Stat } from "./result-stat";
 
 /** Track whether the local user already cast a rematch vote on the
  *  current finished round. Read from the server snapshot
@@ -13,15 +17,17 @@ import { useRace } from "./race-state";
  *  subtree re-mounts when the new round starts, so the optimistic
  *  flag resets cleanly without manual cleanup. */
 
-/** Post-race summary panel. Mounts only after every racer has
- *  crossed the line. Hosts the placement headline, a five-cell stat
- *  strip (WPM / accuracy / chars / errors / time), the static
- *  WPM-trace SVG, the per-racer leaderboard table, and the
- *  Race-again CTA so the loop closes inside one screen.
+/** Post-race results card (ui-law §21 card: rounded-2xl, shadow-card).
+ *  Mounts once you've crossed the line. Top to bottom: your place +
+ *  one summary line with the actions beside it (Rematch is the one
+ *  orange CTA; Save image and Leave are quiet ghosts), your WPM as the
+ *  big orange number with accuracy beside it and a quiet secondary row
+ *  (raw / characters / errors / time), the speed chart, and the
+ *  standings table — so the loop closes inside one card.
  *
  *  Tab is inert during a race (it would otherwise reset your run);
- *  rematch is the visible "Race again" button on this panel, not a
- *  keyboard shortcut. */
+ *  rematch is the visible button on this card, not a keyboard
+ *  shortcut. */
 export function RaceResults() {
   const {
     state,
@@ -50,11 +56,28 @@ export function RaceResults() {
   const required = Math.max(1, Math.min(2, realCount));
   const waitingForOthers = voted && required > 1 && readyCount < required;
 
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // The vote call soft-fails (the SSE snapshot is the source of truth),
+  // so if the server hasn't acked our vote a few seconds after the click
+  // — and no new round has started, which would unmount this card — the
+  // vote was lost: put the button back and say so (ui-law §6.3).
+  useEffect(() => {
+    if (!rematchClicked || remoteVoted) return;
+    const t = setTimeout(() => {
+      setRematchClicked(false);
+      setActionError("Couldn't send your rematch vote. Try again.");
+    }, 5000);
+    return () => clearTimeout(t);
+  }, [rematchClicked, remoteVoted]);
+
   const onRematch = useCallback(() => {
+    setActionError(null);
     setRematchClicked(true);
     rematch();
   }, [rematch]);
   const onForceRematch = useCallback(() => {
+    setActionError(null);
     setRematchClicked(true);
     rematch(true);
   }, [rematch]);
@@ -70,6 +93,7 @@ export function RaceResults() {
     const node = findScreenshotRoot(panelRef.current);
     if (!node || exporting) return;
     setExporting(true);
+    setActionError(null);
     try {
       const { toPng } = await import("html-to-image");
       const bg = pickScreenshotBg(node);
@@ -89,6 +113,7 @@ export function RaceResults() {
       document.body.removeChild(a);
     } catch (err) {
       console.error("[race-results] screenshot failed", err);
+      setActionError("Couldn't save the image. Try again.");
     } finally {
       setExporting(false);
     }
@@ -133,17 +158,17 @@ export function RaceResults() {
   return (
     <div
       ref={panelRef}
-      className="flex flex-col gap-7 rounded-md border border-border bg-card px-7 py-8 sm:px-9"
+      className="flex shrink-0 flex-col gap-6 rounded-2xl border border-border bg-card p-4 shadow-card sm:gap-8 sm:p-6"
     >
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-1.5 px-1">
+          <span className="text-xs font-medium text-muted-foreground">
             {allFinished ? "Race finished" : "You finished · race in progress"}
           </span>
-          <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-[40px]">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             {ordinal(place)} place
           </h2>
-          <p className="max-w-md text-[13px] leading-relaxed text-muted-foreground">
+          <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
             {allFinished
               ? summaryLine(place, total, you.finishedAt ?? 0)
               : provisionalLine(place, total, stillRacing)}
@@ -151,336 +176,101 @@ export function RaceResults() {
         </div>
         <div
           data-no-export="true"
-          className="flex flex-wrap items-center gap-2 self-start sm:self-auto"
+          className="flex w-full flex-col gap-2 sm:w-auto sm:items-end"
         >
-          <button
-            type="button"
-            onClick={onDownload}
-            disabled={exporting}
-            aria-label="Save results as image"
-            className={cn(
-              "inline-flex items-center gap-2 rounded-md border border-border bg-background px-3.5 py-2.5",
-              "text-[11px] font-semibold uppercase tracking-[0.22em] text-foreground",
-              "transition-colors hover:bg-accent hover:text-accent-foreground active:translate-y-[1px]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-              "disabled:cursor-not-allowed disabled:opacity-60",
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Rematch only makes sense once the race is actually over —
+             *  the server rejects a ready-vote while the room is still
+             *  racing. Until then the card is your live standing; just
+             *  Save image / Leave are offered. */}
+            {!allFinished ? null : voted ? (
+              <span
+                role="status"
+                aria-live="polite"
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-pill border border-primary/40 bg-primary/10 px-6 text-[0.9375rem] font-semibold text-primary sm:w-auto"
+              >
+                {waitingForOthers ? (
+                  <>
+                    Ready{" "}
+                    <span className="tabular-nums text-primary/70">
+                      {readyCount}/{required}
+                    </span>
+                  </>
+                ) : (
+                  "Starting…"
+                )}
+              </span>
+            ) : (
+              <Button
+                size="lg"
+                onClick={onRematch}
+                className="w-full px-8 sm:w-auto"
+              >
+                <RotateCcw aria-hidden />
+                Rematch
+              </Button>
             )}
-          >
-            <Download size={14} className="shrink-0" />
-            {exporting ? "Saving" : "Save image"}
-          </button>
-          {/* Rematch only makes sense once the race is actually over —
-           *  the server rejects a ready-vote while the room is still
-           *  racing. Until then the panel is your live standing; just
-           *  Save image / Leave are offered. */}
-          {!allFinished ? null : voted ? (
-            <span
-              role="status"
-              aria-live="polite"
-              className={cn(
-                "inline-flex items-center gap-2 rounded-md border border-primary/40 bg-primary/[0.06] px-4 py-2.5",
-                "text-[11px] font-semibold uppercase tracking-[0.22em] text-primary",
-              )}
+            {/* Host-only force-rematch — mirrors the lobby's "Force start
+             *  now". Lets the host kick off the next round without waiting
+             *  on slower racers to vote. Only meaningful when another real
+             *  player could hold it up (required > 1); with one real racer
+             *  the host's Rematch click already starts instantly. */}
+            {allFinished && isHost && isChallenge && required > 1 ? (
+              <Button variant="outline" size="lg" onClick={onForceRematch}>
+                Force rematch
+              </Button>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center gap-1 sm:justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDownload}
+              disabled={exporting}
+              aria-label="Save results as image"
+              className="text-muted-foreground"
             >
-              {waitingForOthers ? (
-                <>
-                  Ready{" "}
-                  <span className="text-primary/70 tabular-nums">
-                    {readyCount}/{required}
-                  </span>
-                </>
-              ) : (
-                "Starting…"
-              )}
-            </span>
-          ) : (
-            <button
-              type="button"
-              onClick={onRematch}
-              className={cn(
-                "inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5",
-                "text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-foreground",
-                "transition-colors hover:bg-primary/90 active:translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-              )}
+              <Download aria-hidden />
+              {exporting ? "Saving…" : "Save image"}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={abandon}
+              className="text-muted-foreground"
             >
-              Rematch
-            </button>
-          )}
-          {/* Host-only force-rematch — mirrors the lobby's "Force start
-           *  now". Lets the host kick off the next round without waiting
-           *  on slower racers to vote. Only meaningful when another real
-           *  player could hold it up (required > 1); with one real racer
-           *  the host's Rematch click already starts instantly. */}
-          {allFinished && isHost && isChallenge && required > 1 ? (
-            <button
-              type="button"
-              onClick={onForceRematch}
-              className={cn(
-                "inline-flex items-center rounded-md border border-foreground/25 px-4 py-2.5",
-                "text-[11px] font-semibold uppercase tracking-[0.22em] text-foreground",
-                "transition-colors hover:border-foreground/40 hover:bg-accent active:translate-y-[1px]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-              )}
-            >
-              Force rematch
-            </button>
+              <LogOut aria-hidden />
+              Leave
+            </Button>
+          </div>
+          {actionError ? (
+            <p role="alert" className="text-sm text-destructive sm:text-right">
+              {actionError}
+            </p>
           ) : null}
-          <button
-            type="button"
-            onClick={abandon}
-            className={cn(
-              "inline-flex items-center rounded-md px-3 py-2.5",
-              "text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground",
-              "transition-colors hover:text-foreground active:translate-y-[1px]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-            )}
-          >
-            Leave
-          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-x-6 gap-y-4 border-y border-border/70 py-5 sm:grid-cols-6 sm:gap-x-10">
-        {/* All headline stats read the server-authoritative racer row —
-            the SAME source the per-racer table below uses — so the local
-            racer's headline and table row can never disagree (#4/#7). */}
-        <Stat label="net wpm" value={String(you.wpm)} accent />
-        <Stat label="raw wpm" value={String(you.raw)} />
-        <Stat label="accuracy" value={`${you.accuracy.toFixed(1)}%`} />
-        <Stat label="chars typed" value={String(you.correctChars)} />
-        <Stat label="errors" value={String(you.errors)} />
-        <Stat label="time" value={formatClock(you.finishedAt ?? 0)} />
-      </div>
-
-      <FinalTrace />
-
-      <div className="flex flex-col">
-        <div className="grid grid-cols-[28px_minmax(0,1fr)_64px_64px_56px_64px] items-baseline gap-3 border-b border-border pb-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-          <span>#</span>
-          <span>racer</span>
-          <span className="text-right">net</span>
-          <span className="text-right">raw</span>
-          <span className="text-right">acc</span>
-          <span className="text-right">time</span>
+      {/* All headline stats read the server-authoritative racer row —
+          the SAME source the standings table uses — so your headline
+          and your table row can never disagree (#4/#7). WPM is the one
+          orange number; everything else stays ink. */}
+      <div className="flex flex-col gap-5 px-1">
+        <div className="flex flex-wrap items-start gap-x-10 gap-y-4">
+          <Stat label="WPM" value={String(you.wpm)} size="hero" />
+          <Stat label="Accuracy" value={`${you.accuracy.toFixed(1)}%`} size="lg" />
         </div>
-        {ordered.map((r) => {
-          const rank = rankOf(r);
-          const placedFirst = rank === 1;
-          const net = r.wpm;
-          const racing = r.finishedAt == null && !r.disconnected;
-          return (
-            <div
-              key={r.id}
-              className={cn(
-                "grid grid-cols-[28px_minmax(0,1fr)_64px_64px_56px_64px] items-baseline gap-3 border-b border-border py-2.5 text-[13px] last:border-b-0",
-                r.isYou && "bg-primary/[0.05]",
-              )}
-            >
-              <span
-                className={cn(
-                  "tabular-nums",
-                  placedFirst ? "text-primary" : "text-muted-foreground",
-                )}
-              >
-                {rank}
-              </span>
-              <span
-                className={cn(
-                  "flex min-w-0 items-center gap-1.5 truncate font-semibold",
-                  r.isYou ? "text-primary" : "text-foreground",
-                )}
-              >
-                <span className="truncate">{r.name}</span>
-                {r.bot != null ? (
-                  <span
-                    aria-label="Bot opponent"
-                    className="inline-flex shrink-0 items-center rounded-md border border-foreground/15 bg-foreground/[0.04] px-1 py-[1px] text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
-                  >
-                    Bot
-                  </span>
-                ) : null}
-              </span>
-              <span
-                className={cn(
-                  "text-right tabular-nums font-semibold",
-                  r.isYou ? "text-primary" : "text-foreground",
-                )}
-              >
-                {net}
-              </span>
-              <span className="text-right tabular-nums text-muted-foreground">
-                {r.raw}
-              </span>
-              <span className="text-right tabular-nums text-muted-foreground">
-                {Math.round(r.accuracy)}%
-              </span>
-              <span
-                className={cn(
-                  "text-right tabular-nums",
-                  racing
-                    ? "text-[10px] uppercase tracking-[0.14em] text-primary/70"
-                    : "text-muted-foreground",
-                )}
-              >
-                {racing ? "racing" : formatClock(r.finishedAt ?? 0)}
-              </span>
-            </div>
-          );
-        })}
+        <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
+          <Stat label="Raw WPM" value={String(you.raw)} />
+          <Stat label="Characters" value={String(you.correctChars)} />
+          <Stat label="Errors" value={String(you.errors)} />
+          <Stat label="Time" value={formatClock(you.finishedAt ?? 0)} />
+        </div>
       </div>
+
+      <RaceTrace />
+
+      <RaceStandings ordered={ordered} rankOf={rankOf} />
     </div>
   );
-}
-
-/** Static post-race trace. All samples already exist in state.trace
- *  by the time this mounts, so the SVG draws once — no live curve to
- *  pull the eye away during the race. */
-function FinalTrace() {
-  const { state } = useRace();
-  const samples = state.trace;
-  if (samples.length < 2) return null;
-  const W = 1280;
-  const H = 110;
-  const peak = Math.max(
-    140,
-    ...samples.flatMap((s) => Object.values(s.wpmByRacer)),
-  );
-  const MAX = Math.ceil(peak / 20) * 20 + 20;
-  const lastT = Math.max(1, samples[samples.length - 1]!.t);
-  return (
-    <div>
-      <div className="mb-1.5 flex flex-wrap justify-between gap-2">
-        <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-          RACE TRACE · WPM/SEC
-        </span>
-        <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-          peak {peak} wpm
-        </span>
-      </div>
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        preserveAspectRatio="none"
-        width="100%"
-        height={H}
-        className="block"
-      >
-        {[60, 120, 180].map((v) => (
-          <line
-            key={v}
-            x1={0}
-            x2={W}
-            y1={H - (v / MAX) * H}
-            y2={H - (v / MAX) * H}
-            stroke="var(--border)"
-            strokeDasharray="2 4"
-          />
-        ))}
-        {state.racers.map((r) => {
-          const pts = samples.map((s) => ({
-            x: (s.t / lastT) * W,
-            y: H - ((s.wpmByRacer[r.id] ?? 0) / MAX) * H,
-          }));
-          const path = pts
-            .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
-            .join(" ");
-          const isYou = r.isYou;
-          return (
-            <path
-              key={r.id}
-              d={path}
-              fill="none"
-              stroke={isYou ? "var(--primary)" : strokeFor(r.id)}
-              strokeWidth={isYou ? 2 : 1.2}
-              vectorEffect="non-scaling-stroke"
-            />
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
-
-function strokeFor(id: string): string {
-  switch (id) {
-    case "damiel":
-      return "color-mix(in oklch, var(--foreground) 80%, transparent)";
-    case "haru":
-      return "color-mix(in oklch, var(--foreground) 75%, transparent)";
-    case "nadya":
-      return "color-mix(in oklch, var(--foreground) 65%, transparent)";
-    case "selan":
-      return "color-mix(in oklch, var(--foreground) 55%, transparent)";
-    case "elias":
-      return "color-mix(in oklch, var(--foreground) 50%, transparent)";
-    case "mireille":
-      return "color-mix(in oklch, var(--foreground) 45%, transparent)";
-    case "kassia":
-      return "color-mix(in oklch, var(--foreground) 38%, transparent)";
-    case "yusuf":
-      return "color-mix(in oklch, var(--foreground) 32%, transparent)";
-    case "onyx":
-      return "color-mix(in oklch, var(--foreground) 28%, transparent)";
-    default:
-      return "var(--muted-foreground)";
-  }
-}
-
-function Stat({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className="flex flex-col items-start gap-1">
-      <span className="text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
-        {label}
-      </span>
-      <span
-        className={cn(
-          "text-2xl font-bold tabular-nums leading-none",
-          accent ? "text-primary" : "text-foreground",
-        )}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function ordinal(n: number): string {
-  const mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
-  switch (n % 10) {
-    case 1:
-      return `${n}st`;
-    case 2:
-      return `${n}nd`;
-    case 3:
-      return `${n}rd`;
-    default:
-      return `${n}th`;
-  }
-}
-
-function summaryLine(place: number, total: number, time: number): string {
-  return `${ordinal(place)} of ${total} in ${formatClock(time)}.`;
-}
-
-/** Standing line shown while the room is still racing — the placement
- *  isn't final yet, so we frame it as a live, net-WPM standing that
- *  resettles as each remaining racer crosses. (Finishing first counts
- *  for nothing if the run was inaccurate: net WPM is the score.) */
-function provisionalLine(
-  place: number,
-  total: number,
-  stillRacing: number,
-): string {
-  const standing = `${ordinal(place)} of ${total}`;
-  if (stillRacing <= 0) return `${standing}. Finalising places.`;
-  const who = stillRacing === 1 ? "1 racer" : `${stillRacing} racers`;
-  return `${standing}, ${who} still typing.`;
 }

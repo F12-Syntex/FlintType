@@ -1,19 +1,28 @@
 "use client";
 
+import { Check, Copy } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { useBackend } from "@/lib/backend";
 import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
+import { raceErrorMessage } from "./race-errors";
 import { useRace } from "./race-state";
 
-/** Lobby card shown above the typing area during the lobby phase of
- *  a challenge room. Renders in two shapes:
- *    - host  → share link + Start race button
- *    - guest → "waiting on the host" hint
+/** Private-lobby controls, shown under the lineup card during the lobby
+ *  phase of a challenge room. Two shapes:
+ *    - host  → share link + Start race (+ Force start while people are
+ *              still readying up)
+ *    - guest → Ready up toggle + share link
+ *
+ *  Who is ready is shown per lane in the lineup above, so this block is
+ *  only the controls. The primary action is always a `size="lg"` button
+ *  (44px touch target) and any failure shows as a visible destructive
+ *  line under it (ui-law §6.3).
  *
  *  Server snapshot is the source of truth — `onlineSnapshot.kind ===
  *  "challenge"` plus `onlineSnapshot.phase === "lobby"` is the only
- *  case this card renders. Returns null otherwise. */
+ *  case this renders. Returns null otherwise. */
 export function ChallengeLobby() {
   const { onlineSnapshot, onlineSessionToken, onlineRoomId } = useRace();
 
@@ -25,87 +34,121 @@ export function ChallengeLobby() {
 
   // Ready-up state (#26). Every present human who isn't the host must be
   // ready before the host's Start fires; bots are always ready and the
-  // host readies implicitly by starting. Who-is-ready is shown per-lane
-  // in the racetrack above (RaceLineupPanel); this card is just the
-  // controls — share link, Ready toggle, Start.
+  // host readies implicitly by starting.
   const humans = onlineSnapshot.racers.filter((r) => !r.isBot && !r.disconnected);
   const others = humans.filter((r) => !r.isHost);
   const readyCount = others.filter((r) => r.ready).length;
   const allReady = readyCount === others.length;
+  const roomId = onlineRoomId ?? "";
+  const sessionToken = onlineSessionToken ?? "";
 
   return (
-    <LobbyCard
-      slug={slug}
-      showHostBar={isHost}
-      roomId={onlineRoomId ?? ""}
-      sessionToken={onlineSessionToken ?? ""}
-      meReady={me?.ready ?? false}
-      readyCount={readyCount}
-      otherCount={others.length}
-      allReady={allReady}
-    />
-  );
-}
-
-/** Card body. `showHostBar=true` reveals the share-link + Start-race
- *  buttons (Start-race fires the server `challenge.start` route, gated
- *  on everyone being ready). Guests get a share-link + Ready toggle.
- *  The roster lives in the racetrack lanes above, not here. */
-function LobbyCard({
-  showHostBar,
-  roomId,
-  sessionToken,
-  slug,
-  meReady,
-  readyCount,
-  otherCount,
-  allReady,
-}: {
-  slug: string;
-  showHostBar: boolean;
-  roomId: string;
-  sessionToken: string;
-  meReady: boolean;
-  readyCount: number;
-  otherCount: number;
-  allReady: boolean;
-}) {
-  return (
-    <div className="flex flex-col items-center gap-3 border-t border-border/60 pt-4 text-center">
-      <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-        Lobby · {slug}
-      </span>
-      {showHostBar ? (
-        <HostBar
-          slug={slug}
+    <section
+      aria-label="Lobby controls"
+      className="flex shrink-0 flex-col items-center gap-4 text-center"
+    >
+      {isHost ? (
+        <HostControls
           roomId={roomId}
           sessionToken={sessionToken}
           allReady={allReady}
-          otherCount={otherCount}
+          otherCount={others.length}
           readyCount={readyCount}
         />
       ) : (
-        <div className="flex flex-col items-center gap-2.5">
-          <ReadyToggle
-            roomId={roomId}
-            sessionToken={sessionToken}
-            ready={meReady}
-          />
-          <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            {meReady
-              ? "Waiting for the host to start"
-              : "Ready up so the host can start"}
-          </span>
-          <ShareLink slug={slug} />
-        </div>
+        <GuestControls
+          roomId={roomId}
+          sessionToken={sessionToken}
+          ready={me?.ready ?? false}
+        />
       )}
+      <ShareLink slug={slug} />
+    </section>
+  );
+}
+
+/** Host: Start race (orange, lg). Disabled until every guest is ready;
+ *  while they aren't, a counter + an outline "Force start" escape hatch
+ *  sit underneath. With nobody else in the lobby it starts at once. */
+function HostControls({
+  roomId,
+  sessionToken,
+  allReady,
+  otherCount,
+  readyCount,
+}: {
+  roomId: string;
+  sessionToken: string;
+  allReady: boolean;
+  otherCount: number;
+  readyCount: number;
+}) {
+  const backend = useBackend();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const start = async (force: boolean) => {
+    if (pending || (!force && !allReady)) return;
+    setPending(true);
+    setError(null);
+    try {
+      await backend.race.challenge.start({ roomId, sessionToken, force });
+      // Success: the next snapshot moves the room into the countdown and
+      // this block unmounts, so `pending` never needs resetting here.
+    } catch (err) {
+      setPending(false);
+      setError(raceErrorMessage(err, "Couldn't start the race. Try again."));
+    }
+  };
+
+  const waiting = otherCount > 0 && !allReady;
+
+  return (
+    <div className="flex w-full max-w-sm flex-col items-center gap-3">
+      <Button
+        size="lg"
+        onClick={() => start(false)}
+        disabled={pending || !allReady}
+        className="w-full px-8 sm:w-auto"
+      >
+        {pending ? "Starting…" : "Start race"}
+      </Button>
+      {waiting ? (
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-sm text-muted-foreground">
+            Waiting for everyone to ready up{" "}
+            <span className="tabular-nums text-foreground">
+              {readyCount}/{otherCount}
+            </span>
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => start(true)}
+            disabled={pending}
+          >
+            Force start now
+          </Button>
+        </div>
+      ) : otherCount === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Share the link to invite people, or start on your own.
+        </p>
+      ) : null}
+      {error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
 
-/** Non-host Ready toggle. Optimistic — flips instantly, then the
- *  setReady route + next snapshot confirm. */
-function ReadyToggle({
+/** Guest: Ready up toggle. Not ready → the orange primary "Ready up".
+ *  Ready → an orange-outlined pressed state ("Ready") that un-readies on
+ *  click — still the brand colour, never a neutral grey. The setReady
+ *  route + next snapshot confirm; a failure shows under the button. */
+function GuestControls({
   roomId,
   sessionToken,
   ready,
@@ -116,34 +159,60 @@ function ReadyToggle({
 }) {
   const backend = useBackend();
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const toggle = async () => {
     if (pending) return;
     setPending(true);
+    setError(null);
     try {
       await backend.race.setReady({ roomId, sessionToken, ready: !ready });
-    } catch {
-      // ignore — the snapshot stays authoritative
+    } catch (err) {
+      setError(
+        raceErrorMessage(
+          err,
+          ready ? "Couldn't un-ready. Try again." : "Couldn't ready up. Try again.",
+        ),
+      );
     } finally {
       setPending(false);
     }
   };
+
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      disabled={pending}
-      aria-pressed={ready}
-      className={cn(
-        "inline-flex h-11 items-center gap-2 rounded-md px-7 text-[12px] font-semibold uppercase tracking-[0.18em] transition-colors active:translate-y-[0.5px]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-        ready
-          ? "border border-primary/40 bg-primary/[0.08] text-primary hover:bg-primary/[0.14]"
-          : "bg-primary text-primary-foreground hover:bg-primary/90",
-        pending && "cursor-wait opacity-60",
-      )}
-    >
-      {ready ? "Ready ✓" : "Ready up"}
-    </button>
+    <div className="flex w-full max-w-sm flex-col items-center gap-3">
+      <Button
+        size="lg"
+        variant={ready ? "outline" : "default"}
+        aria-pressed={ready}
+        onClick={toggle}
+        disabled={pending}
+        className={cn(
+          "w-full px-8 sm:w-auto",
+          ready &&
+            "border-primary bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
+        )}
+      >
+        {ready ? (
+          <>
+            <Check aria-hidden />
+            Ready
+          </>
+        ) : (
+          "Ready up"
+        )}
+      </Button>
+      <p className="text-sm text-muted-foreground">
+        {ready
+          ? "Waiting for the host to start."
+          : "Ready up so the host can start the race."}
+      </p>
+      {error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -155,107 +224,36 @@ function lobbyUrl(slug: string): string {
     : `/race/c/${slug}`;
 }
 
-/** Share-link button: the lobby URL + a Copy/Copied affordance. Shared
- *  by the guest row and the host bar (clipboard via useCopyToClipboard). */
-function CopyLinkButton({ url }: { url: string }) {
-  const { copied, copy } = useCopyToClipboard();
-  return (
-    <button
-      type="button"
-      onClick={() => copy(url)}
-      className={cn(
-        "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-card px-3",
-        "text-[11px] tabular-nums text-foreground",
-        "transition-colors hover:border-foreground/40 hover:bg-accent",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-      )}
-    >
-      <span className="truncate max-w-[14rem]">{url}</span>
-      <span
-        className={cn(
-          "text-[9px] font-semibold uppercase tracking-[0.18em]",
-          copied ? "text-primary" : "text-muted-foreground",
-        )}
-      >
-        {copied ? "Copied" : "Copy"}
-      </span>
-    </button>
-  );
-}
-
-/** Share-link row (no Start button) — rendered for non-host viewers. */
+/** The lobby's invite link as a single pill: the URL (truncated) and a
+ *  Copy / Copied affordance, all one click target. The "Lobby · slug"
+ *  label above it names the room. */
 function ShareLink({ slug }: { slug: string }) {
-  return <CopyLinkButton url={lobbyUrl(slug)} />;
-}
-
-function HostBar({
-  slug,
-  roomId,
-  sessionToken,
-  allReady,
-  otherCount,
-  readyCount,
-}: {
-  slug: string;
-  roomId: string;
-  sessionToken: string;
-  allReady: boolean;
-  otherCount: number;
-  readyCount: number;
-}) {
-  const backend = useBackend();
-  const [pending, setPending] = useState(false);
-
-  const start = async (force: boolean) => {
-    if (pending || (!force && !allReady)) return;
-    setPending(true);
-    try {
-      await backend.race.challenge.start({ roomId, sessionToken, force });
-    } catch {
-      setPending(false);
-    }
-  };
-
+  const { copied, copy } = useCopyToClipboard();
+  const url = lobbyUrl(slug);
   return (
-    <div className="flex flex-col items-center gap-2">
-    <div className="flex flex-wrap items-center justify-center gap-2">
-      <CopyLinkButton url={lobbyUrl(slug)} />
-      <button
-        type="button"
-        onClick={() => start(false)}
-        disabled={pending || !allReady}
-        className={cn(
-          "inline-flex h-8 items-center gap-2 rounded-md bg-primary px-3.5",
-          "text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground",
-          "transition-colors hover:bg-primary/90 active:translate-y-[0.5px]",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-          (pending || !allReady) && "cursor-not-allowed opacity-50",
-        )}
+    <div className="flex w-full max-w-sm flex-col items-center gap-2">
+      <span className="text-xs text-muted-foreground">
+        Lobby · <span className="font-medium text-foreground">{slug}</span>
+      </span>
+      <Button
+        variant="outline"
+        onClick={() => copy(url)}
+        aria-label={copied ? "Invite link copied" : `Copy invite link ${url}`}
+        className="w-full max-w-full justify-between gap-3 pr-3 font-normal"
       >
-        {pending ? "Starting…" : "Start race"}
-      </button>
-    </div>
-    {otherCount > 0 && !allReady ? (
-      <div className="flex flex-col items-center gap-1.5">
-        <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-          Waiting for everyone to ready up · {readyCount}/{otherCount}
+        <span className="min-w-0 truncate tabular-nums text-muted-foreground">
+          {url}
         </span>
-        <button
-          type="button"
-          onClick={() => start(true)}
-          disabled={pending}
+        <span
           className={cn(
-            "inline-flex h-8 items-center rounded-md border border-foreground/25 px-3.5",
-            "text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground",
-            "transition-colors hover:border-foreground/40 hover:bg-accent",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-            pending && "cursor-not-allowed opacity-50",
+            "inline-flex shrink-0 items-center gap-1 text-xs font-medium",
+            copied ? "text-primary" : "text-foreground",
           )}
         >
-          {pending ? "Starting…" : "Force start now"}
-        </button>
-      </div>
-    ) : null}
+          {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
+          {copied ? "Copied" : "Copy link"}
+        </span>
+      </Button>
     </div>
   );
 }

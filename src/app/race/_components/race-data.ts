@@ -8,9 +8,14 @@ export type RaceModeId = "1v1" | "ffa";
 
 export type RaceMode = {
   id: RaceModeId;
+  /** Sentence-case label: the segment in the launcher's mode switch
+   *  and the lineup card's title. */
   name: string;
-  /** Short caption shown under the mode chip in the sidebar. */
+  /** Short caption (aria / compact contexts). */
   detail: string;
+  /** One plain sentence under the launcher's mode switch, telling a
+   *  first-time racer what this mode is. */
+  description: string;
   /** Number of words in the race passage. */
   wordCount: number;
   /** Bot ids in display order. */
@@ -20,15 +25,17 @@ export type RaceMode = {
 export const RACE_MODES: Record<RaceModeId, RaceMode> = {
   "1v1": {
     id: "1v1",
-    name: "1V1",
+    name: "1v1",
     detail: "head-to-head · 25 words",
+    description: "Head-to-head over 25 words. A bot takes the seat if nobody joins.",
     wordCount: 25,
     botIds: ["mireille"],
   },
   ffa: {
     id: "ffa",
-    name: "FREE-FOR-ALL",
+    name: "Free-for-all",
     detail: "open lobby · up to 8 · no bots",
+    description: "Everyone races the same 25 words. Up to 8 people, no bots.",
     wordCount: 25,
     // Real players only — share the link and everyone races at once.
     botIds: [],

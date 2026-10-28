@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { buttonVariants } from "@/components/ui/button";
 import { BackendError, useBackend } from "@/lib/backend";
-import { cn } from "@/lib/utils";
 import type { JoinChallengeOutput } from "@/types/race";
 import { RaceShell, type RaceShellOnline } from "../../../_components/race-shell";
 import type { RaceModeId } from "../../../_components/race-data";
@@ -116,9 +116,16 @@ export function ChallengeShell({
 
   if (resolved.state === "loading") {
     return (
-      <div className="flex flex-1 items-center justify-center px-8 py-16">
-        <span className="text-[11px] uppercase tracking-[0.22em] text-primary motion-safe:animate-pulse">
-          Joining {slug}…
+      <div className="flex flex-1 items-center justify-center py-16">
+        <span
+          role="status"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground"
+        >
+          <span
+            aria-hidden
+            className="size-1.5 rounded-full bg-primary motion-safe:animate-pulse"
+          />
+          Joining lobby {slug}…
         </span>
       </div>
     );
@@ -176,34 +183,23 @@ function ChallengeError({
         : "Something went wrong on our side reaching this lobby. Try again in a moment, or start a fresh race against bots.";
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-6 px-6 py-16 text-center">
-      <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+    <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-4 py-16 text-center">
+      <span className="text-xs font-medium text-muted-foreground">
         Lobby · {slug}
       </span>
-      <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
+      <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
         {headline}
       </h1>
-      <p className="text-[13px] leading-relaxed text-muted-foreground">
+      <p className="text-sm leading-relaxed text-muted-foreground">
         {explainer}
       </p>
-      <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-        <Link
-          href="/race"
-          className={cn(
-            "inline-flex h-8 items-center gap-2 rounded-md bg-primary px-3.5",
-            "text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground",
-            "transition-colors hover:bg-primary/90 active:translate-y-[0.5px]",
-          )}
-        >
+      <div className="flex w-full max-w-xs flex-col gap-3 pt-2 sm:max-w-none sm:flex-row sm:justify-center">
+        <Link href="/race" className={buttonVariants({ size: "lg" })}>
           Start a race
         </Link>
         <Link
           href="/"
-          className={cn(
-            "inline-flex h-8 items-center gap-2 rounded-md border border-border bg-transparent px-3",
-            "text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground",
-            "transition-colors hover:border-foreground/40 hover:text-foreground",
-          )}
+          className={buttonVariants({ variant: "outline", size: "lg" })}
         >
           Practice instead
         </Link>

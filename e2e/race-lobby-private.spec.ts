@@ -22,10 +22,9 @@ test("private lobby: host opens, a second player joins by link, both race", asyn
   await page.goto("/race");
   await dismissChangelog(page);
 
-  await page.getByRole("button", { name: "Create lobby" }).click();
-  // The create panel (popover on desktop) → "Create & invite" spins up
-  // the room and navigates the host to /race/c/<slug>.
-  await page.getByRole("button", { name: "Create & invite" }).click();
+  // "Create private lobby" spins up the room immediately and navigates
+  // the host to /race/c/<slug> (settings live behind the gear beside it).
+  await page.getByRole("button", { name: "Create private lobby" }).click();
 
   await page.waitForURL(/\/race\/c\/[^/]+$/, { timeout: 20_000 });
   const slug = page.url().split("/race/c/")[1]!;
@@ -73,10 +72,10 @@ test("private lobby: host opens, a second player joins by link, both race", asyn
   await finishRace(joiner);
 
   await expect(
-    page.getByRole("button", { name: "Race again" }).first(),
+    page.getByRole("button", { name: "Rematch" }).first(),
   ).toBeVisible({ timeout: 25_000 });
   await expect(
-    joiner.getByRole("button", { name: "Race again" }).first(),
+    joiner.getByRole("button", { name: "Rematch" }).first(),
   ).toBeVisible({ timeout: 25_000 });
 
   await joinerCtx.close();

@@ -8,6 +8,13 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.139.0 — 27 October 2026
+- The race page now opens on a simple launcher: pick 1v1 or Free-for-all, then press Find race or Create private lobby.
+- Private lobbies have bigger Start race and Ready up buttons, a one-click invite link, and a clear message whenever starting, readying up or creating a lobby fails.
+- Race results now appear first when a race ends, with your speed as the big number and a standings table that fits on phones.
+- Race lanes and cards are rounded and match the flame orange in light and dark mode, and your stone no longer vanishes as it crosses the finish line.
+- Public races no longer show a confusing Not ready label next to your name during the countdown.
+
 ## 6.138.0 — 27 October 2026
 - The practice settings now sit in one calm bar above the text: your mode and length light up in orange, the wordlist is a single button, and Adaptive is one on/off switch.
 - Before you start, the practice screen simply says Start typing; while you type, one row shows your speed in orange with accuracy, errors, peak and progress beside it.

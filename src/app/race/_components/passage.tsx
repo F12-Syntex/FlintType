@@ -14,9 +14,9 @@ import { SpectatorPassage } from "./spectator-passage";
 
 /** Race passage. The actual typing surface IS practice's <Passage>
  *  component — same caret, same per-char colouring, same smooth-line
- *  scroll, same appearance prefs. The race layer adds one slim
- *  status row above the passage (the only chrome that swaps per
- *  phase) and the per-racer progress strip below. No more blurred
+ *  scroll, same appearance prefs. The race layer adds the lineup card
+ *  (one lane per racer) above the passage, and before the gun the
+ *  private-lobby controls / countdown in the passage's slot. No blurred
  *  overlays; the passage is always cleanly visible. */
 export function RacePassage() {
   const { state, countdownNumber, onlineSnapshot } = useRace();
@@ -24,8 +24,7 @@ export function RacePassage() {
   const { prefs: appearance } = useAppearancePrefs();
   // Author attribution for QUOTE races. The server stamps this on
   // every snapshot once the room is created so the line lands even
-  // before the passage is revealed (so the lobby can already render
-  // it under the "QUOTE" poster).
+  // before the passage is revealed (the pre-race note shows it).
   const quoteSource = onlineSnapshot?.quoteSource;
   // `you` is null for a pure spectator (joined a full/started lobby and
   // never got a seat). Every `you`-derived value below is guarded so the
@@ -130,6 +129,7 @@ export function RacePassage() {
       totalWords={state.words.length}
       wpm={wpm}
       accuracy={acc}
+      showReady={onlineSnapshot?.kind === "challenge"}
     />
   ) : null;
 
@@ -165,25 +165,26 @@ export function RacePassage() {
     );
   }
 
-  // Pre-race (matching / lobby / countdown): the racetrack + lobby card
-  // stack in normal flow above the poster — there's no passage to
-  // centre yet, so the in-flow stack reads cleanly.
+  // Pre-race (matching / lobby / countdown): the racetrack card, then
+  // the private-lobby controls (challenge rooms only). The lineup header
+  // already says where we are ("Finding racers", "Lobby"), so there's no
+  // poster repeating it; one quiet line explains the wait instead. The
+  // countdown takes the slot the passage is about to occupy.
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden sm:gap-6">
       {lineupEl}
       <ChallengeLobby />
-      <div className="min-h-0 flex-1">
-        {state.phase === "countdown" ? (
+      {state.phase === "countdown" ? (
+        <div className="min-h-0 flex-1">
           <CountdownPanel n={countdownNumber ?? 3} />
-        ) : (
-          <RacePoster
-            modeName={RACE_MODES[state.modeId].name}
-            detail={RACE_MODES[state.modeId].detail}
-            phase={state.phase}
-            quoteSource={quoteSource}
-          />
-        )}
-      </div>
+        </div>
+      ) : (
+        <PreRaceNote
+          phase={state.phase}
+          isChallenge={onlineSnapshot?.kind === "challenge"}
+          quoteSource={quoteSource}
+        />
+      )}
     </div>
   );
 }
@@ -218,16 +219,9 @@ function CountdownPanel({ n }: { n: number }) {
   );
 }
 
-/** Editorial mode poster shown in the typing area during queue /
- *  matching / lobby. Replaces the earlier skeleton-bar placeholder
- *  which read as "still loading…" — this poster reads as intentional
- *  content: the race you're about to run, sitting calmly until you
- *  start. Big mode name, one line of detail beneath, sized to fill
- *  the typing slot without competing with the chrome above. */
-/** Editorial dash + author line that sits under the passage during
- *  racing in QUOTE rooms. Right-aligned, muted, JetBrains Mono — the
- *  attribution should read as a footnote, never compete with the
- *  passage above it. */
+/** Dash + author line that sits under the passage during racing in
+ *  QUOTE rooms. Right-aligned and muted — the attribution reads as a
+ *  footnote, never competing with the passage above it. */
 function QuoteAttribution({ source }: { source: string }) {
   return (
     <p
@@ -241,53 +235,39 @@ function QuoteAttribution({ source }: { source: string }) {
   );
 }
 
-function RacePoster({
-  modeName,
-  detail,
+/** One quiet line under the lineup while the race is being set up: what
+ *  the wait is, plus the quote's author when the race is a quote. The
+ *  private lobby's own controls already explain themselves, so its
+ *  note is just the author (or nothing). */
+function PreRaceNote({
   phase,
+  isChallenge,
   quoteSource,
 }: {
-  modeName: string;
-  detail: string;
-  phase: string;
-  /** Author attribution to render under the detail line in QUOTE
-   *  rooms during the lobby beats. Skipped silently for other modes. */
+  phase: RacePhase;
+  isChallenge: boolean;
   quoteSource?: string;
 }) {
-  // The headline never changes between queue/matching/lobby — same
-  // race, same poster. The subtitle nudges contextually so the user
-  // gets a beat of fresh feedback at each step without redundant
-  // copy versus the PhaseRow up top.
-  const subtitle =
-    phase === "queue"
-      ? "ready when you are"
-      : phase === "matching"
-        ? "racers are joining"
-        : phase === "lobby"
-          ? "everyone is in"
-          : detail;
+  const status = isChallenge
+    ? null
+    : phase === "matching"
+      ? "Looking for racers. The race starts in a few seconds."
+      : phase === "lobby"
+        ? "Everyone's in. Get ready."
+        : null;
+  if (!status && !quoteSource) return null;
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-4 text-center">
-      <span
-        className={cn(
-          "font-extrabold tracking-tight tabular-nums text-foreground",
-          "text-[14vmin] leading-none sm:text-[12vmin] lg:text-[10vmin]",
-        )}
-      >
-        {modeName}
-      </span>
-      <span className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-        {subtitle}
-      </span>
-      <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
-        {detail}
-      </span>
+    <div className="flex flex-col items-center gap-1.5 px-2 text-center">
+      {status ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          {status}
+        </p>
+      ) : null}
       {quoteSource ? (
-        <span className="mt-1 text-[12px] italic text-muted-foreground sm:text-[13px]">
-          — {quoteSource}
-        </span>
+        <p className="text-sm italic text-muted-foreground">
+          A quote by {quoteSource}
+        </p>
       ) : null}
     </div>
   );
 }
-
