@@ -88,7 +88,7 @@ export function InlineFilters({
         {PRESET_GROUPS.map((g) => (
           <div key={g.title} role="group" aria-label={g.title}>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="pl-8 text-xs font-medium tracking-normal normal-case">
+            <DropdownMenuLabel className="pl-8">
               {g.title}
             </DropdownMenuLabel>
             {g.options.map((o) => (
