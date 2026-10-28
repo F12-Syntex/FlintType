@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
 import { type AiChange } from "@/types/appearance-ai";
 import { useApplyPatch } from "../../../_components/use-apply-patch";
 import { useCurrentSettings } from "../../../_components/use-current-settings";
+import { StylePreview } from "../../../_components/rows/style-preview";
 import {
-  GeometryPreview,
   KeyboardLivePreview,
   LiveStatsPreview,
   MultiplayerPreview,
@@ -36,7 +36,7 @@ const PREVIEWS: { label: string; Comp: () => ReactNode; wide?: boolean }[] = [
   { label: "Result", Comp: ResultLivePreview, wide: true },
   { label: "Keyboard", Comp: KeyboardLivePreview, wide: true },
   { label: "Race", Comp: MultiplayerPreview },
-  { label: "Buttons & chips", Comp: GeometryPreview },
+  { label: "Buttons & cards", Comp: StylePreview },
 ];
 
 function ProcessingDots() {

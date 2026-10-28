@@ -407,7 +407,7 @@ function EnumView({
                 </span>
                 <span className="text-sm">{opt.label}</span>
                 {active ? (
-                  <CommandShortcut>Current</CommandShortcut>
+                  <CommandShortcut className="text-xs tracking-normal normal-case text-primary">Current</CommandShortcut>
                 ) : null}
               </CommandItem>
             );

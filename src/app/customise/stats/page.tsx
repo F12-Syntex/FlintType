@@ -40,7 +40,7 @@ export default function StatsSettingsPage() {
       <SettingsSection
         id="live-stats"
         title={sectionTitle(group, "live-stats")}
-        description="The numbers shown while you type. Mini is a small dot and number; Text is a full readout."
+        description="The numbers shown while you type, and how much room they take."
         preview={<LiveStatsPreview />}
       >
         <LiveStatsRows />

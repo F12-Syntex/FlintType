@@ -35,6 +35,15 @@ import {
   PagePaddingRow,
   SurfacePresetRow,
 } from "../_components/rows/surface-rows";
+import { StylePreview } from "../_components/rows/style-preview";
+import {
+  ButtonGlowRow,
+  ControlShapeRow,
+  DepthRow,
+  PageAuraRow,
+  UiFontRow,
+  UiScaleRow,
+} from "../_components/rows/style-rows";
 import { SettingsSection } from "../_components/settings-section";
 
 export default function InterfaceSettingsPage() {
@@ -60,6 +69,20 @@ export default function InterfaceSettingsPage() {
         customizedCount={customizedCount}
         onReset={handleReset}
       />
+
+      <SettingsSection
+        id="style"
+        title={sectionTitle(group, "style")}
+        description="Shape, depth, glow and type across the whole app."
+        preview={<StylePreview />}
+      >
+        <ControlShapeRow />
+        <DepthRow />
+        <ButtonGlowRow />
+        <PageAuraRow />
+        <UiFontRow />
+        <UiScaleRow />
+      </SettingsSection>
 
       <SettingsSection
         id="surface"

@@ -31,6 +31,20 @@ describe("settings catalog", () => {
     }
   });
 
+  it("puts the Style knobs on the Interface page so its Reset covers them", () => {
+    const keys = GROUP_APPEARANCE_KEYS.interface ?? [];
+    for (const k of [
+      "controlShape",
+      "depth",
+      "buttonGlow",
+      "pageAura",
+      "uiFont",
+      "uiScale",
+    ] as const) {
+      expect(keys).toContain(k);
+    }
+  });
+
   it("never assigns one appearance key to two groups", () => {
     const keys = Object.values(GROUP_APPEARANCE_KEYS).flat();
     expect(new Set(keys).size).toBe(keys.length);
@@ -54,6 +68,7 @@ describe("findGroup / groupForSection / groupForPath", () => {
     expect(groupForSection("colors")?.id).toBe("theme");
     expect(groupForSection("keymap")?.id).toBe("keyboard");
     expect(groupForSection("spectate")?.id).toBe("social");
+    expect(groupForSection("style")?.id).toBe("interface");
     // Rows that used to be sections of their own.
     expect(groupForSection("tape")?.id).toBe("typing");
     expect(groupForSection("mistakes")?.id).toBe("typing");

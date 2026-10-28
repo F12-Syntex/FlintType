@@ -8,6 +8,13 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.0 — 27 October 2026
+- Added a Style section to Interface settings: choose pill, rounded or square buttons, flat, soft or lifted cards, and turn the button glow and page glow on or off.
+- You can now pick the app's own font (Sans, Mono or System) and size (Compact, Default or Large) without changing the font you type in.
+- Style choices are in the command palette, come along with Import / export, and the Design with AI studio can suggest and preview them.
+- Choice chips in settings are now fully rounded, and setting descriptions are shorter and plainer.
+- The Default tile in the palette gallery now shows the real flame orange and the app's own fonts.
+
 ## 6.147.0 — 27 October 2026
 - Adaptive practice now counts your mistakes: letter pairs you often mistype get practised even if you type them quickly the rest of the time.
 - Practice notices improvement sooner, so a pattern you have fixed stops being drilled and your remaining weak spots get the time instead.

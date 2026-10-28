@@ -83,7 +83,7 @@ export default function BehaviourPage() {
           label={
             <LabelWithDesc
               title="Confidence mode"
-              desc="Limit backspace. Word blocks going back to earlier words; All turns it off."
+              desc="Word stops you going back to earlier words; All turns backspace off."
             />
           }
           control={
@@ -96,7 +96,7 @@ export default function BehaviourPage() {
         />
         <SwitchRow
           title="Allow extra letters"
-          desc="Count letters typed past the end of a word as mistakes. Off ignores them."
+          desc="Let you type past the end of a word; extra letters count as mistakes."
           checked={prefs.allowExtras}
           onChange={(v) => set("allowExtras", v)}
         />

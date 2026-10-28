@@ -16,13 +16,70 @@
  *
  *  Keep this in sync with:
  *    - src/lib/prefs-store.ts (LS_KEY = "flinttype:prefs:v1")
- *    - src/app/appearance-applier.tsx (data-ft-* mapping)
+ *    - src/app/appearance-applier.tsx (reads HTML_ATTR_RULES below)
  *    - src/app/borders-applier.tsx
  *    - src/lib/apply-theme-overrides.tsx (theme CSS-var overrides)
  *    - src/lib/themes/use-palette.tsx (palette.varsLight/varsDark + applyTheme)
  *    - src/lib/themes/palette-fork.ts (custom+base override layering)
  *    - src/lib/themes/registry.ts (CUSTOM_THEME_ID — hardcoded as "custom" below)
  *    - src/app/_components/discord-banner.tsx (banners.discordDismissed) */
+
+/** One appearance pref mirrored onto a `<html data-ft-…>` attribute.
+ *  The single table both the pre-paint script below and
+ *  `<AppearanceApplier>` read, so the two can never disagree.
+ *
+ *   - `enum`:     the value is written as-is unless it equals `fallback`
+ *                 (the look the CSS gives with no attribute at all).
+ *   - `flag-on`:  a default-off boolean; `true` writes `"on"`.
+ *   - `flag-off`: a default-on boolean; `false` writes `"off"`. */
+export type HtmlAttrRule =
+  | { attr: string; key: string; kind: "enum"; fallback: string }
+  | { attr: string; key: string; kind: "flag-on" }
+  | { attr: string; key: string; kind: "flag-off" };
+
+export const HTML_ATTR_RULES: readonly HtmlAttrRule[] = [
+  // Surface + chrome (ui-law §15).
+  { attr: "data-ft-cards", key: "cardSurfaces", kind: "enum", fallback: "solid" },
+  { attr: "data-ft-dividers", key: "dividers", kind: "enum", fallback: "hairline" },
+  { attr: "data-ft-padding", key: "pagePadding", kind: "enum", fallback: "comfortable" },
+  { attr: "data-ft-bg-fill", key: "backgroundFill", kind: "enum", fallback: "paper" },
+  { attr: "data-ft-topbar-style", key: "topbarStyle", kind: "enum", fallback: "elevated" },
+  { attr: "data-ft-footer-style", key: "footerStyle", kind: "enum", fallback: "visible" },
+  { attr: "data-ft-autohide", key: "autoHide", kind: "enum", fallback: "off" },
+  { attr: "data-ft-result", key: "resultChrome", kind: "enum", fallback: "framed" },
+  { attr: "data-ft-monochrome", key: "monochromeChrome", kind: "flag-on" },
+  // Style (ui-law §21).
+  { attr: "data-ft-controls", key: "controlShape", kind: "enum", fallback: "pill" },
+  { attr: "data-ft-depth", key: "depth", kind: "enum", fallback: "soft" },
+  { attr: "data-ft-glow", key: "buttonGlow", kind: "flag-off" },
+  { attr: "data-ft-aura", key: "pageAura", kind: "flag-off" },
+  { attr: "data-ft-ui-font", key: "uiFont", kind: "enum", fallback: "sans" },
+  { attr: "data-ft-ui-scale", key: "uiScale", kind: "enum", fallback: "default" },
+];
+
+/** The attribute value one rule writes for an appearance blob, or
+ *  `null` to remove it. Unknown / missing values fall back to "no
+ *  attribute" so a corrupt blob never paints a half-state. */
+export function htmlAttrValue(
+  rule: HtmlAttrRule,
+  appearance: Record<string, unknown>,
+): string | null {
+  const v = appearance[rule.key];
+  if (rule.kind === "flag-on") return v === true ? "on" : null;
+  if (rule.kind === "flag-off") return v === false ? "off" : null;
+  return typeof v === "string" && v !== "" && v !== rule.fallback ? v : null;
+}
+
+/** Every mirrored attribute for an appearance blob (`null` = remove). */
+export function htmlAttrsFor(
+  appearance: Record<string, unknown>,
+): Record<string, string | null> {
+  const out: Record<string, string | null> = {};
+  for (const rule of HTML_ATTR_RULES) {
+    out[rule.attr] = htmlAttrValue(rule, appearance);
+  }
+  return out;
+}
 
 export const PREFS_BOOTSTRAP_SCRIPT = `
 (function () {
@@ -34,28 +91,24 @@ export const PREFS_BOOTSTRAP_SCRIPT = `
     var root = document.documentElement;
 
     // Appearance: data-ft-* attrs that drive the global CSS cascade.
-    // Mirrors src/app/appearance-applier.tsx.
+    // Same table + rules as htmlAttrValue() above, which
+    // src/app/appearance-applier.tsx uses after hydration.
     var ap = blob.appearance;
     if (ap && typeof ap === 'object') {
-      var setAttr = function (key, value, defaultValue) {
-        if (value && value !== defaultValue) {
-          root.setAttribute(key, String(value));
-        } else {
-          root.removeAttribute(key);
+      var rules = ${JSON.stringify(HTML_ATTR_RULES)};
+      for (var ri = 0; ri < rules.length; ri++) {
+        var rule = rules[ri];
+        var rv = ap[rule.key];
+        var out = null;
+        if (rule.kind === 'flag-on') {
+          out = rv === true ? 'on' : null;
+        } else if (rule.kind === 'flag-off') {
+          out = rv === false ? 'off' : null;
+        } else if (typeof rv === 'string' && rv !== '' && rv !== rule.fallback) {
+          out = rv;
         }
-      };
-      setAttr('data-ft-cards', ap.cardSurfaces, 'solid');
-      setAttr('data-ft-dividers', ap.dividers, 'hairline');
-      setAttr('data-ft-padding', ap.pagePadding, 'comfortable');
-      setAttr('data-ft-bg-fill', ap.backgroundFill, 'paper');
-      setAttr('data-ft-topbar-style', ap.topbarStyle, 'elevated');
-      setAttr('data-ft-footer-style', ap.footerStyle, 'visible');
-      setAttr('data-ft-autohide', ap.autoHide, 'off');
-      setAttr('data-ft-result', ap.resultChrome, 'framed');
-      if (ap.monochromeChrome) {
-        root.setAttribute('data-ft-monochrome', 'on');
-      } else {
-        root.removeAttribute('data-ft-monochrome');
+        if (out === null) root.removeAttribute(rule.attr);
+        else root.setAttribute(rule.attr, out);
       }
       // Borders — see src/app/borders-applier.tsx
       if (ap.borders && ap.borders !== 'default') {

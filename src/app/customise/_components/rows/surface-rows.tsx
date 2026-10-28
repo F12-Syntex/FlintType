@@ -182,7 +182,7 @@ export function SurfacePresetRow() {
       label={
         <LabelWithDesc
           title="Preset"
-          desc="Editorial frames everything. Stripped leaves only the text."
+          desc="Editorial frames everything; Stripped leaves only the text."
         />
       }
       control={

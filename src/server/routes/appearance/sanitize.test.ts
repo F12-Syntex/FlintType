@@ -62,6 +62,33 @@ describe("sanitizePatch — appearance", () => {
     });
     expect(p.appearance).toEqual({});
   });
+
+  it("keeps valid Style picks and drops invalid ones", () => {
+    const ok = sanitizePatch({
+      appearance: {
+        controlShape: "rounded",
+        depth: "lifted",
+        buttonGlow: false,
+        uiFont: "system",
+      },
+    });
+    expect(ok.appearance).toEqual({
+      controlShape: "rounded",
+      depth: "lifted",
+      buttonGlow: false,
+      uiFont: "system",
+    });
+    const bad = sanitizePatch({
+      appearance: {
+        controlShape: "blob",
+        depth: 3,
+        buttonGlow: "yes",
+        uiFont: "comic",
+        uiScale: "large",
+      },
+    });
+    expect(bad.appearance).toEqual({});
+  });
 });
 
 describe("sanitizePatch — behaviour", () => {

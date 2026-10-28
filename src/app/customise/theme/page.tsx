@@ -49,7 +49,7 @@ const MAIN_COLORS: readonly ColorRowDef[] = [
   {
     var: "--ft-passage-typed",
     label: "Typed letters",
-    desc: "Letters you've already typed. Matches the accent until you change it.",
+    desc: "Letters you've already typed; they match the accent until you change them.",
     fallbackVar: "--primary",
   },
 ];

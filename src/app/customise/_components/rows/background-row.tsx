@@ -150,7 +150,7 @@ export function BackgroundRow() {
         label={
           <LabelWithDesc
             title="Upload an image"
-            desc="Kept on this device only. Replaces the link while set."
+            desc="Kept on this device only, and used instead of the link."
           />
         }
         control={

@@ -34,7 +34,7 @@ export type KeymapLegend = "lowercase" | "uppercase" | "blank" | "dynamic";
 export type KeymapTopRow = "always" | "layout" | "never";
 export type BordersMode = "default" | "soft" | "hidden";
 
-// ─── Monkeytype-leaning minimisation knobs (see docs/ui-law.md §15) ──
+// ─── Minimisation knobs (see docs/ui-law.md §15) ──
 export type CardSurfaceMode = "solid" | "subtle" | "transparent";
 export type DividerMode = "hairline" | "dotted" | "hidden";
 export type PagePaddingMode = "comfortable" | "tight" | "roomy";
@@ -52,6 +52,20 @@ export type QuoteAttribution = "below" | "chip" | "hidden";
  *  only) to loud (background highlight). Past errored words are
  *  governed separately by `markIncompleteWord`. */
 export type MistakeStyle = "color" | "bold" | "underline" | "highlight";
+
+// ─── Style (ui-law §21): the app's shape, depth and type ──────────────
+/** Shape of every interactive control — buttons, chips, switches,
+ *  inputs, nav links. Mirrored onto html[data-ft-controls]. */
+export type ControlShape = "pill" | "rounded" | "square";
+/** Shadow depth of cards and floating layers. Mirrored onto
+ *  html[data-ft-depth]. */
+export type DepthMode = "flat" | "soft" | "lifted";
+/** Typeface of the app around the test (the passage keeps its own
+ *  font). Mirrored onto html[data-ft-ui-font]. */
+export type UiFont = "sans" | "mono" | "system";
+/** Root text size — every rem-based size in the app scales with it.
+ *  Mirrored onto html[data-ft-ui-scale]. */
+export type UiScale = "compact" | "default" | "large";
 
 // ─── shape ────────────────────────────────────────────────────────────
 
@@ -152,7 +166,7 @@ export type AppearancePrefs = {
    *  Off keeps the lanes minimal and shifts the focus to the bars. */
   multiplayerShowOpponentWpm: boolean;
 
-  // ─── Surface (Monkeytype-leaning minimisation) ───
+  // ─── Surface (minimisation) ───
   /** Global card-fill mode. `solid` paints --card/--popover/--muted as
    *  themed fills (current). `subtle` drops them to 40% alpha of the
    *  page bg so they read as faint washes. `transparent` makes every
@@ -206,6 +220,18 @@ export type AppearancePrefs = {
    *  globally so --primary is the only saturated colour anywhere
    *  (caret, error, active CTA). Mirrored onto html[data-ft-monochrome]. */
   monochromeChrome: boolean;
+
+  // ─── Style ───
+  controlShape: ControlShape;
+  depth: DepthMode;
+  /** The soft glow under primary buttons. Off mirrors onto
+   *  html[data-ft-glow="off"]. */
+  buttonGlow: boolean;
+  /** The faint accent wash at the top of every page. Off mirrors onto
+   *  html[data-ft-aura="off"]. */
+  pageAura: boolean;
+  uiFont: UiFont;
+  uiScale: UiScale;
 };
 
 export const DEFAULT_APPEARANCE: AppearancePrefs = {
@@ -230,7 +256,7 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   // users who prefer a quieter passage can flip it off.
   markIncompleteWord: true,
   // Underline mistakes — quieter than "bold" or "highlight" but still
-  // unmissable against JetBrains Mono. The colour-only "color"
+  // unmissable in any passage font. The colour-only "color"
   // variant reads too subtle on near-monochrome palettes.
   mistakeStyle: "underline",
 
@@ -330,6 +356,16 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   caretIdle: "off",
   quoteAttribution: "below",
   monochromeChrome: false,
+
+  // ─── Style ───
+  // Pills, soft depth, a glowing primary button and a warm wash at the
+  // top of the page: the rounded look the brand ships with.
+  controlShape: "pill",
+  depth: "soft",
+  buttonGlow: true,
+  pageAura: true,
+  uiFont: "sans",
+  uiScale: "default",
 };
 
 export function useAppearancePrefs() {

@@ -1,6 +1,11 @@
-// @vitest-environment jsdom
+// @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from "vitest";
-import { PREFS_BOOTSTRAP_SCRIPT } from "./bootstrap";
+import {
+  HTML_ATTR_RULES,
+  htmlAttrsFor,
+  htmlAttrValue,
+  PREFS_BOOTSTRAP_SCRIPT,
+} from "./bootstrap";
 
 /** Run the inline bootstrap body exactly the way the `<head>` `<script>`
  *  does — it's an IIFE, so constructing a Function from the source and
@@ -14,7 +19,9 @@ const PREFS_KEY = "flinttype:prefs:v1";
 describe("PREFS_BOOTSTRAP_SCRIPT", () => {
   beforeEach(() => {
     localStorage.clear();
-    document.documentElement.removeAttribute("style");
+    const root = document.documentElement;
+    root.removeAttribute("style");
+    for (const rule of HTML_ATTR_RULES) root.removeAttribute(rule.attr);
   });
 
   it("is syntactically valid JavaScript", () => {
@@ -95,5 +102,108 @@ describe("PREFS_BOOTSTRAP_SCRIPT", () => {
     const s = document.documentElement.style;
     expect(s.getPropertyValue("--primary")).toBe("OVERRIDE");
     expect(s.getPropertyValue("--background")).toBe("PALETTE_BG");
+  });
+
+  it("paints the Style attributes before first paint", () => {
+    localStorage.setItem(
+      PREFS_KEY,
+      JSON.stringify({
+        appearance: {
+          controlShape: "square",
+          depth: "lifted",
+          buttonGlow: false,
+          pageAura: false,
+          uiFont: "mono",
+          uiScale: "large",
+        },
+      }),
+    );
+    runBootstrap();
+    const root = document.documentElement;
+    expect(root.getAttribute("data-ft-controls")).toBe("square");
+    expect(root.getAttribute("data-ft-depth")).toBe("lifted");
+    expect(root.getAttribute("data-ft-glow")).toBe("off");
+    expect(root.getAttribute("data-ft-aura")).toBe("off");
+    expect(root.getAttribute("data-ft-ui-font")).toBe("mono");
+    expect(root.getAttribute("data-ft-ui-scale")).toBe("large");
+  });
+
+  it("writes no Style attributes for the defaults", () => {
+    localStorage.setItem(
+      PREFS_KEY,
+      JSON.stringify({
+        appearance: {
+          controlShape: "pill",
+          depth: "soft",
+          buttonGlow: true,
+          pageAura: true,
+          uiFont: "sans",
+          uiScale: "default",
+        },
+      }),
+    );
+    runBootstrap();
+    const root = document.documentElement;
+    for (const attr of [
+      "data-ft-controls",
+      "data-ft-depth",
+      "data-ft-glow",
+      "data-ft-aura",
+      "data-ft-ui-font",
+      "data-ft-ui-scale",
+    ]) {
+      expect(root.hasAttribute(attr)).toBe(false);
+    }
+  });
+
+  it("matches htmlAttrsFor() for every mirrored attribute", () => {
+    const appearance = {
+      cardSurfaces: "transparent",
+      dividers: "hairline",
+      pagePadding: "tight",
+      monochromeChrome: true,
+      controlShape: "rounded",
+      buttonGlow: true,
+      pageAura: false,
+      uiScale: "compact",
+    };
+    localStorage.setItem(PREFS_KEY, JSON.stringify({ appearance }));
+    runBootstrap();
+    const root = document.documentElement;
+    for (const [attr, value] of Object.entries(htmlAttrsFor(appearance))) {
+      expect(root.getAttribute(attr)).toBe(value);
+    }
+  });
+});
+
+describe("htmlAttrValue", () => {
+  const rule = (key: string) => HTML_ATTR_RULES.find((r) => r.key === key)!;
+
+  it("omits an enum at its fallback and writes any other value", () => {
+    expect(htmlAttrValue(rule("controlShape"), { controlShape: "pill" })).toBeNull();
+    expect(htmlAttrValue(rule("controlShape"), { controlShape: "square" })).toBe("square");
+  });
+
+  it("ignores missing, empty and non-string enum values", () => {
+    expect(htmlAttrValue(rule("depth"), {})).toBeNull();
+    expect(htmlAttrValue(rule("depth"), { depth: "" })).toBeNull();
+    expect(htmlAttrValue(rule("depth"), { depth: 3 })).toBeNull();
+  });
+
+  it("writes \"on\" only for a true default-off flag", () => {
+    expect(htmlAttrValue(rule("monochromeChrome"), { monochromeChrome: true })).toBe("on");
+    expect(htmlAttrValue(rule("monochromeChrome"), { monochromeChrome: false })).toBeNull();
+    expect(htmlAttrValue(rule("monochromeChrome"), {})).toBeNull();
+  });
+
+  it("writes \"off\" only for a false default-on flag", () => {
+    expect(htmlAttrValue(rule("buttonGlow"), { buttonGlow: false })).toBe("off");
+    expect(htmlAttrValue(rule("buttonGlow"), { buttonGlow: true })).toBeNull();
+    expect(htmlAttrValue(rule("pageAura"), {})).toBeNull();
+  });
+
+  it("gives every rule a unique attribute", () => {
+    const attrs = HTML_ATTR_RULES.map((r) => r.attr);
+    expect(new Set(attrs).size).toBe(attrs.length);
   });
 });
