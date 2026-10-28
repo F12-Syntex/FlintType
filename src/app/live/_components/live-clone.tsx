@@ -12,6 +12,7 @@ import {
 import { DEFAULT_CARET, type CaretSettings } from "@/lib/caret-settings";
 import { PrefsOverrideProvider } from "@/lib/prefs-override";
 import type { LiveScreen } from "@/types/live";
+import { BurstResultProvider } from "@/app/_components/burst-log";
 import { ModeBar } from "@/app/_components/mode-bar";
 import { Passage } from "@/app/_components/passage";
 import {
@@ -30,7 +31,9 @@ import { TestSummary } from "@/app/_components/test-summary";
  *  practice state rebuilt from the live snapshot and wrapped in the
  *  broadcaster's appearance/caret/behaviour (`<PrefsOverrideProvider>`)
  *  + their resolved theme CSS vars. What they see is what the spectator
- *  sees — no forked rendering (ui-law §17.6). The whole surface is
+ *  sees — no forked rendering (ui-law §17.6); a BURST run's results
+ *  figures arrive precomputed on the done frame (`screen.burst`), since
+ *  the broadcaster's try log never leaves their tab. The whole surface is
  *  `pointer-events-none`: it's a view, not controls. */
 export function LiveClone({
   words,
@@ -63,7 +66,7 @@ export function LiveClone({
     const state: State = {
       mode: screen.mode as State["mode"],
       length: screen.length as State["length"],
-      adapt: false,
+      adapt: screen.adapt ?? false,
       phase,
       words: [...words],
       cursorWord: phase === "done" ? words.length : cursorWord,
@@ -132,7 +135,16 @@ export function LiveClone({
             <ModeBar />
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               {done ? (
-                <TestSummary preview />
+                screen.burst ? (
+                  // A BURST run's figures come from the broadcaster's try
+                  // log, which the clone has no copy of: the done frame
+                  // carries them precomputed.
+                  <BurstResultProvider value={screen.burst}>
+                    <TestSummary preview />
+                  </BurstResultProvider>
+                ) : (
+                  <TestSummary preview />
+                )
               ) : (
                 <>
                   <div className="mb-4 hidden md:block">

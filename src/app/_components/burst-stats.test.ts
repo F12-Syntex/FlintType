@@ -3,6 +3,7 @@ import {
   type BurstTry,
   burstBuckets,
   burstCaption,
+  burstResult,
   burstSpeed,
   summariseBursts,
   timedKeys,
@@ -170,5 +171,27 @@ describe("burstCaption", () => {
     expect(burstCaption({ cleared: 1, tries: 2 }, "90", "WPM")).toBe(
       "Speed of your one cleared burst. Raw also counts the 1 try that didn't clear.",
     );
+  });
+});
+
+describe("burstResult", () => {
+  it("is null until a try clears", () => {
+    expect(burstResult([])).toBeNull();
+    const miss: BurstTry = {
+      endT: 500,
+      ms: 200,
+      keys: 2,
+      chars: 5,
+      endedBySpace: false,
+      cleared: false,
+    };
+    expect(burstResult([miss])).toBeNull();
+  });
+
+  it("bundles the summary and the chart series of the same tries", () => {
+    const tries = [cleared(5, 1000, 1200), cleared(5, 500, 2600)];
+    const r = burstResult(tries);
+    expect(r?.summary).toEqual(summariseBursts(tries));
+    expect(r?.buckets).toEqual(burstBuckets(tries));
   });
 });

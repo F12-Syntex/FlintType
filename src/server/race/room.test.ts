@@ -1183,10 +1183,10 @@ describe("challenge rooms never gain bots (issue #5)", () => {
     expect(botCount(room)).toBe(1);
     expect(room.hostStart("s_host")).toBe(true);
     vi.advanceTimersByTime(700 + 3_000);
-    room.setProgress("s_host", room.totalChars, 0, true, 0, 100);
-    // The planted bot has no botProfile so it never ticks; finish the
-    // race by treating it as done is unnecessary — the room finishes
-    // when every racer is finished/disconnected, so mark it done.
+    // The planted bot has no botProfile so it never ticks. The room
+    // finishes when every racer is finished/disconnected, so mark it
+    // done before the host's finishing post (a post from an already
+    // finished racer is ignored, so it can't nudge the room later).
     const bot = racers.get("bot:selan") as unknown as { finishedAt: number | null };
     bot.finishedAt = 1;
     room.setProgress("s_host", room.totalChars, 0, true, 0, 100);

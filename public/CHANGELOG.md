@@ -8,6 +8,12 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.33 — 27 October 2026
+- Races: your result is final once you cross the line; a slow connection can no longer lower your speed, accuracy or place afterwards.
+- Races: if you restart the passage with Esc mid-race, your result now shows the new attempt's errors, accuracy and speed, not the abandoned attempt's.
+- Races: a wrong last letter no longer ends your race early; your finish is taken when you type the passage correctly.
+- Watching a friend live: their Burst results now show the same Burst WPM, caption, raw figure and chart they see, and the mode bar shows whether their run is adaptive.
+
 ## 6.148.32 — 27 October 2026
 - Putting a colour, corner, size or spacing back to your palette's own value now switches the palette picker back to that palette instead of leaving it on Custom. This works on every palette, Default included.
 - A palette whose size or spacing you changed now still reads Custom after you reload, so the picker and the settings pages' Reset button agree.

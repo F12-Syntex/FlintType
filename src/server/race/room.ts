@@ -675,6 +675,12 @@ export class RaceRoom {
     // early can ever land. Progress is also clamped to the passage
     // bounds [0, totalChars].
     if (this.phase !== "racing" && this.phase !== "finished") return false;
+    // A finished racer's result is final. Their finish (progress, errors,
+    // accuracy, wpm, raw, place) was locked in by the post that crossed
+    // the line or by the time-limit buzzer; a late or out-of-order POST
+    // arriving after that must not move any of it, least of all lower the
+    // wpm by recomputing it over a longer window.
+    if (r.finishedAt != null) return false;
     let next = Math.min(this.totalChars, Math.max(0, Math.floor(progressChars)));
     if (this.raceStartedAt != null) {
       const elapsedSec = Math.max(1, (Date.now() - this.raceStartedAt) / 1000);
@@ -684,15 +690,23 @@ export class RaceRoom {
       const maxChars = Math.floor((MAX_PLAUSIBLE_RACE_WPM * 5 * elapsedSec) / 60);
       next = Math.min(next, maxChars);
     }
-    if (next !== r.progressChars) r.progressChars = next;
-    if (errors != null) {
-      const e = Math.max(0, Math.floor(errors));
-      if (e !== r.errors) r.errors = e;
-    }
-    if (accuracy != null) {
-      const a = Math.max(0, Math.min(100, accuracy));
-      if (a !== r.accuracy) r.accuracy = a;
-    }
+    // Progress only moves forward, so a post that lands out of order
+    // can't pull the racer's lane back: the server keeps the furthest
+    // point reached. The exception is a fresh attempt. Esc restarts the
+    // passage mid-race and the client's counters start over, so a post
+    // back at the very start, or one with fewer errors than the server
+    // holds (the error count is a keystroke counter that only resets on
+    // a restart), takes its progress as sent. A stale post mistaken for
+    // a restart only lowers the lane until the next post.
+    const e = errors == null ? null : Math.max(0, Math.floor(errors));
+    const restarted = next === 0 || (e != null && e < r.errors);
+    if (restarted || next > r.progressChars) r.progressChars = next;
+    // Errors and accuracy are the current attempt's running totals, so
+    // the latest post wins. The finishing post is the client's last one
+    // (sent after the previous post settles), and the freeze above keeps
+    // its figures, so the result matches the racer's own run.
+    if (e != null) r.errors = e;
+    if (accuracy != null) r.accuracy = Math.max(0, Math.min(100, accuracy));
     // WPM is computed SERVER-SIDE from progress over time-since-race-
     // start — NOT the client-reported value, which the practice engine
     // measures from the racer's first keystroke. Anchoring to
@@ -713,11 +727,16 @@ export class RaceRoom {
     // any prior disconnected flag set by a stale leave / strict-mode
     // unmount.
     if (r.disconnected) r.disconnected = false;
-    // Finish is gated on the BOUNDED server progress reaching the end —
-    // never the client `finished` flag (which let a single forged POST win,
-    // FT-030). The flag is still accepted in the signature for wire-compat
-    // but, like `_clientWpm`, the server ignores it for the finish decision.
+    // Finish needs BOTH the client's `finished` flag and the BOUNDED server
+    // progress reaching the end. The flag alone let a single forged POST
+    // win (FT-030), so the progress clamp above still decides whether the
+    // finish is possible. The flag is needed too because the cursor count
+    // reaches the end as soon as the last word is typed to length, even
+    // with a wrong final letter; the client only finishes on the correct
+    // keystroke, and since a finish is frozen, stamping it at the typo
+    // would keep figures the racer never finished with.
     if (
+      finished &&
       r.finishedAt == null &&
       r.progressChars >= this.totalChars &&
       this.raceStartedAt != null
