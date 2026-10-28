@@ -1,5 +1,6 @@
 import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { signInHref } from "@/components/auth/sign-in-href";
 import { ensureUsername } from "@/server/auto-username";
 import { logger } from "@/server/logger";
 import { buildPageMetadata } from "@/server/seo";
@@ -33,9 +34,9 @@ export const metadata = buildPageMetadata({
  *  middleware before they get here. */
 export default async function ProfileIndexPage() {
   const session = await auth();
-  if (!session.userId) redirect("/sign-in");
+  if (!session.userId) redirect(signInHref("/profile"));
   const user = await currentUser();
-  if (!user) redirect("/sign-in");
+  if (!user) redirect(signInHref("/profile"));
 
   let username: string | null = user.username ?? null;
   if (!username) {

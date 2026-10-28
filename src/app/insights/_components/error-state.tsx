@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useSignInHref } from "@/components/auth/use-sign-in-href";
 import { Button, buttonVariants } from "@/components/ui/button";
 
 export type LoadError = { message: string; signIn: boolean };
@@ -13,13 +14,14 @@ export function ErrorState({
   error: LoadError;
   onRetry: () => void;
 }) {
+  const signInHref = useSignInHref();
   return (
     <div className="flex flex-col items-start gap-4 rounded-2xl border border-dashed border-border bg-card/40 px-5 py-8 sm:items-center sm:text-center">
       <p className="text-sm text-destructive" role="alert">
         {error.message}
       </p>
       {error.signIn ? (
-        <Link href="/sign-in" className={buttonVariants({ size: "lg" })}>
+        <Link href={signInHref} className={buttonVariants({ size: "lg" })}>
           Sign in
         </Link>
       ) : (

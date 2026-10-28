@@ -2,6 +2,7 @@
 
 import { Lock } from "lucide-react";
 import Link from "next/link";
+import { useSignInHref } from "@/components/auth/use-sign-in-href";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { LoadError } from "./use-drills";
@@ -79,6 +80,7 @@ export function ErrorState({
   error: LoadError;
   onRetry: () => void;
 }) {
+  const signInHref = useSignInHref();
   const title = error.signIn
     ? "Sign in to see your drills."
     : "Couldn't load your drills.";
@@ -95,7 +97,7 @@ export function ErrorState({
         </p>
       </div>
       {error.signIn ? (
-        <Link href="/sign-in" className={buttonVariants({ size: "lg" })}>
+        <Link href={signInHref} className={buttonVariants({ size: "lg" })}>
           Sign in
         </Link>
       ) : (
