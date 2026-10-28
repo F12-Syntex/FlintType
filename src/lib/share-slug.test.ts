@@ -43,10 +43,24 @@ describe("parseShareSlug", () => {
     expect(parseShareSlug("saif-92wpm-a3f9c0d1")).toBe("a3f9c0d1");
   });
 
-  it("returns the trailing UUID chunk for old full-UUID URLs (12 hex chars)", () => {
+  it("returns a legacy full-UUID URL intact so the prefix lookup matches it", () => {
     expect(parseShareSlug("a3f9c0d1-2b4e-4f1a-9c8d-0123456789ab")).toBe(
-      "0123456789ab",
+      "a3f9c0d1-2b4e-4f1a-9c8d-0123456789ab",
     );
+  });
+
+  it("lowercases a legacy full UUID", () => {
+    expect(parseShareSlug("A3F9C0D1-2B4E-4F1A-9C8D-0123456789AB")).toBe(
+      "a3f9c0d1-2b4e-4f1a-9c8d-0123456789ab",
+    );
+  });
+
+  it("round-trips: the slug's short id is a prefix of the test id", () => {
+    const testId = "a3f9c0d1-2b4e-4f1a-9c8d-0123456789ab";
+    const prefix = parseShareSlug(buildShareSlug({ handle: "saif", wpm: 92, testId }));
+    expect(prefix).not.toBeNull();
+    expect(testId.replace(/-/g, "").startsWith(prefix!)).toBe(true);
+    expect(testId.startsWith(prefix!)).toBe(true);
   });
 
   it("returns null when the slug tail isn't hex (guards against full-table LIKE scans)", () => {
