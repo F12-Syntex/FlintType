@@ -2,226 +2,177 @@
 
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-
-import { UserTag } from "@/components/ft";
-import { useBackend } from "@/lib/backend";
-import { XP_PER_LEVEL } from "@/lib/level";
+import type { ReactNode } from "react";
+import { buttonVariants } from "@/components/ui/button";
+import type { useBackend } from "@/lib/backend";
 import { skillTierForNetWpm } from "@/lib/skill-tier";
 import { cn } from "@/lib/utils";
 import type { TopLevelPlayer, TopPlayer } from "@/types/leaderboard";
-import { LeaderboardRow, LeaderboardWrapper } from "./shared-list";
+import { BoardActions } from "./board-actions";
+import { CellPill, LeaderboardRow } from "./board-row";
+import {
+  type BoardColumns,
+  EmptyBoard,
+  LeaderboardBoard,
+} from "./shared-list";
+import { LeaderboardToolbar } from "./toolbar";
+import { type RankedState, useRanked } from "./use-ranked";
 
-/** User-centric leaderboard views — both pages reuse the shared
- *  Wrapper + Row from `shared-list.tsx` so the three leaderboard
- *  surfaces (recent runs, top players, top by level) render with
- *  identical chrome and per-row layout. The only thing that
- *  differs per view is the header copy + the metric mapping into
- *  the row's headline / badge / hint slots. */
+/** User-centric views (Players, Level). Both render through the shared
+ *  board in `shared-list.tsx`; only the columns and cells differ. */
 const FETCH_LIMIT = 50;
 
+type Backend = ReturnType<typeof useBackend>;
+const loadPlayers = (b: Backend) =>
+  b.leaderboard.topPlayers({ limit: FETCH_LIMIT });
+const loadLevels = (b: Backend) =>
+  b.leaderboard.topByLevel({ limit: FETCH_LIMIT });
+
+const PLAYER_COLUMNS: BoardColumns = {
+  cells: ["Tier", "Runs", "Acc"],
+  headline: "WPM",
+};
+const LEVEL_COLUMNS: BoardColumns = {
+  cells: ["Progress", "Runs", "XP"],
+  headline: "Level",
+};
+
 export function TopPlayersView() {
-  const backend = useBackend();
-  const { user } = useUser();
-  const youUserId = user?.id ?? null;
-  const [data, setData] = useState<readonly TopPlayer[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setError(null);
-    backend.leaderboard
-      .topPlayers({ limit: FETCH_LIMIT })
-      .then((r) => {
-        if (!cancelled) setData(r.players);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Failed to load");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [backend]);
-
+  const youUserId = useUser().user?.id ?? null;
+  const state = useRanked<TopPlayer>("players", loadPlayers);
   return (
-    <LeaderboardWrapper
-      title="Top players"
-      blurb="One row per user, ranked by lifetime peak net-WPM. Tier badge from the bot ladder."
-      error={error}
-      empty={data?.length === 0}
-      loading={data == null}
-    >
-      <ol className="flex flex-col">
-        {data?.map((p) => {
-          const tier = skillTierForNetWpm(p.bestNetWpm);
-          return (
-            <LeaderboardRow
-              key={p.userId}
-              href={`/profile/${p.username ?? p.userId}`}
-              rank={p.rank}
-              username={p.username}
-              name={p.name}
-              tags={p.tags}
-              isYou={p.userId === youUserId}
-              headline={String(p.bestNetWpm)}
-              headlineSuffix="wpm"
-              badge={tier.label}
-              hint={`${p.testsCompleted} runs`}
-            />
-          );
-        })}
-      </ol>
-    </LeaderboardWrapper>
+    <RankedBoard state={state} columns={PLAYER_COLUMNS}>
+      {state.data?.map((p) => {
+        const tier = sentenceCase(skillTierForNetWpm(p.bestNetWpm).label);
+        const isYou = p.userId === youUserId;
+        const runs = plural(p.testsCompleted, "run");
+        return (
+          <LeaderboardRow
+            key={p.userId}
+            href={`/profile/${p.username ?? p.userId}`}
+            rank={p.rank}
+            username={p.username}
+            name={p.name}
+            tags={p.tags}
+            isYou={isYou}
+            cells={[<CellPill key="t">{tier}</CellPill>, p.testsCompleted, `${Math.round(p.bestAccuracy)}%`]}
+            headline={p.bestNetWpm}
+            summary={`${tier} · ${runs}`}
+            ariaLabel={`Rank ${p.rank}, ${handleOf(p)}${isYou ? " (you)" : ""}: best ${p.bestNetWpm} WPM, ${tier}, ${runs}`}
+          />
+        );
+      })}
+    </RankedBoard>
   );
 }
 
 export function TopLevelsView() {
-  const backend = useBackend();
-  const { user } = useUser();
-  const youUserId = user?.id ?? null;
-  const [data, setData] = useState<readonly TopLevelPlayer[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setError(null);
-    backend.leaderboard
-      .topByLevel({ limit: FETCH_LIMIT })
-      .then((r) => {
-        if (!cancelled) setData(r.players);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Failed to load");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [backend]);
-
+  const youUserId = useUser().user?.id ?? null;
+  const state = useRanked<TopLevelPlayer>("levels", loadLevels);
   return (
-    <LeaderboardWrapper
-      title="Top by level"
-      blurb="One row per user, ranked by completed-test count. Level here matches the level on each user's profile (10 completed tests = 1 level)."
-      error={error}
-      empty={data?.length === 0}
-      loading={data == null}
-    >
-      <ol className="flex flex-col">
-        {data?.map((p) => (
-          <LevelRow
+    <RankedBoard state={state} columns={LEVEL_COLUMNS}>
+      {state.data?.map((p) => {
+        const isYou = p.userId === youUserId;
+        const pct = Math.round(Math.max(0, Math.min(1, p.levelProgress)) * 100);
+        const runs = plural(p.testsCompleted, "run");
+        return (
+          <LeaderboardRow
             key={p.userId}
-            player={p}
-            isYou={p.userId === youUserId}
+            href={`/profile/${p.username ?? p.userId}`}
+            rank={p.rank}
+            username={p.username}
+            name={p.name}
+            tags={p.tags}
+            isYou={isYou}
+            cells={[
+              <LevelProgress key="p" pct={pct} isYou={isYou} />,
+              p.testsCompleted,
+              p.xp.toLocaleString(),
+            ]}
+            headline={p.level}
+            summary={`${runs} · ${pct}% to level ${p.level + 1}`}
+            ariaLabel={`Rank ${p.rank}, ${handleOf(p)}${isYou ? " (you)" : ""}: level ${p.level}, ${pct}% to the next level, ${runs}`}
           />
-        ))}
-      </ol>
-    </LeaderboardWrapper>
+        );
+      })}
+    </RankedBoard>
   );
 }
 
-/** Bespoke row for the Top by Level view. Diverges from the shared
- *  `LeaderboardRow` shape because the level is the headline AND the
- *  row needs to carry a progress bar — neither fits the
- *  `headline / badge / hint` slot vocabulary cleanly.
- *
- *  Anatomy: big L<n> dial on the right · handle column in the middle
- *  with a thin XP-progress bar underneath · rank pill on the left.
- *  Same isYou tint + "You" pill as the shared row so all three views
- *  still feel like siblings; the level dial is the only visual
- *  divergence. */
-function LevelRow({
-  player,
-  isYou,
+/** Toolbar + board + empty state shared by both user-centric views. */
+function RankedBoard<T>({
+  state,
+  columns,
+  children,
 }: {
-  player: TopLevelPlayer;
-  isYou: boolean;
+  state: RankedState<T>;
+  columns: BoardColumns;
+  children: ReactNode;
 }) {
-  const handle = player.username ? `@${player.username}` : player.name;
-  const leader = player.rank === 1;
-  const href = `/profile/${player.username ?? player.userId}`;
-  const pct = Math.max(0, Math.min(1, player.levelProgress)) * 100;
+  const empty =
+    !state.loading && !state.error && (state.data?.length ?? 0) === 0;
   return (
-    <li
-      className={cn(
-        "border-b border-border/50 last:border-b-0",
-        isYou && "bg-primary/[0.05]",
+    <div className="flex flex-col gap-4">
+      <LeaderboardToolbar
+        actions={
+          <BoardActions
+            onRefresh={state.refresh}
+            refreshing={state.loading || state.refreshing}
+            generatedAt={state.generatedAt}
+          />
+        }
+      />
+      {empty ? (
+        <EmptyBoard
+          message="No ranked players yet. Finish a test to put your name on the board."
+          actions={
+            <Link href="/" className={buttonVariants()}>
+              Start a test
+            </Link>
+          }
+        />
+      ) : (
+        <LeaderboardBoard
+          columns={columns}
+          loading={state.loading}
+          error={state.data == null ? state.error : null}
+          onRetry={state.refresh}
+        >
+          {children}
+        </LeaderboardBoard>
       )}
-    >
-      <Link
-        href={href}
-        className={cn(
-          "flex items-center gap-4 px-4 py-3 sm:px-6 sm:py-4",
-          "transition-colors hover:bg-accent",
-        )}
-      >
+    </div>
+  );
+}
+
+/** Progress toward the next level. Ink by default; orange on your row. */
+function LevelProgress({ pct, isYou }: { pct: number; isYou: boolean }) {
+  return (
+    <span className="flex items-center gap-2">
+      <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
         <span
           className={cn(
-            "w-8 shrink-0 text-[12px] font-semibold tabular-nums sm:text-[13px]",
-            leader ? "text-primary" : "text-muted-foreground",
+            "block h-full rounded-full",
+            isYou ? "bg-primary" : "bg-foreground/60",
           )}
-        >
-          {String(player.rank).padStart(2, "0")}
-        </span>
-
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <span
-              className={cn(
-                "min-w-0 truncate text-[14px] sm:text-[15px]",
-                isYou
-                  ? "font-semibold text-primary"
-                  : leader
-                    ? "font-semibold text-foreground"
-                    : "text-foreground/90",
-              )}
-            >
-              {handle}
-            </span>
-            {player.tags.map((t) => (
-              <UserTag key={t} tag={t} size="sm" className="shrink-0" />
-            ))}
-            {isYou ? (
-              <span
-                aria-label="Your entry"
-                className="inline-flex h-5 shrink-0 items-center rounded-md border border-primary/40 bg-primary/[0.08] px-1.5 text-[9px] font-semibold uppercase leading-none tracking-[0.18em] text-primary"
-              >
-                You
-              </span>
-            ) : null}
-            <span className="hidden text-[10px] uppercase tracking-[0.18em] text-muted-foreground tabular-nums sm:inline">
-              {player.testsCompleted} runs
-            </span>
-          </div>
-          {/* XP progress bar — same level economy the profile hero
-           *  uses, so the bar fill matches the bar a user sees on
-           *  their own profile. */}
-          <div
-            aria-hidden
-            className="relative h-1 w-full overflow-hidden rounded-full bg-foreground/[0.07]"
-          >
-            <span
-              className="absolute inset-y-0 left-0 rounded-full bg-primary/80"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground tabular-nums">
-            {player.xpIntoLevel} / {XP_PER_LEVEL} xp · next {player.level + 1}
-          </span>
-        </div>
-
-        <div className="flex shrink-0 items-center">
-          <span
-            className={cn(
-              "text-3xl font-bold leading-none tabular-nums sm:text-4xl",
-              leader ? "text-primary" : "text-foreground",
-            )}
-          >
-            {player.level}
-          </span>
-        </div>
-      </Link>
-    </li>
+          style={{ width: `${pct}%` }}
+        />
+      </span>
+      <span className="w-9 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+        {pct}%
+      </span>
+    </span>
   );
+}
+
+function handleOf(p: { username: string | null; name: string }): string {
+  return p.username ? `@${p.username}` : p.name;
+}
+
+function plural(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? "" : "s"}`;
+}
+
+function sentenceCase(s: string): string {
+  return s.charAt(0) + s.slice(1).toLowerCase();
 }

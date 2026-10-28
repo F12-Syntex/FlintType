@@ -4,84 +4,112 @@ import type {
   LeaderboardWindow,
 } from "@/types/leaderboard";
 
-// Only the two solo practice modes rank on the leaderboard: Casual
-// and Adapt (the adaptive "training" mode). Race output and the
-// "all modes" mixed view were removed so the board ranks like-for-like
-// runs that count toward a consistent skill comparison.
+/** Filter vocabulary for /leaderboard, plus the pure URL <-> filter
+ *  mapping. Every filter lives in the query string so a board can be
+ *  shared or bookmarked; defaults are omitted to keep URLs short. */
+
+// Only the two solo practice modes rank: Casual and Adapt (the adaptive
+// "training" mode), so the board compares like-for-like runs.
 export const SCOPES: readonly { id: LeaderboardScope; label: string }[] = [
   { id: "casual", label: "Casual" },
   { id: "training", label: "Adapt" },
 ];
 
-export const WINDOWS: readonly { id: LeaderboardWindow; label: string }[] = [
-  { id: "all_time", label: "All time" },
-  { id: "month", label: "This month" },
-  { id: "week", label: "This week" },
-  { id: "day", label: "Today" },
+export const WINDOWS: readonly {
+  id: LeaderboardWindow;
+  label: string;
+  /** Short form for the mobile filter sheet's segmented switch. */
+  short: string;
+}[] = [
+  { id: "all_time", label: "All time", short: "All time" },
+  { id: "month", label: "This month", short: "Month" },
+  { id: "week", label: "This week", short: "Week" },
+  { id: "day", label: "Today", short: "Today" },
 ];
 
-/** Preset slices — group time presets and word presets so the
- *  sidebar can render them under sub-headings. Word presets share
- *  the personal-bests scale (10/25/50/100); time presets share the
- *  same MonkeyType-style 15/30/60/120 scale. "any" is the default
- *  — no amount filter, full table. */
+export type PresetOption = {
+  id: LeaderboardPreset;
+  label: string;
+  short: string;
+};
+
+/** Test-length presets, grouped Words / Time; "any" sits outside. */
 export const PRESET_GROUPS: readonly {
   title: string;
-  options: readonly { id: LeaderboardPreset; label: string }[];
+  options: readonly PresetOption[];
 }[] = [
-  {
-    title: "Length",
-    options: [{ id: "any", label: "All lengths" }],
-  },
   {
     title: "Words",
     options: [
-      { id: "w10", label: "10 words" },
-      { id: "w25", label: "25 words" },
-      { id: "w50", label: "50 words" },
-      { id: "w100", label: "100 words" },
+      { id: "w10", label: "10 words", short: "10" },
+      { id: "w25", label: "25 words", short: "25" },
+      { id: "w50", label: "50 words", short: "50" },
+      { id: "w100", label: "100 words", short: "100" },
     ],
   },
   {
     title: "Time",
     options: [
-      { id: "t15", label: "15 seconds" },
-      { id: "t30", label: "30 seconds" },
-      { id: "t60", label: "60 seconds" },
-      { id: "t120", label: "120 seconds" },
+      { id: "t15", label: "15 seconds", short: "15s" },
+      { id: "t30", label: "30 seconds", short: "30s" },
+      { id: "t60", label: "60 seconds", short: "60s" },
+      { id: "t120", label: "120 seconds", short: "120s" },
     ],
   },
 ];
 
-const PRESET_IDS: readonly LeaderboardPreset[] = [
-  "any",
-  "w10",
-  "w25",
-  "w50",
-  "w100",
-  "t15",
-  "t30",
-  "t60",
-  "t120",
-];
+export const ALL_LENGTHS_LABEL = "All lengths";
 
-const PRESET_LABEL_BY_ID = new Map<LeaderboardPreset, string>(
-  PRESET_GROUPS.flatMap((g) => g.options.map((o) => [o.id, o.label] as const)),
-);
+/** The board opens on the 60-second time test, like most typing sites. */
+export const DEFAULT_PRESET: LeaderboardPreset = "t60";
+
+const PRESETS = PRESET_GROUPS.flatMap((g) => g.options);
+
 export function presetLabel(id: LeaderboardPreset): string {
-  return PRESET_LABEL_BY_ID.get(id) ?? "All lengths";
+  return PRESETS.find((o) => o.id === id)?.label ?? ALL_LENGTHS_LABEL;
 }
 
 export const MODE_LABEL: Record<string, string> = {
-  race: "race",
-  training: "adapt",
-  casual: "casual",
-  reverse_adaptive: "reverse",
+  race: "Race",
+  training: "Adapt",
+  casual: "Casual",
+  reverse_adaptive: "Reverse",
 };
 
-/** The leaderboard ranks only the two solo modes. Legacy `all` / `race`
- *  scopes (from old shared URLs) degrade to the Casual default rather
- *  than 404-ing the filter. Default view is Casual. */
+/** Which ranking the board shows.
+ *    `table`   - best runs (respects Mode / Window / Length / audience)
+ *    `players` - one row per user, ranked by lifetime peak net WPM
+ *    `levels`  - one row per user, ranked by level (completed tests)
+ *  The two user-centric views ignore the filters. */
+export type LeaderboardView = "table" | "players" | "levels";
+
+export const VIEWS: readonly { id: LeaderboardView; label: string }[] = [
+  { id: "table", label: "Best runs" },
+  { id: "players", label: "Players" },
+  { id: "levels", label: "Level" },
+];
+
+/** The page header's one line per view (plain strings so the server
+ *  header can render the default). */
+export const VIEW_DESCRIPTIONS: Record<LeaderboardView, string> = {
+  table: "Ranked by net WPM (raw × accuracy).",
+  players: "Each player's best run, ranked by net WPM.",
+  levels: "Ranked by level. Ten finished tests earn a level.",
+};
+
+/** Everyone, or the people you follow plus you (signed-in only). */
+export type LeaderboardAudience = "global" | "friends";
+
+export type LeaderboardFilters = {
+  view: LeaderboardView;
+  scope: LeaderboardScope;
+  window: LeaderboardWindow;
+  preset: LeaderboardPreset;
+  audience: LeaderboardAudience;
+};
+
+/** Legacy `all` / `race` scopes from old shared URLs degrade to Casual
+ *  rather than breaking the filter. */
 export function parseScope(s: string | null): LeaderboardScope {
   if (s === "training" || s === "casual") return s;
   return "casual";
@@ -92,40 +120,82 @@ export function parseWindow(s: string | null): LeaderboardWindow {
   return "all_time";
 }
 
+/** No param means the default (60 seconds). "All lengths" is written
+ *  explicitly as `preset=any`, so it survives a round trip. */
 export function parsePreset(s: string | null): LeaderboardPreset {
-  // Default view is the 60-second time test.
-  if (s == null) return "t60";
-  const found = PRESET_IDS.find((id) => id === s);
-  return found ?? "t60";
+  if (s === "any") return "any";
+  return PRESETS.find((o) => o.id === s)?.id ?? DEFAULT_PRESET;
 }
-
-/** Which kind of ranking the main pane shows. Switched from the
- *  sidebar's "View" group.
- *    `table`   — the per-run leaderboard (default; respects the
- *                Mode / Window / Length filters)
- *    `players` — one row per user, ranked by lifetime peak net-WPM
- *    `levels`  — one row per user, ranked by accumulated XP / level
- *  The user-centric views ignore the filter trio above. */
-export type LeaderboardView = "table" | "players" | "levels";
-
-export const VIEWS: readonly { id: LeaderboardView; label: string }[] = [
-  { id: "table", label: "Recent runs" },
-  { id: "players", label: "Top players" },
-  { id: "levels", label: "Top by level" },
-];
 
 export function parseView(s: string | null): LeaderboardView {
   if (s === "players" || s === "levels") return s;
   return "table";
 }
 
-/** Whose runs the table ranks.
- *    `global`  — everyone (default; the public board)
- *    `friends` — only the people you follow, plus you
- *  Friends requires a signed-in caller; the toggle is hidden for
- *  anonymous viewers, and `parseAudience` falls back to global. */
-export type LeaderboardAudience = "global" | "friends";
-
 export function parseAudience(s: string | null): LeaderboardAudience {
   return s === "friends" ? "friends" : "global";
+}
+
+export function parseFilters(
+  get: (key: string) => string | null,
+): LeaderboardFilters {
+  return {
+    view: parseView(get("view")),
+    scope: parseScope(get("scope")),
+    window: parseWindow(get("window")),
+    preset: parsePreset(get("preset")),
+    audience: parseAudience(get("audience")),
+  };
+}
+
+/** Serialise filters into a query string, omitting defaults. Unrelated
+ *  params already on `base` are kept. Returns "" when nothing is set. */
+export function filtersToQuery(
+  f: LeaderboardFilters,
+  base: URLSearchParams = new URLSearchParams(),
+): string {
+  const sp = new URLSearchParams(base.toString());
+  const put = (key: string, value: string, fallback: string) => {
+    if (value === fallback) sp.delete(key);
+    else sp.set(key, value);
+  };
+  put("view", f.view, "table");
+  put("scope", f.scope, "casual");
+  put("window", f.window, "all_time");
+  put("preset", f.preset, DEFAULT_PRESET);
+  put("audience", f.audience, "global");
+  return sp.toString();
+}
+
+const WINDOW_PHRASE: Record<LeaderboardWindow, string> = {
+  all_time: "",
+  month: " this month",
+  week: " this week",
+  day: " today",
+};
+
+/** Plain-language name of a slice for the empty state, e.g.
+ *  "casual runs at 60 seconds this week from friends". */
+export function describeSlice(f: LeaderboardFilters): string {
+  const mode = (SCOPES.find((s) => s.id === f.scope)?.label ?? "Casual")
+    .toLowerCase();
+  const length = f.preset === "any" ? "" : ` at ${presetLabel(f.preset)}`;
+  const who = f.audience === "friends" ? " from friends" : "";
+  return `${mode} runs${length}${WINDOW_PHRASE[f.window]}${who}`;
+}
+
+/** One-line summary for the mobile filter button, e.g.
+ *  "Casual · 60s · All time" (prefixed with "Friends" when set). */
+export function filterSummary(f: LeaderboardFilters): string {
+  const parts = [
+    SCOPES.find((s) => s.id === f.scope)?.label ?? "Casual",
+    f.preset === "any"
+      ? ALL_LENGTHS_LABEL
+      : f.preset.startsWith("t")
+        ? `${f.preset.slice(1)}s`
+        : presetLabel(f.preset),
+    WINDOWS.find((w) => w.id === f.window)?.label ?? "All time",
+  ];
+  if (f.audience === "friends") parts.unshift("Friends");
+  return parts.join(" · ");
 }

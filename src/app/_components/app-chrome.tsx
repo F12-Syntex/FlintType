@@ -19,7 +19,7 @@ const NAV: NavItem[] = [
  *  - Scrolling pages: the Discord nudge and the footer ride inside the
  *    scroll container, so they scroll away with the content instead of
  *    eating ~150px of a phone screen permanently.
- *  - `compact` pages (practice, races, leaderboard and settings shells
+ *  - `compact` pages (practice, races and the settings shell
  *    that own their own scrolling): main never scrolls, there is no
  *    promo strip, and the footer is pinned at md+ and hidden on phones
  *    so the OS keyboard can't push the typing area off-screen.
