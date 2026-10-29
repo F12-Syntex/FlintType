@@ -5,12 +5,12 @@ import { describe, expect, it } from "vitest";
 // import from here too. Per UI law §1.3 (the pure-reducer exception),
 // this is the canonical home for the unit suite.
 import {
-  generateWords,
   initialState,
   reducer,
   type Action,
   type State,
 } from "./practice-reducer";
+import { generateWords } from "./practice-words";
 
 /** Helper: seed a State at a specific cursor position with a typed
  *  buffer matching what the user has entered. The reducer doesn't

@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.149.7 — 29 October 2026
+- Tests now record your corrections and the gaps between words, so your analysis can tell a fix from a pause.
+
 ## 6.149.6 — 29 October 2026
 - Internal changes only.
 

@@ -6,8 +6,10 @@ export type NativeTextHandlers = {
   /** False while typing should be swallowed (modal open, race locked).
    *  The events are still cancelled so nothing lands in the input. */
   accepts: () => boolean;
-  onText: (text: string) => void;
-  onDelete: (wordWise: boolean) => void;
+  /** `ht` is the input event's timeStamp (performance.now() for IME
+   *  composition, which shares its time origin), for capture v2. */
+  onText: (text: string, ht?: number) => void;
+  onDelete: (wordWise: boolean, ht?: number) => void;
 };
 
 /** Soft-keyboard text for a hidden typing input.
@@ -47,6 +49,7 @@ export function useNativeTextInput(
     let composed = "";
     const syncComposition = () => {
       const h = latest.current;
+      const ht = performance.now();
       const next = el.value;
       let same = 0;
       while (
@@ -56,9 +59,9 @@ export function useNativeTextInput(
       )
         same++;
       if (h.accepts()) {
-        for (let i = same; i < composed.length; i++) h.onDelete(false);
+        for (let i = same; i < composed.length; i++) h.onDelete(false, ht);
         const added = next.slice(same);
-        if (added) h.onText(added);
+        if (added) h.onText(added, ht);
       }
       composed = next;
     };
@@ -70,14 +73,14 @@ export function useNativeTextInput(
       if (!h.accepts()) return;
       if (e.inputType.startsWith("delete")) {
         if (recent("Backspace")) return;
-        h.onDelete(e.inputType !== "deleteContentBackward");
+        h.onDelete(e.inputType !== "deleteContentBackward", e.timeStamp);
       } else if (
         e.inputType === "insertText" ||
         e.inputType === "insertReplacementText"
       ) {
         let text = "";
         for (const ch of e.data ?? "") if (!recent(ch)) text += ch;
-        if (text) h.onText(text);
+        if (text) h.onText(text, e.timeStamp);
       }
     };
     const onInput = (e: Event) => {
