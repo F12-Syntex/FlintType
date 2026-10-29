@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.50 — 29 October 2026
+- With the Text only top bar (and the Stripped look), the page you're on is clearly marked again, and the light and dark mode switch keeps its highlight.
+
 ## 6.148.49 — 29 October 2026
 - On tablets and narrow windows, the settings page menu now opens, so you can move between settings pages from it.
 
