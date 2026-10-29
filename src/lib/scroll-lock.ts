@@ -1,5 +1,6 @@
 /** Body scroll lock shared by the app's overlays (<ConfirmDialog>,
- *  <MobileSheet>). Counted, so overlapping overlays compose: a sheet
+ *  <MobileSheet>, the <MobileNav> drawer). Counted, so overlapping
+ *  overlays compose: a sheet
  *  closing while the dialog it opened is still up doesn't unlock the
  *  page under the dialog, and the last one out restores the original
  *  value instead of a stale "hidden". Returns the release function

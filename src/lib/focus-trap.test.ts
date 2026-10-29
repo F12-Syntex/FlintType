@@ -129,6 +129,27 @@ describe("Tab and Escape", () => {
     expect(e.defaultPrevented).toBe(true);
   });
 
+  it("claims Escape before window-level listeners see it", () => {
+    // The command palette opens on an unclaimed Escape from a window
+    // listener added at app start, before any trap; closing a panel (the
+    // friends dock) must not also open it.
+    const seen: boolean[] = [];
+    const onWindow = (e: KeyboardEvent) => seen.push(e.defaultPrevented);
+    window.addEventListener("keydown", onWindow);
+    const onEscape = vi.fn();
+    try {
+      const { root, panel } = setup();
+      open(panel, root, { onEscape });
+      press("Escape");
+      (document.activeElement as HTMLElement).blur();
+      press("Escape"); // from <body>, e.g. after a mouse click on the page
+    } finally {
+      window.removeEventListener("keydown", onWindow);
+    }
+    expect(onEscape).toHaveBeenCalledTimes(2);
+    expect(seen).toEqual([true, true]);
+  });
+
   it("ignores an Escape something inside already handled", () => {
     const { root, panel } = setup();
     const onEscape = vi.fn();

@@ -8,6 +8,12 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.51 — 29 October 2026
+- Pressing Escape in the friends panel now just closes it, instead of also opening the command palette.
+- The friends panel now works from the keyboard: opening it takes you straight to the friend search, and closing it puts you back on the Friends button.
+- Opening Friends while the menu is open now closes the menu, so the friends panel opens in view instead of hiding behind it.
+- Opening Friends from the phone menu no longer stops the page from scrolling after you move to another page.
+
 ## 6.148.50 — 29 October 2026
 - With the Text only top bar (and the Stripped look), the page you're on is clearly marked again, and the light and dark mode switch keeps its highlight.
 

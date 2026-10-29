@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { lockBodyScroll } from "@/lib/scroll-lock";
 import { useMounted } from "@/lib/use-mounted";
 import { cn } from "@/lib/utils";
 import type { NavItem } from "./top-bar";
@@ -56,6 +57,17 @@ function MorphIcon({ open }: { open: boolean }) {
   );
 }
 
+/** Window event that closes the drawer (see closeMobileNav). */
+const CLOSE_MOBILE_NAV_EVENT = "ft:close-mobile-nav";
+
+/** Closes the hamburger drawer if it's open. For a top-bar control
+ *  that opens its own overlay (the Friends panel): the drawer sits
+ *  above the page at z-50, so that overlay would otherwise open, and
+ *  take keyboard focus, underneath it. */
+export function closeMobileNav() {
+  window.dispatchEvent(new Event(CLOSE_MOBILE_NAV_EVENT));
+}
+
 export function MobileNav({
   nav,
   drawerExtras,
@@ -76,18 +88,26 @@ export function MobileNav({
     setOpen(false);
   }
 
-  // Lock body scroll + close on Escape while open.
+  // Lock body scroll + close on Escape (or closeMobileNav) while open.
+  // The lock is the shared counted one, so an overlay that overlaps the
+  // drawer and closes after it can't restore a stale "hidden". An
+  // Escape something on top already handled (that overlay's own close)
+  // leaves the drawer open.
   useEffect(() => {
     if (!open) return;
+    const close = () => setOpen(false);
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      e.preventDefault();
+      close();
     };
     window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    window.addEventListener(CLOSE_MOBILE_NAV_EVENT, close);
+    const unlock = lockBodyScroll();
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
+      window.removeEventListener(CLOSE_MOBILE_NAV_EVENT, close);
+      unlock();
     };
   }, [open]);
 
