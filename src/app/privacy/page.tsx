@@ -105,7 +105,9 @@ export default function PrivacyPage() {
             you can see them, on your Insights page, your result screens
             and the technical view. Your public profile shows your test
             results, never your weak letter pairs, words or timing
-            figures. We don&apos;t sell, syndicate or share any of it.
+            figures. You can delete your typing analysis at any time from
+            the Insights page. We don&apos;t sell, syndicate or share any
+            of it.
           </p>
           <p>
             When you&apos;re signed in, friends who follow you back can

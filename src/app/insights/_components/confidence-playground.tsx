@@ -23,13 +23,13 @@ const scoreCache = createScoreCache<Scored>({
 
 function errorMessage(err: unknown): string {
   if (err instanceof BackendError) {
-    if (err.code === "UNAUTHORIZED") return "Sign in to score words against your model.";
+    if (err.code === "UNAUTHORIZED") return "Sign in to score words.";
     if (err.code === "RATE_LIMITED") return "That's a lot of new words at once. Wait a minute, then keep typing.";
   }
   return err instanceof Error ? err.message : "Scoring failed.";
 }
 
-/** Type any text and see how the model predicts you'll type it: each
+/** Type any text and see how you'd likely type it: each
  *  word shows its predicted WPM, and only words worth practising are
  *  tinted orange. Scores come from `adapt.scoreWord`, one request per
  *  new word, debounced, cached and de-duplicated while in flight. */
@@ -117,7 +117,7 @@ export function ConfidencePlayground({
           setInput(e.target.value);
         }}
         placeholder="Type or paste any text"
-        aria-label="Text to score against your model"
+        aria-label="Text to score"
         className="font-mono"
         autoComplete="off"
         spellCheck={false}
@@ -157,8 +157,8 @@ export function ConfidencePlayground({
 
       <p className="text-xs leading-relaxed text-muted-foreground">
         {bandActive
-          ? "Numbers are each word's predicted WPM. Orange words are worth practising: a bit slower than your average, not so slow you stall."
-          : "Numbers are each word's predicted WPM. Words worth practising light up once your model knows you better."}
+          ? "Numbers are each word's predicted speed in wpm. Orange words are worth practising: a bit slower than your average, not so slow you stall."
+          : "Numbers are each word's predicted speed in wpm. Words worth practising light up once we know your typing better."}
       </p>
     </Surface>
   );
