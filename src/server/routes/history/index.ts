@@ -10,130 +10,47 @@ import {
   readTagSelection,
   resolveEligibleTags,
 } from "@/server/resolve-tags";
+import { weakestPatterns } from "@/server/weakest-patterns";
 import type { UserTagId } from "@/types/user-tag";
 import {
   bigramRowsToStates,
   trigramRowsToStates,
   wordRowsToStates,
 } from "@/server/adapt/apply";
-import { bigramCategory } from "@/lib/keystrokes/motor-features";
-import {
-  baselineForCategory,
-  baselineMean,
-  bigramBaselines,
-  MIN_SAMPLES_FOR_WEAKNESS,
-  weakness,
-} from "@/server/adapt/scoring";
-import { COLD_BIGRAM_THRESHOLD } from "@/server/adapt/select";
-import { ensureHandLayout } from "@/lib/hand-layout";
+import { ensureHandLayout, type HandLayoutPrefs } from "@/lib/hand-layout";
 import { readLifetimeStats } from "@/lib/lifetime-stats";
 import {
   publicProfileInputSchema,
+  type HistoryModelFields,
   type HistorySummaryOutput,
   type HistoryTest,
-  type HistoryWeakness,
+  type ProfileSnapshot,
   type PublicMonkeytypeStats,
   type PublicProfileInput,
 } from "@/types/history";
 import { readProfileRank } from "@/types/rank";
 import type { MonkeytypeStatsSlice } from "@/types/monkeytype";
+import type { UserPrefsBlob } from "@/types/user-prefs";
 
 /** How many recent tests we serve to the client. 500 is comfortably
  *  more than 90 days of regular use (a daily user racks up ~10/day on
  *  the high end). The page bins client-side. */
 const RECENT_LIMIT = 500;
 
-/** Top N weakest bigrams returned for the page. Twelve fits in a
- *  list-of-bars panel without scrolling and gives the user enough
- *  signal to spot patterns. */
-const WEAKEST_LIMIT = 12;
-
-/** Top N worst words. Larger than the bigram cap because the
- *  worst-words drill (`/drills/worst-words`) leans on this list
- *  directly and asks the user to burst 20 of them. */
-const WORST_WORDS_LIMIT = 20;
-
-/** Shared loader — reads everything one user's history surface needs.
- *  Driven by `userId` so both the auth-gated `summary` route (caller
- *  is the subject) and the public `publicProfile` route (subject is
- *  looked up by username) use the same query path + shape. */
-async function loadHistorySummary(
+/** The parts of a profile that are safe for anyone to see: test rows,
+ *  the MonkeyType overlay, tags, rank, avatar and lifetime counters.
+ *  Never reads the timing models (I6), so a public profile can't leak a
+ *  typist's weak letter pairs, words or baselines. `prefs` is the
+ *  subject's prefs blob, which both callers have already read. */
+async function loadProfileSnapshot(
   db: Database,
   userId: string,
+  prefs: UserPrefsBlob,
   tags: UserTagId[],
   eligibleTags: UserTagId[],
   subjectAvatarUrl: string | null,
-): Promise<HistorySummaryOutput> {
-  // Categorisation reads the user's finger map (Dvorak / Colemak
-  // users have different same-finger pairs than QWERTY). Load it
-  // alongside the model so weakness rankings respect the layout
-  // the user actually types on.
-  const prefsBlob = await db.userPrefs.get(userId);
-  const layout = ensureHandLayout(prefsBlob.handLayout);
-  const [bigramRows, trigramRows, wordRows, recentRows] = await Promise.all([
-    db.bigramModels.listForUser(userId),
-    db.trigramModels.listForUser(userId),
-    db.wordModels.listForUser(userId),
-    db.tests.recentForUser(userId, RECENT_LIMIT),
-  ]);
-
-  const bigramStates = bigramRowsToStates(bigramRows);
-  const baselines = bigramBaselines(bigramStates, layout);
-
-  const weakestPairs: HistoryWeakness[] = [];
-  for (const [key, st] of bigramStates) {
-    if (st.n < MIN_SAMPLES_FOR_WEAKNESS) continue;
-    if (key.length !== 2) continue;
-    const cat = bigramCategory(key[0]!, key[1]!, layout);
-    const weak = weakness(st, baselineForCategory(cat, baselines));
-    if (weak <= 0) continue;
-    weakestPairs.push({
-      key,
-      meanMs: st.mean,
-      weakness: weak,
-      sampleCount: st.n,
-    });
-  }
-  weakestPairs.sort((a, b) => b.weakness - a.weakness);
-  weakestPairs.length = Math.min(weakestPairs.length, WEAKEST_LIMIT);
-
-  const trigramStates = trigramRowsToStates(trigramRows);
-  const trigramBaseline = baselineMean(trigramStates);
-  const weakestTrigrams: HistoryWeakness[] = [];
-  for (const [key, st] of trigramStates) {
-    if (st.n < MIN_SAMPLES_FOR_WEAKNESS) continue;
-    const weak = weakness(st, trigramBaseline);
-    if (weak <= 0) continue;
-    weakestTrigrams.push({
-      key,
-      meanMs: st.mean,
-      weakness: weak,
-      sampleCount: st.n,
-    });
-  }
-  weakestTrigrams.sort((a, b) => b.weakness - a.weakness);
-  weakestTrigrams.length = Math.min(weakestTrigrams.length, WEAKEST_LIMIT);
-
-  const wordStates = wordRowsToStates(wordRows);
-  const wordBaseline = baselineMean(wordStates);
-  const weakestWords: HistoryWeakness[] = [];
-  for (const [key, st] of wordStates) {
-    if (st.n < MIN_SAMPLES_FOR_WEAKNESS) continue;
-    const weak = weakness(st, wordBaseline);
-    if (weak <= 0) continue;
-    weakestWords.push({
-      key,
-      meanMs: st.mean,
-      weakness: weak,
-      sampleCount: st.n,
-    });
-  }
-  weakestWords.sort((a, b) => b.weakness - a.weakness);
-  weakestWords.length = Math.min(weakestWords.length, WORST_WORDS_LIMIT);
-
-  let totalSamples = 0;
-  for (const st of bigramStates.values()) totalSamples += st.n;
-
+): Promise<ProfileSnapshot> {
+  const recentRows = await db.tests.recentForUser(userId, RECENT_LIMIT);
   const recentTests: HistoryTest[] = recentRows.map((r) => ({
     id: r.id,
     startedAtMs: r.startedAt.getTime(),
@@ -154,9 +71,7 @@ async function loadHistorySummary(
   // encrypted form. Owners get the same shape since the key never
   // travels back to the client either way (the import route already
   // returns the slice on write).
-  const mtRaw = prefsBlob.monkeytypeStats as
-    | MonkeytypeStatsSlice
-    | undefined;
+  const mtRaw = prefs.monkeytypeStats as MonkeytypeStatsSlice | undefined;
   let monkeytype: PublicMonkeytypeStats | null = null;
   if (mtRaw && Number(mtRaw.importedAt ?? 0) > 0) {
     // Object rest strips encryptedApiKey at the type and runtime
@@ -169,20 +84,47 @@ async function loadHistorySummary(
 
   return {
     recentTests,
-    weakestPairs,
-    weakestTrigrams,
-    weakestWords,
-    cold: totalSamples < COLD_BIGRAM_THRESHOLD,
-    bigramBaselineMs: baselines.overall,
-    trigramBaselineMs: trigramBaseline,
-    wordBaselineMs: wordBaseline,
     monkeytype,
     tags,
     eligibleTags,
-    rank: readProfileRank(prefsBlob),
+    rank: readProfileRank(prefs),
     subjectAvatarUrl,
     subjectUserId: userId,
-    lifetimeStats: readLifetimeStats(prefsBlob),
+    lifetimeStats: readLifetimeStats(prefs),
+  };
+}
+
+/** Owner-only fields derived from the user's timing models: weakest
+ *  pairs, triples and words, and the baselines. Categorisation reads
+ *  the user's finger map (Dvorak / Colemak users have different
+ *  same-finger pairs than QWERTY), so rankings respect the layout the
+ *  user actually types on. */
+async function loadModelFields(
+  db: Database,
+  userId: string,
+  layout: HandLayoutPrefs,
+): Promise<HistoryModelFields> {
+  const [bigramRows, trigramRows, wordRows] = await Promise.all([
+    db.bigramModels.listForUser(userId),
+    db.trigramModels.listForUser(userId),
+    db.wordModels.listForUser(userId),
+  ]);
+  const w = weakestPatterns(
+    {
+      bigrams: bigramRowsToStates(bigramRows),
+      trigrams: trigramRowsToStates(trigramRows),
+      words: wordRowsToStates(wordRows),
+    },
+    layout,
+  );
+  return {
+    weakestPairs: w.pairs,
+    weakestTrigrams: w.trigrams,
+    weakestWords: w.words,
+    cold: w.cold,
+    bigramBaselineMs: w.bigramBaselineMs,
+    trigramBaselineMs: w.trigramBaselineMs,
+    wordBaselineMs: w.wordBaselineMs,
   };
 }
 
@@ -226,29 +168,28 @@ const summary = defineRoute<void, HistorySummaryOutput>({
     const prefs = await ctx.db.userPrefs.get(userId);
     const selection = readTagSelection(prefs);
     const tags = applyTagSelection(eligibleTags, selection);
-    return loadHistorySummary(
-      ctx.db,
-      userId,
-      tags,
-      eligibleTags,
-      subjectAvatarUrl,
-    );
+    const [snapshot, modelFields] = await Promise.all([
+      loadProfileSnapshot(ctx.db, userId, prefs, tags, eligibleTags, subjectAvatarUrl),
+      loadModelFields(ctx.db, userId, ensureHandLayout(prefs.handLayout)),
+    ]);
+    return { ...snapshot, ...modelFields };
   },
 });
 
 /** Public profile lookup — anyone (including signed-out viewers)
  *  can pull another user's history by Clerk username. Throws
- *  NOT_FOUND when the username doesn't exist on Clerk. The data
- *  shape is identical to `summary` so the profile UI can render
- *  either source uniformly; only the owner-only chrome (Edit,
- *  MonkeyType, Sign out) is gated client-side.
+ *  NOT_FOUND when the username doesn't exist on Clerk. Returns the
+ *  `ProfileSnapshot` part of `summary` only: never the timing-derived
+ *  model fields, and the model tables are never read (I6). The profile
+ *  UI renders either source uniformly; only the owner-only chrome
+ *  (Edit, MonkeyType, Sign out) is gated client-side.
  *
  *  Tight per-IP cap because this route is unauthenticated and hits
  *  Clerk's API on every call — without a budget, a scripted scanner
  *  could enumerate usernames AND chew through our Clerk API quota
  *  in a few seconds. 10/min per IP is enough for a human browsing
  *  several profiles and zero for an enumeration attempt. */
-const publicProfile = defineRoute<PublicProfileInput, HistorySummaryOutput>({
+const publicProfile = defineRoute<PublicProfileInput, ProfileSnapshot>({
   input: publicProfileInputSchema,
   middleware: [rateLimit({ limit: 10, windowMs: 60_000 })],
   handler: async ({ input, db }) => {
@@ -291,9 +232,10 @@ const publicProfile = defineRoute<PublicProfileInput, HistorySummaryOutput>({
     const subjectPrefs = await db.userPrefs.get(user.id);
     const selection = readTagSelection(subjectPrefs);
     const tags = applyTagSelection(eligibleTags, selection);
-    return loadHistorySummary(
+    return loadProfileSnapshot(
       db,
       user.id,
+      subjectPrefs,
       tags,
       eligibleTags,
       subjectAvatarUrl,
