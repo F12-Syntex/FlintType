@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.149.0 — 29 October 2026
+- New update card for the big redesign: a one-page picture of the rounded look, clearer results, the new style settings and smarter practice. The changelog links to it from each release in the redesign.
+
 ## 6.148.54 — 29 October 2026
 - Applying rounded corners from Design with AI no longer switches your palette to Custom or shows a Reset when the palette already has those corners.
 

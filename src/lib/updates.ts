@@ -36,6 +36,23 @@ export type Update = {
 
 export const UPDATES: Update[] = [
   {
+    slug: "the-rehaul",
+    version: "6.148",
+    title: "A fresh, rounded flinttype",
+    tagline: "Every screen redesigned: calmer, clearer and rounded, in the logo orange. Plus smarter practice and a pile of fixes.",
+    date: "October 2026",
+    versions: [
+      "6.137.0", "6.138.0", "6.139.0", "6.140.0", "6.141.0", "6.142.0",
+      "6.143.0", "6.144.0", "6.145.0", "6.146.0", "6.147.0", "6.148.0",
+    ],
+    highlights: [
+      { preview: "rounded", label: "Rounded look" },
+      { preview: "results", label: "Clearer results" },
+      { preview: "style", label: "Make it yours" },
+      { preview: "smarter", label: "Smarter practice" },
+    ],
+  },
+  {
     slug: "multiplayer-race",
     version: "6.122",
     title: "The race catches fire",

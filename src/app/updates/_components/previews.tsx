@@ -1,5 +1,11 @@
 import { Check, Flame, Swords } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  ResultsPreview,
+  RoundedPreview,
+  SmarterPreview,
+  StylePreview,
+} from "./rehaul-previews";
 
 /** Bespoke mini-mockups for the update advert card — small, recognisable
  *  snapshots of each feature, with real micro-copy (handles, WPM, a live
@@ -264,4 +270,8 @@ export const UPDATE_PREVIEWS: Record<string, React.ComponentType> = {
   racetrack: RacetrackPreview,
   ignite: IgnitePreview,
   fixes: FixesPreview,
+  rounded: RoundedPreview,
+  results: ResultsPreview,
+  style: StylePreview,
+  smarter: SmarterPreview,
 };
