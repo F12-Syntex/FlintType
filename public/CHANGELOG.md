@@ -8,6 +8,12 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.44 — 29 October 2026
+- Choosing a word list in the race lobby settings no longer closes the settings panel, and focus goes back to the word list button.
+- Clicking a label or an empty spot in the race lobby settings no longer closes the panel.
+- You can select text in dialogs over the typing test again.
+- Burst practice now works with phone keyboards: pressing space commits the word.
+
 ## 6.148.43 — 29 October 2026
 - After a timed race, the passage recap shows only the words you reached and no longer marks a half-typed word as wrong.
 - Pressing Escape on the race results screen no longer clears your run, so the passage recap and its underlined mistakes stay put.

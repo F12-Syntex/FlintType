@@ -10,6 +10,7 @@ import {
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { isRaceInputCurrentlyLocked } from "@/lib/race-input";
 import { useKeyClickSound } from "@/lib/use-key-click-sound";
+import { BurstSpaceContext, useBurstSpaceSlot } from "./burst-space";
 import { usePractice } from "./practice-state";
 import { useNativeTextInput } from "./use-native-text-input";
 
@@ -68,20 +69,27 @@ export function InputCapture({ children }: { children: ReactNode }) {
   // The last printable key the keydown path handled, so a keyboard that
   // reports it again as an input event doesn't type it twice.
   const lastKeyRef = useRef({ key: "", at: 0 });
+  // BURST's Space gate, registered by <BurstProvider> (burst-space.ts).
+  const burstSpace = useBurstSpaceSlot();
 
-  // Shared by the keydown path and the soft-keyboard input events.
-  const typeText = (text: string) => {
+  // Shared by the keydown path and the soft-keyboard input events
+  // (`fromInputEvent`).
+  const typeText = (text: string, fromInputEvent = false) => {
     const now = Date.now();
     const p = prefsRef.current;
     const isBurst = modeRef.current === "BURST";
     for (const ch of text) {
       if (ch === " " || ch === "\n") {
         // SPACE: in WORDS / TIME / QUOTE this advances the cursor.
-        // BURST has a controller that runs the threshold + reps check
-        // before deciding what to do, so it's suppressed here.
+        // BURST runs the threshold + reps check before deciding what to
+        // do: a keydown Space reaches <BurstProvider>'s own window
+        // listener, so it's suppressed here, and a soft-keyboard Space
+        // (no usable keydown) is handed to the same gate.
         // No rest-phase guard: space as the first key starts the run
         // and skips word 0 (issue #17a); the reducer owns it.
-        if (!isBurst) {
+        if (isBurst) {
+          if (fromInputEvent) burstSpace.fire();
+        } else {
           dispatch({
             type: "SPACE",
             now,
@@ -118,7 +126,7 @@ export function InputCapture({ children }: { children: ReactNode }) {
   useNativeTextInput(inputRef, lastKeyRef, {
     accepts: () =>
       phaseRef.current !== "done" && !modalOpen() && !isRaceInputCurrentlyLocked(),
-    onText: typeText,
+    onText: (text) => typeText(text, true),
     onDelete: (wordWise) => {
       // If keydown already handled this physical press, the paired
       // input event is a duplicate.
@@ -217,22 +225,29 @@ export function InputCapture({ children }: { children: ReactNode }) {
           While typing, mousedown's default is cancelled too: otherwise
           the browser moves focus off the input right after the tap
           focused it, and the phone keyboard closes again. The result
-          screen keeps the default so its text stays selectable. */}
+          screen keeps the default so its text stays selectable.
+          React events from portaled content (popovers, dialogs, sheets)
+          bubble here too; those are left alone, or the refocus would
+          dismiss a popover and block text selection inside a dialog. */}
       <div
         className="flex min-h-0 flex-1 flex-col"
         onMouseDown={(e) => {
+          if (!e.currentTarget.contains(e.target as Node)) return;
           const target = e.target as HTMLElement;
           if (target.closest(INTERACTIVE_SELECTOR)) return;
           if (phaseRef.current !== "done") e.preventDefault();
           focus();
         }}
         onTouchStart={(e) => {
+          if (!e.currentTarget.contains(e.target as Node)) return;
           const target = e.target as HTMLElement;
           if (target.closest(INTERACTIVE_SELECTOR)) return;
           focus();
         }}
       >
-        {children}
+        <BurstSpaceContext.Provider value={burstSpace.register}>
+          {children}
+        </BurstSpaceContext.Provider>
       </div>
     </>
   );

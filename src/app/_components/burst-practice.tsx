@@ -16,6 +16,7 @@ import { resolveBurstThreshold } from "@/lib/avg-wpm-cache";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { useLifetimeStats } from "@/lib/use-lifetime-stats";
 import { useRecordBurstTry } from "./burst-log";
+import { useBurstSpace } from "./burst-space";
 import { usePractice } from "./practice-state";
 
 /* ─── Shared state ───────────────────────────────────────────── */
@@ -211,24 +212,9 @@ export function BurstProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(id);
   }, [outcome]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== " ") return;
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
-      const active = document.activeElement;
-      if (
-        active &&
-        (active.tagName === "TEXTAREA" || active.tagName === "SELECT")
-      ) {
-        return;
-      }
-      e.preventDefault();
-      handleSpace();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [handleSpace]);
+  // Space reaches the gate from a keyboard's keydown or, on a phone,
+  // from <InputCapture>'s input events (burst-space.ts).
+  useBurstSpace(handleSpace);
 
   const grantedRef = useRef(false);
   useEffect(() => {
