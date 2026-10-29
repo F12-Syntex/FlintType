@@ -11,6 +11,7 @@ import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { isRaceInputCurrentlyLocked } from "@/lib/race-input";
 import { useKeyClickSound } from "@/lib/use-key-click-sound";
 import { BurstSpaceContext, useBurstSpaceSlot } from "./burst-space";
+import { eventStamp, keydownSrc, letterCodeOk } from "./practice-capture";
 import { usePractice } from "./practice-state";
 import { useNativeTextInput } from "./use-native-text-input";
 
@@ -73,18 +74,24 @@ export function InputCapture({ children }: { children: ReactNode }) {
   const burstSpace = useBurstSpaceSlot();
 
   // Shared by the keydown path and the soft-keyboard input events
-  // (`fromInputEvent`).
-  const typeText = (text: string, fromInputEvent = false) => {
+  // (`fromInputEvent`). Every code point of a chunk carries the event's
+  // `ht`; `codeOk` comes only from a keydown of one letter. `src` marks
+  // soft-keyboard text: every input event, and a keydown with no key
+  // code (an iOS on-screen key, see keydownSrc).
+  type TypeOpts = { fromInputEvent?: boolean; ht?: number; codeOk?: boolean; src?: "input" };
+  const typeText = (text: string, { fromInputEvent = false, ht, codeOk, src: keySrc }: TypeOpts) => {
     const now = Date.now();
+    const src = fromInputEvent ? ("input" as const) : keySrc;
     const p = prefsRef.current;
     const isBurst = modeRef.current === "BURST";
     for (const ch of text) {
       if (ch === " " || ch === "\n") {
         // SPACE: in WORDS / TIME / QUOTE this advances the cursor.
         // BURST runs the threshold + reps check before deciding what to
-        // do: a keydown Space reaches <BurstProvider>'s own window
-        // listener, so it's suppressed here, and a soft-keyboard Space
-        // (no usable keydown) is handed to the same gate.
+        // do: a keydown Space (an iOS on-screen one too) reaches
+        // <BurstProvider>'s own window listener, so it's suppressed
+        // here, and a soft-keyboard Space with no usable keydown is
+        // handed to the same gate.
         // No rest-phase guard: space as the first key starts the run
         // and skips word 0 (issue #17a); the reducer owns it.
         if (isBurst) {
@@ -95,6 +102,8 @@ export function InputCapture({ children }: { children: ReactNode }) {
             now,
             strictSpace: p.strictSpace,
             backspaceLocked: p.confidence === "all",
+            ht,
+            src,
           });
         }
       } else {
@@ -104,18 +113,21 @@ export function InputCapture({ children }: { children: ReactNode }) {
           now,
           stopOnError: p.stopOnError,
           allowExtras: p.allowExtras,
+          ht,
+          src,
+          codeOk,
         });
       }
       playClick();
     }
   };
-  const deleteBackward = (wordWise: boolean) => {
+  const deleteBackward = (wordWise: boolean, ht?: number, src?: "input") => {
     const p = prefsRef.current;
     if (p.confidence === "all") return;
     if (p.confidence === "word" && cursorCharRef.current === 0) return;
     // deleteWordBackward (Ctrl / Option + Backspace) and
     // deleteSoftLineBackward (Cmd + Backspace) wipe a whole word.
-    dispatch({ type: wordWise ? "BACKSPACE_WORD" : "BACKSPACE" });
+    dispatch({ type: wordWise ? "BACKSPACE_WORD" : "BACKSPACE", now: Date.now(), ht, src });
     playClick();
   };
 
@@ -126,12 +138,12 @@ export function InputCapture({ children }: { children: ReactNode }) {
   useNativeTextInput(inputRef, lastKeyRef, {
     accepts: () =>
       phaseRef.current !== "done" && !modalOpen() && !isRaceInputCurrentlyLocked(),
-    onText: (text) => typeText(text, true),
-    onDelete: (wordWise) => {
+    onText: (text, ht) => typeText(text, { fromInputEvent: true, ht }),
+    onDelete: (wordWise, ht) => {
       // If keydown already handled this physical press, the paired
       // input event is a duplicate.
       if (Date.now() - lastBackspaceAtRef.current < 80) return;
-      deleteBackward(wordWise);
+      deleteBackward(wordWise, ht, "input");
     },
   });
 
@@ -206,13 +218,13 @@ export function InputCapture({ children }: { children: ReactNode }) {
           if (e.key === "Backspace") {
             e.preventDefault();
             lastBackspaceAtRef.current = Date.now();
-            deleteBackward(wordWise);
+            deleteBackward(wordWise, eventStamp(e), keydownSrc(e));
             return;
           }
           if (e.key.length === 1) {
             e.preventDefault();
             lastKeyRef.current = { key: e.key, at: Date.now() };
-            typeText(e.key);
+            typeText(e.key, { ht: eventStamp(e), codeOk: letterCodeOk(e), src: keydownSrc(e) });
           }
         }}
       />

@@ -6,6 +6,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useReducer,
   useRef,
@@ -20,33 +21,24 @@ import { useIsMobile } from "@/lib/use-is-mobile";
 import { isRaceInputCurrentlyLocked } from "@/lib/race-input";
 import { useRemotePrefs } from "@/lib/use-remote-prefs";
 import { useWordlist } from "@/lib/wordlists/use-wordlist";
-import { calcWpmAndRaw, keystrokeAccuracy, keystrokeErrors } from "@/lib/wpm";
-import {
-  avgWpm as computeAvgWpm,
-  consistencyScore as computeConsistency,
-  peakWpm as computePeakWpm,
-  stallWpm as computeStallWpm,
-} from "@/lib/wpm-stats";
+import { calcWpmAndRaw, keystrokeAccuracy } from "@/lib/wpm";
+import type { RunContext } from "@/types/capture";
+import type { RunAnalysisSource } from "@/types/typing-analysis";
+import { type AbandonTally, countAbandon, NO_ABANDONS, resetCountFor } from "./practice-abandons";
+import { eventStamp, letterCodeOk } from "./practice-capture";
+import { initialState, reducer, type Action, type KeyEvent, type Length, type Mode, type Phase, type State, type WpmSample } from "./practice-reducer";
+import { analysisSourceFor, buildSubmitInput, runContextFor } from "./practice-submit";
 import {
   adaptPool,
   decorate,
   defaultLengthFor,
   generateForMode,
   generateWords,
-  initialState,
   quoteToWords,
-  reducer,
   TIME_BUFFER,
   TIME_REFILL_AHEAD,
-  type Action,
-  type KeyEvent,
-  type Length,
-  type Mode,
-  type Phase,
-  type State,
   type WordCfg,
-  type WpmSample,
-} from "./practice-reducer";
+} from "./practice-words";
 import { PracticeLiveBroadcast } from "./practice-live-broadcast";
 
 // Re-export the practice-test types so existing consumers
@@ -68,8 +60,8 @@ export type {
 
 // Pure-value re-exports kept for the small set of consumers that
 // already grew an external dependency on these symbols before the
-// split. Each is just a forward to practice-reducer — the canonical
-// import path for new code is `./practice-reducer`.
+// split. Each forwards to practice-reducer or practice-words, which are
+// the canonical import paths for new code.
 export {
   adaptPool,
   decorate,
@@ -144,6 +136,14 @@ type PracticeCtx = {
    *  (anonymous viewer, BURST). The results screen reads this to gate
    *  the PB crown for signed-in users so it only fires on a real PB. */
   lastTestIsPb: boolean | null;
+  /** What the result screen analyses: exactly the RunInput the submit
+   *  used (spec-20 §5.3). Every provider supplies it (the settings
+   *  preview and the live clone build their own). null or undefined
+   *  while running, for BURST, or before it is set: no analysis card. */
+  runAnalysisSource?: RunAnalysisSource | null;
+  /** submitTest's previousBest for the most recent run (null when
+   *  first ever, undefined while in flight or when it failed). */
+  lastPreviousBest?: number | null;
 };
 
 /** Exported so read-only consumers (e.g. the live-spectate clone) can
@@ -310,6 +310,11 @@ export function PracticeProvider({
   const suddenDeathRef = useRef(suddenDeath);
   suddenDeathRef.current = suddenDeath;
   const [suddenDeathRestarts, setSuddenDeathRestarts] = useState(0);
+  // Runs abandoned since the last submit, for one kind of test (a
+  // restart mid-run, a sudden-death bounce; practice-abandons.ts).
+  const abandonedRef = useRef<AbandonTally>(NO_ABANDONS);
+  const liveStateRef = useRef(state);
+  liveStateRef.current = state;
   // Reset the restart counter whenever the locked passage swaps so a
   // freshly-mounted drill doesn't inherit a stale tally.
   useEffect(() => {
@@ -335,6 +340,7 @@ export function PracticeProvider({
     if (!last || last.correct) return;
     if (!lockedWordsRef.current) return;
     setSuddenDeathRestarts((n) => n + 1);
+    abandonedRef.current = countAbandon(abandonedRef.current, liveStateRef.current);
     dispatch({
       type: "RESTART",
       words: [...lockedWordsRef.current],
@@ -536,12 +542,38 @@ export function PracticeProvider({
   // null until the submit resolves; reset whenever the user leaves the
   // done screen so a stale verdict can't crown the next run.
   const [lastTestIsPb, setLastTestIsPb] = useState<boolean | null>(null);
+  const [lastPreviousBest, setLastPreviousBest] = useState<number | null | undefined>(undefined);
   useEffect(() => {
     if (state.phase !== "done") {
       setLastTestId(null);
       setLastTestIsPb(null);
+      setLastPreviousBest(undefined);
     }
   }, [state.phase]);
+
+  // The finished run's analysis source (practice-submit.ts), built in a
+  // layout effect so the result's first paint already has it. The run
+  // context goes in sourceRef too: the submit effect below (a passive
+  // effect, so it runs after this one) sends the same context.
+  const [runAnalysisSource, setRunAnalysisSource] = useState<RunAnalysisSource | null>(null);
+  const sourceRef = useRef<{ ctx: RunContext } | null>(null);
+  const contextFor = (s: State): RunContext =>
+    runContextFor({
+      behaviour: prefsRef.current,
+      wordlist: practiceSlice.wordlist,
+      mode: s.mode,
+      suddenDeath,
+      lockedWords: !!lockedWordsRef.current,
+      raceMode,
+      state: s,
+    });
+  useLayoutEffect(() => {
+    sourceRef.current = state.phase === "done" ? { ctx: contextFor(state) } : null;
+    const ctx = sourceRef.current?.ctx;
+    setRunAnalysisSource(ctx ? analysisSourceFor({ state, ctx, raceMode }) : null);
+    // Keyed on the run's phase and clock: once per finished run.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.phase, state.startTime, state.endTime]);
 
   // Mirror wpmHistory in a ref so the submit effect can read the
   // up-to-the-moment value without subscribing to it (subscribing
@@ -572,92 +604,35 @@ export function PracticeProvider({
     // would otherwise feedback-loop).
     if (state.mode === "BURST") return;
 
-    const { wpm, raw } = calcWpmAndRaw(
-      state.typed,
-      state.words,
-      endTime - startTime,
-      true,
-      state.events.length,
-    );
+    // The payload (practice-submit.ts): today's fields plus the v2
+    // capture, with the analysed source's run context and the runs of
+    // this kind abandoned since the last submit (the tally then starts
+    // over). Abandoned runs themselves are never submitted.
+    const input = buildSubmitInput({
+      state,
+      history: wpmHistoryRef.current,
+      raceMode,
+      resetCount: resetCountFor(abandonedRef.current, state),
+      ctx: sourceRef.current?.ctx ?? contextFor(state),
+    });
+    abandonedRef.current = NO_ABANDONS;
     // Feed the rolling-mean cache that backs BURST mode's auto-
     // threshold (behaviour.burstThreshold = 0). Pure localStorage,
     // capped to the last 20 samples; see src/lib/avg-wpm-cache.ts.
-    recordWpmSample(wpm);
-    // Accuracy + errors are KEYSTROKE-TRUE (derived from the recorded
-    // KeyEvent stream), so a backspaced or stop-on-error-blocked mistake
-    // still counts — matching monkeytype and the race surface. The old
-    // countChars-over-typed[] calc read 100%/0 errors for a fully
-    // corrected run, inflating the persisted accuracy + PB. Equivalent to
-    // the reducer's correctChars/totalChars counters; events is the
-    // richer single source (see keystrokeAccuracy).
-    const accuracy = keystrokeAccuracy(state.events);
-    const wordsActuallyTyped = state.words.slice(
-      0,
-      Math.min(state.cursorWord + 1, state.words.length),
-    );
-
-    // Roll-up stats + per-second history, computed from the same
-    // wpmHistory buffer the live <ResultChart> reads. Persisted so
-    // the share image (and any future async render of the results
-    // screen) can show the same numbers and chart shape the user
-    // saw post-test, without storing keystroke timings.
-    const history = wpmHistoryRef.current;
-    const peakWpm = Math.round(computePeakWpm(history));
-    const avgWpm = Math.round(computeAvgWpm(history));
-    const stallWpm = Math.round(computeStallWpm(history));
-    const consistency = computeConsistency(history);
+    recordWpmSample(input.wpm);
 
     const adaptOn = state.adapt;
     const wordsMode = state.mode === "WORDS";
     const length = state.length;
-    const submitMode = raceMode
-      ? "race"
-      : adaptOn
-        ? "training"
-        : "casual";
     void (async () => {
-      const result = await adaptRef.current.submitTest({
-        startedAt: startTime,
-        completedAt: endTime,
-        mode: submitMode,
-        durationOrWordCount: length,
-        // Length-unit discriminator for the share label — separate from
-        // the adapt `mode` above (casual/training/race), which never
-        // carries words-vs-time-vs-quote. BURST already returned above.
-        lengthMode:
-          state.mode === "TIME"
-            ? "time"
-            : state.mode === "QUOTE"
-              ? "quote"
-              : "words",
-        wpm,
-        accuracy,
-        // Keystroke-true error count (incorrect keystrokes, including
-        // ones later backspaced or blocked by stop-on-error) — the same
-        // metric the results + live readouts show, so the persisted /
-        // history figure matches what the user saw.
-        errorCount: keystrokeErrors(state.events),
-        resetCount: 0,
-        wasCompleted: true,
-        words: wordsActuallyTyped,
-        timings: state.events,
-        rawWpm: raw,
-        peakWpm,
-        avgWpm,
-        stallWpm,
-        consistency,
-        // Cap to the schema max (600). For runs ≤10min this is a
-        // no-op; longer runs get the head-trimmed history, which
-        // is fine — the chart cares about overall shape.
-        wpmHistory: history.slice(-600).map((s) => ({
-          t: s.t,
-          wpm: s.wpm,
-          raw: s.raw,
-        })),
-      });
-      if (result) {
+      const result = await adaptRef.current.submitTest(input);
+      // A late result for a run no longer on screen is dropped, so it
+      // can't label the next run's result screen.
+      const live = liveStateRef.current;
+      if (result && live.startTime === startTime && live.endTime === endTime) {
         setLastTestId(result.testId);
         setLastTestIsPb(result.isPersonalBest);
+        setLastPreviousBest(result.previousBest);
       }
       // submitTest cleared the queue (model just changed). Top up
       // immediately against the new snapshot so the user's next
@@ -747,9 +722,6 @@ export function PracticeProvider({
     raw: number;
     accuracy: number;
   }>({ wpm: 0, raw: 0, accuracy: 100 });
-
-  const liveStateRef = useRef(state);
-  liveStateRef.current = state;
 
   useEffect(() => {
     function compute(isFinal: boolean): {
@@ -889,6 +861,8 @@ export function PracticeProvider({
       suddenDeathRestarts,
       lastTestId,
       lastTestIsPb,
+      runAnalysisSource,
+      lastPreviousBest,
       setMode: (mode) => {
         const length = defaultLengthFor(mode);
         const cfg = buildCfg();
@@ -949,6 +923,7 @@ export function PracticeProvider({
         // would re-roll against the previous wordlist's pool.
       },
       restart: () => {
+        abandonedRef.current = countAbandon(abandonedRef.current, state);
         const cfg = buildCfg();
         // Drill mode: re-use the same locked words so each restart is
         // an honest second go at the same exercise.
@@ -980,7 +955,7 @@ export function PracticeProvider({
         }
       },
     };
-  }, [state, elapsedMs, wpmHistory, liveStats, isMobile, adaptAuthAllowed, adaptLoading, suddenDeathRestarts, lastTestId, lastTestIsPb]);
+  }, [state, elapsedMs, wpmHistory, liveStats, isMobile, adaptAuthAllowed, adaptLoading, suddenDeathRestarts, lastTestId, lastTestIsPb, runAnalysisSource, lastPreviousBest]);
 
   // Flag the global `F` focus-mode shortcut to stand down while a run
   // is in progress (rest or running) — keystrokes here are typed
@@ -1090,6 +1065,7 @@ export function PracticeProvider({
         now: Date.now(),
         strictSpace: p.strictSpace,
         backspaceLocked: p.confidence === "all",
+        ht: eventStamp(e),
       });
       return;
     }
@@ -1099,7 +1075,7 @@ export function PracticeProvider({
       // start; all = block backspace entirely.
       if (p.confidence === "all") return;
       if (p.confidence === "word" && s.cursorChar === 0) return;
-      dispatch({ type: wordWise ? "BACKSPACE_WORD" : "BACKSPACE" });
+      dispatch({ type: wordWise ? "BACKSPACE_WORD" : "BACKSPACE", now: Date.now(), ht: eventStamp(e) });
       return;
     }
     if (e.key.length === 1) {
@@ -1108,6 +1084,8 @@ export function PracticeProvider({
         type: "TYPE_CHAR",
         char: e.key,
         now: Date.now(),
+        ht: eventStamp(e),
+        codeOk: letterCodeOk(e),
         // In sudden-death the cursor must never advance on a wrong
         // char — the watcher will see the wrong event and reset, but
         // until that effect fires we don't want a half-typed letter
