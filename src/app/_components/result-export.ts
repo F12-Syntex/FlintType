@@ -1,12 +1,12 @@
 // Save-image export for the result screen.
 //
 // Captures the result body itself (headline, chart, stat cards and any
-// insights), cropped to the last exportable block so the action row and
-// the empty space under it never end up in the picture. The settings
-// capsule and the actions carry data-no-export and are filtered out.
-// The capture sits on a padded page-coloured canvas with a small
-// flinttype mark underneath, so the PNG reads as a result card rather
-// than a raw screen grab.
+// insights). Children marked data-no-export (the settings capsule, the
+// actions, the analysis card) are filtered out, and the picture is as
+// tall as what's left, so a no-export block in the middle never leaves
+// an empty band. The capture sits on a padded page-coloured canvas with
+// a small flinttype mark underneath, so the PNG reads as a result card
+// rather than a raw screen grab.
 
 const PAD = 32;
 const FOOTER = 48;
@@ -15,17 +15,28 @@ const LOGO_H = 18;
 const exportable = (n: Node) =>
   !(n instanceof HTMLElement && n.dataset.noExport === "true");
 
-/** Height from the node's top to the bottom of its last exportable
- *  child, plus a few px so the card shadows aren't clipped. */
+/** Height of the capture once data-no-export children are filtered
+ *  out: the exportable children's heights plus one row gap between
+ *  each, plus 4 px so card shadows aren't clipped. Pure; tested. */
+export function exportHeight(
+  children: readonly { height: number; exportable: boolean }[],
+  gapPx: number,
+  scrollHeight: number,
+): number {
+  const kept = children.filter((c) => c.exportable);
+  if (kept.length === 0) return scrollHeight;
+  const sum = kept.reduce((a, c) => a + c.height, 0) + gapPx * (kept.length - 1);
+  return Math.min(scrollHeight, Math.ceil(sum) + 4);
+}
+
+/** The capture node's exported height (see `exportHeight`). */
 function contentHeight(node: HTMLElement): number {
-  const top = node.getBoundingClientRect().top;
-  let bottom = 0;
-  for (const child of Array.from(node.children)) {
-    if (!exportable(child)) continue;
-    bottom = Math.max(bottom, child.getBoundingClientRect().bottom - top);
-  }
-  if (bottom <= 0) return node.scrollHeight;
-  return Math.min(node.scrollHeight, Math.ceil(bottom) + 4);
+  const children = Array.from(node.children).map((child) => ({
+    height: child.getBoundingClientRect().height,
+    exportable: exportable(child),
+  }));
+  const gapPx = parseFloat(getComputedStyle(node).rowGap) || 0;
+  return exportHeight(children, gapPx, node.scrollHeight);
 }
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {

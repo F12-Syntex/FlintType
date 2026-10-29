@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { liveProgressInputSchema } from "@/types/live";
 import { LIVE_MAX_CHART_SAMPLES } from "@/types/live-burst";
 import { burstResult, type BurstTry } from "./burst-stats";
@@ -146,6 +146,54 @@ describe("buildLiveScreen — done frame", () => {
   });
 });
 
+describe("buildLiveScreen — what the clone's analysis needs", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("the meta block carries blind mode and the four fix settings", () => {
+    // A meta frame reads the theme vars off <html>; node has no document.
+    vi.stubGlobal("document", { documentElement: {} });
+    vi.stubGlobal("getComputedStyle", () => ({ getPropertyValue: () => "" }));
+    const src = source("WORDS", ["meta", "frame"]);
+    const behaviour = {
+      blindMode: true,
+      stopOnError: true,
+      allowExtras: false,
+      strictSpace: true,
+      confidence: "word",
+      quickRestart: true,
+    } as unknown as LiveScreenSource["behaviour"];
+    const win = liveSnapshotWindow(src.state, 300);
+    const screen = buildLiveScreen({ ...src, behaviour }, win, true);
+    const parsed = liveProgressInputSchema.parse({ words: win.words, progressChars: 0, totalChars: 10, wpm: 40, accuracy: 100, screen });
+    expect(parsed.screen?.behaviour).toEqual({ blindMode: true, stopOnError: true, allowExtras: false, strictSpace: true, confidence: "word" });
+  });
+
+  it("windowStart is the first word of the event window", () => {
+    const words = Array.from({ length: 400 }, (_, i) => `w${i}`);
+    const src = source("TIME", words);
+    const state = { ...src.state, cursorWord: 350 };
+    const win = liveSnapshotWindow(state, 300);
+    expect(win.start).toBeGreaterThan(0);
+    const screen = buildLiveScreen({ ...src, state }, win, false);
+    expect(screen.windowStart).toBe(win.start);
+    expect(pushed(source("WORDS", ["short", "run"]))?.windowStart).toBe(0);
+  });
+
+  it("a v2 run's live events carry only the five old fields", () => {
+    const src = source("WORDS", ["ab", "cd"]);
+    const state: State = {
+      ...src.state,
+      events: [{ t: 10, expected: "a", typed: "a", correct: true, wordIndex: 0, pos: 0, src: "input", ht: 12.5 }],
+      edits: [{ t: 20, at: 1, seq: 0, wordIndex: 0, pos: 1, kind: "back" }],
+      spaces: [{ t: 30, at: 1, seq: 1, wordIndex: 0, pos: 1 }],
+    };
+    const screen = buildLiveScreen({ ...src, state }, liveSnapshotWindow(state, 300), false);
+    expect(screen.events).toEqual([{ t: 10, expected: "a", typed: "a", correct: true, wordIndex: 0 }]);
+    expect(Object.keys(screen)).not.toContain("edits");
+    expect(Object.keys(screen)).not.toContain("spaces");
+  });
+});
+
 describe("live screen schema — fields old clients may omit", () => {
   const base = {
     words: ["a", "b"],
@@ -179,6 +227,19 @@ describe("live screen schema — fields old clients may omit", () => {
     });
     expect(parsed.success).toBe(true);
     expect(parsed.data?.screen?.adapt).toBeUndefined();
+  });
+
+  it("an old broadcaster's behaviour and done frame still parse; bad new fields drop", () => {
+    const old = liveProgressInputSchema.parse({ ...base, screen: { ...screen, behaviour: { blindMode: false } } });
+    expect(old.screen?.behaviour).toEqual({ blindMode: false });
+    expect(old.screen?.windowStart).toBeUndefined();
+    const bad = liveProgressInputSchema.safeParse({
+      ...base,
+      screen: { ...screen, windowStart: -3, behaviour: { blindMode: true, confidence: "sometimes", stopOnError: "yes" } },
+    });
+    expect(bad.success).toBe(true);
+    expect(bad.data?.screen?.windowStart).toBeUndefined();
+    expect(bad.data?.screen?.behaviour).toEqual({ blindMode: true });
   });
 
   it("an invalid block drops to undefined instead of rejecting the push", () => {

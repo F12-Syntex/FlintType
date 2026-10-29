@@ -1,6 +1,6 @@
 "use client";
 
-/** Per-second mistake histogram under the result chart, on the same x
+/** Per-second error histogram under the result chart, on the same x
  *  scale as the plot: it's inset by the chart's y-axis column + left
  *  margin (32 + 8px = pl-10) and right margin (16px = pr-4), and each
  *  bar is centred on its second's position in the numeric x domain, so
@@ -26,13 +26,13 @@ export function ErrorRibbon({
   return (
     <div className="flex flex-col gap-1.5 pr-4 pl-10">
       <div className="flex items-baseline justify-between gap-3 text-xs text-muted-foreground">
-        {/* "Mistakes" (every wrong keypress, and when) — the timeline
-         *  view of the headline Errors number. */}
-        <span className="font-medium">Mistakes over time</span>
+        {/* Every wrong keypress, and when: the timeline view of the
+         *  headline Errors number, so it carries the same name. */}
+        <span className="font-medium">Errors over time</span>
         <span className="tabular-nums">
           {totalErrors === 0
             ? "None"
-            : `${totalErrors} total · up to ${maxErrors}/s`}
+            : `${totalErrors} ${totalErrors === 1 ? "error" : "errors"}`}
         </span>
       </div>
       <div className="relative h-5 w-full rounded-full bg-muted/70">
@@ -42,7 +42,6 @@ export function ErrorRibbon({
             <span
               key={sec}
               aria-hidden
-              title={`${sec}s · ${n} mistake${n === 1 ? "" : "s"}`}
               className="absolute bottom-0 w-1 -translate-x-1/2 rounded-full bg-destructive/70"
               style={{
                 left: `${((sec - firstSec) / span) * 100}%`,

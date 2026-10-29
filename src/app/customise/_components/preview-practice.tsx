@@ -2,91 +2,11 @@
 
 import { useMemo, type ReactNode } from "react";
 import {
-  type KeyEvent,
   PracticeContext,
   type Phase,
-  type State,
   type WpmSample,
 } from "@/app/_components/practice-state";
-
-/** Build a frozen practice State that looks like a partway-through
- *  run — `cursorWord` words finished, `typed[cursorWord]` partly typed,
- *  optional error word marked. The real <Passage> reads `cursorWord`,
- *  `cursorChar`, `errorWords`, `phase`, `typed`, `words` to decide
- *  what to paint, so a fake state with these populated mounts the
- *  real visual chain unmodified. */
-function buildState({
-  words,
-  finishedWords,
-  cursorChar,
-  errorWord,
-  phase,
-  events,
-  activeWordTyped,
-}: {
-  words: readonly string[];
-  finishedWords: number;
-  cursorChar: number;
-  errorWord?: number;
-  phase: Phase;
-  events: readonly KeyEvent[];
-  /** Optional override for the typed-string of the active word. Used
-   *  by the Mistakes preview to inject a mistyped + extra glyph so the
-   *  user sees the full active-word error treatment without typing.
-   *  When set, `cursorChar` is treated as the caret position past the
-   *  typed string (so the caret sits after the last typed char). */
-  activeWordTyped?: string;
-}): State {
-  const typed: string[] = [];
-  let totalChars = 0;
-  let correctChars = 0;
-  for (let i = 0; i < finishedWords; i++) {
-    const w = words[i] ?? "";
-    typed.push(w);
-    totalChars += w.length;
-    correctChars += w.length;
-  }
-  const activeWord = words[finishedWords] ?? "";
-  if (phase !== "done") {
-    const activeTyped = activeWordTyped ?? activeWord.slice(0, cursorChar);
-    typed.push(activeTyped);
-    totalChars += activeTyped.length;
-    // Per-char correctness count — only chars where typed === expected
-    // are correct. With activeWordTyped we may have wrong / extra chars.
-    for (let i = 0; i < activeTyped.length; i++) {
-      if (activeTyped[i] === activeWord[i]) correctChars += 1;
-    }
-  }
-
-  const errorWords = new Set<number>();
-  if (errorWord !== undefined) {
-    errorWords.add(errorWord);
-    if (errorWord < finishedWords) {
-      const target = words[errorWord] ?? "";
-      if (target.length > 0) {
-        typed[errorWord] = target.slice(0, -1) + "x";
-      }
-    }
-  }
-
-  return {
-    mode: "WORDS",
-    length: words.length,
-    adapt: false,
-    phase,
-    words: [...words],
-    cursorWord: phase === "done" ? words.length : finishedWords,
-    cursorChar: phase === "done" ? 0 : cursorChar,
-    errorWords,
-    totalChars,
-    correctChars,
-    startTime: Date.now() - 12_000,
-    endTime: phase === "done" ? Date.now() : null,
-    events: [...events],
-    typed,
-    quoteSource: null,
-  };
-}
+import { buildDoneRun, buildState } from "./preview-sample";
 
 const NO_HISTORY: readonly WpmSample[] = [];
 
@@ -104,77 +24,6 @@ export const PREVIEW_WORDS: readonly string[] = [
 /** Just the pangram: a short sample run for the result preview. */
 export const PREVIEW_PANGRAM: readonly string[] = PREVIEW_WORDS.slice(0, 9);
 
-/** Tiny LCG for deterministic preview noise — same passage produces the
- *  same wpm/event jitter every render so the preview doesn't flicker. */
-function lcg(seed: number) {
-  let s = seed;
-  return () => {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return s / 0xffffffff;
-  };
-}
-
-/** Generate a realistic-looking completed run from a passage: per-char
- *  KeyEvents at ~200ms intervals with light jitter and a couple of
- *  seeded mistypes, plus a per-second WpmSample series with a mild
- *  acceleration / dip / recovery shape. Used by the result preview so
- *  the real <ResultChart> + heatmap render against actual data, not a
- *  "run too short for a chart" fallback. */
-function buildSampleRun(words: readonly string[]): {
-  events: KeyEvent[];
-  wpmHistory: WpmSample[];
-  elapsedMs: number;
-  wpm: number;
-  accuracy: number;
-} {
-  const rand = lcg(42);
-  const baseInterval = 200; // ms per char ≈ 60 wpm
-  const events: KeyEvent[] = [];
-  let t = 0;
-  // Seed errors at deterministic positions so the preview always shows
-  // the error colour somewhere in the heatmap.
-  const errorAt = new Set<string>([`1:2`, `4:1`]);
-
-  words.forEach((word, wi) => {
-    [...word].forEach((ch, ci) => {
-      const jitter = (rand() - 0.5) * 80;
-      t += baseInterval + jitter;
-      const isErr = errorAt.has(`${wi}:${ci}`);
-      events.push({
-        t: Math.round(t),
-        expected: ch,
-        typed: isErr ? "x" : ch,
-        correct: !isErr,
-        wordIndex: wi,
-      });
-    });
-    // Space between words
-    t += baseInterval + (rand() - 0.5) * 60;
-  });
-
-  const totalChars = events.length;
-  const correctChars = events.filter((e) => e.correct).length;
-  const accuracy = (correctChars / Math.max(1, totalChars)) * 100;
-  const elapsedMs = Math.max(1000, Math.round(t));
-  const seconds = Math.max(2, Math.round(elapsedMs / 1000));
-
-  // Build per-second wpm samples with a believable curve: cold start,
-  // climb to mid-test peak, small dip near errors, recovery.
-  const peakSec = Math.floor(seconds * 0.55);
-  const wpmHistory: WpmSample[] = [];
-  for (let s = 1; s <= seconds; s++) {
-    const fromPeak = Math.abs(s - peakSec) / Math.max(1, peakSec);
-    const base = 70 - fromPeak * 22; // peaks ≈ 70, floors ≈ 48
-    const noise = (rand() - 0.5) * 6;
-    const wpm = Math.max(20, Math.round(base + noise));
-    const raw = wpm + 4 + Math.round(rand() * 4);
-    wpmHistory.push({ t: s * 1000, wpm, raw });
-  }
-  const avg =
-    wpmHistory.reduce((sum, s) => sum + s.wpm, 0) / Math.max(1, wpmHistory.length);
-  return { events, wpmHistory, elapsedMs, wpm: Math.round(avg), accuracy };
-}
-
 /** Mounts a frozen <Practice> context so the real Passage / Readouts /
  *  TestSummary / any other practice consumer can render exactly as on
  *  the live test screen — no mock components, no duplicated rendering
@@ -182,9 +31,9 @@ function buildSampleRun(words: readonly string[]): {
  *
  *  Defaults to a partway-through run (`phase: "running"`) so previews
  *  for caret / typography / colours show the active passage chain. Pass
- *  `phase: "done"` to flip into the completed-run shape — wpmHistory
- *  and events get auto-seeded with a realistic sample so <ResultChart>
- *  and PassageHeatmap render rich, not "Run too short for a chart". */
+ *  `phase: "done"` to flip into the completed-run shape: a seeded sample
+ *  run (preview-sample.ts) on one clock, with a fixed analysis source,
+ *  so <ResultChart>, the heatmap and the analysis card render rich. */
 export function PreviewPracticeProvider({
   children,
   words = PREVIEW_WORDS,
@@ -212,21 +61,25 @@ export function PreviewPracticeProvider({
   elapsedMs?: number;
 }) {
   const value = useMemo(() => {
-    const sample =
-      phase === "done"
-        ? buildSampleRun(words)
-        : { events: [], wpmHistory: NO_HISTORY, elapsedMs: 12_000, wpm: 64, accuracy: 96 };
-
-    const state = buildState({
-      words,
-      finishedWords,
-      cursorChar:
-        activeWordTyped !== undefined ? activeWordTyped.length : cursorChar,
-      errorWord,
-      phase,
-      events: sample.events,
-      activeWordTyped,
-    });
+    // The done run (preview-sample.ts) is one clock and a fixed analysis
+    // source, so the result preview reads the same whatever the viewer's
+    // own settings. The running phases keep the partway state.
+    const done = phase === "done" ? buildDoneRun(words) : null;
+    const sample = done
+      ? done.sample
+      : { events: [], wpmHistory: NO_HISTORY, elapsedMs: 12_000, wpm: 64, raw: 68, accuracy: 96 };
+    const state =
+      done?.state ??
+      buildState({
+        words,
+        finishedWords,
+        cursorChar:
+          activeWordTyped !== undefined ? activeWordTyped.length : cursorChar,
+        errorWord,
+        phase: phase === "done" ? "running" : phase,
+        events: sample.events,
+        activeWordTyped,
+      });
     return {
       state,
       dispatch: () => {},
@@ -238,13 +91,14 @@ export function PreviewPracticeProvider({
       restart: () => {},
       elapsedMs: elapsedMs ?? sample.elapsedMs,
       wpm: wpm ?? sample.wpm,
-      raw: (wpm ?? sample.wpm) + 4,
+      raw: wpm !== undefined ? wpm + 4 : sample.raw,
       accuracy: accuracy ?? sample.accuracy,
       wpmHistory: sample.wpmHistory,
       adaptLoading: false,
       suddenDeathRestarts: 0,
       lastTestId: null,
       lastTestIsPb: null,
+      runAnalysisSource: done?.source ?? null,
     };
   }, [
     words,
