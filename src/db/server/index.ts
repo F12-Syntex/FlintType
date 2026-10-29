@@ -30,6 +30,14 @@ import {
   liveSpectatorsRepo,
   type LiveSpectatorsRepo,
 } from './repositories/live-spectators';
+import {
+  testAnalysesRepo,
+  type TestAnalysesRepo,
+} from './repositories/test-analyses';
+import {
+  testSummariesRepo,
+  type TestSummariesRepo,
+} from './repositories/test-summaries';
 
 export type Database = {
   userPrefs: UserPrefsRepo;
@@ -45,6 +53,8 @@ export type Database = {
   presence: PresenceRepo;
   liveSessions: LiveSessionsRepo;
   liveSpectators: LiveSpectatorsRepo;
+  testAnalyses: TestAnalysesRepo;
+  testSummaries: TestSummariesRepo;
   $drizzle: ServerDrizzle;
 };
 
@@ -63,6 +73,8 @@ export function createDatabase(drizzle: ServerDrizzle): Database {
     presence: presenceRepo(drizzle),
     liveSessions: liveSessionsRepo(drizzle),
     liveSpectators: liveSpectatorsRepo(drizzle),
+    testAnalyses: testAnalysesRepo(drizzle),
+    testSummaries: testSummariesRepo(drizzle),
     $drizzle: drizzle,
   };
 }

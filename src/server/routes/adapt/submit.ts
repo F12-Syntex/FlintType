@@ -20,6 +20,7 @@ import {
 import { notifyPersonalBest } from "./pb-notify";
 import { assertPlausibleRun } from "./plausibility";
 import { loadAdaptPrefs, persistAdaptPrefs } from "./prefs";
+import { recordTestAnalysis } from "./record-analysis";
 
 export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
   input: submitTestInputSchema,
@@ -189,6 +190,8 @@ export const submit = defineRoute<SubmitTestInput, SubmitTestOutput>({
       consistency: input.consistency ?? null,
       wpmHistory: input.wpmHistory ?? null,
     });
+    // The run's analysis digest (record-analysis.ts). Never throws.
+    await recordTestAnalysis({ db, log, userId, testId, input, layout: prefs.handLayout, bigramStates, wasCold });
 
     // Personal-best notification + follower fan-out (pb-notify.ts).
     // Never throws — a notification failure can't fail the submit.

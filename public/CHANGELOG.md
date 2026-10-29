@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.149.8 — 29 October 2026
+- The Privacy page now explains the short summary we keep for each test, and that only you can see it.
+
 ## 6.149.7 — 29 October 2026
 - Tests now record your corrections and the gaps between words, so your analysis can tell a fix from a pause.
 

@@ -152,4 +152,22 @@ describe("apply", () => {
       7, 8, 1, 9, 10, 2, 11, 12,
     ]);
   });
+
+  it("deltasFor leaves the input map and its states unchanged", () => {
+    // adapt.submit reads passageDifficulty from the same pre-update map
+    // after folding this run in, so the fold must not touch it.
+    const existing = new Map<string, ModelState>([
+      ["th", { mean: 120, variance: 100, n: 5, lastSeenMs: 1_700_000_000_000 }],
+      ["he", { mean: 300, variance: 900, n: 40 }],
+    ]);
+    const before = structuredClone(existing);
+    const out = deltasFor(
+      existing,
+      new Map([["th", [110, 90, 400]], ["he", [100, 100, 100, 100, 100, 100]], ["an", [95]]]),
+      { slips: new Map([["th", [800]], ["ng", [600]]]), nowMs: 1_800_000_000_000 },
+    );
+    expect(out.size).toBe(4);
+    expect(existing).toEqual(before);
+    expect([...existing.keys()]).toEqual(["th", "he"]);
+  });
 });
