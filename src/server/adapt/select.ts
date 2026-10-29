@@ -1,6 +1,6 @@
 import type { HandLayoutPrefs } from "@/lib/hand-layout";
 import type { TestRow } from "@/types/adapt";
-import { bigramCategory, deriveFeatureKeys } from "./motor-features";
+import { bigramCategory, deriveFeatureKeys } from "@/lib/keystrokes/motor-features";
 import {
   CHALLENGE_LOW,
   inChallengeBand,

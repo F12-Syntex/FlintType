@@ -11,7 +11,7 @@ import {
   type BigramCategory,
   bigramCategory,
   deriveFeatureKeys,
-} from "./motor-features";
+} from "@/lib/keystrokes/motor-features";
 import type { ModelState } from "./welford";
 
 /** Display threshold: lists of "your weakest pairs" (history, profile)

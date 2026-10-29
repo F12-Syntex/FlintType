@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_HAND_LAYOUT } from "@/lib/hand-layout";
+import { MIN_INTERVAL_MS } from "@/lib/keystrokes/taint";
 import type { KeystrokeTiming } from "@/types/adapt";
 import {
   ABSOLUTE_PAUSE_MS,
   CLEAN_REF_CAP_RATIO,
   MAX_INTERVAL_RATIO,
-  MIN_INTERVAL_MS,
   extract,
 } from "./measure";
 

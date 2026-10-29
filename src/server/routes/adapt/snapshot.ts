@@ -5,7 +5,7 @@ import {
   trigramRowsToStates,
 } from "@/server/adapt/apply";
 import { fingerMapHash } from "@/server/adapt/key-map";
-import { bigramCategory } from "@/server/adapt/motor-features";
+import { bigramCategory } from "@/lib/keystrokes/motor-features";
 import { patternSpreads } from "@/server/adapt/evidence";
 import { PACING_TESTS, pacingFrom } from "@/server/adapt/pacing";
 import {
