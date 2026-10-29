@@ -27,7 +27,7 @@ import type { RunAnalysisSource } from "@/types/typing-analysis";
 import { type AbandonTally, countAbandon, NO_ABANDONS, resetCountFor } from "./practice-abandons";
 import { eventStamp, letterCodeOk } from "./practice-capture";
 import { initialState, reducer, type Action, type KeyEvent, type Length, type Mode, type Phase, type State, type WpmSample } from "./practice-reducer";
-import { analysisSourceFor, buildSubmitInput, runContextFor } from "./practice-submit";
+import { analysisSourceFor, asPlayed, buildSubmitInput, runContextFor } from "./practice-submit";
 import {
   adaptPool,
   decorate,
@@ -554,7 +554,8 @@ export function PracticeProvider({
   // The finished run's analysis source (practice-submit.ts), built in a
   // layout effect so the result's first paint already has it. The run
   // context goes in sourceRef too: the submit effect below (a passive
-  // effect, so it runs after this one) sends the same context.
+  // effect, so it runs after this one) sends the same context. Both take
+  // the run as played (`asPlayed`), so a forced-off Adapt run is Casual.
   const [runAnalysisSource, setRunAnalysisSource] = useState<RunAnalysisSource | null>(null);
   const sourceRef = useRef<{ ctx: RunContext } | null>(null);
   const contextFor = (s: State): RunContext =>
@@ -570,7 +571,8 @@ export function PracticeProvider({
   useLayoutEffect(() => {
     sourceRef.current = state.phase === "done" ? { ctx: contextFor(state) } : null;
     const ctx = sourceRef.current?.ctx;
-    setRunAnalysisSource(ctx ? analysisSourceFor({ state, ctx, raceMode }) : null);
+    const run = asPlayed(state, !isMobile && adaptAuthAllowed);
+    setRunAnalysisSource(ctx ? analysisSourceFor({ state: run, ctx, raceMode }) : null);
     // Keyed on the run's phase and clock: once per finished run.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.phase, state.startTime, state.endTime]);
@@ -609,7 +611,7 @@ export function PracticeProvider({
     // this kind abandoned since the last submit (the tally then starts
     // over). Abandoned runs themselves are never submitted.
     const input = buildSubmitInput({
-      state,
+      state: asPlayed(state, !isMobile && adaptAuthAllowed),
       history: wpmHistoryRef.current,
       raceMode,
       resetCount: resetCountFor(abandonedRef.current, state),
@@ -845,10 +847,7 @@ export function PracticeProvider({
     // flips off when on a phone-sized viewport OR when Clerk reports
     // no signed-in user. Both gates are independent — either one
     // forces adapt=false; both must clear for the feature to engage.
-    const adaptDisabled = isMobile || !adaptAuthAllowed;
-    const effectiveState = adaptDisabled && state.adapt
-      ? { ...state, adapt: false }
-      : state;
+    const effectiveState = asPlayed(state, !isMobile && adaptAuthAllowed);
     return {
       state: effectiveState,
       dispatch,

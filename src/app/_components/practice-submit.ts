@@ -19,6 +19,14 @@ const RESET_COUNT_MAX = 10_000;
 /** The schema's bound on `wpmHistory`. */
 const HISTORY_MAX = 600;
 
+/** The run as it was played. Adapt is forced off on a phone and when
+ *  signed out while the stored preference stays on, so such a run is
+ *  stored, named and compared as Casual, never as Adapt. The provider's
+ *  effective state uses the same rule. */
+export function asPlayed<S extends { adapt: boolean }>(state: S, adaptAllowed: boolean): S {
+  return state.adapt && !adaptAllowed ? { ...state, adapt: false } : state;
+}
+
 /** The adapt `mode` a run is stored under (unchanged mapping). */
 export function submitModeFor(adapt: boolean, raceMode: boolean): TestMode {
   return raceMode ? "race" : adapt ? "training" : "casual";

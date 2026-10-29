@@ -6,6 +6,7 @@ import { submitTestInputSchema } from "@/types/adapt";
 import { initialState, reducer, type Action, type KeyEvent, type Mode, type State, type WpmSample } from "./practice-reducer";
 import {
   analysisSourceFor,
+  asPlayed,
   buildSubmitInput,
   lengthModeOf,
   reachedWords,
@@ -187,5 +188,22 @@ describe("analysisSourceFor", () => {
     const s = fixture();
     expect(analysisSourceFor({ state: { ...s, mode: "BURST" }, ctx: {}, raceMode: false })).toBeNull();
     expect(analysisSourceFor({ state: { ...s, startTime: null }, ctx: {}, raceMode: false })).toBeNull();
+  });
+});
+
+describe("asPlayed", () => {
+  it("turns Adapt off when it couldn't run, and leaves the run alone otherwise", () => {
+    const on = { ...fixture(), adapt: true };
+    expect(asPlayed(on, false).adapt).toBe(false);
+    expect(asPlayed(on, false).events).toBe(on.events);
+    expect(asPlayed(on, true)).toBe(on);
+    const off = fixture();
+    expect(asPlayed(off, false)).toBe(off);
+  });
+
+  it("stores, names and compares a forced-off Adapt run as Casual", () => {
+    const run = asPlayed({ ...fixture(), adapt: true }, false);
+    expect(analysisSourceFor({ state: run, ctx: ctxFor(run), raceMode: false })!.bucket).toBe("casual|words|3");
+    expect(buildSubmitInput({ state: run, history, raceMode: false, resetCount: 0, ctx: {} }).mode).toBe("casual");
   });
 });
