@@ -44,28 +44,12 @@ export type HistoryWeakness = {
   sampleCount: number;
 };
 
-export type HistorySummaryOutput = {
+/** A profile's payload, safe for anyone: never contains timing-derived
+ *  data. `history.publicProfile` returns exactly this; the owner's
+ *  `history.summary` returns it plus `HistoryModelFields`. */
+export type ProfileSnapshot = {
   /** Newest-first. Capped at 500 — covers ~90 days of regular use. */
   recentTests: HistoryTest[];
-  /** Top 12 weakest bigrams with enough samples to score. */
-  weakestPairs: HistoryWeakness[];
-  /** Top 12 weakest trigrams with enough samples to score. */
-  weakestTrigrams: HistoryWeakness[];
-  /** Top 20 slowest words against the user's own word baseline.
-   *  Drives the worst-words drill — same shape as the bigram /
-   *  trigram lists for symmetry. */
-  weakestWords: HistoryWeakness[];
-  /** True until the user has typed enough for the algorithm to score
-   *  bigrams. Page should fall back to "no data yet" copy. */
-  cold: boolean;
-  /** User's overall bigram baseline (sample-weighted mean ms). 0 on
-   *  cold start. */
-  bigramBaselineMs: number;
-  /** User's overall trigram baseline (same shape, separate metric). */
-  trigramBaselineMs: number;
-  /** User's overall whole-word baseline (sample-weighted mean ms
-   *  across every word seen). 0 on cold start. */
-  wordBaselineMs: number;
   /** Public MonkeyType overlay belonging to the *subject* of this
    *  profile (not the viewer). Returned by both `summary` (own
    *  profile) and `publicProfile` (someone else's) so visitors see
@@ -111,6 +95,34 @@ export type HistorySummaryOutput = {
     racesWon: number;
   };
 };
+
+/** Owner only (`history.summary`): fields derived from the user's
+ *  keystroke-timing model. Never sent on a public profile. */
+export type HistoryModelFields = {
+  /** Top 12 weakest bigrams with enough samples to score. */
+  weakestPairs: HistoryWeakness[];
+  /** Top 12 weakest trigrams with enough samples to score. */
+  weakestTrigrams: HistoryWeakness[];
+  /** Top 20 slowest words against the user's own word baseline.
+   *  Drives the worst-words drill — same shape as the bigram /
+   *  trigram lists for symmetry. */
+  weakestWords: HistoryWeakness[];
+  /** True until the user has typed enough for the algorithm to score
+   *  bigrams. Page should fall back to "no data yet" copy. */
+  cold: boolean;
+  /** User's overall bigram baseline (sample-weighted mean ms). 0 on
+   *  cold start. */
+  bigramBaselineMs: number;
+  /** User's overall trigram baseline (same shape, separate metric). */
+  trigramBaselineMs: number;
+  /** User's overall whole-word baseline (sample-weighted mean ms
+   *  across every word seen). 0 on cold start. */
+  wordBaselineMs: number;
+};
+
+/** The owner's history payload (`history.summary`): one round-trip
+ *  serves the profile, Insights and Drills. */
+export type HistorySummaryOutput = ProfileSnapshot & HistoryModelFields;
 
 /** Subset of MonkeytypeStatsSlice safe to expose over the public
  *  profile route: counts, PBs, and the import timestamp. Strips the

@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.149.3 — 29 October 2026
+- Your test history is no longer included when someone else loads your public profile: the server stopped sending your slowest letter pairs and words, which no page ever showed.
+
 ## 6.149.2 — 29 October 2026
 - Internal changes only.
 

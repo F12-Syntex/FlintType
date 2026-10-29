@@ -4,7 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageShell } from "@/components/page-shell";
 import { useBackend } from "@/lib/backend";
-import type { HistorySummaryOutput } from "@/types/history";
+import type { ProfileSnapshot } from "@/types/history";
 import type { RankId } from "@/types/rank";
 import type { UserTagId } from "@/types/user-tag";
 import { ActivitySkillCard } from "./activity-skill-card";
@@ -45,7 +45,7 @@ export function ProfileView({ username }: { username?: string }) {
   const { user, isLoaded: userLoaded } = useUser();
   const isOwner = userLoaded ? matchesViewer(username, user) : null;
 
-  const [snapshot, setSnapshot] = useState<HistorySummaryOutput | null>(null);
+  const [snapshot, setSnapshot] = useState<ProfileSnapshot | null>(null);
   const [error, setError] = useState<ProfileLoadError | null>(null);
   // Bumped by "Try again" to re-run the snapshot fetch.
   const [attempt, setAttempt] = useState(0);
@@ -55,7 +55,9 @@ export function ProfileView({ username }: { username?: string }) {
   useEffect(() => {
     if (isOwner == null) return;
     let cancelled = false;
-    const fetcher = isOwner
+    // The owner's summary also carries the model fields; the profile
+    // reads only the snapshot part, which is all a visitor receives.
+    const fetcher: Promise<ProfileSnapshot> = isOwner
       ? backend.history.summary()
       : backend.history.publicProfile({ username: username! });
     fetcher
