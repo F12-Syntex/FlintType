@@ -22,6 +22,7 @@ import {
   FooterStyleRow,
   TopbarStyleRow,
 } from "../_components/rows/chrome-rows";
+import { paletteRadiusRem } from "../_components/rows/radius-presets";
 import { RadiusRow } from "../_components/rows/radius-row";
 import {
   ChromePreview,
@@ -53,7 +54,7 @@ export default function InterfaceSettingsPage() {
   const { overrides, setVar, clearVar } = useThemeOverrides();
   // A palette's own corner radius isn't the user's change: count and
   // reset against the active palette's baseline.
-  const { baseline, restoreVars } = usePaletteBaseline();
+  const { baseline, theme, restoreVars } = usePaletteBaseline();
   const appearanceKeys = GROUP_APPEARANCE_KEYS.interface ?? [];
   const shapeVars = GROUP_THEME_VARS.interface ?? [];
 
@@ -109,8 +110,10 @@ export default function InterfaceSettingsPage() {
         preview={<GeometryPreview />}
       >
         <RadiusRow
-          value={overrides["--radius"]}
-          onChange={(rem) => setVar("--radius", `${rem}rem`)}
+          override={overrides["--radius"]}
+          paletteRem={paletteRadiusRem(theme)}
+          baselineOverride={baseline.themeOverrides["--radius"]}
+          onSet={(value) => setVar("--radius", value)}
           onClear={() => clearVar("--radius")}
         />
         <BordersRow />

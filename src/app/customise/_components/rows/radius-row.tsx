@@ -3,35 +3,40 @@
 import { Chip, ChipGroup } from "../chip";
 import { LabelWithDesc } from "../controls";
 import { SettingsRow } from "../row";
+import {
+  activeRadiusPreset,
+  RADIUS_PRESETS,
+  radiusWrite,
+  shownRadiusRem,
+} from "./radius-presets";
 
-/** The app's default card radius (`--radius` in globals.css). Picking it
- *  clears the override instead of writing a redundant value. */
-const DEFAULT_RADIUS_REM = 1;
-
-const RADIUS_PRESETS: ReadonlyArray<{
-  id: string;
-  label: string;
-  rem: number;
-}> = [
-  { id: "sharp", label: "Sharp", rem: 0 },
-  { id: "subtle", label: "Subtle", rem: 0.375 },
-  { id: "soft", label: "Soft", rem: 0.625 },
-  { id: "round", label: "Round", rem: DEFAULT_RADIUS_REM },
-  { id: "pillowy", label: "Pillowy", rem: 1.5 },
-];
-
-/** Corner radius of cards and panels across the app (`--radius`). */
+/** Corner radius of cards and panels across the app (`--radius`).
+ *  Measured against the active palette (radius-presets.ts): with no
+ *  override the page shows the palette's own radius, and a pick clears
+ *  the override only when the palette already gives that radius. */
 export function RadiusRow({
-  value,
-  onChange,
+  override,
+  paletteRem,
+  baselineOverride,
+  onSet,
   onClear,
 }: {
-  value: string | undefined;
-  onChange: (rem: number) => void;
+  /** The stored `--radius` override, if any. */
+  override: string | undefined;
+  /** The radius the active palette paints with no override. */
+  paletteRem: number;
+  /** The `--radius` the active palette's own presets write, if any. */
+  baselineOverride: string | undefined;
+  onSet: (value: string) => void;
   onClear: () => void;
 }) {
-  const numeric = value ? Number.parseFloat(value) : DEFAULT_RADIUS_REM;
-  const matched = RADIUS_PRESETS.find((p) => Math.abs(p.rem - numeric) < 0.01);
+  const matched = activeRadiusPreset(shownRadiusRem(override, paletteRem));
+
+  function pick(rem: number) {
+    const write = radiusWrite(rem, { paletteRem, baselineOverride });
+    if (write.kind === "clear") onClear();
+    else onSet(write.value);
+  }
 
   return (
     <SettingsRow
@@ -44,15 +49,13 @@ export function RadiusRow({
       control={
         <ChipGroup>
           {RADIUS_PRESETS.map((p) => {
-            const isActive = matched?.id === p.id;
+            const isActive = matched === p.id;
             return (
               <Chip
                 key={p.id}
                 label={p.label}
                 active={isActive}
-                onClick={() =>
-                  p.rem === DEFAULT_RADIUS_REM ? onClear() : onChange(p.rem)
-                }
+                onClick={() => pick(p.rem)}
                 preview={
                   // Top-left corner only — exaggerates the curvature so
                   // even Subtle vs Soft reads at a glance.
