@@ -477,6 +477,35 @@ Rules:
 - `adapt.scoreWord` must mirror `scoreWord` through the shared helpers (`bigramTerm`, `weakness`, `patternSpreads`, pacing's `inChallengeBand` ceiling). Never re-derive the math inline. Its `inChallengeBand` is the strict band; selection may relax it.
 - Extra per-pattern state needs a real justification for a migration: the dev server does not auto-migrate. Prefer deriving from `updatedAt`, `varianceMs`, `adaptRecency` and recent test rows. A new server-written user-prefs slice must also be added to `SERVER_OWNED_PREF_KEYS` (`src/types/user-prefs.ts`).
 
+## Typing analysis (`src/lib/typing-analysis/`)
+
+Pure, isomorphic modules. The browser runs them on the result screen, and `adapt.submit` runs the same code to store a digest.
+
+| Module | Owns |
+|---|---|
+| `constants.ts`, `stats.ts`, `context.ts` | Every threshold with its provenance; robust and order statistics (type-7 quantiles, MAD, log cells, exact binomial and sign tests, Theil–Sen, largest-remainder rounding); fix mode, input kind, QWERTY and the digest context. |
+| `timeline.ts` | Input bounds (`usableInput`: a duration of at most a day, word indexes up to 100,000, and finite, typed char events). Capture version (v2 = edits and spaces arrays plus `pos` on every key, and no cap hit). The `at`/`seq` merge. The two clocks (`t` for allocation, `ht` for statistics). Quantisation, input kind, and QWERTY (from the run's `codeMatch`, never the on-screen keyboard setting). |
+| `gaps.ts` | Gap kinds (in-word, boundary, chunk, other) and mechanical gap classes (QWERTY finger and hand, shift, repeat). |
+| `pace.ts` | The clean in-word set, smooth pace P (Q40 of class-normalised gaps), spread σ, the run's own class ratios and word-gap pace P_B (clamped to 2P–3P, with its spread taken from the lower tail of the word gaps), catch and pause thresholds (κ = clamp(2.33σ, ln 1.6, ln 3)), and break β = max(20P, 2 s). Also `letterGaps` for the result screen, which gives [] for unusable input. |
+| `replay.ts`, `needed.ts`, `episodes.ts`, `episodes-v1.ts` | Mistake episodes: exact for v2, inferred for v1. For v2, one replay gives the integrity check, the final buffers and the episodes. A record can never move the cursor past the run's Space marks. Every replay step is O(log K): buffers are arrays of single characters, a Fenwick tree counts live keys, and a min tree counts the Spaces a span needs. So an episode that reopens on every detour stays cheap. |
+| `prepare.ts` | The pipeline up to the budget (timeline, replay with its v1 fallback, pace, episodes, thresholds, budget), shared by `analyseRun` and the property tests. |
+| `budget.ts` | The exact time budget: typing + fixing + before + inside + breaks = T in integer ms, every slice ≥ 0. |
+| `within-run.ts`, `fade.ts`, `jackknife.ts`, `findings.ts` | Word friction, start-up, lost characters and pattern cells; the fade; per-test standard errors; and at most three findings. |
+| `analyse.ts`, `from-submit.ts` | `analyseRun` (never throws) and the server's `submitToRunInput`. |
+| `digest.ts` | `TestDigestV1` (≤ 4 KB, no passage text): `buildDigest` and `parseDigest`. |
+| `run-script.ts`, `run-script-core.ts`, `run-keys.ts` | Test fixtures only: a run DSL and a key-by-key random run, rendered by the practice reducer's rules and checked against the real reducer. |
+
+Rules:
+- The per-test rule never reads history. Its thresholds come from the run itself, so the result screen, the live clone, the settings preview and the stored digest agree.
+- Every entry point checks `usableInput` first, and every step of the replay and the episodes is O(log K). The engine's work is therefore O(K log K) in the payload's array lengths, whatever their shape. `bounds.test.ts` holds the hostile shapes that used to be quadratic.
+- A mistake closed by a key in a later word, or at the end of the run, counts as fixed only when its word is typed in full (or is the last word of a TIME run still being typed). A slip is also fixed once the letter it replaced is typed correctly in its own word; if the rest of the word is then skipped, that skip is a word left wrong. A slip deleted and then skipped is a word left wrong, never a fixed mistake; going back into the word reopens it. `mistakes.rewrites` counts only correct text deleted and typed again.
+- The only absolute behavioural threshold is the 2 s break floor. Every other threshold is a multiple of the run's own pace (minImpact is max(4P, 3% of the test)). The remaining fixed numbers are measurement floors and the fade's sampling windows.
+- Breaks holds only stops of β or more (inside a fix too) and the wait for a race gun. Every other sub-β gap is typing unless it is a catch, a pause or part of a mistake.
+- A fade is reported only when the speed drop is 2 standard errors of the run's own word-to-word noise, and at least 10% when there are fewer than 6 windows. Breaks are taken out of every window they overlap, so stopping never reads as slowing down.
+- `timings` stays characters only. Edits and spaces travel in their own arrays, and every new wire field is lenient (`.optional().catch(undefined)`): a bad value is dropped, never a 400; a bad `pos` or mark makes the run v1.
+- Pooled models read only digests (v2 capture) and exclude `mt_` imports, drills, sudden death and incomplete runs. Fixing time is compared only within the same fix mode. Touch runs have their own bucket (`|t`). Sessions are clusters in every noise test (`medianDiff`).
+- Stored model means are effective times. They are used only as relative difficulty (`src/server/adapt/difficulty.ts`, against the same snapshot), never as clean speed. The Adapt adjustment uses no fitted slope, because Adapt's own pacing makes harder passages arrive on better days.
+
 ## How to add a method
 
 Always two files, in this order:
