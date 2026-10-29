@@ -70,6 +70,32 @@ export function htmlAttrValue(
   return typeof v === "string" && v !== "" && v !== rule.fallback ? v : null;
 }
 
+/** `DEFAULT_APPEARANCE`'s value for every key the pre-paint script
+ *  reads (each `HTML_ATTR_RULES` key, plus `borders`). The script lays
+ *  the stored slice over these, the way `readSlice` does, so a missing
+ *  or partial slice paints exactly what the appliers write once the
+ *  prefs have loaded. Copied rather than imported because the server
+ *  layout imports this module and `appearance-prefs` is a client
+ *  module; `bootstrap.test.ts` pins every value to DEFAULT_APPEARANCE. */
+export const APPEARANCE_ATTR_DEFAULTS: Readonly<Record<string, unknown>> = {
+  cardSurfaces: "subtle",
+  dividers: "hidden",
+  pagePadding: "comfortable",
+  backgroundFill: "paper",
+  topbarStyle: "flat",
+  footerStyle: "visible",
+  autoHide: "fade",
+  resultChrome: "framed",
+  monochromeChrome: false,
+  controlShape: "pill",
+  depth: "soft",
+  buttonGlow: true,
+  pageAura: true,
+  uiFont: "sans",
+  uiScale: "default",
+  borders: "soft",
+};
+
 /** Every mirrored attribute for an appearance blob (`null` = remove). */
 export function htmlAttrsFor(
   appearance: Record<string, unknown>,
@@ -85,37 +111,46 @@ export const PREFS_BOOTSTRAP_SCRIPT = `
 (function () {
   try {
     var raw = window.localStorage.getItem('flinttype:prefs:v1');
-    if (!raw) return;
-    var blob = JSON.parse(raw);
-    if (!blob || typeof blob !== 'object') return;
+    var blob = raw ? JSON.parse(raw) : {};
+    if (!blob || typeof blob !== 'object') blob = {};
     var root = document.documentElement;
 
     // Appearance: data-ft-* attrs that drive the global CSS cascade.
     // Same table + rules as htmlAttrValue() above, which
-    // src/app/appearance-applier.tsx uses after hydration.
-    var ap = blob.appearance;
-    if (ap && typeof ap === 'object') {
-      var rules = ${JSON.stringify(HTML_ATTR_RULES)};
-      for (var ri = 0; ri < rules.length; ri++) {
-        var rule = rules[ri];
-        var rv = ap[rule.key];
-        var out = null;
-        if (rule.kind === 'flag-on') {
-          out = rv === true ? 'on' : null;
-        } else if (rule.kind === 'flag-off') {
-          out = rv === false ? 'off' : null;
-        } else if (typeof rv === 'string' && rv !== '' && rv !== rule.fallback) {
-          out = rv;
-        }
-        if (out === null) root.removeAttribute(rule.attr);
-        else root.setAttribute(rule.attr, out);
+    // src/app/appearance-applier.tsx uses after hydration. The stored
+    // slice is laid over the defaults (APPEARANCE_ATTR_DEFAULTS), like
+    // readSlice, so a first visit or a partial slice paints the same
+    // attributes the applier writes once the prefs have loaded. The
+    // applier leaves <html> alone until then.
+    var ap = {};
+    var defaults = ${JSON.stringify(APPEARANCE_ATTR_DEFAULTS)};
+    for (var dk in defaults) ap[dk] = defaults[dk];
+    var storedAp = blob.appearance;
+    if (storedAp && typeof storedAp === 'object') {
+      for (var sk in storedAp) {
+        if (Object.prototype.hasOwnProperty.call(storedAp, sk)) ap[sk] = storedAp[sk];
       }
-      // Borders — see src/app/borders-applier.tsx
-      if (ap.borders && ap.borders !== 'default') {
-        root.setAttribute('data-ft-borders', String(ap.borders));
-      } else {
-        root.removeAttribute('data-ft-borders');
+    }
+    var rules = ${JSON.stringify(HTML_ATTR_RULES)};
+    for (var ri = 0; ri < rules.length; ri++) {
+      var rule = rules[ri];
+      var rv = ap[rule.key];
+      var out = null;
+      if (rule.kind === 'flag-on') {
+        out = rv === true ? 'on' : null;
+      } else if (rule.kind === 'flag-off') {
+        out = rv === false ? 'off' : null;
+      } else if (typeof rv === 'string' && rv !== '' && rv !== rule.fallback) {
+        out = rv;
       }
+      if (out === null) root.removeAttribute(rule.attr);
+      else root.setAttribute(rule.attr, out);
+    }
+    // Borders — see src/app/borders-applier.tsx
+    if (ap.borders && ap.borders !== 'default') {
+      root.setAttribute('data-ft-borders', String(ap.borders));
+    } else {
+      root.removeAttribute('data-ft-borders');
     }
 
     // Named palette: paint the active community palette's resolved

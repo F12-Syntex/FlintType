@@ -72,7 +72,7 @@ const PaletteContext = createContext<Ctx | null>(null);
  *  `resolvedTheme` is available. */
 export function PaletteProvider({ children }: { children: ReactNode }) {
   const { resolvedTheme } = useNextTheme();
-  const { value, update, reset } = useRemotePrefs<PaletteSlice>(
+  const { value, loaded, update, reset } = useRemotePrefs<PaletteSlice>(
     "palette",
     DEFAULT_PALETTE,
   );
@@ -95,6 +95,10 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
   const sampleRef = useRef<ReactiveSample | null>(null);
 
   useEffect(() => {
+    // Until the stored palette loads, `activeId` is the Default's null.
+    // The pre-paint bootstrap has already painted the stored palette, so
+    // painting now would clear it for a frame or more on every load.
+    if (!loaded) return;
     // Themes paint on <html> so every surface (chrome, typing area,
     // customise previews) picks them up via the CSS cascade. SSR
     // no-op. Every painter re-asserts the overrides on top.
@@ -118,7 +122,7 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
       return;
     }
     paintNamed(root, activeId, mode);
-  }, [activeId, base, resolvedTheme, effectiveImage, overriddenKeys]);
+  }, [loaded, activeId, base, resolvedTheme, effectiveImage, overriddenKeys]);
 
   const apply = useCallback(
     (id: string) => {

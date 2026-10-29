@@ -374,13 +374,20 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
 
 export function useAppearancePrefs() {
   const override = usePrefsOverride()?.appearance;
-  const { value: storeRaw, update: updateRaw, reset: resetRaw } =
-    useRemotePrefs("appearance", DEFAULT_APPEARANCE);
+  const {
+    value: storeRaw,
+    loaded: storeLoaded,
+    update: updateRaw,
+    reset: resetRaw,
+  } = useRemotePrefs("appearance", DEFAULT_APPEARANCE);
   // The old shipped live-stats colour reads as "follow the palette";
   // a colour picked in the settings is kept (live-stats-color-prefs.ts).
   const storePrefs = useMemo(() => withLiveStatsColor(storeRaw), [storeRaw]);
   const prefs = override ?? storePrefs;
   const overridden = override != null;
+  /** False until the stored prefs have loaded: `prefs` are the bare
+   *  defaults before then. Always true under a prefs override. */
+  const loaded = overridden || storeLoaded;
 
   const update = useCallback(
     <K extends keyof AppearancePrefs>(key: K, value: AppearancePrefs[K]) => {
@@ -419,5 +426,5 @@ export function useAppearancePrefs() {
     [prefs],
   );
 
-  return { prefs, update, reset, resetKeys, customizedCount } as const;
+  return { prefs, loaded, update, reset, resetKeys, customizedCount } as const;
 }

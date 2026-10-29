@@ -20,6 +20,7 @@ import {
   clearSlice,
   loadPrefs,
   readSlice,
+  subscribe,
   syncPrefsOwner,
   writeSlice,
 } from "./prefs-store";
@@ -323,6 +324,40 @@ describe("prefs-store field-granular dirty tracking (FT-013)", () => {
     // would have replaced the whole slice with defaults+patch, losing
     // a/b/c's real values).
     expect(slice).toMatchObject({ a: 1, b: 2, c: 3 });
+  });
+
+  it("a write during a pending first load holds that slice at once (the hooks' `loaded` flip)", async () => {
+    // Nothing stored and a slow GET: useRemotePrefs flips `loaded` for a
+    // slice as soon as a notify finds that slice in the cache, so the
+    // appliers paint a pick without waiting on the GET.
+    let resolveGet: (v: unknown) => void = () => {};
+    mockGet = () =>
+      new Promise<unknown>((res) => {
+        resolveGet = res;
+      });
+    const pending = loadPrefs();
+    expect(getCache()).toBeNull();
+
+    const seen: Array<string[] | null> = [];
+    const unsub = subscribe(() => {
+      const c = getCache();
+      seen.push(c ? Object.keys(c) : null);
+    });
+    writeSlice("appearance", { controlShape: "square" }, ["controlShape"]);
+
+    // The notify carries a cache holding only the written slice, so
+    // other slices (the Discord banner's) stay unloaded until the GET.
+    expect(seen).toEqual([["appearance"]]);
+    expect("banners" in (getCache() ?? {})).toBe(false);
+
+    resolveGet({ appearance: { controlShape: "pill", uiScale: "large" } });
+    await pending;
+    unsub();
+    // The pick survives the GET and the stored fields still flow in.
+    expect(readSlice("appearance", {})).toEqual({
+      controlShape: "square",
+      uiScale: "large",
+    });
   });
 
   it("theme-revert still preserved: an unsynced edited field wins over a stale remote value", async () => {
