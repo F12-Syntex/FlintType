@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.54 — 29 October 2026
+- Applying rounded corners from Design with AI no longer switches your palette to Custom or shows a Reset when the palette already has those corners.
+
 ## 6.148.53 — 29 October 2026
 - On tablets and phones, opening notifications while the menu is open now closes the menu, so the notifications panel isn't hidden behind it.
 - Opening and closing the Adaptive practice explainer no longer unlocks page scrolling while another panel is still open.

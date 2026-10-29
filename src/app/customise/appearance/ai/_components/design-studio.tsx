@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { BackendError, useBackend } from "@/lib/backend";
 import { cn } from "@/lib/utils";
 import { type AiChange } from "@/types/appearance-ai";
-import { useApplyPatch } from "../../../_components/use-apply-patch";
 import { useCurrentSettings } from "../../../_components/use-current-settings";
 import { StylePreview } from "../../../_components/rows/style-preview";
 import { KeyboardLivePreview } from "../../../_components/rows/keyboard-preview";
@@ -21,6 +20,7 @@ import {
 } from "../../../_components/rows/stats-previews";
 import { EMPTY_PATCH, isEmptyPatch, mergePatch, overlayCurrent } from "./patch-merge";
 import { PreviewScope } from "./preview-scope";
+import { useStudioApply } from "./use-studio-apply";
 import type { AppearancePatch } from "@/types/appearance-ai";
 
 type Message = {
@@ -86,7 +86,7 @@ function ProcessingDots() {
  *  real settings; "Reset" drops it. */
 export function DesignStudio() {
   const backend = useBackend();
-  const { apply, commit } = useApplyPatch();
+  const applyToSettings = useStudioApply();
   const readCurrent = useCurrentSettings();
   const { isLoaded, isSignedIn } = useAuth();
   const signedOut = isLoaded && !isSignedIn;
@@ -171,8 +171,7 @@ export function DesignStudio() {
               <Button
                 size="sm"
                 onClick={() => {
-                  apply(patch);
-                  commit();
+                  applyToSettings(patch);
                   setPatch(EMPTY_PATCH);
                   push({ role: "assistant", text: "Applied to your settings." });
                 }}
