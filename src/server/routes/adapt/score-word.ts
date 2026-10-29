@@ -6,7 +6,7 @@ import {
   trigramRowsToStates,
   wordRowsToStates,
 } from "@/server/adapt/apply";
-import { bigramCategory, deriveFeatureKeys } from "@/server/adapt/motor-features";
+import { bigramCategory, deriveFeatureKeys } from "@/lib/keystrokes/motor-features";
 import { patternSpreads } from "@/server/adapt/evidence";
 import {
   PACING_TESTS,

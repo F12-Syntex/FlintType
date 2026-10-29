@@ -49,7 +49,7 @@ export type SlipSamples = {
 
 /** Walk the keystroke stream and emit one cost sample per slip.
  *  `tainted[i]` marks keystrokes whose own latency is contaminated by
- *  an earlier error (see `measure.ts`); it gates the trigram sample,
+ *  an earlier error (see `taint.ts`); it gates the trigram sample,
  *  whose first interval must be a clean one. */
 export function extractSlips(
   timings: readonly KeystrokeTiming[],
@@ -76,7 +76,7 @@ export function extractSlips(
 
     const target = b.expected.toLowerCase();
     const prev = a.expected.toLowerCase();
-    const cost = slipCost(timings, i, a.t, target, minCost, maxCost, ref);
+    const cost = slipCost(timings, i, a.t, minCost, maxCost, ref);
 
     push(out.bigrams, prev + target, cost);
     for (const fk of deriveFeatureKeys(prev, target, layout)) {
@@ -102,32 +102,43 @@ export function extractSlips(
   return out;
 }
 
-/** Time from the last correct key (`fromT`) until `target` was typed
- *  correctly, clamped to [min, max]. The fix must be the *next* correct
- *  keystroke, in the same word: wrong presses in between are the user
- *  still fumbling (or a stop-on-error block), but if the next correct
- *  key is a different letter — or the user moved to another word — the
- *  slip was never fixed, and a later identical letter further along
- *  the word is not its correction. Unfixed slips cost DEFAULT × ref. */
+/** Index of the keystroke that fixed the slip at `i`, or −1 when it was
+ *  never fixed. The fix must be the *next* correct keystroke, in the
+ *  same word, within SLIP_SEARCH_WINDOW keys: wrong presses in between
+ *  are the user still fumbling (or a stop-on-error block), but if the
+ *  next correct key is a different letter — or the user moved to
+ *  another word — the slip was never fixed, and a later identical
+ *  letter further along the word is not its correction. Letters are
+ *  compared case-insensitively. */
+export function findSlipFix(timings: readonly KeystrokeTiming[], i: number): number {
+  const slip = timings[i];
+  if (!slip) return -1;
+  const target = slip.expected.toLowerCase();
+  const end = Math.min(timings.length, i + 1 + SLIP_SEARCH_WINDOW);
+  for (let j = i + 1; j < end; j++) {
+    const c = timings[j]!;
+    if (c.wordIndex !== slip.wordIndex) break;
+    if (!c.correct) continue;
+    if (c.expected.toLowerCase() !== target) break;
+    return j;
+  }
+  return -1;
+}
+
+/** Time from the last correct key (`fromT`) until the slip's intended
+ *  key was typed correctly (`findSlipFix`), clamped to [min, max].
+ *  Unfixed slips cost DEFAULT × ref. */
 function slipCost(
   timings: readonly KeystrokeTiming[],
   slipIndex: number,
   fromT: number,
-  target: string,
   min: number,
   max: number,
   ref: number,
 ): number {
-  const word = timings[slipIndex]!.wordIndex;
-  const end = Math.min(timings.length, slipIndex + 1 + SLIP_SEARCH_WINDOW);
-  for (let j = slipIndex + 1; j < end; j++) {
-    const c = timings[j]!;
-    if (c.wordIndex !== word) break;
-    if (!c.correct) continue;
-    if (c.expected.toLowerCase() !== target) break;
-    return Math.min(max, Math.max(min, c.t - fromT));
-  }
-  return SLIP_COST_DEFAULT_RATIO * ref;
+  const fix = findSlipFix(timings, slipIndex);
+  if (fix < 0) return SLIP_COST_DEFAULT_RATIO * ref;
+  return Math.min(max, Math.max(min, timings[fix]!.t - fromT));
 }
 
 function push(bucket: Map<string, number[]>, key: string, v: number): void {

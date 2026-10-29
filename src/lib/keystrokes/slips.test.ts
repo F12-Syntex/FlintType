@@ -6,7 +6,9 @@ import {
   SLIP_COST_DEFAULT_RATIO,
   SLIP_COST_MAX_RATIO,
   SLIP_COST_MIN_RATIO,
+  SLIP_SEARCH_WINDOW,
   extractSlips,
+  findSlipFix,
 } from "./slips";
 
 function k(
@@ -157,5 +159,45 @@ describe("extractSlips", () => {
       k(500, "H", "H", true),
     ]);
     expect(s.bigrams.get("th")).toEqual([500]);
+  });
+});
+
+describe("findSlipFix", () => {
+  it("finds the next correct key when it is the intended letter", () => {
+    const timings = [
+      k(0, "t", "t", true),
+      k(120, "h", "g", false),
+      k(240, "h", "j", false),
+      k(400, "h", "h", true),
+    ];
+    expect(findSlipFix(timings, 1)).toBe(3);
+  });
+
+  it("is -1 when the next correct key is a different letter", () => {
+    const word = "thought";
+    const typed = "tgought";
+    const timings = [...word].map((ch, i) => k(i * 120, ch, typed[i]!, typed[i] === ch));
+    expect(findSlipFix(timings, 1)).toBe(-1);
+  });
+
+  it("is -1 when the user moved to the next word", () => {
+    const timings = [k(0, "t", "t", true, 0), k(120, "o", "p", false, 0), k(300, "o", "o", true, 1)];
+    expect(findSlipFix(timings, 1)).toBe(-1);
+  });
+
+  it("is case-insensitive", () => {
+    const timings = [k(0, "T", "T", true), k(120, "H", "G", false), k(500, "h", "h", true)];
+    expect(findSlipFix(timings, 1)).toBe(2);
+  });
+
+  it("gives up past the search window", () => {
+    const wrong = Array.from({ length: SLIP_SEARCH_WINDOW }, (_, i) => k(200 + i, "h", "g", false));
+    const timings = [k(0, "t", "t", true), k(120, "h", "g", false), ...wrong, k(900, "h", "h", true)];
+    expect(findSlipFix(timings, 1)).toBe(-1);
+    expect(findSlipFix(timings.slice(0, -2).concat(timings.slice(-1)), 1)).toBe(timings.length - 2);
+  });
+
+  it("is -1 for an out-of-range index", () => {
+    expect(findSlipFix([k(0, "t", "t", true)], 5)).toBe(-1);
   });
 });

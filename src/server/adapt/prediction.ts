@@ -1,5 +1,5 @@
 import type { HandLayoutPrefs } from "@/lib/hand-layout";
-import { bigramCategory } from "./motor-features";
+import { bigramCategory } from "@/lib/keystrokes/motor-features";
 import {
   type BigramBaselines,
   type ModelMap,

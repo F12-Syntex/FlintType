@@ -1,3 +1,4 @@
+import { SESSION_GAP_MS, runBucketKey, toBucketSpec } from "@/lib/test-bucket";
 import type { TestRow } from "@/types/adapt";
 
 /** How the user is doing *right now*, read from their recent tests —
@@ -10,15 +11,13 @@ import type { TestRow } from "@/types/adapt";
  *  switched from casual to adaptive practice as "slumping" and one who
  *  moved from 15s to 60s tests as "tired". So every comparison happens
  *  inside a bucket of the same mode, length unit and length
- *  (`runBucket`), and accuracy is judged against the user's own norm
- *  for that bucket rather than a fixed target — a steady 91% learner
+ *  (`runBucketKey` in `src/lib/test-bucket.ts`), and accuracy is
+ *  judged against the user's own norm for that bucket rather than a
+ *  fixed target — a steady 91% learner
  *  isn't struggling, that's just their level.
  *
  *  Small changes are ignored (`*_NOISE`): a few percent of WPM or a
  *  point or two of accuracy is ordinary test-to-test variation. */
-
-/** Tests further apart than this start a new session. */
-export const SESSION_GAP_MS = 30 * 60_000;
 
 /** Fatigue: the newest session tests' speed vs the older ones (each
  *  relative to its own bucket). Needs FATIGUE_TESTS tests. A decline
@@ -57,9 +56,10 @@ export type FormSignals = {
 
 export const NO_SIGNALS: FormSignals = { fatigue: 0, strain: 0, slump: 0, lift: 0 };
 
-/** Which runs are comparable: same mode, same length unit, same length. */
-export function runBucket(t: TestRow): string {
-  return `${t.mode}|${t.lengthMode ?? ""}|${t.durationOrWordCount}`;
+/** Which runs are comparable: same mode, same length unit, same length.
+ *  Stored test rows carry no input kind, so the touch suffix never applies. */
+function runBucket(t: TestRow): string {
+  return runBucketKey(toBucketSpec(t), false);
 }
 
 /** The completed tests of the session the user is in, newest first.

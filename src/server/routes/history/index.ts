@@ -16,7 +16,7 @@ import {
   trigramRowsToStates,
   wordRowsToStates,
 } from "@/server/adapt/apply";
-import { bigramCategory } from "@/server/adapt/motor-features";
+import { bigramCategory } from "@/lib/keystrokes/motor-features";
 import {
   baselineForCategory,
   baselineMean,

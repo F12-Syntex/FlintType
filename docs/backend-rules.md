@@ -446,23 +446,23 @@ So handlers only need to log **their own** interesting events — don't re-log t
 - Don't log payloads that may contain PII, secrets, or tokens.
 - Outside a request (startup code, scheduled tasks), import `{ logger } from '@/server/logger'` and use the root logger directly.
 
-## Adaptive engine (`src/server/adapt/`)" section (the intro line stays the same; the table and rules change) with:
-
 ## Adaptive engine (`src/server/adapt/`)
 
 Pure, unit-tested modules behind `adapt.submit` (measure, then update) and `adapt.words` / `adapt.scoreWord` / `adapt.snapshot` (score, then select). No module touches the DB: routes load rows, convert them with `apply.ts`, and write deltas back through the repos.
 
+Pure keystroke helpers shared with the browser live in `src/lib/keystrokes/`: `key-map` (finger, hand and row maps, plus `keysForFinger`), `motor-features`, `clean-pace`, `slips` (including `findSlipFix`) and `taint` (`computeTaintMask`, `MIN_INTERVAL_MS`). The server modules below import them from `@/lib/keystrokes/*`; `fingerMapHash` stays in `src/server/adapt/key-map.ts`. "Same kind of test" is one function, `runBucketKey` in `src/lib/test-bucket.ts` (with `toBucketSpec`, `parseRunBucketKey`, `SESSION_GAP_MS` and `splitSessions`), which `session-form.ts` uses; it produces exactly the old `runBucket` string.
+
 | Module | Owns |
 |---|---|
 | `measure.ts` | Clean timing samples from the keystroke stream (bigrams, trigrams, motor features, whole words). Drops wrong keys, recovery keys and pauses. The pause gate's reference is the stored mean capped at 2× the user's clean pace per interval (`CLEAN_REF_CAP_RATIO`), because stored means include mistake costs. |
-| `slips.ts` | Mistake costs. A wrong key right after a correct one in the same word is a slip on that pair; its sample is the time until the intended key was typed correctly, clamped to 2–8× the user's clean pace. The fix must be the next correct keystroke in that word; otherwise (or if the user moved to the next word) the slip costs 4× the clean pace. Also charged to the pair's motor features and trigram. |
-| `clean-pace.ts` | The clean pace for one test: the median of its clean in-word intervals, capped at the stored overall bigram baseline. It falls back to the baseline when the test has fewer than 5 clean intervals, and is 0 before the user has a baseline (slips then use the 180 ms cold reference and the gate stays uncapped). It never includes past slip costs, so mistake costs can't compound from one test to the next. |
+| `slips.ts` | `src/lib/keystrokes/slips.ts`: Mistake costs. A wrong key right after a correct one in the same word is a slip on that pair; its sample is the time until the intended key was typed correctly, clamped to 2–8× the user's clean pace. The fix must be the next correct keystroke in that word; otherwise (or if the user moved to the next word) the slip costs 4× the clean pace. Also charged to the pair's motor features and trigram. The fix search is exported as `findSlipFix`. |
+| `clean-pace.ts` | `src/lib/keystrokes/clean-pace.ts`: The clean pace for one test: the median of its clean in-word intervals, capped at the stored overall bigram baseline. It falls back to the baseline when the test has fewer than 5 clean intervals, and is 0 before the user has a baseline (slips then use the 180 ms cold reference and the gate stays uncapped). It never includes past slip costs, so mistake costs can't compound from one test to the next. |
 | `apply.ts` | `deltasFor`: folds clean + slip samples (evenly interleaved) into stored states; shift detection sees the clean samples only. Row → `ModelState` adapters carry `updatedAt` as `lastSeenMs`. |
 | `welford.ts` | EWMA mean/variance, α floor 0.05 (~39-sample memory). Staleness: a state's weight halves every 21 days unseen. Shift detection runs on log(ms): the batch must sit 3 SE away, where SE combines the batch's noise, the stored mean's uncertainty and a 5% allowance for test-to-test variation. On a shift the prior counts as max(5, batch size) samples, so one test moves the mean at most half of the way (long batches already move further at the floor rate, and a shift adds nothing on top). |
 | `evidence.ts` | Staleness-adjusted effective samples, Bayesian shrinkage `n/(n+5)` (n capped at the EWMA memory), exploration ramp (full bonus at 0 samples, none at 6), and a standard error whose variance is shrunk toward the pooled spread of its pattern type (`patternSpreads`, worth 3 samples). |
 | `scoring.ts` | Baselines (bigrams per mechanical category), `weakness = max(0, mean − baseline − 1·SE) × shrinkage`, `bigramTerm`, `scoreWord` (α/β/γ/δ). |
 | `prediction.ts` | `predictedWordMs` for the challenge band. |
-| `session-form.ts` | Form signals from recent tests, compared only within the same mode, length unit and length (`runBucket`). Fatigue: WPM fading within the session. Strain: accuracy below the user's usual for that kind of run, or under 85%. Slump / lift: session speed vs usual. Small changes count as noise. |
+| `session-form.ts` | Form signals from recent tests, compared only within the same mode, length unit and length (`runBucketKey`, `src/lib/test-bucket.ts`). Fatigue: WPM fading within the session. Strain: accuracy below the user's usual for that kind of run, or under 85%. Slump / lift: session speed vs usual. Small changes count as noise. |
 | `pacing.ts` | Maps form onto the challenge ceiling (2.6×, down to 1.9× when struggling, up to 3.0× in form) and weakness concentration (1.8, down to 1.3 / up to 2.1). `PACING_TESTS` (30) is the recent-test window every route reads. |
 | `sampling.ts` | Weighted picks and `pickWithCoverage` (×0.4 per pattern already covered in the passage). |
 | `recency.ts` | Word recency penalty and `advanceRecency`. |
@@ -470,10 +470,10 @@ Pure, unit-tested modules behind `adapt.submit` (measure, then update) and `adap
 
 Rules:
 - Stored `meanMs` on bigram / trigram / motor-feature rows is **effective time per attempt**: clean timing plus the cost of fixing slips. Word rows stay clean-only.
-- Never scale slip costs or the pause gate by the stored means or `baselineMean` alone: they already include past slip costs, and scaling by them feeds each test's mistake costs into the next. Use `cleanPaceMs` (`clean-pace.ts`).
+- Never scale slip costs or the pause gate by the stored means or `baselineMean` alone: they already include past slip costs, and scaling by them feeds each test's mistake costs into the next. Use `cleanPaceMs` (`src/lib/keystrokes/clean-pace.ts`).
 - Pass `nowMs` and the request's `patternSpreads` to `weakness` / `bigramTerm` / `scoreWord` wherever the result drives or mirrors selection (words, scoreWord, snapshot). Omit them only for time-independent display (e.g. history lists).
 - Every pacing caller reads exactly `PACING_TESTS` recent tests, so the /biogram figure is the pacing selection applies.
-- Never compare test runs across modes or lengths: speed and accuracy are judged within a `runBucket`, against the user's own norm.
+- Never compare test runs across modes or lengths: speed and accuracy are judged within one `runBucketKey` bucket, against the user's own norm.
 - `adapt.scoreWord` must mirror `scoreWord` through the shared helpers (`bigramTerm`, `weakness`, `patternSpreads`, pacing's `inChallengeBand` ceiling). Never re-derive the math inline. Its `inChallengeBand` is the strict band; selection may relax it.
 - Extra per-pattern state needs a real justification for a migration: the dev server does not auto-migrate. Prefer deriving from `updatedAt`, `varianceMs`, `adaptRecency` and recent test rows. A new server-written user-prefs slice must also be added to `SERVER_OWNED_PREF_KEYS` (`src/types/user-prefs.ts`).
 

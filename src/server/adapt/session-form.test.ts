@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { SESSION_GAP_MS } from "@/lib/test-bucket";
 import type { TestRow } from "@/types/adapt";
 import {
   ACCURACY_FLOOR,
   FATIGUE_FULL,
   NO_SIGNALS,
-  SESSION_GAP_MS,
   USUAL_MIN_TESTS,
   currentSession,
-  runBucket,
   sessionSignals,
 } from "./session-form";
 
@@ -48,16 +47,6 @@ function runs(
     row({ ...over, wpm, startedAt: new Date(newestMs - i * 60_000) }),
   );
 }
-
-describe("runBucket", () => {
-  it("separates mode, length unit and length", () => {
-    const base = row({});
-    expect(runBucket(base)).toBe(runBucket(row({})));
-    expect(runBucket(row({ mode: "casual" }))).not.toBe(runBucket(base));
-    expect(runBucket(row({ lengthMode: "time" }))).not.toBe(runBucket(base));
-    expect(runBucket(row({ durationOrWordCount: 50 }))).not.toBe(runBucket(base));
-  });
-});
 
 describe("currentSession", () => {
   it("chains tests until a gap longer than SESSION_GAP_MS", () => {

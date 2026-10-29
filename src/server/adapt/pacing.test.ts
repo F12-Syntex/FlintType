@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { SESSION_GAP_MS } from "@/lib/test-bucket";
 import type { TestRow } from "@/types/adapt";
-import { ACCURACY_FLOOR, ACCURACY_SPAN, SESSION_GAP_MS } from "./session-form";
+import { ACCURACY_FLOOR, ACCURACY_SPAN } from "./session-form";
 import {
   CHALLENGE_HIGH,
   CHALLENGE_HIGH_FRESH,
