@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.52 — 29 October 2026
+- Signing in from Drills, Insights or Biogram now takes you back to that page instead of the home page.
+
 ## 6.148.51 — 29 October 2026
 - Pressing Escape in the friends panel now just closes it, instead of also opening the command palette.
 - The friends panel now works from the keyboard: opening it takes you straight to the friend search, and closing it puts you back on the Friends button.

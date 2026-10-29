@@ -12,7 +12,7 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function BiogramPage() {
-  await requireSession();
+  await requireSession("/biogram");
   return (
     <AppChrome>
       <BiogramView />

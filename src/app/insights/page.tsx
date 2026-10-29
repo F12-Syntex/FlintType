@@ -12,7 +12,7 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function InsightsPage() {
-  await requireSession();
+  await requireSession("/insights");
   return (
     <AppChrome>
       <InsightsView />

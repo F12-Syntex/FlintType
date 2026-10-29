@@ -12,7 +12,7 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function DrillsPage() {
-  await requireSession();
+  await requireSession("/drills");
   return (
     <AppChrome>
       <DrillsView />

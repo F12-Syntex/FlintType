@@ -201,6 +201,8 @@ Links into the auth pages may carry `?redirect_url=<path>` (a profile's Follow l
 
 Sign-in prompts and sign-in redirects on pages that need an account build their link with `signInHref(path)` (`src/components/auth/sign-in-href.ts`, tested), or with `useSignInHref()` (`src/components/auth/use-sign-in-href.ts`) for the current page in a client component. The user then comes back to the page that asked, e.g. `/sign-in?redirect_url=%2Fdrills%2Fweakness`. Home and the auth pages give a bare `/sign-in`. Never hard-code a bare `/sign-in` on a page that needs an account.
 
+Server-gated pages (`/drills`, `/insights`, `/biogram`) call `requireSession(path)` (`src/app/_components/require-session.ts`, tested). It redirects a signed-out visitor to `signInHref(path)` (`src/components/auth/sign-in-href.ts`), so they come back to that page after signing in.
+
 ## Testing protected routes
 
 `auth()` and `clerkClient()` cannot run outside a Clerk-aware request context, so tests mock both at the module boundary:
