@@ -15,7 +15,14 @@ export function RaceTrace() {
   const H = 120;
   const values = samples.flatMap((s) => Object.values(s.wpmByRacer));
   const peak = Math.max(0, ...values);
-  const yourPeak = Math.max(0, ...samples.map((s) => s.wpmByRacer.you ?? 0));
+  // Your final speed counts too, so the label never reads below the
+  // WPM the results card shows (each line normally ends on it anyway).
+  const you = state.racers.find((r) => r.isYou);
+  const traced = Math.max(0, ...samples.map((s) => s.wpmByRacer.you ?? 0));
+  const yourPeak =
+    traced > 0 && you?.finishedAt != null
+      ? Math.max(traced, Math.round(you.wpm))
+      : traced;
   const MAX = Math.max(60, Math.ceil(peak / 20) * 20 + 20);
   const lastT = Math.max(1, samples[samples.length - 1]!.t);
   const firstT = samples[0]!.t;

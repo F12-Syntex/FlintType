@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.42 — 28 October 2026
+- The race speed chart now ends on your final speed, so "Your peak" never reads below your result.
+
 ## 6.148.41 — 28 October 2026
 - Personal bests now shows its short "no runs at these lengths yet" message when none of your runs are at a standard length, instead of a grid of empty dashes.
 
