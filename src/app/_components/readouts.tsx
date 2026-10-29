@@ -2,10 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { Kbd } from "@/components/ft";
-import {
-  LEGACY_LIVE_STATS_COLOR,
-  useAppearancePrefs,
-} from "@/lib/appearance-prefs";
+import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import type { LiveStatStyle } from "@/lib/appearance-prefs";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { formatClock } from "@/lib/format-duration";
@@ -87,12 +84,10 @@ function useStatsProps(): StatsProps {
   const blind = behaviour.blindMode;
   const gate = (s: LiveStatStyle): LiveStatStyle => (blind ? "off" : s);
 
-  const color = appearance.liveStatsColor?.trim();
   // Empty follows the palette's primary on the headline number. The old
-  // shipped default (the brand hex) still arrives in a broadcaster's
-  // prefs on the live view, so it reads the same way.
-  const customColor =
-    color && color.toLowerCase() !== LEGACY_LIVE_STATS_COLOR ? color : undefined;
+  // shipped default is already mapped to empty by useAppearancePrefs (a
+  // broadcaster's prefs arrive mapped too), so any colour here is a pick.
+  const customColor = appearance.liveStatsColor?.trim() || undefined;
 
   return {
     wpm,

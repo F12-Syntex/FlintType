@@ -604,6 +604,8 @@ Every section renders through `<SettingsSection id title description preview?>`:
 | Continuous numeric, fine-grained | `<SliderRow>` with a value badge. |
 | Bounded number with an "unbounded" escape | The number control plus one `<Chip>` that toggles the escape and remembers the last number: Lines shown = number input + "All"; Line width = slider (30–200 ch) + "Full". `0` is the wire value. Both live in `rows/layout-controls.tsx`. The escape is never the slider's minimum. |
 
+Live stats colour: a stored `#f97316` without the `liveStatsColorPicked` stamp is the old shipped default and reads as Default. Every pick from the settings saves the stamp with the colour, so the orange swatch sticks (`src/lib/live-stats-color-prefs.ts`, tested).
+
 On themes, the legacy baked `--primary` / `--ring` values are removed on load only on the Default palette (`stripLegacyBaked`), so an orange accent or focus ring picked on another palette survives a reload.
 
 ### 12.2a Per-option chip previews

@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.47 — 29 October 2026
+- Picking orange for the live stats colour now sticks, on every palette.
+
 ## 6.148.46 — 29 October 2026
 - An orange accent or focus ring picked on a palette other than Default is no longer lost when you reload.
 
