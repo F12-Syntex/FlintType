@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.45 — 29 October 2026
+- Corners in Settings → Interface now shows the right choice on every palette, and picking Round gives round corners even when your palette's own corners are smaller.
+
 ## 6.148.44 — 29 October 2026
 - Choosing a word list in the race lobby settings no longer closes the settings panel, and focus goes back to the word list button.
 - Clicking a label or an empty spot in the race lobby settings no longer closes the panel.

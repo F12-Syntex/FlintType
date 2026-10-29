@@ -55,5 +55,8 @@ export function usePaletteBaseline() {
     if (preset) writeSlice("keyboard", preset);
   }, [theme]);
 
-  return { baseline, restoreVars, restoreKeyboard };
+  /** The palette the baseline comes from (undefined for Default,
+   *  Background reactive and baseless forks), for rows that need the
+   *  palette's own value of a var it paints, such as `radius`. */
+  return { baseline, theme, restoreVars, restoreKeyboard };
 }

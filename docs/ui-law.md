@@ -656,7 +656,7 @@ Every option that belongs to the same parent topic lives **inside the same secti
 
 - **Caret & cursor** — Style, Thickness, Roundness, Blink, Smooth — *all in one section*.
 - **Typography** — Family, Size, Word spacing — *all in one section*.
-- **Geometry** — Radius, Borders (and any future spacing scale) — *all in one section*. Borders is a 3-way switch (Default / Soft / Hidden) that flips `<html data-ft-borders="…">`; globals.css force-overrides every hairline in the cascade. Pair with `BordersApplier` mounted from `app/providers.tsx`.
+- **Geometry** — Radius, Borders (and any future spacing scale) — *all in one section*. Borders is a 3-way switch (Default / Soft / Hidden) that flips `<html data-ft-borders="…">`; globals.css force-overrides every hairline in the cascade. Pair with `BordersApplier` mounted from `app/providers.tsx`. Corners is measured against the active palette (`rows/radius-presets.ts`). With no override it shows the palette's own radius, and no chip is lit when that falls between presets. A pick clears the override only when the palette already gives that radius. It writes the palette preset's own value when it matches that preset (Claymorphism 0.75rem, Cyberpunk 0rem), and `<rem>rem` otherwise, so Round on a 0.5rem palette gives 1rem.
 
 Don't sprinkle related settings across sections; if you find yourself doing that, rename the section or split it cleanly.
 
