@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { bannedPatterns } from "@/lib/copy-rules";
 import {
   anchorStyle,
   comparisonGeometry,
   rangeGeometry,
+  rangeText,
   SLOPE_BOX,
   slopeDirection,
   slopeGeometry,
@@ -139,6 +141,20 @@ describe("anchorStyle", () => {
     expect(anchorStyle({ at: 20, align: "start" })).toEqual({ left: "20%" });
     expect(anchorStyle({ at: 70, align: "end" })).toEqual({ right: "30%" });
     expect(anchorStyle({ at: 50, align: "center" })).toEqual({ left: "50%", transform: "translateX(-50%)" });
+  });
+});
+
+describe("rangeText", () => {
+  it("names both ends of a narrow band without joining them with to", () => {
+    const pct = (n: number) => `${Math.round(n * 10) / 10}%`;
+    const label = rangeText(pct(97.6), pct(98.3));
+    expect(label).toBe("Between 97.6% and 98.3%");
+    expect(bannedPatterns(label, { heading: true })).toEqual([]);
+    expect(rangeText("77 wpm", "81 wpm")).toBe("Between 77 wpm and 81 wpm");
+  });
+
+  it("prints ends that read alike once", () => {
+    expect(rangeText("100%", "100%")).toBe("100%");
   });
 });
 

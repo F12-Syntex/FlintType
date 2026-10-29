@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { anchorStyle, rangeGeometry } from "./track-geometry";
+import { anchorStyle, rangeGeometry, rangeText } from "./track-geometry";
 
 type RangeTrackProps = {
   low: number;
@@ -15,9 +15,9 @@ type RangeTrackProps = {
 
 /** "Is this normal for me?": a usual range as a band on a track, with
  *  one ink dot for the value. Never orange. A wide band is labelled at
- *  both ends; a narrow one gets one label ("77 wpm to 81 wpm"), so the
- *  labels never collide, and ends that print alike get one label
- *  ("100%"), never the same figure twice (`rangeGeometry`). */
+ *  both ends; a narrow one gets one label ("Between 77 wpm and 81 wpm"),
+ *  so the labels never collide, and ends that print alike get one label
+ *  ("100%"), never the same figure twice (`rangeGeometry`, `rangeText`). */
 export function RangeTrack({ low, high, value, format, label, className }: RangeTrackProps) {
   const lo = Math.min(low, high);
   const hi = Math.max(low, high);
@@ -52,7 +52,7 @@ export function RangeTrack({ low, high, value, format, label, className }: Range
           </>
         ) : (
           <span className="absolute top-0 whitespace-nowrap" style={anchorStyle(g.labels.at)}>
-            {loText === hiText ? loText : `${loText} to ${hiText}`}
+            {rangeText(loText, hiText)}
           </span>
         )}
       </div>

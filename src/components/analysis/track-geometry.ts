@@ -21,7 +21,7 @@ export type RangeGeometry = {
   bandFrom: number;
   bandTo: number;
   dot: number | null;
-  /** Two end labels, or one label for the whole range ("77 to 81 wpm"). */
+  /** Two end labels, or one label for the whole range (`rangeText`). */
   labels: { kind: "ends"; low: LabelAnchor; high: LabelAnchor } | { kind: "single"; at: LabelAnchor };
 };
 
@@ -62,6 +62,13 @@ export function rangeGeometry(low: number, high: number, value?: number, sameTex
                 : { at: mid, align: "center" },
         };
   return { bandFrom, bandTo, dot: v === null ? null : at(v), labels };
+}
+
+/** The one label of a narrow band. Ends that print alike read once
+ *  ("100%"); otherwise "Between 97.6% and 98.3%", never "97.6% to
+ *  98.3%" (ui-law §27 bans "% to ") and never an "X–Y" dash range. */
+export function rangeText(loText: string, hiText: string): string {
+  return loText === hiText ? loText : `Between ${loText} and ${hiText}`;
 }
 
 export type ComparisonGeometry = {
