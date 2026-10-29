@@ -1,5 +1,6 @@
 import type { AppearancePrefs } from "@/lib/appearance-prefs";
 import type { ThemeVar } from "@/lib/theme-customization";
+// Over 300 lines on purpose: the whole settings catalog in one tested file.
 
 /** The settings catalog — the single source of truth for the sidebar,
  *  the mobile section picker, page headers and the legacy-anchor
@@ -231,6 +232,7 @@ export const GROUP_APPEARANCE_KEYS: Readonly<
     "alwaysShowDecimal",
     "typingSpeedUnit",
     "startGraphsAtZero",
+    "resultShowAnalysis",
     "resultShowExtras",
     "resultShowPerLetter",
     "resultShowHandBalance",

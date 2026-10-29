@@ -5,20 +5,23 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { recordIfPb } from "@/lib/pb-cache";
 import { formatSpeed } from "@/lib/speed-unit";
+import { lengthLabel } from "@/lib/test-name";
 import { wordlistLabel } from "@/lib/wordlists/use-wordlist";
 import { calcWpmAndRaw, keystrokeErrors } from "@/lib/wpm";
-import { consistencyScore, stallWpm } from "@/lib/wpm-stats";
+import { consistencyScore } from "@/lib/wpm-stats";
 import { useBurstResult } from "./burst-log";
 import { burstCaption } from "./burst-stats";
 import { PassageHeatmap } from "./passage-heatmap";
-import { usePractice } from "./practice-state";
+import { type State, usePractice } from "./practice-state";
 import { ResultActions } from "./result-actions";
 import { type Bucket, ResultChart } from "./result-chart";
 import { InsightCard } from "./insight-card";
-import { HandBalance, PerLetterSlowness } from "./result-insights";
+import { HandSplit, PerLetterSlowness } from "./result-insights";
 import { ExtraStats } from "./result-run-shape";
 import { ReplayView } from "./result-replay";
 import { ResultStat } from "./result-stat";
+import { RunAnalysis } from "./run-analysis";
+import { useRunAnalysis } from "./use-run-analysis";
 
 // ─── Pieces ────────────────────────────────────────────────────────
 
@@ -68,11 +71,30 @@ function usePbVerdict(preview: boolean): boolean {
   return isNewPb;
 }
 
-function testTypeLabel(mode: string, length: number): string {
-  if (mode === "TIME") return `Time ${length}s`;
-  if (mode === "QUOTE") return "Quote";
-  if (mode === "BURST") return `Burst ${length}`;
-  return `Words ${length}`;
+/** The test type beside the headline (from sm): what was typed, and from
+ *  which word list. Quotes have no word list. */
+function TestType({ mode, length, wordlist }: { mode: State["mode"]; length: number; wordlist: string }) {
+  const testLabel =
+    mode === "TIME"
+      ? lengthLabel("time", length)
+      : mode === "QUOTE"
+        ? lengthLabel("quote", length)
+        : mode === "BURST"
+          ? `Burst of ${lengthLabel("words", length)}`
+          : lengthLabel("words", length);
+  const listLabel = mode === "QUOTE" ? null : wordlistLabel(wordlist);
+  return (
+    <dl className="hidden grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 text-sm sm:grid">
+      <dt className="text-muted-foreground">Test</dt>
+      <dd className="font-medium text-foreground">{testLabel}</dd>
+      {listLabel ? (
+        <>
+          <dt className="text-muted-foreground">Word list</dt>
+          <dd className="text-foreground">{listLabel}</dd>
+        </>
+      ) : null}
+    </dl>
+  );
 }
 
 // ─── Page ──────────────────────────────────────────────────────────
@@ -104,6 +126,9 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
   const [replaying, setReplaying] = useState(false);
   const captureRef = useRef<HTMLDivElement | null>(null);
   const isNewPb = usePbVerdict(preview);
+  // The run's analysis, once: the card, Slowest letters and Hand split
+  // all read this one view (spec-50 §2.1).
+  const view = useRunAnalysis();
 
   // BURST: every figure comes from the timed tries (burst-stats.ts), not
   // the whole-run clock: this run's try log, or the broadcaster's figures
@@ -126,7 +151,6 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
           })),
     [burst, burstFigures, wpmHistory],
   );
-  const slowest = burst ? burst.slowest : stallWpm(buckets);
   const cons = burst ? burst.consistency : consistencyScore(buckets);
   // Keystroke-true error count: the SAME metric the live readout and
   // the recorded run use (incorrect keystrokes, including corrected ones).
@@ -134,12 +158,10 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
   const elapsedSec = Math.max(1, Math.round(elapsedMs / 1000));
   const unit = appearance.typingSpeedUnit;
   const decimals = appearance.alwaysShowDecimal;
-  const testType = [
-    testTypeLabel(state.mode, state.length),
-    state.mode === "QUOTE" ? null : wordlistLabel(wordlist),
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const testType = <TestType mode={state.mode} length={state.length} wordlist={wordlist} />;
+  // Words that were finished: a timed test ends partway through one.
+  const committed =
+    state.mode === "TIME" ? Math.min(state.words.length, state.cursorWord) : state.words.length;
 
   if (replaying) {
     return (
@@ -193,16 +215,17 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
                     unitLabel,
                   )}
                 </p>
-                <p className="hidden sm:block">{testType}</p>
+                {testType}
               </div>
             ) : (
               // Phones already show this in the settings pill above.
-              <p className="hidden text-sm text-muted-foreground sm:block">
-                {testType}
-              </p>
+              testType
             )}
           </div>
-          <div className="min-w-0 rounded-2xl border border-border bg-card p-3 shadow-card sm:p-5">
+          <div
+            data-ft-result-card
+            className="min-w-0 rounded-2xl border border-border bg-card p-3 shadow-card sm:p-5"
+          >
             <ResultChart
               buckets={buckets}
               events={state.events}
@@ -211,7 +234,10 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-4 gap-y-4 rounded-2xl border border-border bg-card p-4 shadow-card sm:grid-cols-4 sm:p-5">
+        <div
+          data-ft-result-card
+          className="grid grid-cols-2 gap-x-4 gap-y-4 rounded-2xl border border-border bg-card p-4 shadow-card sm:grid-cols-4 sm:p-5"
+        >
           <ResultStat
             label={rawLabel}
             value={formatSpeed(burst ? burst.raw : raw, unit, decimals)}
@@ -221,32 +247,8 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
           <ResultStat label="Time" value={`${elapsedSec}s`} />
         </div>
 
-        {appearance.resultShowExtras ? (
-          <ExtraStats
-            events={state.events}
-            totalWords={state.words.length}
-            slowest={formatSpeed(slowest, unit, decimals)}
-            unitLabel={unit}
-          />
-        ) : null}
-
-        {appearance.resultShowPerLetter || appearance.resultShowHandBalance ? (
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
-            {appearance.resultShowPerLetter ? (
-              <PerLetterSlowness events={state.events} />
-            ) : null}
-            {appearance.resultShowHandBalance ? (
-              <HandBalance events={state.events} />
-            ) : null}
-          </div>
-        ) : null}
-
-        {appearance.resultShowHeatmap && state.words.length > 0 ? (
-          <InsightCard label="Passage heatmap" meta="Fast to slow · hover for ms">
-            <PassageHeatmap words={state.words} events={state.events} />
-          </InsightCard>
-        ) : null}
-
+        {/* Directly under the stats, so "Next test" stays above the fold
+         *  whatever is switched on below. */}
         {preview ? null : (
           <ResultActions
             onNext={() => restart()}
@@ -260,6 +262,38 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
             }
           />
         )}
+
+        <RunAnalysis view={view} preview={preview} isNewPb={isNewPb} />
+
+        {appearance.resultShowExtras ? (
+          <ExtraStats
+            events={state.events}
+            words={state.words}
+            typed={state.typed}
+            committed={committed}
+          />
+        ) : null}
+
+        {(appearance.resultShowPerLetter && view) || appearance.resultShowHandBalance ? (
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
+            {appearance.resultShowPerLetter && view ? (
+              <PerLetterSlowness input={view.input} />
+            ) : null}
+            {appearance.resultShowHandBalance ? (
+              <HandSplit
+                events={state.events}
+                view={view}
+                keymapLayout={appearance.keymapLayout}
+              />
+            ) : null}
+          </div>
+        ) : null}
+
+        {appearance.resultShowHeatmap && state.words.length > 0 ? (
+          <InsightCard label="Text heatmap">
+            <PassageHeatmap words={state.words} events={state.events} />
+          </InsightCard>
+        ) : null}
       </div>
     </div>
   );

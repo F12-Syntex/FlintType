@@ -61,12 +61,25 @@ export type LiveScreen = {
    *  rare gap degrades to defaults rather than breaking. */
   appearance?: LiveAppearance;
   caret?: LiveCaret;
-  behaviour?: { blindMode?: boolean };
+  /** The broadcaster's behaviour settings the clone needs: blind mode for
+   *  the passage, and the four that decide how a mistake can be fixed,
+   *  so the clone's analysis uses their fix mode (spec-50 §8). */
+  behaviour?: {
+    blindMode?: boolean;
+    stopOnError?: boolean;
+    allowExtras?: boolean;
+    strictSpace?: boolean;
+    confidence?: "off" | "word" | "all";
+  };
   themeVars?: LiveThemeVars;
   /** Sent on the `done` frame so the spectator's results report (chart,
    *  heatmap, per-letter) renders from the broadcaster's real run. */
   wpmHistory?: LiveWpmSample[];
   events?: LiveKeyEvent[];
+  /** On the `done` frame: the first word index of the event window. Above
+   *  0, the events don't start at the run's first word. An older
+   *  broadcaster doesn't send it. */
+  windowStart?: number;
   /** A BURST run's result figures, on the `done` frame (live-burst.ts). */
   burst?: LiveBurst;
 };
@@ -111,7 +124,15 @@ const liveScreenSchema = z.object({
   // last stored value — so the steady-state push is tiny.
   appearance: liveAppearanceSchema.optional(),
   caret: liveCaretSchema.optional(),
-  behaviour: z.object({ blindMode: z.boolean().optional() }).optional(),
+  behaviour: z
+    .object({
+      blindMode: z.boolean().optional(),
+      stopOnError: z.boolean().optional().catch(undefined),
+      allowExtras: z.boolean().optional().catch(undefined),
+      strictSpace: z.boolean().optional().catch(undefined),
+      confidence: z.enum(["off", "word", "all"]).optional().catch(undefined),
+    })
+    .optional(),
   themeVars: liveThemeVarsSchema.optional(),
   wpmHistory: z
     .array(
@@ -135,6 +156,7 @@ const liveScreenSchema = z.object({
     )
     .max(3_000)
     .optional(),
+  windowStart: z.number().int().min(0).max(100_000).optional().catch(undefined),
   burst: liveBurstWireSchema,
 });
 

@@ -7,6 +7,7 @@ import {
 } from "./live-stats-color-prefs";
 import { usePrefsOverride } from "./prefs-override";
 import { useRemotePrefs } from "./use-remote-prefs";
+// Over 300 lines on purpose: the single registry of appearance prefs (type, defaults, hook). Splitting it would scatter the registry.
 
 // ─── enums ────────────────────────────────────────────────────────────
 
@@ -122,6 +123,8 @@ export type AppearancePrefs = {
   resultShowExtras: boolean;
   resultShowPerLetter: boolean;
   resultShowHandBalance: boolean;
+  /** What happened and where the time went, under the result. On by default. */
+  resultShowAnalysis: boolean;
 
   keymap: Keymap;
   keymapLayout: string;
@@ -292,13 +295,15 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   // for first-time viewers; users who prefer auto-scaled focus
   // ranges flip it off.
   startGraphsAtZero: true,
-  // Result-screen sections default off — the chart + stat strip
-  // already carry the headline read; users opt every extra
-  // visualisation back in via customise > Result.
+  // The optional result cards default off: the chart + stat strip
+  // already carry the headline read, and users opt each one back in via
+  // Settings > Stats & results. The analysis is the one result section
+  // that defaults on.
   resultShowHeatmap: false,
   resultShowExtras: false,
   resultShowPerLetter: false,
   resultShowHandBalance: false,
+  resultShowAnalysis: true,
 
   keymap: "react",
   keymapLayout: "qwerty",

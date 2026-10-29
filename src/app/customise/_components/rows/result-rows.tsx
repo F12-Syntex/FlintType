@@ -23,6 +23,7 @@ const SPEED_UNITS: readonly {
 
 const SECTION_TOGGLES: readonly {
   key:
+    | "resultShowAnalysis"
     | "resultShowExtras"
     | "resultShowPerLetter"
     | "resultShowHandBalance"
@@ -31,19 +32,24 @@ const SECTION_TOGGLES: readonly {
   desc: string;
 }[] = [
   {
+    key: "resultShowAnalysis",
+    title: "Show analysis",
+    desc: "What slowed you down, and where the test's time went.",
+  },
+  {
     key: "resultShowExtras",
     title: "Run details",
-    desc: "Longest streak, words finished and your pauses.",
+    desc: "Your longest clean streak, words typed correctly and longest pause.",
   },
   {
     key: "resultShowPerLetter",
     title: "Slowest letters",
-    desc: "The eight letters that took you longest.",
+    desc: "The letters that took you longest inside words.",
   },
   {
     key: "resultShowHandBalance",
-    title: "Hand balance",
-    desc: "How the work split between your left and right hand.",
+    title: "Hand split",
+    desc: "How many of the test's letters each hand types on QWERTY.",
   },
   {
     key: "resultShowHeatmap",

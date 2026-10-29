@@ -15,15 +15,11 @@ import type { LiveScreen } from "@/types/live";
 import { BurstResultProvider } from "@/app/_components/burst-log";
 import { ModeBar } from "@/app/_components/mode-bar";
 import { Passage } from "@/app/_components/passage";
-import {
-  PracticeContext,
-  type KeyEvent,
-  type Phase,
-  type State,
-  type WpmSample,
-} from "@/app/_components/practice-state";
+import { PracticeContext, type WpmSample } from "@/app/_components/practice-state";
 import { Readouts } from "@/app/_components/readouts";
 import { TestSummary } from "@/app/_components/test-summary";
+import { cloneAnalysisSource } from "./clone-source";
+import { cloneState } from "./clone-state";
 
 /** A faithful clone of the broadcaster's whole practice screen — the
  *  real `<ModeBar>` + `<Readouts>` + `<Passage>` while typing, and the
@@ -47,39 +43,8 @@ export function LiveClone({
   accuracy: number;
 }) {
   const value = useMemo(() => {
-    const typed = screen.typed;
-    const phase = (screen.phase as Phase) ?? "running";
-    const cursorWord = Math.min(Math.max(0, screen.cursorWord), words.length);
-    const errorWords = new Set<number>();
-    let totalChars = 0;
-    let correctChars = 0;
-    for (let i = 0; i < typed.length; i++) {
-      const t = typed[i] ?? "";
-      const w = words[i] ?? "";
-      for (let c = 0; c < t.length; c++) {
-        totalChars += 1;
-        if (t[c] === w[c]) correctChars += 1;
-      }
-      if (i < cursorWord && t !== w) errorWords.add(i);
-    }
-    const events = (screen.events ?? []) as KeyEvent[];
-    const state: State = {
-      mode: screen.mode as State["mode"],
-      length: screen.length as State["length"],
-      adapt: screen.adapt ?? false,
-      phase,
-      words: [...words],
-      cursorWord: phase === "done" ? words.length : cursorWord,
-      cursorChar: phase === "done" ? 0 : screen.cursorChar,
-      errorWords,
-      totalChars,
-      correctChars,
-      startTime: Date.now() - screen.elapsedMs,
-      endTime: phase === "done" ? Date.now() : null,
-      events,
-      typed: [...typed],
-      quoteSource: screen.quoteSource,
-    };
+    // One clock read, so a done run's length is exactly elapsedMs.
+    const state = cloneState(words, screen, Date.now());
     return {
       state,
       dispatch: () => {},
@@ -116,6 +81,26 @@ export function LiveClone({
     [screen],
   );
 
+  // The broadcaster's run analysed with their settings (clone-source.ts).
+  // Keyed on what the analysis reads, not on each poll's fresh `screen`,
+  // so a watched results screen is analysed once, not on every push.
+  const b = override.behaviour;
+  const sourceKey =
+    value.state.phase === "done"
+      ? [screen.elapsedMs, value.state.events.length, value.state.events.at(-1)?.t, screen.windowStart,
+          b.stopOnError, b.allowExtras, b.strictSpace, b.confidence, screen.mode, screen.length,
+          screen.adapt, words.join(" "), screen.typed.join(" ")].join("|")
+      : "";
+  const runAnalysisSource = useMemo(
+    () =>
+      sourceKey
+        ? cloneAnalysisSource({ state: value.state, behaviour: b, wordlist: value.wordlist, windowStart: screen.windowStart })
+        : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sourceKey],
+  );
+  const ctxValue = useMemo(() => ({ ...value, runAnalysisSource }), [value, runAnalysisSource]);
+
   const done = value.state.phase === "done";
 
   return (
@@ -130,7 +115,7 @@ export function LiveClone({
         style={screen.themeVars as CSSProperties}
         className="pointer-events-none flex min-h-0 flex-1 flex-col overflow-hidden bg-background"
       >
-        <PracticeContext.Provider value={value}>
+        <PracticeContext.Provider value={ctxValue}>
           <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pb-3 pt-4 sm:gap-5 sm:px-12 sm:py-6 lg:px-20">
             <ModeBar />
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

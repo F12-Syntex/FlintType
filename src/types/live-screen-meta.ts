@@ -100,6 +100,7 @@ export const liveAppearanceSchema = z.object({
   resultShowExtras: lenient(z.boolean()),
   resultShowPerLetter: lenient(z.boolean()),
   resultShowHandBalance: lenient(z.boolean()),
+  resultShowAnalysis: lenient(z.boolean()),
 
   keymap: lenient(z.enum(["off", "static", "react", "next"])),
   keymapLayout: lenient(z.string().max(64)),

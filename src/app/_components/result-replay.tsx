@@ -3,6 +3,7 @@
 import { Pause, Play, Square } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useCaretSettings } from "@/lib/caret-settings";
 import { cn } from "@/lib/utils";
@@ -79,19 +80,19 @@ export function ReplayView({
     [words, typedCount],
   );
 
-  const pct =
-    events.length > 0 ? Math.min(100, Math.round((step / events.length) * 100)) : 0;
   const elapsed = step > 0 && events[step - 1] ? events[step - 1]!.t : 0;
+  const total = events.at(-1)?.t ?? 0;
+  const secOf = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
 
   return (
     <div className="flex h-full min-h-0 flex-col justify-center overflow-hidden py-6">
       <div className="flex min-h-0 w-full flex-col gap-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground tabular-nums">
+          <p className="flex items-baseline gap-3 text-sm tabular-nums">
             <span className="font-medium text-foreground">Replay</span>
-            <span aria-hidden> · </span>
-            {pct}%<span aria-hidden> · </span>
-            {(elapsed / 1000).toFixed(1)}s
+            <span className="text-muted-foreground">
+              {secOf(elapsed)} of {secOf(total)}
+            </span>
           </p>
           <div className="flex flex-wrap items-center gap-2">
             {/* Finger-sized on phones (§7 / §17.2), compact from sm. */}
@@ -119,15 +120,15 @@ export function ReplayView({
           </div>
         </div>
 
-        <div
-          aria-hidden
-          className="h-1 w-full overflow-hidden rounded-full bg-muted"
-        >
-          <div
-            className="h-full rounded-full bg-primary transition-[width] duration-100 ease-linear"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
+        {/* Ink, not orange: the selected speed is the screen's one orange. */}
+        <Progress
+          value={step}
+          max={Math.max(1, events.length)}
+          aria-label="Replay progress"
+          getAriaValueText={() => `${(elapsed / 1000).toFixed(1)} of ${(total / 1000).toFixed(1)} seconds`}
+          trackClassName="h-1 rounded-full bg-muted"
+          indicatorClassName="bg-foreground/60 transition-[width] duration-100 ease-linear"
+        />
 
         <div className="min-h-0 overflow-y-auto">
           <div

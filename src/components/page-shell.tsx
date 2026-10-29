@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { AriaAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 /** The one page frame every scrolling app page shares (ui-law §5,
@@ -127,19 +127,27 @@ export function PageSection({
   );
 }
 
+/** Attributes a `<Surface>` passes through to its element: an id, ARIA
+ *  attributes and `data-*` markers (e.g. `data-ft-result-card`). */
+type SurfacePassThrough = { id?: string } & AriaAttributes & {
+  [key: `data-${string}`]: string | number | boolean | undefined;
+};
+
 /** The standard surface for actionable content inside a section — a
  *  rounded card with a hairline and a soft lift. */
 export function Surface({
   children,
   className,
   as: Tag = "div",
+  ...rest
 }: {
   children: ReactNode;
   className?: string;
   as?: "div" | "section" | "article" | "ul" | "ol";
-}) {
+} & SurfacePassThrough) {
   return (
     <Tag
+      {...rest}
       className={cn(
         "rounded-2xl border border-border bg-card text-card-foreground shadow-card",
         className,

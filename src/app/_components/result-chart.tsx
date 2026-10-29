@@ -165,9 +165,17 @@ export function ResultChart({
                   const first = (items as Array<{ payload?: MergedBucket }>)[0];
                   const sec = first?.payload?.sec ?? 0;
                   const errs = first?.payload?.errors ?? 0;
-                  return errs > 0
-                    ? `${sec}s · ${errs} error${errs === 1 ? "" : "s"}`
-                    : `${sec}s`;
+                  // Two lines: the second, then its errors in muted text.
+                  return (
+                    <>
+                      <span>{sec} s</span>
+                      {errs > 0 ? (
+                        <span className="block font-normal text-muted-foreground">
+                          {errs} {errs === 1 ? "error" : "errors"}
+                        </span>
+                      ) : null}
+                    </>
+                  );
                 }}
               />
             }

@@ -100,7 +100,15 @@ export function buildLiveScreen(
       ? {
           appearance: s.appearance,
           caret: s.caret,
-          behaviour: { blindMode: s.behaviour.blindMode },
+          // Blind mode for the passage; the other four decide the
+          // clone analysis's fix mode (clone-source.ts).
+          behaviour: {
+            blindMode: s.behaviour.blindMode,
+            stopOnError: s.behaviour.stopOnError,
+            allowExtras: s.behaviour.allowExtras,
+            strictSpace: s.behaviour.strictSpace,
+            confidence: s.behaviour.confidence,
+          },
           themeVars: readThemeVars(),
         }
       : {}),
@@ -113,6 +121,11 @@ export function buildLiveScreen(
             : s.wpmHistory
                 .slice(-LIVE_MAX_CHART_SAMPLES)
                 .map((h) => ({ t: h.t, wpm: h.wpm, raw: h.raw })),
+          // The first word the events cover: the clone marks a window
+          // that starts after word 0 as partial.
+          windowStart: start,
+          // Only the five original fields: v2 capture (pos, src, ht,
+          // edits, spaces) never goes on the wire.
           events: st.events
             .filter((e) => e.wordIndex >= start && e.wordIndex < start + len)
             .slice(0, MAX_EVENTS)
