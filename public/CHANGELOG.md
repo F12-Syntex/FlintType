@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.150.2 — 29 October 2026
+- Narrow usual ranges now read "Between 77 wpm and 81 wpm".
+
 ## 6.150.1 — 29 October 2026
 - Tests you take on a phone or while signed out, with Adapt switched on in your settings, are now saved and compared as Casual tests, since Adapt can't run there.
 
