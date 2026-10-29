@@ -93,7 +93,7 @@ export function behaviourEntries({
         : "Turn on key clicks to set the volume",
       "Behaviour",
       "/customise/behaviour#audio",
-      "Behaviour · Sound",
+      ["Behaviour", "Sound"],
       ["audio", "sound", "click", "volume"],
     ),
     toggle(

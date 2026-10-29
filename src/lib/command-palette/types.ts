@@ -67,9 +67,10 @@ export type LinkEntry = EntryBase & {
   kind: "link";
   /** Where to send the user. Same-origin only. */
   href: string;
-  /** Short label for what the user will land on, e.g. "Slider on
-   *  Customise → Typography". */
-  destination: string;
+  /** Where the user lands, as a breadcrumb: the settings page, then the
+   *  section on it, e.g. ["Typing", "Caret"]. Rendered with a chevron
+   *  between the two, never joined with a glyph. */
+  destination: readonly [page: string, section: string];
 };
 
 export type CommandEntry =
