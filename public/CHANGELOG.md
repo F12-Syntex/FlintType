@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.43 — 29 October 2026
+- After a timed race, the passage recap shows only the words you reached and no longer marks a half-typed word as wrong.
+- Pressing Escape on the race results screen no longer clears your run, so the passage recap and its underlined mistakes stay put.
+
 ## 6.148.42 — 28 October 2026
 - The race speed chart now ends on your final speed, so "Your peak" never reads below your result.
 

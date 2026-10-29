@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { usePractice } from "../../_components/practice-state";
+import { recapWords } from "./passage-recap-words";
 import { QuoteAttribution } from "./quote-attribution";
 import { useRace } from "./race-state";
 
@@ -19,13 +20,17 @@ export function PassageRecap() {
   const { state, onlineSnapshot } = useRace();
   const { state: practice } = usePractice();
   const you = state.racers.find((r) => r.isYou) ?? null;
-  const words = state.words;
-  if (words.length === 0) return null;
-  const typed = you ? practice.typed : [];
-  const wrong = words.map((w, i) => {
-    const t = typed[i];
-    return t != null && t.length > 0 && t !== w;
-  });
+  if (state.words.length === 0) return null;
+  // A timed race shows only the stretch that was reached (see
+  // recapWords); a watcher's is the furthest racer's.
+  const { shown: words, wrong } = recapWords(
+    state.words,
+    you ? { typed: practice.typed, cursorWord: practice.cursorWord } : null,
+    {
+      timed: onlineSnapshot?.durationSec != null,
+      furthestChars: Math.max(0, ...state.racers.map((r) => r.correctChars)),
+    },
+  );
   const missed = wrong.filter(Boolean).length;
   const source = onlineSnapshot?.quoteSource;
 
