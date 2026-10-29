@@ -1052,13 +1052,24 @@ export function PracticeProvider({
     const s = stateRef.current;
     const p = prefsRef.current;
     if (e.key === "Escape") {
+      // An Escape that closed an overlay (Radix cancels the one it
+      // handles) reaches here with focus already back on the page; it
+      // must not restart too, or the refocused typing input would
+      // dismiss a popover the overlay was opened from.
+      if (e.defaultPrevented) return;
+      // While a race locks input (matching, lobby, countdown, your own
+      // finish, results), Escape is a no-op, matching InputCapture.
+      // Restarting there would wipe the finished run the race results
+      // and the passage recap are built from.
+      if (isRaceInputCurrentlyLocked()) return;
       restartRef.current();
       return;
     }
     if (s.phase === "done") return;
-    // Race countdown / lobby / matching — block typing keys until the
-    // race starts (Escape above still works). The race provider sets
-    // this lock; single-player never does, so this is a no-op there.
+    // Race countdown / lobby / matching / results: block typing keys
+    // until the race starts (Escape above is a no-op there too). The
+    // race provider sets this lock; single-player never does, so this
+    // is a no-op there.
     if (isRaceInputCurrentlyLocked()) return;
 
     if (e.key === " ") {
