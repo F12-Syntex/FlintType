@@ -184,12 +184,15 @@ function ValueChip({ entry }: { entry: CommandEntry }) {
       );
     }
     case "link":
-      // Where the entry lands, e.g. "Typing · Caret". Hidden on phones
-      // so the label keeps the row's width. No trailing arrow: the row
-      // itself is the affordance (ui-law §17.5).
+      // Where the entry lands, e.g. Typing, then Caret. Hidden on phones
+      // so the label keeps the row's width. The chevron is a breadcrumb
+      // inside the row, not an affordance arrow (ui-law §17.5): the row
+      // itself is the affordance.
       return (
-        <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
-          {entry.destination}
+        <span className="hidden shrink-0 items-center gap-1 text-xs text-muted-foreground sm:inline-flex">
+          <span>{entry.destination[0]}</span>
+          <ChevronRight aria-hidden className="size-3 text-muted-foreground/60" />
+          <span className="text-foreground/80">{entry.destination[1]}</span>
         </span>
       );
     case "action":

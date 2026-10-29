@@ -49,7 +49,7 @@ export function link(
   hint: string,
   group: LinkEntry["group"],
   href: string,
-  destination: string,
+  destination: LinkEntry["destination"],
   keywords?: readonly string[],
 ): LinkEntry {
   return { id, label, hint, group, kind: "link", href, destination, keywords };

@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.149.10 — 29 October 2026
+- In the command palette, links now show which settings page and section they open, without dots.
+
 ## 6.149.9 — 29 October 2026
 - Internal changes only.
 

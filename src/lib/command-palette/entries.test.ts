@@ -83,6 +83,32 @@ describe("command palette entries", () => {
     }
   });
 
+  it("gives every link a page-then-section breadcrumb with no dot", () => {
+    const links = all().filter((e) => e.kind === "link");
+    expect(links.length).toBeGreaterThan(0);
+    for (const e of links) {
+      expect(e.destination, e.id).toHaveLength(2);
+      for (const part of e.destination) {
+        expect(part.trim().length, e.id).toBeGreaterThan(0);
+        expect(part, e.id).not.toContain("·");
+      }
+    }
+  });
+
+  it("names each anchored breadcrumb like the settings page and section it opens", () => {
+    for (const e of all()) {
+      if (e.kind !== "link") continue;
+      const [path, anchor] = e.href.split("#");
+      if (!anchor) continue;
+      const group = SETTINGS_GROUPS.find((g) => g.href === path);
+      expect(group, e.id).toBeDefined();
+      expect(e.destination[0], e.id).toBe(group?.name);
+      const section = group?.sections.find((s) => s.id === anchor);
+      expect(section, e.id).toBeDefined();
+      expect(e.destination[1], e.id).toBe(section?.name);
+    }
+  });
+
   it("names every settings page like the settings catalog", () => {
     expect(
       SETTINGS_PAGES.map((p) => ({ id: p.id, name: p.name, href: p.href })),

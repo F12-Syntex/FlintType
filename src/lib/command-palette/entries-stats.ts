@@ -27,7 +27,7 @@ export function statsEntries({
       "Open the live stats settings",
       "Appearance",
       "/customise/stats#live-stats",
-      "Stats & results",
+      ["Stats & results", "Live stats"],
       ["stats", "timer", "speed", "accuracy"],
     ),
 

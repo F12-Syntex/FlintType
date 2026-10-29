@@ -57,7 +57,7 @@ export function typingEntries({
       "Typeface, size and word spacing",
       "Appearance",
       "/customise/typing#typography",
-      "Typing · Font",
+      ["Typing", "Font"],
       ["font", "type", "size", "typeface"],
     ),
 
@@ -84,7 +84,7 @@ export function typingEntries({
       "Open the caret settings",
       "Caret",
       "/customise/typing#caret",
-      "Typing · Caret",
+      ["Typing", "Caret"],
       ["cursor", "thickness", "width", "radius"],
     ),
     enumEntry(
@@ -178,7 +178,7 @@ export function typingEntries({
       "Open the typing area settings",
       "Appearance",
       "/customise/typing#typing-area",
-      "Typing · Typing area",
+      ["Typing", "Typing area"],
       ["lines", "width", "typing area"],
     ),
     enumEntry(

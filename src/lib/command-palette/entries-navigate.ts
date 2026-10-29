@@ -46,7 +46,7 @@ export function navigateEntries(go: (href: string) => void): CommandEntry[] {
       "Change single colours on top of your palette",
       "Theme",
       "/customise/theme#colors",
-      "Theme · Colours",
+      ["Theme", "Colours"],
       ["color", "colour", "accent", "palette"],
     ),
     link(
@@ -55,7 +55,7 @@ export function navigateEntries(go: (href: string) => void): CommandEntry[] {
       "Put an image behind the app",
       "Theme",
       "/customise/theme#background",
-      "Theme · Background",
+      ["Theme", "Background"],
       ["image", "wallpaper", "photo"],
     ),
     link(
@@ -64,7 +64,7 @@ export function navigateEntries(go: (href: string) => void): CommandEntry[] {
       "See every palette side by side at full size",
       "Theme",
       "/customise/appearance/themes",
-      "Theme · All palettes",
+      ["Theme", "All palettes"],
       ["themes", "browse", "palettes"],
     ),
     // The practice surface is at "/" (/app 404s, #49 / FT-014).
