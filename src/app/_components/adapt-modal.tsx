@@ -5,6 +5,7 @@ import { Lock, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { lockBodyScroll } from "@/lib/scroll-lock";
 import { cn } from "@/lib/utils";
 import { HandLayoutEditor } from "./keyboard/hands";
 
@@ -77,11 +78,12 @@ export function AdaptModal({
       }
     };
     window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    // Counted with the app's other overlays, so the page stays locked
+    // while any of them is still open (src/lib/scroll-lock.ts).
+    const unlockScroll = lockBodyScroll();
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
+      unlockScroll();
       document
         .querySelector<HTMLElement>('input[aria-label="Typing input"]')
         ?.focus({ preventScroll: true });

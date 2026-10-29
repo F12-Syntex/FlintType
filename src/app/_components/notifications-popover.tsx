@@ -5,6 +5,7 @@ import { CheckCheck } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBackend } from "@/lib/backend";
 import { cn } from "@/lib/utils";
+import { closeMobileNav } from "@/components/ft";
 import { Button } from "@/components/ui/button";
 import type { Notification } from "@/types/notification";
 import { BellIcon, NotificationRow } from "./notification-row";
@@ -121,7 +122,12 @@ export function NotificationsPopover() {
     <div ref={wrapRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          // The hamburger drawer paints over the top bar's popovers, so
+          // close it first or the panel opens hidden beneath it.
+          if (!open) closeMobileNav();
+          setOpen((o) => !o);
+        }}
         aria-label={
           unreadCount > 0
             ? `Notifications, ${unreadCount} unread`
