@@ -354,8 +354,14 @@ export function OnlineRaceProvider({
   ]);
 
   // Per-second speed samples for the post-race chart (client-recorded;
-  // the snapshot carries no history).
-  const trace = useRaceTrace(state.phase, derived.elapsedSeconds, state.racers);
+  // the snapshot carries no history). The trace closes on the second
+  // the race ended, from the server's own stamps.
+  const trace = useRaceTrace(
+    state.phase,
+    derived.elapsedSeconds,
+    elapsedSeconds(state.raceStartedAt, state.raceEndedAt ?? state.nowMs),
+    state.racers,
+  );
   const tracedState = useMemo(
     () => (trace.length > 0 ? { ...state, trace } : state),
     [state, trace],

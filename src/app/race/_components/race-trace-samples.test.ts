@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   appendTraceSample,
+  closeTraceSamples,
   MAX_TRACE_SAMPLES,
   type TraceRacer,
 } from "./race-trace-samples";
@@ -76,5 +77,80 @@ describe("appendTraceSample", () => {
       wpmByRacer: { you: 50 },
     }));
     expect(appendTraceSample(full, MAX_TRACE_SAMPLES + 1, [racer()])).toBe(full);
+  });
+});
+
+describe("closeTraceSamples", () => {
+  it("adds the last finisher's final point when the race ends in a later second", () => {
+    // The finished snapshot is the first to show `you` crossed: no
+    // racing snapshot ever did, so the trace still ends at 54.
+    const racing = appendTraceSample([], 8, [racer({ wpm: 54 })]);
+    const closed = closeTraceSamples(racing, 9, [racer({ finishedAt: 9, wpm: 58 })]);
+    expect(closed[1]).toEqual({ t: 9, wpmByRacer: { you: 58 }, finished: ["you"] });
+  });
+
+  it("updates the last sample in place when the race ends in the same second", () => {
+    let s = appendTraceSample([], 7, [racer({ wpm: 50 }), racer({ id: "b", wpm: 40 })]);
+    s = appendTraceSample(s, 8, [racer({ wpm: 54 }), racer({ id: "b", finishedAt: 7, wpm: 41 })]);
+    const closed = closeTraceSamples(s, 8, [
+      racer({ finishedAt: 8, wpm: 58 }),
+      racer({ id: "b", finishedAt: 7, wpm: 41 }),
+    ]);
+    expect(closed).toHaveLength(2);
+    expect(closed[0]).toBe(s[0]);
+    // `b`'s final point was already recorded; only `you` changes.
+    expect(closed[1]).toEqual({ t: 8, wpmByRacer: { you: 58, b: 41 }, finished: ["b", "you"] });
+  });
+
+  it("uses the last sample when the end second is earlier (clock drift)", () => {
+    const s = appendTraceSample([], 9, [racer({ wpm: 54 })]);
+    expect(closeTraceSamples(s, 8, [racer({ finishedAt: 8, wpm: 57 })])).toEqual([
+      { t: 9, wpmByRacer: { you: 57 }, finished: ["you"] },
+    ]);
+  });
+
+  it("closes every racer at the time limit", () => {
+    const s = appendTraceSample([], 29, [racer({ wpm: 70 }), racer({ id: "b", wpm: 80 })]);
+    const closed = closeTraceSamples(s, 30, [
+      racer({ finishedAt: 30, wpm: 72 }),
+      racer({ id: "b", finishedAt: 30, wpm: 81 }),
+    ]);
+    expect(closed[1]).toEqual({ t: 30, wpmByRacer: { you: 72, b: 81 }, finished: ["you", "b"] });
+  });
+
+  it("returns the same array when every final point is already there", () => {
+    let s = appendTraceSample([], 5, [racer({ wpm: 60 })]);
+    s = appendTraceSample(s, 6, [racer({ finishedAt: 5, wpm: 62 })]);
+    expect(closeTraceSamples(s, 6, [racer({ finishedAt: 5, wpm: 62 })])).toBe(s);
+    expect(closeTraceSamples(s, 7, [racer({ finishedAt: 5, wpm: 62 })])).toBe(s);
+  });
+
+  it("leaves disconnected racers out", () => {
+    const s = appendTraceSample([], 4, [racer({ wpm: 60 }), racer({ id: "x", wpm: 30 })]);
+    const closed = closeTraceSamples(s, 4, [
+      racer({ finishedAt: 4, wpm: 61 }),
+      racer({ id: "x", disconnected: true, wpm: 0 }),
+    ]);
+    expect(closed[0]).toEqual({ t: 4, wpmByRacer: { you: 61, x: 30 }, finished: ["you"] });
+  });
+
+  it("still closes the trace once it has hit the sample cap", () => {
+    const full = Array.from({ length: MAX_TRACE_SAMPLES }, (_, i) => ({
+      t: i + 1,
+      wpmByRacer: { you: 50 },
+    }));
+    const closed = closeTraceSamples(full, MAX_TRACE_SAMPLES + 1, [racer({ finishedAt: 600, wpm: 52 })]);
+    expect(closed).toHaveLength(MAX_TRACE_SAMPLES);
+    expect(closed[MAX_TRACE_SAMPLES - 1]).toEqual({
+      t: MAX_TRACE_SAMPLES,
+      wpmByRacer: { you: 52 },
+      finished: ["you"],
+    });
+  });
+
+  it("starts the trace from an empty one like a normal sample", () => {
+    expect(closeTraceSamples([], 3, [racer({ finishedAt: 3, wpm: 90 })])).toEqual([
+      { t: 3, wpmByRacer: { you: 90 }, finished: ["you"] },
+    ]);
   });
 });

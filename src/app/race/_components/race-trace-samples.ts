@@ -31,7 +31,9 @@ export const MAX_TRACE_SAMPLES = 600;
  *  for a second is taken as the second starts, so a racer who crossed
  *  at 11.7s has `finishedAt` 11 while sample 11 still shows them
  *  racing. Comparing the two dropped the final point (and "Your peak"
- *  read below your result).
+ *  read below your result). The last racer to cross never shows as
+ *  crossed in a racing snapshot at all; `closeTraceSamples` takes their
+ *  final point when the race ends.
  *
  *  Returns the same array when nothing was added, so callers can use
  *  reference equality to skip a state update. */
@@ -58,4 +60,40 @@ export function appendTraceSample(
   }
   if (Object.keys(wpmByRacer).length === 0) return samples;
   return [...samples, finished.length > 0 ? { t, wpmByRacer, finished } : { t, wpmByRacer }];
+}
+
+/** Record each racer's final point when the race ends.
+ *
+ *  The server stamps the last racer's finish (or, at the time limit,
+ *  everyone's) and flips the room to "finished" in the same broadcast,
+ *  so no racing snapshot ever shows them crossed and `appendTraceSample`
+ *  never takes their final speed. Call this once, on the first finished
+ *  snapshot, with `t` = the race-clock second the race ended:
+ *  - Later than the last sample: appended like any other sample.
+ *  - The same second (or earlier, from clock drift): one second holds
+ *    one sample, so the last sample takes the final speeds in place.
+ *
+ *  Racers whose final point is already on the chart are left alone.
+ *  Returns the same array when nothing changed. */
+export function closeTraceSamples(
+  samples: readonly TraceSample[],
+  t: number,
+  racers: readonly TraceRacer[],
+): readonly TraceSample[] {
+  const last = samples[samples.length - 1];
+  if (!last) return appendTraceSample(samples, t, racers);
+  if (t > last.t) {
+    const appended = appendTraceSample(samples, t, racers);
+    if (appended !== samples) return appended;
+  }
+  const ended = new Set(samples.flatMap((s) => s.finished ?? []));
+  const wpmByRacer = { ...last.wpmByRacer };
+  const finished = [...(last.finished ?? [])];
+  for (const r of racers) {
+    if (r.disconnected || ended.has(r.id)) continue;
+    wpmByRacer[r.id] = Math.max(0, Math.round(r.wpm));
+    finished.push(r.id);
+  }
+  if (finished.length === (last.finished?.length ?? 0)) return samples;
+  return [...samples.slice(0, -1), { t: last.t, wpmByRacer, finished }];
 }
