@@ -103,8 +103,10 @@ export type HistoryModelFields = {
   weakestPairs: HistoryWeakness[];
   /** Top 12 weakest trigrams with enough samples to score. */
   weakestTrigrams: HistoryWeakness[];
-  /** Top 20 slowest words against the user's own word baseline.
-   *  Drives the worst-words drill — same shape as the bigram /
+  /** Top 20 weakest words for their length: each word's clean time
+   *  against the time the user's own words of that length take
+   *  (`weakestPatterns`), so long words aren't ranked weak for being
+   *  long. Drives the worst-words drill — same shape as the bigram /
    *  trigram lists for symmetry. */
   weakestWords: HistoryWeakness[];
   /** True until the user has typed enough for the algorithm to score
