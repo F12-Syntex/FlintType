@@ -30,6 +30,12 @@ import { cn } from "@/lib/utils";
  *  toolbars correctly). Respect the iOS home-indicator inset via
  *  `safe-pb` on the sheet's bottom padding.
  *
+ *  It shows whenever it's open, at any width: the caller decides when
+ *  to use a sheet (most branch on useIsMobile(); the settings page
+ *  picker uses it below lg, where the sidebar is hidden). A sheet that
+ *  hid itself from md opened invisibly on tablets while still locking
+ *  the page. From md the panel is centred and capped at max-w-xl.
+ *
  *  Keyboard (useFocusTrap): opening focuses the sheet itself on touch
  *  devices (no on-screen keyboard, no stray focus ring), else a control
  *  marked `data-autofocus` or the body's first control. Tab and
@@ -121,7 +127,7 @@ export function MobileSheet({
   const sheet = (
     <div
       ref={rootRef}
-      className="fixed inset-0 z-[60] md:hidden"
+      className="fixed inset-0 z-[60]"
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -147,7 +153,7 @@ export function MobileSheet({
         tabIndex={-1}
         inert={!open}
         className={cn(
-          "absolute inset-x-0 bottom-0 flex h-[75dvh] flex-col outline-none",
+          "absolute inset-x-0 bottom-0 flex h-[75dvh] flex-col outline-none md:mx-auto md:max-w-xl md:border-x",
           "rounded-t-2xl border-t border-border bg-background text-foreground shadow-[0_-12px_48px_-12px_rgba(0,0,0,0.35)]",
           "safe-pb transition-transform ease-out will-change-transform",
           entered ? "translate-y-0" : "translate-y-full",

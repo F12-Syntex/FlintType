@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.49 — 29 October 2026
+- On tablets and narrow windows, the settings page menu now opens, so you can move between settings pages from it.
+
 ## 6.148.48 — 29 October 2026
 - Your saved app size, button shape, depth, font, outlines and palette colours no longer flicker back to the defaults for a moment when a page loads.
 
