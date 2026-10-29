@@ -1,6 +1,14 @@
 import { z } from "zod";
 import type { HandLayoutPrefs } from "@/lib/hand-layout";
 import { MAX_PLAUSIBLE_WPM } from "@/lib/wpm-limits";
+import {
+  EDITS_MAX,
+  SPACES_MAX,
+  editTimingSchema,
+  keystrokeCaptureFields,
+  runContextSchema,
+  spaceTimingSchema,
+} from "./capture";
 
 export type {
   BigramModelRow,
@@ -46,6 +54,8 @@ export const keystrokeTimingSchema = z.object({
    *  the filter to detect "first keystroke after a backspace" — that
    *  measurement is contaminated and gets discarded. */
   wordIndex: z.number().int().nonnegative(),
+  /** Capture v2 (`pos`, `src`, `ht`; ./capture), all lenient. */
+  ...keystrokeCaptureFields,
 });
 export type KeystrokeTiming = z.infer<typeof keystrokeTimingSchema>;
 
@@ -117,6 +127,11 @@ export const submitTestInputSchema = z.object({
   stallWpm: z.number().nonnegative().max(MAX_PLAUSIBLE_WPM).optional(),
   consistency: z.number().min(0).max(100).optional(),
   wpmHistory: z.array(wpmSampleSchema).max(600).optional(),
+  // Capture v2 (./capture). One bad element drops the whole array (the
+  // run is then v1); a non-object ctx reads as absent. Never a 400 (I3).
+  edits: z.array(editTimingSchema).max(EDITS_MAX).optional().catch(undefined),
+  spaces: z.array(spaceTimingSchema).max(SPACES_MAX).optional().catch(undefined),
+  ctx: runContextSchema.optional().catch(undefined),
 });
 export type SubmitTestInput = z.infer<typeof submitTestInputSchema>;
 
