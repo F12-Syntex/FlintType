@@ -14,7 +14,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { isFriendsDockRoute, OPEN_FRIENDS_EVENT } from "@/components/friends-dock";
+import {
+  isFriendsDockRoute,
+  OPEN_FRIENDS_EVENT,
+  useFriendsDockOpen,
+} from "@/components/friends-dock";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import { clearUserScopedStorage } from "@/lib/sign-out-cleanup";
@@ -48,16 +52,21 @@ export function TopbarActions() {
 
 /** Toggles the friends dock below 2xl: the bottom sheet on phones, a
  *  panel under the bar from md. At 2xl+ the dock's own corner pill
- *  takes over (it sits in the page gutter there). */
+ *  takes over (it sits in the page gutter there). The dock moves focus
+ *  into the panel and back here when it closes; aria-expanded mirrors
+ *  its open state. */
 function FriendsButton() {
   const { isLoaded, isSignedIn } = useUser();
   const pathname = usePathname();
+  const open = useFriendsDockOpen();
   if (!isLoaded || !isSignedIn || !isFriendsDockRoute(pathname)) return null;
   return (
     <button
       type="button"
       aria-label="Friends"
       title="Friends"
+      aria-haspopup="dialog"
+      aria-expanded={open}
       data-friends-trigger
       onClick={() => window.dispatchEvent(new Event(OPEN_FRIENDS_EVENT))}
       className="flex size-11 items-center justify-center rounded-pill text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:size-9 2xl:hidden"

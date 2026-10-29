@@ -2,15 +2,18 @@
 
 import { useUser } from "@clerk/nextjs";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Swords, Users } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Avatar } from "@/components/ft";
-import { useIsMobile } from "@/lib/use-is-mobile";
-import { cn } from "@/lib/utils";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { closeMobileNav } from "@/components/ft";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
+import { coarsePointer } from "@/lib/tabbable";
+import { useFocusTrap } from "@/lib/use-focus-trap";
+import { useIsMobile } from "@/lib/use-is-mobile";
 import { DockPanelBody } from "./dock-panel";
+import { DockPill, type PillAvatar } from "./dock-pill";
 import { useDockData } from "./use-dock-data";
+import { useFooterOffset } from "./use-footer-offset";
+import { useHtmlFlag } from "./use-html-flag";
 
 const DEV = process.env.NODE_ENV === "development";
 
@@ -45,100 +48,27 @@ export function isFriendsDockRoute(pathname: string): boolean {
   return !HIDDEN_PREFIXES.some((p) => pathname.startsWith(p));
 }
 
-/** Reads a `data-*` attribute off <html>, kept in sync with a observer so
- *  the dock can step aside while a run is active (`data-ft-running`) or
- *  focus mode is on (`data-ft-focus`) — the two states where the user
- *  asked the chrome to disappear (ui-law §15). */
-function useHtmlFlag(attr: string): boolean {
-  const [on, setOn] = useState(false);
-  useEffect(() => {
-    const el = document.documentElement;
-    const read = () => setOn(el.getAttribute(attr) === "1" || el.getAttribute(attr) === "on");
-    read();
-    const obs = new MutationObserver(read);
-    obs.observe(el, { attributes: true, attributeFilter: [attr] });
-    return () => obs.disconnect();
-  }, [attr]);
-  return on;
+/** Whether the dock is open, so the top bar's friends button can
+ *  report it (aria-expanded). Written only by <FriendsDock>. */
+let dockOpen = false;
+const dockOpenListeners = new Set<() => void>();
+
+function publishDockOpen(next: boolean) {
+  if (dockOpen === next) return;
+  dockOpen = next;
+  for (const listener of dockOpenListeners) listener();
 }
 
-/** How far (px) the page footer reaches into the viewport from the
- *  bottom edge, so the dock can float just above it instead of sitting
- *  on its links. Two placements (see <AppChrome>):
- *
- *  - pinned under compact surfaces: always on screen, so the offset is
- *    its full height;
- *  - in flow at the end of a scrolling page: off screen until the user
- *    scrolls near the bottom (or the page is short), then it slides in.
- *    The offset is how much of it is currently visible, so the pill
- *    rides up with the footer as it scrolls into view.
- *
- *  Returns 0 when the footer isn't there or isn't shown (the §15
- *  "hidden" footer style, the compact footer that drops at <md, a
- *  footer-less route), so the dock falls back to its corner gap.
- *
- *  Re-measures on any scroll (captured at the document, so the page's
- *  own scroller counts), on resize, when the content above the footer
- *  changes size (data loading in moves the footer), on route change
- *  and when the footer-style attribute toggles on <html>. */
-function useFooterOffset(routeKey: string): number {
-  const [offset, setOffset] = useState(0);
-  useEffect(() => {
-    let raf = 0;
-    let observed: HTMLElement | null = null;
-    const ro = new ResizeObserver(() => schedule());
+function subscribeDockOpen(listener: () => void) {
+  dockOpenListeners.add(listener);
+  return () => {
+    dockOpenListeners.delete(listener);
+  };
+}
 
-    const read = (): number => {
-      const el =
-        document.querySelector<HTMLElement>("footer[data-ft-footer][data-pinned]") ??
-        document.querySelector<HTMLElement>("footer[data-ft-footer]");
-      // (Re)bind the size observer whenever the footer element changes —
-      // it remounts per page.
-      if (el !== observed) {
-        ro.disconnect();
-        observed = el;
-        if (el) {
-          ro.observe(el);
-          if (el.previousElementSibling instanceof HTMLElement) {
-            ro.observe(el.previousElementSibling);
-          }
-        }
-      }
-      if (!el || getComputedStyle(el).display === "none") return 0;
-      const rect = el.getBoundingClientRect();
-      if (rect.height === 0) return 0;
-      if (el.hasAttribute("data-pinned")) return rect.height;
-      return Math.max(0, Math.min(rect.height, window.innerHeight - rect.top));
-    };
-    const measure = () => {
-      raf = 0;
-      setOffset(Math.round(read()));
-    };
-    function schedule() {
-      if (!raf) raf = requestAnimationFrame(measure);
-    }
-
-    schedule();
-    // Late content (streamed sections, async data) can move the footer
-    // after the first frame — one more pass once things settle.
-    const late = window.setTimeout(schedule, 400);
-    document.addEventListener("scroll", schedule, { capture: true, passive: true });
-    window.addEventListener("resize", schedule);
-    const mo = new MutationObserver(schedule);
-    mo.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-ft-footer-style"],
-    });
-    return () => {
-      if (raf) cancelAnimationFrame(raf);
-      window.clearTimeout(late);
-      ro.disconnect();
-      mo.disconnect();
-      document.removeEventListener("scroll", schedule, { capture: true });
-      window.removeEventListener("resize", schedule);
-    };
-  }, [routeKey]);
-  return offset;
+/** True while the dock's panel (or phone sheet) is open. */
+export function useFriendsDockOpen(): boolean {
+  return useSyncExternalStore(subscribeDockOpen, () => dockOpen, () => false);
 }
 
 /** The friends dock — a small, non-intrusive floating affordance pinned
@@ -149,7 +79,14 @@ function useFooterOffset(routeKey: string): number {
  *
  *  On mobile the expanded surface is the §10.5 bottom sheet, not the
  *  floating panel. Animation is the single sanctioned friends reveal
- *  (ui-law §13); it collapses to a static toggle under reduced motion. */
+ *  (ui-law §13); it collapses to a static toggle under reduced motion.
+ *
+ *  Keyboard: the desktop panel is a labelled dialog. Opening it moves
+ *  focus inside (the search field, or the panel itself on touch), Tab
+ *  stays inside, Escape closes it, and closing returns focus to the
+ *  button that opened it (useFocusTrap, ui-law §7). Because the panel
+ *  is mounted after the page, focus would otherwise be a page-length
+ *  of Tabs away from the top-bar button. */
 export function FriendsDock() {
   const pathname = usePathname();
   const { isSignedIn, isLoaded } = useUser();
@@ -166,6 +103,7 @@ export function FriendsDock() {
   const [query, setQuery] = useState("");
   const [last, setLast] = useState({ pathname, visible: false });
   const containerRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const hiddenRoute = HIDDEN_PREFIXES.some((p) => pathname.startsWith(p));
   // Real data needs auth; dev shows dummy so the dock is reviewable.
@@ -189,18 +127,26 @@ export function FriendsDock() {
     }
   }
 
-  // The pill only floats at 2xl+, where it sits in the page gutter
-  // (narrower screens: it covered the keyboard, cards and footer links).
+  // The pill only floats at 2xl+ (narrower, it covered page content).
   // Below that the top bar's friends button toggles the dock through
   // this event: the bottom sheet on phones, a panel under the bar from md.
+  // It closes the hamburger drawer first: the drawer paints over the
+  // dock, so the panel and the focus it takes would hide beneath it.
   useEffect(() => {
     const onToggle = () => {
+      closeMobileNav();
       setAnchor("bar");
       setOpen((o) => !o);
     };
     window.addEventListener(OPEN_FRIENDS_EVENT, onToggle);
     return () => window.removeEventListener(OPEN_FRIENDS_EVENT, onToggle);
   }, []);
+
+  const shown = visible && open;
+  useEffect(() => {
+    publishDockOpen(shown);
+  }, [shown]);
+  useEffect(() => () => publishDockOpen(false), []);
 
   // Clear search whenever the panel closes, so the next open always
   // starts on the full list. Adjusted during render (like the route
@@ -211,10 +157,24 @@ export function FriendsDock() {
     if (!open) setQuery("");
   }
 
-  // Desktop: Escape + click-outside close. Mobile sheet owns its own.
+  // Desktop panel focus + Escape (the phone sheet traps its own). The
+  // root is the whole dock, so the corner pill counts as part of it.
+  // Escape is claimed at the document, before the command palette's
+  // window-level Escape opener sees it.
+  useFocusTrap({
+    active: shown && !isMobile,
+    panelRef,
+    rootRef: containerRef,
+    onEscape: () => setOpen(false),
+    initialFocus: () =>
+      coarsePointer()
+        ? panelRef.current
+        : panelRef.current?.querySelector<HTMLElement>("input"),
+  });
+
+  // Desktop click-outside close. Mobile sheet owns its own.
   useEffect(() => {
     if (!open || isMobile) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     const onDown = (e: MouseEvent) => {
       const target = e.target as Element;
       if (containerRef.current?.contains(target)) return;
@@ -222,12 +182,8 @@ export function FriendsDock() {
       if (target.closest?.(`[${FRIENDS_TRIGGER_ATTR}]`)) return;
       setOpen(false);
     };
-    window.addEventListener("keydown", onKey);
     window.addEventListener("mousedown", onDown);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("mousedown", onDown);
-    };
+    return () => window.removeEventListener("mousedown", onDown);
   }, [open, isMobile]);
 
   const { stack, label, labelClass } = useMemo(() => {
@@ -235,7 +191,7 @@ export function FriendsDock() {
     const onlineUsers = data.directory.filter(
       (u) => data.presenceById.get(u.userId)?.online && !liveIds.has(u.userId),
     );
-    const items = [
+    const items: PillAvatar[] = [
       ...data.live.map((u) => ({ id: u.userId, src: u.imageUrl, name: u.name, status: "live" as const })),
       ...onlineUsers.map((u) => ({ id: u.userId, src: u.imageUrl, name: u.name, status: "online" as const })),
     ].slice(0, 3);
@@ -295,6 +251,12 @@ export function FriendsDock() {
           {open ? (
             <motion.div
               key="panel"
+              ref={panelRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Friends"
+              // The trap's fallback focus target (touch devices).
+              tabIndex={-1}
               // Quiet, fast fade — no slide, no spring, no stagger. The
               // panel just appears.
               initial={{ opacity: 0, scale: reduce ? 1 : 0.985 }}
@@ -305,7 +267,7 @@ export function FriendsDock() {
               // Fixed height so switching between Friends and the Member
               // directory never resizes the panel — the views move within
               // a stable frame.
-              className="h-[min(72dvh,540px)] w-[min(88vw,360px)] overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-float"
+              className="h-[min(72dvh,540px)] w-[min(88vw,360px)] overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-float outline-none"
             >
               {body}
             </motion.div>
@@ -321,44 +283,17 @@ export function FriendsDock() {
           that the top bar's friends button opens it). Hidden while the
           panel hangs from the bar. */}
       {isMobile || fromBar ? null : (
-      <button
-        type="button"
-        onClick={() => {
-          setAnchor("corner");
-          setOpen((o) => !o);
-        }}
-        aria-label="Friends"
-        aria-expanded={open}
-        className="group hidden h-10 items-center gap-2 rounded-pill border border-border bg-card/90 pl-1.5 pr-4 text-foreground shadow-float backdrop-blur-xl transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 2xl:flex"
-      >
-        {stack.length > 0 ? (
-          <span className="flex -space-x-2">
-            {stack.map((s) => (
-              <Avatar
-                key={s.id}
-                src={s.src}
-                alt={s.name}
-                size="sm"
-                status={s.status}
-                dotRing="ring-card"
-              />
-            ))}
-          </span>
-        ) : (
-          <span className="inline-flex size-7 items-center justify-center text-muted-foreground">
-            <Users size={18} aria-hidden />
-          </span>
-        )}
-        <span className={cn("text-[13px] font-medium tabular-nums", labelClass)}>
-          {label}
-        </span>
-        {data.challenges.length > 0 ? (
-          <span className="flex items-center gap-1 border-l border-border pl-2 text-[13px] font-medium tabular-nums text-muted-foreground">
-            <Swords size={13} aria-hidden />
-            {data.challenges.length}
-          </span>
-        ) : null}
-      </button>
+        <DockPill
+          open={open}
+          onToggle={() => {
+            setAnchor("corner");
+            setOpen((o) => !o);
+          }}
+          stack={stack}
+          label={label}
+          labelClass={labelClass}
+          challenges={data.challenges.length}
+        />
       )}
     </div>
   );
