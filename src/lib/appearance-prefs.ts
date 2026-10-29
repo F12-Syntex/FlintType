@@ -1,6 +1,10 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
+import {
+  liveStatsColorPatch,
+  withLiveStatsColor,
+} from "./live-stats-color-prefs";
 import { usePrefsOverride } from "./prefs-override";
 import { useRemotePrefs } from "./use-remote-prefs";
 
@@ -368,29 +372,24 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   uiScale: "default",
 };
 
-/** The live-stats colour used to ship as the brand hex itself. Stored
- *  copies of that old default read as "follow the palette", so other
- *  palettes keep their own primary and Reset doesn't count it. */
-export const LEGACY_LIVE_STATS_COLOR = "#f97316";
-
 export function useAppearancePrefs() {
   const override = usePrefsOverride()?.appearance;
   const { value: storeRaw, update: updateRaw, reset: resetRaw } =
     useRemotePrefs("appearance", DEFAULT_APPEARANCE);
-  const storePrefs = useMemo(
-    () =>
-      storeRaw.liveStatsColor?.toLowerCase() === LEGACY_LIVE_STATS_COLOR
-        ? { ...storeRaw, liveStatsColor: "" }
-        : storeRaw,
-    [storeRaw],
-  );
+  // The old shipped live-stats colour reads as "follow the palette";
+  // a colour picked in the settings is kept (live-stats-color-prefs.ts).
+  const storePrefs = useMemo(() => withLiveStatsColor(storeRaw), [storeRaw]);
   const prefs = override ?? storePrefs;
   const overridden = override != null;
 
   const update = useCallback(
     <K extends keyof AppearancePrefs>(key: K, value: AppearancePrefs[K]) => {
       if (overridden) return; // read-only under a prefs override
-      updateRaw({ [key]: value } as Partial<AppearancePrefs>);
+      updateRaw(
+        (key === "liveStatsColor"
+          ? liveStatsColorPatch(value as string)
+          : { [key]: value }) as Partial<AppearancePrefs>,
+      );
     },
     [updateRaw, overridden],
   );
