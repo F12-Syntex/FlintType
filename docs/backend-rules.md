@@ -467,6 +467,7 @@ Pure keystroke helpers shared with the browser live in `src/lib/keystrokes/`: `k
 | `sampling.ts` | Weighted picks and `pickWithCoverage` (×0.4 per pattern already covered in the passage). |
 | `recency.ts` | Word recency penalty and `advanceRecency`. |
 | `select.ts` | `selectBatches`: score once, apply the band with progressive relaxation (strict → easy end relaxed → no band), draw N batches with cross-batch word recency. |
+| `difficulty.ts` | `passageDifficulty`: how hard a passage was for this user. It is the predicted time of its in-word letter pairs over transitions × the user's own average pair time, read from the pre-update model. Null when the model is cold or the passage has fewer than 20 transitions. It is used only as a relative figure (a uniform speed-up leaves it unchanged). |
 
 Rules:
 - Stored `meanMs` on bigram / trigram / motor-feature rows is **effective time per attempt**: clean timing plus the cost of fixing slips. Word rows stay clean-only.
@@ -476,6 +477,7 @@ Rules:
 - Never compare test runs across modes or lengths: speed and accuracy are judged within one `runBucketKey` bucket, against the user's own norm.
 - `adapt.scoreWord` must mirror `scoreWord` through the shared helpers (`bigramTerm`, `weakness`, `patternSpreads`, pacing's `inChallengeBand` ceiling). Never re-derive the math inline. Its `inChallengeBand` is the strict band; selection may relax it.
 - Extra per-pattern state needs a real justification for a migration: the dev server does not auto-migrate. Prefer deriving from `updatedAt`, `varianceMs`, `adaptRecency` and recent test rows. A new server-written user-prefs slice must also be added to `SERVER_OWNED_PREF_KEYS` (`src/types/user-prefs.ts`).
+- Per-test digests live in `test_analyses` (one row per completed, signed-in, v2-capture test; about 1.5 KB; no text and no key order). They are not a column on `tests`, because a new column would break every `select()` from `tests` on an unmigrated dev database; a separate table breaks only the analysis, which degrades to `status: "not-ready"`. This is the "real justification" the migration rule asks for: trends of time slices, better days and pattern before/after need per-test history that the EWMA models can't hold.
 
 ## Typing analysis (`src/lib/typing-analysis/`)
 
@@ -505,6 +507,7 @@ Rules:
 - `timings` stays characters only. Edits and spaces travel in their own arrays, and every new wire field is lenient (`.optional().catch(undefined)`): a bad value is dropped, never a 400; a bad `pos` or mark makes the run v1.
 - Pooled models read only digests (v2 capture) and exclude `mt_` imports, drills, sudden death and incomplete runs. Fixing time is compared only within the same fix mode. Touch runs have their own bucket (`|t`). Sessions are clusters in every noise test (`medianDiff`).
 - Stored model means are effective times. They are used only as relative difficulty (`src/server/adapt/difficulty.ts`, against the same snapshot), never as clean speed. The Adapt adjustment uses no fitted slope, because Adapt's own pacing makes harder passages arrive on better days.
+- `test_analyses` is written only by `recordTestAnalysis` (`src/server/routes/adapt/record-analysis.ts`), inside try/catch, after the `tests` insert. It stores nothing for incomplete runs, v1 capture, sudden death or a capped run. Submit never fails because of the analysis; it waits for it (a few milliseconds and one insert). A missing table is detected with `isMissingTable` (`src/server/db-errors.ts`) and logged as a warning with reason `table-missing`.
 
 ## How to add a method
 

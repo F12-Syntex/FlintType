@@ -16,7 +16,7 @@ export const metadata = buildPageMetadata({
   path: "/privacy",
 });
 
-const LAST_UPDATED = "28 October 2026";
+const LAST_UPDATED = "29 October 2026";
 
 const SECTIONS = [
   "Short version",
@@ -55,7 +55,8 @@ export default function PrivacyPage() {
           </p>
           <p>
             Signing in (via Clerk) lets us store your typing history,
-            personal-best tracker, adaptive-drill model, and preferences
+            personal-best tracker, adaptive-drill model, a short
+            analysis of each test, and preferences
             on our database so they survive between sessions. That
             information is yours: request an export or deletion any
             time.
@@ -81,23 +82,38 @@ export default function PrivacyPage() {
 
         <EditorialSection title="Typing data">
           <p>
-            Every completed test stores a row with: start / end
-            timestamps, mode (Casual, Adapt or race), word count,
-            WPM, accuracy, error count, reset count, and a boolean for
-            whether the run was completed. Per-keystroke timings are
-            processed transiently: they update your weakness model
-            (bigram / trigram / word means and variances) and are then
-            discarded. We don't keep the raw keystream.
+            Every completed test stores a row with its start and end
+            times, the kind of test and its length, your speed and
+            accuracy, how many mistakes you made, and how many times
+            you restarted before finishing.
           </p>
           <p>
-            The aggregated weakness model is yours and is what makes
-            adaptive drills work. We don't sell, syndicate, or share
-            it with anyone.
+            While you&apos;re signed in, each test also keeps a short
+            summary of how its time was spent: typing, fixing mistakes,
+            pausing before words, hesitating inside words, and breaks.
+            It also holds a few timing averages, such as your usual time
+            per key and per kind of key move, and the timing of up to 16
+            letter pairs. It records whether your keyboard behaved like
+            QWERTY, never which keys you pressed. The summary
+            doesn&apos;t include the text you typed or the order of your
+            keys. Per-keystroke timings are used once, to build this
+            summary and to update your practice model, and are then
+            discarded.
+          </p>
+          <p>
+            Your practice model and these summaries are private. Only
+            you can see them, on your Insights page, your result screens
+            and the technical view. Your public profile shows your test
+            results, never your weak letter pairs, words or timing
+            figures. We don&apos;t sell, syndicate or share any of it.
           </p>
           <p>
             When you&apos;re signed in, friends who follow you back can
-            watch your practice live while you type. It&apos;s on by
-            default; turn it off, or hide from particular friends, in{" "}
+            watch your practice live while you type. While you share
+            live, the test you&apos;re on, including its keystrokes, is
+            sent to them and kept until your next live test replaces it.
+            It&apos;s on by default; turn it off, or hide from
+            particular friends, in{" "}
             <EditorialLink href="/customise/social">
               Multiplayer &amp; social settings
             </EditorialLink>

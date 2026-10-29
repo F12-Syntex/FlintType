@@ -120,10 +120,20 @@ const SCHEMA_DDL = `
     updated_at      timestamp NOT NULL DEFAULT now(),
     PRIMARY KEY (broadcaster_id, spectator_id)
   );
+  CREATE TABLE IF NOT EXISTS test_analyses (
+    test_id     text PRIMARY KEY,
+    user_id     text NOT NULL,
+    started_at  timestamp NOT NULL,
+    bucket      text NOT NULL,
+    version     integer NOT NULL,
+    digest      jsonb NOT NULL,
+    created_at  timestamp NOT NULL DEFAULT now()
+  );
+  CREATE INDEX IF NOT EXISTS test_analyses_user_bucket_time_idx ON test_analyses (user_id, bucket, started_at);
 `;
 
 const TRUNCATE_ALL = `
-  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, word_models, tests, notifications, users, follows, blocks, presence, live_sessions, live_spectators RESTART IDENTITY;
+  TRUNCATE user_prefs, bigram_models, trigram_models, motor_feature_models, word_models, tests, notifications, users, follows, blocks, presence, live_sessions, live_spectators, test_analyses RESTART IDENTITY;
 `;
 
 /** PGlite's parse-message path rejects multi-statement queries, so we
