@@ -830,6 +830,8 @@ Every Surface / Chrome knob lands as a `<html data-ft-…>` attribute, applied b
 
 The whole table lives in one place: `HTML_ATTR_RULES` in `src/lib/bootstrap.ts` (kinds `enum`, written unless it equals `fallback`; `flag-on`; `flag-off`). Both the pre-paint bootstrap script (the table is embedded as JSON) and `<AppearanceApplier>` (via `htmlAttrsFor()`) read it, so a new knob is one row there plus its CSS. Never hand-write a `setAttribute` for an appearance knob.
 
+The bootstrap lays the stored appearance slice over `APPEARANCE_ATTR_DEFAULTS` (same file, pinned to `DEFAULT_APPEARANCE` by `bootstrap.test.ts`), so a first visit or a partial slice paints the final attributes before first paint. `<AppearanceApplier>`, `<BordersApplier>` and `PaletteProvider` leave `<html>` alone until their slice has loaded, so hydration never repaints the defaults. `loaded` (from `useAppearancePrefs` / `useRemotePrefs`) flips as soon as the localStorage copy is read, or as soon as the user writes that slice while the first prefs GET is still pending. So a pick always applies at once, and a slow GET never holds it back. Only the hook's own slice counts, so a write elsewhere never un-gates flash-guarded UI such as the Discord banner. A new mirrored knob also adds its default to `APPEARANCE_ATTR_DEFAULTS`.
+
 Component self-markers that the CSS rules attach to:
 
 | Marker | Sits on | Purpose |

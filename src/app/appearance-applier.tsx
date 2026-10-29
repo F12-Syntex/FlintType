@@ -24,7 +24,7 @@ import { htmlAttrsFor } from "@/lib/bootstrap";
  *  `autoHide`'s runtime companion `data-ft-running`, which is driven
  *  from PracticeContext via <AutoHideApplier>. */
 export function AppearanceApplier() {
-  const { prefs } = useAppearancePrefs();
+  const { prefs, loaded } = useAppearancePrefs();
   const attrs = useMemo(
     () => htmlAttrsFor(prefs as unknown as Record<string, unknown>),
     [prefs],
@@ -34,13 +34,18 @@ export function AppearanceApplier() {
   const key = JSON.stringify(attrs);
 
   useEffect(() => {
+    // Until the stored prefs load, `prefs` are the bare defaults. The
+    // pre-paint bootstrap has already written the stored attributes
+    // (defaults included), so writing now would repaint the default App
+    // size, shape and font for a frame or more on every load.
+    if (!loaded) return;
     const root = document.documentElement;
     const next = JSON.parse(key) as Record<string, string | null>;
     for (const [attr, value] of Object.entries(next)) {
       if (value === null) root.removeAttribute(attr);
       else root.setAttribute(attr, value);
     }
-  }, [key]);
+  }, [key, loaded]);
 
   return null;
 }

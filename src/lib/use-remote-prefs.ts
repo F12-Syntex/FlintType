@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   clearSlice,
+  getCache,
   loadPrefs,
   readSlice,
   subscribe,
@@ -13,7 +14,8 @@ import {
  *  React component. Returns the current value (defaults until the
  *  blob has loaded), a `loaded` flag that flips true once the prefs
  *  blob is available (localStorage seed or backend GET — see
- *  prefs-store loadPrefs), an `update(patch)` to merge in changes,
+ *  prefs-store loadPrefs) or once this slice is written locally, an
+ *  `update(patch)` to merge in changes,
  *  and a `reset()` that drops the slice (so the next read returns
  *  `defaults`). All writes are debounced to a single backend POST.
  *
@@ -35,8 +37,13 @@ export function useRemotePrefs<T extends object>(
 
   useEffect(() => {
     let mounted = true;
-    // Pull the blob if it isn't loaded yet.
-    void loadPrefs().then(() => {
+    // Pull the blob if it isn't loaded yet. loadPrefs seeds the cache
+    // from localStorage synchronously; when it did, the blob is already
+    // available, so `loaded` doesn't wait on the backend GET (whose
+    // result arrives through the subscription below). Appliers gate on
+    // `loaded`, so it must not hang on a slow GET.
+    const pending = loadPrefs();
+    void (getCache() ? Promise.resolve() : pending).then(() => {
       if (mounted) {
         setValue(readSlice(key, defaults));
         setLoaded(true);
@@ -45,7 +52,18 @@ export function useRemotePrefs<T extends object>(
     // Subscribe to every change so peer hooks (e.g. the customise page
     // and the test surface in the same tab) stay in sync.
     const unsub = subscribe(() => {
-      if (mounted) setValue(readSlice(key, defaults));
+      if (!mounted) return;
+      setValue(readSlice(key, defaults));
+      // With nothing stored (first visit, cleared or blocked storage)
+      // the cache only appears once the GET settles, or when the user
+      // writes a pref while it is still pending. A write to this slice
+      // is a real value, so the appliers gated on `loaded` must paint it
+      // now instead of waiting on (or hanging with) the GET. Only this
+      // slice counts: a write elsewhere says nothing about this one, and
+      // flipping on it could flash flash-guarded UI (the Discord banner)
+      // before its stored dismissal arrives.
+      const cache = getCache();
+      if (cache && key in cache) setLoaded(true);
     });
     return () => {
       mounted = false;

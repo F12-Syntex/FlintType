@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from "vitest";
+import { DEFAULT_APPEARANCE } from "./appearance-prefs";
 import {
+  APPEARANCE_ATTR_DEFAULTS,
   HTML_ATTR_RULES,
   htmlAttrsFor,
   htmlAttrValue,
@@ -21,16 +23,51 @@ describe("PREFS_BOOTSTRAP_SCRIPT", () => {
     localStorage.clear();
     const root = document.documentElement;
     root.removeAttribute("style");
+    root.removeAttribute("data-ft-borders");
     for (const rule of HTML_ATTR_RULES) root.removeAttribute(rule.attr);
   });
+
+  /** What the applier writes once the prefs have loaded: the stored
+   *  slice over DEFAULT_APPEARANCE (readSlice), mapped by htmlAttrsFor. */
+  function expectAppliedAttrs(stored: Record<string, unknown>) {
+    const merged = { ...DEFAULT_APPEARANCE, ...stored } as unknown as Record<
+      string,
+      unknown
+    >;
+    const root = document.documentElement;
+    for (const [attr, value] of Object.entries(htmlAttrsFor(merged))) {
+      expect(root.getAttribute(attr), attr).toBe(value);
+    }
+  }
 
   it("is syntactically valid JavaScript", () => {
     expect(() => new Function(PREFS_BOOTSTRAP_SCRIPT)).not.toThrow();
   });
 
-  it("does nothing when there is no persisted blob", () => {
+  it("paints no vars when there is no persisted blob", () => {
     runBootstrap();
     expect(document.documentElement.style.getPropertyValue("--primary")).toBe("");
+  });
+
+  it("paints the default attributes on a first visit (no blob)", () => {
+    runBootstrap();
+    expectAppliedAttrs({});
+    // The defaults include surface and chrome picks, not just "no attr".
+    expect(document.documentElement.getAttribute("data-ft-cards")).toBe("subtle");
+    expect(document.documentElement.getAttribute("data-ft-borders")).toBe("soft");
+  });
+
+  it("lays a partial appearance slice over the defaults", () => {
+    localStorage.setItem(
+      PREFS_KEY,
+      JSON.stringify({ appearance: { uiScale: "large", borders: "hidden" } }),
+    );
+    runBootstrap();
+    expectAppliedAttrs({ uiScale: "large", borders: "hidden" });
+    const root = document.documentElement;
+    expect(root.getAttribute("data-ft-ui-scale")).toBe("large");
+    expect(root.getAttribute("data-ft-autohide")).toBe("fade");
+    expect(root.getAttribute("data-ft-borders")).toBe("hidden");
   });
 
   it("paints the active palette's light vars before first paint", () => {
@@ -169,10 +206,23 @@ describe("PREFS_BOOTSTRAP_SCRIPT", () => {
     };
     localStorage.setItem(PREFS_KEY, JSON.stringify({ appearance }));
     runBootstrap();
-    const root = document.documentElement;
-    for (const [attr, value] of Object.entries(htmlAttrsFor(appearance))) {
-      expect(root.getAttribute(attr)).toBe(value);
+    expectAppliedAttrs(appearance);
+  });
+});
+
+describe("APPEARANCE_ATTR_DEFAULTS", () => {
+  it("matches DEFAULT_APPEARANCE for every key the script reads", () => {
+    const defaults = DEFAULT_APPEARANCE as unknown as Record<string, unknown>;
+    for (const [key, value] of Object.entries(APPEARANCE_ATTR_DEFAULTS)) {
+      expect(value, key).toBe(defaults[key]);
     }
+  });
+
+  it("covers every mirrored rule and the borders knob", () => {
+    const keys = Object.keys(APPEARANCE_ATTR_DEFAULTS).sort();
+    expect(keys).toEqual(
+      [...HTML_ATTR_RULES.map((r) => r.key), "borders"].sort(),
+    );
   });
 });
 
