@@ -225,7 +225,7 @@ Chrome text (nav, buttons, menus, footer) is **13–14px sentence case, `font-me
 | Result lead (accuracy) | `text-4xl font-semibold tracking-[-0.03em] text-foreground sm:text-5xl` |
 | Result detail         | `text-xl font-semibold tracking-tight text-foreground sm:text-2xl` with the label above in `text-xs font-medium text-muted-foreground` (sentence case) — raw, consistency, errors, time, run shape. |
 | Live readout          | `<Readout>` (`src/app/_components/readout.tsx`): value `text-xl font-semibold tabular-nums` (speed: `text-3xl font-bold text-primary`) followed by a lowercase unit caption in `text-xs text-muted-foreground` ("84 wpm", "97% acc"). Mobile uses `compact` (`text-base` + `text-[11px]`). |
-| Verdict hero (insights) | `text-5xl font-bold tracking-[-0.03em] tabular-nums text-foreground`, with the unit in `text-xl font-semibold text-muted-foreground`. Ink, never orange: the orange on `/insights` belongs to the action. |
+| Verdict hero (insights) | `text-5xl font-bold tracking-[-0.03em] text-foreground` (proportional figures: a lone hero number reads better without tabular spacing), with the unit in `text-xl font-semibold text-muted-foreground`. Ink, never orange: the orange on `/insights` belongs to the action. |
 | Finding lead | `text-sm font-medium text-foreground`, with the follow-up in `text-sm text-muted-foreground`. One idea per sentence, ≤ 20 words. |
 
 **Tracking conventions** (load-bearing — these signal mode):
@@ -1170,25 +1170,82 @@ Rationale: one obvious primary action per phase, orange for every selected or pr
 
 ## 24. Insights page (`/insights`)
 
-The page answers "what should I practise next?" first. Components live in `src/app/insights/_components/`. One `history.summary()` call feeds everything except the playground.
+The page answers "how am I doing, and what should I do next?" first, for a 45 wpm typist and a 250 wpm typist alike. Components live in `src/app/insights/_components/`; shared pieces live in `src/components/analysis/` (§27). One `insights.overview({ bucket? })` call feeds everything except the playground, and it never calls Clerk. All copy comes from the tested `*-copy.ts` modules beside the components (`insights-copy`, `verdict-copy`, `next-step-copy`, `barrier-copy`, `change-copy`, `habit-copy`, `trend-copy`, `labels-copy`), never inline.
 
-- **Order:** `<PageHeader>` (eyebrow "Insights", h1 "Your typing model", status pill in `aside`) → **Focus next** → **Weak spots** (letter pairs | words) → **Trend** (WPM chart | recent runs, with a "View all" ghost link to `/profile`) → **Playground**. Each is a `<PageSection>` with a description of 8 words or fewer. Sections are never boxed; the lists and charts inside are `<Surface>` cards in the §5 "Two-up cards" grid.
-- **Plain words, no model jargon.** The status pill reads "Personalised · N tests" or "Still learning · N tests". It is neutral (`rounded-pill border bg-card text-xs`), with a `bg-ft-ok` dot when personalised and `bg-muted-foreground/50` while learning. Every figure carries its unit: "246 wpm", "100% acc", "Avg 206 wpm · 30 tests", "Your avg 59 ms".
-- **"Weakest", never "slowest".** Pairs and words are ranked by the model's confidence-weighted weakness score, not raw ms, so a pattern a few ms quicker but seen far more often can rank above another. Copy says "weakest", and the Weak spots description says "Ranked by how reliably slow each one is." Bars are sized by that same score, so they shrink steadily down the list. The ms and % (vs your average) columns sit beside the bars as raw figures, and each row's tooltip gives ms, % and sample count. The key column is sized to the longest key in monospace `ch` (capped at 8), so bars keep their width on phones.
-- **Focus next:** 1–3 rows built by `buildFocusTips` (`focus-tips.ts`, unit-tested). Each row has a number badge, a title, one sentence with the real figures, and a button that names the drill it opens ("Start Weakness gauntlet", "Start Worst-words burst", "Start Tongue-twister"; "Take a test" → `/` while the model is still learning). The first actionable row gets the page's one filled primary button; the rest are `outline`. Buttons are `h-11 w-full` on mobile and `sm:h-9 sm:w-auto`. A drill that is still locked shows a muted "Unlocks at …" note instead of a button; never link to a locked drill.
-- **No half-empty cards:**
-  - Weak spots: if both lists are empty, show one dashed line. If one list is empty, the other card spans both columns and the missing one gets a muted line underneath.
-  - Trend: with no runs, show one dashed line with a "Take a test" link. With one run, show the Recent runs card alone plus "Your WPM chart appears after 2 tests." With two or more runs, show chart | runs two-up.
-- **Colour budget (theme orange):** the trend line, the top weakness bar (its key stays bold ink), the primary Focus-next button, and words worth practising in the playground. Secondary bars are `bg-foreground/45`, deltas and ms are muted, and recent-run WPM is ink.
-- **Playground:**
-  - Each word chip shows its predicted WPM: `12000 · (len − 1) / predictedMs`, because `adapt.scoreWord`'s `predictedMs` is the whole word's time across its transitions.
-  - The summary is `12000 · Σtransitions / ΣpredictedMs`, so it always agrees with the chips (`playground-math.ts`, unit-tested).
-  - Words worth practising (the server's challenge band) are `bg-primary/15 text-foreground ring-1 ring-inset ring-primary/60`: orange tint and ring, ink text, so they stay readable in light mode. The summary row repeats that swatch beside "N worth practising". The band is off while the model is still learning and never applies to one-letter words.
-  - Chips are `max-w-full` and truncate long words (full word in `title`).
-  - The input keeps the primitive's 16px mobile text size (no `text-sm` override) so iOS doesn't zoom on focus.
-  - The stats row only renders when there is text.
-  - Scores go through `score-cache.ts` (unit-tested): per user, in memory plus sessionStorage, 10-minute TTL. Requests already in flight are shared and failures are not cached. A failed word waits for the next edit before retrying, so a revisit or reload never re-spends the per-user `adapt.scoreWord` rate limit.
-- **Loading / error:** a skeleton shaped like the sections (`motion-safe:animate-pulse`). On error, a dashed card with the message in `text-destructive` (`role="alert"`) and one filled `size="lg"` primary button: "Try again", or "Sign in" when unauthorised.
+- **Header:** h1 "How you type", no eyebrow, and one line naming the tests it is based on ("Based on your last 30 Adapt tests of 25 words.").
+  - **Bucket picker.** With two or more kinds of test, a picker sits in the `aside`. It is an outline button showing the mode (muted) and the length (medium weight), with no glyph between them. It opens a dropdown of checkbox items (a `<MobileSheet>` on phones).
+  - **URL.** The choice lives in the URL (`?tests=`, "~" for "|"), written with `history.replaceState` so a switch never reloads the page. The default is left out.
+  - **Switching.** The picker shows a new choice at once. The content below stays at 60% opacity with `aria-busy` until its overview lands.
+  - **Failed switch.** The picker and the URL go back to the tests on show. One `text-sm text-destructive` line above the content names the kind ("We couldn't load your Casual tests of 60 seconds."), followed by the same line the error card would show, then Try again. Signed out, that line is a link to sign in.
+- **Order:**
+  1. the verdict card;
+  2. Where your time goes;
+  3. What would help most beside What changed (two-up);
+  4. Where it shows (letter pairs beside words);
+  5. Your speed over time;
+  6. Your habits;
+  7. Try any text (collapsed);
+  8. footer links.
+- **Verdict card:** one `<Surface>`, split in two from md.
+  - **Left:** "Your usual speed" as an ink hero number (proportional figures), then a `<RangeTrack>` (usual range, with the last test as the dot). Then a `<TrendWord>` (Improving, Holding steady, Levelled off, A little slower lately, Early days) with one sentence. A range whose ends round alike reads as one figure. For Adapt, a note says speeds allow for passage difficulty (from md; on phones it sits under the chart).
+  - **Right:** "Your next step": a title and a "because" sentence in seconds or the speed unit. Then the page's **one** filled `lg` primary naming the drill ("Start Tongue-twister gauntlet") or "Take a test", and a ghost "Other ways to practise". A locked drill is never linked. Without the detailed analysis (not ready), the reason makes no claim about pauses or fixes.
+  - **Fixing step.**
+    - It says "Fix mistakes faster", with a letters-per-mistake comparison, only when each fix now costs more than usual.
+    - Otherwise it says "Spend less time fixing mistakes" and gives the seconds a minute against better days.
+    - An earlier mistake rate that rounds to 0 reads "almost none".
+- **Where your time goes:** two `<MinuteBar>`s on one 0–60 s scale ("Your recent minute", "On your better days", with 0 s, 30 s and 60 s ticks) and a `<BudgetTable>`.
+  - Table rows: Typing, Fixing mistakes, Pauses before words, Hesitations inside words, Breaks. Columns: Recently and Better days.
+  - The slice the next step targets is the page's only orange data mark.
+  - Each minute sums to 60 s.
+  - While fewer than 5 tests are analysed (learning), the last test's table gives Breaks and Fixing clauses that name no threshold and no fix mode ("Long stops, and the wait before your first key in a race.", "The extra time your mistakes cost you."), because that minute carries neither.
+- **What would help most:** at most three rows, ranked by the time you could get back. Each row shows:
+  - evidence against better days ("About 4.5 seconds of every minute now. On your better days, about 1.2 seconds.");
+  - a `<ComparisonTrack>`;
+  - one coaching line;
+  - "Worth about N to M wpm".
+
+  Row one says "This is your next step." (no icon) instead of repeating the button. The fixing row calls fixes slower only when each one costs more than usual. Otherwise it says what the time per fix shows ("Each fix takes about as long as usual.").
+- **What changed:** at most three `<ChangeRow>`s that passed a noise gate (sessions counted as clusters), improvements first. When none pass, a dashed card says nothing has changed enough to call it real. When one side has nothing to show yet, the other spans both columns and the missing side becomes one muted line under it.
+- **Where it shows:** letter pairs, and words that are slow for their length (timed on words typed without a mistake).
+  - **Ranking.** Both lists are ranked by the model's careful extra time, so the bar, the figure, the order and the drill agree. The count column is "Times measured".
+  - **Key column.** It fits the longest key: up to 16 characters on phones, 18 where the two cards sit side by side (lg to xl), and 24 otherwise. On phones each figure sits above its ink bar.
+  - **Tiny figures.** An extra time that rounds to nothing reads "under 0.01 s".
+- **Speed over time:**
+  - **Marks.** A usual-range band, a rolling-median line and faint test dots, all ink. Personal bests are solid dots.
+    - The line and band are drawn through each day's last test, and only from 2 points.
+    - At most 5 round y ticks.
+    - Date ticks are spread evenly in time, one per day, never closer than a sixth of the span, and about one per 96px of chart (2 to 5, so 3 on a phone).
+  - **Tooltip.** It judges each dot against the usual range as it stood at that point: "Inside your usual range at the time". Dots before the band starts get no range line.
+  - **Range switch.** 1M | 3M | All. The default is 3M, or All below 30 tests or when the last 3 months hold fewer than 2 points. It resets for each kind of test.
+    - With one test (or day) in the range, one muted line replaces the chart.
+    - With none, "No tests in this range yet."
+  - **Adapt.** Dots sit at the speed adjusted for passage difficulty, and the page says so.
+    - No dot is marked as a best, because bests are typed speeds.
+    - The tooltip gives "N wpm allowing for difficulty" and "N wpm typed".
+    - The field reads "Best typed speed".
+  - **Long histories.** Above 150 tests each dot is a day, the middle of that day's tests. The legend says "Middle of a day's tests", and the tooltip gives the day without a time. The table's first column is "Day". A personal best keeps a row of its own, marked under its date.
+  - **Table.** A "Show as a table" disclosure is the table view (the chart itself is `role="img"`).
+- **Your habits:** `<QuestionRow>`s (question, answer, evidence, "How we know"). Only habits with enough data render. The rest are listed under "More answers as you practise".
+  - Each count names what it counts, so it always moves: "After 4 more tests of 30 seconds or more.", "After 2 more tests where you fix a mistake."
+  - When this kind of test never runs 30 seconds, pace to the end says so once instead of counting.
+- **Try any text:** a native `<details>`, collapsed. The playground mounts only once it is opened, so a visit never spends the scoring budget unasked.
+- **Copy:**
+  - Felt units only, and no zero figures.
+  - No milliseconds outside disclosures.
+  - No percentage comparisons other than accuracy itself.
+  - No "·" and no em dashes.
+  - Every comparison names its reference.
+  - A claim the data doesn't support (a slower fix, a slower pause) is never printed.
+- **States:**
+  - **Loading** is a skeleton shaped like the sections.
+  - **A bucket switch** keeps the previous content at reduced opacity.
+  - **Empty** is one card with `<LearningSteps>` and "Take a test".
+  - **Learning** (1–4 tests) shows the last test and the steps.
+  - **Not ready** (the analysis table is missing) still shows speed, trend, habits from tests, and practice lists. The time section shows one muted line, and the What would help most / What changed row is left out rather than repeating it.
+  - **Error** is a dashed card with "Error code: X" and Try again (or Sign in).
+- **Footer:** "See the technical view", "Browse drills" and "Delete my typing analysis", spaced with no glyph. Delete opens a confirm dialog, and its errors show inside the dialog.
+
+Rationale: one picture (where the minute goes) carries the diagnosis. Every number is relative to the person's own pace and history, and says what it is (a test or a day, adjusted or typed, then or now). Every visit ends with one clear step.
 
 ## 25. Drills (`/drills`, `/drills/[id]`)
 

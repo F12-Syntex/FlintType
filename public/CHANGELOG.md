@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.150.0 — 29 October 2026
+- Insights is rebuilt around your own tests. It shows your usual speed and which way it's heading, where each minute of typing goes, the one thing that would help most, what has changed lately, and plain answers about your habits. You can also delete your typing analysis.
+
 ## 6.149.10 — 29 October 2026
 - In the command palette, links now show which settings page and section they open, without dots.
 
