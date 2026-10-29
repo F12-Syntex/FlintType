@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.148.46 — 29 October 2026
+- An orange accent or focus ring picked on a palette other than Default is no longer lost when you reload.
+
 ## 6.148.45 — 29 October 2026
 - Corners in Settings → Interface now shows the right choice on every palette, and picking Round gives round corners even when your palette's own corners are smaller.
 

@@ -119,12 +119,24 @@ export const LEGACY_BAKED_OVERRIDES: ThemeOverrides = {
   "--ft-word-spacing": "0.25em",
 };
 
+/** The baked colours restate the Default theme's own colours, so they
+ *  are "no change" only on the Default palette. On any other palette
+ *  the same hex is a real pick (the orange accent on Catppuccin) and
+ *  stripping it would throw the user's colour away on every reload. */
+const LEGACY_BAKED_COLOURS: ReadonlySet<string> = new Set(["--primary", "--ring"]);
+
 /** Remove any override whose value equals the legacy baked default
- *  (== the new :root default). Idempotent and visually neutral. */
-export function stripLegacyBaked(o: ThemeOverrides): ThemeOverrides {
+ *  (== the new :root default). Idempotent. `keepColours` leaves the
+ *  baked colours alone, for overrides that sit on a palette other than
+ *  Default. */
+export function stripLegacyBaked(
+  o: ThemeOverrides,
+  { keepColours = false }: { keepColours?: boolean } = {},
+): ThemeOverrides {
   let next = o;
   for (const [k, legacy] of Object.entries(LEGACY_BAKED_OVERRIDES)) {
     const key = k as ThemeVar;
+    if (keepColours && LEGACY_BAKED_COLOURS.has(key)) continue;
     if (next[key] === legacy) {
       if (next === o) next = { ...o };
       delete next[key];
@@ -134,7 +146,9 @@ export function stripLegacyBaked(o: ThemeOverrides): ThemeOverrides {
 }
 
 /** One-shot migration of a user's stored {palette, theme} off the old
- *  fake-default state. Strips the legacy baked overrides; if that
+ *  fake-default state. Strips the legacy baked overrides (the baked
+ *  colours only on Default, where they change nothing; on any other
+ *  palette they are the user's pick); if that
  *  leaves no overrides AND the palette was only "custom" because of
  *  them, demote the palette — back to the fork's base palette when one
  *  was snapshotted (palette-fork.ts), else to Default (null). A custom
@@ -150,7 +164,12 @@ export function migrateThemeState(
   theme: ThemeOverrides;
   changed: boolean;
 } {
-  const cleanedTheme = stripLegacyBaked(theme);
+  // The baked colours only restate Default's own colours on Default
+  // itself (or a fork off it, which paints nothing underneath).
+  const onDefault =
+    palette.activeId === null ||
+    (palette.activeId === customId && !palette.base);
+  const cleanedTheme = stripLegacyBaked(theme, { keepColours: !onDefault });
   const themeChanged = cleanedTheme !== theme;
   let activeId = palette.activeId;
   let base = palette.base;
