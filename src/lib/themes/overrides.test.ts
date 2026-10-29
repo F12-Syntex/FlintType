@@ -172,6 +172,12 @@ describe("stripLegacyBaked", () => {
     const once = stripLegacyBaked({ ...LEGACY_BAKED_OVERRIDES, "--background": "#fff" });
     expect(stripLegacyBaked(once)).toEqual(once);
   });
+
+  it("keeps the baked colours when asked, and strips the rest", () => {
+    expect(
+      stripLegacyBaked({ ...LEGACY_BAKED_OVERRIDES }, { keepColours: true }),
+    ).toEqual({ "--primary": "#f97316", "--ring": "#fb923c" });
+  });
 });
 
 describe("migrateThemeState (off the fake-default)", () => {
@@ -203,12 +209,47 @@ describe("migrateThemeState (off the fake-default)", () => {
   it("a named palette is never demoted, even if overrides clear out", () => {
     const r = migrateThemeState(
       { activeId: "catppuccin" },
-      { ...LEGACY_BAKED_OVERRIDES },
+      { "--radius": "0.5rem", "--ft-word-spacing": "0.25em" },
       CUSTOM,
     );
     expect(r.palette).toEqual({ activeId: "catppuccin" });
     expect(r.theme).toEqual({});
     expect(r.changed).toBe(true);
+  });
+
+  it("keeps the baked colours on a palette other than Default", () => {
+    // On a named palette the orange is a real pick, not a restated default.
+    const r = migrateThemeState(
+      { activeId: "catppuccin" },
+      { ...LEGACY_BAKED_OVERRIDES },
+      CUSTOM,
+    );
+    expect(r.theme).toEqual({ "--primary": "#f97316", "--ring": "#fb923c" });
+  });
+
+  it("keeps an orange accent picked on a fork off a named palette (reload)", () => {
+    const base = {
+      id: "catppuccin",
+      light: { primary: "#8839ef" },
+      dark: { primary: "#ca9ee6" },
+    };
+    const theme = { "--primary": "#f97316", "--ring": "#fb923c" };
+    const r = migrateThemeState({ activeId: CUSTOM, base }, theme, CUSTOM);
+    expect(r.changed).toBe(false);
+    expect(r.theme).toBe(theme);
+    expect(r.palette).toEqual({ activeId: CUSTOM, base });
+  });
+
+  it("still strips the baked colours on Default and on a fork off it", () => {
+    for (const palette of [{ activeId: null }, { activeId: CUSTOM }]) {
+      const r = migrateThemeState(
+        palette,
+        { "--primary": "#f97316", "--ring": "#fb923c" },
+        CUSTOM,
+      );
+      expect(r.theme).toEqual({});
+      expect(r.palette).toEqual({ activeId: null });
+    }
   });
 
   it("an already-clean Default account is unchanged (no write)", () => {

@@ -604,6 +604,8 @@ Every section renders through `<SettingsSection id title description preview?>`:
 | Continuous numeric, fine-grained | `<SliderRow>` with a value badge. |
 | Bounded number with an "unbounded" escape | The number control plus one `<Chip>` that toggles the escape and remembers the last number: Lines shown = number input + "All"; Line width = slider (30–200 ch) + "Full". `0` is the wire value. Both live in `rows/layout-controls.tsx`. The escape is never the slider's minimum. |
 
+On themes, the legacy baked `--primary` / `--ring` values are removed on load only on the Default palette (`stripLegacyBaked`), so an orange accent or focus ring picked on another palette survives a reload.
+
 ### 12.2a Per-option chip previews
 
 - Chips are **pills** (`rounded-pill`, so the Style → Button shape setting reshapes them too). The sample sits above a 12px label, with `px-2 py-2 sm:min-w-18 sm:px-4` and `min-h-11 sm:min-h-9`.

@@ -24,15 +24,17 @@ type PresetSource = Pick<Theme, "presets"> | undefined;
 
 /** The slices a palette pick writes. `themeOverrides` leaves out values
  *  that only restate a default: the legacy baked set the load-time theme
- *  migration strips (so the stored record keeps its shape on reload) and
- *  the typography vars at their :root fallback (`effectiveOverride`). */
+ *  migration strips on a named palette (so the stored record keeps its
+ *  shape on reload; the baked colours stay, as they do there) and the
+ *  typography vars at their :root fallback (`effectiveOverride`). */
 export function palettePresetSlices(theme: PresetSource): {
   keyboard?: Partial<KeyboardSettings>;
   themeOverrides: ThemeOverrides;
 } {
-  const themeOverrides = stripLegacyBaked({
-    ...(theme?.presets?.themeOverrides ?? {}),
-  });
+  const themeOverrides = stripLegacyBaked(
+    { ...(theme?.presets?.themeOverrides ?? {}) },
+    { keepColours: true },
+  );
   for (const name of Object.keys(themeOverrides) as ThemeVar[]) {
     if (effectiveOverride(name, themeOverrides[name]) === undefined) {
       delete themeOverrides[name];
