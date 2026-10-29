@@ -816,19 +816,31 @@
     border-color: transparent !important;
   }
   /* text-only also hides the boxed nav pill — only the logo + plain
-     text links remain. Opt-in via [data-ft-topbar-pill] on any
-     boxed control in the topbar (nav, mode switcher, identity
-     cluster). The descendant selector also flattens any nested
-     active-state thumb (e.g. ModeSwitcher's motion span) so the
-     pill reads as bare icons / text. */
-  html[data-ft-topbar-style="text-only"] [data-ft-topbar-pill],
-  html[data-ft-topbar-style="text-only"] [data-ft-topbar-pill] * {
+     text links remain. [data-ft-topbar-pill] marks the boxed nav, and
+     the rules only apply inside the bar. The descendant selector also
+     strips the active link's filled pill, so the current route keeps a
+     mark of its own: ink, semibold and an orange underline (its white
+     pill label would vanish on paper). Keyboard focus rings (a
+     box-shadow) survive on the focused link. */
+  html[data-ft-topbar-style="text-only"] [data-ft-topbar] [data-ft-topbar-pill],
+  html[data-ft-topbar-style="text-only"] [data-ft-topbar] [data-ft-topbar-pill] * {
     background: transparent !important;
     border-color: transparent !important;
+  }
+  html[data-ft-topbar-style="text-only"] [data-ft-topbar] [data-ft-topbar-pill],
+  html[data-ft-topbar-style="text-only"] [data-ft-topbar] [data-ft-topbar-pill] *:not(:focus-visible) {
     box-shadow: none !important;
   }
-  html[data-ft-topbar-style="text-only"] [data-ft-topbar-pill] {
+  html[data-ft-topbar-style="text-only"] [data-ft-topbar] [data-ft-topbar-pill] {
     padding: 0 !important;
+  }
+  html[data-ft-topbar-style="text-only"] [data-ft-topbar] [data-ft-topbar-pill] [aria-current="page"] {
+    color: var(--foreground) !important;
+    font-weight: 600 !important;
+    text-decoration-line: underline;
+    text-decoration-color: var(--primary);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 6px;
   }
 
   /* data-ft-footer-style: hide / compact the marketing footer.

@@ -837,7 +837,7 @@ Component self-markers that the CSS rules attach to:
 | Marker | Sits on | Purpose |
 |---|---|---|
 | `[data-ft-topbar]` | TopBar root | Auto-hide target + topbar style override target. |
-| `[data-ft-topbar-pill]` | The boxed nav inside TopBar | text-only mode flattens it. |
+| `[data-ft-topbar-pill]` | The boxed nav inside TopBar (only there; the text-only rules apply inside `[data-ft-topbar]`) | text-only mode flattens it. The active route then stays ink, semibold, with a 2px orange underline, and focus rings survive. |
 | `[data-ft-footer]` | AppFooter root | Auto-hide target + footer-style override target. |
 | `[data-ft-footer-expand]` | Footer nav link block | Hidden under compact footer style. |
 | `[data-ft-chrome]` | Interior chrome (settings sidebar/header) | Auto-hide target. |
@@ -850,6 +850,7 @@ Component self-markers that the CSS rules attach to:
 - **Don't** rename `data-ft-topbar-style` / `data-ft-footer-style` to drop the `-style` suffix. The unsuffixed forms are taken by component self-markers; the suffix is load-bearing.
 - **Don't** animate the auto-hide transition beyond the 240ms opacity tween already defined. The user is mid-keystroke; the chrome should disappear quickly enough that they don't notice, not slowly enough to distract.
 - **Don't** drop `pointer-events: none` from the `fade` autohide rule. Without it, a stray click on the invisible topbar mid-run can cancel the test.
+- **Don't** put `data-ft-topbar-pill` on a control outside the top bar, or on one whose selected state is a filled pill: text-only strips the fill and leaves white text on paper.
 
 ## 16. Command palette
 

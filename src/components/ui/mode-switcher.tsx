@@ -30,10 +30,9 @@ export function ModeSwitcher({ className }: { className?: string }) {
 
   return (
     <div
-      // data-ft-topbar-pill — globals.css §15 flattens this container's
-      // bg + border under html[data-ft-topbar-style="text-only"] so it
-      // reads as bare icons next to the topbar's text links.
-      data-ft-topbar-pill
+      // No data-ft-topbar-pill: the switch lives in the drawer and in
+      // Settings, not the bar, and the text-only top bar style must not
+      // strip its selected pill.
       role="radiogroup"
       aria-label="Theme mode"
       className={cn(
