@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.149.2 — 29 October 2026
+- Internal changes only.
+
 ## 6.149.1 — 29 October 2026
 - Internal changes only.
 
