@@ -106,6 +106,7 @@ export function WordlistControl({
         open={open}
         onOpenChange={setOpen}
         value={wordlist}
+        returnFocusToTyping
         onPick={(id) => {
           setWordlist(id);
           setOpen(false);

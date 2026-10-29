@@ -39,15 +39,25 @@ export function WordlistPicker({
   value,
   onPick,
   trigger,
+  returnFocusToTyping = false,
 }: {
   open: boolean;
   onOpenChange: (next: boolean) => void;
   value: string;
   onPick: (id: WordlistId) => void;
   trigger?: React.ReactNode;
+  /** On close, focus the practice typing input instead of the control
+   *  that opened the picker. For the practice mode bar only: inside the
+   *  race lobby settings the typing input sits outside the popover, so
+   *  moving focus there would dismiss the popover mid-edit. */
+  returnFocusToTyping?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  // The control focused when the picker opened. The picker has no Radix
+  // trigger, so without this focus would fall back to the page on close
+  // (and inside the race lobby settings, out of the popover).
+  const openerRef = useRef<HTMLElement | null>(null);
 
   // Reset query when the dialog closes so the next open starts clean.
   useEffect(() => {
@@ -79,16 +89,33 @@ export function WordlistPicker({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
           className="overflow-hidden p-0 sm:max-w-xl"
-          // Hand focus back to the typing input instead of the trigger
-          // pill, so the next keystroke (and Tab = new passage) goes to
-          // the test rather than the mode bar.
+          // Focus first enters the dialog from the opener (the search
+          // field's autoFocus runs before Radix's open hooks, so this is
+          // the one place that still sees where it came from).
+          onFocus={(e) => {
+            const from = e.relatedTarget;
+            if (
+              openerRef.current == null &&
+              from instanceof HTMLElement &&
+              !e.currentTarget.contains(from)
+            ) {
+              openerRef.current = from;
+            }
+          }}
+          // Mode bar: hand focus back to the typing input instead of the
+          // trigger pill, so the next keystroke (and Tab = new passage)
+          // goes to the test rather than the mode bar. Elsewhere focus
+          // returns to the control that opened the picker.
           onCloseAutoFocus={(e) => {
-            const typing = document.querySelector<HTMLInputElement>(
-              'input[aria-label="Typing input"]',
-            );
-            if (!typing) return;
+            const target = returnFocusToTyping
+              ? document.querySelector<HTMLInputElement>(
+                  'input[aria-label="Typing input"]',
+                )
+              : openerRef.current;
+            openerRef.current = null;
+            if (!target?.isConnected) return;
             e.preventDefault();
-            typing.focus({ preventScroll: true });
+            target.focus({ preventScroll: true });
           }}
         >
           <DialogTitle className="sr-only">Pick a wordlist</DialogTitle>
