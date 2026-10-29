@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.149.5 — 29 October 2026
+- Internal changes only.
+
 ## 6.149.4 — 29 October 2026
 - Worst-words practice now picks the words that are slow for their length, not just long words.
 
