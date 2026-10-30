@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.151.12 — 30 October 2026
+- The results screen no longer shows a scrollbar in the middle of the page. When the results run past the bottom of the window, the page scrolls from the window edge, and the mouse wheel works anywhere on it.
+
 ## 6.151.11 — 30 October 2026
 - After a test, one long stall partway through a word is now pointed out, instead of the test being called an even run.
 

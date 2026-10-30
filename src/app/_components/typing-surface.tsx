@@ -115,7 +115,8 @@ function TypingSurfaceBody({
   const body = (
     <>
       {!done ? <SpectateIndicator /> : null}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      {/* Not clipped once done: the result scroller spans the page width. */}
+      <div className={`flex min-h-0 flex-1 flex-col${done ? "" : " overflow-hidden"}`}>
         {done ? (
           <TestSummary />
         ) : isBurst ? (
