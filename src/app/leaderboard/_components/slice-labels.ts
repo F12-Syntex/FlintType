@@ -19,12 +19,13 @@ import {
 
 const TIME_AMOUNTS = new Set([15, 30, 60, 120]);
 
-/** Label for a run's length, e.g. "60 seconds" or "25 words"
- *  (`lengthLabel`, one name everywhere). A pinned board knows the unit
- *  from its preset. On "All lengths" the unit is guessed from the number
- *  (the stock time amounts are 15/30/60/120), so a custom 30-word run
- *  can read as "30 seconds" until entries carry their length mode. Quote
- *  rows read as words, as their amount is a word count here. */
+/** Label for a run's length, e.g. "60 seconds", "25 words" or "Long
+ *  quote" (`lengthLabel`, one name everywhere). A pinned board knows the
+ *  unit from its preset. On "All lengths" the unit is guessed from the
+ *  number (the stock time amounts are 15/30/60/120), so a custom 30-word
+ *  run can read as "30 seconds" until entries carry their length mode.
+ *  A quote row's amount is its quote group id (0 to 3), so it reads as
+ *  the group's name, the same as on the profile and share card. */
 export function runLengthLabel(
   amount: number,
   preset: LeaderboardPreset,
@@ -33,6 +34,7 @@ export function runLengthLabel(
   // The row's own unit wins; then the board's; legacy rows on "All
   // lengths" fall back to guessing from the amount.
   const mode = rowMode ?? lengthModeForPreset(preset);
+  if (mode === "quote") return lengthLabel("quote", amount);
   const isTime = mode ? mode === "time" : TIME_AMOUNTS.has(amount);
   return lengthLabel(isTime ? "time" : "words", amount);
 }

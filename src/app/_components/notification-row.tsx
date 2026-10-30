@@ -4,7 +4,12 @@ import { Check } from "lucide-react";
 import Link from "next/link";
 import { DeltaText } from "@/components/analysis/delta-text";
 import { UserTag } from "@/components/ft";
-import { friendPbSentence, pbDelta, pbSentence } from "@/lib/pb-copy";
+import {
+  friendPbSentence,
+  pbDelta,
+  pbSentence,
+  withLegacyLengthMode,
+} from "@/lib/pb-copy";
 import { relativeTime } from "@/lib/relative-time";
 import { cn } from "@/lib/utils";
 import type {
@@ -112,11 +117,12 @@ export function NotificationRow({
 
 /** The row's body. Personal-best kinds rebuild their sentence from the
  *  stored data, so old rows (written with dotted bodies) read the same as
- *  new ones; every other kind shows its stored body. */
+ *  new ones; an old row without a stored unit takes the one its body
+ *  names. Every other kind shows its stored body. */
 function bodyText(item: Notification): string {
-  if (isPersonalBest(item)) return pbSentence(item.data);
+  if (isPersonalBest(item)) return pbSentence(withLegacyLengthMode(item.data, item.body));
   if (isFriendPb(item) && typeof item.data.wpm === "number") {
-    return friendPbSentence(item.data.friendName, item.data);
+    return friendPbSentence(item.data.friendName, withLegacyLengthMode(item.data, item.body));
   }
   return item.body;
 }

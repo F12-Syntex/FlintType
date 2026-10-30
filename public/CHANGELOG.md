@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.151.3 — 30 October 2026
+- Quote runs on the All lengths leaderboard now name their quote length, such as "Long quote", instead of a word count. Older personal-best notifications keep the length unit they were saved with, and on narrow phones your profile's recent runs no longer cut a test's length short.
+
 ## 6.151.2 — 30 October 2026
 - After a test, the count of tests left before it can be compared with your usual now goes down with every test instead of stalling.
 

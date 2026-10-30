@@ -114,11 +114,14 @@ function RunRow({
     <li className="group/row flex items-center justify-between gap-3 py-2 pr-2 pl-5 sm:py-3 sm:pr-6 sm:pl-6">
       <div className="flex min-w-0 flex-col gap-0.5">
         {/* The length is the title ("60 seconds"); a non-Casual run adds
-            its mode as an outline badge (ui-law §18.5). */}
-        <span className="flex min-w-0 items-center gap-2">
-          <span className="truncate text-sm font-medium text-foreground">{length}</span>
+            its mode as an outline badge (ui-law §18.5). The length never
+            truncates (a cut "1,00…" reads as another number): on a narrow
+            phone the badge wraps under it, and below 375px the length
+            itself breaks between words rather than spilling over. */}
+        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span className="text-sm font-medium text-foreground">{length}</span>
           {mode !== "Casual" ? (
-            <Badge variant="outline" className="h-5 px-1.5 text-[11px]">
+            <Badge variant="outline" className="h-5 shrink-0 px-1.5 text-[11px]">
               {mode}
             </Badge>
           ) : null}

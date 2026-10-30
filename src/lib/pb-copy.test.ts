@@ -3,9 +3,11 @@ import { bannedPatterns } from "./copy-rules";
 import {
   accuracyText,
   friendPbSentence,
+  legacyLengthMode,
   pbDelta,
   pbSentence,
   withArticle,
+  withLegacyLengthMode,
   type PbCopyInput,
 } from "./pb-copy";
 
@@ -84,6 +86,65 @@ describe("accuracyText", () => {
     expect(accuracyText(97.5)).toBe("97.5%");
     expect(accuracyText(100)).toBe("100%");
     expect(accuracyText(Number.NaN)).toBe("0%");
+  });
+});
+
+describe("legacyLengthMode", () => {
+  it("reads the unit from both old PB body shapes", () => {
+    expect(legacyLengthMode("Casual · 45s · 100 wpm · 98.0% acc", 45)).toBe("time");
+    expect(legacyLengthMode("Casual 45s · 100 wpm · 98.0% acc (previous best 92)", 45)).toBe("time");
+    expect(legacyLengthMode("Casual · 30 words · 100 wpm · 98.0% acc (previous best 92 · +8)", 30)).toBe("words");
+    expect(legacyLengthMode("Adapt · 1 word · 100 wpm · 100.0% acc", 1)).toBe("words");
+  });
+
+  it("reads the unit from old friend PB bodies", () => {
+    expect(legacyLengthMode("Mara hit 100 wpm on 90s.", 90)).toBe("time");
+    expect(legacyLengthMode("Mara hit 100 wpm on 30 words.", 30)).toBe("words");
+  });
+
+  it("reads a friend body's unit from its tail, never from the name", () => {
+    expect(legacyLengthMode("Agent 7s hit 188 wpm on 7 words.", 7)).toBe("words");
+    expect(legacyLengthMode("Agent 45s hit 100 wpm on 45 words.", 45)).toBe("words");
+    expect(legacyLengthMode("Agent 7 words hit 188 wpm on 7s.", 7)).toBe("time");
+    expect(legacyLengthMode("Odd hit 3 wpm on 9s hit 188 wpm on 9s.", 9)).toBe("time");
+    // A bare-number friend body names no unit, even when the name does.
+    expect(legacyLengthMode("Agent 7s hit 188 wpm on 7.", 7)).toBeNull();
+  });
+
+  it("only matches the row's own amount, and gives up on a bare number", () => {
+    // "100 wpm" and "98.0%" never count as a unit for 45.
+    expect(legacyLengthMode("Casual · 45s · 100 wpm · 98.0% acc", 100)).toBeNull();
+    expect(legacyLengthMode("Casual · 145s · 100 wpm", 45)).toBeNull();
+    // The oldest rows wrote "Casual 60 · …" with no unit.
+    expect(legacyLengthMode("Casual 60 · 102 wpm · 98.0% acc", 60)).toBeNull();
+    expect(legacyLengthMode("", 60)).toBeNull();
+    expect(legacyLengthMode("Casual · 45s ·", Number.NaN)).toBeNull();
+  });
+});
+
+describe("withLegacyLengthMode", () => {
+  const old = { mode: "casual", wpm: 100, accuracy: 98 };
+
+  it("keeps a custom length's real unit on an old row", () => {
+    const time = withLegacyLengthMode({ ...old, durationOrWordCount: 45 }, "Casual · 45s · 100 wpm · 98.0% acc");
+    expect(pbSentence(time)).toBe("100 wpm at 98% accuracy in a Casual test of 45 seconds.");
+    const words = withLegacyLengthMode({ ...old, durationOrWordCount: 30 }, "Casual · 30 words · 100 wpm · 98.0% acc");
+    expect(pbSentence(words)).toBe("100 wpm at 98% accuracy in a Casual test of 30 words.");
+    const friend = withLegacyLengthMode({ ...old, durationOrWordCount: 90 }, "Mara hit 100 wpm on 90s.");
+    expect(friendPbSentence("Mara", friend)).toBe("Mara hit 100 wpm in a Casual test of 90 seconds.");
+  });
+
+  it("leaves rows that store their unit alone, null included", () => {
+    const stored = { ...old, durationOrWordCount: 30, lengthMode: "time" as const };
+    expect(withLegacyLengthMode(stored, "Casual · 30 words ·")).toBe(stored);
+    const legacyRun = { ...old, durationOrWordCount: 60, lengthMode: null };
+    expect(withLegacyLengthMode(legacyRun, "60 words")).toBe(legacyRun);
+  });
+
+  it("falls back to the guess when the body names no unit", () => {
+    const data = withLegacyLengthMode<PbCopyInput>({ ...old, durationOrWordCount: 60 }, "Casual 60 · 102 wpm");
+    expect(data.lengthMode).toBeNull();
+    expect(pbSentence(data)).toContain("60 seconds");
   });
 });
 
