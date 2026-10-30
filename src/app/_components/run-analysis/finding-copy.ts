@@ -69,6 +69,15 @@ export function findingCopy(f: Finding, o: CopyUnit): FindingCopy {
     case "before":
       return beforeCopy(f);
     case "inside":
+      if (f.count === 1) {
+        return {
+          icon: "hourglass",
+          lead: f.topWord
+            ? ["You stalled for ", `${seconds(f.ms)} partway through `, { word: f.topWord }, "."]
+            : [`You stalled once inside a word, for ${seconds(f.ms)}.`],
+          follow: null,
+        };
+      }
       return {
         icon: "hourglass",
         lead: [`Small hesitations inside words added up to ${seconds(f.ms)}.`],

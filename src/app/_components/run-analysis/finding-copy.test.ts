@@ -82,6 +82,12 @@ describe("findingCopy: the other kinds", () => {
     expect(c.follow).toEqual([{ word: "quick" }, " slowed you most."]);
     expect(f({ kind: "inside", impactMs: 900, ms: 900, count: 4, topWord: null }).follow).toBeNull();
   });
+  it("inside, one long stall", () => {
+    const c = f({ kind: "inside", impactMs: 1500, ms: 1500, count: 1, topWord: "quick" });
+    expect(lead(c)).toBe("You stalled for 1.5 seconds partway through “quick”.");
+    expect(c.follow).toBeNull();
+    expect(lead(f({ kind: "inside", impactMs: 1500, ms: 1500, count: 1, topWord: null }))).toBe("You stalled once inside a word, for 1.5 seconds.");
+  });
   it("breaks, once and several times", () => {
     expect(lead(f({ kind: "breaks", impactMs: 3000, ms: 3000, count: 1 }))).toBe("You stopped typing for 3 seconds.");
     const c = f({ kind: "breaks", impactMs: 7000, ms: 12_400, count: 2 });
