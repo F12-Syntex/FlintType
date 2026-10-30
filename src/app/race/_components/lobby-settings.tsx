@@ -24,11 +24,13 @@ const TYPE_OPTIONS: { value: LobbyType; label: string }[] = [
 ];
 
 /** The private-lobby settings editor: race type, then the one or two
- *  knobs that type needs, then the Create button. Rendered inside the
- *  gear's popover on desktop and inside a bottom sheet on mobile
- *  (ui-law §10.5). Single-choice rows use the shared segmented switch;
- *  quote lengths are multi-select <Toggle> pills. Selected options are
- *  the brand orange (§21). */
+ *  knobs that type needs. Rendered inside the gear's popover on desktop
+ *  (where "Create private lobby" sits right above it, so there's no
+ *  second Create button) and inside a bottom sheet on mobile, which
+ *  covers that button and so passes `onCreate` (ui-law §10.5).
+ *  Single-choice rows use the shared segmented switch; quote lengths
+ *  are multi-select <Toggle> pills. Selected options are the brand
+ *  orange (§21). */
 export function LobbySettings({
   config,
   setConfig,
@@ -40,7 +42,8 @@ export function LobbySettings({
   config: LobbyConfig;
   setConfig: Dispatch<SetStateAction<LobbyConfig>>;
   onOpenWordlist: () => void;
-  onCreate: () => void;
+  /** Mobile sheet only: adds a Create lobby button under the knobs. */
+  onCreate?: () => void;
   pending: boolean;
   error: string | null;
 }) {
@@ -56,13 +59,12 @@ export function LobbySettings({
         />
       </Row>
 
-      {/* One height for every race type (the Words / Timed knobs are the
-       *  tallest), so switching type never resizes the desktop popover:
-       *  a taller panel used to flip above the gear mid-click and move
-       *  the type switch out from under the pointer. */}
-      <div className="flex flex-col gap-4 sm:min-h-36">
+      {/* The desktop popover always opens below the launcher's buttons
+       *  (no collision flip), so a type with fewer knobs just makes the
+       *  panel shorter; the type switch never moves under the pointer. */}
+      <div className="flex flex-col gap-4">
         {config.type === "quote" ? (
-          <Row label="Quote length" hint="Pick one or more">
+          <Row label="Quote length">
             <div role="group" aria-label="Quote length" className="flex flex-wrap gap-1.5">
               {RACE_QUOTE_GROUPS.map((g) => (
                 <Toggle
@@ -123,37 +125,28 @@ export function LobbySettings({
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-2 pt-1">
-        <Button size="lg" onClick={onCreate} disabled={pending} className="w-full">
-          {pending ? "Creating…" : "Create lobby"}
-        </Button>
-        {error ? (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        ) : null}
-      </div>
+      {onCreate || error ? (
+        <div className="flex flex-col gap-2 pt-1">
+          {onCreate ? (
+            <Button size="lg" onClick={onCreate} disabled={pending} className="w-full">
+              {pending ? "Creating…" : "Create lobby"}
+            </Button>
+          ) : null}
+          {error ? (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function Row({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: ReactNode;
-}) {
+function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
-        {hint ? (
-          <span className="text-xs text-muted-foreground">{hint}</span>
-        ) : null}
-      </div>
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
       {children}
     </div>
   );

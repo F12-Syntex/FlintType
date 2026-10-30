@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.151.13 — 30 October 2026
+- The race page is quieter: one heading, the mode switch with a short line about it, and the buttons.
+- Lobby settings now open straight under the buttons, the same width as the row, instead of jumping above them and covering the page. The panel no longer leaves an empty gap, and it fits on short screens.
+- Hover "Create private lobby" to see what kind of lobby it will make.
+
 ## 6.151.12 — 30 October 2026
 - The results screen no longer shows a scrollbar in the middle of the page. When the results run past the bottom of the window, the page scrolls from the window edge, and the mouse wheel works anywhere on it.
 
