@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { TrendSeries } from "@/types/insights";
+import { rangePosition } from "./trend-copy";
 import {
   defaultRange,
+  drawnBandAt,
   drawnMarks,
   isDaily,
   seriesFacts,
@@ -67,24 +69,59 @@ describe("trendRows", () => {
     expect(rows[rows.length - 1]!.median).toBe(72);
     expect(rows.filter((r) => r.median === null).length).toBeGreaterThan(0);
   });
-  it("keeps each point's own band as the tooltip's reference", () => {
-    // Rising from 50 to 62 wpm, several tests a day: every point carries
-    // the band as of itself (in wpm), not only the day ends it is drawn
-    // through, and none before the band starts.
-    const n = 60;
-    const points = Array.from({ length: n }, (_, i) => ({
-      t: NOW - (n - i) * 8 * 3_600_000, wpm: 50 + i / 5, value: 50 + i / 5, acc: 96, pb: false,
-    }));
-    const band = points.slice(7).map((p) => ({ t: p.t, lo: p.value - 4, hi: p.value + 2 }));
+  it("judges each dot against the band drawn at its x", () => {
+    // Three days, three tests each at 10:20, 10:30 and 10:40 UTC (one
+    // local day in every IANA time zone, Chatham's +13:45 included).
+    // The band is drawn through each day's last test only: [60, 70] on
+    // day 1, [60, 80] on day 2.
+    const day1 = Date.UTC(2026, 9, 1, 10, 20);
+    const at = (d: number, k: number) => day1 + d * DAY + k * 10 * 60_000;
+    const values = [64, 65, 66, 74, 70, 71, 72, 73, 74];
+    const points = values.map((v, i) => ({ t: at(Math.floor(i / 3), i % 3), wpm: v, value: v, acc: 96, pb: false }));
+    // Each point's own rolling band as it stood then. Day 2's first
+    // test (74) sits above its own band [60, 72], but inside the band
+    // drawn at its x, which is nearly day 2's [60, 80].
+    const own = [[60, 69], [60, 69], [60, 70], [60, 72], [60, 76], [60, 80], [61, 80], [61, 81], [62, 82]];
+    const band = points.map((p, i) => ({ t: p.t, lo: own[i]![0]!, hi: own[i]![1]! }));
     const rows = trendRows({ points, median: [], band, adjusted: false }, "all", NOW, "cpm");
-    expect(rows[6]!.ref).toBeNull();
-    for (const [i, r] of rows.entries()) {
-      if (i < 7) continue;
-      expect(r.ref).toEqual([points[i]!.value - 4, points[i]!.value + 2]);
-      expect(r.valueWpm).toBeGreaterThanOrEqual(r.ref![0]);
-      expect(r.valueWpm).toBeLessThanOrEqual(r.ref![1]);
-    }
-    expect(rows.filter((r) => r.band !== null).length).toBeLessThan(rows.filter((r) => r.ref !== null).length);
+    expect(rows.map((r) => r.band !== null)).toEqual([false, false, true, false, false, true, false, false, true]);
+    // Before the first drawn band there is no range line, own band or not.
+    expect(rows[0]!.ref).toBeNull();
+    expect(rows[1]!.ref).toBeNull();
+    // A day end keeps its own band, in wpm whatever the unit.
+    expect(rows[2]!.ref).toEqual([60, 70]);
+    expect(rows[5]!.ref).toEqual([60, 80]);
+    expect(rows[8]!.ref).toEqual([62, 82]);
+    // Any other dot takes the straight line between the day ends.
+    const f = (at(1, 0) - at(0, 2)) / (at(1, 2) - at(0, 2));
+    expect(rows[3]!.ref![0]).toBeCloseTo(60, 9);
+    expect(rows[3]!.ref![1]).toBeCloseTo(70 + f * 10, 9);
+    expect(rangePosition(rows[3]!.valueWpm, rows[3]!.ref)).toBe("Inside your usual range at the time");
+    expect(rangePosition(rows[4]!.valueWpm, rows[4]!.ref)).toBe("Inside your usual range at the time");
+  });
+  it("gives no range line when the band is not drawn", () => {
+    // Only the last day end has a band: one point draws no band.
+    const s = series(10, { every: DAY });
+    const one = { ...s, band: s.band.slice(-1) };
+    const rows = trendRows(one, "all", NOW, "wpm");
+    expect(drawnMarks(rows).band).toBe(false);
+    expect(rows.every((r) => r.ref === null)).toBe(true);
+  });
+  it("interpolates by time between day ends, and nothing outside them", () => {
+    const at = drawnBandAt([
+      { t: 100, lo: 60, hi: 70 },
+      { t: 200, lo: 64, hi: 80 },
+      { t: 400, lo: 64, hi: 80 },
+    ]);
+    expect(at(99)).toBeNull();
+    expect(at(100)).toEqual([60, 70]);
+    expect(at(150)).toEqual([62, 75]);
+    expect(at(200)).toEqual([64, 80]);
+    expect(at(300)).toEqual([64, 80]);
+    expect(at(400)).toEqual([64, 80]);
+    expect(at(401)).toBeNull();
+    expect(drawnBandAt([{ t: 100, lo: 60, hi: 70 }])(100)).toBeNull();
+    expect(drawnBandAt([])(0)).toBeNull();
   });
   it("converts to the user's unit and keeps the typed speed apart", () => {
     const rows = trendRows(series(5, { adjusted: true }), "all", NOW, "cpm");
@@ -93,12 +130,15 @@ describe("trendRows", () => {
     expect(rows[0]!.typedWpm).toBe(70);
   });
   it("matches a downsampled day to that day's statistic", () => {
+    // Points 24 hours apart, so each is its own local day in every
+    // time zone; the statistics are matched by UTC day.
     const day0 = Date.UTC(2026, 9, 1);
+    const p = (d: number) => day0 + d * DAY + 10 * 3_600_000 + 20 * 60_000;
     const s: TrendSeries = {
       points: [
-        { t: day0 + 10 * 3_600_000, wpm: 70, value: 70, acc: 96, pb: false },
-        { t: day0 + DAY + 9 * 3_600_000, wpm: 72, value: 72, acc: 96, pb: false },
-        { t: day0 + 3 * DAY + 9 * 3_600_000, wpm: 74, value: 74, acc: 96, pb: false },
+        { t: p(0), wpm: 70, value: 70, acc: 96, pb: false },
+        { t: p(1), wpm: 72, value: 72, acc: 96, pb: false },
+        { t: p(3), wpm: 74, value: 74, acc: 96, pb: false },
       ],
       median: [
         { t: day0 + 20 * 3_600_000, v: 70.5 },

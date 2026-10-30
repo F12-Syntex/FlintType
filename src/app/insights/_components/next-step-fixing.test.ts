@@ -13,7 +13,7 @@ const kind = testKindOf({
   tests: 20, analysed: 20, lastAtMs: 0,
 });
 const TAIL = "Fix it the moment you feel it, and delete only the wrong letters.";
-const PER_MINUTE = `Fixing mistakes takes you about 4.5 seconds of every minute, against about 1.2 seconds on your better days. ${TAIL}`;
+const PER_MINUTE = `Fixing mistakes takes you about 4.5 seconds of every minute, against 1.2 seconds on your better days. ${TAIL}`;
 
 function fixing(variant: BarrierVariant, detail: BarrierDetail = {}): NextStep {
   return {
@@ -27,7 +27,7 @@ describe("fixing: more mistakes", () => {
     const f = fixing("frequency", { perMin: [1.5, 0.8] });
     expect(nextStepTitle(f)).toBe("Make fewer mistakes");
     expect(nextStepBecause(f, kind)).toBe(
-      "You're making about 1.5 mistakes a minute, up from about 0.8 in the tests before. Fixing them takes about 4.5 seconds of every minute.",
+      "You're making about 1.5 mistakes a minute, up from 0.8 in the tests before. Fixing them takes about 4.5 seconds of every minute.",
     );
   });
   it("never prints a zero figure after an error-free stretch", () => {

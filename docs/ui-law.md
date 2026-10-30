@@ -1240,9 +1240,12 @@ The page answers "how am I doing, and what should I do next?" first, for a 45 wp
   - **Left:** "Your usual speed" as an ink hero number (proportional figures), then a `<RangeTrack>` (usual range, with the last test as the dot). Then a `<TrendWord>` (Improving, Holding steady, Levelled off, A little slower lately, Early days) with one sentence. A range whose ends round alike reads as one figure. For Adapt, a note says speeds allow for passage difficulty (from md; on phones it sits under the chart).
   - **Right:** "Your next step": a title and a "because" sentence in seconds or the speed unit. Then the page's **one** filled `lg` primary naming the drill ("Start Tongue-twister gauntlet") or "Take a test", and a ghost "Other ways to practise". A locked drill is never linked. Without the detailed analysis (not ready), the reason makes no claim about pauses or fixes.
   - **Fixing step.**
-    - It says "Fix mistakes faster", with a letters-per-mistake comparison, only when each fix now costs more than usual.
+    - More mistakes than before gives "Make fewer mistakes", with the mistakes a minute now and before.
+    - Otherwise it says "Fix mistakes faster", with a letters-per-mistake comparison, only when each fix now costs more than usual.
     - Otherwise it says "Spend less time fixing mistakes" and gives the seconds a minute against better days.
     - An earlier mistake rate that rounds to 0 reads "almost none".
+  - **Pauses step.** "Keep moving between words" compares how often you pause before words ("about 1 in 4 words, against 1 in 8") only when that rose by a step the figures show (`pauseShareRose`; "1 in 2" and "about half" count as one step). Otherwise it gives the seconds a minute against better days, because longer pauses alone can raise the time.
+  - **One hedge.** In a next-step comparison only the first figure says "about": "about 4.5 seconds of every minute, against 1.2 seconds on your better days", "about 2 in 3 words, against half", "about 1.5 mistakes a minute, up from 0.8".
 - **Where your time goes:** two `<MinuteBar>`s on one 0–60 s scale ("Your recent minute", "On your better days", with 0 s, 30 s and 60 s ticks) and a `<BudgetTable>`.
   - Table rows: Typing, Fixing mistakes, Pauses before words, Hesitations inside words, Breaks. Columns: Recently and Better days.
   - The slice the next step targets is the page's only orange data mark.
@@ -1262,10 +1265,10 @@ The page answers "how am I doing, and what should I do next?" first, for a 45 wp
   - **Tiny figures.** An extra time that rounds to nothing reads "under 0.01 s".
 - **Speed over time:**
   - **Marks.** A usual-range band, a rolling-median line and faint test dots, all ink. Personal bests are solid dots.
-    - The line and band are drawn through each day's last test, and only from 2 points.
-    - At most 5 round y ticks.
+    - The line and band are drawn through each day's last test, and only from 2 points. The band is straight between those points.
+    - At most 5 round y ticks. The y-axis widens for three-digit or decimal labels (`yAxisWidth`, trend-geometry.ts), so "240" is never cut off.
     - Date ticks are spread evenly in time, one per day, never closer than a sixth of the span, and about one per 96px of chart (2 to 5, so 3 on a phone).
-  - **Tooltip.** It judges each dot against the usual range as it stood at that point: "Inside your usual range at the time". Dots before the band starts get no range line.
+  - **Tooltip.** It describes the dot under the pointer. The chart snaps to a column, and the pointer's height picks between tests that share it (`hoveredRow`, trend-geometry.ts). It judges that dot against the usual-range band drawn at that point. A day's last test uses its own band. Any other test uses the straight band between the day ends either side (`drawnBandAt`, trend-data.ts). So a dot inside the shading reads "Inside your usual range at the time". Dots before the band starts, or on a chart with no band, get no range line.
   - **Range switch.** 1M | 3M | All. The default is 3M, or All below 30 tests or when the last 3 months hold fewer than 2 points. It resets for each kind of test.
     - With one test (or day) in the range, one muted line replaces the chart.
     - With none, "No tests in this range yet."
@@ -1383,7 +1386,7 @@ Applies to the result-screen analysis, `/insights` and any future analysis surfa
 
 1. **Three kinds of number.**
    - *Exact* figures (a test's time split, mistake counts, the longest pause) are stated plainly.
-   - *Estimates* (usual ranges, time you could win back, the Adapt adjustment) are rounded and carry "about" or a range.
+   - *Estimates* (usual ranges, time you could win back, the Adapt adjustment) are rounded and carry "about" or a range. "About" is never added before a bound ("under half a second", "fewer than 1 in 100") or before a share already written in words ("about half", "almost all"). `aboutPerMinute` and `aboutOneIn` (`src/lib/format-figure.ts`) add it only where it reads, as in "about 1 in 5 words". When a sentence compares two estimates, only the first carries "about" and the second is printed plain (`perMinute(s, "")`), so the sentence keeps one hedge (rule 6). A habit that gives two shares writes "1 in 2" as "about half", so two halves read alike.
    - *Claims* (something changed, levelled off, a habit) appear only after their test passes; before that, show what more practice is needed, as a count.
 2. **Units people feel.** Use seconds ("4.5 seconds a minute", "0.14 s each time"), the user's speed unit, counts, "1 in 5", and "about as long as typing 4 letters". Never a percentage of a time, "% over", "% to", or "N / M" as progress. Milliseconds appear only in the technical view and disclosures, never in a hover title (`title=`) on an analysis surface.
 3. **Name the reference.** Every comparison says what it is against: "your usual Adapt tests of 25 words", "your better days", "the 30 tests before". Never compare across modes, lengths, input kinds or fix settings. Words like "most", "usually" and "every" claim a share or a rule: use them only when the test behind the line measures exactly that, otherwise write "more often" or "especially".

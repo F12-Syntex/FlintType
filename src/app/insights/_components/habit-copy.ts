@@ -53,9 +53,10 @@ export function habitAnswer(h: Habit): string {
   }
 }
 
-/** "about 1 in 3 long words", "about half your long words". */
+/** "1 in 3 long words", "about half your long words". "1 in 2" reads
+ *  "about half", so two shares that both mean half read alike. */
 function share(rate: number, noun: string): string {
-  const s = oneIn(rate);
+  const s = oneIn(rate) === "1 in 2" ? "about half" : oneIn(rate);
   if (s === "about half" || s === "almost all") return `${s} your ${noun}`;
   return `${s} ${noun}`;
 }

@@ -1,5 +1,5 @@
 import type { TypingSpeedUnit } from "@/lib/appearance-prefs";
-import { oneIn, seconds, speed, speedRange } from "@/lib/format-figure";
+import { aboutOneIn, aboutPerMinute, speed, speedRange } from "@/lib/format-figure";
 import { formatSpeed } from "@/lib/speed-unit";
 import { formatTestName } from "@/lib/test-name";
 import type { BarrierDetail, Gate, InsightsBucket, Range } from "@/types/insights";
@@ -40,18 +40,16 @@ export function countOf(n: number, kind: TestKind): string {
   return n === 1 ? `one ${kind.noun}` : `${n} ${kind.group}`;
 }
 
-const HALF = 0.5;
-
 /** Seconds a minute as a phrase that reads after "takes" or "for":
  *  "about 4.5 seconds of every minute", "under half a second of every
  *  minute". Avoids "seconds a minute of every minute". */
 export function ofEveryMinute(s: number): string {
-  return s < HALF ? "under half a second of every minute" : `about ${seconds(s * 1000)} of every minute`;
+  return aboutPerMinute(s, "of every minute");
 }
 
 /** A per-minute figure standing alone: "about 1.2 seconds", "under half a second". */
 export function aboutSeconds(s: number): string {
-  return s < HALF ? "under half a second" : `about ${seconds(s * 1000)}`;
+  return aboutPerMinute(s, "");
 }
 
 /** Upper-cases the first letter of a phrase that opens a sentence. */
@@ -62,11 +60,8 @@ export function cap(s: string): string {
 /** A share of words: "about 1 in 5 words", "about half your words",
  *  "almost all your words", "fewer than 1 in 100 words". */
 export function shareOf(rate: number, noun: string): string {
-  const s = oneIn(rate);
-  if (s === "about half") return `about half your ${noun}`;
-  if (s === "almost all") return `almost all your ${noun}`;
-  if (s.startsWith("fewer")) return `${s} ${noun}`;
-  return `about ${s} ${noun}`;
+  const s = aboutOneIn(rate);
+  return s === "about half" || s === "almost all" ? `${s} your ${noun}` : `${s} ${noun}`;
 }
 
 /** A speed gain as a phrase after "worth": "about 3 to 5 wpm", "about

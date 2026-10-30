@@ -16,6 +16,12 @@ describe("labels copy", () => {
     expect(labels.extraLabel(5)).toBe("+0.01 s");
     for (const ms of [0, 0.4, 1, 2, 3, 4, 4.9]) expect(labels.extraLabel(ms), String(ms)).toBe("under 0.01 s");
   });
+  it("explains what deleting keeps without technical words", () => {
+    expect(labels.DELETE_BODY).toBe(
+      "This removes the summary of each past test. Your test results, and what Adapt has learned about your typing, stay.",
+    );
+    expect(labels.DELETE_BODY).not.toMatch(/model|algorithm|sample|digest|data/i);
+  });
   it("claims no break threshold or fix mode for a single test", () => {
     for (const c of [labels.LAST_BREAK_CLAUSE, labels.LAST_FIXING_CLAUSE]) {
       expect(c).not.toMatch(/\d|second|backspace|back on track|move on/);

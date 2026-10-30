@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.151.7 — 30 October 2026
+- On Insights, hovering a dot on the speed chart shows that test, and its note always matches the shaded usual range. Speeds of 100 and above are no longer cut off at the chart's edge.
+- Your next step only says you pause more often when the figures show it, its comparisons read more plainly, and the delete dialog says in plain words what stays.
+
 ## 6.151.6 — 30 October 2026
 - The labels on the usual-range bars now fit narrow screens: they no longer overlap or run past the bar, and they move onto two lines when needed.
 

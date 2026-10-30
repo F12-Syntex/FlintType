@@ -55,7 +55,9 @@ export const TECHNICAL_VIEW = "See the technical view";
 export const BROWSE_DRILLS = "Browse drills";
 export const DELETE_ANALYSIS = "Delete my typing analysis";
 export const DELETE_TITLE = "Delete your typing analysis?";
-export const DELETE_BODY = "This removes the summary of each past test. Your test results and your practice model stay.";
+/** No "model" (spec-40 §1 principle 4): name what stays in plain words. */
+export const DELETE_BODY =
+  "This removes the summary of each past test. Your test results, and what Adapt has learned about your typing, stay.";
 export const DELETE_CONFIRM = "Delete analysis";
 export const DELETING = "Deleting…";
 

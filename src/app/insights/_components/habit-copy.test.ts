@@ -49,6 +49,9 @@ describe("habit answers and evidence", () => {
     expect(habitAnswer(all[3]!)).toBe("Yes, quite a bit");
     expect(habitEvidence(all[3]!, "wpm")).toBe("You pause before 1 in 3 long words, and 1 in 10 short ones.");
     expect(habitEvidence(all[4]!, "wpm")).toBe("You pause before about half your long words, and fewer than 1 in 100 short ones.");
+    // Two shares that both mean half read alike, never "about half … and 1 in 2".
+    const half: Habit = { kind: "longWords", answer: "a-little", longRate: 0.5, shortRate: 0.42, n: 400 };
+    expect(habitEvidence(half, "wpm")).toBe("You pause before about half your long words, and about half your short ones.");
   });
   it("covers pace, warm-up, fatigue and hands", () => {
     expect(habitEvidence(all[7]!, "wpm")).toBe("In 8 of your last 10 longer tests, the last stretch was slower than the start.");

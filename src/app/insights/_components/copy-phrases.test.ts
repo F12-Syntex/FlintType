@@ -70,6 +70,10 @@ describe("per-minute phrases", () => {
     expect(aboutSeconds(1)).toBe("about 1 second");
     expect(aboutSeconds(0.2)).toBe("under half a second");
   });
+  it("never hedges under half a second, even for junk", () => {
+    expect(ofEveryMinute(Number.NaN)).toBe("under half a second of every minute");
+    expect(aboutSeconds(Number.NaN)).toBe("under half a second");
+  });
   it("capitalises the first letter only", () => {
     expect(cap("about 4 seconds")).toBe("About 4 seconds");
     expect(cap("")).toBe("");
