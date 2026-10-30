@@ -3,18 +3,17 @@ import { env } from "@/server/env";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-/** Primary model. Hardcoded (not an env var) so no build/infra config
- *  changes — the only knob is OPENROUTER_API_KEY, which lives in env.ts. */
-const MODEL = "openai/gpt-oss-120b:nitro";
+/** Primary model: Claude Haiku 5.5. Hardcoded (not an env var) so no
+ *  build/infra config changes — the only knob is OPENROUTER_API_KEY,
+ *  which lives in env.ts. */
+export const MODEL = "anthropic/claude-haiku-5.5";
 
 /** OpenRouter tries these in order within a single call if the primary
- *  provider/model errors — a non-reasoning JSON model is a reliable
- *  backstop for the reasoning primary. */
+ *  provider/model errors. */
 const FALLBACK_MODELS = ["google/gemini-2.5-flash", "openai/gpt-4o-mini"];
 
 /** Whole-request retries on top of OpenRouter's per-call fallback, for the
- *  stochastic "empty content" case (a reasoning model occasionally spends
- *  its budget thinking and returns no message). */
+ *  stochastic "empty content" or unparseable reply. */
 const MAX_ATTEMPTS = 3;
 const RETRY_BASE_MS = 100;
 
@@ -93,11 +92,10 @@ async function callOnce(
       body: JSON.stringify({
         model: MODEL,
         models: [MODEL, ...FALLBACK_MODELS],
+        // No `reasoning`: on Claude it turns on extended thinking, which
+        // needs temperature 1. Picking from a fixed catalog doesn't need it.
         temperature: 0.3,
-        // Reasoning models eat the token budget thinking; give the answer
-        // room and keep reasoning low so `content` is never starved.
         max_tokens: args.maxTokens ?? 2048,
-        reasoning: { effort: "low" },
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: args.system },
@@ -128,7 +126,7 @@ async function callOnce(
 
 /** Call OpenRouter in JSON mode and return the parsed object from the
  *  model's reply. Hardened for reliability: per-call model fallback, a
- *  generous token budget with low reasoning effort, tolerant JSON
+ *  generous token budget, tolerant JSON
  *  extraction, and whole-request retries on transient/empty responses.
  *  Every terminal failure surfaces as a `BackendError(500, "INTERNAL", …)`
  *  the caller lets bubble to the dispatcher. */

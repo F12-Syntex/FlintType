@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.152.1 — 30 October 2026
+- Design with AI now runs on Claude Haiku 5.5 by default.
+
 ## 6.152.0 — 30 October 2026
 - Race lanes move smoothly: other racers' stones glide between updates instead of jumping and stalling.
 - Stones roll as they travel and leave a trail behind them, so you can see at a glance how far everyone has come.
