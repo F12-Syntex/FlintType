@@ -6,7 +6,7 @@ import { RaceControls } from "../../_components/race-controls";
 import { ChallengeShell } from "./_components/challenge-shell";
 
 export const metadata = buildPageMetadata({
-  title: "Race · Lobby",
+  title: "Race lobby",
   description: "Join a flinttype race lobby via your invite link.",
   path: "/race/c",
   noIndex: true,

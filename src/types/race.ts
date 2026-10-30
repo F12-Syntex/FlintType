@@ -160,7 +160,7 @@ export type RoomSnapshot = {
   /** Session tokens of real players who've clicked Rematch since the
    *  current round finished. Bots are implicitly ready (no token,
    *  not in this list). Cleared when the new round transitions to
-   *  lobby. Drives the "Ready · waiting for opponent" UI on the
+   *  lobby. Drives the "Ready, waiting for an opponent" UI on the
    *  post-race surface. */
   rematchReady: readonly string[];
 };

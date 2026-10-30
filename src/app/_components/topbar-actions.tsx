@@ -23,10 +23,11 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import { clearUserScopedStorage } from "@/lib/sign-out-cleanup";
 import { cn } from "@/lib/utils";
+import { AccountAvatar } from "./account-avatar";
 import { NotificationsPopover } from "./notifications-popover";
 
 /** Right-side cluster shown in the AppChrome topbar:
- *  theme · notifications · settings · avatar (or Sign in).
+ *  theme, notifications, settings, avatar (or Sign in).
  *
  *  Mobile (<md): the bell and the avatar / Sign in stay; theme and
  *  settings move into the hamburger drawer (<AppDrawerExtras>) so the
@@ -142,7 +143,8 @@ function ProfileLink() {
         user?.username ??
         user?.emailAddresses[0]?.emailAddress.split("@")[0] ??
         "Profile");
-  const initial = (displayName.charAt(0) || "·").toUpperCase();
+  // "" while Clerk loads (or with no name), which shows a person glyph.
+  const initial = isLoaded ? displayName.charAt(0).toUpperCase() : "";
   const imageUrl = user?.hasImage ? user.imageUrl : null;
   const activeSessionId = clerk.session?.id ?? null;
 
@@ -174,7 +176,7 @@ function ProfileLink() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label={`Profile · ${displayName}`}
+        aria-label={initial ? `Account menu for ${displayName}` : "Account menu"}
         className="flex size-11 items-center justify-center rounded-pill outline-none transition-[box-shadow] focus-visible:ring-2 focus-visible:ring-ring/40 md:ml-1 md:size-9"
       >
         <AccountAvatar initial={initial} src={imageUrl} />
@@ -280,33 +282,5 @@ function GearIcon() {
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.07a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.07a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
-  );
-}
-
-function AccountAvatar({
-  initial,
-  src,
-}: {
-  initial: string;
-  src: string | null;
-}) {
-  if (src) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={src}
-        alt=""
-        aria-hidden
-        className="size-8 rounded-full object-cover ring-1 ring-border"
-      />
-    );
-  }
-  return (
-    <span
-      aria-hidden
-      className="flex size-8 items-center justify-center rounded-full bg-primary/12 text-xs font-semibold text-primary ring-1 ring-primary/20"
-    >
-      {initial}
-    </span>
   );
 }

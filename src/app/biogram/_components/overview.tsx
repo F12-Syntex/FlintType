@@ -39,12 +39,12 @@ export function OverviewBody({ snap }: { snap: AdaptSnapshotOutput }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {/* Status + sample count live in the header pill, so the tiles
-            only show what isn't said elsewhere. */}
+        {/* The letter-pair sample count lives here, named as such: it counts
+            pair samples only, not triples or finger moves. */}
         <StatTile
           label="Patterns tracked"
           value={patterns.toLocaleString()}
-          hint="Pairs, triples and finger moves"
+          hint={`Pairs, triples and finger moves, with ${snap.totalBigramSamples.toLocaleString()} letter-pair samples so far`}
         />
         <StatTile
           label="Words held back"

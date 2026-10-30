@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import { cn } from "@/lib/utils";
 import { QuoteAttribution } from "./quote-attribution";
@@ -117,9 +118,13 @@ function SpectatorHeader({
       </span>
       <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs tabular-nums text-muted-foreground">
         <span className="text-sm font-semibold text-foreground">{watched.name}</span>
-        <span>
-          <span className="font-semibold text-foreground">{pct}%</span> done
-        </span>
+        <Progress
+          className="w-24 self-center"
+          value={Math.min(watched.correctChars, totalChars)}
+          max={Math.max(1, totalChars)}
+          aria-label={`${watched.name}'s progress`}
+          aria-valuetext={`${pct}% of the passage`}
+        />
         <span>
           <span className="font-semibold text-foreground">{watched.wpm}</span> wpm
         </span>

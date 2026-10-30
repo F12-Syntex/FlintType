@@ -41,8 +41,8 @@ export async function generateMetadata({
   const wpm = Math.round(data.wpm);
   const acc = Math.round(data.accuracy);
   return buildPageMetadata({
-    title: `${data.handle} · ${wpm} wpm · ${acc}% acc`,
-    description: `${data.handle} hit ${wpm} wpm at ${acc}% accuracy on flinttype — open the run, then take the same test yourself.`,
+    title: `${data.handle} typed ${wpm} wpm at ${acc}% accuracy`,
+    description: `${data.handle} hit ${wpm} wpm at ${acc}% accuracy on flinttype. Open the run, then take the same test yourself.`,
     path: `/share/${slug}`,
     // Public link, but we don't want every shared run cluttering Google
     // — the homepage is the canonical entry point. The og:image is

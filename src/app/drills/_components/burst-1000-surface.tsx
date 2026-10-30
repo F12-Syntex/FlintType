@@ -108,7 +108,7 @@ export function Burst1000Surface({
       onRestart={() =>
         setSessionItems(nextUndiscovered(discovered, BURST_1000_PER_SESSION))
       }
-      itemStat={{ value: `${lit}/${total}`, caption: "Discovered" }}
+      itemStat={{ value: `${lit.toLocaleString()} of ${total.toLocaleString()}`, caption: "Discovered" }}
       progressSlot={
         <DiscoveryGrid discovered={discovered} session={sessionDiscovered} lit={lit} />
       }

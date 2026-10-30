@@ -42,7 +42,7 @@ export type RaceCtx = {
   /** Session tokens of real players who've cast a rematch-ready vote
    *  on the current finished round. Empty until at least one user
    *  clicks Rematch; cleared the moment the new round starts.
-   *  Drives the post-race "Ready · waiting for opponent" status. */
+   *  Drives the post-race "Ready, waiting for an opponent" status. */
   rematchReady?: readonly string[];
   /** 1-indexed round counter inside the current room. Increments
    *  when a rematch starts. Surfaced so the UI can label "Round 2",

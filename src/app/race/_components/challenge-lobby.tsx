@@ -116,10 +116,11 @@ function HostControls({
       {waiting ? (
         <div className="flex flex-col items-center gap-2">
           <p className="text-sm text-muted-foreground">
-            Waiting for everyone to ready up{" "}
+            Waiting for everyone to ready up.{" "}
             <span className="tabular-nums text-foreground">
-              {readyCount}/{otherCount}
-            </span>
+              {readyCount} of {otherCount}
+            </span>{" "}
+            ready.
           </p>
           <Button
             variant="outline"
@@ -226,7 +227,7 @@ function lobbyUrl(slug: string): string {
 }
 
 /** The lobby's invite link as a single pill: the URL (truncated) and a
- *  Copy / Copied affordance, all one click target. The "Lobby · slug"
+ *  Copy / Copied affordance, all one click target. The "Lobby code"
  *  label above it names the room. */
 function ShareLink({ slug }: { slug: string }) {
   const { copied, copy } = useCopyToClipboard();
@@ -234,7 +235,7 @@ function ShareLink({ slug }: { slug: string }) {
   return (
     <div className="flex w-full max-w-sm flex-col items-center gap-2">
       <span className="text-xs text-muted-foreground">
-        Lobby · <span className="font-medium text-foreground">{slug}</span>
+        Lobby code <span className="font-mono font-medium text-foreground">{slug}</span>
       </span>
       <Button
         variant="outline"

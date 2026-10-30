@@ -26,7 +26,7 @@ export function RankBadge({
   const def = RANKS[rank];
   return (
     <span
-      title={`${def.label} · ${def.range} wpm`}
+      title={`${def.label}. For typists at ${rangePhrase(def.range)}.`}
       className={cn(
         "inline-flex items-center rounded-pill border border-primary/25 bg-primary/[0.06] font-semibold uppercase tracking-[0.12em] text-foreground",
         SIZE[size],
@@ -42,4 +42,12 @@ export function RankBadge({
       {def.label}
     </span>
   );
+}
+
+/** A rank's wpm range in words: "80–99" reads "80 to 99 wpm", and an
+ *  open-ended "250+" reads "250 wpm and up". */
+export function rangePhrase(range: string): string {
+  if (range.endsWith("+")) return `${range.slice(0, -1)} wpm and up`;
+  const [lo, hi] = range.split("–");
+  return hi ? `${lo} to ${hi} wpm` : `${range} wpm`;
 }

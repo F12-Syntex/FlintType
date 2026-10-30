@@ -136,7 +136,7 @@ export function LevelLockup({
             <span className="font-semibold text-foreground">
               {NUM_FMT.format(totals.xpIntoLevel)}
             </span>{" "}
-            / {NUM_FMT.format(XP_PER_LEVEL)} XP
+            of {NUM_FMT.format(XP_PER_LEVEL)} XP
           </span>
         )}
       </div>
@@ -146,6 +146,11 @@ export function LevelLockup({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={pct}
+        aria-valuetext={
+          pending
+            ? undefined
+            : `${NUM_FMT.format(totals.xpIntoLevel)} of ${NUM_FMT.format(XP_PER_LEVEL)} XP towards level ${totals.level + 1}`
+        }
         className="relative block h-2.5 w-full overflow-hidden rounded-full bg-muted"
       >
         <span
@@ -155,7 +160,7 @@ export function LevelLockup({
       </span>
       {pending ? null : (
         <div className="flex items-center justify-between gap-3 text-xs tabular-nums text-muted-foreground">
-          <span>{NUM_FMT.format(totals.totalXp)} XP total</span>
+          <span>{NUM_FMT.format(totals.totalXp)} XP in total</span>
           <span>
             {NUM_FMT.format(toNext)} XP to level {totals.level + 1}
           </span>

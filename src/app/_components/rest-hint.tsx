@@ -14,15 +14,13 @@ import { MobileReadouts } from "./readouts";
  *  left side falls back to a plain status line so the row is never
  *  empty. */
 export function RestHint({ showReadouts = true }: { showReadouts?: boolean }) {
-  const { state, restart, wpm, accuracy } = usePractice();
+  const { state, restart } = usePractice();
   const phase = state.phase;
 
+  // typing-surface mounts this row only before and during a run (the
+  // result screen replaces it), so there is no after-the-run state here.
   const fallback =
-    phase === "done" ? (
-      <p className="truncate text-sm text-foreground">
-        {wpm} wpm · {Math.round(accuracy)}% acc
-      </p>
-    ) : phase === "running" ? (
+    phase === "running" ? (
       <span aria-hidden />
     ) : (
       <p className="truncate text-sm text-muted-foreground">

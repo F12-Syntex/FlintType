@@ -93,7 +93,7 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
   const description = !hasHistory
     ? "Your speed over time."
     : enough
-      ? `${filtered.length} tests · ${Math.round(avg)} WPM average`
+      ? `Averaging ${Math.round(avg)} WPM across ${filtered.length} tests.`
       : "Your speed over time.";
 
   return (
@@ -161,7 +161,16 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
                       const first = (
                         items as Array<{ payload?: TrendBucket }>
                       )[0];
-                      return first?.payload ? bucketLabel(first.payload) : "";
+                      if (!first?.payload) return "";
+                      const { title, detail } = bucketLabel(first.payload);
+                      return (
+                        <>
+                          <span>{title}</span>
+                          {detail ? (
+                            <span className="block font-normal text-muted-foreground">{detail}</span>
+                          ) : null}
+                        </>
+                      );
                     }}
                     formatter={(value) => (
                       <span className="flex w-full items-center gap-2">
@@ -216,17 +225,21 @@ export function WpmTrend({ points }: { points: TrendPoint[] }) {
   );
 }
 
-/** Tooltip title: the run's date and time, or the date span and run
- *  count when the point averages several runs. */
-function bucketLabel(b: TrendBucket): string {
+/** Tooltip label in two lines: the run's date and time (or the date
+ *  span), then "Average of N tests" when the point averages several
+ *  runs (null for one). */
+function bucketLabel(b: TrendBucket): { title: string; detail: string | null } {
   const from = new Date(b.fromTs);
   const to = new Date(b.toTs);
   if (b.count <= 1) {
-    return `${from.toLocaleDateString(undefined, DAY_FMT)}, ${from.toLocaleTimeString(undefined, TIME_FMT)}`;
+    return {
+      title: `${from.toLocaleDateString(undefined, DAY_FMT)}, ${from.toLocaleTimeString(undefined, TIME_FMT)}`,
+      detail: null,
+    };
   }
   const sameDay = from.toDateString() === to.toDateString();
   const span = sameDay
     ? from.toLocaleDateString(undefined, DAY_FMT)
     : `${from.toLocaleDateString(undefined, DAY_FMT)} to ${to.toLocaleDateString(undefined, DAY_FMT)}`;
-  return `${span} · average of ${b.count} tests`;
+  return { title: span, detail: `Average of ${b.count} tests` };
 }

@@ -2,6 +2,7 @@
 
 import { Check } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { KeyHint } from "@/components/analysis/key-hint";
 
 import {
   Command,
@@ -161,7 +162,11 @@ export function WordlistPicker({
             </CommandList>
             <div className="flex items-center justify-between gap-3 border-t border-border bg-muted/30 px-4 py-2.5 text-xs text-muted-foreground">
               <span>{WORDLIST_IDS.length} wordlists from MonkeyType</span>
-              <span className="hidden sm:inline">↑↓ move · ↵ pick · esc close</span>
+              <span className="hidden items-center gap-x-4 sm:flex">
+                <KeyHint keys={["↑", "↓"]} label="Move" />
+                <KeyHint keys={["↵"]} label="Pick" />
+                <KeyHint keys={["Esc"]} label="Close" />
+              </span>
             </div>
           </Command>
         </DialogContent>

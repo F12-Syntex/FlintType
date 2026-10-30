@@ -1,3 +1,4 @@
+import { FieldList } from "@/components/analysis/field-list";
 import type { DayCell, StreakStats } from "./derive-activity";
 
 /** The activity heatmap: one column per week, Monday at the top, an
@@ -20,16 +21,22 @@ export function ActivityHeatmap({
   const captionParts = [
     `${total} ${total === 1 ? "test" : "tests"}`,
     `${activeDays} active ${activeDays === 1 ? "day" : "days"}`,
-    streak.longest > 0 ? `${streak.longest}-day record` : null,
+    streak.longest > 0 ? `${streak.longest}-day best streak` : null,
   ].filter(Boolean) as string[];
 
   return (
     <div className="flex h-full flex-col justify-between gap-5">
       <header className="flex flex-col gap-0.5">
         <h3 className="text-sm font-semibold text-foreground">Activity</h3>
-        <p className="text-xs tabular-nums text-muted-foreground">
-          {captionParts.join(" · ")}
-        </p>
+        <FieldList
+          variant="inline"
+          size="sm"
+          items={[
+            { value: total, label: total === 1 ? "test" : "tests" },
+            { value: activeDays, label: activeDays === 1 ? "active day" : "active days" },
+            ...(streak.longest > 0 ? [{ value: `${streak.longest}-day`, label: "best streak" }] : []),
+          ]}
+        />
       </header>
 
       <div className="flex w-full flex-col gap-1.5">
@@ -121,10 +128,15 @@ function Cell({ day, max }: { day: DayCell | null; max: number }) {
     return <span aria-hidden className="block aspect-square w-full" />;
   }
   const ratio = max > 0 ? Math.max(0, Math.min(1, day.tests / max)) : 0;
+  const dayLong = day.date.toLocaleDateString(undefined, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
   const label =
     day.tests === 0
-      ? `${day.date.toDateString()} · no runs`
-      : `${day.date.toDateString()} · ${day.tests} run${day.tests === 1 ? "" : "s"}`;
+      ? `No runs on ${dayLong}`
+      : `${day.tests} ${day.tests === 1 ? "run" : "runs"} on ${dayLong}`;
   return (
     <span
       aria-hidden

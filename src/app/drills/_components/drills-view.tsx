@@ -100,7 +100,7 @@ export function DrillsView() {
           ) : loading ? (
             <span
               aria-hidden
-              className="h-8 w-36 rounded-pill bg-muted motion-safe:animate-pulse"
+              className="h-5 w-28 rounded-full bg-muted motion-safe:animate-pulse"
             />
           ) : null
         }

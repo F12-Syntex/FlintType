@@ -277,8 +277,8 @@ export function HandLayoutEditor(props: KeyboardProps) {
             <button
               key={fid}
               type="button"
-              aria-label={`${FINGER_NAME[fid]} — home ${prettyKey(fs.homeKey)}${
-                fs.enabled ? "" : " (disabled)"
+              aria-label={`${FINGER_NAME[fid]}, home key ${prettyKey(fs.homeKey)}${
+                fs.enabled ? "" : ", turned off"
               }`}
               onPointerDown={(e) => {
                 e.preventDefault();
@@ -308,8 +308,8 @@ export function HandLayoutEditor(props: KeyboardProps) {
 
       <div className="mt-3 flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
         <span>
-          Click a finger to disable it · drag a finger onto a key to
-          move its home position.
+          Click a finger to turn it off. Drag a finger onto a key to
+          move its home key.
         </span>
         <Button variant="ghost" size="sm" onClick={reset} className="shrink-0">
           Reset

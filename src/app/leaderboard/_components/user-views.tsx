@@ -9,7 +9,7 @@ import { skillTierForNetWpm } from "@/lib/skill-tier";
 import { cn } from "@/lib/utils";
 import type { TopLevelPlayer, TopPlayer } from "@/types/leaderboard";
 import { BoardFrame } from "./board-frame";
-import { CellPill, LeaderboardRow } from "./board-row";
+import { CellPill, LeaderboardRow, RowSummary } from "./board-row";
 import {
   type BoardColumns,
   EmptyBoard,
@@ -61,7 +61,7 @@ export function TopPlayersView() {
               `${Math.round(p.bestAccuracy)}%`,
             ]}
             headline={p.bestNetWpm}
-            summary={`${tier} · ${runs}`}
+            summary={<RowSummary parts={[tier, runs]} />}
             ariaLabel={`Rank ${p.rank}, ${handleOf(p)}${isYou ? " (you)" : ""}: best ${p.bestNetWpm} WPM, ${tier}, ${runs}`}
           />
         );
@@ -89,13 +89,22 @@ export function TopLevelsView() {
             tags={p.tags}
             you={isYou ? "best" : undefined}
             cells={[
-              <LevelProgress key="p" pct={pct} isYou={isYou} />,
+              <LevelProgress key="p" pct={pct} level={p.level} isYou={isYou} />,
               p.testsCompleted.toLocaleString(),
               p.xp.toLocaleString(),
             ]}
             headline={p.level}
-            summary={`${runs} · ${pct}% to level ${p.level + 1}`}
-            ariaLabel={`Rank ${p.rank}, ${handleOf(p)}${isYou ? " (you)" : ""}: level ${p.level}, ${pct}% to the next level, ${runs}`}
+            summary={
+              <RowSummary
+                parts={[
+                  runs,
+                  <LevelProgress key="p" pct={pct} level={p.level} isYou={isYou} className="w-24" />,
+                ]}
+              />
+            }
+            // The row link's label replaces its content for a screen reader,
+            // so it states the level progress the bar shows.
+            ariaLabel={`Rank ${p.rank}, ${handleOf(p)}${isYou ? " (you)" : ""}: level ${p.level}, ${pct} percent through it, ${runs}`}
           />
         );
       })}
@@ -148,22 +157,25 @@ function RankedBoard<T>({
   );
 }
 
-/** Progress toward the next level. Ink by default; orange on your row. */
-function LevelProgress({ pct, isYou }: { pct: number; isYou: boolean }) {
+/** Progress through the current level as a bar only: the column is
+ *  headed "Progress", and the figure is for screen readers. Ink by
+ *  default; orange on your row (ui-law §5 Ranked table). */
+type LevelProgressProps = { pct: number; level: number; isYou: boolean; className?: string };
+
+function LevelProgress({ pct, level, isYou, className }: LevelProgressProps) {
   return (
-    <span className="flex items-center gap-2">
-      <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
-        <span
-          className={cn(
-            "block h-full rounded-full",
-            isYou ? "bg-primary" : "bg-foreground/60",
-          )}
-          style={{ width: `${pct}%` }}
-        />
-      </span>
-      <span className="w-9 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
-        {pct}%
-      </span>
+    <span
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={pct}
+      aria-valuetext={`${pct} percent through level ${level}`}
+      className={cn("block h-1.5 w-full min-w-0 overflow-hidden rounded-full bg-muted", className)}
+    >
+      <span
+        className={cn("block h-full rounded-full", isYou ? "bg-primary" : "bg-foreground/60")}
+        style={{ width: `${pct}%` }}
+      />
     </span>
   );
 }

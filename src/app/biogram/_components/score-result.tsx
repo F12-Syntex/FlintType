@@ -123,6 +123,14 @@ function BreakdownGroup({
         <p className="text-xs text-muted-foreground">{emptyLabel}</p>
       ) : (
         <table className="w-full text-sm tabular-nums">
+          <thead className="text-xs text-muted-foreground">
+            <tr>
+              <th scope="col" className="sr-only">Pattern</th>
+              <th scope="col" className="py-1 pr-3 text-right font-medium">Time</th>
+              <th scope="col" className="py-1 pr-3 text-right font-medium">Samples</th>
+              <th scope="col" className="py-1 text-right font-medium">Weakness</th>
+            </tr>
+          </thead>
           <tbody>
             {rows.map((r, i) => (
               <tr
@@ -131,9 +139,10 @@ function BreakdownGroup({
               >
                 <td className="py-1.5 pr-3 font-mono text-foreground">{r.key}</td>
                 <td className="py-1.5 pr-3 text-right text-xs text-muted-foreground">
-                  {r.meanMs == null
-                    ? "no data"
-                    : `${r.meanMs.toFixed(0)} ms · ${r.sampleCount} samples`}
+                  {r.meanMs == null ? "no data" : `${r.meanMs.toFixed(0)} ms`}
+                </td>
+                <td className="py-1.5 pr-3 text-right text-xs text-muted-foreground">
+                  {r.meanMs == null ? "—" : r.sampleCount.toLocaleString()}
                 </td>
                 <td className="py-1.5 text-right">
                   <span className="flex items-center justify-end gap-2">

@@ -5,6 +5,7 @@ import { formatClock } from "@/lib/format-duration";
 import { lengthLabel as testLength, modeLabel as testMode } from "@/lib/test-name";
 import { logger } from "@/server/logger";
 import { loadSharedTest } from "@/server/routes/share/load";
+import { WpmTraceChart } from "./_components/og-trace-chart";
 import type { SharedTest } from "@/types/share";
 
 export const alt = "flinttype run report";
@@ -49,9 +50,10 @@ const EMBER = "#F97316";
 export default async function RunOpengraphImage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const data = await loadShareSafely(params.slug);
+  const { slug } = await params;
+  const data = await loadShareSafely(slug);
   const [mono500, mono600, mono700, mono800, avatarDataUrl] =
     await Promise.all([
       loadFont("JetBrains+Mono", 500),
@@ -263,6 +265,9 @@ function Header({
       <div style={{ display: "flex", alignItems: "center", gap: 26 }}>
         <span
           style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
             fontSize: 13,
             fontWeight: 600,
             textTransform: "uppercase",
@@ -271,7 +276,9 @@ function Header({
             lineHeight: 1,
           }}
         >
-          {modeLabel} · {lengthLabel}
+          <span>{modeLabel}</span>
+          <span style={{ width: 1, height: 12, background: WARM_4 }} />
+          <span>{lengthLabel}</span>
         </span>
         <span
           style={{
@@ -408,116 +415,15 @@ function Body({
           flex: 1,
           height: 320,
           alignItems: "stretch",
-          justifyContent: "stretch",
         }}
       >
         {data.wpmHistory && data.wpmHistory.length >= 2 ? (
-          <WpmTraceChart history={data.wpmHistory} />
+          <WpmTraceChart history={data.wpmHistory} palette={{ line: INK_LINE, text: WARM_3, raw: WARM_4, ember: EMBER }} />
         ) : (
           <ChartUnavailable />
         )}
       </div>
     </div>
-  );
-}
-
-/* ─── WPM trace chart (SVG) ─────────────────────────────────────── */
-
-function WpmTraceChart({
-  history,
-}: {
-  history: NonNullable<SharedTest["wpmHistory"]>;
-}) {
-  const W = 880;
-  const H = 320;
-  const padLeft = 56;
-  const padRight = 16;
-  const padTop = 24;
-  const padBottom = 36;
-  const plotW = W - padLeft - padRight;
-  const plotH = H - padTop - padBottom;
-
-  const wpms = history.map((s) => s.wpm);
-  const raws = history.map((s) => s.raw);
-  const yMax = Math.max(...wpms, ...raws, 1) * 1.1;
-  const yMin = 0;
-  const tMax = Math.max(history[history.length - 1]!.t, 1);
-
-  const x = (t: number) => padLeft + (t / tMax) * plotW;
-  const y = (v: number) => padTop + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
-
-  const wpmPath = pathFor(history.map((s) => [x(s.t), y(s.wpm)] as const));
-  const rawPath = pathFor(history.map((s) => [x(s.t), y(s.raw)] as const));
-
-  // Gridline ticks — pick 4 evenly-spaced y-values rounded to a
-  // human-readable scale, then label them. The labels live to the
-  // LEFT of the chart so the line itself spans the full width.
-  const niceMax = niceCeil(yMax);
-  const yTicks = [0, niceMax * 0.25, niceMax * 0.5, niceMax * 0.75, niceMax];
-
-  return (
-    <svg
-      width={W}
-      height={H}
-      viewBox={`0 0 ${W} ${H}`}
-      style={{ display: "block" }}
-    >
-      {/* Gridlines */}
-      {yTicks.map((v) => (
-        <line
-          key={`g${v}`}
-          x1={padLeft}
-          x2={W - padRight}
-          y1={y(v)}
-          y2={y(v)}
-          stroke={INK_LINE}
-          strokeWidth={1}
-        />
-      ))}
-      {/* Y-axis labels */}
-      {yTicks.map((v) => (
-        <text
-          key={`l${v}`}
-          x={padLeft - 8}
-          y={y(v) + 4}
-          fontFamily="JetBrains Mono"
-          fontSize={12}
-          fontWeight={500}
-          fill={WARM_3}
-          textAnchor="end"
-        >
-          {Math.round(v)}
-        </text>
-      ))}
-      {/* Raw WPM (dimmer, underneath) */}
-      <path d={rawPath} stroke={WARM_4} strokeWidth={2} fill="none" />
-      {/* WPM (accent, on top) */}
-      <path d={wpmPath} stroke={EMBER} strokeWidth={3.5} fill="none" />
-      {/* X-axis caption */}
-      <text
-        x={padLeft}
-        y={H - 10}
-        fontFamily="JetBrains Mono"
-        fontSize={11}
-        fontWeight={500}
-        fill={WARM_3}
-        letterSpacing="0.22em"
-      >
-        WPM TRACE · {Math.round(tMax / 1000)}s
-      </text>
-      <text
-        x={W - padRight}
-        y={H - 10}
-        fontFamily="JetBrains Mono"
-        fontSize={11}
-        fontWeight={500}
-        fill={WARM_4}
-        textAnchor="end"
-        letterSpacing="0.18em"
-      >
-        ember = wpm · grey = raw
-      </text>
-    </svg>
   );
 }
 
@@ -757,25 +663,6 @@ function fmtNum(v: number | null): string {
  *  user expects a number. */
 function pickStat(value: number | null, fallback: number): number | null {
   return value ?? fallback;
-}
-
-/** Build an SVG path string from (x, y) points. The first point is
- *  `M`, the rest are `L`. */
-function pathFor(points: ReadonlyArray<readonly [number, number]>): string {
-  if (points.length === 0) return "";
-  return points
-    .map(([px, py], i) => `${i === 0 ? "M" : "L"}${px.toFixed(1)},${py.toFixed(1)}`)
-    .join(" ");
-}
-
-/** Round a number up to a "nice" axis ceiling (multiple of 10/25/50/100
- *  depending on magnitude) so the gridline labels read cleanly rather
- *  than as exact data extremes. */
-function niceCeil(v: number): number {
-  if (v <= 25) return Math.ceil(v / 5) * 5;
-  if (v <= 100) return Math.ceil(v / 10) * 10;
-  if (v <= 250) return Math.ceil(v / 25) * 25;
-  return Math.ceil(v / 50) * 50;
 }
 
 async function loadFont(family: string, weight: number): Promise<ArrayBuffer> {

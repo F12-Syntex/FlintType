@@ -54,9 +54,14 @@ export default async function UpdatePage({
         />
         <div className="flex items-center justify-between gap-3">
           <Logo />
-          <span className="inline-flex h-7 items-center rounded-full bg-ft-ember/12 px-3 text-xs font-semibold tabular-nums text-ft-ember">
-            v{update.version} · {update.date}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="inline-flex h-7 items-center rounded-full bg-ft-ember/12 px-3 text-xs font-semibold tabular-nums text-ft-ember">
+              v{update.version}
+            </span>
+            <time className="text-xs tabular-nums text-ft-dim" dateTime={monthDateTime(update.date)}>
+              {update.date}
+            </time>
+          </div>
         </div>
 
         <h1 className="mt-6 text-3xl font-extrabold leading-[0.95] tracking-[-0.03em] text-ft-ink sm:mt-8 sm:text-5xl">
@@ -110,3 +115,21 @@ export default async function UpdatePage({
     </div>
   );
 }
+
+/** "October 2026" as a machine-readable month ("2026-10"), or undefined
+ *  when the label isn't a month and year. */
+function monthDateTime(label: string): string | undefined {
+  // Only "Month YYYY" ("October 2026", "Oct 2026"): any other shape
+  // ("29 Oct 2026") gets no machine date rather than a wrong one.
+  const m = /^([A-Za-z]{3,}) (\d{4})$/.exec(label.trim());
+  if (!m) return undefined;
+  const name = m[1].toLowerCase();
+  const month = MONTHS.findIndex((full) => full.startsWith(name));
+  if (month < 0) return undefined;
+  return `${m[2]}-${String(month + 1).padStart(2, "0")}`;
+}
+
+const MONTHS = [
+  "january", "february", "march", "april", "may", "june",
+  "july", "august", "september", "october", "november", "december",
+];

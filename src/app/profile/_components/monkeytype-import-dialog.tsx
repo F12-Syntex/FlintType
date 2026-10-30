@@ -1,7 +1,7 @@
 "use client";
 
 import { ExternalLink } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { BackendError, useBackend } from "@/lib/backend";
@@ -95,7 +95,7 @@ export function MonkeyTypeImportDialog({
         <p className="text-sm leading-relaxed text-muted-foreground">
           Bring your historical typing tests in from MonkeyType. We
           read your results via an{" "}
-          <span className="text-foreground">Ape Key</span> — a
+          <span className="text-foreground">Ape Key</span>: a
           read-only token you generate on your MonkeyType account.
         </p>
 
@@ -108,7 +108,7 @@ export function MonkeyTypeImportDialog({
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline"
             >
-              MonkeyType account settings · Ape Keys
+              Ape Keys in your MonkeyType settings
               <ExternalLink size={12} aria-hidden />
             </a>
           </Step>
@@ -120,8 +120,8 @@ export function MonkeyTypeImportDialog({
           <Step n={3}>
             Enable the key by ticking its{" "}
             <span className="text-foreground">checkbox</span> in the
-            list — keys ship disabled and the import will fail until
-            you turn it on.
+            list. New keys start turned off, and the import fails until
+            you turn yours on.
           </Step>
           <Step n={4}>
             Copy the key (shown once) and paste it below.
@@ -184,38 +184,25 @@ function StatusLine({
   if (status.kind === "ok") {
     return (
       <div className="flex flex-col gap-2 text-sm text-foreground" role="status">
-        <p>
-          <span className="font-semibold tabular-nums">
-            {status.imported}
-          </span>{" "}
-          recent test{status.imported === 1 ? "" : "s"} imported
+        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
+          <ResultRow label="Imported">
+            {status.imported.toLocaleString()} recent{" "}
+            {status.imported === 1 ? "test" : "tests"}
+          </ResultRow>
           {status.skipped > 0 ? (
-            <>
-              {" "}· skipped{" "}
-              <span className="font-mono tabular-nums">
-                {status.skipped}
-              </span>{" "}
-              (already in your history)
-            </>
+            <ResultRow label="Skipped">
+              {status.skipped.toLocaleString()} already in your history
+            </ResultRow>
           ) : null}
-          .
-        </p>
-        <p>
-          <span className="font-semibold tabular-nums">
-            {status.pbsImported}
-          </span>{" "}
-          personal-best cell{status.pbsImported === 1 ? "" : "s"} stored
+          <ResultRow label="Personal bests">
+            {status.pbsImported.toLocaleString()}
+          </ResultRow>
           {status.completedTests != null ? (
-            <>
-              {" "}· lifetime{" "}
-              <span className="font-mono tabular-nums">
-                {status.completedTests.toLocaleString()}
-              </span>{" "}
-              tests
-            </>
+            <ResultRow label="Lifetime tests">
+              {status.completedTests.toLocaleString()}
+            </ResultRow>
           ) : null}
-          .
-        </p>
+        </dl>
         <p className="text-xs text-muted-foreground">
           Refresh the profile to see the merged view.
         </p>
@@ -226,5 +213,15 @@ function StatusLine({
     <p className="text-sm text-destructive" role="alert">
       {status.message}
     </p>
+  );
+}
+
+/** One row of the import result list: a muted label, then its figure. */
+function ResultRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="tabular-nums text-foreground">{children}</dd>
+    </>
   );
 }
