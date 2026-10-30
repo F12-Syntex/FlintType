@@ -25,6 +25,8 @@ describe("bucketKeySchema", () => {
       "casual|words|",
       "casual|words|25|touch",
       "casual|words|123456",
+      "casual|words|025", // leading zero: runBucketKey never writes one
+      "casual|words|00",
       "mt_import|words|25",
       "Casual|words|25",
       "casual|words|25\n",

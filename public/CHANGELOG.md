@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.151.2 — 30 October 2026
+- After a test, the count of tests left before it can be compared with your usual now goes down with every test instead of stalling.
+
 ## 6.151.1 — 30 October 2026
 - Test names now read in plain words everywhere, such as "60 seconds" and "Long quote": in personal-best notifications, share cards and link previews, drill descriptions, the leaderboard filter button and your profile's recent runs.
 

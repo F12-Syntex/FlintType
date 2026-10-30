@@ -12,7 +12,8 @@ export type BucketSpec = {
 
 const LENGTH_MODES = ["words", "time", "quote"] as const;
 const MODE_RE = /^[A-Za-z0-9_-]+$/;
-const LENGTH_RE = /^\d{1,6}$/;
+/** No leading zeros, so a parsed length re-keys to the same string. */
+const LENGTH_RE = /^(0|[1-9]\d{0,5})$/;
 const TOUCH_SUFFIX = "t";
 
 /** Tests further apart than this start a new session. */
@@ -25,8 +26,10 @@ export function runBucketKey(s: BucketSpec, touch: boolean): string {
   return touch ? `${key}|${TOUCH_SUFFIX}` : key;
 }
 
-/** Inverse of `runBucketKey`; null for a malformed key. An empty length
- *  unit (legacy rows) parses to a null `lengthMode`. */
+/** Inverse of `runBucketKey`; null for a malformed key. It is exact:
+ *  every key it accepts re-keys to the same string, so two strings never
+ *  parse to one bucket. An empty length unit (legacy rows) parses to a
+ *  null `lengthMode`. */
 export function parseRunBucketKey(key: string): (BucketSpec & { touch: boolean }) | null {
   if (typeof key !== "string") return null;
   const parts = key.split("|");
