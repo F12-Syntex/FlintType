@@ -8,6 +8,12 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.152.0 — 30 October 2026
+- Race lanes move smoothly: other racers' stones glide between updates instead of jumping and stalling.
+- Stones roll as they travel and leave a trail behind them, so you can see at a glance how far everyone has come.
+- Crossing the finish line lights up the line and gives the stone a little pop.
+- The race card's header now lines up with the lanes below it.
+
 ## 6.151.13 — 30 October 2026
 - The race page is quieter: one heading, the mode switch with a short line about it, and the buttons.
 - Lobby settings now open straight under the buttons, the same width as the row, instead of jumping above them and covering the page. The panel no longer leaves an empty gap, and it fits on short screens.

@@ -102,7 +102,9 @@ export function RaceLineupPanel({
       aria-label="Race roster"
       className="flex shrink-0 flex-col gap-3 rounded-2xl border border-border bg-card px-3 py-3.5 shadow-card sm:gap-4 sm:px-5 sm:py-5"
     >
-      <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-1">
+      {/* No inset of its own: the mode name lines up with the lanes' marks
+       *  and the stat strip ends on the lanes' status column. */}
+      <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <div className="flex items-center gap-2.5">
           <span className="text-sm font-semibold text-foreground">{modeName}</span>
           <PhaseLabel
