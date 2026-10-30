@@ -15,7 +15,7 @@ export type TestSummaryRow = Pick<TestRow,
 /** A runBucketKey() string (src/lib/test-bucket.ts): mode|lengthMode|length,
  *  plus "|t" for touch runs. */
 export const bucketKeySchema = z.string().max(80)
-  .regex(/^(casual|training|race|reverse_adaptive)\|(words|time|quote)\|\d{1,5}(\|t)?$/);
+  .regex(/^(casual|training|race|reverse_adaptive)\|(words|time|quote)\|(0|[1-9]\d{0,4})(\|t)?$/);
 
 export const insightsOverviewInputSchema = z.object({ bucket: bucketKeySchema.optional() });
 export type InsightsOverviewInput = z.infer<typeof insightsOverviewInputSchema>;

@@ -65,6 +65,45 @@ describe("assembleUsual", () => {
   });
 });
 
+describe("assembleUsual's learning count", () => {
+  const T = Date.UTC(2026, 5, 1);
+  const DAY = 86_400_000;
+  /** `b` tests yesterday, then `s` tests in today's session, 3 minutes apart. */
+  const days = (b: number, s: number) => mergeFixtures([
+    ...(b ? [fixtureData({ tests: b, idPrefix: "y", sessions: [b], perDay: [1, 1], gapMin: 3, startMs: T - DAY, seed: 1 })] : []),
+    ...(s ? [fixtureData({ tests: s, idPrefix: "s", sessions: [s], perDay: [1, 1], gapMin: 3, startMs: T, seed: 2 })] : []),
+  ]);
+  /** The usual for a test `gapMin` minutes after the newest one. */
+  const at = (f: F, gapMin: number) => usual(f, { beforeMs: (f.rows[0]?.startedAt.getTime() ?? T) + gapMin * MIN });
+  const haveOf = (b: number, s: number) => at(days(b, s), 3).gate?.have;
+
+  it("counts every earlier test of the bucket, across days", () => {
+    expect(at(days(1, 1), 3)).toMatchObject({ status: "learning", gate: { have: 2, need: 5, unit: "tests" } });
+    expect(haveOf(2, 2)).toBe(4);
+  });
+  it("never reads 5 or more while learning", () => {
+    expect(at(days(4, 4), 3)).toMatchObject({ status: "learning", gate: { have: 4, need: 5 } });
+    expect(haveOf(3, 4)).toBe(4);
+  });
+  it("rises by one with each test of a session, up to the cap", () => {
+    for (const b of [0, 1, 2, 3, 4]) {
+      const counts = [0, 1, 2, 3, 4].map((s) => haveOf(b, s));
+      expect(counts).toEqual([0, 1, 2, 3, 4].map((s) => Math.min(4, b + s)));
+    }
+    expect(at(days(1, 5), 3).reference).toEqual({ kind: "earlier-today", n: 5 });
+  });
+  it("need − have more tests reach a comparison after a 30-minute break, and no fewer", () => {
+    for (const b of [0, 1, 2, 3, 4]) {
+      for (const s of [0, 1, 2, 3, 4]) {
+        const k = 5 - haveOf(b, s)!;
+        // This test plus k − 1 more join today's session; the k-th comes after a break.
+        expect(at(days(b, s + k), 31).reference?.kind).toBe("usual");
+        if (b + s < 5) expect(at(days(b, s + k - 1), 31).status).toBe("learning");
+      }
+    }
+  });
+});
+
 describe("referenceDigestQuery", () => {
   const T = Date.UTC(2026, 5, 1);
   const BUCKET = "casual|words|25";

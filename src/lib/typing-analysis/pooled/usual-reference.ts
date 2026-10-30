@@ -33,8 +33,12 @@ function bucketTests(pooled: readonly PooledTest[], bucket: string, beforeMs: nu
 
 /** Step 2 of spec-10 §13.11. The current session is the chain of tests
  *  ending within SESSION_GAP_MS of `beforeMs`; the reference is up to 30
- *  tests before it, else the session's own earlier tests. `have` is the
- *  learning gate's count when there is no reference. */
+ *  tests before it, else the session's own earlier tests. Without a
+ *  reference, `have` is every earlier test of the bucket (spec-30 §6.3),
+ *  capped at REFERENCE_MIN − 1. So need − have is the fewest further
+ *  tests before one is compared, when the last of them starts more than
+ *  30 minutes after the test before it. It drops by one with each test
+ *  until it reaches 1, and never reads 0. */
 export function usualReference(tests: readonly PooledTest[], beforeMs: number): { ref: UsualReference | null; have: number } {
   const inSession = tests.length > 0 && beforeMs - tests[0]!.startedAtMs <= SESSION_GAP_MS
     ? splitSessions(tests)[0]!
@@ -47,7 +51,7 @@ export function usualReference(tests: readonly PooledTest[], beforeMs: number): 
   if (inSession.length >= REFERENCE_MIN) {
     return { ref: { kind: "earlier-today", ts: inSession.slice(0, REFERENCE_MAX), digestsBeforeMs: beforeMs }, have: inSession.length };
   }
-  return { ref: null, have: Math.max(before.length, inSession.length) };
+  return { ref: null, have: Math.min(REFERENCE_MIN - 1, before.length + inSession.length) };
 }
 
 /** The digest read `insights.usual` makes: the reference window's own

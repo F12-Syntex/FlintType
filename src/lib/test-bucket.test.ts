@@ -71,6 +71,29 @@ describe("parseRunBucketKey", () => {
     }
   });
 
+  it("is an exact inverse: every key it accepts re-keys to itself", () => {
+    for (const k of ["casual|words|0", "casual|words|7", "training|time|999999|t", "casual||60", "a_b-C9|quote|3|t"]) {
+      const p = parseRunBucketKey(k);
+      expect(p).not.toBeNull();
+      expect(runBucketKey(p!, p!.touch)).toBe(k);
+    }
+    // Exhaustive over the key's own alphabet: every mode, unit, length and tail.
+    const modes = ["casual", "training", "x-1", "", "a b"];
+    const units = ["words", "time", "quote", "", "Words"];
+    const lengths = ["0", "00", "025", "25", "100000", "999999", "1000000", "-1", "2.5", "1e3", " 7", ""];
+    const tails = [undefined, "t", "T", "", "tt"];
+    let accepted = 0;
+    for (const m of modes) for (const u of units) for (const l of lengths) for (const tail of tails) {
+      const k = [m, u, l, ...(tail === undefined ? [] : [tail])].join("|");
+      const p = parseRunBucketKey(k);
+      if (!p) continue;
+      accepted++;
+      expect(runBucketKey(p, p.touch)).toBe(k);
+    }
+    // 3 valid modes × 4 units × 4 canonical lengths × 2 tails.
+    expect(accepted).toBe(96);
+  });
+
   it("parses an empty length unit to null", () => {
     expect(parseRunBucketKey("casual||60")).toEqual({
       mode: "casual",
@@ -94,6 +117,15 @@ describe("parseRunBucketKey", () => {
       "|words|25",
       "cas ual|words|25",
       "casual|words|1234567",
+      "casual|words|025",
+      "casual|words|00",
+      "casual|words|+25",
+      "casual|words| 25",
+      "casual|words|25e0",
+      "casual|words|0x19",
+      "casual|Words|25",
+      "casual|words|25|T",
+      "casual|words|25|",
     ]) {
       expect(parseRunBucketKey(junk)).toBeNull();
     }
