@@ -24,7 +24,8 @@ export type PersonalBestData = {
   /** Words for WORDS mode, seconds for TIME mode. */
   durationOrWordCount: number;
   /** The unit of `durationOrWordCount`. Absent on rows written before
-   *  v6.150; the label then guesses from the number. */
+   *  v6.151.1; the row then takes the unit its stored body names
+   *  (`withLegacyLengthMode`), else guesses from the number. */
   lengthMode?: "words" | "time" | "quote" | null;
   /** WPM achieved on the run that beat the prior best. */
   wpm: number;
@@ -75,8 +76,8 @@ export type FriendPbNotificationData = {
   friendUsername: string | null;
   mode: string;
   durationOrWordCount: number;
-  /** Absent on rows written before v6.150; the label then guesses from
-   *  the number. */
+  /** Absent on rows written before v6.151.1; the row then takes the
+   *  unit its stored body names, else guesses from the number. */
   lengthMode?: "words" | "time" | "quote" | null;
   wpm: number;
   accuracy: number;

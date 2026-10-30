@@ -1006,7 +1006,7 @@ The dot is `size-1.5 shrink-0 rounded-full`; the caption is sentence case `text-
 ### 17.8 Notifications popover (`notifications-popover.tsx` + `notification-row.tsx`)
 - **Panel:** `rounded-2xl bg-popover shadow-float`, a fixed sheet under the top bar on mobile and anchored to the bell at md+ (`w-[380px]`, scrolls inside).
 - **Header:** sentence-case "Notifications" with a `bg-primary/10 text-primary` pill count, and a ghost `xs` "Mark all read" button.
-- **Rows:** inset `rounded-xl hover:bg-accent` links; no dividers. Titles stay ink. Personal-best rows build their body from the stored data (`pbSentence`, `src/lib/pb-copy.ts`), so old rows read the same as new ones, and show the improvement once, as an ink `<DeltaText>` line ("4 wpm above your previous best of 156 wpm"). Orange appears only on the unread dot of PB/mutual kinds and the "Friends" check.
+- **Rows:** inset `rounded-xl hover:bg-accent` links; no dividers. Titles stay ink. Personal-best rows build their body from the stored data (`pbSentence`, `src/lib/pb-copy.ts`), so old rows read the same as new ones (a row saved before v6.151.1 has no `lengthMode`, so it takes the unit its old body names through `withLegacyLengthMode`, and a custom 45-second run never reads as 45 words), and show the improvement once, as an ink `<DeltaText>` line ("4 wpm above your previous best of 156 wpm"). Orange appears only on the unread dot of PB/mutual kinds and the "Friends" check.
 - **States:** loading is a skeleton; empty is an icon disc + "You're all caught up" + one line.
 
 ## 18. Profile page (`/profile`, `/profile/[username]`)
@@ -1053,7 +1053,7 @@ A **self-selected** WPM-tier flair (Ember…Solar Flare, `src/types/rank.ts`) sh
 
 **Recent runs.**
 - **Crown:** an orange `Crown` marks a run only when it *is* one of the Personal bests numbers (`pickRecordRunIds`). That means standard lengths only, keyed by unit and length across all modes like the All view, and never a length with a single run. A run beaten by an imported best never crowns.
-- **Titles and mode:** the row title is the length from `lengthLabel` ("60 seconds", "Long quote"). A non-Casual run adds an outline `Badge` with the mode (Adapt, Race, Reverse; the same words as the leaderboard and Biogram).
+- **Titles and mode:** the row title is the length from `lengthLabel` ("60 seconds", "Long quote"). A non-Casual run adds an outline `Badge` with the mode (Adapt, Race, Reverse; the same words as the leaderboard and Biogram). The length never truncates: on a narrow phone the badge wraps onto its own line under it.
 - **Units:** "WPM" is upper case everywhere.
 - **Share button:** `size-11 sm:size-8`.
 

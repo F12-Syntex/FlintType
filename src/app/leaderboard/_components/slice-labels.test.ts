@@ -67,9 +67,17 @@ describe("runLengthLabel", () => {
     // A 60-word run on All lengths no longer reads as 60 seconds.
     expect(runLengthLabel(60, "any", "words")).toBe("60 words");
     expect(runLengthLabel(50, "any", "time")).toBe("50 seconds");
-    expect(runLengthLabel(40, "any", "quote")).toBe("40 words");
     // Legacy rows (null) keep the old fallback.
     expect(runLengthLabel(60, "any", null)).toBe("60 seconds");
+  });
+
+  it("names a quote row by its quote group, as everywhere else", () => {
+    // A quote run's amount is its group id (0 to 3), not a word count.
+    expect(runLengthLabel(0, "any", "quote")).toBe("Short quote");
+    expect(runLengthLabel(2, "any", "quote")).toBe("Long quote");
+    expect(runLengthLabel(3, "any", "quote")).toBe("Extra-long quote");
+    // An amount outside the groups never reads as a word count.
+    expect(runLengthLabel(40, "any", "quote")).toBe("Quote");
   });
 });
 

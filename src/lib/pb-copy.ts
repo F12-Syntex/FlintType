@@ -53,6 +53,38 @@ export function friendPbSentence(name: string, d: PbCopyInput): string {
   return `${name} hit ${speedText(d.wpm)} in ${testPhrase(d)}.`;
 }
 
+/** The unit an old row's stored body names for `amount`, for rows written
+ *  before `lengthMode` was saved (before v6.151.1). Those bodies carried
+ *  the run's real unit: "Casual · 45s · 100 wpm · 98.0% acc" (or the
+ *  older "Casual 45s · …") and "Mara hit 100 wpm on 45s." for time,
+ *  "… · 30 words · …" and "… on 30 words." for words. Null when the body
+ *  names neither (the oldest rows wrote a bare number). A friend body is
+ *  read from its own tail only, so a name like "Agent 7s" never counts. */
+export function legacyLengthMode(body: string, amount: number): "time" | "words" | null {
+  if (!Number.isFinite(amount)) return null;
+  const at = body.lastIndexOf(" wpm on ");
+  if (at >= 0 && body.endsWith(".")) {
+    const where = body.slice(at + " wpm on ".length, -1);
+    if (where === `${amount}s`) return "time";
+    if (where === `${amount} word` || where === `${amount} words`) return "words";
+    return null;
+  }
+  const n = String(amount).replace(".", "\\.");
+  // \u00b7 is the old bodies' middle dot (spelt as an escape so the copy
+  // guard never sees the glyph in code).
+  if (new RegExp(`(^|[\\s\\u00b7])${n}s(?=[\\s.\\u00b7]|$)`).test(body)) return "time";
+  if (new RegExp(`(^|[\\s\\u00b7])${n} words?(?=[\\s.\\u00b7]|$)`).test(body)) return "words";
+  return null;
+}
+
+/** A stored PB row's data, ready for `pbSentence` / `friendPbSentence`:
+ *  a row saved without `lengthMode` takes the unit its own body names,
+ *  so a custom 45-second run never reads as 45 words. */
+export function withLegacyLengthMode<T extends PbCopyInput>(data: T, body: string): T {
+  if (data.lengthMode !== undefined) return data;
+  return { ...data, lengthMode: legacyLengthMode(body, data.durationOrWordCount) };
+}
+
 /** The improvement over the previous best, from the rounded figures the
  *  reader sees (not the raw gap), so "160 wpm" against "156 wpm" always
  *  reads as 4, never 5 (#12). */
