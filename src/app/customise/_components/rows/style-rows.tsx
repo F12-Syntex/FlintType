@@ -181,18 +181,6 @@ export function DepthRow() {
   );
 }
 
-export function ButtonGlowRow() {
-  const { prefs, update } = useAppearancePrefs();
-  return (
-    <SwitchRow
-      title="Button glow"
-      desc="A soft glow under the main button on each screen."
-      checked={prefs.buttonGlow}
-      onChange={(v) => update("buttonGlow", v)}
-    />
-  );
-}
-
 export function PageAuraRow() {
   const { prefs, update } = useAppearancePrefs();
   return (

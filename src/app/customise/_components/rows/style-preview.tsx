@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 /** The Style section's live preview (ui-law §12.5): the app's real
  *  primitives — a card, the segmented switch, buttons, an input, a
  *  switch and a floating menu — so every Style pick (shape, depth,
- *  glow, font, size) shows on the exact components it changes. The
+ *  page glow, font, size) shows on the exact components it changes. The
  *  picks apply globally, so this is the same render the rest of the
  *  app gets; it just puts every affected part side by side. */
 export function StylePreview() {

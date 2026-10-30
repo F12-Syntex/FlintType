@@ -6,7 +6,7 @@ import { htmlAttrsFor } from "@/lib/bootstrap";
 
 /** Mirrors the appearance prefs that drive *global* visual rules onto
  *  `<html data-ft-…>` attributes: the Surface + Chrome knobs (§15) and
- *  the Style knobs (§21: control shape, depth, glow, page aura,
+ *  the Style knobs (§21: control shape, depth, page aura,
  *  interface font and size). globals.css reads each one and rewires
  *  the cascade.
  *

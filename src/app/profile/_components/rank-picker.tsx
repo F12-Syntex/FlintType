@@ -66,7 +66,7 @@ function RankChip({
         "inline-flex h-11 items-center rounded-pill px-3.5 text-xs font-medium transition-[color,background-color,box-shadow] duration-200 sm:h-8 sm:px-3",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
         active
-          ? "brand-surface font-semibold text-primary-foreground shadow-card"
+          ? "brand-surface font-semibold text-primary-foreground"
           : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground",
       )}
     >

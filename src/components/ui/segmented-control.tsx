@@ -133,7 +133,7 @@ export function SegmentedControl<T extends string | number>({
                 ? "px-2.5 py-1 text-xs"
                 : "px-3 py-1.5 text-[13px]",
               active
-                ? "brand-surface text-primary-foreground shadow-card"
+                ? "brand-surface text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >

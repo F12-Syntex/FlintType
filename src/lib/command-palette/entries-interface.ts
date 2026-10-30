@@ -42,15 +42,6 @@ export function interfaceEntries({
       ["style", "shadow", "elevation", "flat"],
     ),
     toggle(
-      "a.buttonGlow",
-      "Button glow",
-      "A soft glow under the main button on each screen",
-      "Appearance",
-      ap.buttonGlow,
-      (v) => setAp("buttonGlow", v),
-      ["style", "shadow", "glow"],
-    ),
-    toggle(
       "a.pageAura",
       "Page glow",
       "A faint wash of your accent colour at the top of every page",

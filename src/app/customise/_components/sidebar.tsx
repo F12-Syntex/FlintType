@@ -212,7 +212,7 @@ export function SettingsSidebar() {
                 className={cn(
                   "flex min-h-10 items-center gap-2.5 rounded-pill px-3.5 py-2 text-sm leading-snug font-medium transition-[color,background-color,box-shadow] duration-200",
                   isActive
-                    ? "brand-surface text-primary-foreground shadow-glow"
+                    ? "brand-surface text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
               >
@@ -258,7 +258,7 @@ export function SettingsSidebar() {
             className={cn(
               "flex min-h-10 items-center gap-2.5 rounded-pill px-3.5 py-2 text-sm leading-snug font-medium transition-[color,background-color,box-shadow] duration-200",
               onAiStudio
-                ? "brand-surface text-primary-foreground shadow-glow"
+                ? "brand-surface text-primary-foreground"
                 : "text-muted-foreground hover:bg-accent hover:text-foreground",
             )}
           >

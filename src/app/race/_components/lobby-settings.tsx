@@ -76,7 +76,7 @@ export function LobbySettings({
                   }
                   className={cn(
                     "h-10 bg-card px-3 text-[13px] text-muted-foreground sm:h-8",
-                    "aria-pressed:brand-surface aria-pressed:border-transparent aria-pressed:text-primary-foreground aria-pressed:shadow-card",
+                    "aria-pressed:brand-surface aria-pressed:border-transparent aria-pressed:text-primary-foreground",
                     "aria-pressed:hover:text-primary-foreground",
                   )}
                 >

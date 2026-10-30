@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.152.2 — 30 October 2026
+- Buttons and selected options no longer cast a shadow or an orange glow. The main button, the current page in the top bar and in Settings, and the picked option in every switch are now flat orange.
+- The "Button glow" setting is gone, since there is no glow left to switch.
+
 ## 6.152.1 — 30 October 2026
 - Design with AI now runs on Claude Haiku 5.5 by default.
 

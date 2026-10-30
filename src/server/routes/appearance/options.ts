@@ -157,7 +157,6 @@ export const KNOBS: Record<string, Knob> = {
   // Style (Settings → Interface → Style). Values match the settings chips.
   controls: { label: "Button shape", options: enumOpts("controlShape", "appearance", [["pill", "Pill"], ["rounded", "Rounded"], ["square", "Square"]]) },
   depth: { label: "Depth", options: enumOpts("depth", "appearance", [["flat", "Flat"], ["soft", "Soft"], ["lifted", "Lifted"]]) },
-  glow: { label: "Button glow", options: boolOpts("buttonGlow", "appearance") },
   appFont: { label: "App font", options: enumOpts("uiFont", "appearance", [["sans", "Sans"], ["mono", "Mono"], ["system", "System"]]) },
   smoothScroll: { label: "Smooth scroll", options: boolOpts("smoothLineScroll", "appearance") },
   markIncomplete: { label: "Mark incomplete words", options: boolOpts("markIncompleteWord", "appearance") },

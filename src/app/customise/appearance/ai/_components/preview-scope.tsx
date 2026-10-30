@@ -15,7 +15,7 @@ import type { AppearancePatch } from "@/types/appearance-ai";
  *     user's current cascade);
  *   - appearance + behaviour overrides flow through `<PrefsOverrideProvider>`
  *     (the live-spectate mechanism §17.6) merged onto the current prefs;
- *   - the Style knobs (button shape, depth, glow, app font) normally live
+ *   - the Style knobs (button shape, depth, app font) normally live
  *     on `<html>`, so the ones the patch sets are mirrored onto the
  *     wrapper instead — globals.css scopes each rule to any element.
  *  Nothing here writes to the global stores. */
@@ -57,9 +57,6 @@ function styleScopeAttrs(patch: AppearancePatch): Record<string, string> {
   const out: Record<string, string> = {};
   if (typeof a.controlShape === "string") out["data-ft-controls"] = a.controlShape;
   if (typeof a.depth === "string") out["data-ft-depth"] = a.depth;
-  if (typeof a.buttonGlow === "boolean") {
-    out["data-ft-glow"] = a.buttonGlow ? "on" : "off";
-  }
   if (typeof a.uiFont === "string") out["data-ft-ui-font"] = a.uiFont;
   return out;
 }

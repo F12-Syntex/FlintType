@@ -117,7 +117,7 @@ const OptionSwitchControl = ({
           clsx(
             "flex items-center justify-center flex-1 cursor-pointer rounded-pill font-medium font-sans transition-[color,background-color,box-shadow] duration-200",
             checked
-              ? "brand-surface text-primary-foreground fill-primary-foreground shadow-card"
+              ? "brand-surface text-primary-foreground fill-primary-foreground"
               : "text-muted-foreground hover:text-foreground fill-muted-foreground hover:fill-foreground",
             disabled && "text-muted-foreground/60 fill-muted-foreground/60",
             !icon && size === "small" && "text-[13px] px-3",

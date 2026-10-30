@@ -304,7 +304,7 @@ export function DesignStudio() {
                 onClick={() => void onSend()}
                 disabled={loading || signedOut || value.trim().length === 0}
                 aria-label="Send"
-                className="brand-surface flex size-11 shrink-0 items-center justify-center rounded-pill text-primary-foreground shadow-glow transition-opacity hover:brightness-110 disabled:opacity-40 disabled:shadow-none sm:size-8"
+                className="brand-surface flex size-11 shrink-0 items-center justify-center rounded-pill text-primary-foreground transition-opacity hover:brightness-110 disabled:opacity-40 disabled:shadow-none sm:size-8"
               >
                 <ArrowUp size={15} aria-hidden />
               </button>

@@ -198,7 +198,6 @@ export const GROUP_APPEARANCE_KEYS: Readonly<
   interface: [
     "controlShape",
     "depth",
-    "buttonGlow",
     "pageAura",
     "uiFont",
     "uiScale",
