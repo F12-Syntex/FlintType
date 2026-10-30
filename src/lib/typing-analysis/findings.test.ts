@@ -35,10 +35,13 @@ describe("each finding fires at its threshold", () => {
     expect(kinds(findingsFor(p(1, 1200)))).toEqual(["before"]);
   });
 
-  it("inside needs two catches and minImpact, and never on a quantised clock", () => {
+  it("inside: two catches need minImpact, one needs twice that, never on a quantised clock", () => {
     const c = (count: number, ms: number, quantised = false) => base({ quantised, catches: { count, ms, topWord: "bravo" } });
     expect(kinds(findingsFor(c(2, 600)))).toEqual(["inside"]);
     expect(kinds(findingsFor(c(1, 900)))).toEqual(["even"]);
+    expect(kinds(findingsFor(c(1, 1199)))).toEqual(["even"]);
+    expect(kinds(findingsFor(c(1, 1200)))).toEqual(["inside"]);
+    expect(kinds(findingsFor(c(1, 1200, true)))).toEqual(["even"]);
     expect(kinds(findingsFor(c(2, 599)))).toEqual(["even"]);
     expect(kinds(findingsFor(c(3, 900, true)))).toEqual(["even"]);
   });

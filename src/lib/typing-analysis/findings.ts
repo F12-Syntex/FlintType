@@ -108,7 +108,8 @@ export function findingsFor(x: FindingInputs): Finding[] {
     out.push({ kind: "before", impactMs: p.ms, ms: p.ms, count: p.count, longest: p.longest, longWords: longWordsPause(p.byLength) });
   }
   const c = x.catches;
-  if (!x.quantised && c.count >= 2 && c.ms >= minImpact) {
+  // Like pauses: one long stall counts on its own, at twice minImpact.
+  if (!x.quantised && (c.count >= 2 || (c.count === 1 && c.ms >= SINGLE_PAUSE_FACTOR * minImpact)) && c.ms >= minImpact) {
     out.push({ kind: "inside", impactMs: c.ms, ms: c.ms, count: c.count, topWord: c.topWord });
   }
   if (x.breaks.count >= 1) out.push({ kind: "breaks", impactMs: x.breaks.ms, ms: x.breaks.ms, count: x.breaks.count });

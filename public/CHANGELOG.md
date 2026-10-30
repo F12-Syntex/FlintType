@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.151.11 — 30 October 2026
+- After a test, one long stall partway through a word is now pointed out, instead of the test being called an even run.
+
 ## 6.151.10 — 30 October 2026
 - Internal changes only.
 
