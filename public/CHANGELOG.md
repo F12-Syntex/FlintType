@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.151.9 — 30 October 2026
+- Internal changes only.
+
 ## 6.151.8 — 30 October 2026
 - In Burst mode, the reps and items counters read "2 of 5" instead of "2/5".
 
