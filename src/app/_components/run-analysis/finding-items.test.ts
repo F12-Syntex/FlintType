@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { cloneAnalysisSource } from "@/app/live/_components/clone-source";
+import { cloneState } from "@/app/live/_components/clone-state";
+import type { BehaviourPrefs } from "@/lib/behaviour-prefs";
 import { bannedPatterns } from "@/lib/copy-rules";
+import { analyseRun } from "@/lib/typing-analysis/analyse";
+import type { LiveScreen } from "@/types/live";
 import type { Finding, RunAnalysis } from "@/types/typing-analysis";
 import { type CopyUnit, toPlain } from "./finding-copy";
 import { findingItems, PARTIAL_NOTE, shownFindings } from "./finding-items";
@@ -67,5 +72,88 @@ describe("findingItems", () => {
   it("the note keeps the copy rules (I11)", () => {
     expect(bannedPatterns(toPlain(PARTIAL_NOTE.lead))).toEqual([]);
     expect(bannedPatterns(toPlain(PARTIAL_NOTE.follow!))).toEqual([]);
+  });
+});
+
+// The live clone's partial views, end to end: the source the watch page
+// builds, the engine, then what the card lists.
+const BEHAVIOUR: BehaviourPrefs = {
+  quickRestart: false,
+  stopOnError: false,
+  confidence: "off",
+  allowExtras: true,
+  strictSpace: false,
+  blindMode: false,
+  minWordLength: 0,
+  showSecondary: false,
+  excludeCasualFromAdapt: false,
+  burstThreshold: 0,
+};
+/** A done frame as the broadcaster sends it (live-screen-payload.ts). */
+const frame = (over: Partial<LiveScreen>): LiveScreen => ({
+  phase: "done",
+  typed: [],
+  cursorWord: 0,
+  cursorChar: 3,
+  mode: "WORDS",
+  length: 10,
+  quoteSource: null,
+  elapsedMs: 10_000,
+  raw: 60,
+  adapt: false,
+  events: [],
+  ...over,
+});
+type Ev = NonNullable<LiveScreen["events"]>[number];
+/** Clean keys for `words` from `t0`, `gap` ms apart, 200 ms between words. */
+function keys(words: readonly string[], t0: number, gap: number, upTo = Infinity): Ev[] {
+  const out: Ev[] = [];
+  let t = t0;
+  words.forEach((w, wi) => {
+    for (const ch of w) {
+      if (out.length >= upTo) return;
+      out.push({ t, expected: ch, typed: ch, correct: true, wordIndex: wi });
+      t += gap;
+    }
+    t += 200;
+  });
+  return out;
+}
+/** Builds the clone's source from a frame and lists what the card shows. */
+function cloneItems(words: string[], screen: LiveScreen) {
+  const s = cloneAnalysisSource({
+    state: cloneState(words, screen, 5_000_000),
+    behaviour: BEHAVIOUR,
+    wordlist: "english",
+    windowStart: screen.windowStart,
+  })!;
+  const a = analyseRun(s.input)!;
+  return { a, out: findingItems({ analysis: a, unit: WPM, pb: null }) };
+}
+
+describe("a partial clone never states what it can't see", () => {
+  const W = ["the", "quick", "brown", "fox", "jumps", "over", "lazy", "dog", "and", "then",
+    "some", "more", "words", "here", "for", "test", "again", "with", "them", "all"];
+
+  it("a TIME window that starts at word 100: no break, start-up or slow-down finding", () => {
+    // The last 20 words of a 60 s test: the window's keys run from 48 s
+    // to 60 s on the run's clock, word indexes rebased to 0.
+    const { a, out } = cloneItems(W, frame({ mode: "TIME", length: 60, elapsedMs: 60_000, typed: W, cursorWord: 19, events: keys(W, 48_000, 110), windowStart: 100 }));
+    expect(a.quality.partial).toBe(true);
+    // The engine puts the unseen 48 s head into Breaks: the hazard.
+    expect(a.findings.some((f) => f.kind === "breaks")).toBe(true);
+    const kinds = shownFindings(a).map((f) => f.kind);
+    for (const k of ["breaks", "startUp", "fade", "even", "short", "clock"] as const) expect(kinds).not.toContain(k);
+    expect(out[0]).toBe(PARTIAL_NOTE);
+    expect(out.map((c) => toPlain(c.lead)).join(" ")).not.toMatch(/stopped typing|get going|towards the end/);
+  });
+  it("a done frame cut at 3,000 keys: the unseen tail isn't a break either", () => {
+    // 300 eleven-letter words, keys cut at the cap; the test ran on after them.
+    const long = Array.from({ length: 300 }, (_, i) => `abcdefghij${String.fromCharCode(97 + (i % 26))}`);
+    const ev = keys(long, 0, 100, 3_000);
+    const { a, out } = cloneItems(long, frame({ length: 300, elapsedMs: ev.at(-1)!.t + 40_000, typed: long, cursorWord: 299, events: ev, windowStart: 0 }));
+    expect(a.quality.partial).toBe(true); // the engine's cap rule
+    expect(shownFindings(a).some((f) => f.kind === "breaks" || f.kind === "fade")).toBe(false);
+    expect(out[0]).toBe(PARTIAL_NOTE);
   });
 });

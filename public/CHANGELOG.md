@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.151.6 — 30 October 2026
+- The labels on the usual-range bars now fit narrow screens: they no longer overlap or run past the bar, and they move onto two lines when needed.
+
 ## 6.151.5 — 30 October 2026
 - The result screen's note about fixing mistakes now gives only the time your fixed mistakes took, and the word it names is always one where you fixed a mistake.
 - Correct letters you delete and don't type again (for example at the end of a timed test) no longer count as fixing time.

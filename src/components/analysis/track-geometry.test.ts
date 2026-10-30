@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { bannedPatterns } from "@/lib/copy-rules";
 import {
-  anchorStyle,
   comparisonGeometry,
   rangeGeometry,
-  rangeText,
   SLOPE_BOX,
   slopeDirection,
   slopeGeometry,
@@ -24,47 +21,6 @@ describe("rangeGeometry", () => {
     expect(g.bandTo).toBeCloseTo((11.5 / 33) * 100);
     const below = rangeGeometry(70, 80, 50);
     expect(below.dot).toBeCloseTo((1.5 / 33) * 100);
-  });
-
-  it("labels both ends of a wide band, growing inward near the edges", () => {
-    const g = rangeGeometry(70, 80, 75);
-    expect(g.labels).toEqual({
-      kind: "ends",
-      low: { at: g.bandFrom, align: "start" },
-      high: { at: g.bandTo, align: "end" },
-    });
-  });
-
-  it("grows end labels away from each other when only one end is near an edge", () => {
-    const g = rangeGeometry(70, 80, 84);
-    expect(g.labels.kind).toBe("ends");
-    if (g.labels.kind !== "ends") return;
-    expect(g.labels.low.align).toBe("start");
-    expect(g.labels.high.align).toBe("start");
-  });
-
-  it("gives a narrow band one label, hung from its outer end near an edge", () => {
-    const left = rangeGeometry(70, 80, 120);
-    expect(left.labels).toEqual({ kind: "single", at: { at: left.bandFrom, align: "start" } });
-    const right = rangeGeometry(70, 80, 30);
-    expect(right.labels).toEqual({ kind: "single", at: { at: right.bandTo, align: "end" } });
-  });
-
-  it("centres the single label of a zero-width range", () => {
-    const flat = rangeGeometry(79, 79, 79);
-    expect(flat.labels).toEqual({ kind: "single", at: { at: 50, align: "center" } });
-  });
-
-  it("only lets both end labels grow inward when the band is wider than half", () => {
-    for (let v = 0; v <= 200; v += 1) {
-      const g = rangeGeometry(70, 80, v);
-      if (g.labels.kind === "ends") {
-        expect(g.bandTo - g.bandFrom).toBeGreaterThanOrEqual(35);
-        if (g.labels.low.align === "start" && g.labels.high.align === "end") {
-          expect(g.bandTo - g.bandFrom).toBeGreaterThan(50);
-        }
-      }
-    }
   });
 
   it("keeps every mark on the track", () => {
@@ -133,44 +89,6 @@ describe("comparisonGeometry", () => {
     const junk = comparisonGeometry(Number.NaN, -3, Number.NaN);
     expect(junk.better).toBe(0);
     expect(junk.recent).toBe(0);
-  });
-});
-
-describe("anchorStyle", () => {
-  it("maps an anchor to left or right", () => {
-    expect(anchorStyle({ at: 20, align: "start" })).toEqual({ left: "20%" });
-    expect(anchorStyle({ at: 70, align: "end" })).toEqual({ right: "30%" });
-    expect(anchorStyle({ at: 50, align: "center" })).toEqual({ left: "50%", transform: "translateX(-50%)" });
-  });
-});
-
-describe("rangeText", () => {
-  it("names both ends of a narrow band without joining them with to", () => {
-    const pct = (n: number) => `${Math.round(n * 10) / 10}%`;
-    const label = rangeText(pct(97.6), pct(98.3));
-    expect(label).toBe("Between 97.6% and 98.3%");
-    expect(bannedPatterns(label, { heading: true })).toEqual([]);
-    expect(rangeText("77 wpm", "81 wpm")).toBe("Between 77 wpm and 81 wpm");
-  });
-
-  it("prints ends that read alike once", () => {
-    expect(rangeText("100%", "100%")).toBe("100%");
-  });
-});
-
-describe("rangeGeometry sameText", () => {
-  it("gives a wide band whose ends print alike one centred label", () => {
-    const wide = rangeGeometry(78.6, 79.4, 79);
-    expect(wide.labels.kind).toBe("ends");
-    const g = rangeGeometry(78.6, 79.4, 79, true);
-    expect(g.labels).toEqual({ kind: "single", at: { at: 50, align: "center" } });
-    expect(g.bandFrom).toBe(wide.bandFrom);
-    expect(g.bandTo).toBe(wide.bandTo);
-  });
-
-  it("still hangs the one label from the band's outer end near an edge", () => {
-    const g = rangeGeometry(99.96, 100, 10, true);
-    expect(g.labels).toEqual({ kind: "single", at: { at: g.bandTo, align: "end" } });
   });
 });
 
