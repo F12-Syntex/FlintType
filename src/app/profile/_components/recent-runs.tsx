@@ -5,21 +5,15 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { PageSection, Surface } from "@/components/page-shell";
 import { ShareRunButton } from "@/components/share-run-button";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { relativeTime } from "@/lib/relative-time";
-import { shareLengthLabel } from "@/lib/share-length-label";
+import { lengthLabel, modeLabel } from "@/lib/test-name";
 import type { HistoryTest } from "@/types/history";
 import type { PersonalBest } from "./derive-stats";
 import { pickRecordRunIds } from "./record-runs";
 
 const PAGE_SIZE = 10;
-
-const MODE_LABEL: Record<string, string> = {
-  race: "Race",
-  training: "Adapt",
-  reverse_adaptive: "Reverse",
-  casual: "Casual",
-};
 
 /** Every completed run, newest first, ten at a time. WPM stays ink; an
  *  orange crown marks a run that *is* one of the numbers in Personal
@@ -114,12 +108,20 @@ function RunRow({
   pb: boolean;
   handle: string;
 }) {
-  const length = shareLengthLabel(test.lengthMode, test.durationOrWordCount);
+  const length = lengthLabel(test.lengthMode, test.durationOrWordCount);
+  const mode = modeLabel(test.mode);
   return (
     <li className="group/row flex items-center justify-between gap-3 py-2 pr-2 pl-5 sm:py-3 sm:pr-6 sm:pl-6">
       <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="truncate text-sm font-medium text-foreground">
-          {MODE_LABEL[test.mode] ?? "Casual"} · {length}
+        {/* The length is the title ("60 seconds"); a non-Casual run adds
+            its mode as an outline badge (ui-law §18.5). */}
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-sm font-medium text-foreground">{length}</span>
+          {mode !== "Casual" ? (
+            <Badge variant="outline" className="h-5 px-1.5 text-[11px]">
+              {mode}
+            </Badge>
+          ) : null}
         </span>
         <span className="text-xs text-muted-foreground">
           {relativeTime(test.startedAtMs)}

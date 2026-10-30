@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.151.1 — 30 October 2026
+- Test names now read in plain words everywhere, such as "60 seconds" and "Long quote": in personal-best notifications, share cards and link previews, drill descriptions, the leaderboard filter button and your profile's recent runs.
+
 ## 6.151.0 — 29 October 2026
 - After every test you now see what slowed you down and where its time went: typing, fixing mistakes, pauses before words, hesitations inside words and breaks. Once you've taken a few tests of the same kind, the result also shows how it compares with your usual. You can turn the analysis off in Settings. The optional result cards are clearer, and the Plain result layout now works.
 

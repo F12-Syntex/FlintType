@@ -1,10 +1,11 @@
 "use client";
 
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { cn } from "@/lib/utils";
 import type { LeaderboardPreset } from "@/types/leaderboard";
 import { AUDIENCES, TOOLBAR_SWITCH } from "./filter-controls";
 import {
@@ -13,7 +14,7 @@ import {
   SCOPES,
   WINDOWS,
 } from "./filters";
-import { filterSummary } from "./slice-labels";
+import { filterSummaryParts } from "./slice-labels";
 import type { SetLeaderboardFilters } from "./use-leaderboard-params";
 
 /** Full-width segmented switch inside the sheet. */
@@ -29,8 +30,9 @@ function kindOf(preset: LeaderboardPreset): LengthKind {
 const WORDS = PRESET_GROUPS[0]!.options;
 const TIMES = PRESET_GROUPS[1]!.options;
 
-/** Mobile (< md) filters: one pill that names the current slice and
- *  opens the bottom sheet (ui-law §10.5). Changes apply immediately;
+/** Mobile (< md) filters: one pill that names the current slice, its
+ *  parts separated by the house hairline, and opens the bottom sheet
+ *  (ui-law §10.5). Changes apply immediately;
  *  Done just closes the sheet. */
 export function FilterSheet({
   filters,
@@ -42,7 +44,7 @@ export function FilterSheet({
   signedIn: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const summary = filterSummary(filters);
+  const parts = filterSummaryParts(filters);
   const kind = kindOf(filters.preset);
 
   function pickKind(next: LengthKind) {
@@ -60,12 +62,26 @@ export function FilterSheet({
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`Filters: ${summary}`}
+        aria-label={`Filters: ${parts.join(", ")}`}
         className="h-11 w-full min-w-0 justify-start gap-2.5 px-4 md:hidden [&>svg]:text-muted-foreground"
       >
         <SlidersHorizontal aria-hidden />
-        <span className="min-w-0 flex-1 truncate text-left text-foreground">
-          {summary}
+        <span className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden text-left">
+          {parts.map((part, i) => (
+            <Fragment key={part}>
+              {i > 0 ? <span aria-hidden className="h-4 w-px shrink-0 bg-border" /> : null}
+              {/* Only the last part (the window) gives way on a narrow
+                  phone, so mode and length always read in full. */}
+              <span
+                className={cn(
+                  i === 0 ? "text-foreground" : "text-muted-foreground",
+                  i === parts.length - 1 ? "min-w-0 truncate" : "shrink-0 whitespace-nowrap",
+                )}
+              >
+                {part}
+              </span>
+            </Fragment>
+          ))}
         </span>
         <ChevronDown aria-hidden />
       </Button>

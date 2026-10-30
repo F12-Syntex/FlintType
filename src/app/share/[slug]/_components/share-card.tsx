@@ -2,18 +2,19 @@ import Link from "next/link";
 import { UserTag } from "@/components/ft";
 import { PageHeader, PageShell } from "@/components/page-shell";
 import { formatClock } from "@/lib/format-duration";
-import { shareLengthLabel } from "@/lib/share-length-label";
+import { formatTestName } from "@/lib/test-name";
 import type { SharedTest } from "@/types/share";
 import { ShareActions } from "./share-actions";
 
-/** Friendly mode label. The DB stores `casual` / `training` / `race`
- *  etc. — surface a single readable word rather than the algorithmic
- *  slug. */
-function modeLabel(mode: string): string {
-  if (mode === "race") return "Race";
-  if (mode === "training") return "Training";
-  if (mode === "reverse_adaptive") return "Reverse";
-  return "Casual";
+/** The kind of test as a capitalised noun: "Casual test of 60 seconds",
+ *  "Race of 25 words" (`formatTestName`, one name everywhere). */
+function testName(data: SharedTest): string {
+  const { noun } = formatTestName({
+    mode: data.mode,
+    lengthMode: data.lengthMode,
+    length: data.durationOrWordCount,
+  });
+  return noun.charAt(0).toUpperCase() + noun.slice(1);
 }
 
 /** `/profile/<username>` when a Clerk username exists, else the handle
@@ -97,7 +98,7 @@ export function ShareCard({ data }: { data: SharedTest }) {
     day: "numeric",
     year: "numeric",
   });
-  const test = `${shareLengthLabel(data.lengthMode, data.durationOrWordCount)} · ${modeLabel(data.mode)}`;
+  const test = testName(data);
 
   return (
     <PageShell width="text">
@@ -149,9 +150,7 @@ export function ShareCard({ data }: { data: SharedTest }) {
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="inline-flex h-7 items-center rounded-pill bg-ft-ink-track px-3 text-xs font-medium text-ft-warm-1">
-              {test}
-            </span>
+            <span className="text-xs font-medium text-ft-warm-1">{test}</span>
             <span className="flex items-center gap-1.5 text-xs font-semibold text-ft-paper">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/flinttype-logo.svg" alt="" aria-hidden className="h-4 w-auto" />

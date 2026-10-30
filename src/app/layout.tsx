@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
     default: "flinttype",
-    template: "%s · flinttype",
+    template: "%s | flinttype",
   },
   description:
     "flinttype is a free, open-source typing speed test. Practise, race, and sharpen your accuracy with adaptive drills, live stats, and shareable results.",

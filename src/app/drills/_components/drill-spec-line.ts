@@ -25,21 +25,22 @@ export function drillUnit(drill: DrillSpec): readonly [string, string] {
   return ["word", "words"];
 }
 
-/** Short spec line under a tile: "30 words · no mistakes",
- *  "20 words · 5 reps · 60 wpm". */
+/** Short spec line under a tile, as a comma phrase: "30 words, no
+ *  mistakes allowed", "20 words, 5 reps each, at 60 wpm". */
 export function drillSpecLine(drill: DrillSpec, burstReps: number): string {
   if (drill.kind === "sudden-death") {
     return drill.words.length > 0
-      ? `${plural(drill.words.length, "word", "words")} · no mistakes`
+      ? `${plural(drill.words.length, "word", "words")}, no mistakes allowed`
       : "No mistakes allowed";
   }
   const count = drill.tracker === "common-1000" ? 1000 : drill.items.length;
   const unit = drillUnit(drill);
   const reps = effectiveReps(drill, burstReps);
-  const parts = [
-    plural(reps, "rep", "reps"),
-    `${drill.thresholdWpm} wpm`,
-  ];
-  if (count > 0) parts.unshift(plural(count, unit[0], unit[1]));
-  return parts.join(" · ");
+  return [
+    count > 0 ? plural(count, unit[0], unit[1]) : null,
+    `${plural(reps, "rep", "reps")} each`,
+    `at ${drill.thresholdWpm} wpm`,
+  ]
+    .filter(Boolean)
+    .join(", ");
 }

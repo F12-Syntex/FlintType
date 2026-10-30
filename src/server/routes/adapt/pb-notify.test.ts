@@ -1,6 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/server/user-display", () => ({
+  resolveUserDisplays: vi.fn(async () =>
+    new Map([["u1", { userId: "u1", username: "mara", name: "@Mara", tags: [], imageUrl: null }]]),
+  ),
+}));
+
+import type { Database } from "@/db/server";
+import { friendPbSentence, pbSentence } from "@/lib/pb-copy";
+import { logger } from "@/server/logger";
 import type { SubmitTestInput } from "@/types/adapt";
-import { formatLength, formatPbBody } from "./pb-notify";
+import { notifyPersonalBest } from "./pb-notify";
 
 function input(over: Partial<SubmitTestInput> = {}): SubmitTestInput {
   return {
@@ -19,54 +29,70 @@ function input(over: Partial<SubmitTestInput> = {}): SubmitTestInput {
   };
 }
 
-describe("formatPbBody — personal-best notification line (#12)", () => {
-  it("omits the delta when there's no previous best", () => {
-    expect(formatPbBody(input({ wpm: 100 }), null)).not.toContain("previous best");
+type Created = { userId: string; kind: string; title: string; body: string; data: Record<string, unknown> };
+
+function fakeDb(followers: string[] = []) {
+  const created: Created[] = [];
+  const db = {
+    notifications: {
+      createIfAbsent: vi.fn(async (row: Created) => {
+        created.push(row);
+      }),
+    },
+    follows: { listFollowers: vi.fn(async () => followers.map((userId) => ({ userId }))) },
+  } as unknown as Database;
+  return { db, created };
+}
+
+async function notify(over: Partial<SubmitTestInput>, previousWpm: number | null, followers: string[] = []) {
+  const { db, created } = fakeDb(followers);
+  await notifyPersonalBest({ db, log: logger, userId: "u1", testId: "t1", input: input(over), previousWpm });
+  return created;
+}
+
+describe("notifyPersonalBest: the personal_best row", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("stores the pbSentence body and never the previous best", async () => {
+    const run = { wpm: 160.4, accuracy: 97.5, lengthMode: "time" as const, durationOrWordCount: 60 };
+    const [row] = await notify(run, 155.6);
+    expect(row!.kind).toBe("personal_best");
+    expect(row!.title).toBe("New personal best");
+    expect(row!.body).toBe(pbSentence(input(run)));
+    expect(row!.body).toBe("160 wpm at 97.5% accuracy in a Casual test of 60 seconds.");
+    expect(row!.body).not.toContain("previous best");
+    expect(row!.data.previousWpm).toBe(155.6);
   });
 
-  it("derives +delta from the ROUNDED figures so the math reconciles", () => {
-    // 160.4 → 160 shown, 155.6 → 156 shown. The raw gap (4.8) rounds to
-    // 5, but the displayed values only differ by 4 — the bug. The body
-    // must read "160 wpm", "previous best 156", "+4" (not +5).
-    const body = formatPbBody(input({ wpm: 160.4, accuracy: 87.7 }), 155.6);
-    expect(body).toContain("160 wpm");
-    expect(body).toContain("previous best 156");
-    expect(body).toContain("· +4");
-    expect(body).not.toContain("+5");
+  it("titles a first run and leaves the body the same sentence", async () => {
+    const [row] = await notify({}, null);
+    expect(row!.title).toBe("First completed run");
+    expect(row!.body).toBe(pbSentence(input()));
   });
 
-  it("reconciles for any new/previous pair", () => {
-    for (const [w, p] of [[160.4, 155.6], [99.5, 90.4], [203.9, 199.1]] as const) {
-      const body = formatPbBody(input({ wpm: w }), p);
-      const expected = Math.round(w) - Math.round(p);
-      expect(body).toContain(`previous best ${Math.round(p)} · +${expected}`);
-    }
+  it("stores lengthMode in data, null when the run sent none", async () => {
+    const [withMode] = await notify({ lengthMode: "words", durationOrWordCount: 25 }, null);
+    expect(withMode!.data.lengthMode).toBe("words");
+    const [legacy] = await notify({}, null);
+    expect(legacy!.data.lengthMode).toBeNull();
   });
 });
 
-describe("formatPbBody — labels", () => {
-  it("names the mode as the app does and gives the length a unit", () => {
-    expect(formatPbBody(input({ mode: "casual", durationOrWordCount: 30, lengthMode: "time" }), null)).toBe(
-      "Casual · 30s · 100 wpm · 100.0% acc",
-    );
-    expect(formatPbBody(input({ mode: "training", durationOrWordCount: 25, lengthMode: "words" }), null)).toBe(
-      "Adapt · 25 words · 100 wpm · 100.0% acc",
-    );
-    expect(formatPbBody(input({ mode: "race", durationOrWordCount: 40 }), null)).toContain("Race · 40 words");
-    expect(formatPbBody(input({ mode: "reverse_adaptive", durationOrWordCount: 25 }), null)).toContain("Reverse");
-  });
-});
+describe("notifyPersonalBest: the friend_pb fan-out", () => {
+  beforeEach(() => vi.clearAllMocks());
 
-describe("formatLength", () => {
-  it("prefers the run's own unit", () => {
-    expect(formatLength(60, "words")).toBe("60 words");
-    expect(formatLength(45, "time")).toBe("45s");
-    expect(formatLength(40, "quote")).toBe("40 words");
+  it("writes a friendPbSentence body and lengthMode for each follower", async () => {
+    const run = { mode: "training" as const, lengthMode: "words" as const, durationOrWordCount: 25, wpm: 188 };
+    const rows = await notify(run, null, ["u2", "u3"]);
+    const friend = rows.filter((r) => r.kind === "friend_pb");
+    expect(friend.map((r) => r.userId)).toEqual(["u2", "u3"]);
+    expect(friend[0]!.body).toBe(friendPbSentence("@Mara", input(run)));
+    expect(friend[0]!.body).toBe("@Mara hit 188 wpm in an Adapt test of 25 words.");
+    expect(friend[0]!.data.lengthMode).toBe("words");
   });
 
-  it("guesses legacy runs from the stock time lengths", () => {
-    expect(formatLength(60, undefined)).toBe("60s");
-    expect(formatLength(25, undefined)).toBe("25 words");
-    expect(formatLength(1, undefined)).toBe("1 word");
+  it("no followers, no fan-out", async () => {
+    const rows = await notify({}, null, []);
+    expect(rows.map((r) => r.kind)).toEqual(["personal_best"]);
   });
 });

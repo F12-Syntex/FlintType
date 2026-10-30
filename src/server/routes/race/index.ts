@@ -182,7 +182,7 @@ const setReady = defineRoute<SetReadyInput, SetReadyOutput>({
 });
 
 /** Public race namespace. No `requireAuth` — anonymous users get
- *  `Guest · XYZ` labels via `getRaceIdentity` and can join matchmaking
+ *  `Guest XYZ` labels via `getRaceIdentity` and can join matchmaking
  *  or challenge rooms identically to signed-in users.
  *
  *  Rate limits are attached per-route rather than namespace-wide: the

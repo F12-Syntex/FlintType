@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { getDatabase } from "@/db/server";
 import { BackendError } from "@/lib/errors";
 import { formatClock } from "@/lib/format-duration";
-import { shareLengthLabel } from "@/lib/share-length-label";
+import { lengthLabel as testLength, modeLabel as testMode } from "@/lib/test-name";
 import { logger } from "@/server/logger";
 import { loadSharedTest } from "@/server/routes/share/load";
 import type { SharedTest } from "@/types/share";
@@ -66,7 +66,7 @@ export default async function RunOpengraphImage({
   const wpm = Math.round(data.wpm);
   const acc = roundDecimal(data.accuracy);
   const initials = data.handle.replace(/^@/, "").slice(0, 2).toUpperCase();
-  const lengthLabel = shareLengthLabel(data.lengthMode, data.durationOrWordCount);
+  const lengthLabel = testLength(data.lengthMode, data.durationOrWordCount);
   const durationLabel = formatClock(data.durationSec);
 
   return new ImageResponse(
@@ -102,7 +102,7 @@ export default async function RunOpengraphImage({
           initials={initials}
           lengthLabel={lengthLabel}
           durationLabel={durationLabel}
-          modeLabel={modeLabel(data.mode)}
+          modeLabel={testMode(data.mode)}
         />
 
         {/* Body — big WPM/ACC on the left, WPM trace chart on the right.
@@ -396,7 +396,7 @@ function Body({
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            {shareLengthLabel(data.lengthMode, data.durationOrWordCount).toLowerCase()}
+            {testLength(data.lengthMode, data.durationOrWordCount)}
           </span>
         </div>
       </div>
@@ -739,13 +739,6 @@ async function loadAvatarFromUrl(url: string | null): Promise<string | null> {
   } catch {
     return null;
   }
-}
-
-function modeLabel(mode: string): string {
-  if (mode === "race") return "Race";
-  if (mode === "training") return "Training";
-  if (mode === "reverse_adaptive") return "Reverse";
-  return "Casual";
 }
 
 

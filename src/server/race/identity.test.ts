@@ -37,7 +37,7 @@ describe("race/identity", () => {
     const a = await getRaceIdentity("token-abc");
     const b = await getRaceIdentity("token-abc");
     expect(a.name).toBe(b.name);
-    expect(a.name).toMatch(/^Guest · [A-Z]{3}$/);
+    expect(a.name).toMatch(/^Guest [A-Z]{3}$/);
     expect(a.badge).toBe("GUEST");
     expect(a.userId).toBeNull();
   });
