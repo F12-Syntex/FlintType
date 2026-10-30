@@ -9,6 +9,7 @@ import { lengthLabel } from "@/lib/test-name";
 import { wordlistLabel } from "@/lib/wordlists/use-wordlist";
 import { calcWpmAndRaw, keystrokeErrors } from "@/lib/wpm";
 import { consistencyScore } from "@/lib/wpm-stats";
+import { cn } from "@/lib/utils";
 import { useBurstResult } from "./burst-log";
 import { burstCaption } from "./burst-stats";
 import { PassageHeatmap } from "./passage-heatmap";
@@ -182,12 +183,20 @@ export function TestSummary({ preview = false }: { preview?: boolean } = {}) {
     burst && burst.tries > 1 ? `Raw (all ${burst.tries} tries)` : "Raw";
 
   return (
-    <div className="flex h-full min-h-0 flex-col items-center overflow-y-auto py-3 sm:py-6">
+    <div
+      className={cn(
+        "flex h-full min-h-0 flex-col items-center overflow-y-auto py-3 sm:py-6",
+        // The real screen breaks out of the max-w-5xl column to the full
+        // page width, so its scrollbar sits at the window edge instead of
+        // mid-page. Previews stay inside their frame.
+        !preview && "ml-[calc(50%-50vw)] w-screen px-4 sm:px-6",
+      )}
+    >
       {/* my-auto centres the report when it fits; once it overflows the
        *  auto margin collapses and the column scrolls naturally. */}
       <div
         ref={captureRef}
-        className="my-auto flex w-full flex-col gap-4 sm:gap-6"
+        className="my-auto flex w-full max-w-5xl flex-col gap-4 sm:gap-6"
       >
         {/* Headline: speed is the answer, accuracy second, then the run's
          *  shape on the chart. */}
