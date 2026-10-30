@@ -1,39 +1,19 @@
 /** Pure geometry for `<RangeTrack>` and `<ComparisonTrack>`: where the
- *  marks sit (percent of the track) and where each label goes, so labels
- *  never collide with each other and never leave the track. */
-
-/** How a label hangs from its anchor: `start` grows right from it,
- *  `end` grows left from it (`right` = 100 − at), `center` straddles it. */
-export type LabelAnchor = { at: number; align: "start" | "end" | "center" };
+ *  marks sit, in percent of the track. `<RangeTrack>`'s labels are
+ *  placed in px once the track is measured (`range-labels.ts`). */
 
 const clampPct = (x: number): number => Math.min(100, Math.max(0, x));
 const finite = (x: number, fallback = 0): number => (Number.isFinite(x) ? x : fallback);
-
-/** A label beside a track edge grows toward the middle once its anchor
- *  sits closer to that edge than this (percent of the track). */
-const EDGE_ROOM = 25;
-
-/** Below this band width (percent of the track) the two end labels
- *  can't both fit under the band, so the range gets one label instead. */
-const SPLIT_MIN = 35;
 
 export type RangeGeometry = {
   bandFrom: number;
   bandTo: number;
   dot: number | null;
-  /** Two end labels, or one label for the whole range (`rangeText`). */
-  labels: { kind: "ends"; low: LabelAnchor; high: LabelAnchor } | { kind: "single"; at: LabelAnchor };
 };
 
 /** Domain [min(low, value) − 15% of the span, max(high, value) + 15%].
- *  A zero span is widened so the band still shows as a short pill. A band
- *  of at least 35% of the track gets a label at each end, each growing
- *  away from the other unless it sits near the track's edge (then both
- *  grow inward, which the band's width leaves room for). A narrower band,
- *  or any band whose ends print alike (`sameText`: 99.96 and 100 both
- *  read "100%"), gets one label, centred on it, or hung from its outer
- *  end near an edge, so the same figure is never printed twice. */
-export function rangeGeometry(low: number, high: number, value?: number, sameText = false): RangeGeometry {
+ *  A zero span is widened so the band still shows as a short pill. */
+export function rangeGeometry(low: number, high: number, value?: number): RangeGeometry {
   let lo = finite(low);
   let hi = finite(high, lo);
   if (lo > hi) [lo, hi] = [hi, lo];
@@ -42,33 +22,7 @@ export function rangeGeometry(low: number, high: number, value?: number, sameTex
   const min = Math.min(lo, v ?? lo) - 0.15 * span;
   const max = Math.max(hi, v ?? hi) + 0.15 * span;
   const at = (x: number) => clampPct(((x - min) / (max - min)) * 100);
-  const bandFrom = at(lo);
-  const bandTo = at(hi);
-  const mid = (bandFrom + bandTo) / 2;
-  const labels: RangeGeometry["labels"] =
-    bandTo - bandFrom >= SPLIT_MIN && !sameText
-      ? {
-          kind: "ends",
-          low: { at: bandFrom, align: bandFrom < EDGE_ROOM ? "start" : "end" },
-          high: { at: bandTo, align: 100 - bandTo < EDGE_ROOM ? "end" : "start" },
-        }
-      : {
-          kind: "single",
-          at:
-            mid < EDGE_ROOM
-              ? { at: bandFrom, align: "start" }
-              : mid > 100 - EDGE_ROOM
-                ? { at: bandTo, align: "end" }
-                : { at: mid, align: "center" },
-        };
-  return { bandFrom, bandTo, dot: v === null ? null : at(v), labels };
-}
-
-/** The one label of a narrow band. Ends that print alike read once
- *  ("100%"); otherwise "Between 97.6% and 98.3%", never "97.6% to
- *  98.3%" (ui-law §27 bans "% to ") and never an "X–Y" dash range. */
-export function rangeText(loText: string, hiText: string): string {
-  return loText === hiText ? loText : `Between ${loText} and ${hiText}`;
+  return { bandFrom: at(lo), bandTo: at(hi), dot: v === null ? null : at(v) };
 }
 
 export type ComparisonGeometry = {
@@ -149,11 +103,4 @@ export function slopeGeometry(
     x1: xBefore + (r * (xAfter - xBefore)) / len,
     y1: yBefore + (r * (yAfter - yBefore)) / len,
   };
-}
-
-/** Inline style for a label hung from an anchor. */
-export function anchorStyle(a: LabelAnchor): { left?: string; right?: string; transform?: string } {
-  if (a.align === "start") return { left: `${a.at}%` };
-  if (a.align === "end") return { right: `${100 - a.at}%` };
-  return { left: `${a.at}%`, transform: "translateX(-50%)" };
 }

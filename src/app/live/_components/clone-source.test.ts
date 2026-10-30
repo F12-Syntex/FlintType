@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { State } from "@/app/_components/practice-reducer";
 import type { BehaviourPrefs } from "@/lib/behaviour-prefs";
-import { findingItems, PARTIAL_NOTE, shownFindings } from "@/app/_components/run-analysis/finding-items";
-import { toPlain } from "@/app/_components/run-analysis/finding-copy";
 import { analyseRun } from "@/lib/typing-analysis/analyse";
 import type { LiveScreen } from "@/types/live";
 import { cloneAnalysisSource } from "./clone-source";
@@ -136,38 +134,27 @@ function keys(words: readonly string[], t0: number, gap: number, upTo = Infinity
   return out;
 }
 
-describe("a partial clone never states what it can't see", () => {
+describe("a partial clone", () => {
+  // What the result card shows for these is tested beside it
+  // (run-analysis/finding-items.test.ts).
   const W = ["the", "quick", "brown", "fox", "jumps", "over", "lazy", "dog", "and", "then",
     "some", "more", "words", "here", "for", "test", "again", "with", "them", "all"];
-  const items = (s: NonNullable<ReturnType<typeof build>>) => {
-    const a = analyseRun(s.input)!;
-    return { a, out: findingItems({ analysis: a, unit: { unit: "wpm", decimals: false }, pb: null }) };
-  };
 
-  it("a TIME window that starts at word 100: no break, start-up or slow-down finding", () => {
+  it("a TIME window that starts at word 100 is analysed as partial", () => {
     // The last 20 words of a 60 s test: the window's keys run from 48 s
     // to 60 s on the run's clock, word indexes rebased to 0.
     const screen = frame({ mode: "TIME", length: 60, elapsedMs: 60_000, typed: W, cursorWord: 19, events: keys(W, 48_000, 110), windowStart: 100 });
     const s = cloneAnalysisSource({ state: cloneState(W, screen, NOW), behaviour: BEHAVIOUR, wordlist: "english", windowStart: 100 })!;
-    const { a, out } = items(s);
-    expect(a.quality.partial).toBe(true);
-    // The engine puts the unseen 48 s head into Breaks: the hazard.
-    expect(a.findings.some((f) => f.kind === "breaks")).toBe(true);
-    const kinds = shownFindings(a).map((f) => f.kind);
-    for (const k of ["breaks", "startUp", "fade", "even", "short", "clock"] as const) expect(kinds).not.toContain(k);
-    expect(out[0]).toBe(PARTIAL_NOTE);
-    expect(out.map((c) => toPlain(c.lead)).join(" ")).not.toMatch(/stopped typing|get going|towards the end/);
+    expect(s.input.partial).toBe(true);
+    expect(analyseRun(s.input)!.quality.partial).toBe(true);
   });
-  it("a done frame cut at 3,000 keys: the unseen tail isn't a break either", () => {
+  it("a done frame cut at 3,000 keys is whole to the source, partial to the engine", () => {
     // 300 eleven-letter words, keys cut at the cap; the test ran on after them.
     const long = Array.from({ length: 300 }, (_, i) => `abcdefghij${String.fromCharCode(97 + (i % 26))}`);
     const ev = keys(long, 0, 100, 3_000);
     const screen = frame({ length: 300, elapsedMs: ev.at(-1)!.t + 40_000, typed: long, cursorWord: 299, events: ev, windowStart: 0 });
     const s = cloneAnalysisSource({ state: cloneState(long, screen, NOW), behaviour: BEHAVIOUR, wordlist: "english", windowStart: 0 })!;
-    const { a, out } = items(s);
     expect(s.input.partial).toBe(false);
-    expect(a.quality.partial).toBe(true); // the engine's cap rule
-    expect(shownFindings(a).some((f) => f.kind === "breaks" || f.kind === "fade")).toBe(false);
-    expect(out[0]).toBe(PARTIAL_NOTE);
+    expect(analyseRun(s.input)!.quality.partial).toBe(true); // the engine's cap rule
   });
 });
