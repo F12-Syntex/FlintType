@@ -44,7 +44,7 @@ export function BurstReadouts() {
         label="last wpm"
         value={lastWpm != null ? String(lastWpm) : "—"}
       />
-      <Readout label="reps" value={`${reps}/${repsRequired}`} />
+      <Readout label="reps" value={`${reps} of ${repsRequired}`} />
       {/* The speed a rep has to reach to count. When it's set
        *  automatically from your speed, a hover note says so rather
        *  than a jargon suffix on the label. */}
@@ -55,7 +55,7 @@ export function BurstReadouts() {
           thresholdAuto ? "Set automatically from your recent speed" : undefined
         }
       />
-      <Readout label="items" value={`${itemIdx}/${itemsLength}`} />
+      <Readout label="items" value={`${itemIdx} of ${itemsLength}`} />
     </ReadoutRow>
   );
 }
@@ -75,9 +75,9 @@ export function BurstMobileReadouts() {
         label="last"
         value={lastWpm != null ? String(lastWpm) : "—"}
       />
-      <Readout compact label="reps" value={`${reps}/${repsRequired}`} />
+      <Readout compact label={`of ${repsRequired} reps`} value={String(reps)} />
       <Readout compact label="goal" value={String(threshold)} />
-      <Readout compact label="items" value={`${itemIdx}/${itemsLength}`} />
+      <Readout compact label={`of ${itemsLength} items`} value={String(itemIdx)} />
     </div>
   );
 }
