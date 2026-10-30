@@ -1,12 +1,24 @@
 "use client";
 
 import { type RefObject, useEffect, useRef, useState } from "react";
-import { Area, CartesianGrid, ComposedChart, Line, Scatter, XAxis, YAxis } from "recharts";
+import {
+  Area,
+  CartesianGrid,
+  ComposedChart,
+  Line,
+  Scatter,
+  useActiveTooltipCoordinate,
+  useXAxisScale,
+  useYAxisScale,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { type ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/line-chart";
 import type { TypingSpeedUnit } from "@/lib/appearance-prefs";
 import { dateShort } from "@/lib/format-figure";
 import { chartLabel, legendLabels, tooltipLines, type TrendView } from "./trend-copy";
 import { drawnMarks, type TrendRow, yScale } from "./trend-data";
+import { hoveredRow, yAxisWidth } from "./trend-geometry";
 import { dateTicks, maxDateTicks } from "./trend-ticks";
 
 /** Ink only (spec-40 §3.5, dataviz): a faint usual-range band, the
@@ -18,7 +30,9 @@ import { dateTicks, maxDateTicks } from "./trend-ticks";
  *  On an adjusted (Adapt) chart no dot is marked as a best: bests are
  *  typed speeds, and the dots sit at the adjusted figure, so a best
  *  could land mid-cloud (trend-copy.ts). The line and band need 2
- *  points each, the same rule as the legend. */
+ *  points each, the same rule as the legend. The band is straight
+ *  between day ends, so the tooltip's "usual range at the time" is
+ *  exactly the shading at the dot (`drawnBandAt`, trend-data.ts). */
 const config = {
   median: { label: legendLabels({ adjusted: false, daily: false }).median, color: "var(--foreground)" },
 } satisfies ChartConfig;
@@ -55,19 +69,28 @@ function Dot({ cx, cy, solid }: { cx?: number; cy?: number; solid: boolean }) {
   );
 }
 
+/** Describes the dot under the pointer: the shared tooltip snaps by x
+ *  alone, so `hoveredRow` uses the pointer's height to pick between
+ *  tests that share a column. */
 function TrendTooltip({
   active,
   payload,
+  rows,
   unit,
   view,
 }: {
   active?: boolean;
   payload?: readonly { payload?: Plotted }[];
+  rows: readonly Plotted[];
   unit: TypingSpeedUnit;
   view: TrendView;
 }) {
-  const row = payload?.[0]?.payload;
-  if (!active || !row) return null;
+  const at = useActiveTooltipCoordinate();
+  const x = useXAxisScale();
+  const y = useYAxisScale();
+  const snapped = payload?.[0]?.payload;
+  if (!active || !snapped) return null;
+  const row = hoveredRow(rows, at, x, y) ?? snapped;
   const lines = tooltipLines(row, view, unit);
   return (
     <div className="grid min-w-40 gap-0.5 rounded-xl border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-float">
@@ -98,6 +121,7 @@ export function TrendChart({
   const drawn = drawnMarks(rows);
   const y = yScale(rows, drawn);
   const decimals = y.ticks.some((t) => !Number.isInteger(t));
+  const yLabel = (v: number) => (decimals ? String(Math.round(v * 100) / 100) : String(Math.round(v)));
   return (
     <div ref={box} className="w-full">
       <ChartContainer
@@ -122,24 +146,24 @@ export function TrendChart({
             padding={{ left: 8, right: 8 }}
           />
           <YAxis
-            width={32}
+            width={yAxisWidth(y.ticks.map(yLabel))}
             domain={y.domain}
             ticks={y.ticks}
             interval={0}
             tickLine={false}
             axisLine={false}
             tickMargin={6}
-            tickFormatter={(v: number) => (decimals ? String(Math.round(v * 100) / 100) : String(Math.round(v)))}
+            tickFormatter={yLabel}
             className="tabular-nums"
           />
           <ChartTooltip
             cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
-            content={<TrendTooltip unit={unit} view={view} />}
+            content={<TrendTooltip rows={data} unit={unit} view={view} />}
           />
           {drawn.band ? (
             <Area
               dataKey="band"
-              type="monotone"
+              type="linear"
               stroke="none"
               fill="var(--foreground)"
               fillOpacity={0.08}

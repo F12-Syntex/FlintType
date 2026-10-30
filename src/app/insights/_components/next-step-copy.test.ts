@@ -10,6 +10,7 @@ import {
   gainLine,
   nextStepBecause,
   nextStepTitle,
+  pauseShareRose,
   TREND_WORD,
   trendSentence,
 } from "./next-step-copy";
@@ -29,6 +30,8 @@ function headline(state: TrendState, o: Partial<SpeedHeadline["trend"]> = {}): S
 }
 
 const clean = (s: string) => expect(bannedPatterns(s), s).toEqual([]);
+/** How many times a sentence says "about" (ui-law §27 rule 6: one hedge). */
+const hedges = (s: string) => (s.match(/\babout\b/gi) ?? []).length;
 const heading = (s: string) => expect(bannedPatterns(s, { heading: true }), s).toEqual([]);
 
 describe("trend copy", () => {
@@ -102,8 +105,63 @@ describe("next step copy", () => {
     const inf = barrier("inside", "flat");
     expect(nextStepTitle(inf)).toBe("Type words in one go");
     expect(nextStepBecause(inf, kind)).toBe(
-      "You stall partway through words for about 4.5 seconds of every minute, against about 1.2 seconds on your better days.",
+      "Hesitations inside words take you about 4.5 seconds of every minute, against 1.2 seconds on your better days.",
     );
+  });
+  it("compares how often you pause only when it rose", () => {
+    expect(pauseShareRose({ pauseOneIn: [0.25, 0.125] })).toBe(true);
+    expect(pauseShareRose({ pauseOneIn: [0.5, 0.2] })).toBe(true);
+    // Equal, equal once written as "1 in N", or fewer pauses than on
+    // better days: the pauses got longer, not more frequent.
+    expect(pauseShareRose({ pauseOneIn: [0.2, 0.2] })).toBe(false);
+    expect(pauseShareRose({ pauseOneIn: [0.2, 0.19] })).toBe(false);
+    expect(pauseShareRose({ pauseOneIn: [0.5, 0.47] })).toBe(false);
+    expect(pauseShareRose({ pauseOneIn: [0.17, 0.2] })).toBe(false);
+    expect(pauseShareRose({})).toBe(false);
+    // "about half" and "1 in 2" are the same step: no rise to report.
+    expect(pauseShareRose({ pauseOneIn: [0.47, 0.43] })).toBe(false);
+    expect(pauseShareRose({ pauseOneIn: [0.45, 0.41] })).toBe(false);
+    expect(pauseShareRose({ pauseOneIn: [0.59, 0.42] })).toBe(false);
+    // A real step up from half still counts.
+    expect(pauseShareRose({ pauseOneIn: [0.65, 0.43] })).toBe(true);
+    expect(pauseShareRose({ pauseOneIn: [0.45, 0.4] })).toBe(true);
+    const perMinute =
+      "Pauses before words take you about 4.5 seconds of every minute, against 1.2 seconds on your better days. Short, common words help you flow from one to the next.";
+    const sameStep: [number, number][] = [[0.47, 0.43], [0.45, 0.41], [0.5, 0.44]];
+    for (const pauseOneIn of [[0.2, 0.2], [0.2, 0.19], [0.5, 0.47], [0.17, 0.2], [0.05, 0.4], ...sameStep] as [number, number][]) {
+      const s = barrier("before", "flat", { pauseOneIn });
+      expect(nextStepTitle(s)).toBe("Keep moving between words");
+      expect(nextStepBecause(s, kind), String(pauseOneIn)).toBe(perMinute);
+      clean(nextStepBecause(s, kind));
+    }
+    expect(nextStepBecause(barrier("before", "flat"), kind)).toBe(perMinute);
+    const small = { ...barrier("before", "flat", { pauseOneIn: [0.17, 0.2] }), recent: 0.6, better: 0.3 } as NextStep;
+    expect(nextStepBecause(small, kind)).toBe(
+      "Pauses before words take you about 0.6 seconds of every minute, against under half a second on your better days. Short, common words help you flow from one to the next.",
+    );
+    const half = barrier("before", "flat", { pauseOneIn: [0.97, 0.5] });
+    expect(nextStepBecause(half, kind)).toBe(
+      "You pause before almost all your words, against half on your better days. Short, common words help you flow from one to the next.",
+    );
+    clean(nextStepBecause(half, kind));
+    const fromHalf = barrier("before", "flat", { pauseOneIn: [0.45, 0.4] });
+    expect(nextStepBecause(fromHalf, kind)).toBe(
+      "You pause before about half your words, against 1 in 3 on your better days. Short, common words help you flow from one to the next.",
+    );
+  });
+  it("never compares two figures that both mean half", () => {
+    const rates = Array.from({ length: 101 }, (_, i) => i / 100);
+    let compared = 0;
+    for (const a of rates) for (const b of rates) {
+      const s = nextStepBecause(barrier("before", "flat", { pauseOneIn: [a, b] }), kind);
+      if (!s.startsWith("You pause before")) continue;
+      compared++;
+      const halves = (s.match(/\bhalf\b|1 in 2\b/g) ?? []).length;
+      expect(halves, `${a},${b}: ${s}`).toBeLessThan(2);
+      expect(hedges(s), `${a},${b}: ${s}`).toBeLessThanOrEqual(1);
+      clean(s);
+    }
+    expect(compared).toBeGreaterThan(0);
   });
   it("words the gain as a range, one number or an upper bound", () => {
     expect(gainLine(barrier("inside", "flat"), "wpm")).toBe("Typing like your better days is worth about 3 to 5 wpm.");
@@ -158,6 +216,35 @@ describe("next step copy", () => {
           heading(nextStepTitle(s));
           clean(nextStepBecause(s, kind));
           clean(gainLine(s, "wpm")!);
+        }
+      }
+    }
+  });
+});
+
+describe("sentence length and hedges", () => {
+  it("keeps every sentence of a shown next step to 20 words, with one about", () => {
+    // A barrier is shown only when it costs at least half a second a
+    // minute over better days, so recent is at least better + 0.5.
+    const cases: [BarrierKind, BarrierVariant][] = [
+      ["fixing", "frequency"], ["fixing", "cost"], ["before", "longWords"], ["before", "flat"], ["inside", "pair"], ["inside", "flat"],
+    ];
+    const details = [
+      {},
+      { perMin: [12.5, 0] as [number, number], costKeys: [14, 2] as [number, number], pauseOneIn: [0.25, 0.125] as [number, number], pair: "th" },
+      { perMin: [0.4, 0.01] as [number, number], costKeys: [1.5, 1] as [number, number], pauseOneIn: [0.97, 0.005] as [number, number], pair: "er" },
+    ];
+    const words = (x: string) => x.trim().split(/\s+/).length;
+    for (const [k, v] of cases) {
+      for (const d of details) {
+        for (const better of [0, 0.1, 0.4, 0.5, 1.2, 9.9, 29]) {
+          for (const gap of [0.5, 0.9, 3.3, 30]) {
+            const s = { ...barrier(k, v, d), recent: Math.min(60, better + gap), better } as NextStep;
+            for (const sentence of nextStepBecause(s, kind).split(/(?<=[.!?”])\s+/)) {
+              expect(words(sentence), sentence).toBeLessThanOrEqual(20);
+              expect(hedges(sentence), sentence).toBeLessThanOrEqual(1);
+            }
+          }
         }
       }
     }

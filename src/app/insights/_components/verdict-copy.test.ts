@@ -54,7 +54,7 @@ describe("range sentence", () => {
 describe("range track label", () => {
   it("reads the range and the last test", () => {
     expect(rangeTrackLabel(headline(range(66.2, 79.4, "middle-80")), "wpm")).toBe(
-      "Usual range 66 to 79 wpm. Your last test 70 wpm.",
+      "Usual range between 66 and 79 wpm. Your last test 70 wpm.",
     );
     expect(rangeTrackLabel(headline(range(66.2, 66.4, "min-max", 5)), "wpm")).toBe(
       "Usual range about 66 wpm. Your last test 70 wpm.",

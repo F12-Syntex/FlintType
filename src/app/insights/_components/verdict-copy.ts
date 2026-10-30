@@ -38,6 +38,6 @@ export function rangeTrackLabel(h: SpeedHeadline, unit: TypingSpeedUnit): string
   const one = formatSpeed(r.low, unit) === formatSpeed(r.high, unit);
   const usual = one
     ? `Usual range about ${speed((r.low + r.high) / 2, unit)}.`
-    : `Usual range ${formatSpeed(r.low, unit)} to ${speed(r.high, unit)}.`;
+    : `Usual range between ${formatSpeed(r.low, unit)} and ${speed(r.high, unit)}.`;
   return `${usual} ${last}`;
 }

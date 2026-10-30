@@ -26,6 +26,8 @@ describe("change rows", () => {
     expect(changeDetail(ch("before", "worse", 1, 2.5), "wpm", 30)).toBe("About 2.5 seconds a minute, up from 1 second.");
     expect(changeDetail(ch("inside", "better", 1.2, 0.3), "wpm", 30)).toBe("Under half a second a minute, down from 1.2 seconds.");
     expect(changeDetail(ch("inside", "worse", 0.2, 1.4), "wpm", 30)).toBe("About 1.4 seconds a minute, up from under half a second.");
+    // Never "About under half a second", even for junk.
+    expect(changeDetail(ch("inside", "better", 1.2, Number.NaN), "wpm", 30)).toMatch(/^Under half a second a minute, /);
     expect(changeTitle(ch("flow", "worse", 92, 88))).toBe("Your flowing speed dipped.");
     expect(changeDetail(ch("flow", "worse", 92, 88), "wpm", 30)).toBe("About 88 wpm when nothing holds you up, down from 92.");
     expect(changeTitle(ch("pair", "better", 180, 150, "th"))).toBe("“th” got quicker.");

@@ -4,8 +4,8 @@ import type { TrendSeries } from "@/types/insights";
 import { localDay } from "./trend-ticks";
 
 /** Pure shaping for "Your speed over time" (spec-40 §3.5): the range
- *  switch, chart rows (with each point's own usual-range band for the
- *  tooltip), the y scale and the table twin. Date ticks are in
+ *  switch, chart rows (with the drawn usual-range band at each point for
+ *  the tooltip), the y scale and the table twin. Date ticks are in
  *  trend-ticks.ts. Speeds come out in the user's unit. */
 
 export type TrendRange = "1M" | "3M" | "all";
@@ -56,10 +56,10 @@ export type TrendRow = {
   day: boolean;
   median: number | null;
   band: [number, number] | null;
-  /** The usual-range band as it stood at this point, in wpm on the
-   *  chart's scale (null before the band starts). The tooltip judges the
-   *  point against it, not against today's range, so a dot inside the
-   *  drawn band never reads "below your usual range". */
+  /** The usual-range band as drawn at this point's x, in wpm (null
+   *  where no band is drawn). The tooltip judges the point against it,
+   *  not against today's range, so a dot inside the shaded band always
+   *  reads "inside your usual range" (`drawnBandAt`). */
   ref: [number, number] | null;
 };
 
@@ -83,10 +83,33 @@ function statAt<T extends { t: number }>(xs: readonly T[], pointTs: ReadonlySet<
   };
 }
 
+type Edge = { t: number; lo: number; hi: number };
+
+/** The band as the chart draws it: a straight line in time between the
+ *  day ends that carry a band (the Area is `type="linear"` with
+ *  `connectNulls`). A day end keeps its own band; any other point takes
+ *  the line between the day ends before and after it. Null before the
+ *  first and after the last, and everywhere when fewer than 2 day ends
+ *  have a band, since then no band is drawn (`drawnMarks`). */
+export function drawnBandAt(ends: readonly Edge[]): (t: number) => [number, number] | null {
+  if (ends.length < 2) return () => null;
+  return (t) => {
+    const i = ends.findIndex((e) => e.t >= t);
+    if (i < 0) return null;
+    const b = ends[i]!;
+    if (b.t === t) return [b.lo, b.hi];
+    if (i === 0) return null;
+    const a = ends[i - 1]!;
+    const f = (t - a.t) / (b.t - a.t);
+    return [a.lo + f * (b.lo - a.lo), a.hi + f * (b.hi - a.hi)];
+  };
+}
+
 /** Each point on show with the rolling median and band as of it. The
  *  line and band are drawn through each calendar day's last test only:
  *  tests minutes apart would otherwise turn the line into vertical
- *  steps. Every point keeps its own dot. */
+ *  steps. Every point keeps its own dot, and its tooltip reference is
+ *  the band drawn at its x. */
 export function trendRows(
   series: TrendSeries,
   range: TrendRange,
@@ -101,24 +124,23 @@ export function trendRows(
   const bandAt = statAt(series.band, ts);
   const conv = (v: number) => convertSpeed(v, unit);
   const shown = series.points.filter((p) => p.t >= from);
-  return shown.map((p, i) => {
+  const marks = shown.map((p, i) => {
     const dayEnd = i === shown.length - 1 || localDay(shown[i + 1]!.t) !== localDay(p.t);
-    const m = dayEnd ? medianAt(p.t) : null;
-    const ref = bandAt(p.t);
-    const b = dayEnd ? ref : null;
-    return {
-      t: p.t,
-      value: conv(p.value),
-      valueWpm: p.value,
-      typedWpm: p.wpm,
-      acc: p.acc,
-      pb: p.pb,
-      day: daily && !p.pb,
-      median: m ? conv(m.v) : null,
-      band: b ? [conv(b.lo), conv(b.hi)] : null,
-      ref: ref ? [ref.lo, ref.hi] : null,
-    };
+    return { p, m: dayEnd ? medianAt(p.t) : null, b: dayEnd ? bandAt(p.t) : null };
   });
+  const refAt = drawnBandAt(marks.flatMap(({ p, b }) => (b ? [{ t: p.t, lo: b.lo, hi: b.hi }] : [])));
+  return marks.map(({ p, m, b }) => ({
+    t: p.t,
+    value: conv(p.value),
+    valueWpm: p.value,
+    typedWpm: p.wpm,
+    acc: p.acc,
+    pb: p.pb,
+    day: daily && !p.pb,
+    median: m ? conv(m.v) : null,
+    band: b ? [conv(b.lo), conv(b.hi)] : null,
+    ref: refAt(p.t),
+  }));
 }
 
 const STEPS = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000];

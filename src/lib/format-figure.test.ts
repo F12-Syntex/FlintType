@@ -3,6 +3,8 @@ import { SLICE_ORDER } from "@/types/typing-analysis";
 import { bannedPatterns } from "./copy-rules";
 import {
   SLICE_LABEL,
+  aboutOneIn,
+  aboutPerMinute,
   ago,
   asLongAs,
   breakClause,
@@ -68,6 +70,47 @@ describe("perMinute", () => {
   it("says under half a second below 0.5", () => {
     expect(perMinute(0.49)).toBe("under half a second a minute");
     expect(perMinute(0)).toBe("under half a second a minute");
+  });
+
+  it("gives the figure alone with no hedge for an empty tail", () => {
+    expect(perMinute(1.2, "")).toBe("1.2 seconds");
+    expect(perMinute(1, "")).toBe("1 second");
+    expect(perMinute(0.49, "")).toBe("under half a second");
+    expect(perMinute(Number.NaN, "of every minute")).toBe("under half a second of every minute");
+  });
+});
+
+describe("about, only where it reads", () => {
+  const RATES = [0, 0.005, 0.01, 0.02, 0.1, 0.2, 0.33, 0.42, 0.45, 0.5, 0.59, 0.6, 0.7, 0.8, 0.9, 0.95, 1, Number.NaN];
+  const SECONDS = [0, 0.2, 0.49, 0.5, 1, 4.5, 12, -1, Number.NaN, Number.POSITIVE_INFINITY];
+  it("puts about before a seconds-a-minute figure, never before under half", () => {
+    expect(aboutPerMinute(4.5)).toBe("about 4.5 seconds a minute");
+    expect(aboutPerMinute(1)).toBe("about 1 second a minute");
+    expect(aboutPerMinute(0.35)).toBe("under half a second a minute");
+    expect(aboutPerMinute(12, "of every minute")).toBe("about 12 seconds of every minute");
+    expect(aboutPerMinute(0.2, "of every minute")).toBe("under half a second of every minute");
+    expect(aboutPerMinute(1.2, "")).toBe("about 1.2 seconds");
+    expect(aboutPerMinute(0.49, "")).toBe("under half a second");
+    // Junk reads as 0: no "about 0 seconds", no "NaN".
+    expect(aboutPerMinute(Number.NaN)).toBe("under half a second a minute");
+  });
+  it("puts about before a share, never before about half or almost all", () => {
+    expect(aboutOneIn(0.2)).toBe("about 1 in 5");
+    expect(aboutOneIn(0.65)).toBe("about 2 in 3");
+    expect(aboutOneIn(0.5)).toBe("about half");
+    expect(aboutOneIn(0.97)).toBe("almost all");
+    expect(aboutOneIn(0.005)).toBe("fewer than 1 in 100");
+  });
+  it("never doubles a hedge or hedges a bound, at any value", () => {
+    const out = [
+      ...RATES.map(aboutOneIn),
+      ...SECONDS.flatMap((v) => [aboutPerMinute(v), aboutPerMinute(v, "of every minute"), aboutPerMinute(v, "")]),
+      ...SECONDS.map((v) => perMinute(v, "")),
+    ];
+    for (const s of out) {
+      expect(s, s).not.toMatch(/about (about|under|almost|fewer)|NaN|Infinity|about 0 /);
+      expect(bannedPatterns(`It was ${s}.`), s).toEqual([]);
+    }
   });
 });
 

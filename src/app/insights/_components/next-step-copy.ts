@@ -1,10 +1,9 @@
 import { drillCopyFor } from "@/app/drills/_components/drill-catalog";
 import type { TypingSpeedUnit } from "@/lib/appearance-prefs";
-import { ago, keysWorth, oneIn, speed } from "@/lib/format-figure";
-import type { NextStep, PracticeAction, SpeedHeadline, TrendState } from "@/types/insights";
+import { ago, keysWorth, oneIn, perMinute, speed } from "@/lib/format-figure";
+import type { BarrierDetail, NextStep, PracticeAction, SpeedHeadline, TrendState } from "@/types/insights";
 import type { FrictionKey } from "@/types/typing-analysis";
 import {
-  aboutSeconds,
   cap,
   earlierRate,
   fixCostRose,
@@ -87,6 +86,28 @@ export function nextStepTitle(step: NextStep): string {
   return variant === "pair" && detail.pair ? `Smooth out “${detail.pair}”` : "Type words in one go";
 }
 
+/** The step a rate prints as. "1 in 2" (rates from about 0.41) and
+ *  "about half" (from 0.45) say the same thing, so they are one step. */
+const shareStep = (rate: number) => {
+  const s = oneIn(rate);
+  return s === "1 in 2" ? "about half" : s;
+};
+
+/** True only when you pause before words more often now than on your
+ *  better days, by a step the "1 in N" figures show. The barrier is
+ *  ranked by seconds a minute, which longer pauses alone can raise, so
+ *  copy compares how often only when this holds (like `fixCostRose`). */
+export function pauseShareRose(d: BarrierDetail): boolean {
+  const r = d.pauseOneIn;
+  return !!r && r[0] > r[1] && shareStep(r[0]) !== shareStep(r[1]);
+}
+
+/** The better-days side of a comparison whose first figure already says
+ *  "about": "1.2 seconds", "half" (ui-law §27 rule 6, one hedge a
+ *  sentence). A bound such as "under half a second" stays as it is. */
+const againstSeconds = (better: number) => `against ${perMinute(better, "")} on your better days`;
+const againstShare = (rate: number) => `against ${oneIn(rate).replace(/^about /, "")} on your better days`;
+
 const mistakesAMinute = (n: number) => `${oneDecimal(n)} ${oneDecimal(n) === "1" ? "mistake" : "mistakes"} a minute`;
 
 /** Without the detailed analysis (`analysed: false`, the not-ready
@@ -119,7 +140,7 @@ export function nextStepBecause(step: NextStep, kind: TestKind, o: { analysed: b
   const { barrier, variant, detail, recent, better } = step;
   if (barrier === "fixing" && variant === "frequency" && detail.perMin) {
     const [a, b] = detail.perMin;
-    return `You're making about ${mistakesAMinute(a)}, up from ${earlierRate(b, { about: true })} in the tests before. Fixing them takes ${ofEveryMinute(recent)}.`;
+    return `You're making about ${mistakesAMinute(a)}, up from ${earlierRate(b, { about: false })} in the tests before. Fixing them takes ${ofEveryMinute(recent)}.`;
   }
   if (barrier === "fixing") {
     const tail = "Fix it the moment you feel it, and delete only the wrong letters.";
@@ -129,20 +150,23 @@ export function nextStepBecause(step: NextStep, kind: TestKind, o: { analysed: b
       const [a, b] = detail.costKeys!;
       return `Each mistake takes you about as long as ${keysWorth(a)} to fix, against ${keysWorth(b)} usually. ${tail}`;
     }
-    return `Fixing mistakes takes you ${ofEveryMinute(recent)}, against ${aboutSeconds(better)} on your better days. ${tail}`;
+    return `Fixing mistakes takes you ${ofEveryMinute(recent)}, ${againstSeconds(better)}. ${tail}`;
   }
   if (barrier === "before") {
     const [a, b] = detail.pauseOneIn ?? [0, 0];
     if (variant === "longWords") {
       return `You pause before ${shareOf(a, "words")}, more often before long ones. Let your eyes read the next word while you finish this one.`;
     }
-    if (!detail.pauseOneIn) return `Pauses before words take you ${ofEveryMinute(recent)}. Short, common words help you flow from one to the next.`;
-    return `You pause before ${shareOf(a, "words")}, against ${oneIn(b)} on your better days. Short, common words help you flow from one to the next.`;
+    const tail = "Short, common words help you flow from one to the next.";
+    // How often only when it rose; otherwise the per-minute figures the
+    // slice is ranked by (longer pauses alone can raise them).
+    if (pauseShareRose(detail)) return `You pause before ${shareOf(a, "words")}, ${againstShare(b)}. ${tail}`;
+    return `Pauses before words take you ${ofEveryMinute(recent)}, ${againstSeconds(better)}. ${tail}`;
   }
   if (variant === "pair" && detail.pair) {
     return `You stall partway through words, especially at “${detail.pair}”. Practising your slowest letter pairs trains exactly that.`;
   }
-  return `You stall partway through words for ${ofEveryMinute(recent)}, against ${aboutSeconds(better)} on your better days.`;
+  return `Hesitations inside words take you ${ofEveryMinute(recent)}, ${againstSeconds(better)}.`;
 }
 
 /** "Typing like your better days is worth about 3 to 5 wpm." */

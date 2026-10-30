@@ -35,11 +35,31 @@ export function secShort(ms: number): string {
   return `${secondsFigure(ms)} s`;
 }
 
-/** Seconds per minute: "4.5 seconds a minute", "under half a second a minute". */
-export function perMinute(s: number): string {
+/** Below this many seconds a minute, a figure reads "under half a second". */
+const HALF_SECOND = 0.5;
+
+/** What follows a per-minute figure: "a minute", "of every minute", or
+ *  "" for the figure alone ("1.2 seconds"). */
+type MinuteTail = "a minute" | "of every minute" | "";
+
+function minuteFigure(s: number, about: boolean, tail: MinuteTail): string {
   const v = finite(s);
-  if (v < 0.5) return "under half a second a minute";
-  return `${seconds(v * 1000)} a minute`;
+  const fig = v < HALF_SECOND ? "under half a second" : `${about ? "about " : ""}${seconds(v * 1000)}`;
+  return tail ? `${fig} ${tail}` : fig;
+}
+
+/** Seconds per minute: "4.5 seconds a minute", "under half a second a
+ *  minute", or with `tail` "" the figure alone ("1.2 seconds"), for the
+ *  second figure of a sentence whose first already says "about". */
+export function perMinute(s: number, tail: MinuteTail = "a minute"): string {
+  return minuteFigure(s, false, tail);
+}
+
+/** Seconds per minute as an estimate, with "about" only where it reads:
+ *  "about 4.5 seconds a minute", "under half a second a minute" (never
+ *  "about under half a second"). `tail` as for `perMinute`. */
+export function aboutPerMinute(s: number, tail: MinuteTail = "a minute"): string {
+  return minuteFigure(s, true, tail);
 }
 
 /** A per-key time: "0.14 s" under a second, "1.4 s" from a second. */
@@ -69,6 +89,15 @@ export function oneIn(rate: number): string {
     if (Math.abs(Math.log(step) - target) < Math.abs(Math.log(best) - target)) best = step;
   }
   return `1 in ${best}`;
+}
+
+/** A rate as an estimate, with "about" only where it reads: "about 1 in
+ *  5", "about 2 in 3", "about half", "almost all", "fewer than 1 in
+ *  100" (never "about about half" or "about almost all"). */
+export function aboutOneIn(rate: number): string {
+  const s = oneIn(rate);
+  if (s.startsWith("about ") || s.startsWith("fewer ") || s === "almost all") return s;
+  return `about ${s}`;
 }
 
 /** A duration ratio in words: "about twice as long as". */

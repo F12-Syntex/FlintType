@@ -1,8 +1,8 @@
 import type { TypingSpeedUnit } from "@/lib/appearance-prefs";
-import { perKey, perMinute, seconds, speed } from "@/lib/format-figure";
+import { aboutPerMinute, perKey, seconds, speed } from "@/lib/format-figure";
 import { formatSpeed } from "@/lib/speed-unit";
 import type { Change, ChangeKind, Gate } from "@/types/insights";
-import { moreOf, remaining, speedDelta, type TestKind } from "./copy-phrases";
+import { cap, moreOf, remaining, speedDelta, type TestKind } from "./copy-phrases";
 
 /** "What changed" rows (spec-40 §3.3.2). Pure, no JSX. */
 
@@ -27,7 +27,7 @@ export function betterIsLower(kind: ChangeKind): boolean {
 
 /** "About 2.1 seconds a minute, down from 3.4 seconds." */
 function perMinuteDetail(before: number, after: number): string {
-  const now = after < 0.5 ? "Under half a second a minute" : `About ${perMinute(after)}`;
+  const now = cap(aboutPerMinute(after));
   const was = before < 0.5 ? "under half a second" : seconds(before * 1000);
   return `${now}, ${after <= before ? "down" : "up"} from ${was}.`;
 }
