@@ -20,7 +20,7 @@ function untouchedAfter(tl: Timeline, w: number, c: number): boolean {
 
 describe("v2 episodes on key-level random runs (reducer rules)", () => {
   it("replay exact, spans never empty, and a fix never leaves its word wrong", () => {
-    const seen = { movedOnFixed: 0, movedOnUnfixed: 0, endFixed: 0, rewrites: 0, unfixedRewrites: 0, cross: 0 };
+    const seen = { movedOnFixed: 0, movedOnUnfixed: 0, endFixed: 0, endWrong: 0, endWrongBack: 0, rewrites: 0, unfixedRewrites: 0, cross: 0, fixingWithUnfixed: 0 };
     for (let s = 0; s < 1500; s++) {
       const r = randomKeys(s);
       if (r.timings.length < 2) continue;
@@ -32,19 +32,31 @@ describe("v2 episodes on key-level random runs (reducer rules)", () => {
       expect(rep.typed.slice(0, r.typedFinal!.length)).toEqual(r.typedFinal);
       expect(rep.typed.slice(r.typedFinal!.length).every((b) => b === "")).toBe(true);
       if (r.edits!.some((e) => e.cross)) seen.cross++;
+      const committed = (w: number) => w < tl.wordsReached - 1 || r.lengthMode !== "time" || w < rep.cursor;
+      // The highest word a key went to (past the passage, wordsReached is capped).
+      const maxKey = tl.ev.reduce((m, e) => Math.max(m, e.wordIndex), -1);
       let prevB = -Infinity;
       for (const e of rep.episodes) {
         expect(e.b).toBeGreaterThan(e.a);
         expect(e.a).toBeGreaterThanOrEqual(prevB);
         prevB = e.b;
         if (e.kind === "rewrite") seen[e.fixed ? "rewrites" : "unfixedRewrites"]++;
+        // A rewrite left unfixed is a word left wrong, so never the word still being typed.
+        if (e.kind === "rewrite" && !e.fixed && maxKey <= e.word) expect(committed(e.word)).toBe(true);
+        // Crossing back out of a rewrite's word ends it, so it never holds a key typed in an earlier word.
+        if (e.kind === "rewrite") {
+          const back = tl.ev.slice(e.a + 1, Math.min(e.b, tl.K - 1) + 1).some((x) => x.wordIndex < e.word);
+          expect(back).toBe(false);
+        }
         const target = wordAt(r.words, e.word);
         const final = rep.typed[e.word] ?? "";
         if (e.b === tl.K) {
           // Closed at the end: fixed only when the word isn't left wrong (lostOf's rule).
-          const committed = e.word < tl.wordsReached - 1 || r.lengthMode !== "time" || e.word < rep.cursor;
+          // Never a rewrite: one typed again closes on its own key, and one
+          // never typed again is no episode.
+          expect(e.kind).not.toBe("rewrite");
           expect(e.fixed).toBe(true);
-          expect(!committed || final === target).toBe(true);
+          expect(!committed(e.word) || final === target).toBe(true);
           seen.endFixed++;
           continue;
         }
@@ -60,9 +72,33 @@ describe("v2 episodes on key-level random runs (reducer rules)", () => {
           seen.movedOnUnfixed++;
         }
       }
+      // The word still being typed at the end of a TIME run, left wrong:
+      // its wrong keys are an unfixed slip or extra, so the run never reads
+      // as clean. With no key past it, that slip closes at K − 1. A key may
+      // have gone past it and the cursor come back (then the slip may have
+      // closed when you moved on). Skipped: a later word's mistake still
+      // open at the end, which holds the keys typed after crossing back.
+      const last = tl.wordsReached - 1;
+      const laterOpen = rep.episodes.some((e) => e.word > last && e.b >= tl.K - 1);
+      if (r.lengthMode === "time" && last >= 0 && !laterOpen && !committed(last) && !wordAt(r.words, last).startsWith(rep.typed[last] ?? "")) {
+        const back = maxKey > last;
+        expect(rep.episodes.some((e) => e.word === last && e.kind !== "rewrite" && !e.fixed && (back || e.b === tl.K - 1))).toBe(true);
+        seen[back ? "endWrongBack" : "endWrong"]++;
+      }
       const a = analyseRun(r);
       if (a?.slices) expect(SLICE_ORDER.reduce((x, k) => x + a.slices![k], 0)).toBe(a.T);
       if (a) expect(a.mistakes.rewrites).toBe(rep.episodes.filter((e) => e.kind === "rewrite" && e.fixed).length);
+      // The fixing finding's count, time and worst word describe the same (fixed) episodes.
+      const f = a?.findings.find((x) => x.kind === "fixing");
+      if (a?.slices && f?.kind === "fixing") {
+        const fixed = rep.episodes.filter((e) => e.fixed);
+        expect(f.count).toBe(fixed.length);
+        expect(f.ms).toBeLessThanOrEqual(a.slices.fixing);
+        if (f.worstWord !== null) expect(fixed.map((e) => wordAt(r.words, e.word))).toContain(f.worstWord);
+        expect(f.worstWord).not.toBe("");
+        if (fixed.length === rep.episodes.length) expect(f.ms).toBe(a.mistakes.fixingMs);
+        else seen.fixingWithUnfixed++;
+      }
     }
     // The generator reaches the corners this test is about.
     for (const n of Object.values(seen)) expect(n).toBeGreaterThan(10);

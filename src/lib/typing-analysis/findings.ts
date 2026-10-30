@@ -1,5 +1,6 @@
 import type { Finding, FixMode, RunAnalysis } from "@/types/typing-analysis";
 import { LONG_WORDS_MIN_SHORT, MIN_IMPACT_KEYS, MIN_IMPACT_SHARE, SINGLE_PAUSE_FACTOR, WORST_WORD_SHARE } from "./constants";
+import type { Episode } from "./episodes";
 import { wordAt } from "./timeline";
 
 /** Candidate findings, their impact in ms and the ranking (spec-10 §9).
@@ -14,9 +15,10 @@ export type FindingInputs = {
   gate: "ok" | "short" | "clock";
   quantised: boolean;
   fixMode: FixMode;
-  mistakes: Pick<RunAnalysis["mistakes"], "count" | "fixed" | "rewrites" | "fixingMs" | "left" | "lostChars" | "lostWpm" | "canFix">;
-  /** Fixing ms per word index, and the words. */
-  fixingByWord: Map<number, number>;
+  mistakes: Pick<RunAnalysis["mistakes"], "count" | "fixed" | "rewrites" | "left" | "lostChars" | "lostWpm" | "canFix">;
+  /** The fixing finding's time and its time per word index, from the
+   *  episodes its count covers only (see fixedFixing). */
+  fixed: FixedFixing;
   words: readonly string[];
   noticedLate: number | null;
   pauses: { count: number; ms: number; longest: RunAnalysis["pauses"]["longest"]; byLength: RunAnalysis["pauses"]["byLength"] };
@@ -28,21 +30,49 @@ export type FindingInputs = {
 
 const TIE_ORDER: Finding["kind"][] = ["fixing", "left", "before", "inside", "fade", "startUp", "breaks"];
 
+export type FixedFixing = { ms: number; byWord: Map<number, number> };
+
+/** The fixing finding describes the fixed episodes only: fixed slips and
+ *  extras, and rewrites typed again (its count, fixed + rewrites). Its
+ *  time and its worst word come from the same episodes, so it never names
+ *  a word only because of a mistake left unfixed there. (The word it names
+ *  can still be left wrong by another mistake in it.) An unfixed episode's
+ *  time stays in the Fixing slice but not in the finding. When no unfixed
+ *  episode costs anything, ms is the slice itself, so the finding and the
+ *  time table agree to the millisecond. */
+export function fixedFixing(episodes: readonly Episode[], costs: readonly number[], fixingMs: number): FixedFixing {
+  const byWord = new Map<number, number>();
+  let fixed = 0;
+  let unfixed = 0;
+  episodes.forEach((e, i) => {
+    const c = costs[i] ?? 0;
+    if (!e.fixed) unfixed += c;
+    else {
+      fixed += c;
+      byWord.set(e.word, (byWord.get(e.word) ?? 0) + c);
+    }
+  });
+  return { ms: unfixed > 0 ? Math.min(fixingMs, Math.round(fixed)) : fixingMs, byWord };
+}
+
 function fixingFinding(x: FindingInputs, minImpact: number): Finding | null {
   const m = x.mistakes;
   const count = m.fixed + m.rewrites;
-  if (x.fixMode === "none" || count < 1 || m.fixingMs < minImpact) return null;
+  const ms = Math.round(x.fixed.ms);
+  if (x.fixMode === "none" || count < 1 || ms < minImpact) return null;
   let worstWord: string | null = null;
-  const total = [...x.fixingByWord.values()].reduce((a, v) => a + v, 0);
+  const byWord = x.fixed.byWord;
+  const total = [...byWord.values()].reduce((a, v) => a + v, 0);
   if (count >= 2 && total > 0) {
     let best = -1;
-    for (const [w, ms] of x.fixingByWord) {
-      const top = x.fixingByWord.get(best) ?? -1;
-      if (ms > top || (ms === top && w < best)) best = w;
+    for (const [w, t] of byWord) {
+      const top = byWord.get(best) ?? -1;
+      if (t > top || (t === top && w < best)) best = w;
     }
-    if ((x.fixingByWord.get(best) ?? 0) / total >= WORST_WORD_SHARE) worstWord = wordAt(x.words, best);
+    // A word index past the passage (a TIME run ended after going back) has no word to name.
+    if ((byWord.get(best) ?? 0) / total >= WORST_WORD_SHARE) worstWord = wordAt(x.words, best) || null;
   }
-  return { kind: "fixing", impactMs: Math.round(m.fixingMs), ms: Math.round(m.fixingMs), count, worstWord, noticedLate: x.noticedLate };
+  return { kind: "fixing", impactMs: ms, ms, count, worstWord, noticedLate: x.noticedLate };
 }
 
 function leftFinding(x: FindingInputs): Finding | null {

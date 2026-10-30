@@ -8,6 +8,10 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.151.5 — 30 October 2026
+- The result screen's note about fixing mistakes now gives only the time your fixed mistakes took, and the word it names is always one where you fixed a mistake.
+- Correct letters you delete and don't type again (for example at the end of a timed test) no longer count as fixing time.
+
 ## 6.151.4 — 30 October 2026
 - Cleaner labels across flinttype: facts that were squeezed together with dots are now laid out as labelled figures, progress shows as bars instead of percentages, and counters read "12 of 25" instead of "12/25".
 - On the Biogram, each pattern's gap from your usual pace now adds up with the times shown beside it.
