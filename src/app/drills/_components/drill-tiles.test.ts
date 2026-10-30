@@ -165,7 +165,7 @@ describe("filters", () => {
 describe("drillSpecLine", () => {
   it("describes sudden-death drills by length", () => {
     expect(drillSpecLine(byId(WARM, "weakness"), 5)).toBe(
-      "30 words · no mistakes",
+      "30 words, no mistakes allowed",
     );
     expect(drillSpecLine(byId(COLD, "weakness"), 5)).toBe(
       "No mistakes allowed",
@@ -174,25 +174,25 @@ describe("drillSpecLine", () => {
 
   it("uses the user's Burst reps on configurable drills", () => {
     expect(drillSpecLine(byId(WARM, "worst-words"), 3)).toBe(
-      "5 words · 3 reps · 60 wpm",
+      "5 words, 3 reps each, at 60 wpm",
     );
   });
 
   it("keeps fixed reps and names the unit", () => {
     expect(drillSpecLine(byId(WARM, "pangrams"), 3)).toBe(
-      "8 sentences · 1 rep · 50 wpm",
+      "8 sentences, 1 rep each, at 50 wpm",
     );
     expect(drillSpecLine(byId(WARM, "trigram-burst"), 5)).toBe(
-      "6 clusters · 5 reps · 60 wpm",
+      "6 clusters, 5 reps each, at 60 wpm",
     );
     expect(drillSpecLine(byId(WARM, "burst-1000"), 5)).toBe(
-      "1,000 words · 5 reps · 60 wpm",
+      "1,000 words, 5 reps each, at 60 wpm",
     );
   });
 
   it("drops the count for an empty locked burst", () => {
     expect(drillSpecLine(byId(COLD, "worst-words"), 5)).toBe(
-      "5 reps · 60 wpm",
+      "5 reps each, at 60 wpm",
     );
   });
 

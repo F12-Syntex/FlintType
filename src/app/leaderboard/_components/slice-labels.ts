@@ -1,3 +1,4 @@
+import { lengthLabel } from "@/lib/test-name";
 import {
   type LeaderboardPreset,
   type LeaderboardScope,
@@ -6,7 +7,6 @@ import {
   type RunLengthMode,
 } from "@/types/leaderboard";
 import {
-  ALL_LENGTHS_LABEL,
   type LeaderboardFilters,
   presetLabel,
   SCOPES,
@@ -19,11 +19,12 @@ import {
 
 const TIME_AMOUNTS = new Set([15, 30, 60, 120]);
 
-/** Label for a run's length, e.g. "60s" or "25 words". A pinned board
- *  knows the unit from its preset. On "All lengths" the unit is guessed
- *  from the number (the stock time amounts are 15/30/60/120), so a
- *  custom 30-word run can read as "30s" until entries carry their
- *  length mode. */
+/** Label for a run's length, e.g. "60 seconds" or "25 words"
+ *  (`lengthLabel`, one name everywhere). A pinned board knows the unit
+ *  from its preset. On "All lengths" the unit is guessed from the number
+ *  (the stock time amounts are 15/30/60/120), so a custom 30-word run
+ *  can read as "30 seconds" until entries carry their length mode. Quote
+ *  rows read as words, as their amount is a word count here. */
 export function runLengthLabel(
   amount: number,
   preset: LeaderboardPreset,
@@ -33,7 +34,7 @@ export function runLengthLabel(
   // lengths" fall back to guessing from the amount.
   const mode = rowMode ?? lengthModeForPreset(preset);
   const isTime = mode ? mode === "time" : TIME_AMOUNTS.has(amount);
-  return isTime ? `${amount}s` : `${amount} ${amount === 1 ? "word" : "words"}`;
+  return lengthLabel(isTime ? "time" : "words", amount);
 }
 
 /** Inverse of a scope, offered when the widest board of one mode is
@@ -63,18 +64,16 @@ export function describeSlice(f: LeaderboardFilters): string {
   return `${mode} runs${length}${WINDOW_PHRASE[f.window]}${who}`;
 }
 
-/** One-line summary for the mobile filter button, e.g.
- *  "Casual · 60s · All time" (prefixed with "Friends" when set). */
-export function filterSummary(f: LeaderboardFilters): string {
+/** The mobile filter button's parts, e.g. ["Casual", "60 seconds",
+ *  "All time"] (with "Friends" first when set). The button separates
+ *  them with the house hairline and its aria-label joins them with
+ *  commas. */
+export function filterSummaryParts(f: LeaderboardFilters): string[] {
   const parts = [
     SCOPES.find((s) => s.id === f.scope)?.label ?? "Casual",
-    f.preset === "any"
-      ? ALL_LENGTHS_LABEL
-      : f.preset.startsWith("t")
-        ? `${f.preset.slice(1)}s`
-        : presetLabel(f.preset),
+    presetLabel(f.preset),
     WINDOWS.find((w) => w.id === f.window)?.label ?? "All time",
   ];
   if (f.audience === "friends") parts.unshift("Friends");
-  return parts.join(" · ");
+  return parts;
 }

@@ -2,7 +2,9 @@
 
 import { Check } from "lucide-react";
 import Link from "next/link";
+import { DeltaText } from "@/components/analysis/delta-text";
 import { UserTag } from "@/components/ft";
+import { friendPbSentence, pbDelta, pbSentence } from "@/lib/pb-copy";
 import { relativeTime } from "@/lib/relative-time";
 import { cn } from "@/lib/utils";
 import type {
@@ -15,10 +17,10 @@ import type {
   RaceInviteData,
 } from "@/types/notification";
 
-/** One row of the notifications popover — an inset, rounded row that
+/** One row of the notifications popover: an inset, rounded row that
  *  links to whatever the notification is about (profile, lobby,
  *  announcement), with an unread dot, a relative time and per-kind
- *  extras (PB delta, OG tag, friends check). */
+ *  extras (the PB delta line, OG tag, friends check). */
 export function NotificationRow({
   item,
   onMarkRead,
@@ -73,7 +75,7 @@ export function NotificationRow({
           </span>
         </div>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          {item.body}
+          {bodyText(item)}
         </p>
         {isPersonalBest(item) ? <PbDelta data={item.data} /> : null}
         {item.kind === "og_granted" ? (
@@ -108,34 +110,31 @@ export function NotificationRow({
   return body;
 }
 
+/** The row's body. Personal-best kinds rebuild their sentence from the
+ *  stored data, so old rows (written with dotted bodies) read the same as
+ *  new ones; every other kind shows its stored body. */
+function bodyText(item: Notification): string {
+  if (isPersonalBest(item)) return pbSentence(item.data);
+  if (isFriendPb(item) && typeof item.data.wpm === "number") {
+    return friendPbSentence(item.data.friendName, item.data);
+  }
+  return item.body;
+}
+
+/** The improvement, said once, in ink: nothing on a first run (the title
+ *  says so), an up arrow and the gain when it beat the previous best. */
 function PbDelta({ data }: { data: PersonalBestData }) {
-  if (data.previousWpm == null) {
+  if (data.previousWpm == null) return null;
+  const prev = Math.round(data.previousWpm);
+  const delta = pbDelta(data.wpm, data.previousWpm);
+  if (delta > 0) {
     return (
-      <span
-        className={cn(
-          "mt-1.5 inline-flex w-fit items-center rounded-pill px-2 py-0.5 text-[11px] font-medium tabular-nums",
-          "bg-primary/10 text-primary",
-        )}
-      >
-        First run
-      </span>
+      <DeltaText direction="up" className="mt-1 text-xs text-foreground">
+        {delta} wpm above your previous best of {prev} wpm
+      </DeltaText>
     );
   }
-  // Delta from the rounded figures the user sees (not the raw gap), so
-  // "+N wpm vs M" always reconciles with the headline best (#12).
-  const delta = Math.round(data.wpm) - Math.round(data.previousWpm);
-  return (
-    <span
-      className={cn(
-        "mt-1.5 inline-flex w-fit items-center gap-1 rounded-pill px-2 py-0.5 text-[11px] font-medium tabular-nums",
-        delta > 0
-          ? "bg-primary/10 text-primary"
-          : "bg-muted text-muted-foreground",
-      )}
-    >
-      {delta > 0 ? `+${delta}` : delta} wpm vs {Math.round(data.previousWpm)}
-    </span>
-  );
+  return <p className="mt-1 text-xs text-muted-foreground">Your previous best was {prev} wpm.</p>;
 }
 
 function isAnnouncement(n: Notification): n is Notification & {

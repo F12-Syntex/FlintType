@@ -27,7 +27,7 @@ function handleFor(u: {
 /** Per-racer display identity. For signed-in users we pull the same
  *  short handle the topbar shows (`firstName` → `username` →
  *  email-localpart, `@`-prefixed). Anonymous callers get a stable
- *  per-session "Guest · XYZ" label keyed off a random 3-char id so
+ *  per-session "Guest XYZ" label keyed off a random 3-char id so
  *  multiple guests in the same room don't collide.
  *
  *  Server-only — Clerk calls run in the request scope. The output
@@ -107,5 +107,5 @@ export function guestNameFor(seed: string): string {
   const a = alphabet[h % alphabet.length]!;
   const b = alphabet[(h >>> 5) % alphabet.length]!;
   const c = alphabet[(h >>> 10) % alphabet.length]!;
-  return `Guest · ${a}${b}${c}`;
+  return `Guest ${a}${b}${c}`;
 }

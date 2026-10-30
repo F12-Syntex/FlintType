@@ -88,8 +88,8 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
 
     it("guests are NOT deduped — anonymous joiners each get a distinct seat", () => {
       const room = challenge();
-      room.addRealRacer({ sessionToken: "s_g1", name: "Guest · ABC", badge: "GUEST" });
-      room.addRealRacer({ sessionToken: "s_g2", name: "Guest · XYZ", badge: "GUEST" });
+      room.addRealRacer({ sessionToken: "s_g1", name: "Guest ABC", badge: "GUEST" });
+      room.addRealRacer({ sessionToken: "s_g2", name: "Guest XYZ", badge: "GUEST" });
       expect(room.snapshot().racers).toHaveLength(2);
     });
 
@@ -290,11 +290,11 @@ describe("RaceRoom — edge cases & open-lobby lifecycle", () => {
     it("a guest who leaves pre-race frees the seat; rejoining mints a fresh one", () => {
       const room = challenge({ modeId: "ffa" });
       room.addRealRacer({ sessionToken: "s_host", name: "@host", badge: "RACER", isHost: true });
-      room.addRealRacer({ sessionToken: "s_g", name: "Guest · ABC", badge: "GUEST" });
+      room.addRealRacer({ sessionToken: "s_g", name: "Guest ABC", badge: "GUEST" });
       expect(room.snapshot().racers).toHaveLength(2);
       room.removeRacer("s_g");
       expect(room.snapshot().racers.find((r) => r.id === "s_g")).toBeUndefined();
-      const back = room.addRealRacer({ sessionToken: "s_g_2", name: "Guest · ABC", badge: "GUEST" });
+      const back = room.addRealRacer({ sessionToken: "s_g_2", name: "Guest ABC", badge: "GUEST" });
       expect(back?.sessionToken).toBe("s_g_2");
       expect(room.snapshot().racers).toHaveLength(2);
     });
