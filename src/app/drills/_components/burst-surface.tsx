@@ -153,11 +153,11 @@ export function BurstSurface({
         >
           <StatStrip>
             <StatCard value={`${thresholdWpm} wpm`} caption="Target" />
-            <StatCard value={`${state.reps}/${repsPerItem}`} caption="Streak" />
+            <StatCard value={`${state.reps} of ${repsPerItem}`} caption="Streak" />
             <StatCard
               value={
                 itemStat?.value ??
-                `${Math.min(state.itemIdx + 1, items.length)}/${items.length}`
+                `${Math.min(state.itemIdx + 1, items.length)} of ${items.length}`
               }
               caption={itemStat?.caption ?? unitLabel}
             />

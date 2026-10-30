@@ -2,25 +2,24 @@
 
 import { Lock } from "lucide-react";
 import Link from "next/link";
+import { FieldList } from "@/components/analysis/field-list";
 import { useSignInHref } from "@/components/auth/use-sign-in-href";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { LoadError } from "./use-drills";
 
-/** Neutral status for the header: a count, not a call to action. */
+/** A count, not a call to action: plain figures, no pill. */
 export function ReadyCount({ ready, locked }: { ready: number; locked: number }) {
   return (
-    <span className="inline-flex h-8 items-center gap-2 rounded-pill border border-border bg-card px-3 text-xs font-medium text-muted-foreground tabular-nums">
-      <span>
-        <span className="text-foreground">{ready}</span> ready
-      </span>
-      {locked > 0 ? (
-        <>
-          <span aria-hidden>·</span>
-          <span>{locked} locked</span>
-        </>
-      ) : null}
-    </span>
+    <FieldList
+      variant="inline"
+      size="sm"
+      className="text-sm text-muted-foreground"
+      items={[
+        { label: "ready", value: ready },
+        ...(locked > 0 ? [{ label: "locked", value: locked }] : []),
+      ]}
+    />
   );
 }
 

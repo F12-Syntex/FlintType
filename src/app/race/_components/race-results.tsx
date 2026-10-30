@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, LogOut, RotateCcw } from "lucide-react";
+import { StatusText } from "@/components/analysis/status-text";
 import { Button } from "@/components/ui/button";
 import { formatClock } from "@/lib/format-duration";
 import { ordinal, provisionalLine, summaryLine } from "./race-result-copy";
@@ -137,7 +138,13 @@ export function RaceResults() {
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-1.5 px-1">
           <span className="text-xs font-medium text-muted-foreground">
-            {allFinished ? "Race finished" : "You finished · race in progress"}
+            {allFinished ? (
+              "Race finished"
+            ) : (
+              <StatusText tone="live" className="text-xs font-medium">
+                Race in progress
+              </StatusText>
+            )}
           </span>
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             {ordinal(place)} place
@@ -165,9 +172,9 @@ export function RaceResults() {
               >
                 {waitingForOthers ? (
                   <>
-                    Ready{" "}
+                    Ready,{" "}
                     <span className="tabular-nums text-primary/70">
-                      {readyCount}/{required}
+                      {readyCount} of {required}
                     </span>
                   </>
                 ) : (

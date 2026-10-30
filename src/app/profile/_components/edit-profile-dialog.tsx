@@ -213,7 +213,7 @@ export function EditProfileDialog({
           autoComplete="username"
           disabled={!isLoaded || saving}
           mono
-          hint="Letters and underscores only · changeable once per hour"
+          hint="Letters and underscores only. You can change it once an hour."
           error={
             usernameInvalid
               ? "Letters (a–z, A–Z) and underscores only."

@@ -112,7 +112,7 @@ export default async function OpengraphImage() {
                 lineHeight: 1,
               }}
             >
-              Words · 50
+              50 words
             </span>
             <span
               style={{
@@ -229,7 +229,7 @@ export default async function OpengraphImage() {
             <StatCell label="WPM" value="124" accent ember={EMBER} warm1={WARM_1} warm3={WARM_3} />
             <StatCell label="ACC" value="98%" ember={EMBER} warm1={WARM_1} warm3={WARM_3} />
             <StatCell label="BURST" value="148" ember={EMBER} warm1={WARM_1} warm3={WARM_3} />
-            <StatCell label="WORD" value="32/50" ember={EMBER} warm1={WARM_1} warm3={WARM_3} />
+            <StatCell label="WORD" value="32 of 50" ember={EMBER} warm1={WARM_1} warm3={WARM_3} />
           </div>
           <div
             style={{

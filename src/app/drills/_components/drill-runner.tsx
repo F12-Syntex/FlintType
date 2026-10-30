@@ -19,8 +19,9 @@ import { useDrills } from "./use-drills";
  *  (`max-w-5xl`, no extra gutter) so the header and the typing area
  *  share the practice page's edges.
  *
- *  loading → skeleton · error → sign in or retry · unknown id → not
- *  found · needs more data → locked · otherwise the drill itself. */
+ *  Loading shows a skeleton, an error offers sign-in or retry, an
+ *  unknown id is not found, a locked drill says what it needs, and
+ *  otherwise the drill runs. */
 export function DrillRunner({ id }: { id: string }) {
   const { drills, error, loading, retry } = useDrills();
   const drill = useMemo(

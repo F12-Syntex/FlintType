@@ -120,7 +120,8 @@ function StackGroup({
   );
 }
 
-/** Below lg: a single h-11 summary pill ("Words · 25 · English") that
+/** Below lg: a single h-11 summary pill ("Words", "25", "English" with
+ *  the capsule's hairlines between them) that
  *  expands in place into the stacked controls. Adaptive appears in the
  *  stack only from md, where it's available. */
 function CompactBar() {
@@ -165,9 +166,7 @@ function CompactBar() {
           {parts.map((p, i) => (
             <span key={i} className="flex min-w-0 items-center gap-2">
               {i > 0 ? (
-                <span aria-hidden className="text-muted-foreground/50">
-                  ·
-                </span>
+                <span aria-hidden className="h-4 w-px shrink-0 bg-border" />
               ) : null}
               <span
                 className={cn(
@@ -181,9 +180,7 @@ function CompactBar() {
           ))}
           {adaptOn ? (
             <span className="hidden shrink-0 items-center gap-2 md:flex">
-              <span aria-hidden className="text-muted-foreground/50">
-                ·
-              </span>
+              <span aria-hidden className="h-4 w-px shrink-0 bg-border" />
               <span className="font-medium text-primary">Adaptive</span>
             </span>
           ) : null}

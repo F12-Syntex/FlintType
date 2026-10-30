@@ -46,7 +46,7 @@ test("private lobby: host opens, a second player joins by link, both race", asyn
 
   // Joiner landed on the lobby page (not the expired-link error screen).
   await expect(
-    joiner.getByText(new RegExp(`Lobby · ${slug}`, "i")),
+    joiner.getByText(new RegExp(`Lobby code ${slug}`, "i")),
   ).toBeVisible({ timeout: 20_000 });
   await expect(
     joiner.getByRole("heading", { name: /expired|already started|couldn't reach/i }),

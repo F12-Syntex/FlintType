@@ -2,11 +2,13 @@
 
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useMemo, useState } from "react";
+import { DeltaText } from "@/components/analysis/delta-text";
 import { Surface } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { cn } from "@/lib/utils";
 import type { AdaptModelRow } from "@/types/adapt";
+import { baselineDeltaMs } from "./baseline-delta";
 import { SeverityBar } from "./severity-bar";
 
 type Column = "key" | "weakness" | "meanMs" | "sampleCount";
@@ -117,6 +119,7 @@ export function ModelTable({
                 <th className="py-3 pl-5 pr-3 font-medium">{patternHeader}</th>
                 <th className="py-3 pr-3 text-right font-medium">Weakness</th>
                 <th className="py-3 pr-3 text-right font-medium">Mean time</th>
+                <th className="whitespace-nowrap py-3 pr-3 text-right font-medium">Than usual</th>
                 <th className="py-3 pr-5 text-right font-medium">Samples</th>
               </tr>
             </thead>
@@ -150,9 +153,9 @@ export function ModelTable({
                   </td>
                   <td className="whitespace-nowrap py-2.5 pr-3 text-right text-foreground">
                     {r.meanMs.toFixed(0)} ms
-                    <span className="ml-1 text-xs text-muted-foreground">
-                      {baselineDelta(r.meanMs, baseline)}
-                    </span>
+                  </td>
+                  <td className="whitespace-nowrap py-2.5 pr-3 text-right text-muted-foreground">
+                    <BaselineDelta meanMs={r.meanMs} baseline={baseline} />
                   </td>
                   <td className="py-2.5 pr-5 text-right text-muted-foreground">
                     {r.sampleCount}
@@ -178,9 +181,18 @@ export function ModelTable({
   );
 }
 
-function baselineDelta(value: number, baseline: number): string {
-  if (baseline <= 0) return "";
-  const pct = ((value - baseline) / baseline) * 100;
-  const sign = pct >= 0 ? "+" : "";
-  return `(${sign}${pct.toFixed(0)}%)`;
+/** How far a mean sits from its category's usual time, taken from the
+ *  figures on screen so it adds up with the Mean time cell and the usual
+ *  pace tile. Led by an ink arrow and said in words ("81 ms slower"),
+ *  since the arrow is hidden from screen readers. "—" without a baseline
+ *  yet, and a plain "0 ms" when both print alike. */
+function BaselineDelta({ meanMs, baseline }: { meanMs: number; baseline: number }) {
+  const d = baselineDeltaMs(meanMs, baseline);
+  if (d === null) return <>—</>;
+  if (d === 0) return <>0 ms</>;
+  return (
+    <DeltaText direction={d > 0 ? "up" : "down"}>
+      {Math.abs(d)} ms {d > 0 ? "slower" : "faster"}
+    </DeltaText>
+  );
 }

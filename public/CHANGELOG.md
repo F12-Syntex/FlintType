@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.151.4 — 30 October 2026
+- Cleaner labels across flinttype: facts that were squeezed together with dots are now laid out as labelled figures, progress shows as bars instead of percentages, and counters read "12 of 25" instead of "12/25".
+- On the Biogram, each pattern's gap from your usual pace now adds up with the times shown beside it.
+- Shared results show their speed chart in link previews again.
+
 ## 6.151.3 — 30 October 2026
 - Quote runs on the All lengths leaderboard now name their quote length, such as "Long quote", instead of a word count. Older personal-best notifications keep the length unit they were saved with, and on narrow phones your profile's recent runs no longer cut a test's length short.
 

@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { relativeTime } from "@/lib/relative-time";
 import type { LeaderboardEntry, LeaderboardPreset } from "@/types/leaderboard";
 import { BoardFrame } from "./board-frame";
-import { CellPill, LeaderboardRow, type YouMark } from "./board-row";
+import { CellPill, LeaderboardRow, RowSummary, type YouMark } from "./board-row";
 import { EmptyActions } from "./empty-actions";
 import { MODE_LABEL, parseView } from "./filters";
 import { type BoardColumns, EmptyBoard, LeaderboardBoard } from "./shared-list";
@@ -128,9 +128,13 @@ function RunRow({
       ]}
       headline={entry.netWpm}
       summary={
-        anyLength
-          ? `${length} · ${acc} acc · raw ${entry.wpm}`
-          : `${acc} acc · raw ${entry.wpm} · ${when}`
+        <RowSummary
+          parts={
+            anyLength
+              ? [length, `${acc} accuracy`, `${entry.wpm} raw`]
+              : [`${acc} accuracy`, `${entry.wpm} raw`, when]
+          }
+        />
       }
       ariaLabel={`Rank ${entry.rank}, ${handle}${you ? " (you)" : ""}: ${entry.netWpm} WPM, raw ${entry.wpm}, ${acc} accuracy, ${mode} ${length}, ${when}`}
     />

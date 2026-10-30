@@ -114,7 +114,7 @@ export function RaceLineupPanel({
         {racing && showStats ? (
           <dl className="flex items-baseline gap-x-5 text-xs text-muted-foreground">
             <LiveStat label="Words">
-              {wordsDone}/{totalWords}
+              {wordsDone} of {totalWords}
             </LiveStat>
             <LiveStat label="WPM" accent>
               {wpm}
@@ -186,7 +186,7 @@ function PhaseLabel({
     phase === "matching"
       ? // The count only says something while seats are still filling.
         joinedOpponents < totalOpponents
-        ? `Finding racers ${joinedOpponents}/${totalOpponents}`
+        ? `Finding racers, ${joinedOpponents} of ${totalOpponents}`
         : "Finding racers"
       : phase === "lobby"
         ? "Lobby"

@@ -42,7 +42,7 @@ export default function LandingCover() {
           <div className="flex items-center justify-between gap-3">
             <Logo />
             <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-ft-dim">
-              open source · MIT
+              open source, MIT licence
             </span>
           </div>
           <Rule />
@@ -83,7 +83,7 @@ export default function LandingCover() {
           {/* Spec ledger — datasheet detail, hairline-divided, right-weighted */}
           <dl className="lg:justify-self-end">
             {[
-              { k: "Modes", v: "words · time · quote · burst" },
+              { k: "Modes", v: "Words, time, quote and burst" },
               { k: "Adaptive", v: "drills your weak keys" },
               { k: "Multiplayer", v: "8-player live races" },
               { k: "Themes", v: "24 + full custom" },
@@ -108,7 +108,7 @@ export default function LandingCover() {
         <section className="rounded-2xl bg-ft-paper-soft px-5 py-5 ring-1 ring-inset ring-ft-line-soft sm:px-7 sm:py-6">
           <div className="mb-4 flex items-center justify-between gap-3">
             <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ft-dim">
-              words · 50
+              50 words
             </span>
             {/* A real way in: the cover is static, so instead of a
                 "press any key" hint that does nothing, link to practice. */}
@@ -147,10 +147,13 @@ export default function LandingCover() {
             <Readout label="acc" value="98.7" suffix="%" />
             <Readout label="peak" value="161" />
             <Readout label="consistency" value="92" suffix="%" />
-            <span className="ml-auto hidden items-center gap-1.5 text-[11px] text-ft-dim sm:flex">
-              <Kbd className={COVER_KBD}>esc</Kbd> restart
-              <span className="mx-1 text-ft-line-soft">·</span>
-              <Kbd className={COVER_KBD}>tab</Kbd> new test
+            <span className="ml-auto hidden items-center gap-x-4 text-[11px] text-ft-dim sm:flex">
+              <span className="inline-flex items-center gap-1.5">
+                <Kbd className={COVER_KBD}>esc</Kbd> restart
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Kbd className={COVER_KBD}>tab</Kbd> new test
+              </span>
             </span>
           </div>
         </section>
@@ -160,7 +163,7 @@ export default function LandingCover() {
         <Rule />
         <footer className="flex items-center justify-between gap-3 pt-5 text-[10px] font-medium uppercase tracking-[0.18em] text-ft-dim">
           <span className="text-ft-ink">flinttype.com</span>
-          <span className="hidden sm:inline">Next.js · React · TypeScript</span>
+          <span className="hidden sm:inline">Built with Next.js, React and TypeScript</span>
           <span>Type faster, together</span>
         </footer>
       </div>

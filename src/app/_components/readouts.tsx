@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties } from "react";
-import { Kbd } from "@/components/ft";
+import { KeyHint } from "@/components/analysis/key-hint";
 import { useAppearancePrefs } from "@/lib/appearance-prefs";
 import type { LiveStatStyle } from "@/lib/appearance-prefs";
 import { useBehaviourPrefs } from "@/lib/behaviour-prefs";
 import { formatClock } from "@/lib/format-duration";
+import { plural } from "@/lib/format-figure";
 import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
 import { keystrokeErrors } from "@/lib/wpm";
 import { usePractice } from "./practice-state";
@@ -15,6 +16,11 @@ import { Readout, ReadoutRow } from "./readout";
 function formatElapsed(ms: number): string {
   return formatClock(ms / 1000);
 }
+
+// Word counts in the same UK grouping as `plural` ("1,000"), so a
+// 1,000-word test reads the way its name does everywhere else.
+const WORD_FIGURE = new Intl.NumberFormat("en-GB");
+const wordFigure = (n: number): string => WORD_FIGURE.format(n);
 
 /** Toggle that turns true for ~1.5s every 15s — drives the "flash"
  *  variant of the live readouts so the screen stays clean otherwise. */
@@ -153,14 +159,9 @@ function DesktopStats(props: StatsProps) {
   if (!props.running) {
     return (
       <ReadoutRow className="items-center text-sm text-muted-foreground">
-        <p className="flex items-center gap-2">
+        <p className="flex items-center gap-x-6">
           <span className="font-medium text-foreground">Start typing</span>
-          <span aria-hidden className="text-muted-foreground/50">
-            ·
-          </span>
-          <span>
-            <Kbd>tab</Kbd> for a new passage
-          </span>
+          <KeyHint keys={["tab"]} label="New passage" />
         </p>
       </ReadoutRow>
     );
@@ -216,8 +217,8 @@ function DesktopStats(props: StatsProps) {
             <Readout
               mini={prog.mini}
               color={color}
-              label="words"
-              value={`${props.wordIdx}/${props.wordCount}`}
+              label={props.wordCount === 1 ? "word" : "words"}
+              value={`${wordFigure(props.wordIdx)} of ${wordFigure(props.wordCount)}`}
             />
             <Readout
               mini={prog.mini}
@@ -275,12 +276,10 @@ function MobileStrip(props: StatsProps) {
         <Readout
           compact
           color={color}
-          label={props.isTime ? "left" : "words"}
-          value={
-            props.isTime
-              ? formatElapsed(props.remainingMs)
-              : `${props.wordIdx}/${props.wordCount}`
-          }
+          // "13 of 100 words": "of 100" rides in the small caption, so the
+          // one-line strip is no wider than the old "13/100".
+          label={props.isTime ? "left" : `of ${plural(props.wordCount, "word", "words")}`}
+          value={props.isTime ? formatElapsed(props.remainingMs) : wordFigure(props.wordIdx)}
         />
       ) : null}
     </div>

@@ -139,16 +139,20 @@ export function MonkeyTypeManageDialog({
           <dd className="text-foreground tabular-nums">{lastSynced}</dd>
 
           <dt className="self-center text-muted-foreground">
-            Imported
+            Personal bests
           </dt>
-          <dd className="text-foreground tabular-nums">
-            {pbCells} PB cell{pbCells === 1 ? "" : "s"}
-            {slice.completedTests != null ? (
-              <>
-                {" "}· {slice.completedTests.toLocaleString()} lifetime tests
-              </>
-            ) : null}
-          </dd>
+          <dd className="text-foreground tabular-nums">{pbCells.toLocaleString()}</dd>
+
+          {slice.completedTests != null ? (
+            <>
+              <dt className="self-center text-muted-foreground">
+                Lifetime tests
+              </dt>
+              <dd className="text-foreground tabular-nums">
+                {slice.completedTests.toLocaleString()}
+              </dd>
+            </>
+          ) : null}
         </dl>
 
         {status.kind === "ok" ? (
@@ -158,17 +162,8 @@ export function MonkeyTypeManageDialog({
           >
             Synced.{" "}
             <span className="text-muted-foreground">
-              {status.pbsImported} PB cell
-              {status.pbsImported === 1 ? "" : "s"} refreshed
-              {status.completedTests != null ? (
-                <>
-                  {" "}· lifetime{" "}
-                  <span className="text-foreground tabular-nums">
-                    {status.completedTests.toLocaleString()}
-                  </span>
-                </>
-              ) : null}
-              .
+              <span className="tabular-nums">{status.pbsImported.toLocaleString()}</span>{" "}
+              {status.pbsImported === 1 ? "personal best" : "personal bests"} refreshed.
             </span>
           </p>
         ) : null}

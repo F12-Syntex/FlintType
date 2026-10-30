@@ -255,9 +255,9 @@ test("social loop: warm up, befriend, then duel — four aware users", async ({
     }
     expect(slug.length, "host should have navigated to /race/c/<slug>").toBeGreaterThan(0);
 
-    // Host is in their lobby (heading "Lobby · <slug>") with the host-only
+    // Host is in their lobby (label "Lobby code <slug>") with the host-only
     // Start control.
-    await expect(flint.getByText(new RegExp(`Lobby · ${slug}`, "i"))).toBeVisible({
+    await expect(flint.getByText(new RegExp(`Lobby code ${slug}`, "i"))).toBeVisible({
       timeout: 20_000,
     });
 
@@ -281,7 +281,7 @@ test("social loop: warm up, befriend, then duel — four aware users", async ({
     // ── ember accepts: lands in the same lobby and readies up ──
     await ember.goto(`/race/c/${slug}`);
     await dismissChangelog(ember);
-    await expect(ember.getByText(new RegExp(`Lobby · ${slug}`, "i"))).toBeVisible({
+    await expect(ember.getByText(new RegExp(`Lobby code ${slug}`, "i"))).toBeVisible({
       timeout: 20_000,
     });
     await expect(

@@ -271,10 +271,10 @@ function buildMocks(userId: string, avatarUrl: string | null) {
   const notifications = {
     unreadCount: 3,
     items: [
-      { id: "n1", kind: "personal_best", title: "New personal best", body: "152 wpm on words · 50", createdAtMs: now - 600_000, readAtMs: null, data: { mode: "training", durationOrWordCount: 50, wpm: 152, accuracy: 98.4, previousWpm: 147 } },
+      { id: "n1", kind: "personal_best", title: "New personal best", body: "152 wpm at 98.4% accuracy in an Adapt test of 50 words.", createdAtMs: now - 600_000, readAtMs: null, data: { mode: "training", durationOrWordCount: 50, lengthMode: "words", wpm: 152, accuracy: 98.4, previousWpm: 147 } },
       { id: "n2", kind: "mutual", title: "You're now friends", body: "with Priya Anand", createdAtMs: now - 5_400_000, readAtMs: null, data: { friendId: "user_demo_2", friendName: "Priya Anand", friendUsername: "priyaanand" } },
       { id: "n3", kind: "follow", title: "New follower", body: "Tobias Renn followed you", createdAtMs: now - 9_000_000, readAtMs: null, data: { followerId: "user_demo_1", followerName: "Tobias Renn", followerUsername: "tobiasrenn" } },
-      { id: "n4", kind: "friend_pb", title: "Mara Vexley set a PB", body: "188 wpm on words · 25", createdAtMs: now - 90_000_000, readAtMs: now - 80_000_000, data: { friendId: "user_demo_0", friendName: "Mara Vexley", friendUsername: "maravexley", mode: "training", durationOrWordCount: 25, wpm: 188, accuracy: 99.1 } },
+      { id: "n4", kind: "friend_pb", title: "Mara Vexley set a PB", body: "Mara Vexley hit 188 wpm in an Adapt test of 25 words.", createdAtMs: now - 90_000_000, readAtMs: now - 80_000_000, data: { friendId: "user_demo_0", friendName: "Mara Vexley", friendUsername: "maravexley", mode: "training", durationOrWordCount: 25, lengthMode: "words", wpm: 188, accuracy: 99.1 } },
       { id: "n5", kind: "og_granted", title: "Founding member", body: "You're one of the first to join flinttype", createdAtMs: now - 600_000_000, readAtMs: now - 500_000_000, data: { seq: 312, milestoneLimit: 1000 } },
     ],
   };

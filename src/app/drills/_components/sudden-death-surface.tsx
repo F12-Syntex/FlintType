@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { LabelledProgress } from "@/components/analysis/labelled-progress";
 import { SpectateIndicator } from "@/components/spectate-indicator";
 import { InputCapture } from "@/app/_components/input-capture";
 import { Passage } from "@/app/_components/passage";
@@ -124,12 +125,14 @@ function SuddenDeathFooter({
   if (done) return null;
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-border pt-3 text-xs text-muted-foreground">
-      <span className="flex items-center gap-1.5 tabular-nums">
-        Progress
-        <span className="font-semibold text-foreground">
-          {cursorWord} / {totalWords}
-        </span>
-      </span>
+      <LabelledProgress
+        className="w-40"
+        value={cursorWord}
+        max={totalWords}
+        startLabel="Progress"
+        endLabel={`${cursorWord} of ${totalWords} words`}
+        valueText={`${cursorWord} of ${totalWords} words`}
+      />
       <span className="flex items-center gap-1.5 tabular-nums">
         Resets
         <span

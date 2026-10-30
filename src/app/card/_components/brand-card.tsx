@@ -68,7 +68,7 @@ function Header() {
           className="rounded-full bg-ft-ink-track px-4 py-2.5 font-sans font-semibold text-ft-warm-1 ring-1 ring-inset ring-ft-ink-line"
           style={{ fontSize: 15, lineHeight: 1 }}
         >
-          Words · 50
+          50 words
         </span>
         <span
           className="font-medium tabular-nums text-ft-warm-1"
@@ -166,7 +166,7 @@ function Footer() {
         <StatCell label="wpm" value="124" accent />
         <StatCell label="accuracy" value="98%" />
         <StatCell label="burst" value="148" />
-        <StatCell label="word" value="32/50" />
+        <StatCell label="word" value="32 of 50" />
       </div>
       <div className="relative flex items-center justify-between pt-7">
         <Hairline className="top-0" />

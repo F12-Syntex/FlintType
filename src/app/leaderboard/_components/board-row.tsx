@@ -128,6 +128,20 @@ function RankMark({ rank }: { rank: number }) {
   );
 }
 
+/** The muted line under a name on phones: separate facts spaced apart,
+ *  never joined with a glyph ("98% accuracy", "152 raw", "2d ago"). */
+export function RowSummary({ parts }: { parts: readonly ReactNode[] }) {
+  return (
+    <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5">
+      {parts.map((part, i) => (
+        <span key={i} className="min-w-0">
+          {part}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 /** Neutral pill for a categorical cell (mode, tier). */
 export function CellPill({ children }: { children: ReactNode }) {
   return (
