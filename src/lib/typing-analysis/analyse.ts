@@ -3,7 +3,7 @@ import { perMinuteOf } from "./budget";
 import { LIVE_EVENTS_CAP, MIN_KEYS, PARTIAL_HEAD_SHARE } from "./constants";
 import type { Episode } from "./episodes";
 import { fadeOf } from "./fade";
-import { findingsFor } from "./findings";
+import { findingsFor, fixedFixing } from "./findings";
 import { jackknifeSE } from "./jackknife";
 import { prepareRun } from "./prepare";
 import { median, round } from "./stats";
@@ -44,8 +44,6 @@ function analyse(input: RunInput): RunAnalysis {
   const isMistake = (e: Episode) => e.kind !== "rewrite";
   const fixedSlips = episodes.filter((e) => e.kind === "slip" && e.fixed);
   const costs = budget ? budget.episodeCost : [];
-  const fixingByWord = new Map<number, number>();
-  episodes.forEach((e, i) => fixingByWord.set(e.word, (fixingByWord.get(e.word) ?? 0) + (costs[i] ?? 0)));
   const mistakes: RunAnalysis["mistakes"] = {
     count: episodes.filter(isMistake).length,
     fixed: episodes.filter((e) => isMistake(e) && e.fixed).length,
@@ -69,7 +67,8 @@ function analyse(input: RunInput): RunAnalysis {
       || (tl.head > PARTIAL_HEAD_SHARE * T && tl.head > Math.max(2000, 20 * (P ?? 0)))));
 
   const findings = findingsFor({
-    P, T, wpm: input.wpm, gate, quantised: tl.quantised, fixMode: tl.fixMode, mistakes, fixingByWord, words,
+    P, T, wpm: input.wpm, gate, quantised: tl.quantised, fixMode: tl.fixMode, mistakes, words,
+    fixed: fixedFixing(episodes, costs, mistakes.fixingMs),
     noticedLate: tl.capture === 2 ? fixedSlips.filter((e) => (e.noticeKeys ?? 0) >= 1).length : null,
     pauses: { count: ok ? budget!.pauses : 0, ...pauses },
     catches: { count: ok ? budget!.catches : 0, ms: catches.ms, topWord: catches.topWord },
