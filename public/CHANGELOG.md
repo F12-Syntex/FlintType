@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.154.1 — 30 October 2026
+- Internal changes only.
+
 ## 6.154.0 — 30 October 2026
 - Importing your MonkeyType settings works properly again: it changes only the settings in your file and leaves everything else as it was. Before, it reset many of your other settings to their defaults.
 - Your custom MonkeyType colours, font and font size now come across too, along with the caret, keyboard, live stats and test setup.

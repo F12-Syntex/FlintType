@@ -43,16 +43,20 @@ export async function focusTypingInput(page: Page): Promise<void> {
   });
 }
 
-/** Largest racer-lane progress-bar fill width (%), 0 when nobody has
- *  advanced. The race lane fills are the only `rounded-full` elements
- *  with an inline `width: N%` on the race screen (the friends dock,
- *  which also uses avatars, is hidden during a race). */
+/** Largest racer-lane progress (%), 0 when nobody has advanced. Each
+ *  lane's stone rides a full-width layer (`inset-0 will-change-transform`,
+ *  lineup-lane.tsx) translated by the progress as a share of its own
+ *  width, so progress is its translateX over its width. */
 export async function maxLaneWidth(page: Page): Promise<number> {
   return page.evaluate(() => {
-    const widths = [...document.querySelectorAll('[class*="rounded-full"][style*="width"]')]
-      .map((e) => parseFloat((e.getAttribute("style") || "").match(/width:\s*([0-9.]+)%/)?.[1] || "0"))
-      .filter((n) => !Number.isNaN(n));
-    return widths.length ? Math.max(...widths) : 0;
+    const progress = [...document.querySelectorAll<HTMLElement>('[class~="inset-0"][class~="will-change-transform"]')]
+      .map((e) => {
+        const w = e.getBoundingClientRect().width;
+        const t = getComputedStyle(e).transform;
+        return w > 0 && t && t !== "none" ? (new DOMMatrixReadOnly(t).m41 / w) * 100 : 0;
+      })
+      .filter((n) => Number.isFinite(n));
+    return progress.length ? Math.max(...progress) : 0;
   });
 }
 
