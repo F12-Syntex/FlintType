@@ -10,7 +10,7 @@ import { Chip, ChipGroup } from "../chip";
 import { LabelWithDesc, SelectChips } from "../controls";
 import { SettingsRow, SwitchRow } from "../row";
 
-const STYLES: ReadonlyArray<{ id: CaretStyle; label: string }> = [
+export const STYLES: ReadonlyArray<{ id: CaretStyle; label: string }> = [
   { id: "line", label: "Line" },
   { id: "block", label: "Block" },
   { id: "underline", label: "Under" },
@@ -18,20 +18,20 @@ const STYLES: ReadonlyArray<{ id: CaretStyle; label: string }> = [
   { id: "off", label: "Off" },
 ];
 
-const THICKNESS_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
+export const THICKNESS_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
   { label: "1px", value: 1 },
   { label: "2px", value: 2 },
   { label: "3px", value: 3 },
   { label: "4px", value: 4 },
 ];
 
-const RADIUS_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
+export const RADIUS_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
   { label: "Sharp", value: 0 },
   { label: "Soft", value: 2 },
   { label: "Round", value: 6 },
 ];
 
-const BLINK_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
+export const BLINK_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
   { label: "Off", value: 0 },
   { label: "Slow", value: 1500 },
   { label: "Normal", value: 1000 },
@@ -43,7 +43,7 @@ const BLINK_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
  *  on purpose — "Drift" reads better than "Slow" and lines up with the
  *  product's editorial-mechanical feel. Default sits at the slow end
  *  (Glide) which makes the caret feel deliberate. */
-const SMOOTH_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
+export const SMOOTH_PRESETS: ReadonlyArray<{ label: string; value: number }> = [
   { label: "Off", value: 0 },
   { label: "Snappy", value: 60 },
   { label: "Smooth", value: 120 },

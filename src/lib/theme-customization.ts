@@ -92,6 +92,27 @@ function writeOverrides(next: ThemeOverrides, changed: ThemeVar) {
   if (after !== palette) writeSlice("palette", after);
 }
 
+/** Set one override, fork or settle the palette, and paint it at once.
+ *  The same write every colour, font and size control makes; the
+ *  settings import uses it too. */
+export function setThemeVar(name: ThemeVar, value: string): void {
+  const current = readSlice<ThemeOverrides>("theme", EMPTY_OVERRIDES);
+  writeOverrides(setOverride(current, name, value), name);
+  applyVar(name, value);
+}
+
+/** Clear one override so it falls back to the palette's own value. */
+export function clearThemeVar(name: ThemeVar): void {
+  const current = readSlice<ThemeOverrides>("theme", EMPTY_OVERRIDES);
+  // Nothing to clear. Removing the inline var anyway would strip the
+  // palette's own value for it (they share one inline style).
+  if (!isOverridden(current, name)) return;
+  writeOverrides(clearOverride(current, name), name);
+  // PaletteProvider repaints the palette's own value underneath once
+  // the set of overridden vars changes.
+  applyVar(name, undefined);
+}
+
 /** Run the one-shot migration off the pre-2026-05 fake-default state
  *  (orange force-applied as an override + palette pinned to "custom")
  *  onto the real Default theme. Module-level guard so it fires once per
@@ -151,22 +172,9 @@ export function useThemeOverrides() {
     appliedRef.current = nextKeys;
   }, [overrides]);
 
-  const setVar = useCallback((name: ThemeVar, value: string) => {
-    const current = readSlice<ThemeOverrides>("theme", EMPTY_OVERRIDES);
-    writeOverrides(setOverride(current, name, value), name);
-    applyVar(name, value);
-  }, []);
-
-  const clearVar = useCallback((name: ThemeVar) => {
-    const current = readSlice<ThemeOverrides>("theme", EMPTY_OVERRIDES);
-    // Nothing to clear. Removing the inline var anyway would strip the
-    // palette's own value for it (they share one inline style).
-    if (!isOverridden(current, name)) return;
-    writeOverrides(clearOverride(current, name), name);
-    // PaletteProvider repaints the palette's own value underneath once
-    // the set of overridden vars changes.
-    applyVar(name, undefined);
-  }, []);
+  // Module functions, so their identity is already stable.
+  const setVar = setThemeVar;
+  const clearVar = clearThemeVar;
 
   const reset = useCallback(() => {
     const current = readSlice<ThemeOverrides>("theme", EMPTY_OVERRIDES);

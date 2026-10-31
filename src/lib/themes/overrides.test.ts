@@ -131,11 +131,9 @@ describe("diffAppliedVars (what the apply effect sets/removes)", () => {
     expect([...nextKeys].sort()).toEqual(["--accent", "--primary"]);
   });
 
-  it("ignores empty-string values", () => {
-    const { set, nextKeys } = diffAppliedVars(new Set(), {
-      "--primary": "",
-      "--ring": "#abc",
-    });
+  it("ignores empty-string values and keys that aren't custom properties", () => {
+    const stored = { "--primary": "", display: "none", "--ring": "#abc" } as unknown as ThemeOverrides;
+    const { set, nextKeys } = diffAppliedVars(new Set(), stored);
     expect(set).toEqual([["--ring", "#abc"]]);
     expect([...nextKeys]).toEqual(["--ring"]);
   });

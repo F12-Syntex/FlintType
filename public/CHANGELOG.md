@@ -8,6 +8,12 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.154.0 — 30 October 2026
+- Importing your MonkeyType settings works properly again: it changes only the settings in your file and leaves everything else as it was. Before, it reset many of your other settings to their defaults.
+- Your custom MonkeyType colours, font and font size now come across too, along with the caret, keyboard, live stats and test setup.
+- A new import window checks your file step by step, shows each setting as it is now and after the import, and lets you leave out any group. It also lists the MonkeyType settings flinttype can't use, and why.
+- You can undo an import straight after it finishes. Importing a flinttype settings file uses the same window, and restoring one of your own exports now puts every setting back exactly.
+
 ## 6.153.0 — 31 October 2026
 - Insights now looks at all your Adapt tests, of every length, by default. Pick one length from the "Which tests" menu to narrow it down again.
 - Each length runs at its own pace, so every test is compared with your usual for its length first. A 15 second test no longer looks like a better day than a 120 second one.

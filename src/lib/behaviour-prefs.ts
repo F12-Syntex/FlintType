@@ -15,8 +15,9 @@ export type BehaviourPrefs = {
    *  "always-clean passage" feel some typists prefer. */
   allowExtras: boolean;
   /** When true, hitting space before the current word is fully typed
-   *  refuses to advance — the user must finish or backspace. Mimics
-   *  MonkeyType's strict-space mode. */
+   *  refuses to advance — the user must finish or backspace. This is
+   *  MonkeyType's Stop on error set to word (its own Strict space is a
+   *  different setting). */
   strictSpace: boolean;
   blindMode: boolean;
   minWordLength: number;
