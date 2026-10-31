@@ -8,6 +8,14 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.154.0 — 31 October 2026
+- Importing your MonkeyType settings now opens a step-by-step window. It reads your file, shows every setting that will change before anything happens, then brings each group over in turn and tells you where it was saved.
+- The import no longer resets your other settings. Before, anything not in the MonkeyType file went back to its default.
+- More of your MonkeyType settings now come over: strict space, numbers and punctuation, key clicks and their volume, the timer style and opacity, your word list, and the newer keyboard options.
+- Caret speed now lands on one of the speeds in Settings, so the right option is highlighted after an import.
+- A MonkeyType file with no background image now leaves your own background alone.
+- Picking the wrong file tells you what went wrong, with a button to choose another.
+
 ## 6.153.0 — 31 October 2026
 - Insights now looks at all your Adapt tests, of every length, by default. Pick one length from the "Which tests" menu to narrow it down again.
 - Each length runs at its own pace, so every test is compared with your usual for its length first. A 15 second test no longer looks like a better day than a 120 second one.

@@ -16,15 +16,16 @@ import {
   downloadJson,
   type ImportPlan,
   planFlinttypeImport,
-  planMonkeytypeImport,
 } from "@/lib/import-export";
 import { cn } from "@/lib/utils";
+import { MonkeytypeImportDialog } from "./monkeytype-import";
 
 type Source = "flinttype" | "monkeytype";
 
 /** The "Import / export" menu in every settings page header. Export
- *  downloads a JSON file; imports are two-phase: file picker →
- *  ConfirmDialog listing every slice that will change → commit. */
+ *  downloads a JSON file. A flinttype import lists every slice it will
+ *  write in a ConfirmDialog before committing; a MonkeyType import runs
+ *  in its own step-by-step dialog (`./monkeytype-import`). */
 export function ImportExportMenu({
   className,
 }: {
@@ -36,6 +37,8 @@ export function ImportExportMenu({
     null,
   );
   const [plan, setPlan] = useState<ImportPlan | null>(null);
+  // A fresh File each pick, so picking the same file again re-runs.
+  const [monkeytypeFile, setMonkeytypeFile] = useState<File | null>(null);
 
   async function handleExport() {
     setStatus(null);
@@ -60,14 +63,14 @@ export function ImportExportMenu({
 
   async function handleFile(file: File) {
     setStatus(null);
+    if (sourceRef.current === "monkeytype") {
+      setMonkeytypeFile(file);
+      return;
+    }
     try {
       const text = await file.text();
       const json: unknown = JSON.parse(text);
-      const source = sourceRef.current;
-      const next =
-        source === "flinttype"
-          ? planFlinttypeImport(json)
-          : planMonkeytypeImport(json);
+      const next = planFlinttypeImport(json);
       if (next.changes.length === 0) {
         setStatus({
           ok: true,
@@ -95,9 +98,7 @@ export function ImportExportMenu({
       const n = plan.apply();
       setStatus({
         ok: true,
-        msg: `Imported ${n} section${n === 1 ? "" : "s"} from ${
-          plan.source === "flinttype" ? "flinttype" : "MonkeyType"
-        }.`,
+        msg: `Imported ${n} section${n === 1 ? "" : "s"} from flinttype.`,
       });
     } catch (err) {
       setStatus({
@@ -187,6 +188,11 @@ export function ImportExportMenu({
       >
         {plan ? <ImportSummary plan={plan} /> : null}
       </ConfirmDialog>
+
+      <MonkeytypeImportDialog
+        file={monkeytypeFile}
+        onChooseAnother={() => chooseFile("monkeytype")}
+      />
     </div>
   );
 }

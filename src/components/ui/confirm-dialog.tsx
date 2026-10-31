@@ -60,6 +60,10 @@ export function ConfirmDialog({
    *  inline in the body. The header's close ✕, click-outside, and
    *  Escape still close the dialog. */
   hideFooter = false,
+  /** Replaces the Cancel / Confirm pair with the caller's own buttons,
+   *  keeping the footer bar. For flows whose actions change from step
+   *  to step (the MonkeyType settings import). */
+  footer,
 }: {
   open: boolean;
   onOpenChange: (next: boolean) => void;
@@ -72,6 +76,7 @@ export function ConfirmDialog({
   keepOpen?: boolean;
   confirmDisabled?: boolean;
   hideFooter?: boolean;
+  footer?: ReactNode;
 }) {
   const mounted = useMounted();
   const [render, setRender] = useState(false);
@@ -203,23 +208,27 @@ export function ConfirmDialog({
         </div>
         {hideFooter ? null : (
           <footer ref={footerRef} className="flex shrink-0 items-center justify-end gap-2 border-t border-border bg-background/60 px-4 py-3 md:px-5">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              className="h-11 md:h-9"
-            >
-              {cancelLabel}
-            </Button>
-            <Button
-              variant={confirmVariant === "destructive" ? "destructive" : "default"}
-              size="sm"
-              onClick={handleConfirm}
-              disabled={confirmDisabled}
-              className="h-11 md:h-9"
-            >
-              {confirmLabel}
-            </Button>
+            {footer ?? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onOpenChange(false)}
+                  className="h-11 md:h-9"
+                >
+                  {cancelLabel}
+                </Button>
+                <Button
+                  variant={confirmVariant === "destructive" ? "destructive" : "default"}
+                  size="sm"
+                  onClick={handleConfirm}
+                  disabled={confirmDisabled}
+                  className="h-11 md:h-9"
+                >
+                  {confirmLabel}
+                </Button>
+              </>
+            )}
           </footer>
         )}
       </div>

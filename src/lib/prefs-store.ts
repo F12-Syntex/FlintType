@@ -452,6 +452,26 @@ export function clearSlice(key: string): void {
   scheduleWrite();
 }
 
+/** Save every local edit now instead of after the debounce, and report
+ *  whether the backend confirmed it. False means the edits are on this
+ *  device only (signed out, or the save failed); they stay marked
+ *  dirty, so a later save or the next load retries them. */
+export async function flushPrefs(): Promise<boolean> {
+  ensureMeta();
+  const target = localVersion;
+  // A save already in flight may predate these edits: let it land,
+  // then send whatever it didn't carry.
+  if (writeInFlight) await writeInFlight;
+  if (syncedVersion < target) {
+    if (writeTimer) {
+      clearTimeout(writeTimer);
+      writeTimer = null;
+    }
+    await flush();
+  }
+  return syncedVersion >= target;
+}
+
 function scheduleWrite(): void {
   if (typeof window === "undefined") return;
   if (writeTimer) clearTimeout(writeTimer);

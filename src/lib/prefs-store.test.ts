@@ -18,6 +18,7 @@ import {
   __resetForTests,
   getCache,
   clearSlice,
+  flushPrefs,
   loadPrefs,
   readSlice,
   subscribe,
@@ -525,5 +526,84 @@ describe("prefs-store owner isolation", () => {
     expect(getCache()).toBe(before);
     expect(localStorage.getItem(BLOB_KEY)).not.toBeNull();
     expect(readMeta().owner).toBe("A");
+  });
+});
+
+describe("flushPrefs", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    localStorage.clear();
+    __resetForTests();
+    mockGet = async () => ({});
+    mockMerge = async () => ({ ok: true });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("saves at once, without waiting for the debounce, and reports success", async () => {
+    const sent: unknown[] = [];
+    mockMerge = async (input) => {
+      sent.push(input);
+      return { ok: true };
+    };
+    await loadPrefs();
+    writeSlice("caret", { style: "block" });
+
+    expect(await flushPrefs()).toBe(true);
+    expect(sent).toEqual([{ data: { caret: { style: "block" } } }]);
+
+    // The debounced save was taken over, not doubled.
+    await vi.runAllTimersAsync();
+    expect(sent).toHaveLength(1);
+  });
+
+  it("reports false when the save fails, and keeps the edit for a retry", async () => {
+    mockMerge = async () => {
+      throw new Error("401");
+    };
+    await loadPrefs();
+    writeSlice("caret", { style: "block" });
+
+    expect(await flushPrefs()).toBe(false);
+
+    const sent: unknown[] = [];
+    mockMerge = async (input) => {
+      sent.push(input);
+      return { ok: true };
+    };
+    expect(await flushPrefs()).toBe(true);
+    expect(sent).toEqual([{ data: { caret: { style: "block" } } }]);
+  });
+
+  it("waits for a save already in flight, then sends what it didn't carry", async () => {
+    const sent: unknown[] = [];
+    let release: () => void = () => {};
+    mockMerge = (input) => {
+      sent.push(input);
+      return sent.length === 1
+        ? new Promise((resolve) => {
+            release = () => resolve({ ok: true });
+          })
+        : Promise.resolve({ ok: true });
+    };
+    await loadPrefs();
+    writeSlice("caret", { style: "block" });
+    await vi.advanceTimersByTimeAsync(400); // the debounced save starts
+
+    writeSlice("behaviour", { strictSpace: true });
+    const done = flushPrefs();
+    release();
+
+    expect(await done).toBe(true);
+    expect(sent).toEqual([
+      { data: { caret: { style: "block" } } },
+      { data: { behaviour: { strictSpace: true } } },
+    ]);
+  });
+
+  it("is true with nothing to save", async () => {
+    await loadPrefs();
+    expect(await flushPrefs()).toBe(true);
   });
 });
