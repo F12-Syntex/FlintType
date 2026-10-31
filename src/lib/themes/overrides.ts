@@ -94,7 +94,9 @@ export function diffAppliedVars(
   const set: Array<[ThemeVar, string]> = [];
   const nextKeys = new Set<ThemeVar>();
   for (const [k, v] of Object.entries(o)) {
-    if (typeof v === "string" && v !== "") {
+    // Only custom properties: a stored key like "display" must never
+    // reach style.setProperty on <html>.
+    if (k.startsWith("--") && typeof v === "string" && v !== "") {
       set.push([k as ThemeVar, v]);
       nextKeys.add(k as ThemeVar);
     }

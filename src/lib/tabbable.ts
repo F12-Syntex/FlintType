@@ -45,6 +45,13 @@ function isRadioStop(el: Element, all: readonly Element[]): boolean {
   return checked ? checked === el : group[0] === el;
 }
 
+/** A disabled form control. Some button components give a disabled
+ *  native button tabindex="0", which the `[tabindex]` selector matches,
+ *  but the browser still skips it. */
+function isDisabled(el: Element): boolean {
+  return (el as HTMLButtonElement).disabled === true || el.matches(":disabled");
+}
+
 /** The elements Tab visits inside `container`, in document order. */
 export function tabbables(container: Element | null): HTMLElement[] {
   if (!container) return [];
@@ -52,6 +59,7 @@ export function tabbables(container: Element | null): HTMLElement[] {
   return all.filter(
     (el) =>
       tabIndexOf(el) >= 0 &&
+      !isDisabled(el) &&
       !el.closest("[inert]") &&
       isRadioStop(el, all) &&
       isVisible(el),

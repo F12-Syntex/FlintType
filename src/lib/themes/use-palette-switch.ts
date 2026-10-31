@@ -1,7 +1,7 @@
 "use client";
 
 import { type RefObject, useCallback, useRef, useState } from "react";
-import { buildFlinttypeExport, downloadJson } from "../import-export";
+import { buildFlinttypeExport, downloadJson } from "../settings-export";
 import { DEFAULT_KEYBOARD, type KeyboardSettings } from "../keyboard-settings";
 import { readSlice } from "../prefs-store";
 import type { ThemeOverrides } from "../theme-customization";

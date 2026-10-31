@@ -62,6 +62,10 @@ function readLocalImage(): string {
   }
 }
 
+/** Whether this device has an uploaded background, which shows instead
+ *  of the image link. */
+export const hasLocalImage = (): boolean => readLocalImage() !== "";
+
 function writeLocalImage(dataUrl: string) {
   if (typeof window === "undefined") return;
   try {

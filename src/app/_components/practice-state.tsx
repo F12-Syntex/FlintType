@@ -174,7 +174,7 @@ type PracticeSlice = {
    *  surface here — validation lives in `isWordlistId`. */
   wordlist: string;
 };
-const DEFAULT_PRACTICE_SLICE: PracticeSlice = {
+export const DEFAULT_PRACTICE_SLICE: PracticeSlice = {
   mode: "WORDS",
   length: initialState.length,
   adapt: true,

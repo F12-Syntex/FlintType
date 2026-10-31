@@ -44,6 +44,15 @@ describe("tabbables", () => {
     expect(ids(tabbables(host))).toEqual(["on"]);
   });
 
+  it("skips a disabled control even when it carries a tabindex", () => {
+    const host = mount(`
+      <button id="a">a</button>
+      <button id="off" disabled tabindex="0">off</button>
+      <input id="field" disabled tabindex="0" />
+    `);
+    expect(ids(tabbables(host))).toEqual(["a"]);
+  });
+
   it("stops once per radio group, on the checked radio", () => {
     const host = mount(`
       <input id="a" type="radio" name="g" />
@@ -111,6 +120,21 @@ describe("wrapTab", () => {
     e = tab();
     wrapTab(e, host, a);
     expect(e.defaultPrevented).toBe(false);
+  });
+
+  it("wraps past a disabled last control that carries a tabindex", () => {
+    const host = mount(
+      `<button id="a">a</button><button id="b">b</button><button id="off" disabled tabindex="0">off</button>`,
+    );
+    const [a, b] = tabbables(host) as [HTMLElement, HTMLElement];
+    let e = tab();
+    wrapTab(e, host, b);
+    expect(e.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(a);
+    e = tab(true);
+    wrapTab(e, host, a);
+    expect(e.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(b);
   });
 
   it("wraps from a focused element outside the Tab order", () => {

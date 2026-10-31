@@ -498,6 +498,7 @@ describe("prefs-store owner isolation", () => {
     expect(getCache()).toEqual({ theme: { "--primary": "#1e90ff" } });
 
     // They sign up / sign in.
+    mockGet = async () => ({ audio: { volume: 5 } });
     syncPrefsOwner("A");
 
     // The anon cache + localStorage must SURVIVE — A inherits the prefs.
@@ -505,8 +506,7 @@ describe("prefs-store owner isolation", () => {
     expect(localStorage.getItem(BLOB_KEY)).not.toBeNull();
     expect(readMeta().owner).toBe("A");
 
-    // The next load re-runs the GET and merges A's remote on top.
-    mockGet = async () => ({ audio: { volume: 5 } });
+    // The sign-in itself runs the GET and merges A's remote in.
     await loadPrefs();
     expect(readSlice("theme", {})).toEqual({ "--primary": "#1e90ff" });
     expect(readSlice("audio", {})).toEqual({ volume: 5 });

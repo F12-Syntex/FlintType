@@ -18,9 +18,17 @@ function isEditableTarget(el: Element | null): boolean {
   );
 }
 
-/** The palette's global openers (ui-law §16.1): Cmd/Ctrl+K toggles it,
- *  Escape opens it when Escape would otherwise do nothing, and the
- *  `openCommandPalette()` event opens it from "Search" buttons. */
+/** True while one of our own modal overlays is open (the settings
+ *  import dialog, a confirm dialog, a sheet, the friends dock's panel).
+ *  Each traps focus itself, so the palette never opens on top of one. */
+function modalOverlayOpen(): boolean {
+  return !!document.querySelector('[role="dialog"][aria-modal="true"],[role="alertdialog"]');
+}
+
+/** The palette's global openers (ui-law §16.1): Cmd/Ctrl+K toggles it
+ *  (it never opens over a modal overlay), Escape opens it when Escape
+ *  would otherwise do nothing, and the `openCommandPalette()` event
+ *  opens it from "Search" buttons. */
 export function usePaletteOpeners(
   open: boolean,
   setOpen: Dispatch<SetStateAction<boolean>>,
@@ -45,6 +53,7 @@ export function usePaletteOpeners(
     function onKey(e: KeyboardEvent) {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
+        if (!openRef.current && modalOverlayOpen()) return;
         setOpen((v) => !v);
         return;
       }

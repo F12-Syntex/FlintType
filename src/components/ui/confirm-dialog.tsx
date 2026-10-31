@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
  *  height of its content, so a one-line "Reset 3 settings?" isn't a
  *  mostly empty sheet; on desktop it lands as a centered floating panel
  *  with the same body content. Use whenever a destructive or irreversible action
- *  needs an "are you sure" gate — settings imports, "Reset all", etc.
+ *  needs an "are you sure" gate: "Reset all", a palette switch, an unfollow.
  *
  *  Anatomy:
  *    [backdrop]
@@ -45,8 +45,8 @@ export function ConfirmDialog({
    *  cancel-by-default reset flow visibly warns. */
   confirmVariant = "default",
   /** When true, the confirm button fires `onConfirm` but does NOT
-   *  auto-close the dialog. Used by multi-phase flows (e.g. the
-   *  MonkeyType import) where success / error feedback needs to stay
+   *  auto-close the dialog. Used by multi-phase flows (Edit profile,
+   *  the profile's MonkeyType results import) where feedback needs to stay
    *  visible after submit and the consumer closes via `onOpenChange`
    *  on its own schedule. Default false preserves the legacy
    *  click-to-confirm-and-close behaviour every other caller relies
