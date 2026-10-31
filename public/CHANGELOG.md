@@ -8,6 +8,11 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.153.0 — 31 October 2026
+- Insights now looks at all your Adapt tests, of every length, by default. Pick one length from the "Which tests" menu to narrow it down again.
+- Each length runs at its own pace, so every test is compared with your usual for its length first. A 15 second test no longer looks like a better day than a 120 second one.
+- A length joins once you have 5 tests of it, and the page tells you how many tests are still waiting.
+
 ## 6.152.2 — 30 October 2026
 - Buttons and selected options no longer cast a shadow or an orange glow. The main button, the current page in the top bar and in Settings, and the picked option in every switch are now flat orange.
 - The "Button glow" setting is gone, since there is no glow left to switch.

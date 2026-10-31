@@ -26,6 +26,7 @@ function series(n: number, o: { adjusted?: boolean; every?: number } = {}): Tren
     median: points.slice(2).map((p) => ({ t: p.t, v: 72 })),
     band: points.slice(7).map((p) => ({ t: p.t, lo: 68, hi: 76 })),
     adjusted: !!o.adjusted,
+    scaled: false,
   };
 }
 
@@ -83,7 +84,7 @@ describe("trendRows", () => {
     // drawn at its x, which is nearly day 2's [60, 80].
     const own = [[60, 69], [60, 69], [60, 70], [60, 72], [60, 76], [60, 80], [61, 80], [61, 81], [62, 82]];
     const band = points.map((p, i) => ({ t: p.t, lo: own[i]![0]!, hi: own[i]![1]! }));
-    const rows = trendRows({ points, median: [], band, adjusted: false }, "all", NOW, "cpm");
+    const rows = trendRows({ points, median: [], band, adjusted: false, scaled: false }, "all", NOW, "cpm");
     expect(rows.map((r) => r.band !== null)).toEqual([false, false, true, false, false, true, false, false, true]);
     // Before the first drawn band there is no range line, own band or not.
     expect(rows[0]!.ref).toBeNull();
@@ -146,6 +147,7 @@ describe("trendRows", () => {
       ],
       band: [],
       adjusted: false,
+      scaled: false,
     };
     const rows = trendRows(s, "all", NOW, "wpm");
     expect(rows.map((r) => r.median)).toEqual([70.5, 71.5, 71.5]);

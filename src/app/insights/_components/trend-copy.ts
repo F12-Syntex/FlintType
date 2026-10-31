@@ -9,10 +9,17 @@ import { dateShort, dateTime, plural, speed } from "@/lib/format-figure";
  *  - `adjusted`: Adapt speeds allow for passage difficulty, but personal
  *    bests are typed speeds, so the chart marks none (a best could sit
  *    mid-cloud) and the tooltip gives both figures.
+ *    The pooled "All Adapt tests" view is `adjusted` too: its speeds are
+ *    scaled for each test's length (`allowing`).
  *  - `daily`: above 150 tests the server sends one point a day, the
  *    middle of that day's tests (each personal best stays a test of its
  *    own), so those dots and rows are days, not tests. */
-export type TrendView = { adjusted: boolean; daily: boolean };
+export type TrendView = {
+  adjusted: boolean;
+  daily: boolean;
+  /** What the charted speed allows for, when `adjusted`. */
+  allowing?: "difficulty" | "length" | "length and difficulty";
+};
 
 /** What the tooltip and the table need of a point. */
 export type TrendPointCopy = {
@@ -97,7 +104,7 @@ export function tooltipLines(
   const notes: string[] = [];
   let figure: string;
   if (v.adjusted) {
-    figure = `${speed(p.valueWpm, unit)} allowing for difficulty`;
+    figure = `${speed(p.valueWpm, unit)} allowing for ${v.allowing ?? "difficulty"}`;
     notes.push(`${speed(p.typedWpm, unit)} typed, ${acc}`);
   } else {
     figure = `${speed(p.valueWpm, unit)}, ${acc}`;

@@ -6,7 +6,7 @@ import { speed } from "@/lib/format-figure";
 import { formatSpeed, SPEED_UNIT_LABEL } from "@/lib/speed-unit";
 import type { NextStep, SpeedHeadline } from "@/types/insights";
 import type { TestKind } from "./copy-phrases";
-import { ADAPT_NOTE, READY_TESTS } from "./insights-copy";
+import { READY_TESTS } from "./insights-copy";
 import { NextStepPanel } from "./next-step-panel";
 import { TREND_WORD, trendSentence } from "./next-step-copy";
 import { rangeSentence, rangeTrackLabel, speedLabel } from "./verdict-copy";
@@ -21,6 +21,7 @@ export function VerdictCard({
   analysed,
   tests,
   kind,
+  note,
   unit,
   nowMs,
 }: {
@@ -30,6 +31,8 @@ export function VerdictCard({
   analysed: boolean;
   tests: number;
   kind: TestKind;
+  /** What the speeds allow for (insights-copy `speedNote`), if anything. */
+  note: string | null;
   unit: TypingSpeedUnit;
   nowMs: number;
 }) {
@@ -65,8 +68,8 @@ export function VerdictCard({
         ) : null}
         {/* On phones the note waits under the chart (with its disclosure),
             so the next step stays near the top of the page. */}
-        {ready && headline.adjusted ? (
-          <p className="hidden text-xs leading-relaxed text-muted-foreground md:block">{ADAPT_NOTE}</p>
+        {ready && note ? (
+          <p className="hidden text-xs leading-relaxed text-muted-foreground md:block">{note}</p>
         ) : null}
       </div>
       <NextStepPanel step={nextStep} analysed={analysed} kind={kind} unit={unit} />

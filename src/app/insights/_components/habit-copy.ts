@@ -119,7 +119,8 @@ const PACE_MIN_S = FADE_MIN_MS / 1000;
  *  30 seconds, or a words test that takes under 30 seconds at the usual
  *  speed. Quotes vary, so they never count as too short. */
 export function testsTooShortForPace(bucket: InsightsBucket | null, usualWpm: number | null): boolean {
-  if (!bucket) return false;
+  // The pooled view mixes lengths; pace to the end reads its long tests.
+  if (!bucket || bucket.all) return false;
   if (bucket.lengthMode === "time") return bucket.length < PACE_MIN_S;
   if (bucket.lengthMode === "words" && usualWpm !== null && usualWpm > 0) {
     return (bucket.length * 60) / usualWpm < PACE_MIN_S;

@@ -108,10 +108,14 @@ export function trendSeries(tests: readonly PooledTest[], adj: Adjustment): Tren
   if (tests.length < 2) return null;
   const chrono = tests.slice(0, SERIES_MAX).reverse();
   let best = -Infinity;
+  // Pooled tests (`typed` set) span lengths, so no typed speed among them
+  // is a personal best of anything: none is marked.
+  const pooled = tests.some((t) => t.typed !== undefined);
   const points: Point[] = chrono.map((t, i) => {
-    const pb = i > 0 && t.wpm > best;
-    best = Math.max(best, t.wpm);
-    return { t: t.startedAtMs, wpm: t.wpm, value: valueOf(adj, t), acc: t.accuracy, pb };
+    const typed = t.typed?.wpm ?? t.wpm;
+    const pb = !pooled && i > 0 && typed > best;
+    best = Math.max(best, typed);
+    return { t: t.startedAtMs, wpm: typed, value: valueOf(adj, t), acc: t.typed?.accuracy ?? t.accuracy, pb };
   });
   const values = points.map((p) => p.value);
   const median10: TrendSeries["median"] = [];
@@ -123,6 +127,7 @@ export function trendSeries(tests: readonly PooledTest[], adj: Adjustment): Tren
       band.push({ t: p.t, lo: quantile(win, 0.1), hi: quantile(win, 0.9) });
     }
   });
-  if (points.length <= DOWNSAMPLE_OVER) return { points, median: median10, band, adjusted: adj.adjusted };
-  return { points: downsample(points), median: lastPerDay(median10), band: lastPerDay(band), adjusted: adj.adjusted };
+  const flags = { adjusted: adj.adjusted, scaled: pooled };
+  if (points.length <= DOWNSAMPLE_OVER) return { points, median: median10, band, ...flags };
+  return { points: downsample(points), median: lastPerDay(median10), band: lastPerDay(band), ...flags };
 }

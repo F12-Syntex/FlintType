@@ -146,6 +146,9 @@ describe("tests too short for pace to the end", () => {
     expect(testsTooShortForPace(bucket("words", 25), 45)).toBe(false);
     expect(testsTooShortForPace(bucket("words", 25), null)).toBe(false);
   });
+  it("never calls the pooled Adapt view too short (it mixes lengths)", () => {
+    expect(testsTooShortForPace({ ...bucket("time", 15), all: { kinds: 2, leftOut: 0 } }, 80)).toBe(false);
+  });
   it("never calls quotes or an unknown bucket too short", () => {
     expect(testsTooShortForPace(bucket("quote", 0), 220)).toBe(false);
     expect(testsTooShortForPace(null, 220)).toBe(false);

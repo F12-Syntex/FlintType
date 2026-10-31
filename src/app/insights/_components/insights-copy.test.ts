@@ -27,6 +27,46 @@ describe("header description", () => {
   });
 });
 
+describe("the pooled Adapt view", () => {
+  const pooled = {
+    key: "training|all", mode: "training", lengthMode: "words", length: 25, touch: false,
+    tests: 60, analysed: 40, lastAtMs: 0, all: { kinds: 3, leftOut: 0 },
+  } as const;
+  const one = { ...pooled, all: { kinds: 2, leftOut: 1 } };
+  const some = { ...pooled, all: { kinds: 2, leftOut: 4 } };
+  it("says the header covers every length", () => {
+    expect(copy.headerDescription({ status: "ready", tests: 60, kind: testKindOf(pooled), every: true })).toBe(
+      "Based on your last 30 Adapt tests, of every length.",
+    );
+    expect(copy.headerDescription({ status: "ready", tests: 3, kind: testKindOf(pooled), every: true })).toBe(
+      "Based on the 3 Adapt tests you've finished so far, of every length.",
+    );
+  });
+  it("names what the speeds are scaled to, and what is left out", () => {
+    expect(copy.scaledNote(pooled)).toBe(
+      "Speeds are scaled to your Adapt tests of 25 words, so every length counts on one footing.",
+    );
+    expect(copy.scaledNote(one)).toMatch(/ One test joins once its length has 5 tests\.$/);
+    expect(copy.scaledNote(some)).toMatch(/ 4 tests join once their length has 5 tests\.$/);
+  });
+  it("picks the note under the speeds", () => {
+    expect(copy.speedNote(false, null)).toBeNull();
+    expect(copy.speedNote(true, null)).toBe(copy.ADAPT_NOTE);
+    expect(copy.speedNote(false, pooled)).toBe(copy.scaledNote(pooled));
+    expect(copy.speedNote(true, pooled)).toBe(
+      `${copy.scaledNote(pooled)} They also allow for how hard each passage was for you.`,
+    );
+    expect(copy.speedMethod(false, null)).toEqual([]);
+    expect(copy.speedMethod(true, null)).toEqual(copy.ADAPT_METHOD);
+    expect(copy.speedMethod(true, pooled)).toHaveLength(2 + copy.ADAPT_METHOD.length);
+  });
+  it("keeps the copy rules", () => {
+    for (const b of [pooled, one, some]) {
+      for (const s of [copy.speedNote(true, b)!, ...copy.speedMethod(true, b)]) clean(s);
+    }
+  });
+});
+
 describe("switch error", () => {
   it("names the kind that failed", () => {
     expect(copy.switchErrorTitle(kind)).toBe("We couldn't load your Adapt tests of 25 words.");

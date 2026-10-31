@@ -72,6 +72,19 @@ describe("trendSeries", () => {
     expect(s.band).toHaveLength(23);
     expect(s.points[0]!.pb).toBe(false);
   });
+  it("charts pooled tests at their scaled speed, the typed one beside it, and marks no best", () => {
+    const win = w(buildPooled({ tests: 12 }));
+    const pooled = win.tests.map((t) => ({ ...t, wpm: t.wpm * 1.2, accuracy: 90, typed: { wpm: t.wpm, accuracy: t.accuracy } }));
+    const s = trendSeries(pooled, difficultyAdjustment({ ...win, tests: pooled, usual: pooled.slice(0, 30) }))!;
+    expect(s.scaled).toBe(true);
+    expect(s.adjusted).toBe(false);
+    expect(s.points.every((p) => !p.pb)).toBe(true);
+    const newest = s.points[s.points.length - 1]!;
+    expect(newest.wpm).toBe(win.tests[0]!.wpm);
+    expect(newest.value).toBeCloseTo(win.tests[0]!.wpm * 1.2);
+    expect(newest.acc).toBe(win.tests[0]!.accuracy);
+    expect(trendSeries(win.tests, difficultyAdjustment(win))!.scaled).toBe(false);
+  });
   it("marks a test faster than every earlier one as a personal best", () => {
     const win = w(buildPooled({ tests: 30 }));
     const s = trendSeries(win.tests, difficultyAdjustment(win))!;

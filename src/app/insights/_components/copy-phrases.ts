@@ -14,6 +14,8 @@ export type TestKind = { noun: string; group: string };
 
 export function testKindOf(bucket: InsightsBucket | null): TestKind {
   if (!bucket) return { noun: "test of the same kind", group: "tests of the same kind" };
+  // The pooled view counts every Adapt test, whatever its length.
+  if (bucket.all) return { noun: "Adapt test", group: "Adapt tests" };
   const n = formatTestName({
     mode: bucket.mode,
     lengthMode: bucket.lengthMode,

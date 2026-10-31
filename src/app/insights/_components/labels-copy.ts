@@ -34,6 +34,8 @@ export function extraLabel(ms: number): string {
 export const PICKER_TITLE = "Which tests?";
 export const PICKER_LABEL = "Which tests";
 export const TOUCH_LABEL = "Touch";
+/** The pooled "All Adapt tests" option's length line. */
+export const ALL_LENGTHS_LABEL = "All lengths";
 export const COLUMN_LAST = "Last test";
 /** The last-test table's clauses. The learning minute carries no break
  *  threshold or fix mode, so these name neither (the ready table's come

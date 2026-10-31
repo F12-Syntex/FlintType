@@ -7,6 +7,7 @@ import type {
 } from "@/types/insights";
 import type { FrictionKey, TestDigestV1 } from "@/types/typing-analysis";
 import { median } from "../stats";
+import { insightsOptions } from "./all-adapt";
 import { barriersOf } from "./barriers";
 import { changeCandidates, changesSection } from "./changes";
 import { difficultyAdjustment, valueOf } from "./difficulty";
@@ -18,7 +19,6 @@ import { sessionSignals } from "./sessions";
 import { trendOf, trendSeries, type FrictionMove } from "./trend";
 import { usualRange } from "./usual";
 import {
-  bucketOptions,
   chooseBucket,
   defaultBucket,
   eligible,
@@ -63,7 +63,7 @@ export function assembleOverview(data: {
 }): InsightsOverviewOutput {
   const available = data.digests !== "unavailable";
   const pooled = toPooled(data.rows, data.index, available ? (data.digests as Map<string, TestDigestV1>) : new Map());
-  const options = bucketOptions(pooled, data.nowMs);
+  const options = insightsOptions(pooled, data.nowMs);
   const chosen = chooseBucket(options, data.nowMs, data.bucket);
   if (!chosen || !pooled.some(eligible)) return emptyOverview(data.patterns);
   const readiness = readinessOf(data.patterns);

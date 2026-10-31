@@ -8,8 +8,8 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 import type { TypingSpeedUnit } from "@/lib/appearance-prefs";
 import { dateShort, speed } from "@/lib/format-figure";
 import { cn } from "@/lib/utils";
-import type { SpeedHeadline, TrendSeries } from "@/types/insights";
-import { ADAPT_METHOD, ADAPT_NOTE, TREND_TITLE } from "./insights-copy";
+import type { InsightsBucket, SpeedHeadline, TrendSeries } from "@/types/insights";
+import { speedMethod, speedNote, TREND_TITLE } from "./insights-copy";
 import { TrendChart } from "./trend-chart";
 import {
   CHART_TOO_FEW,
@@ -46,11 +46,13 @@ const OPTIONS = TREND_RANGES.map((r) => ({
 export function TrendSection({
   series,
   headline,
+  bucket,
   tests,
   unit,
 }: {
   series: TrendSeries | null;
   headline: SpeedHeadline | null;
+  bucket: InsightsBucket | null;
   tests: number;
   unit: TypingSpeedUnit;
 }) {
@@ -71,7 +73,12 @@ export function TrendSection({
     );
   }
   const facts = seriesFacts(series);
-  const view: TrendView = { adjusted: series.adjusted, daily };
+  const view: TrendView = {
+    adjusted: series.adjusted || series.scaled,
+    daily,
+    allowing: series.scaled ? (series.adjusted ? "length and difficulty" : "length") : "difficulty",
+  };
+  const note = speedNote(series.adjusted, series.scaled ? bucket : null);
   const drawn = drawnMarks(rows);
   const levelled = headline?.trend.state === "levelled";
   return (
@@ -99,11 +106,11 @@ export function TrendSection({
           </p>
         )}
       </Surface>
-      {series.adjusted ? (
+      {note ? (
         <div className="flex flex-col gap-1">
-          <p className="text-xs leading-relaxed text-muted-foreground">{ADAPT_NOTE}</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">{note}</p>
           <MethodDisclosure>
-            {ADAPT_METHOD.map((p) => (
+            {speedMethod(series.adjusted, series.scaled ? bucket : null).map((p) => (
               <p key={p.slice(0, 24)}>{p}</p>
             ))}
           </MethodDisclosure>

@@ -239,7 +239,7 @@ Neon's HTTP driver is used (`@neondatabase/serverless` + `drizzle-orm/neon-http`
 
 ## Notable tables
 
-- **`test_analyses`**: one compact analysis digest per completed signed-in test (`test_id` = `tests.id`, `user_id`, `started_at`, `bucket`, `version`, `digest` jsonb), with index `(user_id, bucket, started_at)`. It is a separate table on purpose, so an unmigrated dev DB loses only the analysis feature. Repo: `testAnalyses` (`insert`, which ignores a duplicate test id; `indexForUser`, which returns each row's bucket and the digest's `diff` without loading digests; `listForUser`; `deleteForUser`). Reads of `tests` for analysis go through the `testSummaries` projection, which never selects `wpm_history`.
+- **`test_analyses`**: one compact analysis digest per completed signed-in test (`test_id` = `tests.id`, `user_id`, `started_at`, `bucket`, `version`, `digest` jsonb), with index `(user_id, bucket, started_at)`. It is a separate table on purpose, so an unmigrated dev DB loses only the analysis feature. Repo: `testAnalyses` (`insert`, which ignores a duplicate test id; `indexForUser`, which returns each row's bucket and the digest's `diff` without loading digests; `listForUser`, filtered by one `bucket` or any of `buckets`; `deleteForUser`). Reads of `tests` for analysis go through the `testSummaries` projection, which never selects `wpm_history`.
 
 ## LLM checklist
 

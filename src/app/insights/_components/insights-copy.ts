@@ -1,6 +1,7 @@
 import type { TypingSpeedUnit } from "@/lib/appearance-prefs";
 import { speed, speedRange } from "@/lib/format-figure";
-import type { Gate, InsightsOverviewOutput, Range } from "@/types/insights";
+import { formatTestName } from "@/lib/test-name";
+import type { Gate, InsightsBucket, InsightsOverviewOutput, Range } from "@/types/insights";
 import { countOf, moreOf, remaining, type TestKind } from "./copy-phrases";
 
 /** Page-level copy for /insights (spec-40 §2, §3.2, §4, §5): header and
@@ -17,10 +18,13 @@ const ONE_DP = new Intl.NumberFormat("en-GB", { maximumFractionDigits: 1 });
 
 export const PAGE_TITLE = "How you type";
 
-export function headerDescription(o: { status: InsightsOverviewOutput["status"]; tests: number; kind: TestKind }): string {
+export function headerDescription(o: {
+  status: InsightsOverviewOutput["status"]; tests: number; kind: TestKind; every?: boolean;
+}): string {
   if (o.status === "empty" || o.tests < 1) return "Your analysis builds from every test you finish.";
-  if (o.tests < READY_TESTS) return `Based on the ${countOf(o.tests, o.kind)} you've finished so far.`;
-  return `Based on your last ${countOf(Math.min(o.tests, USUAL_WINDOW), o.kind)}.`;
+  const of = o.every ? ", of every length" : "";
+  if (o.tests < READY_TESTS) return `Based on the ${countOf(o.tests, o.kind)} you've finished so far${of}.`;
+  return `Based on your last ${countOf(Math.min(o.tests, USUAL_WINDOW), o.kind)}${of}.`;
 }
 
 // Where your time goes (§3.2)
@@ -99,6 +103,45 @@ export const ADAPT_METHOD = [
   "Adapt picks words you find harder, and how hard depends on your recent form. We estimate how hard each passage was for you from your own letter-pair times.",
   "Only the part of a test spent inside words depends on that, so we scale that part to a passage that's typical for you. Casual tests and races aren't adjusted.",
 ];
+
+// The pooled "All Adapt tests" view (pooled/all-adapt.ts)
+
+function anchorGroup(b: InsightsBucket): string {
+  return formatTestName({ mode: b.mode, lengthMode: b.lengthMode, length: b.length, touch: b.touch }).group;
+}
+
+/** What the pooled view's speeds are, plus the tests it leaves out. */
+export function scaledNote(b: InsightsBucket): string {
+  const base = `Speeds are scaled to your ${anchorGroup(b)}, so every length counts on one footing.`;
+  const left = b.all?.leftOut ?? 0;
+  if (left === 0) return base;
+  return left === 1
+    ? `${base} One test joins once its length has 5 tests.`
+    : `${base} ${left} tests join once their length has 5 tests.`;
+}
+
+/** The note under the speed figures: the pooled scaling, the Adapt
+ *  difficulty allowance, both, or nothing. */
+export function speedNote(adjusted: boolean, bucket: InsightsBucket | null): string | null {
+  if (bucket?.all) {
+    const note = scaledNote(bucket);
+    return adjusted ? `${note} They also allow for how hard each passage was for you.` : note;
+  }
+  return adjusted ? ADAPT_NOTE : null;
+}
+
+/** "How we measure this" for those notes. */
+export function speedMethod(adjusted: boolean, bucket: InsightsBucket | null): string[] {
+  const out: string[] = [];
+  if (bucket?.all) {
+    out.push(
+      "A short test usually runs faster than a long one. So each test is compared with your usual for its own length.",
+      `Then it's scaled to your ${anchorGroup(bucket)}. A length joins once it has 5 tests, so its usual can be trusted.`,
+    );
+  }
+  if (adjusted) out.push(...ADAPT_METHOD);
+  return out;
+}
 
 // Page states (§4)
 

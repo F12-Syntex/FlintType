@@ -1,7 +1,8 @@
 import { parseRunBucketKey, runBucketKey, splitSessions, toBucketSpec } from "@/lib/test-bucket";
 import type { TestMode } from "@/types/adapt";
-import type { InsightsBucket, TestSummaryRow } from "@/types/insights";
+import { ALL_ADAPT_BUCKET, type InsightsBucket, type TestSummaryRow } from "@/types/insights";
 import type { FixMode, RunLengthMode, TestDigestV1 } from "@/types/typing-analysis";
+import { allAdapt } from "./all-adapt";
 
 /** Pooled windows over a user's tests (spec-10 §12). Every pooled model
  *  reads a bucket through `windowsFor`, so "recent", "earlier" and
@@ -16,6 +17,9 @@ export type PooledTest = {
   /** In the analysis index (a digest is stored), whether or not it was
    *  loaded: the picker's "analysed" count needs every bucket's figure. */
   indexed: boolean;
+  /** In the pooled "All Adapt tests" view only: the figures as typed.
+   *  `wpm` and `accuracy` above are then scaled to the anchor kind. */
+  typed?: { wpm: number; accuracy: number };
 };
 
 /** testId → { bucket, diff }, from db.testAnalyses.indexForUser (spec-30 §2.1). */
@@ -131,9 +135,12 @@ export function listedBuckets(opts: readonly InsightsBucket[], keep: readonly (s
 }
 
 /** The bucket's windows, newest first, eligible tests only. The digest
- *  windows apply the same ranges to the tests that have a loaded digest. */
+ *  windows apply the same ranges to the tests that have a loaded digest.
+ *  ALL_ADAPT_BUCKET reads the pooled, scaled Adapt tests (all-adapt.ts). */
 export function windowsFor(ts: readonly PooledTest[], bucket: string): Windows {
-  const tests = ts.filter((t) => t.bucket === bucket && eligible(t));
+  const tests = bucket === ALL_ADAPT_BUCKET
+    ? allAdapt(ts)?.tests ?? []
+    : ts.filter((t) => t.bucket === bucket && eligible(t));
   const withD = tests.filter((t) => t.digest !== null);
   const recent = tests.slice(0, RECENT_N);
   return {

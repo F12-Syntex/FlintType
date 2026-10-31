@@ -11,7 +11,7 @@ import { EmptyState } from "./empty-state";
 import { ErrorState, SwitchError } from "./error-state";
 import { HabitsSection } from "./habits-section";
 import { HelpAndChanges } from "./help-and-changes";
-import { headerDescription, LEARNING_TITLE, learningSteps, PAGE_TITLE, READY_TESTS } from "./insights-copy";
+import { headerDescription, LEARNING_TITLE, learningSteps, PAGE_TITLE, READY_TESTS, speedNote } from "./insights-copy";
 import { InsightsFooter } from "./insights-footer";
 import { LOADING_LABEL } from "./labels-copy";
 import { InsightsSkeleton } from "./insights-skeleton";
@@ -37,7 +37,11 @@ export function InsightsView() {
   const header = (
     <PageHeader
       title={PAGE_TITLE}
-      description={data ? headerDescription({ status: data.status, tests: data.progress.tests, kind }) : undefined}
+      description={
+        data
+          ? headerDescription({ status: data.status, tests: data.progress.tests, kind, every: !!data.bucket?.all })
+          : undefined
+      }
       aside={
         data?.bucket && data.buckets.length >= 2 ? (
           <BucketPicker
@@ -104,6 +108,7 @@ export function InsightsView() {
           analysed={data.barriers.status !== "not-ready"}
           tests={data.progress.tests}
           kind={kind}
+          note={speedNote(data.headline.adjusted, data.bucket)}
           unit={unit}
           nowMs={nowMs}
         />
@@ -131,6 +136,7 @@ export function InsightsView() {
           key={data.bucket?.key ?? ""}
           series={data.series}
           headline={data.headline}
+          bucket={data.bucket}
           tests={data.progress.tests}
           unit={unit}
         />
