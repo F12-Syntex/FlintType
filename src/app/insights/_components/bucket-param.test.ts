@@ -6,6 +6,8 @@ describe("bucket URL parameter", () => {
     expect(toBucketParam("training|words|25")).toBe("training~words~25");
     expect(parseBucketParam("training~words~25")).toBe("training|words|25");
     expect(parseBucketParam("casual~time~60~t")).toBe("casual|time|60|t");
+    expect(parseBucketParam("training~all")).toBe("training|all");
+    expect(parseBucketParam("casual~all")).toBeNull();
   });
   it("ignores a missing or malformed value", () => {
     expect(parseBucketParam(null)).toBeNull();

@@ -57,11 +57,10 @@
   --radius: 1rem;
   /* Depth (ui-law §21). Warm-tinted, soft and low: a card lifts a hair
      off the paper, a floating surface (popover, dock, dialog) clearly
-     hovers, and the primary CTA carries a faint glow of its own colour.
-     data-ft-depth / data-ft-glow on <html> collapse these to none. */
+     hovers. Filled orange controls carry no shadow of their own.
+     data-ft-depth on <html> collapses these to none. */
   --ft-shadow-card: 0 1px 2px oklch(0.35 0.03 60 / 0.05), 0 6px 20px -10px oklch(0.35 0.03 60 / 0.16);
   --ft-shadow-float: 0 2px 6px oklch(0.3 0.03 60 / 0.06), 0 18px 48px -16px oklch(0.3 0.03 60 / 0.30);
-  --ft-shadow-glow: 0 8px 24px -8px color-mix(in oklch, var(--primary) 55%, transparent);
   --shadow-x: 0;
   --shadow-y: 1px;
   --shadow-blur: 3px;
@@ -184,7 +183,6 @@
   --radius: 1rem;
   --ft-shadow-card: 0 1px 2px oklch(0 0 0 / 0.25), 0 8px 24px -12px oklch(0 0 0 / 0.55);
   --ft-shadow-float: 0 2px 8px oklch(0 0 0 / 0.30), 0 24px 56px -16px oklch(0 0 0 / 0.65);
-  --ft-shadow-glow: 0 8px 28px -8px color-mix(in oklch, var(--primary) 45%, transparent);
   --shadow-x: 0;
   --shadow-y: 1px;
   --shadow-blur: 3px;
@@ -266,7 +264,6 @@
 
   --shadow-card: var(--ft-shadow-card);
   --shadow-float: var(--ft-shadow-float);
-  --shadow-glow: var(--ft-shadow-glow);
 
   --shadow-2xs: var(--shadow-2xs);
   --shadow-xs: var(--shadow-xs);
@@ -405,6 +402,20 @@
   }
   50% {
     transform: translateY(-2px) scale(1.05);
+  }
+}
+
+/* Race stone crossing the line: one pop, then it rests at the post.
+   Applied only via `motion-safe:`. */
+@keyframes ft-stone-finish {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 
@@ -667,7 +678,6 @@
        data-ft-controls: shape of every interactive control.
        data-ft-depth:    flat drops every card/float shadow; lifted
                          deepens the card shadow.
-       data-ft-glow:     off drops the primary-CTA glow.
        data-ft-aura:     off drops the soft accent wash behind the page.
        data-ft-ui-font:  the interface typeface (not the passage).
        data-ft-ui-scale: the root text size; everything in rem scales.
@@ -710,16 +720,6 @@
   .dark [data-ft-depth="soft"]:not(html) {
     --ft-shadow-card: 0 1px 2px oklch(0 0 0 / 0.25), 0 8px 24px -12px oklch(0 0 0 / 0.55) !important;
     --ft-shadow-float: 0 2px 8px oklch(0 0 0 / 0.30), 0 24px 56px -16px oklch(0 0 0 / 0.65) !important;
-  }
-  html[data-ft-glow="off"],
-  [data-ft-glow="off"]:not(html) {
-    --ft-shadow-glow: 0 0 #0000 !important;
-  }
-  [data-ft-glow="on"]:not(html) {
-    --ft-shadow-glow: 0 8px 24px -8px color-mix(in oklch, var(--primary) 55%, transparent) !important;
-  }
-  .dark [data-ft-glow="on"]:not(html) {
-    --ft-shadow-glow: 0 8px 28px -8px color-mix(in oklch, var(--primary) 45%, transparent) !important;
   }
   html:not([data-ft-aura="off"]) body {
     background-image: radial-gradient(

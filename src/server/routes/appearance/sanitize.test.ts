@@ -68,6 +68,7 @@ describe("sanitizePatch — appearance", () => {
       appearance: {
         controlShape: "rounded",
         depth: "lifted",
+        // The removed button glow is no longer a setting.
         buttonGlow: false,
         uiFont: "system",
       },
@@ -75,14 +76,12 @@ describe("sanitizePatch — appearance", () => {
     expect(ok.appearance).toEqual({
       controlShape: "rounded",
       depth: "lifted",
-      buttonGlow: false,
       uiFont: "system",
     });
     const bad = sanitizePatch({
       appearance: {
         controlShape: "blob",
         depth: 3,
-        buttonGlow: "yes",
         uiFont: "comic",
         uiScale: "large",
       },

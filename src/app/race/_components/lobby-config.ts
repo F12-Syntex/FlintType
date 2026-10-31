@@ -79,8 +79,8 @@ export function quoteLengthLabel(id: number): string {
 }
 
 /** One sentence-case line describing what "Create private lobby" will
- *  make from the saved config, shown under the launcher's buttons so the
- *  settings aren't hidden behind the gear:
+ *  make from the saved config: the button's hover tooltip and its
+ *  accessible description, so the settings aren't hidden behind the gear:
  *
  *    quote  → "Quote race, short to long" (contiguous range) or
  *             "Quote race, short and long" (a gap) or "…, medium only"

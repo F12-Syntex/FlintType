@@ -4,6 +4,7 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { progressOf, stoneSrc, stoneTierForWpm } from "./race-data";
 import type { Racer } from "./race-types";
+import { useLaneMotion } from "./use-lane-motion";
 
 /** One racer's lane in the lineup card. From sm it's one row:
  *
@@ -12,12 +13,13 @@ import type { Racer } from "./race-types";
  *  On phones it stacks (name + status above a full-width track) so the
  *  stone has the whole card width to travel instead of ~90px.
  *
- *  The track is a soft rounded pill; the racer's flint stone glides
- *  along a dashed ground line toward the finish post at the right end.
- *  Your own lane carries the orange trail + glowing stone (the lone
- *  spark); opponents stay ink, or their player colour when the pref is
- *  on. The glide is `transition-[left]` (functional motion) plus the
- *  motion-safe idle bob (ui-law §13). */
+ *  The track is a soft rounded pill; the racer's flint stone rolls along
+ *  a dashed ground line toward the finish post at the right end, leaving
+ *  a trail. A frame loop (`useLaneMotion`) glides it between server
+ *  updates instead of jumping on each one. Your own lane carries the
+ *  orange trail + glowing stone (the lone spark); opponents stay ink, or
+ *  their player colour when the pref is on. Crossing the line pops the
+ *  stone once and lights the post (ui-law §13). */
 export function Lane({
   racer: r,
   totalChars,
@@ -39,6 +41,16 @@ export function Lane({
   const progress = progressOf(r.correctChars, totalChars);
   const pct = Math.round(progress * 100);
   const tier = stoneTierForWpm(r.wpm);
+  const finished = r.place != null || r.finishedAt != null;
+  const { travel, mover, spin, trail } = useLaneMotion({
+    chars: r.correctChars,
+    totalChars,
+    // Your own progress arrives per keystroke, so it is never guessed
+    // ahead of your cursor; opponents are predicted between updates.
+    wpm: r.isYou || r.disconnected ? 0 : r.wpm,
+    finished,
+    racing,
+  });
   return (
     <li
       role="progressbar"
@@ -91,45 +103,65 @@ export function Lane({
       </div>
 
       {/* Track — a rounded pill with a dashed ground line, the racer's
-       *  stone, and the finish post. Stacked lanes line their posts up
-       *  into one finish line. Opponent tracks lift a touch in dark mode
-       *  so the dark stone never sinks into a dark card. */}
+       *  stone and trail, and the finish post. Stacked lanes line their
+       *  posts up into one finish line. Opponent tracks lift a touch in
+       *  dark mode so the dark stone never sinks into a dark card. */}
       <div
         className={cn(
-          "relative h-8 min-w-0 rounded-pill sm:order-2 sm:h-9 sm:flex-1",
+          "relative h-9 min-w-0 rounded-pill sm:order-2 sm:h-10 sm:flex-1",
           r.isYou ? "bg-primary/[0.07]" : "bg-muted/70 dark:bg-foreground/[0.07]",
         )}
       >
         <span
           aria-hidden
-          className="absolute inset-y-2 right-3 w-0.5 rounded-full bg-foreground/20"
+          className={cn(
+            "absolute right-3 w-0.5 rounded-full transition-[background-color,top,bottom] duration-300 ease-out",
+            finished
+              ? cn("inset-y-1.5", r.isYou ? "bg-primary" : "bg-foreground/50")
+              : "inset-y-2.5 bg-foreground/20",
+          )}
         />
         {/* Travel area, inset so the stone never overhangs the pill's
          *  rounded ends; at 100% it rests against the finish post. */}
-        <div aria-hidden className="absolute inset-y-0 right-7 left-4">
+        <div ref={travel} aria-hidden className="absolute inset-y-0 right-7 left-4">
           <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t border-dashed border-foreground/15" />
-          {r.isYou ? (
-            <div
-              className="absolute top-1/2 left-0 h-0.5 -translate-y-1/2 rounded-full bg-primary/60 transition-[width] duration-150 ease-out"
-              style={{ width: `${pct}%` }}
-            />
-          ) : null}
           <div
-            className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 transition-[left] duration-150 ease-out"
-            style={{ left: `${pct}%` }}
-          >
-            {/* max-w-none: at left:100% the wrapper's shrink-to-fit width
-             *  is 0, and preflight's img max-width:100% would collapse the
-             *  stone to nothing right as it crosses the line. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={stoneSrc(tier)}
-              alt=""
-              aria-hidden
-              draggable={false}
-              className="size-6 max-w-none select-none sm:size-7 motion-safe:animate-[ft-stone-bob_1.3s_ease-in-out_infinite]"
-              style={{ filter: r.isYou ? YOU_GLOW : OPPONENT_HALO }}
-            />
+            ref={trail}
+            className={cn(
+              "absolute inset-x-0 top-1/2 h-0.5 origin-left -translate-y-1/2 rounded-full will-change-transform",
+              r.isYou && "bg-primary/60",
+            )}
+            style={
+              r.isYou
+                ? undefined
+                : { backgroundColor: `color-mix(in oklch, ${accent} 22%, transparent)` }
+            }
+          />
+          {/* Full-width layer translated by the progress (a percentage of
+           *  its own width, the travel distance); the stone sits on its
+           *  left edge. Its transform, the trail's and the roll are
+           *  written by useLaneMotion, never by React. */}
+          <div ref={mover} className="absolute inset-0 will-change-transform">
+            <div className="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2">
+              <div ref={spin} className="size-7 sm:size-8">
+                {/* max-w-none: preflight's img max-width:100% must never
+                 *  shrink the stone inside its wrapper. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={stoneSrc(tier)}
+                  alt=""
+                  aria-hidden
+                  draggable={false}
+                  className={cn(
+                    "size-full max-w-none select-none",
+                    finished
+                      ? "motion-safe:animate-[ft-stone-finish_0.5s_ease-out]"
+                      : "motion-safe:animate-[ft-stone-bob_1.3s_ease-in-out_infinite]",
+                  )}
+                  style={{ filter: r.isYou ? YOU_GLOW : OPPONENT_HALO }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>

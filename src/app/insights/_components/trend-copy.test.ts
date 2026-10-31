@@ -57,6 +57,16 @@ describe("adjusted (Adapt) chart", () => {
   });
 });
 
+describe("pooled Adapt chart", () => {
+  it("says what the charted speed allows for", () => {
+    const base = { adjusted: true, daily: false };
+    expect(copy.tooltipLines(point(), { ...base, allowing: "length" }, "wpm").figure).toBe("78 wpm allowing for length");
+    expect(copy.tooltipLines(point(), { ...base, allowing: "length and difficulty" }, "wpm").figure).toBe(
+      "78 wpm allowing for length and difficulty",
+    );
+  });
+});
+
 describe("daily chart (a long series, one point a day)", () => {
   const v = views[2]!;
   it("calls a dot a day, not a test", () => {

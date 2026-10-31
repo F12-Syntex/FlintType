@@ -12,11 +12,11 @@ const buttonVariantsBase = cva(
   {
     variants: {
       variant: {
-        // The one spark: filled primary with a faint glow of its own
-        // colour (ui-law §21). Hover deepens the fill on every element
-        // type, not only links.
+        // The one spark: the filled primary, flat (no shadow; ui-law
+        // §21). Hover deepens the fill on every element type, not only
+        // links.
         default:
-          "brand-surface font-semibold text-primary-foreground shadow-glow hover:brightness-110",
+          "brand-surface font-semibold text-primary-foreground hover:brightness-110",
         outline:
           "border-border bg-card hover:bg-accent hover:text-foreground aria-expanded:bg-accent aria-expanded:text-foreground",
         secondary:

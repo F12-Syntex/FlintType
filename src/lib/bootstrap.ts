@@ -51,7 +51,6 @@ export const HTML_ATTR_RULES: readonly HtmlAttrRule[] = [
   // Style (ui-law §21).
   { attr: "data-ft-controls", key: "controlShape", kind: "enum", fallback: "pill" },
   { attr: "data-ft-depth", key: "depth", kind: "enum", fallback: "soft" },
-  { attr: "data-ft-glow", key: "buttonGlow", kind: "flag-off" },
   { attr: "data-ft-aura", key: "pageAura", kind: "flag-off" },
   { attr: "data-ft-ui-font", key: "uiFont", kind: "enum", fallback: "sans" },
   { attr: "data-ft-ui-scale", key: "uiScale", kind: "enum", fallback: "default" },
@@ -89,7 +88,6 @@ export const APPEARANCE_ATTR_DEFAULTS: Readonly<Record<string, unknown>> = {
   monochromeChrome: false,
   controlShape: "pill",
   depth: "soft",
-  buttonGlow: true,
   pageAura: true,
   uiFont: "sans",
   uiScale: "default",

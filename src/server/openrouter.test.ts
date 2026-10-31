@@ -12,7 +12,7 @@ vi.mock("@/server/env", () => ({
   },
 }));
 
-import { extractJson, openRouterJson } from "./openrouter";
+import { extractJson, MODEL, openRouterJson } from "./openrouter";
 
 function mockFetch(impl: () => Promise<Response> | Response) {
   vi.stubGlobal("fetch", vi.fn(impl));
@@ -40,6 +40,19 @@ describe("openRouterJson", () => {
     await expect(
       openRouterJson({ system: "s", user: "u" }),
     ).rejects.toBeInstanceOf(BackendError);
+  });
+
+  it("asks Claude Haiku 5.5 first, without extended thinking", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse('{"ok":true}'));
+    vi.stubGlobal("fetch", fetchMock);
+    await openRouterJson({ system: "s", user: "u" });
+    const init = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1];
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(MODEL).toBe("anthropic/claude-haiku-5.5");
+    expect(body.model).toBe(MODEL);
+    expect((body.models as string[])[0]).toBe(MODEL);
+    expect(body.reasoning).toBeUndefined();
+    expect(body.response_format).toEqual({ type: "json_object" });
   });
 
   it("returns the parsed JSON from the model reply", async () => {

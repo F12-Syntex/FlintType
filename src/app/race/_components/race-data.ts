@@ -24,14 +24,14 @@ export const RACE_MODES: Record<RaceModeId, RaceMode> = {
   "1v1": {
     id: "1v1",
     name: "1v1",
-    description: "Head-to-head over 25 words. A bot takes the seat if nobody joins.",
+    description: "Head-to-head over 25 words. A bot steps in if nobody joins.",
     wordCount: 25,
     botIds: ["mireille"],
   },
   ffa: {
     id: "ffa",
     name: "Free-for-all",
-    description: "Everyone races the same 25 words. Up to 8 people, no bots.",
+    description: "Up to 8 people on the same 25 words.",
     wordCount: 25,
     // Real players only — share the link and everyone races at once.
     botIds: [],

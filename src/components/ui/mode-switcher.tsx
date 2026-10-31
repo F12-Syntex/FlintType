@@ -70,7 +70,7 @@ export function ModeSwitcher({ className }: { className?: string }) {
                     ? { duration: 0 }
                     : { type: "tween", ease: [0.22, 1, 0.36, 1], duration: 0.25 }
                 }
-                className="absolute inset-0 rounded-pill brand-surface shadow-card"
+                className="absolute inset-0 rounded-pill brand-surface"
               />
             ) : null}
             <Icon size={15} className="relative" />

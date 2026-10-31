@@ -39,7 +39,6 @@ import {
 } from "../_components/rows/surface-rows";
 import { StylePreview } from "../_components/rows/style-preview";
 import {
-  ButtonGlowRow,
   ControlShapeRow,
   DepthRow,
   PageAuraRow,
@@ -78,12 +77,11 @@ export default function InterfaceSettingsPage() {
       <SettingsSection
         id="style"
         title={sectionTitle(group, "style")}
-        description="Shape, depth, glow and type across the whole app."
+        description="Shape, depth, page glow and type across the whole app."
         preview={<StylePreview />}
       >
         <ControlShapeRow />
         <DepthRow />
-        <ButtonGlowRow />
         <PageAuraRow />
         <UiFontRow />
         <UiScaleRow />

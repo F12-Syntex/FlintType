@@ -83,7 +83,6 @@ export const APPEARANCE_FIELDS: Record<string, EnumSpec | BoolSpec | IntSpec> = 
   monochromeChrome: { kind: "bool" },
   controlShape: { kind: "enum", values: ["pill", "rounded", "square"] },
   depth: { kind: "enum", values: ["flat", "soft", "lifted"] },
-  buttonGlow: { kind: "bool" },
   uiFont: { kind: "enum", values: ["sans", "mono", "system"] },
   smoothLineScroll: { kind: "bool" },
   markIncompleteWord: { kind: "bool" },

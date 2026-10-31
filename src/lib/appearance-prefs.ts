@@ -231,9 +231,6 @@ export type AppearancePrefs = {
   // ─── Style ───
   controlShape: ControlShape;
   depth: DepthMode;
-  /** The soft glow under primary buttons. Off mirrors onto
-   *  html[data-ft-glow="off"]. */
-  buttonGlow: boolean;
   /** The faint accent wash at the top of every page. Off mirrors onto
    *  html[data-ft-aura="off"]. */
   pageAura: boolean;
@@ -371,7 +368,6 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   // top of the page: the rounded look the brand ships with.
   controlShape: "pill",
   depth: "soft",
-  buttonGlow: true,
   pageAura: true,
   uiFont: "sans",
   uiScale: "default",

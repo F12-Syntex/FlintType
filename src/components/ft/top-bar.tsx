@@ -73,7 +73,7 @@ export function TopBar({
                   "rounded-pill px-4 py-1.5 text-[13px] font-medium outline-none transition-[color,background-color] duration-200",
                   "focus-visible:ring-2 focus-visible:ring-ring/40",
                   active
-                    ? "brand-surface text-primary-foreground shadow-glow"
+                    ? "brand-surface text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
               >

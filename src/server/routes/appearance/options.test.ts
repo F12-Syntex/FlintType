@@ -28,18 +28,18 @@ describe("resolveAi — options", () => {
 
   it("resolves the Style knobs into appearance prefs", () => {
     const { patch, changes } = resolveAi({
+      // "glow" was a knob before the button glow was removed; a model
+      // that still sends it is ignored.
       options: { controls: "square", depth: "flat", glow: "off", appFont: "mono" },
     });
     expect(patch.appearance).toEqual({
       controlShape: "square",
       depth: "flat",
-      buttonGlow: false,
       uiFont: "mono",
     });
     expect(changes.map((c) => c.label)).toEqual([
       "Button shape",
       "Depth",
-      "Button glow",
       "App font",
     ]);
   });

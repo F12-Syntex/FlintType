@@ -36,6 +36,11 @@ describe("testKindOf", () => {
       "Casual tests with long quotes",
     );
   });
+  it("names the pooled view as every Adapt test", () => {
+    expect(testKindOf(bucket({ key: "training|all", all: { kinds: 3, leftOut: 0 } }))).toEqual({
+      noun: "Adapt test", group: "Adapt tests",
+    });
+  });
   it("adds the touch suffix to both forms", () => {
     const k = testKindOf(bucket({ touch: true }));
     expect(k.noun).toBe("Adapt test of 25 words on a touch screen");

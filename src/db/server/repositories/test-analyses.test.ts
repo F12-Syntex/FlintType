@@ -70,6 +70,17 @@ describe("testAnalysesRepo", () => {
     expect(any.map((r) => r.testId)).toEqual(["time", "w4"]);
   });
 
+  it("listForUser can read several buckets in one query, and none for an empty list", async () => {
+    await ctx.db.testAnalyses.insert(row({ testId: "w", bucket: "training|words|25", startedAt: new Date(T0) }));
+    await ctx.db.testAnalyses.insert(row({ testId: "t", bucket: "training|time|60", startedAt: new Date(T0 + 60_000) }));
+    await ctx.db.testAnalyses.insert(row({ testId: "c", bucket: "casual|words|25", startedAt: new Date(T0 + 120_000) }));
+    const both = await ctx.db.testAnalyses.listForUser("u1", {
+      limit: 10, buckets: ["training|words|25", "training|time|60"],
+    });
+    expect(both.map((r) => r.testId)).toEqual(["t", "w"]);
+    expect(await ctx.db.testAnalyses.listForUser("u1", { limit: 10, buckets: [] })).toEqual([]);
+  });
+
   it("listForUser excludes rows at or after beforeMs", async () => {
     for (let i = 0; i < 4; i++) {
       await ctx.db.testAnalyses.insert(row({ testId: `w${i}`, startedAt: new Date(T0 + i * 60_000) }));

@@ -15,7 +15,7 @@ import { formatTestName } from "@/lib/test-name";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { cn } from "@/lib/utils";
 import type { InsightsBucket } from "@/types/insights";
-import { PICKER_LABEL, PICKER_TITLE, TOUCH_LABEL } from "./labels-copy";
+import { ALL_LENGTHS_LABEL, PICKER_LABEL, PICKER_TITLE, TOUCH_LABEL } from "./labels-copy";
 
 /** Which tests the page is about (spec-40 §3.0): an outline button with
  *  the mode (muted) and the length (medium), no glyph between them. A
@@ -23,7 +23,9 @@ import { PICKER_LABEL, PICKER_TITLE, TOUCH_LABEL } from "./labels-copy";
  *  selected kind gets the orange check (ui-law §5 filter toolbar). */
 
 function nameOf(b: InsightsBucket) {
-  return formatTestName({ mode: b.mode, lengthMode: b.lengthMode, length: b.length, touch: b.touch });
+  const n = formatTestName({ mode: b.mode, lengthMode: b.lengthMode, length: b.length, touch: b.touch });
+  // The pooled view: every length of Adapt test, so no length to name.
+  return b.all ? { ...n, length: ALL_LENGTHS_LABEL } : n;
 }
 
 function Parts({ b }: { b: InsightsBucket }) {
@@ -32,7 +34,7 @@ function Parts({ b }: { b: InsightsBucket }) {
     <span className="flex min-w-0 items-baseline gap-2">
       <span className="text-muted-foreground">{n.mode}</span>
       <span className="truncate font-medium text-foreground">{n.length}</span>
-      {b.touch ? <span className="text-muted-foreground">{TOUCH_LABEL}</span> : null}
+      {b.touch && !b.all ? <span className="text-muted-foreground">{TOUCH_LABEL}</span> : null}
     </span>
   );
 }
@@ -46,7 +48,7 @@ function OptionBody({ b }: { b: InsightsBucket }) {
         <span className="truncate">{n.length}</span>
         <span className="flex gap-2 text-xs text-muted-foreground">
           <span>{n.mode}</span>
-          {b.touch ? <span>{TOUCH_LABEL}</span> : null}
+          {b.touch && !b.all ? <span>{TOUCH_LABEL}</span> : null}
         </span>
       </span>
       <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{plural(b.tests, "test", "tests")}</span>

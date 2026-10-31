@@ -120,12 +120,48 @@ describe("insights namespace", () => {
     it("is empty for a new user", async () => {
       expect((await overview()).status).toBe("empty");
     });
-    it("defaults to the bucket with the most tests in the last 30 days, and falls back to it", async () => {
+    it("defaults to all Adapt tests when there are some, and falls back to it", async () => {
       const old = fixtureData({ tests: 30, length: 50, idPrefix: "o", startMs: recentStart(200) });
       await seed(ctx.db, "u1", mergeFixtures([old, data({ tests: 6, mode: "training" })]));
-      expect((await overview()).bucket!.key).toBe("training|words|25");
-      expect((await overview({ bucket: "race|words|25" })).bucket!.key).toBe("training|words|25");
+      expect((await overview()).bucket!.key).toBe("training|all");
+      expect((await overview({ bucket: "race|words|25" })).bucket!.key).toBe("training|all");
+      expect((await overview({ bucket: "training|words|25" })).bucket!.key).toBe("training|words|25");
       expect((await overview({ bucket: "casual|words|50" })).bucket).toMatchObject({ key: "casual|words|50", tests: 30 });
+    });
+    it("without Adapt tests, defaults to the bucket with the most tests in the last 30 days", async () => {
+      const old = fixtureData({ tests: 30, length: 50, idPrefix: "o", startMs: recentStart(200) });
+      await seed(ctx.db, "u1", mergeFixtures([old, data({ tests: 6 })]));
+      const o = await overview({ bucket: "training|all" });
+      expect(o.bucket!.key).toBe("casual|words|25");
+      expect(o.buckets.map((b) => b.key)).not.toContain("training|all");
+    });
+    it("pools every Adapt length, each scaled to the most played one", async () => {
+      // 25 words is played most; 60 seconds runs slower; 10 words has too
+      // few tests to be scaled yet.
+      await seed(ctx.db, "u1", mergeFixtures([
+        data({ tests: 20, mode: "training", wpm: 80, idPrefix: "a", seed: 2, startMs: recentStart(10) }),
+        data({ tests: 12, mode: "training", wpm: 60, lengthMode: "time", length: 60, idPrefix: "b", seed: 3, startMs: recentStart(20) }),
+        data({ tests: 3, mode: "training", length: 10, idPrefix: "c", seed: 4, startMs: recentStart(30) }),
+      ]));
+      const o = await overview();
+      expect(o.bucket).toMatchObject({
+        key: "training|all", lengthMode: "words", length: 25, tests: 32, analysed: 32,
+        all: { kinds: 2, leftOut: 3 },
+      });
+      expect(o.buckets[0]!.key).toBe("training|all");
+      expect(o.buckets.map((b) => b.key)).toEqual(expect.arrayContaining(["training|words|25", "training|time|60"]));
+      // The slower 60-second tests are lifted to the 25-word footing, so
+      // the usual speed sits near the 25-word usual, not between the two.
+      const own = await overview({ bucket: "training|words|25" });
+      expect(Math.abs(o.headline!.usual - own.headline!.usual)).toBeLessThanOrEqual(3);
+      expect(o.series!.scaled).toBe(true);
+      expect(o.series!.points.every((p) => !p.pb)).toBe(true);
+      // Digests of both pooled lengths are read, so the minute is ready.
+      expect(o.time.status).toBe("ready");
+    });
+    it("rejects other pooled names, and the pooled view where one run is compared", async () => {
+      await expectInvalid(overview({ bucket: "casual|all" }));
+      await expectInvalid(usual({ bucket: "training|all", beforeMs: 1, fixMode: "fix" }));
     });
     it("keeps perfect 30-word Adapt runs that have a stored digest, beyond the 40 it loads", async () => {
       const perfect = data({ tests: 50, mode: "training", length: 30, accuracy: 100, accSd: 0, idPrefix: "a", seed: 3 });
@@ -134,7 +170,7 @@ describe("insights namespace", () => {
       expect(o.bucket).toMatchObject({ key: "training|words|30", tests: 50, analysed: 50 });
       expect(o.buckets.find((b) => b.key === "training|words|30")).toMatchObject({ tests: 50, analysed: 50 });
       expect(o.series!.points).toHaveLength(50);
-      expect((await overview()).bucket!.key).toBe("training|words|30");
+      expect((await overview()).bucket).toMatchObject({ key: "training|all", tests: 50 });
     });
     it("excludes MonkeyType imports", async () => {
       await seed(ctx.db, "u1", data({ tests: 8, idPrefix: "mt_" }), false);

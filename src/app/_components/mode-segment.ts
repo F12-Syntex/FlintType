@@ -12,7 +12,7 @@ export function segmentClass(active: boolean, className?: string): string {
     "transition-[color,background-color,box-shadow] duration-200",
     "focus-visible:ring-2 focus-visible:ring-ring/40",
     active
-      ? "brand-surface text-primary-foreground shadow-card"
+      ? "brand-surface text-primary-foreground"
       : "text-muted-foreground hover:text-foreground",
     className,
   );

@@ -148,7 +148,6 @@ describe("PREFS_BOOTSTRAP_SCRIPT", () => {
         appearance: {
           controlShape: "square",
           depth: "lifted",
-          buttonGlow: false,
           pageAura: false,
           uiFont: "mono",
           uiScale: "large",
@@ -159,7 +158,6 @@ describe("PREFS_BOOTSTRAP_SCRIPT", () => {
     const root = document.documentElement;
     expect(root.getAttribute("data-ft-controls")).toBe("square");
     expect(root.getAttribute("data-ft-depth")).toBe("lifted");
-    expect(root.getAttribute("data-ft-glow")).toBe("off");
     expect(root.getAttribute("data-ft-aura")).toBe("off");
     expect(root.getAttribute("data-ft-ui-font")).toBe("mono");
     expect(root.getAttribute("data-ft-ui-scale")).toBe("large");
@@ -172,7 +170,6 @@ describe("PREFS_BOOTSTRAP_SCRIPT", () => {
         appearance: {
           controlShape: "pill",
           depth: "soft",
-          buttonGlow: true,
           pageAura: true,
           uiFont: "sans",
           uiScale: "default",
@@ -184,7 +181,6 @@ describe("PREFS_BOOTSTRAP_SCRIPT", () => {
     for (const attr of [
       "data-ft-controls",
       "data-ft-depth",
-      "data-ft-glow",
       "data-ft-aura",
       "data-ft-ui-font",
       "data-ft-ui-scale",
@@ -200,7 +196,6 @@ describe("PREFS_BOOTSTRAP_SCRIPT", () => {
       pagePadding: "tight",
       monochromeChrome: true,
       controlShape: "rounded",
-      buttonGlow: true,
       pageAura: false,
       uiScale: "compact",
     };
@@ -247,8 +242,8 @@ describe("htmlAttrValue", () => {
   });
 
   it("writes \"off\" only for a false default-on flag", () => {
-    expect(htmlAttrValue(rule("buttonGlow"), { buttonGlow: false })).toBe("off");
-    expect(htmlAttrValue(rule("buttonGlow"), { buttonGlow: true })).toBeNull();
+    expect(htmlAttrValue(rule("pageAura"), { pageAura: false })).toBe("off");
+    expect(htmlAttrValue(rule("pageAura"), { pageAura: true })).toBeNull();
     expect(htmlAttrValue(rule("pageAura"), {})).toBeNull();
   });
 

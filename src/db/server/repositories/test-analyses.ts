@@ -1,4 +1,4 @@
-import { and, desc, eq, lt, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, sql, type SQL } from "drizzle-orm";
 import { testAnalyses } from "@/db/schema/server/test-analyses";
 import type {
   NewTestAnalysisRow,
@@ -46,14 +46,19 @@ export function testAnalysesRepo(db: ServerDrizzle) {
       return rows.map((r) => ({ testId: r.testId, bucket: r.bucket, diff: toDiff(r.diff) }));
     },
 
-    /** Optional bucket filter; optional beforeMs excludes rows that started
+    /** Optional bucket filter (one `bucket`, or any of `buckets`; an empty
+     *  list matches nothing); optional beforeMs excludes rows that started
      *  at or after it. */
     async listForUser(
       userId: string,
-      opts: { limit: number; bucket?: string; beforeMs?: number },
+      opts: { limit: number; bucket?: string; buckets?: readonly string[]; beforeMs?: number },
     ): Promise<StoredTestAnalysis[]> {
       const where: SQL[] = [eq(testAnalyses.userId, userId)];
       if (opts.bucket !== undefined) where.push(eq(testAnalyses.bucket, opts.bucket));
+      if (opts.buckets !== undefined) {
+        if (opts.buckets.length === 0) return [];
+        where.push(inArray(testAnalyses.bucket, [...opts.buckets]));
+      }
       if (opts.beforeMs !== undefined) where.push(lt(testAnalyses.startedAt, new Date(opts.beforeMs)));
       return db
         .select({

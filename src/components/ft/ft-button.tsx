@@ -17,7 +17,7 @@ const ftButtonVariants = cva(
     variants: {
       variant: {
         ember:
-          "brand-surface font-semibold text-primary-foreground shadow-glow hover:brightness-110",
+          "brand-surface font-semibold text-primary-foreground hover:brightness-110",
         ink: "bg-foreground text-background hover:bg-foreground/90",
         ghost:
           "border-border bg-card text-foreground hover:bg-accent hover:text-foreground",

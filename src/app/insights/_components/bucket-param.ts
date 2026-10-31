@@ -1,8 +1,9 @@
-import { bucketKeySchema } from "@/types/insights";
+import { insightsBucketChoiceSchema } from "@/types/insights";
 
 /** The `?tests=` URL parameter for the /insights bucket picker (spec-40
  *  §2). A bucket key ("training|words|25") is written with "~" in place
- *  of "|", so the URL stays readable ("?tests=training~words~25"). */
+ *  of "|", so the URL stays readable ("?tests=training~words~25"). The
+ *  pooled view is "?tests=training~all". */
 
 export const BUCKET_PARAM = "tests";
 
@@ -12,7 +13,7 @@ export const BUCKET_PARAM = "tests";
 export function parseBucketParam(value: string | null): string | null {
   if (!value) return null;
   const key = value.replaceAll("~", "|");
-  return bucketKeySchema.safeParse(key).success ? key : null;
+  return insightsBucketChoiceSchema.safeParse(key).success ? key : null;
 }
 
 export function toBucketParam(key: string): string {

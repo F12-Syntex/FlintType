@@ -17,7 +17,15 @@ export type TestSummaryRow = Pick<TestRow,
 export const bucketKeySchema = z.string().max(80)
   .regex(/^(casual|training|race|reverse_adaptive)\|(words|time|quote)\|(0|[1-9]\d{0,4})(\|t)?$/);
 
-export const insightsOverviewInputSchema = z.object({ bucket: bucketKeySchema.optional() });
+/** The pooled "All Adapt tests" view (pooled/all-adapt.ts): every Adapt
+ *  test, each scaled to its own kind's usual first. Only the overview
+ *  takes it; comparisons of one run (`insights.usual`) stay per bucket. */
+export const ALL_ADAPT_BUCKET = "training|all";
+
+/** What the overview (and the page's `?tests=` parameter) accepts. */
+export const insightsBucketChoiceSchema = z.union([bucketKeySchema, z.literal(ALL_ADAPT_BUCKET)]);
+
+export const insightsOverviewInputSchema = z.object({ bucket: insightsBucketChoiceSchema.optional() });
 export type InsightsOverviewInput = z.infer<typeof insightsOverviewInputSchema>;
 
 export const insightsUsualInputSchema = z.object({
@@ -30,6 +38,9 @@ export type InsightsUsualInput = z.infer<typeof insightsUsualInputSchema>;
 export type InsightsBucket = {
   key: string; mode: TestMode; lengthMode: "words" | "time" | "quote"; length: number; touch: boolean;
   tests: number; analysed: number; lastAtMs: number;
+  /** The pooled "All Adapt tests" option. Its mode, length unit, length
+   *  and touch name the kind every test is scaled to (the anchor). */
+  all?: { kinds: number; leftOut: number };
 };
 export type GateUnit = "tests" | "sessions" | "days" | "fixes" | "gaps" | "keys";
 export type Gate = { have: number; need: number; unit: GateUnit };
@@ -102,7 +113,11 @@ export type TrendSeries = {
   points: { t: number; wpm: number; value: number; acc: number; pb: boolean }[];
   median: { t: number; v: number }[];
   band: { t: number; lo: number; hi: number }[];
+  /** Speeds allow for passage difficulty (Adapt). */
   adjusted: boolean;
+  /** The pooled "All Adapt tests" view: speeds are scaled to the anchor
+   *  kind, and no dot is a personal best. */
+  scaled: boolean;
 };
 
 export type HabitKind = "mistakeCost" | "longWords" | "paceToEnd" | "warmUp" | "fatigue" | "hands";

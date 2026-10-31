@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ALL_ADAPT_BUCKET,
   bucketKeySchema,
   insightsOverviewInputSchema,
   insightsUsualInputSchema,
@@ -45,6 +46,12 @@ describe("insights inputs", () => {
       bucket: "casual|words|25",
     });
     expect(insightsOverviewInputSchema.safeParse({ bucket: "nope" }).success).toBe(false);
+  });
+
+  it("lets only the overview take the pooled Adapt view", () => {
+    expect(insightsOverviewInputSchema.parse({ bucket: ALL_ADAPT_BUCKET })).toStrictEqual({ bucket: "training|all" });
+    expect(insightsOverviewInputSchema.safeParse({ bucket: "casual|all" }).success).toBe(false);
+    expect(bucketKeySchema.safeParse(ALL_ADAPT_BUCKET).success).toBe(false);
   });
 
   it("requires a bucket, a whole non-negative beforeMs and a fix mode for usual", () => {

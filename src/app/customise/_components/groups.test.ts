@@ -36,7 +36,6 @@ describe("settings catalog", () => {
     for (const k of [
       "controlShape",
       "depth",
-      "buttonGlow",
       "pageAura",
       "uiFont",
       "uiScale",
