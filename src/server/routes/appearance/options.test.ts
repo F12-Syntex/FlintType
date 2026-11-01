@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_APPEARANCE } from "@/lib/appearance-prefs";
 import { describeCatalog, KNOBS, resolveAi } from "./options";
 
 describe("resolveAi — options", () => {
@@ -24,6 +25,11 @@ describe("resolveAi — options", () => {
     expect(patch.theme["--ft-font-scale"]).toBe("1.3");
     expect(patch.appearance.linesRendered).toBe(0);
     expect(patch.appearance.maxLineWidth).toBe(60);
+  });
+
+  it("gives the real default when asked for the default number of lines", () => {
+    const { patch } = resolveAi({ options: { lines: "default" } });
+    expect(patch.appearance.linesRendered).toBe(DEFAULT_APPEARANCE.linesRendered);
   });
 
   it("resolves the Style knobs into appearance prefs", () => {
