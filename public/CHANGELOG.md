@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.154.6 — 1 November 2026
+- Friends lists now load reliably when you follow, or are followed by, more than 500 people. Before, the list failed or left out everyone past the first 500.
+
 ## 6.154.5 — 1 November 2026
 - The home page's "How to start" text now says correctly that drills and insights need a free account, while typing tests and races work without one.
 
