@@ -32,6 +32,12 @@ function seededRandom(seed: number) {
 
 const PUNCTUATION = [".", ",", ";", ":", "!", "?"] as const;
 
+/** Fewest distinct words a passage draws from. A shortest-word setting
+ *  the list can't meet (8 letters over the 200-word English list leaves
+ *  4 words) would loop the same few words, so below this the passage
+ *  takes the longest words the list has instead (FT-057). */
+export const MIN_FILTERED_POOL = 24;
+
 function filteredList(cfg: WordCfg): readonly string[] {
   // Casual mode has no length-skew preference — just respect the user's
   // minimum-word-length floor. Adaptive mode picks purely on bigram
@@ -42,7 +48,11 @@ function filteredList(cfg: WordCfg): readonly string[] {
   const pool: readonly string[] =
     cfg.wordPool && cfg.wordPool.length > 0 ? cfg.wordPool : WORD_POOL;
   const list = pool.filter((w) => w.length >= cfg.minWordLength);
-  return list.length > 0 ? list : pool;
+  if (list.length >= MIN_FILTERED_POOL || list.length === pool.length) return list;
+  // Too few words pass: keep as close to the setting as the list allows.
+  return [...pool]
+    .sort((a, b) => b.length - a.length)
+    .slice(0, MIN_FILTERED_POOL);
 }
 
 export function generateWords(
