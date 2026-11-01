@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.154.8 — 1 November 2026
+- Asking Design with AI for the default number of lines now gives 4, the real default. It used to set 3.
+
 ## 6.154.7 — 1 November 2026
 - In tape mode, the caret and the next few letters now stay crisp wherever you set the caret position. Before, they faded out near the right edge.
 
