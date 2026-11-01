@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.154.7 — 1 November 2026
+- In tape mode, the caret and the next few letters now stay crisp wherever you set the caret position. Before, they faded out near the right edge.
+
 ## 6.154.6 — 1 November 2026
 - Friends lists now load reliably when you follow, or are followed by, more than 500 people. Before, the list failed or left out everyone past the first 500.
 
