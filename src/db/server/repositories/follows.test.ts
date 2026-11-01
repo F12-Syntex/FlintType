@@ -25,6 +25,52 @@ describe("followsRepo", () => {
     expect(await ctx.db.follows.isFollowing("b", "a")).toBe(false);
   });
 
+  it("block(A,B) atomically refuses follow(A,B) — forward block", async () => {
+    await ctx.db.blocks.block("a", "b");
+    const { created } = await ctx.db.follows.follow("a", "b");
+    expect(created).toBe(false);
+    expect(await ctx.db.follows.isFollowing("a", "b")).toBe(false);
+  });
+
+  it("block(A,B) atomically refuses follow(B,A) — reverse (either-direction) block", async () => {
+    await ctx.db.blocks.block("a", "b");
+    const { created } = await ctx.db.follows.follow("b", "a");
+    expect(created).toBe(false);
+    expect(await ctx.db.follows.isFollowing("b", "a")).toBe(false);
+  });
+
+  it("no block — follow still creates the edge", async () => {
+    const { created } = await ctx.db.follows.follow("a", "b");
+    expect(created).toBe(true);
+    expect(await ctx.db.follows.isFollowing("a", "b")).toBe(true);
+  });
+
+  it("the block guard lifts once the block is removed", async () => {
+    await ctx.db.blocks.block("a", "b");
+    expect((await ctx.db.follows.follow("a", "b")).created).toBe(false);
+    await ctx.db.blocks.unblock("a", "b");
+    const { created } = await ctx.db.follows.follow("a", "b");
+    expect(created).toBe(true);
+    expect(await ctx.db.follows.isFollowing("a", "b")).toBe(true);
+  });
+
+  it("after a mutual pair is severed by a block, neither side can re-follow", async () => {
+    // Friends, then A blocks B the way the route does: record the block,
+    // then sever both follow edges. The atomic guard must then refuse a
+    // re-follow from EITHER side while the block stands.
+    await ctx.db.follows.follow("a", "b");
+    await ctx.db.follows.follow("b", "a");
+    expect(await ctx.db.follows.isMutual("a", "b")).toBe(true);
+
+    await ctx.db.blocks.block("a", "b");
+    await ctx.db.follows.unfollow("a", "b");
+    await ctx.db.follows.unfollow("b", "a");
+
+    expect((await ctx.db.follows.follow("a", "b")).created).toBe(false);
+    expect((await ctx.db.follows.follow("b", "a")).created).toBe(false);
+    expect(await ctx.db.follows.isMutual("a", "b")).toBe(false);
+  });
+
   it("follow is idempotent — second call reports created:false", async () => {
     expect((await ctx.db.follows.follow("a", "b")).created).toBe(true);
     expect((await ctx.db.follows.follow("a", "b")).created).toBe(false);
