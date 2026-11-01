@@ -20,6 +20,13 @@ export const compare = defineRoute<FriendTargetInput, CompareOutput>({
     if (them === me) {
       throw new BackendError(400, "VALIDATION", "Nothing to compare here.");
     }
+    // A block in either direction severs the relationship — gate before
+    // even the Clerk resolve, matching live.watch and lobby.invite, so a
+    // blocked party can't pull a head-to-head card against the other
+    // (FT-053).
+    if (await db.blocks.eitherBlocks(me, them)) {
+      throw new BackendError(403, "FORBIDDEN", "You can't compare with this user.");
+    }
 
     const displays = await resolveUserDisplays(db, [me, them]);
     const themDisplay = displays.get(them);
