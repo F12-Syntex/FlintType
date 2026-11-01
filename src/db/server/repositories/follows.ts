@@ -1,5 +1,6 @@
 import { and, desc, eq, exists, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import { blocks } from "@/db/schema/server/blocks";
 import { follows } from "@/db/schema/server/follows";
 import type { ServerDrizzle } from "../driver";
 
@@ -9,19 +10,73 @@ export type FollowEdge = { userId: string; createdAt: Date };
 
 export function followsRepo(db: ServerDrizzle) {
   return {
-    /** Create the directed edge `followerId → followeeId`. Idempotent
-     *  via `onConflictDoNothing` — a duplicate follow reports
-     *  `created: false` without erroring. Self-follows are silently
-     *  refused (the route surfaces a 400 before reaching here, but the
-     *  repo guards too so no self-edge can ever be written). */
+    /** Create the directed edge `followerId → followeeId`.
+     *
+     *  **Block-aware atomic insert.** The edge is written only if no
+     *  block exists in *either* direction between the two users, and
+     *  that check happens in the SAME statement as the INSERT
+     *  (`INSERT ... SELECT ... WHERE NOT EXISTS (... blocks ...)`), so
+     *  there is no application-level TOCTOU window between checking for a
+     *  block and writing the edge. This closes the reported FT-044 case: a
+     *  `friends.follow` whose block-check was a *separate, earlier*
+     *  statement followed by a ~100ms Clerk round-trip before the INSERT
+     *  could race a concurrent `friends.block` landing in that wide gap and
+     *  leave a dangling follow edge across a block.
+     *
+     *  Because the `block` route inserts the block row *before* deleting
+     *  follow edges, the practical interleavings are safe: a follow-INSERT
+     *  whose snapshot is after the block commits sees the block and writes
+     *  nothing; one whose snapshot is before it writes the edge, but the
+     *  block route's subsequent two-way `unfollow` then deletes it.
+     *
+     *  A sub-millisecond residual remains in theory: at READ COMMITTED a
+     *  follow-INSERT could evaluate NOT EXISTS before the block commits and
+     *  not commit its own row until after the block route's `unfollow`
+     *  (which misses the still-uncommitted edge) — a cross-table write-skew.
+     *  Fully closing it needs SERIALIZABLE isolation or pair-keyed locking,
+     *  neither of which the production neon-http driver supports (it is
+     *  stateless and `transaction()` throws). It's left open deliberately:
+     *  the window shrank from a ~100ms app-level gap to a single-statement
+     *  server-side window that the stateless one-request-per-statement model
+     *  makes unreachable in practice (and impossible on serial PGlite), for
+     *  a LOW-severity presence leak. Don't "fix" it by wrapping the block
+     *  route in `transaction()` — that crashes on neon-http.
+     *
+     *  Idempotent via `onConflictDoNothing` — a duplicate follow reports
+     *  `created: false` without erroring. `created` is therefore `false`
+     *  whenever a row was *not* inserted: a block exists in either
+     *  direction, the edge is a duplicate, or it's a self-follow.
+     *  Self-follows are short-circuited up front (the route 400s before
+     *  reaching here, but the repo guards too so no self-edge is ever
+     *  written). */
     async follow(
       followerId: string,
       followeeId: string,
     ): Promise<{ created: boolean }> {
       if (followerId === followeeId) return { created: false };
+      // INSERT ... SELECT <const>, <const> WHERE NOT EXISTS (block in
+      // either direction) — the block test and the insert are one
+      // statement, so no snapshot can write an edge across a block. The
+      // SELECT has no FROM (a constant-row select); Postgres emits one
+      // row when the NOT EXISTS holds, zero otherwise. `.returning()`
+      // yields the inserted rows on both the pglite and neon-http
+      // drivers, so `length > 0` is the portable created flag — the same
+      // read this repo already relies on for `onConflictDoNothing`.
+      // Drizzle generates the full column list for an INSERT ... SELECT,
+      // so the SELECT supplies all three columns (created_at via now(),
+      // matching the column default of the plain `.values()` insert).
       const inserted = await db
         .insert(follows)
-        .values({ followerId, followeeId })
+        .select(
+          sql`
+            select ${followerId} as follower_id, ${followeeId} as followee_id, now() as created_at
+            where not exists (
+              select 1 from ${blocks}
+              where (${blocks.blockerId} = ${followerId} and ${blocks.blockedId} = ${followeeId})
+                 or (${blocks.blockerId} = ${followeeId} and ${blocks.blockedId} = ${followerId})
+            )
+          `,
+        )
         .onConflictDoNothing()
         .returning();
       return { created: inserted.length > 0 };
