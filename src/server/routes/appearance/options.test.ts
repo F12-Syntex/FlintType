@@ -27,6 +27,10 @@ describe("resolveAi — options", () => {
     expect(patch.appearance.maxLineWidth).toBe(60);
   });
 
+  it("offers no knob for quickRestart, which nothing reads", () => {
+    expect(KNOBS).not.toHaveProperty("quickRestart");
+  });
+
   it("gives the real default when asked for the default number of lines", () => {
     const { patch } = resolveAi({ options: { lines: "default" } });
     expect(patch.appearance.linesRendered).toBe(DEFAULT_APPEARANCE.linesRendered);
