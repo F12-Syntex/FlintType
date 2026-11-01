@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.154.4 — 1 November 2026
+- Blocking now also stops the head-to-head comparison: you can no longer pull up a stats comparison against someone you've blocked, or who has blocked you.
+
 ## 6.154.3 — 1 November 2026
 - In Burst mode, picking a different word list now re-rolls the words you see straight away, instead of only changing them after you restart the set.
 
