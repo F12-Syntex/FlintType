@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.154.11 — 1 November 2026
+- Opening another page now starts it at the top, instead of keeping how far down you had scrolled on the last one.
+
 ## 6.154.10 — 1 November 2026
 - A personal best now notifies only your friends, people you follow who follow you back. Someone who follows you without being followed back no longer gets told.
 
