@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.154.3 — 1 November 2026
+- In Burst mode, picking a different word list now re-rolls the words you see straight away, instead of only changing them after you restart the set.
+
 ## 6.154.2 — 1 November 2026
 - Following and blocking someone at the same moment can no longer leave the follow in place across the block, which let the blocked person keep seeing your online status.
 
