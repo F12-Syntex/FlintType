@@ -856,13 +856,15 @@ Every Surface / Chrome knob lands as a `<html data-ft-…>` attribute, applied b
 | `monochromeChrome` | `data-ft-monochrome` | (off; attr absent) |
 | `topbarStyle` | `data-ft-topbar-style` | `elevated` (note the `-style` suffix — `data-ft-topbar` is the self-marker on the TopBar element) |
 | `footerStyle` | `data-ft-footer-style` | `visible` (`-style` suffix for the same reason — `data-ft-footer` is the AppFooter self-marker) |
-| `autoHide` | `data-ft-autohide` + runtime `data-ft-running` | `off` |
+| `autoHide` | `data-ft-autohide` + runtime `data-ft-running` (+ runtime `data-ft-peek`, `top` or `bottom`) | `off` |
 | `controlShape` | `data-ft-controls` | `pill` |
 | `depth` | `data-ft-depth` | `soft` |
 | `pageAura` | `data-ft-aura="off"` when false | on |
 | `uiFont` | `data-ft-ui-font` | `sans` |
 | `uiScale` | `data-ft-ui-scale` | `default` |
 | `(Focus shortcut)` | `data-ft-focus="on"` | (off; attr absent) |
+
+`data-ft-peek` is the **edge peek**: while a run is active, `<AutoHideApplier>` tracks the pointer and writes `data-ft-peek="top"` or `"bottom"` when it reaches a viewport edge (`peekEdge` in `src/lib/autohide-peek.ts`, tested), and globals.css brings the top bar or footer back for that edge. It can't be `:hover`: under `fade` the chrome is `pointer-events: none`, so it is never hit-tested and `:hover` never fires (FT-042). The component only writes the attribute; the look stays in globals.css.
 
 The whole table lives in one place: `HTML_ATTR_RULES` in `src/lib/bootstrap.ts` (kinds `enum`, written unless it equals `fallback`; `flag-on`; `flag-off`). Both the pre-paint bootstrap script (the table is embedded as JSON) and `<AppearanceApplier>` (via `htmlAttrsFor()`) read it, so a new knob is one row there plus its CSS. Never hand-write a `setAttribute` for an appearance knob.
 
@@ -885,7 +887,8 @@ Component self-markers that the CSS rules attach to:
 - **Don't** add a Surface / Chrome knob whose visual effect requires reading the pref inside a React component when a `<html data-ft-…>` attribute + a globals.css rule can deliver the same effect. Data-attr knobs are zero-cost to toggle and don't re-render components.
 - **Don't** rename `data-ft-topbar-style` / `data-ft-footer-style` to drop the `-style` suffix. The unsuffixed forms are taken by component self-markers; the suffix is load-bearing.
 - **Don't** animate the auto-hide transition beyond the 240ms opacity tween already defined. The user is mid-keystroke; the chrome should disappear quickly enough that they don't notice, not slowly enough to distract.
-- **Don't** drop `pointer-events: none` from the `fade` autohide rule. Without it, a stray click on the invisible topbar mid-run can cancel the test.
+- **Don't** drop `pointer-events: none` from the `fade` autohide rule. Without it, a stray click on the invisible topbar mid-run can cancel the test. The edge peek gives `pointer-events` back **only** while the pointer sits at that edge, so keep that gating.
+- **Don't** bring back a `:hover` peek on the faded chrome. It can never fire under `fade`; the peek comes from `data-ft-peek`.
 - **Don't** put `data-ft-topbar-pill` on a control outside the top bar, or on one whose selected state is a filled pill: text-only strips the fill and leaves white text on paper.
 
 ## 16. Command palette
