@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.154.9 — 1 November 2026
+- A high shortest-word setting no longer loops the same few words. When your word list has too few words that long, the test uses its longest words instead.
+
 ## 6.154.8 — 1 November 2026
 - Asking Design with AI for the default number of lines now gives 4, the real default. It used to set 3.
 
