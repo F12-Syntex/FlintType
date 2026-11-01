@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.154.13 — 1 November 2026
+- Design with AI no longer offers to change Quick restart, a setting that does nothing.
+
 ## 6.154.12 — 1 November 2026
 - While you type with the top bar set to fade, moving the pointer to the top or bottom edge brings the top bar or footer back. This never worked before.
 

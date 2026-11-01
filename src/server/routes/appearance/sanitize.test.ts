@@ -91,6 +91,11 @@ describe("sanitizePatch — appearance", () => {
 });
 
 describe("sanitizePatch — behaviour", () => {
+  it("drops quickRestart, a retired setting nothing reads", () => {
+    const p = sanitizePatch({ behaviour: { quickRestart: true, blindMode: true } });
+    expect(p.behaviour).toEqual({ blindMode: true });
+  });
+
   it("keeps valid behaviour enums/bools and clamps ints", () => {
     const p = sanitizePatch({
       behaviour: {
