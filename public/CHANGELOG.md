@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.154.5 — 1 November 2026
+- The home page's "How to start" text now says correctly that drills and insights need a free account, while typing tests and races work without one.
+
 ## 6.154.4 — 1 November 2026
 - Blocking now also stops the head-to-head comparison: you can no longer pull up a stats comparison against someone you've blocked, or who has blocked you.
 
