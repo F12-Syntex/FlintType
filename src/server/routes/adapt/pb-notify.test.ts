@@ -31,7 +31,7 @@ function input(over: Partial<SubmitTestInput> = {}): SubmitTestInput {
 
 type Created = { userId: string; kind: string; title: string; body: string; data: Record<string, unknown> };
 
-function fakeDb(followers: string[] = []) {
+function fakeDb(friends: string[] = []) {
   const created: Created[] = [];
   const db = {
     notifications: {
@@ -39,13 +39,13 @@ function fakeDb(followers: string[] = []) {
         created.push(row);
       }),
     },
-    follows: { listFollowers: vi.fn(async () => followers.map((userId) => ({ userId }))) },
+    follows: { listFriends: vi.fn(async () => friends.map((userId) => ({ userId }))) },
   } as unknown as Database;
   return { db, created };
 }
 
-async function notify(over: Partial<SubmitTestInput>, previousWpm: number | null, followers: string[] = []) {
-  const { db, created } = fakeDb(followers);
+async function notify(over: Partial<SubmitTestInput>, previousWpm: number | null, friends: string[] = []) {
+  const { db, created } = fakeDb(friends);
   await notifyPersonalBest({ db, log: logger, userId: "u1", testId: "t1", input: input(over), previousWpm });
   return created;
 }
@@ -81,7 +81,7 @@ describe("notifyPersonalBest: the personal_best row", () => {
 describe("notifyPersonalBest: the friend_pb fan-out", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("writes a friendPbSentence body and lengthMode for each follower", async () => {
+  it("writes a friendPbSentence body and lengthMode for each friend", async () => {
     const run = { mode: "training" as const, lengthMode: "words" as const, durationOrWordCount: 25, wpm: 188 };
     const rows = await notify(run, null, ["u2", "u3"]);
     const friend = rows.filter((r) => r.kind === "friend_pb");
@@ -91,7 +91,7 @@ describe("notifyPersonalBest: the friend_pb fan-out", () => {
     expect(friend[0]!.data.lengthMode).toBe("words");
   });
 
-  it("no followers, no fan-out", async () => {
+  it("no friends, no fan-out", async () => {
     const rows = await notify({}, null, []);
     expect(rows.map((r) => r.kind)).toEqual(["personal_best"]);
   });

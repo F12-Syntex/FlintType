@@ -8,6 +8,9 @@ User-facing changes to flinttype, newest first — one section per version. Also
 
 ---
 
+## 6.154.10 — 1 November 2026
+- A personal best now notifies only your friends, people you follow who follow you back. Someone who follows you without being followed back no longer gets told.
+
 ## 6.154.9 — 1 November 2026
 - A high shortest-word setting no longer loops the same few words. When your word list has too few words that long, the test uses its longest words instead.
 

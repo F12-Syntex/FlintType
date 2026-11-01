@@ -53,19 +53,19 @@ export async function notifyPersonalBest(args: {
     });
   }
 
-  // Fan the PB out to the user's followers — "a friend hit a PB",
-  // the social half of the activity feed. Its own try so a Clerk
-  // hiccup, zero followers, or anything else here can never turn a
-  // good submit into a 5xx. Deduped on the run id so a follower
-  // gets at most one row per PB.
+  // Fan the PB out to the user's friends (mutual follows): "a friend hit
+  // a PB", the social half of the activity feed. A one-way follower isn't
+  // a friend, so they get nothing (FT-051). Its own try so a Clerk hiccup,
+  // no friends, or anything else here can never turn a good submit into a
+  // 5xx. Deduped on the run id so a friend gets at most one row per PB.
   try {
-    const followers = await db.follows.listFollowers(userId);
-    if (followers.length > 0) {
+    const friends = await db.follows.listFriends(userId);
+    if (friends.length > 0) {
       const displays = await resolveUserDisplays(db, [userId]);
       const me = displays.get(userId);
       const name = me?.name ?? "A friend";
       await Promise.all(
-        followers.map((f) =>
+        friends.map((f) =>
           db.notifications.createIfAbsent({
             userId: f.userId,
             kind: "friend_pb",
